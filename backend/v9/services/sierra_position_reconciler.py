@@ -234,6 +234,31 @@ def recommend_orphan_stop(sierra_qty: Optional[int],
     }
 
 
+def _read_place_stop_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
+    """Poll trade_result.json for a PLACE_STOP result newer than pre_mtime.
+
+    W8 v2 (2026-07-28). Returns (True, "PLACE_STOP_OK") on success,
+    (False, status_string) on failure or timeout.
+    """
+    result_path = Path(os.path.expanduser(
+        os.getenv("MEMS26_SIGNALS_DIR", "~/SierraChart_Data/v9_export")
+    )) / "trade_result.json"
+    deadline = _time_mod.time() + timeout_s
+    while _time_mod.time() < deadline:
+        try:
+            if result_path.exists():
+                mtime = result_path.stat().st_mtime
+                if mtime > pre_mtime:
+                    data = _safe_json_loads(result_path.read_text().strip() or "{}")
+                    status = data.get("status", "")
+                    if "PLACE_STOP" in status:
+                        return status == "PLACE_STOP_OK", status
+        except (OSError, json.JSONDecodeError):
+            pass
+        _time_mod.sleep(0.25)
+    return False, "PLACE_STOP_TIMEOUT: no result within {:.0f}s".format(timeout_s)
+
+
 def _read_flatten_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
     """Poll trade_result.json for a FLATTEN_ORPHAN result newer than pre_mtime."""
     result_path = Path(os.path.expanduser(

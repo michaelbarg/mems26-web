@@ -118,6 +118,37 @@ def write_modify_target(
     })
 
 
+def write_place_stop(
+    *,
+    qty: int,
+    price: float,
+    side: str,
+) -> Dict[str, Any]:
+    """Write a PLACE_STOP command — resting protective stop for an orphan position.
+
+    W8 v2 (2026-07-28). DLL uses sc.SubmitOrder (standalone, not Exit-family).
+    TradeAccount is sc.SelectedTradeAccount in the DLL — NOT passed from here
+    (root cause of r=-1 on 07-20: string mismatch between command "account"
+    and Sierra's internal selected account). Side = the POSITION side to protect.
+    """
+    side = side.upper()
+    if side not in ("LONG", "SHORT"):
+        raise ValueError(f"PLACE_STOP side must be LONG or SHORT, got {side!r}")
+    if qty <= 0:
+        raise ValueError(f"PLACE_STOP qty must be >0, got {qty}")
+    if price <= 0:
+        raise ValueError(f"PLACE_STOP price must be >0, got {price}")
+    payload: Dict[str, Any] = {
+        "op": "PLACE_STOP",
+        "qty": qty,
+        "price": round(price, 2),
+        "side": side,
+        "ts_submitted": time.time(),
+    }
+    # NO account field — DLL uses sc.SelectedTradeAccount (requirement 1)
+    return _write_command(payload)
+
+
 def write_flatten_orphan(
     *,
     qty: int,

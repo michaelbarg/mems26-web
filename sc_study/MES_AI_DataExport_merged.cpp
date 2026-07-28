@@ -3311,6 +3311,108 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_MGMT";
                     }
+                    // ── OP: PLACE_STOP v2 (2026-07-28) — resting protective stop ──
+                    // Places a standalone resting STOP order via sc.SubmitOrder (NOT
+                    // Exit-family — SellExit/BuyExit only support MARKET, r=-1 on STOP).
+                    //
+                    // 🔴 THREE HARD REQUIREMENTS (Michael 07-28):
+                    //   1. o.TradeAccount = sc.SelectedTradeAccount (NOT from command JSON —
+                    //      root cause of all r=-1 on 07-20: string mismatch between command
+                    //      "account" field and Sierra's internal selected account).
+                    //   2. Side check BEFORE sending: a stop on the wrong side becomes an
+                    //      immediate market execution, not protection. LONG → SELL stop
+                    //      below entry; SHORT → BUY stop above entry.
+                    //   3. This is NOT op=EXIT. Zero Exit-family calls. sc.SubmitOrder only.
+                    //
+                    // Reduce-only: qty clamped to abs(position). Flat → refuse.
+                    // Verification: orders[] before/after in SIM (test suite is not evidence).
+                    else if (cmd_content.find("\"PLACE_STOP\"") != std::string::npos)
+                    {
+                        if (order_armed >= 1)
+                        {
+                            int ps_qty = parse_int("\"qty\"");
+                            double ps_price = parse_float("\"price\"");
+                            char ps_side[16] = {0};
+                            parse_str("\"side\"", ps_side, sizeof(ps_side));
+
+                            if (ps_qty <= 0 || ps_price <= 0 ||
+                                (strcmp(ps_side, "LONG") != 0 && strcmp(ps_side, "SHORT") != 0))
+                            {
+                                result_status = "PLACE_STOP_BAD_INPUT";
+                                order_err = -1;
+                            }
+                            else
+                            {
+                                // Read actual position — refuse if flat
+                                s_SCPositionData ps_pos;
+                                sc.GetTradePosition(ps_pos);
+                                int actual_pos = ps_pos.PositionQuantity;
+
+                                if (actual_pos == 0)
+                                {
+                                    result_status = "PLACE_STOP_NO_POSITION";
+                                    order_err = 0;
+                                    sc.AddMessageToLog("MEMS26: PLACE_STOP refused — no position", 1);
+                                }
+                                // Side must match position sign
+                                else if ((strcmp(ps_side, "LONG") == 0 && actual_pos < 0) ||
+                                         (strcmp(ps_side, "SHORT") == 0 && actual_pos > 0))
+                                {
+                                    result_status = "PLACE_STOP_SIDE_MISMATCH";
+                                    order_err = -1;
+                                    sc.AddMessageToLog("MEMS26: PLACE_STOP side mismatch vs position", 1);
+                                }
+                                else
+                                {
+                                    // Clamp qty to position size (reduce-only, never flip)
+                                    int clamped_qty = (ps_qty < abs(actual_pos)) ? ps_qty : abs(actual_pos);
+
+                                    s_SCNewOrder o;
+                                    o.OrderQuantity = clamped_qty;
+                                    o.OrderType     = SCT_ORDERTYPE_STOP;
+                                    o.Price1        = static_cast<float>(ps_price);
+                                    o.TimeInForce   = SCT_TIF_DAY;
+
+                                    // 🔴 REQUIREMENT 1: TradeAccount = sc.SelectedTradeAccount
+                                    // NEVER from command JSON. Root cause of r=-1 on 07-20.
+                                    o.TradeAccount = sc.SelectedTradeAccount;
+
+                                    // 🔴 REQUIREMENT 2: BuySell side from position sign
+                                    // LONG position → SELL stop (close by selling)
+                                    // SHORT position → BUY stop (cover by buying)
+                                    if (actual_pos > 0)
+                                        o.BuySell = BSE_SELL;
+                                    else
+                                        o.BuySell = BSE_BUY;
+
+                                    // 🔴 REQUIREMENT 3: sc.SubmitOrder — NOT Exit-family
+                                    int r = sc.SubmitOrder(o);
+
+                                    result_status = (r > 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
+                                    order_err = r;
+
+                                    char msg[256];
+                                    if (r > 0)
+                                    {
+                                        snprintf(msg, sizeof(msg),
+                                            "MEMS26: PLACE_STOP_OK — %s stop qty=%d price=%.2f (pos=%d, order_id=%d)",
+                                            (actual_pos > 0) ? "SELL" : "BUY",
+                                            clamped_qty, ps_price, actual_pos, r);
+                                    }
+                                    else
+                                    {
+                                        snprintf(msg, sizeof(msg),
+                                            "MEMS26: PLACE_STOP_FAIL r=%d — %s stop qty=%d price=%.2f (pos=%d)",
+                                            r, (actual_pos > 0) ? "SELL" : "BUY",
+                                            clamped_qty, ps_price, actual_pos);
+                                    }
+                                    sc.AddMessageToLog(msg, (r > 0) ? 0 : 1);
+                                }
+                            }
+                        }
+                        else
+                            result_status = "ACK_MGMT";
+                    }
                     // ── OP: EXIT — PARTIAL market exit of N contracts ────
                     // Uses sc.BuyExit (for SHORT position) or sc.SellExit (for LONG position)
                     // with OrderQuantity = exit_qty. This exits exactly N contracts, NOT all.
