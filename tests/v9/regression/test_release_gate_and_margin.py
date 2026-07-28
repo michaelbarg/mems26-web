@@ -181,3 +181,23 @@ def test_effective_contracts_applies_the_cap_on_every_path(tmp_path, monkeypatch
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     assert sc._effective_contracts_raw({"contracts": 4}) == 4     # sizing says 4
     assert sc.effective_contracts({"contracts": 4}) == 0          # account says no
+
+
+# ── never send a contract the DLL cannot bracket ─────────────────────────────
+
+def test_bracket_slot_cap():
+    """Michael 07-28: 'העסקה היא על 6 חוזים והסטופ והמימוש על חוזה 1'. The DLL
+    attaches one bracket per contract and has four slots; a fifth contract would
+    ride naked inside a position that looks protected."""
+    assert ms.cap_to_bracketable(4)[0] == 4
+    assert ms.cap_to_bracketable(7)[0] == 4
+    assert "naked" in ms.cap_to_bracketable(7)[1]
+
+
+def test_bracket_cap_is_unconditional(monkeypatch, tmp_path):
+    """It must apply even with margin sizing OFF — an unprotected contract is a
+    safety defect, not a sizing policy."""
+    import backend.v9.services.sierra_command as sc
+    monkeypatch.delenv("MARGIN_AWARE_SIZING_V1", raising=False)
+    monkeypatch.setenv("FIXED_CONTRACTS_4", "0")
+    assert sc.effective_contracts({"contracts": 7}) == 4

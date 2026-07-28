@@ -391,7 +391,14 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     if n <= 0:
         return n
     try:
-        from backend.v9.services.margin_sizing import cap_contracts
+        from backend.v9.services.margin_sizing import cap_contracts, cap_to_bracketable
+        # Protection first: a contract the DLL cannot bracket must never be sent.
+        # This cap is unconditional — it is not behind MARGIN_AWARE_SIZING_V1,
+        # because an unprotected contract is a safety defect, not a sizing policy.
+        allowed, why = cap_to_bracketable(n)
+        if allowed != n:
+            logger.warning("[SierraCmd] BRACKET-SLOT CAP %d → %d — %s", n, allowed, why)
+            n = allowed
         allowed, why = cap_contracts(n)
     except Exception as e:                       # never block a fire on a bug
         logger.warning("[SierraCmd] margin sizing errored (size unchanged): %s", e)

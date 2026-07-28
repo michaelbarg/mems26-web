@@ -113,3 +113,23 @@ def cap_contracts(requested: int) -> Tuple[int, str]:
         return 0, (f"no margin: ${usable:.2f} usable, ${per:.2f} needed per contract")
     return allowed, (f"reduced {requested}→{allowed}: ${usable:.2f} usable "
                      f"at ${per:.2f} per contract")
+
+# The DLL attaches a bracket PER CONTRACT, but only has slots 1..4
+# (Stop1Price..Stop4Price / OCOGroup1..4Quantity). A 5th contract would be sent
+# with NO stop and NO target — a naked contract inside a position that looks
+# protected. Michael found this shape on 2026-07-28: "העסקה היא על 6 חוזים והסטופ
+# והמימוש על חוזה 1 … אם אני פותח עסקה הוא צריך להגן על כל החוזים".
+# Today FIXED_CONTRACTS_4 caps at 4 so the slots are never exceeded, but the
+# account can now carry 7 — so the cap must live in code, not in a flag that
+# might change.
+DLL_BRACKET_SLOTS = 4
+
+
+def cap_to_bracketable(requested: int) -> Tuple[int, str]:
+    """Never send more contracts than the DLL can protect."""
+    if requested <= DLL_BRACKET_SLOTS:
+        return requested, "within bracket slots"
+    return DLL_BRACKET_SLOTS, (
+        f"reduced {requested}→{DLL_BRACKET_SLOTS}: the DLL attaches one bracket "
+        f"per contract and has {DLL_BRACKET_SLOTS} slots — extra contracts would "
+        f"be naked")
