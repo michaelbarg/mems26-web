@@ -417,6 +417,15 @@ def _submit_real_bracket(rec: dict) -> Tuple[bool, str]:
     return _read_place_bracket_result(pre_mtime)
 
 
+def _auto_flatten_enabled() -> bool:
+    """ORPHAN_AUTO_FLATTEN_V1 — default OFF (Michael ruling 2026-07-28).
+
+    The system no longer market-exits a position it could not protect. It still
+    watches and still alerts; the decision returns to Michael. Turning this back
+    on is a trading-risk change and needs a new written ruling."""
+    return os.getenv("ORPHAN_AUTO_FLATTEN_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
 def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
     """Monitor an orphan position with a virtual structural stop.
 
@@ -435,6 +444,37 @@ def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
     if key in _virtual_stop:
         # Check flatten triggers
         trigger = _check_orphan_flatten_trigger(rec)
+        if trigger and not _auto_flatten_enabled():
+            # RULING (Michael 2026-07-28): "תבטל את הכלי שיוצא מעסקאות פתוחות.
+            # אם אי אפשר לשים סטופ במקום אסטרטגי — לא לסגור עסקה."
+            #
+            # This flatten existed only because ACSIL cannot place a resting stop
+            # on a position it did not open — proven in sim the same day. But a
+            # market exit fired by a virtual line is an exit at the WORST
+            # location by construction: it triggers exactly where the market is
+            # moving against the position, with no regard for structure. Being
+            # unable to protect a trade properly is not a reason to close it
+            # badly.
+            #
+            # The watch REMAINS: the breach is still detected and still shouts.
+            # What is removed is the system deciding for Michael.
+            msg = (f"ORPHAN STOP BREACHED ({trigger}) — NOT flattening "
+                   f"(ruling 07-28). {rec['side']} {rec['qty']}c @ {rec['entry']}, "
+                   f"virtual stop {rec['stop']}. Decide manually.")
+            logger.critical("[Reconciler] %s", msg)
+            try:
+                from scripts.ops_log import log_event
+                log_event("reconciler", "CRITICAL", msg)
+            except Exception:
+                pass
+            try:
+                from backend.v9.services.phone_alert import push as _pp
+                _pp("orphan_breach", "\U000026a0 MEMS26: STOP LEVEL BREACHED",
+                    f"{rec['side']} {rec['qty']}c @ {rec['entry']} — not closed, your call",
+                    priority=1)
+            except Exception:
+                pass
+            return True, f"BREACH_ALERT_ONLY({trigger}) — position left open per ruling"
         if trigger:
             logger.critical("[Reconciler] ORPHAN FLATTEN TRIGGER: %s → FLATTEN_ORPHAN", trigger)
             ok, status = _flatten_orphan(rec)
