@@ -32,12 +32,48 @@ def command_file() -> Path:
     return signals_dir() / "trade_command.json"
 
 
+LIVE_SIGNALS_DIR = Path(os.path.expanduser("~/SierraChart_Data/v9_export"))
+
+
+def _assert_not_a_test_writing_live(out: Path) -> None:
+    """Refuse to arm the live wire from inside a test run.
+
+    2026-07-28: the regression suite placed REAL orders on the live account.
+    MEMS26_SIGNALS_DIR was unset in tests, so it defaulted to the live export
+    folder, and `trade_command.json` is not a log — the Sierra DLL polls it and
+    submits whatever it finds. Sierra's log for that day carries six broker
+    rejections ("Insufficient Account Value (NLV) for margin"); the account being
+    under-margined is the only reason none of them filled.
+
+    tests/conftest.py now redirects the signals dir, which is the fix. This is
+    the second lock, at the single choke point every command passes through, so
+    that a hard-coded path or a conftest that gets edited later cannot quietly
+    re-arm the wire. Pytest sets PYTEST_CURRENT_TEST for every test it runs.
+    """
+    if not os.getenv("PYTEST_CURRENT_TEST"):
+        return
+    try:
+        same = out.resolve().parent == LIVE_SIGNALS_DIR.resolve()
+    except OSError:
+        same = str(out.parent) == str(LIVE_SIGNALS_DIR)
+    if same:
+        raise RuntimeError(
+            f"REFUSING to write a trade command to the LIVE signals dir ({out}) "
+            "from a test process. The Sierra DLL executes this file. Point "
+            "MEMS26_SIGNALS_DIR at a tmp_path."
+        )
+
+
 def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Write a command payload to the command file."""
     out = command_file()
+    _assert_not_a_test_writing_live(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2))
-    logger.info("[SierraCmd] wrote %s (op=%s)", out, payload.get("op") or payload.get("action"))
+    # WARNING, not INFO: this is the moment an order reaches the broker. It was
+    # logged at INFO before, which is why nobody noticed commands going out.
+    logger.warning("[SierraCmd] COMMAND WRITTEN → %s (op=%s)",
+                   out, payload.get("op") or payload.get("action"))
     return payload
 
 
