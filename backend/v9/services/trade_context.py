@@ -855,7 +855,9 @@ def get_opening_type_seed():
         bars_rows = read_all(
             "SELECT ts, open, high, low, close, volume "
             "FROM v9_bars_5min_woodies "
-            "WHERE ts::date = current_date AND ts::time >= '16:30' "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
             "ORDER BY ts ASC LIMIT 3",
             {},
         )

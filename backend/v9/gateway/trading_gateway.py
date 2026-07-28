@@ -847,7 +847,9 @@ class TradingGateway:
                             from backend.v9.db.read import read_all as _dh_read
                             _dh_rows = _dh_read(
                                 "SELECT high, low FROM v9_bars_5min_woodies "
-                                "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
                                 "ORDER BY ts", {},
                             )
                             if _dh_rows:
@@ -1007,7 +1009,9 @@ class TradingGateway:
                         _lg_srows = _lg_read(
                             "SELECT high, low, close, to_char(ts,'HH24:MI') AS hm "
                             "FROM v9_bars_5min_woodies "
-                            "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
                             "ORDER BY ts ASC", {})
                         if _lg_srows:
                             _lg_session_bars = [
@@ -1222,7 +1226,9 @@ class TradingGateway:
                     from backend.v9.db.read import read_all as _ecg_read
                     _ecg_srows = _ecg_read(
                         "SELECT high, low FROM v9_bars_5min_woodies "
-                        "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                        "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
                         "ORDER BY ts ASC", {})
                     if _ecg_srows and _ecg_entry is not None:
                         _ecg_bars = [{"high": float(r["high"]), "low": float(r["low"])}

@@ -68,6 +68,27 @@ class FillPoller:
         # POSITION_TRUTH_SYNC_V1: when Sierra first reported flat (grace timer)
         self._flat_since: Optional[float] = None
 
+    _warn_last: Dict[str, float] = {}
+
+    def _warn_throttled(self, key: str, msg: str, *args) -> None:
+        """No-silent-failures (CLAUDE.md) with a throttle.
+
+        These paths swallow exceptions on purpose — a poller must never die on a
+        transient read. But at logger.debug the failure was invisible: on 07-27
+        the position-truth sync raised on EVERY poll for hours and nobody saw it
+        (cursor V3 flagged the same class of hidden failure). WARNING once per
+        FILL_POLLER_WARN_THROTTLE_S (default 300) per call-site keeps the signal
+        without flooding a 3s loop."""
+        try:
+            period = float(os.getenv("FILL_POLLER_WARN_THROTTLE_S", "300"))
+        except (TypeError, ValueError):
+            period = 300.0
+        now = time.time()
+        if now - FillPoller._warn_last.get(key, 0.0) < period:
+            return
+        FillPoller._warn_last[key] = now
+        logger.warning(msg + " [throttled %.0fs]", *(args + (period,)))
+
     def last_poll_age(self) -> float:
         """Seconds since the loop last iterated (P3 heartbeat). -1 if never run.
         A large value during RTH means the poller task died → fills stop silently."""
@@ -273,15 +294,37 @@ class FillPoller:
                 new_lines = f.read().splitlines()
             self._activity_exit_pos = size
 
-            # Collect CLOSED_TRADE_PNL events from new lines
+            # Collect CLOSED_TRADE_PNL events from new lines.
+            #
+            # DEDUP BY SOURCE LINE (2026-07-28). The feeder used to re-emit the
+            # WHOLE activity log after any `strings` failure (it wrote offset 0),
+            # so the journal held the same close many times over — measured:
+            # 2363 events, only 309 unique, one -125.00 close repeated 117 times.
+            # Summing a re-emitted batch would multiply a real loss.
+            #
+            # The key is the SOURCE LINE, not the timestamp: genuine per-contract
+            # closes sit on DIFFERENT lines of the same log (a 3-contract exit is
+            # 3 lines) and must all be summed, while a re-emission repeats the
+            # SAME line under a NEW scan stamp. Keying on (ts, line) would
+            # therefore keep every duplicate — the timestamps differ.
             pnl_events = []
+            _seen_lines = set()
             for ln in new_lines:
                 try:
                     ev = json.loads(ln)
                 except (ValueError, TypeError):
                     continue
-                if ev.get("type") == "CLOSED_TRADE_PNL":
-                    pnl_events.append(ev)
+                if ev.get("type") != "CLOSED_TRADE_PNL":
+                    continue
+                _key = (ev.get("account"), ev.get("line"))
+                if _key[1] is not None:
+                    if _key in _seen_lines:
+                        logger.warning(
+                            "[FillPoller] W2 duplicate CLOSED_TRADE_PNL (line %s) "
+                            "dropped — feeder re-emission", _key[1])
+                        continue
+                    _seen_lines.add(_key)
+                pnl_events.append(ev)
             if not pnl_events:
                 return
 
@@ -332,9 +375,12 @@ class FillPoller:
                 float(ev.get("pnl", 0)) for ev in pnl_events
                 if ev.get("pnl") is not None
             )
-            # Use the last event's timestamp (all events in a bracket exit
-            # share the same ts, but last is safest)
-            exit_ts_str = pnl_events[-1].get("ts")
+            # Timestamp: the feeder renamed `ts` → `scan_ts` on 2026-07-28 to stop
+            # it being read as a trade time (it is the moment the log was
+            # SCANNED, shared by every event in one poll). Read both so older
+            # journal lines still resolve; either way it only stamps exit_ts,
+            # never decides which day a close belongs to.
+            exit_ts_str = pnl_events[-1].get("scan_ts") or pnl_events[-1].get("ts")
             exit_ts = None
             if exit_ts_str:
                 try:
@@ -431,7 +477,7 @@ class FillPoller:
                 pass
 
         except Exception as e:
-            logger.debug("[FillPoller] _check_activity_exits error (fail-safe): %s", e)
+            self._warn_throttled("activity_exits", "[FillPoller] _check_activity_exits error (fail-safe): %s", e)
 
     def _maybe_reconcile(self) -> None:
         """FIX-6 (SYS-3): compare TM vs Sierra position every ≤30s.
@@ -454,7 +500,7 @@ class FillPoller:
             else:
                 logger.debug("[FillPoller] reconciler: %s", msg)
         except Exception as e:
-            logger.debug("[FillPoller] reconciler error (fail-safe): %s", e)
+            self._warn_throttled("reconciler", "[FillPoller] reconciler error (fail-safe): %s", e)
 
     def _check_rejections(self) -> None:
         """FIX-10 (ORDER_REJECT_DETECT_V1, default OFF — trade 337, 2026-07-10):
@@ -529,7 +575,7 @@ class FillPoller:
                 logger.warning("[FillPoller] FIX-10 reject-close failed for %d: %s", trade.id, e)
             self._notify_gateway_close(trade.id, "REJECTED")
         except Exception as e:
-            logger.debug("[FillPoller] _check_rejections error (fail-safe): %s", e)
+            self._warn_throttled("rejections", "[FillPoller] _check_rejections error (fail-safe): %s", e)
 
     def _check_result(self) -> None:
         """Check trade_result.json for ORDER_FAILED → cancel trade + release slot.
@@ -639,7 +685,7 @@ class FillPoller:
             RESULT_PATH.write_text("")
 
         except (OSError, json.JSONDecodeError) as e:
-            logger.debug("[FillPoller] _check_result error: %s", e)
+            self._warn_throttled("check_result", "[FillPoller] _check_result error: %s", e)
 
     def _register_submitted_order(self, result: Dict[str, Any]) -> None:
         """Map Sierra order ids the moment the DLL acks ORDER_SUBMITTED (L2-residual/L4, 2026-07-08).
