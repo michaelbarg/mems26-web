@@ -201,3 +201,13 @@ def test_bracket_cap_is_unconditional(monkeypatch, tmp_path):
     monkeypatch.delenv("MARGIN_AWARE_SIZING_V1", raising=False)
     monkeypatch.setenv("FIXED_CONTRACTS_4", "0")
     assert sc.effective_contracts({"contracts": 7}) == 4
+
+
+def test_dbl_max_sentinel_does_not_authorise_anything(tmp_path, monkeypatch):
+    """SIM accounts report ~1.8e308 for balances. Read raw, that made the cap
+    permit 6.5e290 contracts — no cap at all, in the one place whose job is to
+    be a cap. Found 9 minutes before the 07-28 open."""
+    _state(tmp_path, monkeypatch, acct_available_funds=1.7976931348623157e308,
+           acct_account_value=1.7976931348623157e308)
+    allowed, why = ms.cap_contracts(4)
+    assert allowed == 4 and "no guess" in why

@@ -48,7 +48,23 @@ def _read_state() -> Optional[dict]:
         import re
         raw = re.sub(r':\s*-?inf\b', ':null', STATE.read_text().strip() or "{}")
         d = json.loads(raw)
-        return d if d.get("acct_ok") in (1, True) else None
+        if d.get("acct_ok") not in (1, True):
+            return None
+        # ±DBL_MAX sentinel (2026-07-28, 9 minutes before the open): on a SIM
+        # account Sierra has no real balances and GetTradeAccountData returns
+        # ~1.8e308 for NLV and available funds. The API endpoint already nulls
+        # these for display, but THIS module reads the file directly — and a
+        # 1.8e308 "available funds" makes the margin cap compute 6.5e290
+        # permitted contracts, i.e. no cap at all, in the one place whose whole
+        # job is to be a cap. Absurd magnitude = unusable, and unusable means
+        # leave the size alone rather than authorise anything (Rule 1).
+        for k in ("acct_available_funds", "acct_margin_req", "acct_account_value"):
+            v = d.get(k)
+            if isinstance(v, (int, float)) and abs(v) > 1e15:
+                logger.warning("[MarginSizing] %s is a sentinel (%.3g) — account "
+                               "data unusable, size left unchanged", k, v)
+                return None
+        return d
     except Exception as e:
         logger.warning("[MarginSizing] state unreadable: %s", e)
         return None
