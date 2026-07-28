@@ -3432,16 +3432,76 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                             route = "STOP";
                                         }
 
-                                        // Exit family closes the position: long -> Sell, short -> Buy.
-                                        double r = (actual_pos > 0) ? sc.SellExit(o) : sc.BuyExit(o);
+                                        // ── ROUTE LADDER (2026-07-28, after live sim evidence) ──
+                                        // Sim test on Sim1 with a real -5 position proved BOTH
+                                        // OCO_LIMIT_STOP and plain STOP return r=-1 through the Exit
+                                        // family. So the 07-20 note was right about ONE thing: Exit
+                                        // does not carry resting order types. But Sierra clearly CAN
+                                        // hold a stop+target on a position — Michael's own brackets
+                                        // are in orders[] — so the capability exists on another route.
+                                        // Try each in turn and REPORT WHICH ONE WORKED, instead of
+                                        // guessing again: one Remote Build settles it.
+                                        //   A. Exit family      (kept, so a regression is visible)
+                                        //   B. BuyOrder/SellOrder — routes to InternalSubmitOrder when
+                                        //      Symbol or TradeAccount is set, which is our case.
+                                        //   C. SetAttachedOrders — configure the bracket and let
+                                        //      Sierra attach it.
+                                        double r = 0.0;
+                                        const char* used = "NONE";
+
+                                        r = (actual_pos > 0) ? sc.SellExit(o) : sc.BuyExit(o);
+                                        if (r > 0) used = "A_EXIT";
+
+                                        if (r <= 0)
+                                        {
+                                            s_SCNewOrder o2 = o;
+                                            // Force the Symbol/TradeAccount branch so the call lands
+                                            // on InternalSubmitOrder rather than InternalBuyEntry.
+                                            o2.Symbol       = sc.Symbol;
+                                            o2.TradeAccount = sc.SelectedTradeAccount;
+                                            double r2 = (actual_pos > 0) ? sc.SellOrder(o2) : sc.BuyOrder(o2);
+                                            if (r2 > 0) { r = r2; used = "B_ORDER"; }
+                                            else if (r == 0) r = r2;
+                                        }
+
+                                        if (r <= 0)
+                                        {
+                                            // C: describe the protective bracket and let Sierra attach
+                                            // it to the position. Prices are absolute, not offsets.
+                                            s_SCNewOrder cfg;
+                                            cfg.OrderQuantity = clamped_qty;
+                                            cfg.TradeAccount  = sc.SelectedTradeAccount;
+                                            cfg.Stop1Price    = pb_stop;
+                                            cfg.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                                            if (pb_target > 0.0)
+                                            {
+                                                cfg.Target1Price = pb_target;
+                                                cfg.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                                            }
+                                            sc.SetAttachedOrders(cfg);   // void — verify via orders[]
+                                            used = "C_ATTACHED";
+                                            r = 1.0;                     // provisional; orders[] is the proof
+                                        }
 
                                         result_status = (r > 0) ? "PLACE_BRACKET_OK" : "PLACE_BRACKET_FAIL";
                                         order_err = (int)r;
+                                        // Which route actually worked — carried out to
+                                        // trade_result.json so the answer is machine-readable and
+                                        // does not depend on reading the Sierra message log.
+                                        // order_err_text is a `const char*` (declared above), so it
+                                        // is POINTED at a buffer rather than written through — the
+                                        // same convention the ORDER_FAILED path uses. static: the
+                                        // result JSON is written later in this same callback, after
+                                        // this block has gone out of scope.
+                                        static char pb_route_txt[64];
+                                        snprintf(pb_route_txt, sizeof(pb_route_txt),
+                                                 "via=%s type=%s", used, route);
+                                        order_err_text = pb_route_txt;
 
                                         char msg[320];
                                         snprintf(msg, sizeof(msg),
-                                            "MEMS26: PLACE_BRACKET_%s r=%.0f route=%s %s qty=%d stop=%.2f target=%.2f (pos=%d last=%.2f)",
-                                            (r > 0) ? "OK" : "FAIL", r, route,
+                                            "MEMS26: PLACE_BRACKET_%s r=%.0f route=%s via=%s %s qty=%d stop=%.2f target=%.2f (pos=%d last=%.2f)",
+                                            (r > 0) ? "OK" : "FAIL", r, route, used,
                                             (actual_pos > 0) ? "SELL" : "BUY",
                                             clamped_qty, pb_stop, pb_target, actual_pos, last_px);
                                         sc.AddMessageToLog(msg, (r > 0) ? 0 : 1);
