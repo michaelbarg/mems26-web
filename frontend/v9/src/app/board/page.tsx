@@ -7,6 +7,7 @@ import { PagesPanel } from '../../v9/components/board/PagesPanel';
 import { NewsCalendarPanel } from '../../v9/components/board/NewsCalendarPanel';
 import { ProposedDiffsPanel } from '../../v9/components/board/ProposedDiffsPanel';
 import { AccountStatePanel } from '../../v9/components/board/AccountStatePanel';
+import { DailyPnlPanel } from '../../v9/components/board/DailyPnlPanel';
 import { SierraLiveCheckPanel } from '../../v9/components/board/SierraLiveCheckPanel';
 import { StatusBoardPanel } from '../../v9/components/board/StatusBoardPanel';
 import { System6SupervisorPanel } from '../../v9/components/board/System6SupervisorPanel';
@@ -26,6 +27,8 @@ export default function BoardPage() {
         <ProposedDiffsPanel />
         {/* W1b: עמוד-חשבון-אמת — sierra_state.json (מייקל 07-25) */}
         <AccountStatePanel />
+        {/* מייקל 07-28: טבלת רווח/הפסד לפי ימים מיומן-סיירה — להבין איפה נפלנו */}
+        <DailyPnlPanel />
         {/* T1: בדיקת-אמת שהמערכת מזהה את סיירה (מייקל 07-14) */}
         <SierraLiveCheckPanel />
         {/* לוח-החדשות — חלון-NO_TRADE (מייקל 07-13) */}

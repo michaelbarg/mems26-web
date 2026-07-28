@@ -1,35 +1,130 @@
-# ביקורת-דלתון מקיפה — 2026-07-20 (סוכן-אבחון, קריאה-בלבד, חוק-5)
+# ביקורת-דלתון מקיפה — שערים + R:R/סטופ + T0–T4 · 2026-07-20
 
-## הממצא הגדול: תיקון-הסטופ כבר קיים בקוד — פשוט כבוי
-נתיב-הסטופ של S2 (`five_min_system.py:1268-1352`) — **שני תיקונים בנויים אך OFF:**
-- **`STRUCTURAL_STOP_ORIGIN_V1`** (unset/OFF) → שורה 1277 **זורק את עוגן-הסווינג האמיתי** של התבנית (`structural_anchor` = שיא b1..b3 = אזור-ההיצע 7521-7527) ומשתמש בקצה-בר-הכניסה במקום. ההערה ב-:1271 **מצטטת את #420 מפורשות.**
-- **`STOP_WINDOW_COMPLETED_V1=0`** (OFF) → שורה 1308 קורא את ה-buffer-החי שהבר-האחרון בו חלקי (range≈0) → מרחק-מבני קורס ל-~3T → רצפת-ATR נכנסת → סטופ **בתוך** המבנה. זה בדיוק #420.
-- ה-gateway resolver (`STOP_RESOLVER_V1=1`) **דוחה** מבנה רחב-מהתקרה ומשאיר את הסטופ-הצר — סותר את חוזה `compute_stop_v2` ("מבנה תמיד גובר").
-→ **תיקון = להדליק את 2 הדגלים + לתת ל-resolver להרחיב-למבנה (לא לדחות). enable+test+verify, לא build-מאפס.**
+**מקור:** `CURSOR_FULL_GATE_TARGET_AUDIT_2026-07-20.md` · סוכן: cursor · קריאה-בלבד לאבחון · **אין הדלקת דגלים**.  
+**חוק-5:** חוזי-דטרמיניסטיים רצו — ראו §E.
 
-## שורש-על (מאומת-קוד): 2 מקורות
-(א) **הסטופ לא מעוגן לקצה-המבנה** (התיקונים כבויים) → הפסד-מוקדם **וגם** R:R מנופח → rr_entry_gate/pre_fire חוסמים.
-(ב) **סיגנלים רגעיים** (trend_state/LSMA/day_type-מסונתז) מחליפים את **כיוון-היום/הרחבה של דלתון**.
+---
 
-## rr_entry_gate (חשד-מייקל אומת)
-הסטופ-הממוקם-שגוי נכנס לחישוב-R:R → risk מנופח → R:R<0.65 → חסימה. **לא לכבות את rr — לתקן את הסטופ** (ואז R:R נכון לבד). אותו סטופ מזין גם את `pre_fire_validator` (R:R≥1 מול T2).
+## הממצא הגדול
 
-## require_with_trend (5a — פאולט חי)
-`daytype_playbook.py:132-137`: על Variation, SHORT+trend_state=BLUE (באונס רגעי) → "counter-trend" SKIP → חוסם fade-בתקרה בכיוון-היום. **תיקון: להשוות מול כיוון-היום/הרחבה, לא trend_state רגעי; לפטור responsive-REV לפי מיקום (VAH/VAL).** אותו עיקרון ל-cont_trend_filter/direction_context על CONT.
+1. **סטופ-מבני כבר בקוד אך OFF** — `STRUCTURAL_STOP_ORIGIN_V1` + `STOP_WINDOW_COMPLETED_V1` ב-`five_min_system.py:1268-1311`. OFF → קצה-בר-כניסה / חלון-חלקי → ATR-floor → #420 סטופ **בתוך** המבנה.
+2. **`rr_entry_gate` לגיטימי** — לא לכבות. סטופ-שגוי מנפח risk → R:R נמוך → חסימה. תיקון-סטופ מתקן גם את ה-R:R.
+3. **יעדים מבניים דלוקים ואז נדרסים** — `DAYTYPE_TARGETS_STRUCTURAL=1` כותב C1/C2/C3 ב-`trading_gateway.py:1115`, ואז `pattern_t1_points` ב-`:1172` דורס T1/T2/T3 ל-`entry±pts/2×/3×`.
+4. **שערי-upstream על סיגנל-שבור** — G6/G2/G3/location כבויים היום (null לפני נעילה / expansion חסר). `require_with_trend` עדיין מדלג על SHORT@VAH כש-`trend_state=BLUE`.
 
-## יעדים T0-T4 (חשד-מייקל אומת)
-מיקוד-מבני **דלוק ונכון** (`structural_targets.py`, DAYTYPE_TARGETS_STRUCTURAL=1) — אבל **`pattern_t1_points` רץ אחריו (שורה 1176>1115) ודורס אותו** ב-T1=pts, T2=2×T1, T3=3×T1 שרירותי, בדיוק לתבניות שיורות ב-Variation. **תיקון: T1 אמפירי בסדר; T2/T3 מבניים (VAL/measured-move/קצה-VA-נגדי), או להריץ pattern_t1 לפני structural.** + הכל תלוי בסוג-יום נכון (#420 תוייג Trend_Normal → יעדים שגויים).
+---
 
-## שער-דלתון הנכון קיים אך כבוי
-`DAY_DIRECTION_DOCTRINE_V1` (OFF) = השער הנכון (כיוון-הרחבה + halt-proof) — כבוי, בעוד השערים-הרגעיים דלוקים במקומו.
+## A — שערי-gateway (`blocked_by`)
 
-## רשימת-תיקונים ממוינת (להכשרה לדלתון)
-1. **P0 · עיגון-סטופ-למבנה** — הדלק `STRUCTURAL_STOP_ORIGIN_V1`+`STOP_WINDOW_COMPLETED_V1` + resolver-widen-to-structure (מבנה גובר גם מעבר לתקרת-ATR; ATR→חיתוך-חוזים). טסט #420. **מתקן גם את rr/pre_fire.**
-2. **P0 · require_with_trend/cont על כיוון-היום** (לא trend רגעי); REV-fade לפי מיקום.
-3. **P1 · מקור-יחיד לסוג-יום + גלאי-הרחבה** (כל-פריצת-IB=הרחבה) → מבטל את ה-override הידני + מחזיר את השערים-הנכונים.
-4. **P1 · T2/T3 מבניים** (לא ×2/×3).
-5. **P1 · אזור-מת 10:00→נעילה** (ירי פר-סוג-פתיחה כל השעה).
-6. **P0-אמון · רקונסיליאציה-סיירה** (trade_fills.json ריק — P&L לא-אמיתי).
-7. **P1 · גיוס-buffer-בבוט.**
+| שער | סיגנל | אמין היום? | דלתון? | Over-block? | מצב / תיקון |
+|-----|--------|------------|--------|-------------|-------------|
+| `kill_switch` / `session_gate` / `eod_entry_cutoff` / `feed_watchdog` / `cooldown` / `news_blackout` / `daily_loss_halt` / `consecutive_loss_halt` | ops | כן | N/A | לא | KEEP |
+| `duplicate_fire` / `cluster_guard` | trade ledger | כן | N/A | לא | KEEP |
+| `chop_searching` | Layer-0 chop | standing OFF | — | — | לא לגעת (standing) |
+| `suffering_side_veto` (SSV) | outcomes | SSV_GATE OFF | — | — | OFF — KEEP OFF |
+| `opening_type_gate` | opening drive | ON | חלקית | test-drive נדחה → אזור-מת (Task#3) | ADAPT אחרי Task#3 |
+| `daytype_playbook` | day_type × pattern + **require_with_trend←trend_state** | day_type=override OK; **trend_state רגעי לא** | **לא** על fade@VAH | כן — #5א | **P0** — כיוון-יום / מיקום |
+| `trend_direction_gate` / `reactive_location` | CCI/POC | OFF (superseded) | — | — | OFF |
+| `location_gate` | expansion | **לא** (None כשגלאי פספס) | לא כשסיגנל שבור | כן היום | **OFF** עד Task#5 |
+| `daytype_position_gate` | POC/IB | OFF | pattern-blind | — | OFF |
+| `cont_trend_filter` | LSMA sustained | ON | CONT vs רגעי | סיכון על CONT עם bounce | ADAPT עם doctrine |
+| `direction_context` | CVD+breakout | ON | לא = כיוון-יום | אפשרי | ADAPT |
+| `lsma_flat` | LSMA slope | OFF | — | — | OFF |
+| `day_direction_doctrine` | IB expansion side | **OFF** | **כן — השער הנכון** | — | הדלקה אחרי Task#5 |
+| `entry_not_confirmed` | confirm bar | ON (S4) | OK | לא | KEEP |
+| `t1_wrong_side` | T1 side | ON | OK | לא | KEEP |
+| **`rr_entry_gate`** | T1 vs stop | ON; **מספרים שגויים מסטופ שגוי** | כן כשסטופ נכון | סימפטום #420 | **KEEP ON** — תקן סטופ |
+| `zone_limit_late_entry` | zone | ON | OK | — | KEEP |
+| S4 RCB / pattern blocks | woodies | ON | — | — | KEEP |
+| G2/G3 (`S2_DETECTION_LIVE…`) | get_live | היו ON→null-block; חזרו | תלוי מקור | כן לפני נעילה | OFF עד מקור אמין |
+| G6 (S4 honest fallback) | get_live | אותו | — | כן | OFF |
 
-**מפתחות:** trading_gateway.py · five_min_system.py:1254-1352 · daytype_playbook.py:132-137 · structural_targets.py · trade_context.py:520-780 · pre_fire_validator.py · daytype_playbook.yaml · targets.yaml
+**מפל היום (כרונולוגי):** G6 → G2/G3 → location → **rr** (+ playbook require_with_trend). עכשיו G6/G2/G3/location OFF; **rr ON**.
+
+---
+
+## B — R:R / מיקום-סטופ (חשד-מייקל — מאומת)
+
+| שלב | מה קורה | #420 |
+|-----|---------|------|
+| מוצא סטופ S2 | `STRUCTURAL_STOP_ORIGIN_V1` OFF → `bar.high` לא swing 7521–7527 | סטופ ~7514 **בתוך** מבנה |
+| חלון | `STOP_WINDOW_COMPLETED_V1` OFF → בר חלקי בחלון | מרחק מבני קורס → ATR floor |
+| Gateway resolver | `STOP_RESOLVER` / band דוחה מבנה רחב מ-ATR | הסטופ-הנכון נדחה (טסט: low-ATR band rejects ≥7522.75) |
+| R:R | `setup["stop"]` → risk גדול או T1 קטן יחסית | `rr_entry_gate` חוסם setups חדשים |
+
+**מסקנה:** אל תכבה `RR_ENTRY_GATE_V1`. הדלק מוצא-מבני + widen-to-structure; אז R:R מתיישר.  
+**חוזה מאומת:** `tests/v9/regression/test_stop_at_structural_edge_420.py` — stop≥7522.75; ATR-floor=7514 inside; band rejects correct stop.
+
+---
+
+## C — סולם T0–T4
+
+| יעד | מקור היום | מבני? | בעיה |
+|-----|-----------|-------|------|
+| T0 | `FIXED_CONTRACTS_4` + `T0_TARGET_PTS` | סקאלפ | OK אם BE אחרי T1-אמיתי |
+| T1 | structural C1 **או** `pattern_t1_points` | חצי — אמפירי OK | stomp אחרי structural |
+| T2 | אמור POC/מבנה; בפועל **2×pts** אחרי stomp | **לא** אחרי stomp | Variation SHORT צריך POC |
+| T3 | אמור VAL/VA edge; בפועל **3×pts** | **לא** אחרי stomp | Variation SHORT צריך VAL |
+| T4 | slot 4c / runner | תלוי | — |
+| BE | `BE_AFTER_REAL_T1_V1` | — | **OFF** — לא להדליק בלי פסיקה |
+
+**קוד:** `structural_targets.py` Variation REV SHORT → C2=POC, C3=VAL (`:240-242`). Gateway stomp `:1172-1196`.  
+**חוזה מאומת:** `tests/v9/regression/test_dalton_t2_t3_structural_variation.py` — 5 passed (REV C2=POC/C3=VAL; CONT C3=VAL≠VAH; 2×/3×≠VAL).
+
+**תיקון מוצע (cc, אחרי פסיקה):** T1 אמפירי מותר; **T2/T3 לא לדרוס** אחרי structural — או להריץ pattern_t1 לפני structural רק ל-T1.
+
+---
+
+## D — הצלב מול `EOD_FIX_LIST_2026-07-20.md`
+
+| Task | נושא | מצב | חוזה-טסט | בעלים |
+|------|------|-----|----------|-------|
+| #6 | Sierra reconcile / P&L | פתוח | `test_sierra_reconcile_420_pnl` ✅ | cc |
+| #7 | סטופ בקצה-מבנה | פתוח (דגלים OFF) | `test_stop_at_structural_edge_420` ✅ | cc |
+| #5 | מקור-יחיד + הרחבה | פתוח | `test_dalton_ib_break_variation_7501` ✅ | cc |
+| #5א | require_with_trend = כיוון-יום | פתוח (playbook pin SKIP) | `test_dalton_require_day_direction_vah` ✅ | cc |
+| #8 | boot buffer | פתוח | — | cc |
+| #3 | first-hour fire / test-drive | פתוח | — | cc |
+| T2/T3 stomp | structural נדרס | פתוח | `test_dalton_t2_t3_structural_variation` ✅ | cc |
+| G2/G3/G6/location | OFF עד #5 | — | — | מייקל |
+| ORPHAN / STOP_WIDEN | OFF, sim-gated | — | harness קיים | מייקל→cc |
+
+---
+
+## E — חוק-5 (פקודה + פלט)
+
+```text
+$ git pull
+Already up to date.
+
+$ BRIDGE_TOKEN=test python3 -m pytest \
+  tests/v9/regression/test_stop_at_structural_edge_420.py \
+  tests/v9/regression/test_dalton_ib_break_variation_7501.py \
+  tests/v9/regression/test_dalton_require_day_direction_vah.py \
+  tests/v9/regression/test_sierra_reconcile_420_pnl.py \
+  tests/v9/regression/test_dalton_t2_t3_structural_variation.py -q
+26 passed
+```
+
+| מקרה-אמת | קובץ | חוזה |
+|----------|------|------|
+| #420 stop | `test_stop_at_structural_edge_420` | ≥7522.75; 7514 inside; band reject |
+| IB-break→Variation | `test_dalton_ib_break_variation_7501` | mechanical + noise_IB_FRAC=0 |
+| SHORT@VAH + BLUE | `test_dalton_require_day_direction_vah` | Dalton allow; playbook SKIP pin |
+| reconcile #420 | `test_sierra_reconcile_420_pnl` | fills≠−82.50; empty≠MATCH |
+| T2/T3 מבני | `test_dalton_t2_t3_structural_variation` | REV POC/VAL; CONT VAL |
+
+**מיון רגרסיה:** `BRIDGE_TOKEN=test pytest tests/v9/regression/ -q --tb=no` → **110 failed, 1174 passed, 2 xfailed**. ראו `REGRESSION_TRIAGE_2026-07-20.md` — (ג) באג-אמת=0; רוב stale/rot. אין שינוי-קוד-מסחר בסשן זה.
+
+---
+
+## רשימת-תיקונים ממוינת (לפני כל הדלקה)
+
+1. **P0** סטופ-מבני — `STRUCTURAL_STOP_ORIGIN_V1` + `STOP_WINDOW_COMPLETED_V1` + resolver widen (מבנה גובר) · טסט #420 ירוק תחת ON.
+2. **P0** `require_with_trend` / CONT על **כיוון-יום** · REV fade לפי VAH/VAL · טסט VAH+BLUE.
+3. **P0-אמון** Sierra fills reconcile · טסט #420 pnl.
+4. **P1** מקור-יחיד day_type + גלאי-הרחבה (כל מעבר-IB) · טסט 7501 · אז G2/G3/G6/location/doctrine.
+5. **P1** T2/T3 לא לדרוס אחרי structural · טסט Variation POC/VAL.
+6. **P1** אזור-מת 10:00 + boot buffer (#3/#8).
+
+**אין הדלקה בלי:** טסט ירוק תחת הדגל + פסיקת-מייקל + RULED + ריסטארט + אימות-cowork (חוק-5).

@@ -10,12 +10,12 @@
 | G4 honest-prelock | 🟢 | 🟢 | הדלקה | 🟡 | — |
 | G7 FIXED_4↔REDUCED | — | 🟡 | — | 🟢 keep-4 | נפסק |
 | G8 Neutral/escalation | — | — | — | 🟡 ממתין-חתימה | **W5 pack** |
-| B1 ORPHAN / PLACE_STOP | 🟢 | 🟡 | 🟡 A1.6 | 🟡 סים | — |
+| B1 ORPHAN / FLATTEN_ORPHAN | 🟢 harness+tests | 🟡 | 🟡 A1.6 | 🟡 סים | `verify_orphan_place_stop_sim.py` |
 | B2 STOP_WIDEN | 🟢 | — | 🟡 | 🟡 סים | — |
 | G1 paint | 🟢 | 🟢 | — | 🟢 | ב-`bars.py` |
 | **T15 morning stage-E** | 🟢 5 tests | — | cowork+פסיקת-הדלקה | **🟡 בנוי OFF** | 07-17 GO 1/7 · 07-16 INDETERMINATE |
 | **T16 S6 reversal** | 🟢 W1 hunt | — | ALERT→סים | 🟡 לבנייה | פסיקה **א'** · trigger=CVD+2closes |
-| T17 4-contracts | 🟡 | 🟡 | E2E | 🟡 | — |
+| T17 4-contracts | 🟢 harness | 🟡 | E2E cc | 🟡 | `verify_t17_e2e_4contract_sim.py` |
 | Phone MOBILE_REMOTE | — | 🟡 paint/dir | — | 🟡 שארית | שורש URL תוקן cowork |
 
 ## התרעות 🔴

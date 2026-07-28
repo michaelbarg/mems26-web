@@ -2060,7 +2060,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             // finite (0.00 when not finite; readers already treat 0 as "no data"
             // for these advisory display fields).
             #define MES_FIN(x) (std::isfinite((double)(x)) ? (double)(x) : 0.0)
-            char sbuf[2048];
+
+            // ── ACCOUNT MONITOR (Michael 2026-07-28: "צריך לקחת נתונים
+            // מה-account monitor") ────────────────────────────────────────────
+            // The Trade Accounts / Account Monitor window is fed by
+            // sc.GetTradeAccountData(), NOT by s_SCPositionData. They disagree:
+            // the position struct's DailyProfitLoss is per-symbol-position and
+            // showed 0.00 in Michael's screenshot while the account had a real
+            // daily loss. Account-level truth (balance, NLV, available funds,
+            // margin, open P/L, daily P/L, loss-limit + margin flags) lives ONLY
+            // here. acct_ok=0 → the API/UI render "—" (Rule 1: no synthesis).
+            n_ACSIL::s_TradeAccountDataFields acctd;
+            const int acct_ok =
+                (sc.GetTradeAccountData(acctd, sc.SelectedTradeAccount) != 0) ? 1 : 0;
+
+            char sbuf[3072];
             int sl = snprintf(sbuf, sizeof(sbuf),
                 "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
                 "\"send_orders_to_trade_service\":%d,"
@@ -2070,6 +2084,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "\"trade_account\":\"%s\",\"symbol\":\"%s\","
                 "\"daily_total_qty_filled\":%.0f,"
                 "\"last_price\":%.2f,"
+                "\"acct_ok\":%d,"
+                "\"acct_cash_balance\":%.2f,\"acct_account_value\":%.2f,"
+                "\"acct_available_funds\":%.2f,\"acct_margin_req\":%.2f,"
+                "\"acct_open_positions_pl\":%.2f,\"acct_daily_pl\":%.2f,"
+                "\"acct_daily_net_loss_limit\":%.2f,"
+                "\"acct_loss_limit_reached\":%d,\"acct_under_margin\":%d,"
+                "\"acct_trading_disabled\":%d,\"acct_is_sim\":%d,"
                 "\"working_orders\":%d,\"orders\":[%s]}\n",
                 (long long)time(nullptr),
                 sc.GlobalTradeSimulationIsOn ? 1 : 0,
@@ -2083,6 +2104,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.SelectedTradeAccount.GetChars(), sc.Symbol.GetChars(),
                 MES_FIN(spos.DailyTotalQuantityFilled),
                 MES_FIN(sc.LastTradePrice),
+                acct_ok,
+                MES_FIN(acctd.m_CurrentCashBalance),
+                MES_FIN(acctd.m_AccountValue),
+                MES_FIN(acctd.m_AvailableFundsForNewPositions),
+                MES_FIN(acctd.m_MarginRequirement),
+                MES_FIN(acctd.m_OpenPositionsProfitLoss),
+                MES_FIN(acctd.m_DailyProfitLoss),
+                MES_FIN(acctd.m_CalculatedDailyNetLossLimitInAccountCurrency),
+                (int)acctd.m_DailyNetLossLimitHasBeenReached,
+                (int)acctd.m_IsUnderRequiredMargin,
+                (int)acctd.m_TradingIsDisabled,
+                (int)acctd.m_IsSimulated,
                 n_ord, ordbuf);
             #undef MES_FIN
             if (sl > 0 && sl < (int)sizeof(sbuf))  // W1: sbuf enlarged to 2048

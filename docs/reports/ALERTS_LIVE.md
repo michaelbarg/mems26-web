@@ -422,3 +422,438 @@ feed יחיד (PID 33553) · live_price age<500ms · sierra_state mtime טרי �
 - **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת sierra_state.json position_qty=0 & working_orders=0. auto-heal לא-יפעל (is_sim=0). *אין דחיפות-הפסד (נעול ~BE, +$1,210 לא-ממומש), אך: (א) הפוזיציה untracked+לא-מנוהלת; (ב) המערכת מנסה כעת הזמנות-נגד חיות מעליה (LONG 434 שנכשל) — הצטברות-אי-יציבות; (ג) err=-1 על הזמנה-חיה = לאמת שהזמנה-אמת-מכוונת לא תיכשל דומם.*
 
 — session-watch (cowork-dev/MacBook, 22:14 IDT)
+
+
+## 🔴 2026-07-20 22:46 IDT — naked-orphan SHORT נמשך (-7→-6), מוגן+רווחי אך untracked
+
+- **מצב-סיירה (sierra_state.json, mtime <1s, ts=1784576408):** `is_sim=0` · `order_placement_armed=1` · `send_orders_to_trade_service=1` · **position_qty=-6 @ avg 7521.83** · `working_orders=3`. אורפן נמשך ~2h (מ-20:46).
+- **records≠reality נמשך (🔴):** `/api/v9/trades/active`=**null**; reconciler SYS-3 DIVERGENCE כל 30ש (`TM says 0 [] vs Sierra -6 src=state`), `phantom-heal 0/3` חסום is_sim=0 → מתריע-לא-מרפא (מבקש PLACE PROTECTIVE STOP @7531.75 — לא-מבוצע, פסיקת 07-19).
+- **שינוי מהריצה הקודמת (22:14):** (1) פוזיציה **-7→-6** (חוזה 1 כוסה); (2) סטופ-מגן **#9244 טריל 7522.50→7504.75** (type=stop, qty 6, מכסה את כל הפוזיציה); (3) 2 יעדים חדשים **#9248 BUY-LIMIT 1@7473.00** + **#9249 BUY-LIMIT 1@7481.50**; (4) avg 7523.07→7521.83. הטריל+הכיסוי **לא ממקור op=PLACE מוצלח** (כל ה-live-PLACE נכשלים err=-1) → כנראה ניהול ידני-בסיירה. **לאימות מייקל.**
+- **⚠️ אסימטריית-כמות:** סך חוזי-קנייה פתוחים = 6(סטופ)+1+1 = **8 מול 6 שורט**. אם יעד 1-lot יתמלא, הסטופ עדיין qty=6 → סיכון היפוך-לונג אם לא-OCO-מקושר (מבנה per-contract bracket הידוע). לא-חוסם ברגע-זה, למעקב.
+- **מחיר לטובת השורט:** live **7496.75** (age 3.8s) vs avg 7521.83 → **~+25נק · ~$752 לא-ממומש**; סטופ #9244@7504.75 נועל **~+17נק (~$510)**. **מוגן+רווחי**, עדיין untracked+לא-מנוהל ע"י המערכת.
+- **Check-1 לא-אנומליה:** 35דק = ~5 candidates / **1 op=PLACE**. ה-fire = **Trade 436 LIVE SHORT sys4 → op=PLACE @22:14:00 → 22:14:02 `ORDER_FAILED error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) → CANCELLED`** (0 השפעה; Trade 435 shadow-twin רץ: T2 HIT→STOP HIT). זהו **מופע-כשל-חי 3 היום** (אחרי 434@21:55). שאר-המועמדים (22:25 ZLR·22:30 REACTIVE_LONG·22:36 ZLR) חסומים `blocked_by=eod_entry_cutoff` (מוצדק, ~24-35דק לסגירה). הצינור יורה, החסימות מוצדקות.
+- **Check-3 עיוור (משני, נמשך):** `trade_fills_journal.jsonl` תקוע **17:45:48** (last STOP #9232@7514.75) · `trade_activity_events.jsonl` תקוע **17:24:08** (last CLOSED_TRADE_PNL 427.5, ~5h22m) → זיהוי-סגירה-פיקטיבית מושבת; הכיסוי -7→-6 והטריל אינם מתועדים ב-fills. `trade_state.json` חסר. אין סגירה-פיקטיבית חדשה (TM=0, אין רשומה-לסגור).
+- **בריאות נקייה:** flag_guard **PASS 101/101** · live_price age 3.8s (7496.75) · sierra_state mtime <1s · feeder יחיד (PID 33553) · **אין CRITICAL-class חדש** מאז 22:14 (רק DIVERGENCE-spam כל 30ש). משני-ידוע: v9_bars_5min מזוהם → `cross-source guard BLOCKED contradicts_woodies` dev 17-34נק (הגארד **עובד**, חוסם ברים-רעים); bars 5דק stale ~63דק (`TS-HOUR-FIX SKIPPED`); Redis DOWN.
+- **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת `sierra_state.json` position_qty=0 & working_orders=0. auto-heal לא-יפעל (is_sim=0). *אין דחיפות-הפסד (מוגן ~+17נק, +$752 לא-ממומש); הסיכונים: (א) פוזיציה untracked+לא-מנוהלת ~2h; (ב) err=-1 חוזר על כל הזמנה-חיה (434/436) → לוודא שהזמנה-אמת-מכוונת לא תיכשל דומם; (ג) אסימטריית 8-vs-6 עלולה להפוך-לונג אם יעד יתמלא ללא-OCO.*
+
+— session-watch (cowork-dev/MacBook, 22:46 IDT)
+[2026-07-21 16:18 IDT / 2026-07-21T13:18:02Z] 🔴 LIVE naked-orphan LONG 5@7515.50 (is_sim=0) continues (from 07-21 morning) — records≠reality (/trades/active=null, TM=0); reconciler SYS-3 DIVERGENCE looping, phantom-heal 0/3 blocked is_sim=0. Protected by Sierra stop #9302 (sell 5@7511.25, max-loss~-$106.25); price 7512.88, unrealized~-$65, ~1.6pt above stop. Realized today -$106.25 (short-5 9299->9300 @12:46Z). No fictitious close (#437=demo/BE/phantom_reconcile); fills-journal stuck 11:06Z(9295) -> detector partially blind; AUTOMOD=0. 🟡 NEW: DayType writer STALE (v9_day_type_state last 12:28:53Z ~44m, SYS-2) pre-RTH. flag_guard PASS 107/107; live_price 0.8s; single feeder; reconciler alerting-not-acting. Action: manual FLATTEN_ACCOUNT (op=EXIT broken) -> verify sierra_state qty=0/working=0. report-only (Michael decides).
+
+[2026-07-21 16:44 IDT / 2026-07-21T13:44:16Z] 🔴 LIVE orphan FLIP (records≠reality). LONG-5 orphan (flagged 13:18Z) RESOLVED via profitable scale-out +$192.5 (orders 9303/9304/9305 @13:29–13:31Z) → NEW SHORT-5 orphan opened 13:38Z (order 9306) @7516.50, is_sim=0. `/trades/active`=null (TM=0) vs `sierra_state` position_qty=-5 (fresh, mtime<1s). PROTECTED by Sierra buy-stop #9307 @7522.50 (correct side; price 7513.5 → +$75 unrealized, stop 9pt away). Reconciler SYS-3 DIVERGENCE looping, phantom-heal 0/3 blocked is_sim=0 (proposes redundant stop@7526.5 — real stop @7522.50 already tighter). **ROOT reinforced:** backend `op=PLACE` total=0 today yet acct traded 9299–9307 → live orders BYPASS the MEMS26 backend (Sierra-side/manual) → TM never registers → orphan + fills-journal never written by the entry path. Realized today **+$86.25** (-106.25 short 9299→9300 + +82.5/+92.5/+17.5 long scale). 🟡 fills-journal stalled 11:06Z(9295) ~2.5h → fictitious-close detector partially blind (today's closes corroborated by fresh POSITION_CHANGE+CLOSED_TRADE_PNL → NOT fictitious); AUTOMOD=0. 🟡 bars-5min stale ~63min (TS-HOUR-FIX SKIPPED, TS-offset guard active, no new ERROR since 14:00), Redis DOWN. Health GREEN: flag_guard PASS 107/107 · live_price age 0.5s · sierra_state <1s · single feeder PID25221 · no new CRITICAL. Action (NOT urgent — protected+profitable): visual-verify → manual FLATTEN_ACCOUNT to clear the orphan (op=EXIT broken — never partial). report-only.
+
+— session-watch (cowork-dev/MacBook, 16:44 IDT)
+
+[2026-07-21 17:16 IDT / 2026-07-21T14:16:27Z] 🟢 RESOLVED — prior 🔴 naked-orphan SHORT-5 @7516.50 (flagged 13:44Z) CLOSED profitably 13:41:50Z (order 9308, +$137.5); reconciler DIVERGENCE silent since 13:40:42Z (~34m); records=reality (sierra_state qty=0/working=0 fresh == /trades/active null == TM=0). No fictitious close, AUTOMOD=0, no new CRITICAL, flag_guard PASS 107/107, single feeder PID25221. Realized today +$223.75. Standing root persists: op=PLACE total today=0 → all live orders (9299–9308) bypassed MEMS26 backend → TM blind → orphan class recurs; fills-journal stalled 11:06Z ~3.1h. report-only.
+
+— session-watch (cowork-dev/MacBook, 17:16 IDT)
+
+
+[2026-07-21 17:43 IDT / 2026-07-21T14:43:44Z] 🟢 CLEAR — flat, records=reality (sierra_state qty=0/working=0 age0s == /trades/active null == events last POSITION_CHANGE new_qty=0 @13:41Z). **Check-1 anomaly-condition MET (4 candidates / 0 fires) — investigated, all JUSTIFIED:** (a) Woodies GB100+HTLB LONG @17:30 blocked by rr_entry_gate, R:R=0.01 (T1_dist=0.25 < stop_dist=23.25×0.65) — structural C1=7532.50 degenerate (only 0.25pt / 1 tick above entry 7532.25) + 23pt stop, and momentum flipped BEARISH same bar (TCCI<CCI14) → correct long-refusal, NOT the 07-09 trend-suppression failure mode; (b) S2 REACTIVE_SHORT @17:37 blocked by daytype_playbook ("responsive SHORT not at VAH / mid_value on Variation") → justified location filter. op=PLACE=0 = standing root (live orders bypass MEMS26 backend). No fictitious close (events quiescent since 13:41Z, AUTOMOD=0, no closes since prior run). flag_guard PASS 107/107, single feeder PID25221, backend PID25218 up, live_price 0.4s, no new CRITICAL/orphan/DIVERGENCE. 🟡 minors (non-blocking): fills-journal stalled ~3.6h (entry-path bypass, nothing open → no mis-pass risk); TS-HOUR-FIX re-applied to woodies bars (standing item); **degenerate C1 target = root of the rr-block — worth a main-chat look**. report-only.
+
+— session-watch (cowork-dev/MacBook, 17:43 IDT)
+
+
+## 🔴 2026-07-21 18:14 IDT (15:14Z) — דרוש מייקל מיד: NAKED ORPHAN LONG 5 @ 7534.25 (עירום, ללא סטופ)
+**session-watch · קרא-בלבד · לא בוצעה פעולה**
+
+- **מצב-אמת (sierra_state.json, is_sim=0=לייב, mtime 18:13:51 = age 0s):**
+  `position_qty=5, avg_price=7534.25, working_orders=0, orders=[]` → **לונג 5 חוזים חי, עירום — אפס סטופ/ברקט מגן.**
+- **רשומות ≠ מציאות:** `/api/v9/trades/active = null` (TM=0) מול Sierra=5. Reconciler מתריע ברצף כל 30ש' מ-18:10:09:
+  `🔴 NAKED ORPHAN LONG 5c @ 7534.25 → PLACE PROTECTIVE STOP @ 7524.25 (10pt)`, **phantom-heal streak תקוע 0/3**
+  (auto-heal חסום על is_sim=0 → מתריע-לא-מרפא). זו מחלקת-האורפן-החוזר 07-14 / 07-17 / 07-20 / בוקר-07-21.
+- **מקור:** אין `ENTRY` ביומן-המילויים לפוזיציה זו, ו-`working_orders=0` → נכנסה **מחוץ לנתיב-הכניסה המנוהל** (בלי OCO מצורף).
+- **מחיר:** live 7536.5 (age 377ms) → כרגע ~+2.25נק' (~+$56) אך עירום; אפס הגנה מפני היפוך למטה.
+- **רקע-רצף:** שורט-2 (#9314) נכנס 15:05 @7523.25 ונעצר 15:09 @7531 (~-$77.5) · לפניו LONG5 (#9309) נסגר 15:03 −$168.75.
+  **events-journal תקוע מ-15:03:55** (feeder PID 25221 חי אך לא כותב POSITION_CHANGE) — פיגור-רישום התורם לעיוורון-ה-TM.
+- **פעולה — החלטת מייקל בלבד:** FLATTEN_ACCOUNT או הצבת סטופ-מגן ידני **מיד**. הסוכן-המפקח קרא-בלבד, לא מבצע.
+- **נקי בשאר:** flag_guard PASS 107/107 · live_price 377ms · feeder יחיד · backend PID 25218 · אין AUTOMOD/גרירת-יעד · Check-1 חסימות מוצדקות (rr_entry_gate×6, daytype_playbook×4).
+
+
+- **[עדכון 18:40 IDT / 15:40Z] 🔴 עדיין פתוח — ללא שינוי, +30 דק' עירום.** sierra_state טרי (age 0s):
+  `is_sim=0, position_qty=5, avg=7534.25, working_orders=0, orders=[]` · `/trades/active=null` (TM=0) — רשומות≠מציאות נמשך.
+  Reconciler מתריע ברצף עד 18:40:48, phantom-heal 0/3, **אין FLATTEN ביומן → מייקל טרם פעל.** live 7540.0 → ~+5.75נק'
+  (~+$143 לא-ממומש על 5 חוזים) אך עדיין **עירום, אפס סטופ**. שאר-הריצה נקי: אין CRITICAL חדש · אין סגירה-פיקטיבית
+  (לא נסגרה עסקה מהריצה הקודמת; מילוי-אחרון = stop #9314 @7531 ב-18:09) · AUTOMOD=0 · flag_guard PASS 107/107 ·
+  feeder יחיד PID25221 · live_price 1064ms. 🟡 events-journal עדיין תקוע 18:03:55. **פעולה=מייקל: FLATTEN_ACCOUNT או סטופ ידני מיד.**
+
+— session-watch (cowork-dev/MacBook, 18:40 IDT)
+[2026-07-21 19:15 IL] 🔴 דרוש מייקל: records≠reality חי על חשבון-אמת 37138283. Sierra SoT=LONG 6 @7539.25 מבורקט (stop 9329@7538.00 + target 9328@7550.25, qty6) מול TM #442=2c → Reconciler DIVERGENCE כל 30ש מ-19:04:55 (phantom-heal 0/3, חסום live=לא-יירפא-עצמית). שורש: אורפן-קודם LONG5 (מריצת 15:45 העירומה) אומץ ל-C4-bracket של ZLR #442 (LONG4 @7541.5, 18:50) והורחב ל-6 אחרי T1/T2/T3@7544. שיפור מהריצה הקודמת: הפוזיציה מוגנת (סטופ צד-נכון), כבר לא עירומה. סיכון שיורי: TM מנהל 2 בעוד המציאות 6 → כל החלטת-ניהול (סטופ/יעד/פלט) על גודל שגוי. המלצה (מייקל בלבד): FLATTEN_ACCOUNT לניקוי-מלא או יישור-ידני מול 6-lot. נלווה: events-journal קפוא מ-18:03:55 (~67דק), פיגור-רישום #442. הסוכן קרא-בלבד.
+
+
+[2026-07-21 19:43 IL] 🟡 session-watch: ה-🔴 הקודם (records≠reality על חשבון-אמת 37138283, Sierra LONG6 מול TM 2c) **נפתר**. #442 נסגר 19:21:50: Sierra position_qty→0 ב-19:21:29 (src=state, phantom-heal 1/3) + ה-backend שלח CANCEL ל-working-order 9327 → CANCEL_OK → slot released. **לא סגירה-פיקטיבית** (exit=CANCEL, לא נרשם ניצחון-T3 מזויף; AUTOMOD=0, אין גרירת-יעד). כעת שטוח משני-הצדדים (sierra_state qty=0 age≈1s ⇔ trades/active=null), נקי 22 דק (0 DIVERGENCE/NAKED/CRITICAL מאז 19:22). Check1: 5 מועמדים/0 ירי — חסימות מוצדקות (slot-occupied ל-#442 עד 19:21 + rr_entry_gate על INITIATIVE LONG 19:25 loc=far + entry_not_confirmed), לא-אנומליה. בריאות: flag_guard PASS 107/107 · feeder יחיד PID25221 · live_price 281ms · sierra_state age≈1s. **🟡 שיורי-תצפיתי (לא סיכון-פוזיציה — הפוזיציה שטוחה):** events-journal קפוא מ-18:03:55 (~99דק) — סגירת-19:21 לא נרשמה בו; הרקונסיילר נפל-בחן ל-sierra_state (ה-SoT המועדף, טרי). fills-journal תקוע מ-19:04:37 (~39דק) — סגירת-19:21 לא כתבה fill → **גלאי-הסגירה-הפיקטיבית עיוור-ליומן** (מוקל: אומת שטוח דרך ה-SoT). bars/woodies 5min ~63דק ישנים (TS-HOUR-FIX SKIPPED). **המלצה (לא-דחוף, מייקל/CC בלבד):** לבדוק/להפעיל-מחדש את כותב-יומני-הייצוא (events+fills) — הקפאתם מסמאת את מנטרי-הבטיחות אף שה-DLL כותב sierra_state תקין. הסוכן קרא-בלבד, לא נגע בקוד/דגלים/סיירה.
+
+— session-watch (cowork-dev/MacBook, 19:43 IDT)
+
+
+[2026-07-21 20:14 IL] 🟡 session-watch: נקי + מוגן. עסקה חדשה **#445 SHORT 4 @7550.25** נפתחה 20:00:03 (S2 REACTIVE_SHORT). Sierra SoT (age 0s): `is_sim=0, qty=-4, avg=7550.50, working_orders=8` = מבורקט מלא (4 סטופים @7552.25 + 4 יעדים 7546.5/7541.5/7504.75/7504.25). Reconciler `IN_POSITION_OK — confirmed stop` רציף מ-20:00:04 → **records==reality, 0 DIVERGENCE**. ה-🔴 הקודם (records≠reality על 37138283) נשאר פתור מ-19:21. Check1: 7 מועמדים / 1 ירי (20:00→#445) — לא-אנומליה. Check2: כמות-רשומה=4=Sierra, סטופ שפוי (~7 טיק, live 7551.25 רחוק מ-7552.25). Check3: 0 סגירות מהריצה-הקודמת (19:43); ENTRY-fill תואם (order 9341, 4c, C1-C4 order-ids 9333–9343 = 8 ה-working של Sierra); fills-journal חזר-לכתוב (age 806s = הכניסה); AUTOMOD=0, אפס MODIFY/גרירת-יעד. בריאות: flag_guard PASS 107/107 · feeder יחיד PID25221 · live_price 554ms · sierra_state age 0s · NAKED_STOP_SUSPECT 20:00:01-02 = טרנזיינט-כניסה שנפתר תוך 2ש' (כמו 18:05/18:50), אין CRITICAL חי. **🟡 שיורי (לא-דחוף, מייקל/CC בלבד):** events-journal עדיין קפוא מ-18:03:55 (~130דק) — אינו מסמא detector כרגע (fills חזר + reconciler נשען על sierra_state הטרי, ה-SoT); שווה הפעלה-מחדש של כותב-ה-events-journal. הסוכן קרא-בלבד, לא נגע בקוד/דגלים/סיירה.
+
+— session-watch (cowork-dev/MacBook, 20:14 IDT)
+
+
+[2026-07-21 20:48 IL] 🔴 session-watch: **records≠reality + CRITICAL naked-stop על עסקה חיה (#445)** — דרוש מייקל.
+
+**מיטיגנט קודם-כל (כדי לא להיבהל):** ה-SoT הנטיבי `sierra_state.json` (age 0s, is_sim=0=לייב) מראה **SHORT 3 @avg 7550.50 ממוגן מלא** — 6 working = 3 סטופים @7552.25 (orders 9337/9340/9343) + 3 יעדים (7541.50/7504.75/7504.25). live 7549.5 (age 384ms), ~11 טיק מתחת לסטופ, שורט ברווח קל. **הפוזיציה בטוחה, לא עירומה פיזית — הכסף מוגן בסטופים בסיירה.**
+
+**מה שבור (רישום, לא פוזיציה):**
+- fills_journal רשם `{"kind":"T1","order_id":9333,"price":7546.50,"contracts":1}` ב-**20:19:47** — מילוי-יעד אמיתי מנצח (כניסה 7550.25 → +3.75נק'/+15 טיק על חוזה 1 = ~+$18.75). הפוזיציה בסיירה ירדה −4→−3.
+- **ה-TM לא רשם את ה-T1** → API `/trades/active` עדיין `hits:0, "0/4 hit", total_pnl 0.0`.
+- **Reconciler DIVERGENCE רציף מ-20:19:47 (בדיוק זמן ה-T1):** `TM=-4 vs Sierra=-3 (src=state). Records ≠ reality! phantom-heal 0/3` (ריפוי חסום על is_sim=0). ~28 דק' רציף, לא מתרפא לבד.
+- **NAKED_STOP_SUSPECT CRITICAL רציף מ-20:15:05** — 1708 מופעים, "in position but stop not confirmed (last_result=None, age=None)". הסטופ **קיים** בסיירה → זו תקלת-אישור-סטופ ברקונסיילר (נתיב-האישור מחזיר None), לא פוזיציה עירומה.
+- **שורש-על (היפותזה):** events-journal (POSITION_CHANGE) קפוא מ-15:03:55 UTC (~2.7ש'), מעולם לא רשם את #445. נתיב-רישום-החלקיות של ה-TM כנראה קורא events (קפוא) ולא fills → לכן ה-T1 לא נרשם. (המנגנון היפותזה; העובדות לעיל מאומתות מ-SoT+יומנים.)
+
+**דרוש מייקל — הכרעה:** (א) לתת ל-#445 לרוץ ליעדים/סטופ הממוקמים נכון בסיירה (הפוזיציה ממוגנת), ו/או (ב) ליישב את הרשומה (book T1 → TM=−3) + להפעיל-מחדש את כותב ה-events-journal (root של אי-הרישום ושל שתי ההתרעות). זו תבנית-מקדימה למחלקת ה-naked-short של 07-14/17/20 — לכן 🔴, אף שהפוזיציה עצמה מכוסה.
+
+Check1 (אנומליית-החלטות): 5 מועמדים / 0 ירי ב-35 דק' — **לא אנומליה**: המערכת בפוזיציה פתוחה + מצב-סיכון מוחלש; חסימות מוצדקות (rr_entry_gate×12, cont_trend_filter×6, daytype_playbook×6, entry_not_confirmed×1, session_gate_closed×1). בריאות: flag_guard PASS 107/107 · feeder יחיד PID25221. הסוכן קרא-בלבד — לא נגע קוד/דגלים/סיירה.
+
+— session-watch (cowork-dev/MacBook, 20:48 IDT)
+
+---
+
+## 🔴 21:18 IDT — session-watch (cowork-dev/MacBook)
+
+**מצב:** אקוטי-של-הריצה-הקודמת נפתר; שני ליקויי-שלמות פעילים על כסף-אמת.
+
+**עסקה-חיה #452** (SoT sierra_state, age≤1s, is_sim=0): SHORT 4 @ 7546.25 · live 7547.25.
+```
+pos_qty -4 · working 4 · stop_qty_total 2 · NAKED_CONTRACTS 2
+stops=[(9358,7549.5,1),(9361,7549.5,1)]  tgts=[(9357,7542.0,1),(9360,7538.0,1)]
+```
+
+**A. 🔴 2 מ-4 חוזים עירומים (חסר-סטופ):** ENTRY 9365 הקצה 8 רגליים (c1–c4 target+stop), אך ב-SoT עובדים רק c1/c2 (סטופים 9358,9361 @7549.5). c3/c4 (סטופים 9364,9367) לא נרשמו → 2 חוזים חיים ללא סטופ. יציב על 2 דגימות ~7דק (הכניסה מ-21:05). ה-Reconciler מדווח `IN_POSITION_OK — confirmed stop` כי הוא מאשר *קיום* סטופ, לא *כיסוי-כמות*. **מיטיגנט:** 2 החוזים האחרים ממוגנים @7549.5, המחיר קרוב-לכניסה.
+
+**B. 🔴 לולאת PARTIAL->PARTIAL כל בר:** `[ERROR] [BarLevelDetector] on_bar error: Invalid transition: PARTIAL -> PARTIAL` מ-**19:05:05** ברצף (~4,600 מופעים, פעיל אחרון 21:15:59). ה-TM תקוע על עסקה-ישנה במצב PARTIAL ומזהה-מחדש אותו יעד כל בר → on_bar קורס כל מחזור. ניהול-בר (זיהוי-יעד, BE, trailing) נכשל בכל דיספאץ. הגנת-החוזים-המתועדים היא OCO צד-סיירה ואינה תלויה ב-on_bar, אך זו תקלה רציפה על לייב.
+
+**נפתר מהריצה הקודמת (20:48→21:16):** #445 סגר (שארית 3c נעצרה @7552.25 ~20:51); DIVERGENCE(-4vs-3) נסגר 20:49:56; NAKED_STOP_SUSPECT CRITICAL עצר 20:56:37; `/trades/active` מתעד #452 עם stop 7549.5 תואם; 0 DIVERGENCE/NAKED/ORPHAN על כל ts≥21:00; reconciler IN_POSITION_OK 126× מ-21:12. (ה-`NAKED ORPHAN 5c @7515.5` בברייקדאון = 16:28:39, לא-פעיל.)
+
+**Check1 (החלטות):** 10 מועמדים / 2 ירי ב-35דק — **לא אנומליה** (המערכת יורה: PLACE ב-20:56:35 ו-21:05:05). **Check3 (פיקטיביות):** #452 0/4 hit = תואם SoT (-4 מלא); אין close-בלי-fill; אין USER_ORDER_MODIFY מ-07-21 (רשומות-modify אחרונות 07-14, יומן-events קפוא). **בריאות:** live_price 157ms · sierra_state age≤1s · flag_guard PASS 107/107 · feeder יחיד PID25221. הקשר: 44 fills-STOP מול 21 T-hits היום = יום-קשה; מהריצה הקודמת נעצרו 9353 (4c @7550.50) + שארית #445.
+
+**דרוש מייקל — הכרעה:** (א) 2 החוזים העירומים ב-#452 — לוודא/להוסיף סטופ ל-c3/c4 (או להקטין ל-2c); (ב) לולאת PARTIAL->PARTIAL מ-19:05 — לנקות את מצב-ה-TM התקוע (ריסטארט-מבוקר/ריפוי-רשומה) כדי להחזיר ניהול-בר. הסוכן קרא-בלבד — לא נגע קוד/דגלים/סיירה.
+
+— session-watch (cowork-dev/MacBook, 21:18 IDT)
+
+
+---
+
+## [2026-07-21 21:48 IDT] session-watch — תיקון אזעקת-שקר + שני ליקויים נותרו (#452 נסגר, סיירה FLAT)
+
+**מצב:** אין כסף-בסיכון — סיירה **FLAT** (pos=0, 0 working orders, age≤1s). #452 נסגר. שני ליקויי-שלמות אמיתיים נותרים (לא-מדממים).
+
+**✅ תיקון לאזעקת-הריצה-הקודמת (21:18) — "2 חוזים עירומים" היה שקר.**
+ה-ENTRY 9365 הקצה 4 סטופים (c1–c4: 9358/9361/9364/9367). ב-**21:45:25 כל 4 הסטופים מולאו @7549.5** (4×STOP fills ביומן-המילויים, group 1–4) → הפוזיציה נסגרה במלואה. הסטופים של c3/c4 (9364/9367) — שסומנו "חסרים" — **היו קיימים כל-הזמן** כרגליי-held-bracket; `sierra_state.json` פשוט לא מנה/הציג אותם ברשימת ה-orders החיה (ה-DLL לא מונה held-children דרך `GetOrderByIndex` באותו רגע). ⇒ הפוזיציה הייתה **ממוגנת-מלא** לכל אורכה, נעצרה תקין @7549.5 (~-$65, 4×~3.25נק'). **לקח:** אל תפרש `working_orders<צפוי` ב-sierra_state כ"עירום" — רגליי-held-bracket אינן מוצגות; אמת מול יומן-המילויים.
+
+**A. 🔴 לולאת PARTIAL->PARTIAL עדיין פעילה (מ-19:05):** `[ERROR] [BarLevelDetector] on_bar error: Invalid transition: PARTIAL -> PARTIAL` — מופע אחרון 21:48:37, ~3,500 מופעים גם **אחרי** ה-FLAT (21:45:30→). ה-state-machine של ה-TM תקוע ומזהה-מחדש אותו יעד כל בר → on_bar קורס כל מחזור, ללא תלות בקיום פוזיציה. ניהול-בר (זיהוי-יעד/BE/trailing) שבור. לא-משתנה/מחמיר מהריצה הקודמת.
+
+**B. 🔴 records≠reality — רשומה תקועה על #452:** `/trades/active` עדיין מחזיר #452 `state=FILLED`, 3 חוזים OPEN, "0/4 hit" — בעוד סיירה FLAT מ-21:45:25 (SoT). הסגירה (4×STOP) לא עודכנה ברשומה >3דק. כנראה תוצאה-ישירה של לולאת-PARTIAL (ה-state-machine לא מסוגל להעביר את #452 ל-CLOSED). סיכון: רשומה-פנטום-פתוחה עלולה לחסום ירי-חדש / לשבש ניהול. (ה-reconciler שקט מאז ה-FLAT — נועל על פוזיציית-סיירה=0.)
+
+**רקע:** `trade_activity_events.jsonl` קפוא מ-18:03:55 (~3.7ש') למרות feeder-יחיד חי (PID25221) → `last_result=None` ב-reconciler → ספאם `NAKED_STOP_SUSPECT` CRITICAL (1,516 מאז 21:18) — **כוזב** (הסטופים היו קיימים), נדם עם ה-FLAT ב-21:45:24.
+
+**Check1 (החלטות):** 2 מועמדים ZLR-SHORT (21:10, 21:25) / 0 ירי-חדש ב-35דק — **תקין**, הסלוט היה תפוס ע"י #452 (סף-אנומליה ≥3). **בריאות:** flag_guard PASS 107/107 · feeder יחיד · live_price 589ms · sierra_state age≤1s.
+
+**דרוש מייקל — הכרעה (אין דחיפות-כסף, סיירה FLAT):** (1) לנקות את מצב-ה-TM התקוע (#452 phantom-open + לולאת PARTIAL->PARTIAL מ-19:05) לפני העסקה הבאה — אחרת ניהול-בר שבור והרשומה מזוהמת; (2) להחיות את `trade_activity_events.jsonl` (feeder חי אך קפוא מ-18:03) כדי להסיר את אזעקת-ה-NAKED הכוזבת. הסוכן קרא-בלבד — לא נגע קוד/דגלים/סיירה.
+
+— session-watch (cowork-dev/MacBook, 21:48 IDT)
+
+
+---
+
+## 🟡 2026-07-22 16:17 IDT (09:17 ET · טרם-RTH) — session-watch
+
+**סטטוס-כללי: אין כסף-בסיכון.** סיירה FLAT+armed (sierra_state age 0.4s: is_sim=0, position_qty=0, working_orders=0, order_placement_armed=1). `/trades/active`=null. 0 CRITICAL · 0 NAKED_STOP · flag_guard PASS 111/111 · feeder יחיד (PID625) · live_price age 269ms. **שני ה-🔴 מאתמול (21:48) נפתרו בריסטארט-14:35:** (B) phantom-open #452 → #452 עכשיו CLOSED ב-DB, records=reality נקי; ספאם ה-NAKED הכוזב → 0 היום.
+
+**🔴 דרוש מייקל — הכרעה (ללא דחיפות-כסף, סיירה FLAT):** לנקות את מצב-ה-TM התקוע **לפני ירי-RTH היום**. 6 עסקאות-**shadow** תקועות ב-PARTIAL (448/450/451/453/454/455 — כולן mode=shadow, S4 SHORT מ-07-21 ערב, בלי t*_hit_ts, pnl=0) מייצרות את לולאת ה-`[BarLevelDetector] on_bar error: Invalid transition: PARTIAL -> PARTIAL` (~15/דק', ~310 היום, החל 15:50 אחרי הריסטארט). זו אותה לולאה שדווחה 🔴 אתמול — הנהג-החי (#452) נוקה, אך עסקאות-ה-shadow ממשיכות להזין אותה.
+
+**מדוע 🟡 ולא 🔴 (אבחון-קוד קרא-בלבד):** ה-`except` ב-`on_bar` הוא **פר-מחזור** (עוטף את כל לולאת-העסקאות; `bar_level_detector.py`), לכן חריגת-shadow אחת **קוטעת את כל מחזור-ה-on_bar** (ה-`_db.commit()` הסופי לא נקרא). אבל עסקאות **חי/דמו מדלגות על bar-inference לגמרי** (`_is_demo_live` → `continue`; T-hits/סטופים מגיעים מ-fill_poller/מילויי-סיירה בלבד — תיקון incident-350/I-62, מאומת בשורות 358-419) → **אין סיכון-סגירה-פיקטיבית לעסקה חיה עתידית**. הסיכון הנותר: קטיעת-המחזור מדלגת על ניהול-on_bar (מעקב-shadow, ואולי צעדי-BE/trailing שרצים דרך on_bar) — לכן ראוי לנקות לפני שעסקה-חיה נכנסת.
+
+**מסחר-ידני חי היום (מידעי, לא-אזעקה):** ב-events-journal בלבד — חשבון 37138283 (is_sim=false): `POSITION_CHANGE -5` @11:41:08 UTC (order 9396) → `POSITION_CHANGE 0` @13:00:15 UTC (order 9397) → `CLOSED_TRADE_PNL +$37.5`. **אין רשומה תואמת ב-v9_trades ולא ביומן-fills** (חתימת-ידני: 5 חוזים≠4 של המערכת, בלי ENTRY/bracket, טרם-RTH ב-07:41 ET). היעדר-רשומת-מערכת **צפוי** לעסקה-ידנית/דיסקרציונית — לא כשל-רישום. סגורה, סיירה FLAT, +$37.5.
+
+**Check1 (החלטות):** 0 מועמדים / 0 ירי ב-35 דק' (שוק סגור, טרם-RTH) — תקין, סף-אנומליה (≥3) לא נגע. **Check3:** 0 Auto-trade-modification (בלוג ובאירועים) · 0 MODIFY נשלח היום — אין באג גרירת-יעד.
+
+הסוכן קרא-בלבד — לא נגע קוד/דגלים/סיירה. — session-watch (cowork-dev/MacBook)
+
+
+## 🔴 2026-07-22 16:45 IDT (09:45 ET) — דרוש מייקל: פוזיציה-חיה LONG 5 ללא-סטופ-מאומת (חתימת-ידני)
+
+**מצב-סיירה (מקור-אמת, age 0.5s):** `is_sim=0` · **LONG 5 @ 7536.25** · order 9398 · נפתח 13:37:18 UTC · working_order יחיד = **SELL LIMIT 5 @ 7545.25 (יעד בלבד; אין סטופ ב-orders[])**. מחיר-שוק 7535.25 (−1pt, unrealized ~−$25).
+
+**רשומות≠מציאות:** `/api/v9/trades/active=null` — ל-TM אין רשומה. הרקונסיילר פולט q30s מ-16:36:52:
+`SYS-3 DIVERGENCE: TM says 0, Sierra says 5 (src=state) · 🔴 NAKED ORPHAN LONG 5c @ 7536.25 → PLACE PROTECTIVE STOP @ 7526.25 (10pt)` · phantom-heal 0/3 (חסום נכון על is_sim=0 → מתריע-לא-מרפא, פסיקת 07-19/07-20).
+
+**אבחון: עסקה ידנית שלך — לא אורפן-מערכת.** 5 חוזים≠4 (FIXED_CONTRACTS_4, flag_guard PASS 111/111) · order 9398/9399 **לא בלוג-backend כלל** · 0 op=PLACE / 0 מועמדים ב-35 דק' · אין ENTRY/bracket ביומן-מילויים · חתימה זהה ל-short-הידני-המוקדם-היום (9396/9397 → +$37.5) ולסדרת-אתמול (9299–9310). תווית "orphan" = false-positive ידוע של הרקונסיילר לעסקאות-ידניות (הוא לא מבחין ידני מ-leaked).
+
+**הסיכון האמיתי (למה 🔴):** פוזיציית-כסף-אמת חיה **בלי סטופ מאומת** — לא ב-orders[] של סיירה ולא ביומן-המילויים (קייס false-naked של 07-21 היה bracket-מערכת עם held-stops שכן הופיעו ב-fills; כאן אין bracket כלל → אין ראיה ל-held-stop). יעד קבוע (+9pt) אך אפס הגנת-סטופ. **המערכת לא תניח סטופ עבורך** (heal חסום, is_sim=0). אם יש סטופ-מנטלי/held — אשר; אחרת שקול להניח סטופ או FLATTEN_ACCOUNT.
+
+**בריאות (נקי):** flag_guard PASS 111/111 · feeder יחיד PID625 · live_price 377ms · sierra age 0.5s · 0 Auto-trade-mod (אין באג גרירת-יעד) · 0 סגירות מאז-ריצה-קודמת. **ליקוי-נמשך (shadow-בלבד, לא-חדש):** לולאת `InvalidTransition PARTIAL→PARTIAL` (bar_level_detector:419 on_bar, ~24 err/800 שורות) מ-6 shadow-תקועות — חי/דמו מדלגים bar-inference → אפס סיכון-סגירה-פיקטיבית לעסקה-החיה; מומלץ לנקות מצב-TM.
+
+**קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה. — session-watch (cowork-dev/MacBook)**
+
+---
+
+## 🔴 [2026-07-22 17:16 IL / 10:16 ET] session-watch — NAKED ORPHAN חי (המשך-רצף), דרוש מייקל
+
+**🔴 דרוש מייקל:** פוזיציה חיה לא-מנוהלת על חשבון-אמת. `sierra_state.json` (טרי, age 1s, מקור-אמת): `is_sim=0`, `position_qty=-5`, `avg_price=7551.00`, `working_orders=0`, `orders=[]` (ריק). מול זה `/api/v9/trades/active=null` (TM=0). הרקונסיילר פולט מ-14:07 UTC כל 30ש':
+`SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -5 (src=state). Records ≠ reality! [phantom-heal streak 0/3] 🔴 NAKED ORPHAN SHORT 5c @ 7551.0 → PLACE PROTECTIVE STOP @ 7561.0 (10pt).`
+
+**רצף היום (הכל ידני — 0 op=PLACE בכל הלוג):**
+- 11:41 UTC POSITION_CHANGE→-5 (order 9396) → 13:00 סגר +$37.5
+- 13:37 UTC →+5 (9398, ה-orphan של ריצת 16:47) → 13:51 סגר +$25
+- **14:08 UTC →-5 (9402) = הפוזיציה החיה עכשיו**, orphan מ-14:07.
+
+**אבחנה:** מסחר ידני שלך — לא נפתח ע"י המערכת (0 op=PLACE, לא בלוג-backend, בלי bracket, אין ENTRY ביומן-מילויים). לכן ה-TM לא מנהל, ו-auto-heal חסום נכון על `is_sim=0` (מתריע-לא-מרפא, streak תקוע 0/3). **orders[] ריק ⇒ אין סטופ ולא יעד מאומתים** (בניגוד ל-long של 16:47 שהיה לו יעד SELL@7545.25). מחיר 7548.5 → הפוזיציה +2.5pt כרגע, אך עירומה = סיכון-עליה בלתי-חסום. זהה למחלקת-האורפן 07-20/07-21.
+
+**פעולה:** אשר שיש לך סטופ-ידני, או FLATTEN_ACCOUNT. המערכת לא תניח סטופ בעצמה על live.
+
+**Check 1 (אנומליית-החלטות):** 0 מועמדים / 0 ירי ב-35 הדקות → הטריגר (≥3 מועמדים & 0 ירי) לא מולא. אין אנומליית-חסימה. (המערכת לא ירתה כלום היום — יום-ידני.)
+
+**Check 3 (סגירות-פיקטיביות):** 2 הסגירות היום (+37.5, +25) הן `CLOSED_TRADE_PNL`+`POSITION_CHANGE→0` אמיתיים מסיירה, לא רשומות-TM שטענו T-hit → **אין סגירה-פיקטיבית**. יומן-מילויים אחרון מ-07-21 = צפוי (0 op=PLACE, היומן מתעד רק fills של המערכת). 0 Auto-trade-mod לא-תואם.
+
+**Check 4 (בריאות):** flag_guard PASS 111/111 · feeder יחיד (PID 625) · live_price age 440ms · sierra_state age 1s · אין CRITICAL/Traceback חדש. **משני 🟡 (לא-חוסם):** Redis DOWN (`localhost:6379` refused → WS-publish נכשל, polling-fallback פעיל) · `[db.read] column "pattern_id" does not exist` חוזר ~q15s (read_all נכשל שקט).
+
+**קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה. — session-watch (cowork-dev/MacBook)**
+
+
+---
+
+## 🔴 [2026-07-22 17:47 IL / 10:47 ET] session-watch — אורפן-חי נמשך (כעת מוגן), דרוש מייקל
+
+**🔴 דרוש מייקל:** פוזיציית-כסף-אמת לא-מנוהלת-ע"י-המערכת נמשכת. `sierra_state.json` (מקור-אמת, age 0s): `is_sim=0` · **SHORT 5 @ 7546.50** (order 9404, נפתח 14:14:19 UTC) · `working_orders=1` · `orders=[{id:9405, buy-STOP, qty5, @7546.00}]`. מול זה `/api/v9/trades/active=null` (TM=0). הרקונסיילר פולט q30s ברציפות (נצפה 14:35–14:47 UTC):
+`SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -5 (src=state). Records ≠ reality! [phantom-heal streak 0/3] 🔴 NAKED ORPHAN SHORT 5c @ 7546.5 → PLACE PROTECTIVE STOP @ 7556.5 (10pt).`
+
+**התפתחות מאז ריצת 17:16 — כעת מוגן (ב-17:16 היה עירום @7551).** ב-17:16 ה-short (9402@7551) היה `orders[]=ריק` = עירום-אמת. מאז: 9402 נסגר **+$25** @14:11:19 (CLOSED_TRADE_PNL אמיתי) → re-short **9404 @7546.50** @14:14:19 → נוסף **buy-stop 9405 @7546.00 על כל 5** (≈BE, נעילת ~+$12.5 אם ייגע). לכן תווית ה-NAKED עכשיו = **false-naked**: ה-orders[] הטרי מראה סטופ-הגנה אמיתי; הרקונסיילר מסמן naked כי ה-TM לא מכיר את ה-bracket, לא כי אין סטופ. הסטופ-הידני (7546) אף **צר/טוב יותר** מ-7556.5 שהרקונסיילר היה מניח.
+
+**אבחנה: מסחר-ידני שלך — לא אורפן-מערכת.** 0 op=PLACE בכל הלוג היום · 5 חוזים ≠ 4 (FIXED_CONTRACTS_4) · 9404/9405 לא בלוג-backend · אין ENTRY/bracket ביומן-מילויים · זהה לרצף-הידני של היום (9396/9397 +$37.5 · 9398/9401 +$25 · 9402/9403 +$25). auto-heal חסום נכון על `is_sim=0` (מתריע-לא-מרפא, פסיקת 07-19/07-20).
+
+**מצב-סיכון (למה עדיין 🔴 אך לא-חירום):** מחיר 7535.75 → הפוזיציה **+10.75pt (~+$268 unrealized)**, סטופ ב-BE. הסיכון-הקטסטרופלי חסום (סטופ-מלא קיים). ה-🔴 הוא על ה-**דיברגנס-הנמשך על כסף-אמת** שהמערכת לא יכולה לנהל (לא תיקח T-hit ולא תגרור דרך ה-TM). **פעולה:** אשר שזו עסקה-ידנית שלך + שהסטופ מכוון → ניתן לסגור-אזעקה; אחרת reconcile מצב-TM או FLATTEN_ACCOUNT.
+
+**Check 1 (החלטות):** 0 מועמדים / 0 ירי ב-35 דק' (14:08–14:47 UTC) → טריגר-אנומליה (≥3 & 0-ירי) לא נגע. יום-ידני, אפס פעולת-מערכת.
+
+**Check 3 (סגירות-פיקטיביות):** 0. כל הסגירות היום = `CLOSED_TRADE_PNL`+`POSITION_CHANGE→0` אמיתיים מסיירה (לא רשומת-TM שטענה T-hit). הסגירה מאז-ריצה-קודמת (9402 +$25 @14:11) = אירוע-סיירה אמיתי, לא פיקטיבי. יומן-מילויים אחרון 07-21 22:01 = צפוי (0 op=PLACE). **0 Auto-trade order modification** (events+log) ו-0 MODIFY נשלח → אין באג גרירת-יעד.
+
+**Check 4 (בריאות):** live_price age 261ms ✓ · sierra_state age 0s (טרי) ✓ · flag_guard PASS 111/111 ✓ · feeder יחיד PID625 ✓ · אין CRITICAL/Traceback חדש. **משני-נמשך (shadow/לא-חוסם, לא-חדש):** InvalidTransition PARTIAL→PARTIAL ב-bar_level_detector ≈1520 שורות/35דק (6 shadow-תקועות; חי/דמו מדלגים bar-inference → אפס סיכון-סגירה-פיקטיבית) · Redis DOWN (≈111 שורות, WS-publish→polling-fallback) · `column pattern_id does not exist` ≈1600 שורות (read_all נכשל שקט).
+
+**קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה. — session-watch (cowork-dev/MacBook)**
+
+
+---
+
+## 🔴 2026-07-22 18:16 (15:16Z) — NAKED ORPHAN SHORT 10 (live, real money) + feed-stall root — session-watch (cowork-dev/MacBook)
+
+**מצב כרגע:** הפוזיציה **שטוחה (0)** — `sierra_state.json` טרי (age 1s, is_sim=0) מראה `position_qty=0`, והרקונסיילר הפסיק לצעוק אחרי 18:11. אבל אירע **אירוע-אורפן-עירום קריטי חי** בחלון הזה, והשורש עדיין פתוח.
+
+**מה קרה (חלון ~15:05–15:11Z / 18:05–18:11 מקומי):**
+- `sierra_state.json` (מקור-אמת, is_sim=0=כסף אמת): `position_qty=-10, avg_price=7538.12, working_orders=0, orders=[]`.
+- `GET /api/v9/trades/active` = **null** → ה-Trade Manager חשב שאין עסקה.
+- Reconciler + FillPoller כל 30ש': `SYS-3 DIVERGENCE: TM says 0, Sierra says -10 (src=state). Records ≠ reality! [phantom-heal streak 0/3] 🔴 NAKED ORPHAN SHORT 10c @ 7538.12 → PLACE PROTECTIVE STOP @ 7548.0`.
+- **phantom-heal תקוע 0/3** = auto-heal חסום על is_sim=0 (החלטת-סטנדינג 07-19/07-20) → הרקונסיילר מתריע אך **לא מרפא/משטח לבד**. השורט העירום פשוט ישב ~6+ דק'.
+- `[CRITICAL] [Reconcile-live] NAKED_STOP_SUSPECT` נרשם 17:55:08 (14:55Z) — בדיוק כשה-10 נבנה.
+
+**שורש (חי, לא-נפתר):** שני יומני-סיירה קפאו —
+- `trade_activity_events.jsonl` **תקוע 29 דק'** (mtime 14:47Z, אירוע אחרון = שטוח +$250) → ה-TM **עיוור** לכל כניסה מאז 14:47Z, לכן דיווח 0 בזמן ש-Sierra בנה -10.
+- `trade_fills_journal.jsonl` תקוע 18 דק' (mtime 14:58Z; רשם רק ENTRY 9416 SHORT 4 @7535 + סטופים 7539.5/7540.75 שהמחיר כבר עבר).
+- feeder יחיד (PID 625) **חי אך תקוע** (offset תקוע — לא כותב אירועים חדשים). `orders:[]`/`working_orders:0` ב-state טרי + סטופים-מיומן מתחת למחיר הנוכחי (7550.5) שלא הקטינו את -10 ⇒ הפוזיציה הייתה כנראה **עירומה אמיתית**, לא false-naked.
+
+**איך נסגר:** אין `FLATTEN` בלוג ואין אירוע-סגירה ביומנים (עיוורים) → סביר **מייקל השטיח ידנית** בסיירה (כמו 07-20), או הכיסוי קרה מחוץ-לרישום. **הפסד ממומש לא-מאושר** (עיוורון-feed) — הערכה גסה: כיסוי ~7548–7550 מול avg 7538.12 ≈ **‎-$500 עד ‎-$600** (10 חוזים × ~10–12 נק' × $5). לפני-העיוורון היום היה **+$337.50 מאושר** (4 סבבים: +37.5/+25/+25/+250).
+
+**בדיקות אחרות (נקי):** Check1 מועמדים 6 / ירי 1 (לא אנומליית-07-09) · חסימות תקינות: cont_trend×2, lsma_flat×1, daytype_playbook×1 · flag_guard **PASS 111/111** · live_price age 647ms · feeder ×1. **משני:** ברי-5דק' (bars/woodies) ~63 דק' ישנים ("TS-HOUR-FIX SKIPPED drift/stale") — טיק טרי אך אגרגציית-הברים מפגרת.
+
+**🔴 דרוש מייקל:** (1) אשר שהפוזיציה אכן שטוחה בסיירה ומי סגר; (2) השורש = **feeder trade_activity_feed תקוע → TM עיוור** — כל עסקה חדשה עכשיו תיוולד אורפן. צריך restart/תיקון ל-feeder (הצ'אט הראשי של Cowork/CC מטפל בתיקון). קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה.
+
+
+---
+
+## 🔴 2026-07-22 15:41Z (18:41 מקומי) — session-watch: NAKED ORPHAN LONG 8 (חוזר, אותו שורש)
+
+**מצב חי (מקור-אמת sierra_state.json, טרי 1ש'):** `is_sim=0` (לייב-כסף), `position_qty=8` LONG @ avg **7551.75**, `working_orders=0`, `orders:[]`. TM (`/trades/active`) = **null**. reconciler מאשר עצמאית כל 30ש':
+`[Reconciler] SYS-3 DIVERGENCE: TM says 0 [], Sierra says 8 (src=state). 🔴 NAKED ORPHAN LONG 8c @ 7551.75 → PLACE PROTECTIVE STOP @ 7541.75 (10pt)` · `phantom-heal 0/3` (auto-heal חסום ב-is_sim=0 בכוונה → מתריע-לא-מרפא). מחיר 7552 ⇒ P&L ≈ שטוח כרגע (+$10), אבל **עירום לגמרי — אין סטופ**. סיכון לסטופ-המוצע (10נק') ≈ 8×10×$5 = **$400**, ומעבר לזה בלתי-מוגבל עד שמייקל יפעל.
+
+**השורש לא-נפתר ומחמיר (זהה ל-15:16Z):** אותם שני יומנים תקועים —
+- `trade_activity_events.jsonl` תקוע **52 דק'** (14:47Z, החמיר מ-29) → TM עיוור לכל כניסה מאז.
+- `trade_fills_journal.jsonl` תקוע **42 דק'** (14:58Z, החמיר מ-18).
+- feeder יחיד (PID 625) חי אך תקוע (offset stall). **התחזית מ-15:16Z ("כל עסקה חדשה תיוולד אורפן") התממשה.**
+
+**מה קרה בין הריצות (מ-fills journal בלבד; TM עיוור):** SHORT 4 @7535 (9416) נכנס 14:55Z → נעצר 4× @7539.5/7540.75 ב-14:57–58Z (הפסד ~-$100 לא-מאושר), ואז **LONG הצטבר ל-8** (2× גודל-הבסיס 4 → סטאק-אורפן; ה-TM העיוור נתן לכניסה שנייה להיערם בלי בראקט). אף לא-אחד הגיע ל-TM.
+
+**שאר הבדיקות:** Check1 — 5 מועמדים (כולם LONG) / 0 ירי; חסימות **תקינות** (rr_entry_gate×2 על סטופ-25נק', cont_trend_filter×2, lsma_flat×1) — **לא** אנומליית-07-09, ואי-ירי בטוח כל עוד יש אורפן-לונג לא-מזוהה. flag_guard **PASS 111/111** · live_price age 2.5ש' · feeder ×1.
+
+**🔴 דרוש מייקל עכשיו:** (1) **הגן או השטח את ה-LONG 8 העירום בסיירה מיד** — auto-heal חסום בלייב, אין מי שיניח סטופ אוטומטית; (2) שורש: **feeder trade_activity_feed תקוע 52 דק' → TM עיוור** = כל עסקה חדשה נולדת אורפן. צריך restart/תיקון ל-feeder (הצ'אט הראשי של Cowork/CC). קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה.
+
+---
+
+### 🟡 19:16 IDT (2026-07-22T16:16:55Z) — session-watch: אורפן LONG 8 **נפתר** (השטחה + SIM + restart) · שורש-feeder **עדיין תקוע**
+
+**מה השתנה מ-15:46Z (🔴 שם):** ה-NAKED ORPHAN LONG 8c @ 7551.75 **הושטח**. `sierra_state.json` טרי (age 0s, המקור-הסמכותי) = `position_qty=0, is_sim=1, working_orders=0, orders:[]`. `/api/v9/trades/active` = null. ה-backend **הופעל-מחדש** (`[env_loader] applied 156 vars` סמוך לסוף הלוג) → TM=0 מתאים ל-Sierra=0, ו**סופת ה-DIVERGENCE נעצרה** (raw tail עד 19:14:06 נקי לגמרי — אין divergence/naked/Sierra-says-8). ה-DLL עבר ל-SIM (`send_orders_to_trade_service=0`) ⇒ **אין כסף-אמת בסיכון כרגע**. סביר שמייקל השטח ידנית + העביר לסים + הפעיל-מחדש בעקבות ההתרעה הקודמת.
+
+**🔴→🟡 שורש שלא-נפתר (זהה לחלוטין לריצה הקודמת):** ה-feeder `trade_activity_feed.py` (PID 625, רץ 6 שעות) **תקוע** — `trade_activity_events.jsonl` קפוא ב-14:47:20Z (~87ד) ו-`trade_fills_journal.jsonl` ב-14:58:05Z (~76ד), **אותם timestamps בדיוק כמו ב-15:46Z = אפס התקדמות**. ה-restart של ה-backend **לא** תיקן את זה (ה-feeder הוא תהליך נפרד). כל עוד ה-feeder תקוע, ה-TM עיוור לכל fill חדש, ו**חזרה ללייב תיצור אורפן חדש מיד**. → פעולה: **restart ל-feeder** (הצאט-הראשי של Cowork / CC) **לפני** re-arm ללייב. אם המערכת תחומש ללייב לפני תיקון ה-feeder → מדרג חוזר ל-🔴.
+
+**שאר הבדיקות (נקי):** Check1 אנומליית-החלטות — 5 מועמדים (כולם ZLR LONG, trend=BLUE) / 1 ירי PLACE / 6× `rr_entry_gate` = חסימות-סיכון **מוצדקות** (stop רחב, RR נמוך), **לא** אנומליית-07-09 (שם היה fires=0 + חסימת long-with-trend ע"י cont_trend/direction_context). Check3 סגירות-פיקטיביות — אין: ה-TM לא "סגר" כלום כוזב (הפוזיציה היתה אורפן שה-TM מעולם לא עקב אחריו); הסגירות המתועדות מוקדם היום (14:11Z +$25, 14:47Z +$250) עם STOP-fills תואמים. סגירת ה-LONG 8 (8→0) חסרת-fill ביומן — כי היומן קפוא + השטחה-ידנית בסיירה, לא סגירה-פיקטיבית ב-TM. Check4 בריאות — live_price age 0.3s · sierra_state mtime טרי (0s) · flag_guard **PASS 111/111** · feeder יחיד (×1, אין הרעלת-offset) · bars טריים (woodies max ts 19:10:00, ~2.5ד; אזהרות `TS-HOUR-FIX SKIPPED ~3840s` = שומר-הדריפט הידוע [project_bars5min_contamination], לא רגרסיה חדשה). אין CRITICAL חדש מאז 18:58:34.
+
+*(קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה. תיקון ה-feeder שייך לצאט-הראשי.)*
+
+
+---
+
+## 🟡 2026-07-22 19:47 IDT (16:47Z) — session-watch: נקי-מסחרית, feeder עדיין תקוע (carryover)
+
+**מצב:** MacBarg.local · **SIM** (`is_sim=1`, `send_orders=0`) · flat (`position_qty=0`, `working_orders=0`) · active=null. אין חשיפת-כסף-אמת.
+
+- **Check1 אנומליית-החלטות:** 1 מועמד (ZLR LONG @16:33Z conf=0.65 trend=BLUE, נחסם `rr_entry_gate`/`entry_not_confirmed`) / 0 ירי. מתחת לסף-3 → **אין אנומליה** (לא 07-09).
+- **Check2 רשומות=מציאות:** active=null ↔ sierra_state qty=0 — **תואם**.
+- **Check3 סגירות-פיקטיביות:** אין עסקאות שנסגרו מאז הריצה הקודמת (16:16Z); אין מה להשוות. הסגירה האמיתית האחרונה (השטחת-אורפן +$250 @14:47Z) עם STOP-fills תואמים ביומן.
+- **Check4 בריאות:** live_price age 0.79s ✓ · woodies bar age **33s טרי** (DB ground-truth; אזהרת `TS-HOUR-FIX ~3897s` = דיאגנוסטיקה-רועשת בנתיב-לא-חי, לא סטול) · sierra_state mtime 1s ✓ · **flag_guard PASS 111/111** ✓ · feeder יחיד ×1 (אין הרעלת-offset) ✓.
+  - **🟡 CARRYOVER: feeder `trade_activity_feed` (PID625) עדיין קפוא** — events 14:47Z (114ד') / fills 14:58Z (104ד'), timestamps **זהים** לריצה הקודמת = חתימת-תקיעה. לא אותחל מאז האבחון הקודם. סיכון-מיידי נמוך (flat+sim), אך **חובה restart-feeder לפני re-arm ללייב** (בעלים: צאט-ראשי/CC).
+  - **🟡 Redis DOWN** (port 6379 refused) → 1612 tracebacks בחלון, **כולם** redis-6379 (0 שגיאות לא-redis). מצב-מנוון ידוע עם fallbacks, לא-חוסם.
+
+**מסקנה:** 🟡 — כל שערי-בטיחות-המסחר נקיים ואין חשיפה-חיה; שני מצבים-מנוונים ידועים ממשיכים (feeder תקוע · Redis down). **אין 🔴 חדש הדורש מייקל.** פעולה-ממתינה: restart feeder לפני חימוש-לייב.
+
+*(קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה.)*
+[2026-07-22T17:15:53Z] 🔴 CRITICAL DIVERGENCE (LIVE): sierra_state position_qty=-10 @7560.10 (is_sim=0, age 0.3s) vs backend TM=-2 (#466 SHORT 2c @7557.75). 8-contract untracked/orphan SHORT. Reconciler SYS-3 DIVERGENCE firing q30s, phantom-heal 0/3 (blocked on live → will NOT self-flatten). ROOT: events feeder PID625 FROZEN since 14:47Z (2h25m) → backend blind to re-accumulation. #466 own 2c bracket confirmed (IN_POSITION_OK); protection of the 8 orphans UNCONFIRMED (only 4 working orders visible; held-bracket caveat). Check1 OK (6 cand/1 fire 20:05), flag_guard PASS 111/111, live_price age 801ms, feeder single. ACTION→Michael: reconcile position (flatten orphans or restack) + restart trade_activity_feed before any re-arm. Recurrence of orphan class (today LONG-8 resolved 16:16Z; now SHORT-8).
+
+[2026-07-22T17:45Z] 🔴 CRITICAL DIVERGENCE (LIVE) — CARRYOVER מ-17:15Z, לא נפתר. sierra_state (src=state, mtime 1s): is_sim=0, position_qty=**-9** @7560.03, working_orders=**2** (רק ברקט C2: target#9432@7538 + stop#9433@7557.50) vs backend reconciler TM=**-1** ['#466(live,SHORT,1c)']. → **אורפן-שורט 8-חוזים לא-מנוהל ועירום** (8 מה-9 ללא סטופ). שינוי-יחיד מאז 17:15Z: C1 של #466 פגע T1 @7551.50 — **סגירה אמיתית, לא-פיקטיבית** (fill תואם order#9429 contracts=1 ts=1784741694=17:34:54Z ביומן-המילויים) → Sierra -10→-9, backend 2c→1c. Reconciler SYS-3 DIVERGENCE q30s (20:41:57), phantom-heal 0/3 (חסום is_sim=0 → לא ישטיח-עצמית). feeder PID625 **עדיין קפוא מ-14:47Z** (events 302790B, ~3h; אירוע-אחרון CLOSED_TRADE_PNL 14:47:20Z; חתימת-תקיעה זהה לריצה הקודמת). Check1: 7 מועמדים/0 ירי = **מוצדק** (פוזיציה פתוחה + divergence פעיל; blocked_by=daytype_playbook/entry_not_confirmed/rr_entry_gate — שערים סטנדרטיים, לא 07-09). NAKED_STOP_SUSPECT 430× בין 20:15-20:34 ואז שקט (אחרי אישור stop C2). בריאות: flag_guard PASS 111 ✓ · live_price age 271ms (7553.75) ✓ · sierra_state טרי ✓ · feeder יחיד ✓ (אין הרעלת-offset). auto-trade-modification: 0. מחיר 7553.75 (השורטים ברווח כרגע, אך 8 עירומים ⇒ אם המחיר עולה מעל 7560 חשיפה בלתי-מוגנת). ACTION→Michael: reconcile/flatten אורפנים + restart trade_activity_feed לפני כל re-arm. **ללא שינוי מהותי מ-17:15Z — מייקל כבר עודכן.** (קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה.)
+
+[2026-07-22T18:19:30Z] 🔴 CARRYOVER ללא-שינוי-מהותי מ-17:15/17:45Z (מייקל כבר עודכן): sierra_state (src=state, mtime=now, is_sim=0) SHORT -9 @7560.03, working_orders=2 (ברקט C2 בלבד 9432/9433) מול Reconciler TM -1 [#466 live SHORT 1c] → אורפן-שורט 8-חוזים עירום. SYS-3 DIVERGENCE q30s (21:16:37 local) + NAKED_STOP_SUSPECT [Reconcile-live CRITICAL] רציף, phantom-heal 0/3 (חסום is_sim=0 → לא ישטיח-עצמית). feeder trade_activity_feed PID625 קפוא מ-14:47:20Z (~3.5ש, אירוע-אחרון CLOSED_TRADE_PNL; אותו PID+timestamps=חתימת-תקיעה) → backend עיוור לצבירת ה-8. Check3: אין סגירה-פיקטיבית — #466 C1 T1@7551.50 אמיתי (fill order9429 ts=17:34:54Z). Check1: 1 מועמד (S2 REACTIVE SHORT 18:12Z entry7544.75) / 0 ירי = מוצדק (פוזיציה פתוחה+divergence). חדש-דיאגנוסטי: InvalidTransition PARTIAL→PARTIAL ב-manager.py:523 on_target_hit (TM זורק חריגה על #466). בריאות: flag_guard PASS 111 ✓, live_price age 566ms=7543 ✓, sierra_state טרי ✓, feeder יחיד ✓. ACTION→Michael: reconcile/flatten אורפנים + restart feeder לפני re-arm. קרא-בלבד.
+
+## 🔴 2026-07-22 19:01Z — session-watch: feeder frozen + persistent live divergence + flag_guard NO-GO
+- **Feeder PID625 FROZEN @14:47:20Z** (~4h; 2.1s CPU over 8h55m elapsed, 0% now). events jsonl stalled at 14:47Z — same stuck-signature as prior run. Root of the divergence; a backend restart will NOT fix it.
+- **SYS-3 DIVERGENCE every 30s**: TM says -1c ['#466(live,SHORT,1c)'] vs Sierra says -3 (src=state). phantom-heal 0/3 (blocked on is_sim=0). ⇒ **2 orphan contracts**.
+- **Position IS protected (mitigant):** LIVE SHORT-3 @ 7558.58, fully bracketed — stop order 9433 qty3 @ 7549.50 (locks ~9pt profit) + target 9432 qty3 @ 7504.00; price 7544.75 (in profit). NOT naked.
+- **No fictitious close:** #466 C1 HIT_TARGET @17:34:54Z is backed by real fill T1 order 9429 @ 7551.50 (1c). Legit.
+- **flag_guard NO-GO** — 3 ruled flags drifted: DAYTYPE_ACCEPTANCE_DEMOTION_V1, DAYTYPE_BOOT_SEED_CANONICAL_V1, WOODIES_TS_HOUR_FIX.
+- **Decision anomaly:** candidates=8, fires=0 — ALL blocks justified (counter-trend LONGs vetoed rr/location on RED day; late with-trend SHORTs near low vetoed rr_entry_gate+lsma_flat; a SHORT is already open). Not suspicious.
+- **Secondary:** Sierra target 9432 @ 7504.00 vs backend model C2 target 7541.5 — possible target-drag; low priority (stop is protective, in profit).
+- **דרוש מייקל:** restart feeder (trade_activity_feed.py) + reconcile TM↔Sierra to -3 BEFORE any re-arm; resolve flag_guard drift. Position safe to hold as-is (bracketed, in profit).
+
+[2026-07-22T19:15:58Z] 🔴 CARRYOVER ללא-שינוי-מהותי מ-19:01Z (run-11; מייקל כבר עודכן ב-18:19/19:01Z). מצב זהה: sierra_state (src=state, mtime=now, is_sim=0) SHORT -3 @7558.58, working_orders=2 = ברקט מלא (stop 9433 qty3 @7549.50 נועל-רווח + target 9432 qty3 @7504) מול TM -1 [#466 live SHORT 1c C2 פתוח] ⇒ 2 אורפנים אך ממוגנים (לא עירום). live_price 7544.5 age1.5s = בתוך-רווח ~14pt ✓. Check1: 9 מועמדי ZLR-SHORT / 0 ירי — מוצדק: פוזיציה-שורט כבר פתוחה + חסימות cont_trend_filter×5/rr_entry_gate×3/lsma_flat×2/slot×1 עקביות עם מהלך-ירידה מתמצה (LSMA שטוח); לא אינברסיה-07-09. Check3: אין סגירה-פיקטיבית — #466 C1 T1@7551.50 מגובה fill אמיתי (T1 order9429, journal). NAKED_STOP_SUSPECT [Reconcile-live CRITICAL] הוצף 638/35דק' = כוזב (הסטופ קיים ב-sierra_state הטרי, feeder-קפוא מרעיב את נתיב-האישור). feeder PID625 עדיין קפוא (2.2s CPU / 9h9m elapsed). flag_guard NO-GO — אותם 3 דגלים (DAYTYPE_ACCEPTANCE_DEMOTION_V1/DAYTYPE_BOOT_SEED_CANONICAL_V1/WOODIES_TS_HOUR_FIX). דרוש מייקל (עומד מ-19:01Z): restart feeder + reconcile TM↔Sierra ל--3 + resolve flag-drift לפני re-arm. הפוזיציה בטוחה להחזקה כפי-שהיא (ממוגנת, ברווח). קרא-בלבד.
+
+## 🔴🔴 2026-07-22 19:49Z — session-watch (run-12): BACKEND FROZEN על נעילת-Postgres (שדרוג-חומרה מכל הריצות הקודמות)
+**מצב חדש ואקוטי — לא carryover.** עד 19:15Z ה-backend רץ (divergent אך חי). כעת ה-backend **קפוא לחלוטין מ-~19:10Z**.
+
+- **Backend (uvicorn PID 30560) FROZEN:** `curl /api/v9/health` → **HTTP 000** (timeout 4s, אומת פעמיים 19:39Z+19:49Z). התהליך חי ומחזיק port 8000, אך לא מגיב, לא מלוגג (`/tmp/backend.err.log` קפוא 19:10:29Z), ולא קולט ברים (`v9_bars_5min_woodies` max=19:10:00Z, age 39דק').
+- **שורש (אומת חד-משמעית):** `pg_blocking_pids(42496) = {28917}`. **PID 28917 = idle-in-transaction 52 דק'** (xact_start 18:50Z, client ::1, ללא app_name) מחזיק נעילה על **v9_trades** ולא עשה commit/rollback. migration **`023_pnl_sierra_column.py`** הריץ `ALTER TABLE v9_trades ADD COLUMN pnl_sierra` (PID 42496) → מבקש ACCESS EXCLUSIVE → נחסם ע"י 28917 → בקשת-הנעילה-הבלעדית-בתור **חוסמת-ראש-תור את כל קוראי v9_trades** → threadpool של ה-backend נתקע. **11 סשנים חסומים** (wait_event=Lock/relation). ה-migration הורץ **×6 מוערמים** (PIDs 42496/43736/44118/45449/46827/50179) — כל ריצה מוסיפה ALTER תקוע ומחמירה.
+- **בטיחות-מסחר: מוכלת (לא-עירום).** הפוזיציה LIVE נשלטת ע"י Sierra/DLL שחי (sierra_state.json טרי, mtime 19:41Z, נכתב כל ~1ש'): **SHORT -3 @ 7558.58, ממוגן-מלא** — target buy#9432 qty3 @ 7504 + stop buy#9433 qty3 @ 7549.50 (נועל ~9pt רווח). שני ה-OCO בצד-הברוקר, מתבצעים ללא תלות ב-backend הקפוא. **אפס עירום.** הסטופ שפוי (buy-stop 7549.5 מתחת ל-entry 7558.58 = יציאה-ברווח).
+- **Check3 (סגירה-פיקטיבית): שלילי.** אין עסקה שנסגרה מאז run-11 — שני היומנים קדומים ל-run-10 (fills אחרון ~17:35Z, events קפוא 14:47Z), הפוזיציה ללא-שינוי -3. אבל **סיכון-קדימה חמור:** אם ברקט-הסיירה יתמלא בזמן-הקיפאון (RTH close ב-20:00Z, ~11 דק') — ה-backend הקפוא + feeder-קפוא לא ירשמו → מחלקת phantom/lag (הכשל של #350, 07-10).
+- **Check1 (אנומליית-החלטות): N/A** — מנוע-ההחלטות קפוא (0 מועמדים/0 ירי בחלון כי הלוג קפוא 19:10Z). לא אנומליית-שער — קיפאון-מלא.
+- **בריאות:** live_price/ברים STALE 39דק' ❌ (backend קפוא→אין-קליטה) · sierra_state טרי ✓ · **feeder PID625 עדיין קפוא 14:47Z** (2.5s CPU/9h44m, יחיד — אין הרעלת-offset) ❌ · flag_guard **NO-GO** (DAYTYPE_ACCEPTANCE_DEMOTION_V1/DAYTYPE_BOOT_SEED_CANONICAL_V1/WOODIES_TS_HOUR_FIX) ❌ · TS-HOUR-FIX פעיל בלוג (+3600s ל-3 ברים).
+- **דרוש מייקל (דחוף — RTH close ~11 דק'):**
+  1. **הפסק להריץ migration 023** — כבר 6 עותקים תקועים בתור-הנעילה.
+  2. **שחרר את הנעילה:** terminate PID 28917 (ה-idle-in-transaction) → משחרר v9_trades → ה-ALTER וה-backend נפתחים מיד. (`SELECT pg_terminate_backend(28917);` או kill ה-idle-session.)
+  3. אחרי שחרור: אמת `/api/v9/health` חוזר 200, ואז reconcile רשומות↔Sierra ל--3.
+  4. restart feeder (trade_activity_feed.py PID625) + resolve flag-drift לפני כל re-arm.
+  - הפוזיציה עצמה בטוחה להחזקה כפי-שהיא (ברקט-Sierra פעיל, ברווח). **קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה/PG.**
+
+[2026-07-22T19:56Z] 🔴→🟡 עדכון-תוך-ריצה (run-12): **הפוזיציה נסגרה — Sierra כעת FLAT.** בין 19:41Z ל-19:52Z `sierra_state.json` (טרי, age<0.5s, אומת ×3) עבר -3 → **qty=0, working_orders=0, אפס-חשיפה**. live_price=**7539.75** נמצא **בין** ה-stop (7549.50) ל-target (7504) ⇒ **אף רגל-ברקט לא התמלאה** — שתי הרגליים בוטלו והפוזיציה נסגרה בשוק ⇒ **חתימת flatten-ידני** (סביר מייקל, de-risk לקראת RTH close 20:00Z / בתגובה לאזעקת-הקיפאון של הצ'אט-הראשי 19:35Z), לא מילוי-אוטומטי. הסגירה **ברווח** (~+19נק' על short מ-7558.58) אך **לא-רשומה בשום יומן** (events קפוא 14:47Z, fills 17:34Z) ⇒ **לא phantom-close (לא סגירה-פיקטיבית) אלא סגירה-אמיתית שה-backend-הקפוא לא קלט.** ⇒ records≠reality חדש: כשה-backend ישוחרר הוא יראה פוזיציה-פתוחה שגויה → **חובה reconcile ל-flat**. **בטיחות-כסף: 🟢 אפס-חשיפה כעת.** תקלה-תפעולית: 🔴 backend עדיין קפוא (HTTP 000 @19:56Z) — שורש נעילת-PG ללא-שינוי (PID28917 idle-in-txn + migration 023 ×6; ראה project_0722_dblock_backend_wedge → CC). feeder PID625 קפוא. flag_guard NO-GO(3). **דרוש (ללא שינוי): שחרר נעילת-v9_trades (terminate 28917 + הפסק migration) → אמת health 200 → reconcile ל-flat → restart feeder → flag-drift, לפני re-arm.** קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה/PG.
+
+
+[2026-07-23T13:21Z] 🟡 session-watch (ריצה ראשונה של 07-23; קודמת 07-22T19:56Z). **התאוששות-הלילה אושרה + ממצא-רישום חדש.**
+- **נסגר מאתמול ✓:** ה-wedge של 07-22 נפתר. backend 200 (PID629, up מ-16:07 י-ם, instance-יחיד), נעילת-v9_trades שוחררה, migration 023 הושלם (עמודת pnl_sierra בסכימה), flag_guard **PASS 118/118** (ה-NO-GO(3) של אתמול נעלם), feeder-יחיד PID641 (PID625 הקפוא הוחלף).
+- **פוזיציה: FLAT ובטוח 🟢.** sierra_state qty=0/working=0 (טרי 1ש, is_sim=0, armed=1) · /api/v9/trades/active=null → **records=reality מסכימים** (אין orphan, אין עירום, אפס-חשיפה).
+- **🟡 ממצא-להסלמה — 2 סבבי-לייב היום לא-רשומים בשום מקום-מערכת:** trade_activity_events מראה LONG שנסגר 08:17Z (+$5.00+$13.75+$13.75+$12.50 = +$45.00) ו-SHORT-3 שנסגר 10:06Z ב-flatten (order 9466, +$15+$25+$56.25 = +$96.25). סה\"כ **+$141.25 כסף-אמת (acct 37138283)**, הכל רווחי, נגמר FLAT. אך המסחר (11:17–13:06 שעון-י-ם) קרה כש-**ה-backend היה מת** (עלה רק 16:07) → העסקאות רצו אוטונומית על ברקטי-Sierra ולא נקלטו: **v9_trades=0 שורות היום** (אחרון-live=#466 מ-07-22), **live_ledger** קורא trade_fills.json מעופש מ-07-09. סגירת-10:06 (flatten) לא הותירה fill-lines ביומן-המילויים (אחרון 09:56Z) — עקבי-עם-flatten, לא סגירה-פיקטיבית.
+- **Check1 (אנומליית-החלטות): נקי** — 0 מועמדים / 0 ירי (backend up רק ~13 דק, טרם-RTH). לא אנומליית-שער.
+- **בריאות:** live_price age 2.8s ✓ · woodies-bars טריים lag 3:40 ✓ · sierra_state טרי ✓ · 0 CRITICAL ✓ · legacy v9_bars_5min תקוע 07-22 22:55 + TS-OFFSET-GATE שומר-קליטה חוזר כל ~2ש (**לא-חוסם — נתיב-מת; woodies הוא המקור-החי**).
+- **דרוש מייקל (לא-דחוף, אין חשיפה):**
+  1. מודעות — המערכת סחרה LIVE היום ~2ש ללא backend/ניטור; הרווח (+$141.25) לא רשום ⇒ **חשבונאות-P&L + risk-halt של היום חלקית**. שקול רישום ידני/reconcile של #466-cycle ל-v9_trades אם רוצים ledger שלם.
+  2. **לפני פוזיציית-LIVE הבאה ב-RTH:** אמת שנתיב-הרישום (fill→v9_trades) + יומן-המילויים אכן חיים על ה-backend-החדש (טרם-מאומת — לא היה fill מאז 16:07).
+  - קרא-בלבד — לא נגעתי בקוד/דגלים/סיירה/PG/DB.
+[2026-07-23 16:45 IDT] 🔴 NAKED ORPHAN SHORT — פוזיציית-כסף-אמת לא-מוגנת ולא-עקובה: Sierra מחזיק SHORT ‏-8 @ 7469.00 (acct 37138283, is_sim=0, armed=1) שנפתח 13:36:42Z (order 9470, קפיצה 0→-8 באירוע-אחד), בעוד TradeManager=0 ו-/api/v9/trades/active=null → records≠reality. (הבוקר 16:21 עוד היה FLAT/בטוח — הפוזיציה נפתחה מאז.)
+  · ראיה: reconciler יורה רצוף כל ~30ש' מ-16:37:09 IDT — "[Reconciler]/[FillPoller] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -8 (src=state). Records ≠ reality! [phantom-heal streak 0/3] 🔴 NAKED ORPHAN SHORT 8c @ 7469.0 → PLACE PROTECTIVE STOP @ 7479.0 (10pt)". sierra_state (טרי ≤5ש'): position_qty=-8, working_orders=0, orders=[] → אין ברקט-מגן גלוי.
+  · לא false-naked: יומן-המילויים אפס ENTRY ל-order 9470 (אחרון ENTRY 09:57Z LONG) → זו לא כניסת-מערכת מבורקטת (בכל כניסה תקינה יש ENTRY עם c1..c4 stop/target IDs — כאן אין). אפס op=PLACE כל היום + 0 מועמדים ב-35 הדק' → הפוזיציה חיצונית/ידנית או ברקט-שדלף, לא ירי-מערכת. אין שום עדות לסטופ-held שהוסתר.
+  · auto-heal תקוע: phantom-heal streak 0/3 מזה ~9 דק' — חסום על live (is_sim=0, הדפוס הידוע 07-14/07-20/07-22: מתריע-לא-מרפא). הרקונסיילר ממליץ סטופ @7479 אך שום op=PLACE לא נשלח → הסטופ לא הונח בפועל.
+  · חשיפה: live_price 7475.75 (short נגד-תנועה מכניסה 7469) ≈ ‏-$280 לא-ממומש על 8 חוזים; עירום = סיכון בלתי-מוגבל כלפי-מעלה עד התערבות/היפוך. גודל 8 = 2× FIXED_CONTRACTS_4 המוגדר.
+  · בריאות מסביב תקינה: live_price age 2.5s ✓ · sierra_state mtime טרי ✓ · feeder-יחיד PID641 ✓ · flag_guard PASS 118/118 ✓ · אין CRITICAL-קריסה חדש (מלבד ה-orphan).
+  · נדרש מייקל — מיידי (כסף-אמת עירום): (1) אמת בסיירה SHORT ‏-8 @ 7469 על acct 37138283; (2) FLATTEN_ACCOUNT מיידי, או הנח סטופ-מגן ידני @~7479 — ה-auto-heal לא יפעל על live; (3) שורש: מקור order 9470 (חיצוני/ידני? ברקט-שדלף?) ולמה נפתחה פוזיציית-8. קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+[2026-07-23 17:13 IDT] 🔴 NAKED ORPHAN SHORT — עדיין פתוח + מחזורי, ~36 דק' ללא-ריפוי (המשך לאזעקת 16:45). Sierra: SHORT ‏-8 @ 7461.75 (acct 37138283, is_sim=0, armed=1, send_orders=1), working_orders=0, orders=[] → עדיין עירום. TradeManager=0 ו-/api/v9/trades/active=null → records≠reality נמשך.
+  · מחזוריות (הדפוס 07-14/07-20/07-22): events מראים 0→-8 ב-13:36:42Z (order 9470) → נסגר +$20 ב-14:06:44Z (order 9471) → נפתח מחדש 0→-8 ב-14:07:44Z (order 9473). ה-avg נדד 7469→7466→7461.75 תוך המחזור; הרקונסיילר עדכן יעד-סטופ 7479→7476 בהתאם.
+  · reconciler עדיין יורה רצוף כל ~30ש' (אחרון שנצפה 17:12:20 IDT): "[Reconciler]/[FillPoller] SYS-3 DIVERGENCE: TM says 0 [], Sierra says -8 (src=state) 🔴 NAKED ORPHAN SHORT 8c @ 7466.0 → PLACE PROTECTIVE STOP @ 7476.0". phantom-heal streak תקוע 0/3 — חסום על live (is_sim=0). שום op=PLACE-מגן לא נשלח → הסטופ לא הונח.
+  · לא false-naked: יומן-המילויים תקוע מ-09:56:55Z (~4.3ש', הכותב מת) — אפס ENTRY/STOP ל-9470/9473 ואין fill תואם לסגירת ה-+$20 (order 9471). כניסת-מערכת תקינה תמיד כותבת ENTRY עם c1..c4 stop/target IDs — כאן אין. ⇒ Check-3 לא ניתן-לאימות + הכניסות לא-מבורקטות.
+  · Check-1 (35 דק'): candidates=6, fires=2 — לא אנומליית-חסימה (ירי>0). אך 2 הירי היו INITIATIVE/REACTIVE **LONG** (16:45/16:55 IDT) בעוד הפוזיציה SHORT ⇒ ה-orphan אינו מהלוגיקה הנוכחית (חיצוני/ידני או ברקט-שדלף).
+  · חשיפה: live_price 7456.75 (טרי) → short כעת ~+$200 לא-ממומש (לטובה), אך עירום = סיכון בלתי-מוגבל כלפי-מעלה עד התערבות. גודל 8 = 2× FIXED_CONTRACTS_4.
+  · בריאות מסביב תקינה: backend 200 (2ms, אין נעילת-PG) · live_price age ~1.2s ✓ · sierra_state mtime טרי ~1.5s ✓ · feeder-יחיד PID641 ✓ · flag_guard PASS 118/118 ✓.
+  · נדרש מייקל — מיידי (כסף-אמת עירום 36 דק'): (1) FLATTEN_ACCOUNT מיידי או הנח סטופ-מגן ידני @~7476 — auto-heal לא יפעל על live; (2) שורש: מקור 9470/9473 (חיצוני/ידני? ברקט-שדלף?) + למה גודל-8; (3) הכותב-של-fills-journal מת מ-09:56Z — לבדוק. קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+[2026-07-23T14:48:29Z] 🔴 CRITICAL NAKED ORPHAN (session-watch) — LIVE acct 37138283 (is_sim=0) SHORT 8 @ 7456.5, working_orders=0, orders=[], active-trade=null (records≠reality; src=sierra_state.json fresh). Onset 16:36 local (~65min), cycling: covered→0 @14:17:45Z (ord 9476) then re-short -8 @14:19:46Z (ord 9477). Reconciler DIVERGENCE + phantom-heal 0/3 q30s (256 lines), heal blocked on live; system PLACE/LONG orders fail ORDER_FAILED:-1 → cannot self-heal. Price 7466.25 (~9.75pt underwater). fills-journal writer DEAD ~4.8h (last 09:56Z). Candidates 11/fires 0 (LONG, daytype_playbook x5, unrelated). flag_guard PASS 118, live_price 685ms, single feeder. ACTION: Michael FLATTEN_ACCOUNT (never partial op=EXIT) or manual protective stop. Watch read-only.
+
+[2026-07-23T15:16:20Z] 🔴 NAKED ORPHAN SHORT — נמשך (session-watch, המשך לאזעקות 14:48Z/16:45/17:13). LIVE acct 37138283 (is_sim=0) SHORT -6 @ 7456.5 (src=sierra_state.json טרי 2ש'), working_orders=2 = buy-limits 7405.75×2 + 7422×2 = TARGETS ל-4/6 בלבד, אין סטופ-מגן מעל → עדיין עירום. /api/v9/trades/active=null + TM=0 → records≠reality נמשך.
+  · שינוי מאז 14:48Z: הפוזיציה קטנה -8→-6 ב-15:06:51Z (POSITION_CHANGE order 9478, is_sim=false) — fill אמיתי (מאומת ב-activity events), לא סגירה-פיקטיבית. המחזוריות נעצרה מאז 14:19Z (short יציב ~54 דק').
+  · reconciler עדיין q30s (אחרון 18:13:31 IDT): "SYS-3 DIVERGENCE: TM says 0 [], Sierra says -6 (src=state) 🔴 NAKED ORPHAN SHORT 6c @ 7456.5 → PLACE PROTECTIVE STOP @ 7466.5 (10pt)". phantom-heal streak 0/3 — חסום על live. שום op=PLACE נשלח → הסטופ לא הונח.
+  · חשיפה: live_price 7434 (טרי) → short כעת ~+22pt לטובה (~+$675 לא-ממומש), אך עירום כלפי-מעלה = סיכון בלתי-מוגבל עד התערבות. גודל 6.
+  · Check-1 (35 דק'): candidates=14, fires(op=PLACE)=0. blocked_by: daytype_playbook×3, cont_trend_filter×1, entry_not_confirmed×1 — כולם מוצדקים (LONGs נחסמו נגד-מגמה על מהלך-יורד; ZLR SHORT לא הגיע ל-op=PLACE כי ה-execution מנוון + orphan תופס סיכון). לא אנומליית-חסימה חשודה חדשה — הבעיה היא ה-orphan.
+  · Check-3: יומן-המילויים מת ~5.2ש' (אחרון 09:56Z, ENTRY LONG לא-קשור) — לא ניתן לאמת דרכו, אך ה-cover -8→-6 מאומת דרך POSITION_CHANGE. אין סגירה-פיקטיבית בבקאנד (active-trade=null). מות-הכותב = פער-שלמות-נתונים ידוע.
+  · בריאות: live_price age ~200ms ✓ · sierra_state mtime 2ש' טרי ✓ · flag_guard PASS 118/118 ✓ · feeder-יחיד PID641 ✓ · 0 CRITICAL חדש מאז 14:48Z (נתיב-ה-CRITICAL שקט מ-13:55Z; ה-WARNING reconciler ממשיך).
+  · נדרש מייקל — מיידי (כסף-אמת עירום 5+ שעות): FLATTEN_ACCOUNT (לעולם לא partial op=EXIT — שבור) או הנח סטופ-מגן ידני @~7466.5 — auto-heal לא יפעל על live. קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+
+[2026-07-23T15:48:23Z] 🔴 NAKED ORPHAN SHORT — החמיר ל־10 (session-watch; המשך לאזעקות 14:48Z/15:16Z/15:28Z). LIVE acct 37138283 (is_sim=0) SHORT **−10** @ avg 7424.85 (src=sierra_state.json טרי 0ש'), working_orders=8 = 4 סטופי־מגן buy-stop @7434.50 (qty1×4) + 4 יעדי buy-limit (7411.75×2 / 7421.25 / 7421.75). **כיסוי־סטופ = 4/10 → 6 חוזים עירומים לחלוטין (0 סטופ).**
+  · מסלול: ב־15:39:34Z הפוזיציה הייתה FLAT אמיתי (qty=0, orders=[], active=null) — אורפן־כל־היום הגיע ל־0. בין 15:39→15:45 נורתה עסקה חדשה #481 (ZLR, SHORT, entry 7425.25, stop 7434.50, 4c — לגיטימית, מתיקון־הערב). אך הפוזיציה בסיירה קפצה ל־10 → 6 חוזי־אורפן חדשים נערמו מעל ה־4 המנוהלים. מחזור־האורפן חזר על עצמו על־גבי הירי החדש.
+  · reconciler NOW (18:48 IDT): "TM says -4 ['#481(live,SHORT,4c)'], Sierra says -10 (src=state). Records ≠ reality! phantom-heal streak 0/3". phantom-heal תקוע 0/3 — חסום על live → אין ריפוי־עצמי; שום op=PLACE־סטופ לא נשלח ל־6 העירומים.
+  · חשיפה: price 7426.75 (טרי 98ms) מול short-avg 7424.85 = ~2pt מתחת־למים (הפסד־רגעי קטן). הסכנה: הסטופים @7434.50 (~8pt מעל המחיר) — אם המחיר יעלה לשם, 4 הסטופים יכסו 4 חוזים ו־6 יישארו עירומים ב־100% (0 סטופ) → סיכון בלתי־מוגבל כלפי־מעלה. 6 עירומים × MES $5/pt.
+  · Check-1 (החלטות): candidates=29, fires(op=PLACE)=2 היום — המערכת יורה (לא אנומליית־חסימה). blocked_by: daytype_playbook×9 / cont_trend×3 / lsma_flat×2 / entry_not_confirmed×1 — חסימות נגד־מגמה מוצדקות. לא חשוד.
+  · Check-3: אין סגירה־פיקטיבית (המציאות ≥ הרשומות = כיוון־אורפן, לא ההפך). כיסויים −8→−6→−4 מגובים ב־CLOSED_TRADE_PNL אמיתי (+247.5 / +345). ⚠️ יומן־events stale ~25 דק' (אחרון 15:22Z) + יומן־fills תקוע (169 שורות, אחרון 09:56Z) = מות־הכותב, פער־שלמות־נתונים ידוע.
+  · בריאות: backend 200 · live_price age<2.5s ✓ · sierra_state mtime 0-1s טרי ✓ · feeder־יחיד PID641 ✓ · flag_guard PASS 119/119 ✓. ⚠️ שני read-errors רועשים בלוג (לא־קריטי, לא־מסחר): `pattern_id` על v9_five_min_setups ×1732 (צ"ל `pattern`) + `bigint = text` על v9_trades id=ANY(['L1','475','477','479']).
+  · נדרש מייקל — מיידי (כסף־אמת, 6 חוזים עירומים): FLATTEN_ACCOUNT (לעולם לא partial op=EXIT — שבור) או הנח סטופ־מגן ידני לכל −10 @~7434.5 — auto-heal לא יפעל על live. קריאת־בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+## 🔴 2026-07-23T16:15:06Z — session-watch: NAKED ORPHAN live SHORT -12 (records≠reality, self-heal blocked)
+- **Reality (sierra_state.json, fresh age~0s, SOURCE OF TRUTH):** is_sim=0 (LIVE), position_qty=**-12** @ avg **7428.62**, working_orders=**0**, orders=[]. Account 37138283.
+- **Records:** GET /api/v9/trades/active = **null** → backend believes FLAT. Total divergence.
+- **P&L exposure:** live_price=7445.0 → short ~**16.4pt underwater × 12c ≈ ~$980 unrealized** (MES $5/pt). Past the intended 10pt stop (7438.5) and past the -$400 halt.
+- **Self-heal BLOCKED (cannot protect itself):** Reconciler emits continuously (≥19:04 IDT) "SYS-3 DIVERGENCE … 🔴 NAKED ORPHAN SHORT 12c @7428.62 → PLACE PROTECTIVE STOP @7438.5" but **phantom-heal streak stuck 0/3** (live auto-heal gated on is_sim=0) AND **execution broken**: every order → Sierra error=-1 (GENERAL_ERROR_OR_NOT_ENABLED); trades 477 (16:55), 483 (19:00), 485 (19:10) all CANCELLED ORDER_FAILED:-1. NAKED_STOP_SUSPECT [CRITICAL] logged 16:55/19:00/19:10.
+- **Other checks:** feeder single (PID641) ✓ · flag_guard PASS 119/119 ✓ · live_price age 1.4s ✓ · sierra_state fresh ✓ · candidates 5 / fires 2 (not a silent-block anomaly — fires attempt but Sierra rejects) · trade_activity_events stale ~49m · fills_journal stale ~16m (last ENTRY 9504 4c SHORT@7425.25 stopped out @7434.50 — matched fills, no fictitious close).
+- **ACTION REQUIRED — Michael:** manually **FLATTEN account 37138283** in Sierra now (per standing rule live auto-heal is gated; FLATTEN_ACCOUNT is the only safe manual exit). System cannot self-flatten while execution returns -1.
+
+## 🔴 2026-07-23T16:46:07Z — session-watch: NAKED ORPHAN עדיין חי ומעמיק (‎-12 short, ~$1,583 מתחת-למים)
+- **מציאות (sierra_state.json, טרי age~0.9s, מקור-אמת):** is_sim=0 (LIVE), position_qty=**-12** @ avg **7428.62**, working_orders=**0**, orders=[]. חשבון 37138283. ללא שינוי מ-19:15 — מייקל טרם השטיח.
+- **רשומות:** GET /api/v9/trades/active = **null** → backend חושב FLAT. סטייה מוחלטת (records≠reality).
+- **חשיפה החמירה:** live_price=**7455.0** (טרי 0.9s) → short ~**26.4pt מתחת-למים × 12c ≈ ~$1,583 לא-ממומש** (MES $5/pt). עלה מ-~$980 ב-19:15 כי המחיר ראלה מ-7445→7455. חצה מזמן את הסטופ-המכוון (7438.5) ואת מחסום ה-‎-$400.
+- **ריפוי-עצמי חסום (הפוזיציה לא יכולה להגן על עצמה):** Reconciler יורה רצוף q30s (19:39/19:40) "NAKED ORPHAN SHORT 12c @7428.62 → PLACE PROTECTIVE STOP @7438.5" אך **phantom-heal streak תקוע 0/3** (auto-heal חסום על is_sim=0) **וגם execution שבור**: כל ניסיון-הזמנה → Sierra error=-1 (ORDER_FAILED:-1). trades 475/477/483/485 כולם CANCELLED ORDER_FAILED:-1 (19:00/19:10 האחרונים). לו סטופ-הגנה @7438.5 היה נכנס — המחיר כבר עבר דרכו וכיסה; במקום זאת 12 עירומים ב-100%.
+- **Check-1 (החלטות):** candidates=4, fires(op=PLACE)=1 ב-35 דק' → **לא** אנומליית-חסימה-שקטה (הסף הוא ≥3 מועמדים ו-0 ירי). blocked_by: lsma_flat×2 / cont_trend×2 / rr×1 / daytype×1 — סינון נגד-מגמה/גאומטריה תקין. לא חשוד.
+- **Check-3 (סגירות-פיקטיביות):** אין. כל הסגירות-החיות (#479 short −161.25, #481 short −138.75) = STOP_HIT אמיתי מגובה ב-STOP fills @7434.50 ביומן (orders 9500/9503/9506). כיוון-הסטייה=מציאות>רשומות (אורפן) — לא ההפך. אין גרירת-יעד (0 "Auto-trade order modification"). ⚠️ יומן-fills stale ~47min + יומן-events stale ~80min = מות-הכותב, פער-שלמות-נתונים ידוע.
+- **Check-4 (בריאות):** backend 200 (10ms) ✓ · live_price age 0.9s ✓ · sierra_state mtime 0.9s טרי ✓ · feeder-יחיד PID641 ✓ · flag_guard PASS 119/119 ✓. אין CRITICAL מסוג-חדש (רק האורפן הנמשך). ⚠️ שני היומנים תקועים (כנ"ל).
+- **נדרש מייקל — עדיין, מיידי (כסף-אמת, 12 חוזים עירומים, מעמיק):** FLATTEN_ACCOUNT על 37138283 בסיירה עכשיו (לעולם לא partial op=EXIT — שבור). auto-heal לא יפעל על live ו-execution מחזיר -1 → המערכת לא יכולה להשטיח את עצמה. זו התרעה חוזרת (המשך 19:15 ומוקדם יותר) — הפוזיציה זהה אך ההפסד גדל. קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+
+## 🔴 2026-07-23T17:15Z — session-watch: NAKED ORPHAN עדיין חי (‎-12 short, ~$1,013 מתחת-למים)
+- **מציאות (sierra_state.json, טרי age~0.3s, מקור-אמת):** is_sim=0 (LIVE), position_qty=**-12** @ avg **7428.62**, working_orders=**0**, orders=[]. חשבון 37138283. ללא שינוי בפוזיציה מ-19:15/19:46 — מייקל טרם השטיח.
+- **רשומות:** GET /api/v9/trades/active = **null** → backend חושב FLAT. סטייה מוחלטת (records≠reality) נמשכת.
+- **חשיפה:** live_price=**7445.5** (טרי 0.3s) → short ~**16.9pt מתחת-למים × 12c ≈ ~$1,013 לא-ממומש** (MES $5/pt). ירד מ-~$1,583 שיא ב-19:46 כי המחיר חזר 7455→7445.5 (יום-יורד Variation/OPEN_DRIVE(DOWN) — השורט עם-המגמה, מתקדם לאט לכיוון BE), אך עדיין עמוק ו-100% עירום.
+- **ריפוי-עצמי חסום (ללא שינוי):** Reconciler יורה q30s "NAKED ORPHAN SHORT 12c @7428.62 → PLACE PROTECTIVE STOP @7438.5" אך **phantom-heal streak 0/3** (auto-heal חסום על is_sim=0) **וגם execution שבור** ORDER_FAILED:-1. המחיר (7445.5) כבר מעל הסטופ-המכוון (7438.5) → ריפוי עכשיו יכסה סמוך-לשוק.
+- **Check-1 (החלטות):** candidates=3, fires(op=PLACE)=**0** ב-35 דק'. עבר-סף אך **לא אנומליית-חסימה-שקטה חשודה**: (1) ZLR LONG @20:00 = נגד-מגמה ביום-יורד → חסימה מוצדקת; (2) REACTIVE SHORT @19:45 = עם-מגמה אך חסום lsma_flat/cont_trend — סביר בקונסולידציה B2, **ורצוי** כי אין להוסיף לשורט-עירום-12. blocked_by: cont_trend×3 / lsma_flat×2 / daytype_playbook×2. fires=0 = התוצאה הבטוחה בהינתן האורפן הפתוח.
+- **Check-3 (סגירות-פיקטיביות):** אין. סגירות-חיות אחרונות #479 (7423.5→7434.25 STOP_HIT 18:38) ו-#481 (7425.25→7434.5 STOP_HIT 18:55) — שתיהן מגובות STOP fills תואמים ביומן (@7434.25 ts~18:39, @7434.50 ×4 ts~18:55). כיוון-הסטייה=מציאות>רשומות (אורפן) לא ההפך. 0 "Auto-trade order modification" (אין גרירת-יעד).
+- **Check-4 (בריאות):** backend 200 (2ms) ✓ · live_price age 0.3s ✓ · sierra_state mtime טרי 0.0min ✓ · feeder-יחיד PID641 ✓ · flag_guard PASS 119/119 ✓. אין CRITICAL מסוג-חדש. ⚠️ fills_journal stale ~80min + events stale ~112min = מות-הכותב נמשך (פער-שלמות ידוע; sierra_state הטרי גובר).
+- **נדרש מייקל — עדיין, מיידי:** FLATTEN_ACCOUNT על 37138283 בסיירה עכשיו (לעולם לא partial op=EXIT — שבור). auto-heal חסום על live + execution=-1 → המערכת לא יכולה להשטיח את עצמה. התרעה חוזרת (המשך 19:15/19:46). קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+
+## 🔴 2026-07-23 20:46 IDT (17:46Z) — session-watch: NAKED ORPHAN נמשך (המשך 20:15 / 19:46 / 19:15)
+
+- **מציאות (sierra_state.json, טרי age~0s, מקור-אמת):** is_sim=0 (LIVE), position_qty=**-12** @ avg **7428.62**, working_orders=**0**, orders=[]. חשבון 37138283. ללא שינוי בפוזיציה מ-19:15 (~5.5 שעות).
+- **רשומות:** GET /api/v9/trades/active = **null** → backend חושב FLAT. סטייה מוחלטת (records≠reality) נמשכת; Reconciler מתעד q30s "TM=0 vs Sierra=-12 (src=state) 🔴 NAKED ORPHAN SHORT 12c @7428.62 → PLACE PROTECTIVE STOP @7438.5 (10pt)".
+- **חשיפה:** live_price=**7436.25** (טרי ~1s) → short ~**7.6pt מתחת-למים × 12c ≈ ~$458 לא-ממומש** (MES $5/pt). הוקל דרמטית מ-~$1,013 (20:15) ומ-$1,583 שיא (19:46) כי יום-יורד דחף מחיר לכיוון BE; **עלה מעט** ב-4 הדק' האחרונות (7433.75→7436.25). עדיין 100% עירום — סיכון-עליון בלתי-חסום אם המחיר יתהפך למעלה.
+- **Check-1 (החלטות):** מועמדים ~4 (20:20 + 20:25 ZLR LONG · 20:35 REACTIVE SHORT · 20:35 GB100 SHORT), ירי op=PLACE=**2** (20:25 trade487 · 20:35 trade489). תנאי-האנומליה (מועמדים≥3 ∧ ירי=0) **לא מתקיים**. **שני הירי נכשלו ORDER_FAILED:-1 (GENERAL_ERROR_OR_NOT_ENABLED)** → בוטלו, slot שוחרר, pnl=0. חסימות מוצדקות: ZLR LONG (20:20) חסום cont_trend_filter (נגד-מגמה ביום-יורד) · REACTIVE SHORT (20:35) חסום daytype_playbook (לא ב-VAH על Variation). אין אנומליית-חסימה-שקטה. **execution עדיין שבור (-1)** → אין פתיחת-פוזיציות → מכיל את האורפן אך חוסם ריפוי-עצמי.
+- **Check-3 (סגירות-פיקטיביות):** אין. שתי הסגירות מאז 20:15 (trade487 @20:25, trade489 @20:35) = ORDER_FAILED:-1 עם pnl=0 (מעולם לא מולאו → אין fill צפוי = תקין). אין T-hit/close-ברשומה ללא-fill תואם. 0 "Auto-trade order modification" (אין גרירת-יעד).
+- **Check-4 (בריאות):** backend 200 ✓ · live_price age ~1s ✓ · sierra_state mtime טרי 0s ✓ · feeder-יחיד PID641 ✓ · flag_guard PASS 119/119 ✓. CRITICAL 20:25/20:35 = NAKED_STOP_SUSPECT (מחלקת-האורפן הקיימת, לא סוג-חדש). ⚠️ fills_journal/events writer stale (פער-שלמות ידוע; sierra_state הטרי גובר).
+- **P&L יום:** ממומש **-$1,210** (22 עסקאות) + לא-ממומש ~**-$458** (אורפן).
+- **נדרש מייקל — עדיין, מיידי:** FLATTEN_ACCOUNT על 37138283 בסיירה עכשיו (לעולם לא partial op=EXIT — שבור). auto-heal חסום על live + execution=-1 → המערכת לא יכולה להשטיח/למגן את עצמה. התרעה חוזרת (המשך 20:15/19:46/19:15). קריאת-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+
+### 🔴 2026-07-23 21:16 IDT (14:16 ET) — session-watch [cowork] — NAKED ORPHAN נמשך (שעה ~4.5)
+- **מקור-אמת (sierra_state.json, mtime 3s טרי, is_sim=0 LIVE):** `position_qty=-12`, `avg_price=7428.62`, `working_orders=0`, `orders=[]` → **100% עירום**. `/api/v9/trades/active`=**null** → רשומות≠מציאות (DIVERGENCE).
+- **Check-2 (רשומות=מציאות):** 🔴 reconciler יורה כל ~30s — **976 אזהרות DIVERGENCE היום**, "NAKED ORPHAN SHORT 12c @ 7428.62 → PLACE PROTECTIVE STOP @ 7438.5" אך **phantom-heal streak 0/3** (חסום על live → לא ממגן). התחיל 09:36 ET כ-**-8 @ 7469.0**, גדל ל-**-12 @ 7428.62** (שורטים נוספו בזמן עירום). מנגנון: שורט **נמלא** (trade488/490 FILLED) אך bracket **נכשל ORDER_FAILED:-1** (trade489/491 CANCELLED) → מילויים עירומים מצטברים; PLACE_STOP DLL op לא-בנוי → אין ריפוי-עצמי.
+- **חשיפה:** live_price=**7430.25** (age 387ms) → short ~**1.6pt מתחת-למים × 12c ≈ ~-$98 לא-ממומש**. **הוקל דרמטית** מ-~-$458 (20:35) ומ-$1,583 שיא (19:46) — יום-יורד דחף מחיר חזרה לכיוון avg. עדיין **100% עירום** = סיכון-עליון בלתי-חסום (כל 1pt למעלה = $60 על 12 חוזים).
+- **Check-1 (החלטות):** מועמדים=**8** (35 דק'), ירי op=PLACE=**1** (20:55 trade490 SHORT @7437.25). אנומליית-חסימה-שקטה (מועמדים≥3 ∧ ירי=0) **לא מתקיימת**. חסימות מוצדקות ביום-RED: REACTIVE_LONG (20:50) + 2×cont_trend_filter (נגד-מגמה) · location_gate×3 · daytype_playbook×2 · lsma_flat×2. המערכת יורה שורטים-עם-מגמה. **execution=-1** מכיל פתיחות אך חוסם ריפוי.
+- **Check-3 (סגירות-פיקטיביות):** אין סגירה-פיקטיבית ודאית. סגירות אחרונות = STOP_HIT אמיתי (482/484/486, -$87.5/-$157.5/-$67.5) + CANCELLED ORDER_FAILED:-1 (pnl=0, מעולם לא מולאו = תקין). ⚠️ **fills_journal stale** — כתיבה אחרונה 18:55 IDT (~2h15m) בזמן פוזיציה-חיה = פיגור-רישום (sierra_state הטרי גובר, לכן לא-חוסם).
+- **Check-4 (בריאות):** flag_guard **PASS 119/119** ✓ · feeder-יחיד PID641 (count=1) ✓ · live_price age 387ms ✓ · sierra_state mtime 3s ✓ · backend 200 ✓. 🟡 **באג-חדש: `[BarLevelDetector] on_bar error: Invalid transition: PARTIAL -> PARTIAL` — חוזר כל ~6s** (חריגה מחזורית ב-S6 bar-level detector; לא-חדש-למחלקת-האורפן — פריט-חדש להיום).
+- **P&L יום:** ממומש **~-$1,141** (18 עסקאות שנמדדו; הרצה-קודמת דיווחה -$1,210/22 — פער-שיטת-ספירה) + לא-ממומש ~**-$98** (אורפן).
+- **נדרש מייקל — עדיין, מיידי:** FLATTEN_ACCOUNT על 37138283 בסיירה עכשיו (לעולם לא partial op=EXIT — שבור/known-broken). auto-heal חסום על live + execution=-1 → המערכת לא יכולה למגן/להשטיח את עצמה. התרעה חוזרת (המשך 20:35/19:46/19:15). **קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.**
+- [2026-07-23T21:44:50+03:00 IL] 🔴 NAKED ORPHAN live SHORT -12@7428.62 עירום ~5h; active=null↔Sierra-12, reconciler 1084×/phantom-heal 0/3 חסום-live; +סגירות-פיקטיביות 3×STOP_HIT (13:00/30/40 ET, -$312.5) בלי-fill (יומן קפוא 11:55 ET, 0 fills>12:00)→מנגנון-האורפן; מחיר 7430.75 לא-מוממש ~-$128; מוממש-יום -$1,297.50; execution שבור 7×ORDER_FAILED:-1. נדרש מייקל FLATTEN_ACCOUNT. (session-watch)
+
+- [2026-07-23T22:14:00+03:00 IL] 🔴 NAKED ORPHAN live SHORT נמשך (~5.5h) — **הוקל אך עדיין עירום**: sierra_state (mtime טרי 3s, is_sim=0 LIVE) qty ‎-12→**-10 @ 7429.50**, working_orders 0→**4** (כולם buy-limit *targets* 7420.25-7425.00, **אין stop מעל-שוק**). `active`=null ↔ Sierra ‎-10 → רשומות≠מציאות. reconciler יורה q30s "NAKED ORPHAN SHORT 10c @ 7429.5 → PLACE PROTECTIVE STOP @ 7439.5" אך **phantom-heal streak 0/3** (חסום על live → לא ממגן; PLACE_STOP DLL op לא-בנוי). מחיר **7428** (age 1053ms) → short ~+1.5pt **ירוק ~+$75 לא-ממומש** (השתפר מ-‎-$128 @21:44; היעדים מכסים ‎-12→-10 לבד). **Check-1:** מועמדים=15 (35דק') / ירי op=PLACE=**2** → אנומליית-חסימה-שקטה **לא מתקיימת**; חסימות תקינות (lsma_flat×5, location_gate×4, cont_trend_filter×3, daytype_playbook×1). **Check-3:** יומנים קפואים (events 15:22Z / fills 15:55Z; orders 9509-9514 לא-רשומים) → cover ‎-12→-10 לא-מתועד; אין סגירה-פיקטיבית *חדשה* (TM=0 לא סוגר כלום). 🟡 **BarLevelDetector `PARTIAL->PARTIAL` 1960×/35min** (נמשך מהריצה הקודמת). 🟡 **P&L-יום לא-ודאי (journal קפוא):** CLOSED_TRADE_PNL מתועד = **+$783.75/11** vs STOP_HIT מהריצה-הקודמת ~**-$1,297** — לא מתיישבים בגלל הקפאת-היומן. **Check-4:** flag_guard **PASS 119/119** ✓ · feeder-יחיד PID641 ✓ · live_price age 1053ms ✓ · sierra_state mtime 3s ✓. **נדרש מייקל — מיידי: FLATTEN_ACCOUNT על 37138283** (לעולם לא partial op=EXIT — known-broken). המערכת לא יכולה למגן/להשטיח עצמה (auto-heal חסום-live + execution ‎-1). התרעה חוזרת (המשך 21:44/21:16/20:35). **קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.** (session-watch)
+
+- [2026-07-23T22:41:00+03:00 IL] 🔴 NAKED ORPHAN live SHORT נמשך (~6h) — **ממשיך להשתפר, עדיין עירום+לא-מנוהל**: sierra_state (mtime ~1s טרי, is_sim=0 LIVE) qty ‎-10→**-8 @ 7430.81**, working_orders 4→**5** (כולם buy-limit *targets* 7420.25-7427.75, **אין stop מעל-שוק**). `active`=null ↔ Sierra ‎-8 → רשומות≠מציאות. reconciler q~9s "NAKED ORPHAN SHORT 8c @ 7430.81 → PLACE PROTECTIVE STOP @ 7440.75" אך **phantom-heal 0/3** חסום-live (**408×** ב-65 דק'). מחיר **7430.5** (age 489ms) ≈ avg 7430.81 → short **~שטוח** (~+$2-12 לא-ממומש; targets כיסו ‎-10→-8, השתפר משיא ‎-$1,455). **Check-1:** חלון 22:05-22:40 מועמדים=**7** / ירי op=PLACE=**1** → אנומליית-חסימה-שקטה **לא מתקיימת**; חסימות מוצדקות (eod_entry_cutoff×2 סמוך-לנעילה 15:40 ET, location_gate×1); ירי-אחרון 22:05. **Check-3:** יומנים **קפואים** (events 18:22 IL/15:22Z, fills 18:55 IL — ~3.7h); cover ‎-10→-8 לא-רשום = פיגור-רישום; **אין סגירה-פיקטיבית חדשה** (TM=0 לא סוגר כלום). **Check-4:** flag_guard **PASS 119/119** ✓ · feeder-יחיד PID641 ✓ · live_price age 489ms ✓ · sierra_state mtime ~1s ✓ · backend 200/2.5ms ✓. 🟡 **BarLevelDetector `Invalid transition: PARTIAL -> PARTIAL`** — נמשך כל-בר (נראה 22:40:31/32). ⚠️ **יומני-fills/events קפואים ~3.7h** (sierra_state הטרי גובר → לא-חוסם-אבחון). **נדרש מייקל — מיידי: FLATTEN_ACCOUNT על 37138283** (לעולם לא partial op=EXIT — known-broken). המערכת לא יכולה למגן/להשטיח עצמה (auto-heal חסום-live). התרעה חוזרת (המשך 22:14/21:44/21:16). **קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.** (session-watch)
+
+- [2026-07-24T16:13 IL] 🟡 session-watch: **פוזיציה ידנית LIVE SHORT ‎-4 @ 7459.75** על 37138283 — **ממוגנת-מלא** (buy-STOP 4c @ 7459.50 מעל-שוק + target 2c @ 7433.25; sierra_state mtime ~0s, is_sim=0). מחיר 7449.12 → **~+$212 לא-ממומש**, +$142.5 ממומש (רצף: 15:39 ‎-8 ידני #9576 → כיסוי 2c 15:47 ‎+$50 → כיסוי 2c 15:57 ‎+$92.5). TM=0/`active`=null — **reconciler מסווג נכון q30s "MANUAL POSITION — likely Michael's manual trade"** (פסיקת-12:20 "חשבון מעורב" מיושמת ועובדת על כסף-אמת; INFO, לא אזעקת-NAKED). ⚠️ **מודעות לפתיחת-RTH 16:30:** OPENING_FIRE_V1 + OPENING_ENTRY_V1 + OPENING_DIR_FUSION_V1 חיים-חדשים מהיום — ירי-מערכת בפתיחה יוסיף 4c על ה-‎-4 הידני (חשיפה משולבת עד 8c). Check-1 נקי (מועמדים=0/ירי=0, טרום-שוק; אין blocked_by) · Check-3 נקי — אין סגירה-פיקטיבית (מאז-הריצה-הקודמת נסגרו רק 4 shadow S4 אמש #488/490/492/494 STOP_HIT; הכיסויים-הידניים מתועדים ב-events כ-CLOSED_TRADE_PNL; fills-journal בלי רישום להם = צפוי לברקט-ידני ללא group-mapping; 4×ENTRY LONG@7500 ביומן = דרילים/סים של בוקר-CC, החשבון-החי נשאר 0 עד 15:39) · Check-4 ירוק: flag_guard **PASS 125/125** ✓ feeder-יחיד PID629 ✓ live_price 452ms ✓ backend 200/1.8ms ✓ CRITICAL=0 ✓ **BarLevel PARTIAL→PARTIAL=0 — הבאג-מאתמול תוקן-בלילה** ✓. קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB. (session-watch)
+
+- **2026-07-24 17:12 IL — 🟠 ירי-LIVE ראשון של היום נכשל ORDER_FAILED:-1 + נורה מעל פוזיציה-ידנית (cowork-session-watch):** 16:55:02 S2 REACTIVE_SHORT נותב LIVE (TM 503, 4c, entry 7436.25, stop 7461.50, t1 7433.25) לחשבון 37138283 **בעוד שורט-ידני ‑4 של מייקל פתוח** — אין שער שחוסם ירי-מערכת כשקיימת פוזיציה-ידנית-לא-רשומה (אילו נכנס: ‑8 מעורבב). סיירה החזירה error=-1 GENERAL_ERROR_OR_NOT_ENABLED → FillPoller ביטל נקי (DB: CANCELLED, pnl 0; אפס-fills ביומן; slot שוחרר) = **הישנות מחלקת-הכשל של 07-23 (477/483/485) — מסלול-הביצוע-החי עדיין שבור, המערכת בפועל לא מסוגלת להיכנס לייב**. 3×CRITICAL NAKED_STOP_SUSPECT ב-16:55 = טרנזיינט של אותו אירוע (הפוזיציה הידנית ממוגנת-מלא: stop 4@7459.50≈BE + target 2@7424.75). 17:10 INITIATIVE_LONG נחסם Auth-Table (מוצדק — היה מוחק את השורט של מייקל). תצפית-משנית: target הידני הוזז 7433.25→7424.75 בין 16:42→17:09, אין שום רישום ביומני-events/fills — כנראה מייקל; לוודא. רעש-לוג חוזר: db.read "pattern_id does not exist" + "bigint=text" כל ~15ש' (דריפט-סכימה בקריאה, לא חוסם). דרוש-מייקל: (א) פסיקה על תיקון-שורש execution ‑1 לפני ירי-לייב נוסף; (ב) האם להוסיף שער "אין-ירי-מעל-פוזיציה-ידנית".
+
+
+- **2026-07-24 17:42 IL — 🟠 הישנות ×2: ירי-לייב נכשל שוב (TM 505+507) — כולל LONG שנורה נגד השורט-הידני (cowork-session-watch):** מאז 17:13 שני נסיונות-ירי-לייב נוספים על 37138283, שניהם error=-1 GENERAL_ERROR_OR_NOT_ENABLED → CANCELLED נקי (pnl=0, אפס-fills, slot שוחרר) — **סה"כ היום 3 כשלים (503/505/507), מסלול-הביצוע-החי עדיין שבור**. ⚠️ החמור: **17:25:03 REACTIVE_LONG tier=HIGH 4c (entry 7454, stop 7428.50, TM 505) = ירי נגד-כיוון מעל השורט-הידני ‑4** — אילו נכנס היה מוחק/מהפך את הפוזיציה של מייקל (חיזוק לצורך בשער "אין-ירי-מעל-פוזיציה-ידנית" מהתרעת-17:12). 17:35:01 REACTIVE_SHORT tier=MEDIUM 4c (TM 507) = אותה מחלקה, same-dir. 3×CRITICAL NAKED_STOP_SUSPECT (17:25×2, 17:35) = טרנזיינט של רגעי-הירי — בפועל הפוזיציה ממוגנת-מלא. **פוזיציה (sierra_state mtime 0s):** SHORT ‑4 @ 7459.75, stop 4c @ 7459.50 (BE+0.25) + target 2c @ 7424.75 (ללא-שינוי מ-17:09 — אין גרירת-יעד חדשה); מחיר 7439.0 → **+20.75pt ≈ +$415 לא-ממומש**, +$142.5 ממומש. **Check-1:** מועמדים=14 / ירי=2 → אין אנומליית-חסימה-שקטה; חסימות: cont_trend_filter×3 על ZLR SHORT trend=RED (⚠️ שורט-עם-מגמה נחסם — תצפית-משנית לבדיקה, S2 שורטים כן מנותבים) + lsma_flat×2 (מוצדק, |slope 0.11|<0.25) + Auth-Table SKIP (17:40 INITIATIVE_SHORT). **Check-3:** סגירות מאז-הריצה = 505/507 CANCELLED-pnl=0 בלי-fills = עקבי, אין סגירה-פיקטיבית; אין fills חדשים ביומן (אחרון 13:37) = אין-לא-מתועד. **Check-4:** flag_guard PASS 125 ✓ feeder-יחיד PID629 ✓ live_price 128ms ✓ backend 200/2ms ✓. **דרוש-מייקל (חוזר, מחוזק):** (א) תיקון-שורש execution=-1 לפני שהמערכת "תצליח" לירות; (ב) שער-פוזיציה-ידנית — עכשיו מוכח שגם ירי-נגד-כיוון עובר. קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+- **2026-07-24 18:14 IL — 🔴 פוזיציה-ידנית LIVE LONG ‎+10 @ 7473.00 עירומה (working_orders=0) על 37138283 (cowork-session-watch):** נפתחה 18:11:14 IL (order 9581, שני fills 9→10, events lines 366/390), 13 דק' אחרי שהשורט-הידני ‑4 נסגר 17:58 ב-BE (+$5 CLOSED_TRADE_PNL). sierra_state (mtime ~0s, is_sim=0): qty=10, avg=7473.00, **orders=[] — אין stop ואין target נראים**; בדיקה-חוזרת 18:13:14 — עדיין 0 (אתמול ברקט-ידני כן הופיע ב-working_orders ⇒ קריאת-naked אמינה, בכפוף ל-caveat held-bracket #452). מחיר 7470.5 → ‑2.5pt ≈ **‑$125 לא-ממומש על 10 חוזים** — הפוזיציה הגדולה של השבוע, ללא הגנה, בחשבון שבו execution-המערכת שבור (3×ORDER_FAILED:-1 היום) ו**אין שער-פוזיציה-ידנית** (ירי-נגד-כיוון מעל ידני מוכח 17:25). reconciler מסווג נכון MANUAL q30s (INFO, לא orphan). TM=0/`active`=null = רשומות≠מציאות במחלקת-הידני המותרת (פסיקת-12:20 חשבון-מעורב). **דרוש מייקל — מיידי: לאמת/להציב ברקט (לפחות stop) על ה-+10, או FLATTEN_ACCOUNT; לעולם לא partial op=EXIT (known-broken).** Check-1: מועמדים 23 / ירי 1 (TM507 17:35, נכשל ‑1) → אין חסימה-שקטה; חסימות מוצדקות: lsma_flat×5 · rr_entry_gate×2 (GHOST LONG) · extreme_chase_guard×2 (Phase2-מהלילה פעיל) · cont_trend_filter×2 · entry_not_confirmed×1. Check-3 נקי: 507 CANCELLED pnl=0 אפס-fills=עקבי; 502/504/506 shadow STOP_HIT (‑378.75/‑161.25/+56.25) ללא-fills=צפוי-shadow (502=תאום-הצל של 503 שנכשל — הכשל "חסך" ‑$378); סגירת-הידני 17:58 מתועדת-events ✓ אין סגירה-פיקטיבית. Check-4: flag_guard PASS 125 ✓ · feeder-יחיד PID629 ✓ · live_price 462ms ✓ · sierra_state ~0s ✓ · backend 200/2.8ms (uptime מ-16:58 IL — restart בין-ריצות, לתשומת-לב) ✓ · CRITICAL-חדש מאז 17:42 = 0 (ה-17:35:01 סווג בריצה-הקודמת כטרנזיינט-ירי). ממומש-ידני היום ‎+$147.5. קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.
+
+
+- **2026-07-24 18:43 IL — 🟡 עדכון-הלונג-הידני: צומצם 10→6 ברווח (+$312.5 ממומש), טרגט הוצב — סטופ עדיין לא-נראה; ORDER_FAILED:-1 רביעי היום (cowork-session-watch):** sierra_state (mtime 0s, is_sim=0): qty=**6** @ 7473.00, working_orders=**1** — sell-limit **3c @ 7499.75** (order 9583, target) — **אין stop נראה** (caveat held-bracket בעינו). מייקל מנהל-יד פעיל: 18:16 (order 9582) שלושה fills ‎+$228.75 (3×76.25), 18:28 (order 9584) ‎+$83.75 → 10→9→8→7→6; מחיר **7489.75** → ‎+16.75pt ≈ **+$502 לא-ממומש**. ממומש-יום ‎+$460 (‎+147.5 קודם + ‎+312.5 סקייל-אאוט). reconciler: **2×CRITICAL NAKED_STOP_SUSPECT 18:20** — המשך מחלקת-18:14; פריט דרוש-מייקל נשאר פתוח (stop על ה-6 או המשך-ניהול-יד מודע). **Execution:** 18:20:02 REACTIVE_SHORT (conf 0.75) → TM **#509 ORDER_FAILED:-1** (רביעי היום: 503/505/507/509) → CANCELLED נקי pnl=0 אפס-fills; **נורה נגד-כיוון מעל הלונג-הידני (7c אז) — הישנות-שלישית של שער-פוזיציה-ידנית-חסר** (מוכח 17:12/17:42). תאום-צל **#508** נכנס 7473.75 → STOP_HIT 18:35 @7491 ‎-$258.75 (‎-0.75R) — הכשל "חסך" שוב. **Check-1:** מועמדים=7 / ירי=1 (35 דק') → אין חסימה-שקטה; rr_entry_gate×1 (GHOST LONG 18:10 @7455). ⚠️ **תצפית-חשודה: daytype_playbook חסם 2×REACTIVE_LONG** (18:15 @7478 tier=LOW 4c; 18:30 @7485.5) **בטייפ עולה** (7478→7489.75 = ‎+11.75pt הוחמצו) **בעוד REACTIVE_SHORT נגד-המהלך עבר** את אותו playbook ב-18:20 והצל שלו נסטפ ‎-0.75R — לבדוק dir_bias/סוג-יום (המשך "יציבות-סוג-יום" 07-23): האם ה-playbook קורא DOWN בזמן עליה? **Check-3 נקי:** #508 shadow בלי-fills=צפוי; #509 CANCELLED אפס-fills=עקבי; סקייל-אאוטים ידניים מתועדים ב-events (9582/9584 + CLOSED_TRADE_PNL) — היעדרם מיומן-fills=צפוי-ידני; order 9583 יציב (אין גרירת-יעד); אין סגירה-פיקטיבית. **Check-4:** flag_guard **PASS 125** ✓ · feeder-יחיד PID629 ✓ · live_price age **14ms** ✓ · sierra_state 0s ✓ · backend 200 ✓ · CRITICAL-חדש מאז 18:14 = 2×NAKED_STOP_SUSPECT (מחלקה-מוכרת בלבד). **דרוש-מייקל (חוזר):** (א) stop על הלונג-6 או FLATTEN (לעולם לא partial op=EXIT — known-broken); (ב) תיקון-שורש execution=-1; (ג) שער-פוזיציה-ידנית. קריאה-בלבד — לא נגעתי בקוד/דגלים/סיירה/DB.

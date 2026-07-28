@@ -26,6 +26,12 @@ interface SierraState {
   high_during_pos?: number | null; low_during_pos?: number | null;
   trade_account?: string | null; symbol?: string | null;
   last_price?: number | null; daily_total_qty_filled?: number | null;
+  // Account-Monitor fields (Michael 07-28) — null until the DLL build lands
+  acct_ok?: boolean;
+  acct_cash_balance?: number | null; acct_account_value?: number | null;
+  acct_available_funds?: number | null; acct_open_positions_pl?: number | null;
+  acct_daily_pl?: number | null; acct_trading_disabled?: number | null;
+  acct_under_margin?: number | null; acct_loss_limit_reached?: number | null;
 }
 
 function fmt(v: number | null | undefined, d = 2): string {
@@ -105,11 +111,28 @@ export function SierraTruthStrip() {
       </Cell>
       <Cell label="כניסה">{fmt(s?.avg_price)}</Cell>
       <Cell label="מחיר">{fmt(s?.last_price)}</Cell>
-      <Cell label="P&L פתוח">
-        <span style={{ color: pnlColor(s?.open_pnl) }}>{money(s?.open_pnl)}</span>
+      {/* P&L comes from the Account Monitor (sc.GetTradeAccountData) — the same
+          source as Sierra's Trade Accounts window. Before the DLL build lands
+          acct_ok is false → "—" (never the position-struct number, which showed
+          0.00 while the account was down). */}
+      <Cell label="P&L פתוח" title="Open Positions P/L — מה-Account Monitor">
+        <span style={{ color: pnlColor(s?.acct_open_positions_pl) }}>
+          {money(s?.acct_open_positions_pl)}
+        </span>
       </Cell>
-      <Cell label="P&L יומי" title="הרווח/הפסד היומי של החשבון — ישירות מסיירה">
-        <span style={{ color: pnlColor(s?.daily_pnl) }}>{money(s?.daily_pnl)}</span>
+      <Cell label="P&L יומי" title="Daily Profit/Loss — מה-Account Monitor">
+        <span style={{ color: pnlColor(s?.acct_daily_pl) }}>
+          {money(s?.acct_daily_pl)}
+        </span>
+      </Cell>
+      <Cell label="שווי חשבון" title="Account Value (NLV) — מה-Account Monitor">
+        {money(s?.acct_account_value)}
+      </Cell>
+      <Cell label="מזומן" title="Cash Balance — מה-Account Monitor">
+        {money(s?.acct_cash_balance)}
+      </Cell>
+      <Cell label="פנוי למסחר" title="Available Funds — מה-Account Monitor">
+        {money(s?.acct_available_funds)}
       </Cell>
       <Cell label="פקודות" title="פקודות עובדות (סטופים/יעדים)">
         <span style={{ color: naked ? '#dc2626' : COLORS.textSecondary }}>{stops ?? '—'}</span>
@@ -132,6 +155,20 @@ export function SierraTruthStrip() {
           background: '#7f1d1d', borderRadius: 3, padding: '2px 8px',
         }} title="אין פקודות-עובדות על הפוזיציה — הצב סטופ בסיירה">
           🔴 פוזיציה ללא הגנה — הצב סטופ
+        </span>
+      )}
+      {s != null && s.acct_ok === false && (
+        <span style={{ fontSize: 8, color: '#eab308' }}
+          title="ה-DLL עדיין לא מייצא את נתוני ה-Account Monitor — נדרש Remote Build">
+          נתוני-חשבון: ממתין לבילד
+        </span>
+      )}
+      {(s?.acct_trading_disabled === 1 || s?.acct_under_margin === 1) && (
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: '#fca5a5',
+          background: '#7f1d1d', borderRadius: 3, padding: '2px 8px',
+        }}>
+          {s?.acct_under_margin === 1 ? '🔴 מתחת למרג\'ין' : '🔴 המסחר מושבת בחשבון'}
         </span>
       )}
       {stale && (

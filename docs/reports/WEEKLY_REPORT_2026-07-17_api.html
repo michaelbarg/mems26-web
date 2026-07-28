@@ -1,0 +1,65 @@
+<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8">
+<title>MEMS26 — דוח שבועי 12/07–17/07/2026</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;background:#010409;color:#c9d1d9;max-width:780px;margin:24px auto;padding:0 16px}
+h1{font-size:21px;color:#e6edf3} h2{font-size:15px;color:#8b949e;margin-top:26px;border-bottom:1px solid #21262d;padding-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px} td,th{border:1px solid #30363d;padding:6px 10px;text-align:right}
+th{background:#161b22;color:#e6edf3}
+.banner{background:#3d2606;border:1px solid #9e6a03;border-radius:6px;padding:10px 14px;font-size:12.5px;color:#f0d8a8;margin:10px 0}
+.head{font-size:20px;font-weight:700} .muted{color:#8b949e;font-size:12px}
+.big{font-size:15px;font-weight:700}
+</style></head><body>
+<h1>📊 MEMS26 — דוח שבועי · 12/07–17/07/2026</h1>
+<p class="muted">נוצר 2026-07-17 23:49 (זמן ישראל) · לולאת-הלמידה (IDEA-3)</p>
+
+<div class="banner">
+⚠️ <b>מקור-נתונים:</b> הדוח <b>לא</b> הופק ע"י <code>weekly_report.py</code> מול Postgres — ריצת-הסנדבוקס של Cowork
+מנותקת מ-DB (localhost refused), מ-backend-דרך-bash, ומ-git-remote (Forbidden). הנתונים כאן <b>שוחזרו חיים</b>
+מ-<code>/api/v9/trades/recent?limit=100</code> של ה-backend הפעיל על ה-MacBook (דרך Chrome), שמכסה במלואו את
+07-02→07-17 (שני השבועות שלמים). <b>הריצה הקנונית של הסקריפט צריכה לרוץ על מכונת-המסחר עם גישת-DB.</b>
+</div>
+
+<h2>💵 כסף-אמת (live בלבד) — הכותרת האמיתית</h2>
+<table>
+<tr><td>שבוע נוכחי (live)</td><td class="head" style="color:#f85149">-$155.00</td>
+    <td>11 עסקאות · מנצחות 27.3%</td></tr>
+<tr><td>שבוע קודם (live)</td><td class="big" style="color:#3fb950">$386.25</td>
+    <td>7 עסקאות · מנצחות 100.0%</td></tr>
+<tr><td>שינוי שבוע-על-שבוע (live)</td><td class="big" style="color:#f85149">-$541.25</td><td>—</td></tr>
+</table>
+<p class="muted">שבוע-קודם היה 7/7 live מנצחות (+$386) — כולן קטנות/breakeven-ומעלה; השבוע 3/11 בלבד.</p>
+
+<h2>עקומת-הון — כל עסקאות-האמת (live+demo, 14)</h2>
+<svg width="640" height="180" style="background:#0d1117;border:1px solid #30363d;border-radius:6px"><line x1="0" y1="83.3" x2="640" y2="83.3" stroke="#30363d" stroke-dasharray="4"/><polyline fill="none" stroke="#f85149" stroke-width="2" points="8.0,90.3 56.0,8.0 104.0,8.6 152.0,47.1 200.0,47.1 248.0,89.1 296.0,127.6 344.0,91.5 392.0,117.7 440.0,117.7 488.0,135.2 536.0,135.2 584.0,172.0 632.0,162.7"/></svg>
+<p class="muted">שיא +$161 באמצע השבוע ואז ירידה לשפל −$190 · סגירה −$170.</p>
+
+<h2>סיכום השבוע (כל עסקאות-האמת, לפי הגדרת-הסקריפט: live+demo/sim, ללא צל)</h2>
+<table>
+<tr><td>עסקאות</td><td>14 (live 11 · demo/sim 3)</td></tr>
+<tr><td>P&amp;L כולל</td><td style="color:#f85149">-$170.00 · שבוע-קודם $1,408.20 · שינוי -$1,578.20</td></tr>
+<tr><td>אחוז-מנצחות</td><td>21.4% (3/14)</td></tr>
+<tr><td>R ממוצע</td><td>≈ -0.25 <span class="muted">(מקורב — חוזים=2 בהיעדר שדה quality→contracts ב-API; R הקנוני דורש ריצת-DB)</span></td></tr>
+<tr><td>Drawdown מקסימלי</td><td style="color:#f85149">-$351.25</td></tr>
+<tr><td>הטובה / הגרועה</td><td>$176.25 / -$90.00</td></tr>
+</table>
+
+<h2>פילוח יומי (השבוע)</h2>
+<table><tr><th>יום</th><th>N</th><th>P&amp;L</th></tr><tr><td>א׳ 12/07</td><td>0</td><td style='color:#8b949e'>—</td></tr><tr><td>ב׳ 13/07</td><td>4</td><td style='color:#3fb950'>$77.50</td></tr><tr><td>ג׳ 14/07</td><td>2</td><td style='color:#f85149'>-$90.00</td></tr><tr><td>ד׳ 15/07</td><td>5</td><td style='color:#f85149'>-$98.75</td></tr><tr><td>ה׳ 16/07</td><td>0</td><td style='color:#8b949e'>—</td></tr><tr><td>ו׳ 17/07</td><td>3</td><td style='color:#f85149'>-$58.75</td></tr></table>
+
+<h2>פילוח תבנית × סוג-יום (השבוע)</h2>
+<table><tr><th>תבנית</th><th>סוג-יום</th><th>N</th><th>מנצחות</th><th>P&amp;L</th></tr><tr><td>REACTIVE_SHORT</td><td>Normal</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$176.25</td></tr><tr><td>GB100</td><td>Variation</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$77.50</td></tr><tr><td>BEAR_FLAG_SHORT</td><td>Normal</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$20.00</td></tr><tr><td>ZLR</td><td>UNKNOWN</td><td>1</td><td>0/1</td><td style='color:#3fb950'>$0.00</td></tr><tr><td>SIM_TEST</td><td>UNKNOWN</td><td>2</td><td>0/2</td><td style='color:#f85149'>-$15.00</td></tr><tr><td>ZLR</td><td>Trend_DD</td><td>1</td><td>0/1</td><td style='color:#f85149'>-$37.50</td></tr><tr><td>HTLB</td><td>Variation</td><td>1</td><td>0/1</td><td style='color:#f85149'>-$56.25</td></tr><tr><td>INITIATIVE_SHORT</td><td>Normal</td><td>1</td><td>0/1</td><td style='color:#f85149'>-$78.75</td></tr><tr><td>GHOST</td><td>Variation</td><td>1</td><td>0/1</td><td style='color:#f85149'>-$82.50</td></tr><tr><td>ZLR</td><td>Variation</td><td>2</td><td>0/2</td><td style='color:#f85149'>-$83.75</td></tr><tr><td>REACTIVE_LONG</td><td>Variation</td><td>2</td><td>0/2</td><td style='color:#f85149'>-$90.00</td></tr></table>
+<p class="muted">הדלי הרווחי: <b>REACTIVE_SHORT × Normal +$176.25</b> · המפסיד: <b>REACTIVE_LONG × Variation −$90</b> (0/2).</p>
+
+<h2>שבוע קודם (05/07–10/07) — להשוואה</h2>
+<table><tr><th>תבנית</th><th>סוג-יום</th><th>N</th><th>מנצחות</th><th>P&amp;L</th></tr><tr><td>SIM_TEST</td><td>UNKNOWN</td><td>12</td><td>6/12</td><td style='color:#3fb950'>$1,021.95</td></tr><tr><td>REACTIVE_LONG</td><td>Variation</td><td>2</td><td>2/2</td><td style='color:#3fb950'>$182.50</td></tr><tr><td>ZLR</td><td>Variation</td><td>2</td><td>2/2</td><td style='color:#3fb950'>$75.00</td></tr><tr><td>REACTIVE_SHORT</td><td>Normal</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$70.00</td></tr><tr><td>ZLR</td><td>UNKNOWN</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$52.50</td></tr><tr><td>REACTIVE_SHORT</td><td>Variation</td><td>1</td><td>1/1</td><td style='color:#3fb950'>$6.25</td></tr></table>
+<p class="muted">⚠️ מתוך +$1,408 השבועיים, <b>$1,021.95 (12 עסקאות) הם SIM_TEST/demo</b> (רובן 07-09) — רעש-בדיקה, לא מסחר-אמת.
+ה-live-נטו האמיתי היה +$386.25 בלבד.</p>
+
+<h2>הערות-כנות (Rule-1 / Rule-5)</h2>
+<table style="font-size:12px">
+<tr><td>מקור</td><td>live API /api/v9/trades/recent?limit=100 (cap=100; מכסה 07-02→07-17 ברצף מלא, ללא פערים)</td></tr>
+<tr><td>מיפוי-שדות</td><td>pattern=classification ב-API · day_type=day_type ב-API · initial_stop=stop_initial · contracts משוער=2</td></tr>
+<tr><td>זיהום-נתונים</td><td>מחלקות SIM_TEST/GHOST נכללות בהגדרת-"אמת" של הסקריפט (non-shadow); פוצלו כאן ידנית</td></tr>
+<tr><td>מה חסר</td><td>R קנוני, quality→pattern/contracts המקוריים — דורשים ריצת <code>weekly_report.py</code> מול Postgres על מכונת-המסחר</td></tr>
+</table>
+</body></html>

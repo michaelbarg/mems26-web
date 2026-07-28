@@ -17,6 +17,41 @@ DEPLOY_TARGETS=(
 echo "=== Monolith Generator v9.2.0 ==="
 echo "Source: $SRCDIR"
 
+# ── ANTI-REGRESSION GUARD (cowork 2026-07-28) ────────────────────────────────
+# The monolith stopped being a pure build artifact: since 2026-07-22 every DLL
+# fix (W1 position fields, the MES_FIN/isfinite hotfix that unbroke sierra_state
+# when flat, the error-code map, the Account-Monitor block) was written straight
+# into MES_AI_DataExport_merged.cpp and deployed from there. The modular sources
+# never received them — so REGENERATING would silently delete all of it and the
+# next Remote Build would ship a DLL months out of date.
+# Refuse to overwrite a monolith that is newer than every modular source.
+if [ -f "$OUTFILE" ]; then
+    newest_src=""
+    for f in "$SRCDIR"/v9_types.h "$SRCDIR"/v9_exports.h \
+             "$SRCDIR"/v9_woodies_export.h "$SRCDIR"/MES_AI_DataExport.cpp; do
+        [ -f "$f" ] || continue
+        if [ -z "$newest_src" ] || [ "$f" -nt "$newest_src" ]; then newest_src="$f"; fi
+    done
+    if [ -n "$newest_src" ] && [ "$OUTFILE" -nt "$newest_src" ]; then
+        echo "REFUSING TO REGENERATE: $(basename "$OUTFILE") is NEWER than every"
+        echo "modular source (newest: $(basename "$newest_src")) — it holds hand-edits"
+        echo "that are not in the modular files. Regenerating would DELETE them."
+        echo ""
+        echo "  • to deploy what is in the monolith:   $0 --deploy-monolith"
+        echo "  • to rebuild from the modular sources: $0 --force-regen  (edits lost)"
+        if [ "${1:-}" = "--force-regen" ]; then
+            echo "--force-regen given → regenerating anyway."
+        else
+            if [ "${1:-}" = "--deploy" ] || [ "${1:-}" = "--deploy-monolith" ]; then
+                SKIP_REGEN=1
+            else
+                exit 2
+            fi
+        fi
+    fi
+fi
+SKIP_REGEN="${SKIP_REGEN:-0}"
+
 # Verify source files exist
 for f in v9_types.h v9_exports.h v9_woodies_export.h MES_AI_DataExport.cpp; do
     if [ ! -f "$SRCDIR/$f" ]; then
@@ -26,10 +61,14 @@ for f in v9_types.h v9_exports.h v9_woodies_export.h MES_AI_DataExport.cpp; do
 done
 
 # Extract version from modular cpp
-VERSION=$(grep -o 'v9\.[0-9]\+\.[0-9]\+' "$SRCDIR/MES_AI_DataExport.cpp" | head -1)
-[ -z "$VERSION" ] && VERSION="v9.2.0"
+# `|| true`: with set -o pipefail a grep that matches nothing kills the whole
+# script here (2nd silent-exit landmine found 07-28) — the fallback below exists
+# precisely for that case, so it must be allowed to run.
+VERSION=$(grep -o 'v9\.[0-9]\+\.[0-9]\+' "$SRCDIR/MES_AI_DataExport.cpp" | head -1 || true)
+if [ -z "$VERSION" ]; then VERSION="v9.2.0"; fi
 
-# Generate monolith
+# Generate monolith (skipped when the monolith holds hand-edits — see guard above)
+if [ "$SKIP_REGEN" != "1" ]; then
 {
     echo "// MES_AI_DataExport_merged.cpp — $VERSION monolith for Sierra Chart remote build"
     echo "// Generated $(date '+%Y-%m-%d %H:%M:%S') by build_monolithic_cpp.sh"
@@ -55,6 +94,9 @@ VERSION=$(grep -o 'v9\.[0-9]\+\.[0-9]\+' "$SRCDIR/MES_AI_DataExport.cpp" | head 
     grep -v -E '#include "sierrachart.h"|#include "v9_types.h"|#include "v9_exports.h"|#include "v9_woodies_export.h"|^SCDLLName' "$SRCDIR/MES_AI_DataExport.cpp" | \
     sed 's/struct ImbLevel {[^}]*};//'
 } > "$OUTFILE"
+else
+    echo "→ keeping existing monolith as-is (hand-edited); deploying it unchanged."
+fi
 
 # ── Verification ──────────────────────────────────────────────
 LINES=$(wc -l < "$OUTFILE")
@@ -65,13 +107,18 @@ V920_COUNT=$(grep -c "v9.2" "$OUTFILE" || true)
 MAINTAIN_VAP=$(grep -c "MaintainVolumeAtPriceData" "$OUTFILE")
 ISNOTEMPTY=$(grep -c "IsNotEmpty" "$OUTFILE" || true)
 
+# NOTE (cowork 2026-07-28): these were `[ cond ] && echo && FAIL=1` one-liners.
+# Under `set -e` a check that PASSES makes the statement return non-zero and the
+# whole script exits right here — silently, with the deploy step never reached.
+# That is why --deploy appeared to work but never copied anything (both 07-27
+# DLL builds had to be copied to ACS_Source by hand). Real `if` blocks now.
 FAIL=0
-[ "$LINES" -lt 1400 ]     && echo "FAIL: only $LINES lines (need >=1400)" && FAIL=1
-[ "$SCDLL_COUNT" -ne 1 ]   && echo "FAIL: SCDLLName appears $SCDLL_COUNT times (need 1)" && FAIL=1
-[ "$SIERRA_COUNT" -ne 1 ]  && echo "FAIL: sierrachart.h appears $SIERRA_COUNT times (need 1)" && FAIL=1
-[ "$SCDLL_LINE" -gt 10 ]   && echo "FAIL: SCDLLName at line $SCDLL_LINE (must be <=10)" && FAIL=1
-[ "$MAINTAIN_VAP" -lt 1 ]  && echo "FAIL: MaintainVolumeAtPriceData missing" && FAIL=1
-[ "$ISNOTEMPTY" -gt 0 ]    && echo "FAIL: IsNotEmpty still present (not valid ACSIL)" && FAIL=1
+if [ "$LINES" -lt 1400 ];    then echo "FAIL: only $LINES lines (need >=1400)"; FAIL=1; fi
+if [ "$SCDLL_COUNT" -ne 1 ];  then echo "FAIL: SCDLLName appears $SCDLL_COUNT times (need 1)"; FAIL=1; fi
+if [ "$SIERRA_COUNT" -ne 1 ]; then echo "FAIL: sierrachart.h appears $SIERRA_COUNT times (need 1)"; FAIL=1; fi
+if [ "$SCDLL_LINE" -gt 10 ];  then echo "FAIL: SCDLLName at line $SCDLL_LINE (must be <=10)"; FAIL=1; fi
+if [ "$MAINTAIN_VAP" -lt 1 ]; then echo "FAIL: MaintainVolumeAtPriceData missing"; FAIL=1; fi
+if [ "$ISNOTEMPTY" -gt 0 ];   then echo "FAIL: IsNotEmpty still present (not valid ACSIL)"; FAIL=1; fi
 
 if [ "$FAIL" -ne 0 ]; then
     echo "VERIFICATION FAILED — monolith NOT safe to deploy" >&2
@@ -81,7 +128,7 @@ fi
 echo "OK: $LINES lines, SCDLLName@line$SCDLL_LINE, 1x sierrachart.h, ${V920_COUNT}x v9.2"
 
 # Deploy if requested
-if [ "${1:-}" = "--deploy" ]; then
+if [ "${1:-}" = "--deploy" ] || [ "${1:-}" = "--deploy-monolith" ]; then
     # Change-safety (2026-06-26): snapshot the CURRENT deployed DLL/.env/LaunchAgents BEFORE
     # overwriting, so this deploy is rollback-able (see docs/SYSTEM_MANIFEST.md §0).
     # Best-effort — never block the deploy.

@@ -12,7 +12,7 @@
 
 <!-- LIVE_BLOCK_START -->
 
-**Last run:** 2026-07-10 16:26:49 IL  ·  2026-07-10 09:26:49 ET  ·  market: **OFF-HOURS**  ·  duration: 204ms
+**Last run:** 2026-07-27 16:20:19 IL  ·  2026-07-27 09:20:19 ET  ·  market: **OFF-HOURS**  ·  duration: 180ms
 
 **Overall: 🔴 MISSING**
 
@@ -32,7 +32,7 @@
 
 | Check | Result | Detail |
 |-------|--------|--------|
-| Cross-check: IB consistency (Sierra ↔ DB ↔ API) | 🟢 FRESH | agree @ 7589.0 (['sierra', 'api']) |
+| Cross-check: IB consistency (Sierra ↔ DB ↔ API) | 🟢 FRESH | agree @ 7459.25 (['sierra', 'api']) |
 | Cross-check: day_type API vs DB | ℹ️ INFO | both pre-classification (likely pre-10:30 ET) |
 | Cross-check: bridge TZ (no 1h Chicago drift) | 🟢 FRESH | ET-anchored (no future drift) |
 
@@ -44,20 +44,20 @@ _Pure pass-through. Sierra DLL writes JSON → bridge POSTs to API → DB row. *
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 85,965B |
-| Sierra: cumulative_delta.json | 🟢 FRESH | 1s | 6,562B |
-| Sierra: volume_profile.json | 🟢 FRESH | 1s | 30,296B |
-| Sierra: footprint.json | 🟢 FRESH | 1s | 37,835B |
-| Sierra: tick_reversal_12.json | 🟢 FRESH | 1s | 5,169B |
-| Sierra: tick_reversal_15.json | 🟢 FRESH | 1s | 3,694B |
-| Sierra: imbalance_flags.json | 🟢 FRESH | 1s | 161B |
+| Sierra: 5min.json | 🟢 FRESH | 0s | 86,575B |
+| Sierra: cumulative_delta.json | 🟢 FRESH | 0s | 5,949B |
+| Sierra: volume_profile.json | 🟢 FRESH | 0s | 50,358B |
+| Sierra: footprint.json | 🟢 FRESH | 0s | 63,230B |
+| Sierra: tick_reversal_12.json | 🟢 FRESH | 0s | 15,450B |
+| Sierra: tick_reversal_15.json | 🟢 FRESH | 0s | 13,534B |
+| Sierra: imbalance_flags.json | 🟢 FRESH | 0s | 161B |
 | Sierra: live_price.json | 🟢 FRESH | 0s | 74B |
-| DB: v9_bars_5min.ts | 🔴 MISSING | 832h | last=2026-06-05T20:55:00 |
-| DB: v9_bars_cumulative_delta.ts | 🔴 MISSING | 1536h | last=2026-05-07 13:19:59 |
-| DB: v9_bars_volume_profile.ts | 🔴 MISSING | 793h | last=2026-06-07 11:52:21 |
-| DB: v9_bars_footprint.ts | 🔴 MISSING | 793h | last=2026-06-07 11:53:00 |
+| DB: v9_bars_5min.ts | 🔴 MISSING | 1240h | last=2026-06-05T20:55:00 |
+| DB: v9_bars_cumulative_delta.ts | 🔴 MISSING | 1589h | last=2026-05-22 07:35:00 |
+| DB: v9_bars_volume_profile.ts | 🔴 MISSING | 1201h | last=2026-06-07 11:52:21 |
+| DB: v9_bars_footprint.ts | 🔴 MISSING | 1201h | last=2026-06-07 11:53:00 |
 | DB: v9_bars_tick_reversal.ts | 🔴 MISSING | — | no rows |
-| DB: v9_bars_imbalance.ts | 🔴 MISSING | 792h | last=2026-06-07T13:04:24 |
+| DB: v9_bars_imbalance.ts | 🔴 MISSING | 1200h | last=2026-06-07T13:04:24 |
 | API: /api/v9/chart/bars5min | 🟢 FRESH | — | 200 OK |
 | API: /api/v9/health | 🟢 FRESH | — | 200 OK |
 | API: /api/v9/footprint/current | 🟢 FRESH | — | 200 OK |
@@ -68,9 +68,9 @@ _Sierra TPO Studies (ID 1=yesterday, ID 3=today, ID 6=IB). Two consumers: `/tpo/
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: tpo.json | 🟢 FRESH | 1s | 480B |
-| DB: v9_tpo_history.ts | 🔴 MISSING | 862h | last=2026-06-04 14:30:00 |
-| DB: v9_tpo_bars.ts | 🔴 MISSING | 23247h | last=2023-11-14T22:21:40 |
+| Sierra: tpo.json | 🟢 FRESH | 0s | 480B |
+| DB: v9_tpo_history.ts | 🔴 MISSING | 290h | last=2026-07-15 10:30:00 |
+| DB: v9_tpo_bars.ts | 🔴 MISSING | 23654h | last=2023-11-14T22:21:40 |
 | API: /api/v9/tpo/current | 🟢 FRESH | — | 200 OK |
 | API: /api/v9/key_levels | 🟢 FRESH | — | 200 OK |
 
@@ -80,8 +80,8 @@ _Authoritative IB after 10:30 ET lock. Stages A1→A4. Computes `day_type`, `ope
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 85,965B |
-| DB: v9_day_type_history.last_updated_at | 🔴 MISSING | 862h | last=2026-06-04 14:53:34 |
+| Sierra: 5min.json | 🟢 FRESH | 0s | 86,575B |
+| DB: v9_day_type_history.last_updated_at | 🔴 MISSING | 1270h | last=2026-06-04 14:53:34 |
 | DB: v9_day_type_state.ts | 🔴 MISSING | — | no rows |
 | API: /api/v9/day_type/v9/current | 🟢 FRESH | — | 200 OK |
 | API: /api/v9/key_levels | 🟢 FRESH | — | 200 OK |
@@ -92,7 +92,7 @@ _Pattern detection from 5min bars + day-type context. **Volume key alias** added
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 85,965B |
+| Sierra: 5min.json | 🟢 FRESH | 0s | 86,575B |
 | DB: v9_five_min_setups.ts | 🔴 MISSING | — | no rows |
 | DB: v9_five_min_state.last_processed_ts | 🔴 MISSING | — | no rows |
 | API: /api/v9/build/pattern-status | 🟢 FRESH | — | 200 OK |
@@ -103,12 +103,12 @@ _Sierra Woodies Studies (Input 18). Patterns: ZLR, TLB, TT, GB100, VEGAS, GHOST,
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: woodies_5min.json | 🟢 FRESH | 1s | 32,198B |
-| Sierra: woodies_30min.json | 🟢 FRESH | 1s | 19,823B |
-| Sierra: woodies_diag.json (optional) | ℹ️ INFO | 1223h | 1,059B (informational) |
-| DB: v9_bars_5min_woodies.ts | 🔴 MISSING | 715h | last=2026-06-10T18:25:00 |
-| DB: v9_bars_30min_woodies.ts | 🔴 MISSING | 1536h | last=2026-05-07T13:00:00 |
-| DB: v9_woodies_signals.ts | 🟢 FRESH | 299m | last=2026-07-10T08:27:20 |
+| Sierra: woodies_5min.json | 🟢 FRESH | 0s | 32,288B |
+| Sierra: woodies_30min.json | 🟢 FRESH | 0s | 19,922B |
+| Sierra: woodies_diag.json (optional) | ℹ️ INFO | 1631h | 1,059B (informational) |
+| DB: v9_bars_5min_woodies.ts | 🔴 MISSING | 1122h | last=2026-06-10T18:25:00 |
+| DB: v9_bars_30min_woodies.ts | 🔴 MISSING | 1944h | last=2026-05-07T13:00:00 |
+| DB: v9_woodies_signals.ts | 🟡 STALE | 75h | last=2026-07-24T09:23:58 |
 | DB: v9_woodies_patterns.ts | 🔴 MISSING | — | no rows |
 | API: /api/v9/woodies/current | 🟢 FRESH | — | 200 OK |
 
@@ -118,7 +118,7 @@ _Owns trade lifecycle: open, monitor, exit. **Layer 4 TIME_STOP removed 2026-05-
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| DB: v9_trades.entry_ts | 🔴 MISSING | 885h | last=2026-06-03 15:50:04 |
+| DB: v9_trades.entry_ts | 🔴 MISSING | 1293h | last=2026-06-03 15:50:04 |
 | API: /api/v9/trades/active | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 KILLZONE — Killzone / Chop Score
@@ -127,7 +127,7 @@ _Time-of-day kill switch (NY open / lunch / power hour). Chop score from 5min ba
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 85,965B |
+| Sierra: 5min.json | 🟢 FRESH | 0s | 86,575B |
 | DB: v9_killzone_log.ts | 🔴 MISSING | — | no rows |
 | DB: v9_chop_score.ts | 🔴 MISSING | — | no rows |
 

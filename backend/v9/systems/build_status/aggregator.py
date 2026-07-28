@@ -108,8 +108,21 @@ class BuildStatusAggregator:
         now_utc = datetime.now(timezone.utc)
         errors: List[str] = []
 
-        # Resolve current day type once (used by S2 inspector)
-        day_type_str = self._get_current_day_type()
+        # Resolve current day type once (used by S2 inspector).
+        # D-0717-A (2026-07-17 18:06 live finding): consult the override-aware
+        # LIVE source FIRST (trade_context.get_live_day_type — honors
+        # DAY_TYPE_MANUAL_OVERRIDE + the promoted machine) so the S2 auth-cell
+        # display ("<pattern> × <day_type>") can never show a different label
+        # than the one the auth verdict actually trades on. Fail-open to the
+        # legacy DB-history read when the live source returns None / errors.
+        day_type_str = None
+        try:
+            from backend.v9.services.trade_context import get_live_day_type as _gldt
+            day_type_str = _gldt()
+        except Exception:
+            day_type_str = None
+        if not day_type_str:
+            day_type_str = self._get_current_day_type()
 
         result_systems: List[SystemStatus] = []
 

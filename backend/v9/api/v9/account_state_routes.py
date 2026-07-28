@@ -78,6 +78,25 @@ def account_state(request: Request) -> Dict[str, Any]:
         "last_price": _get("last_price", float),
     }
 
+    # ── Account-Monitor block (Michael 2026-07-28: "צריך לקחת נתונים מה-account
+    # monitor"). Source: sc.GetTradeAccountData() — the SAME call that feeds
+    # Sierra's Trade Accounts window; NOT the position struct (whose
+    # DailyProfitLoss is per-position and read 0.00 while the account had a real
+    # daily loss). acct_ok=0 / field absent (DLL not yet rebuilt) → every field
+    # None so the UI renders "—" instead of a plausible wrong number (Rule 1).
+    _acct_ok = _get("acct_ok", int)
+    _acct_fields = (
+        "acct_cash_balance", "acct_account_value", "acct_available_funds",
+        "acct_margin_req", "acct_open_positions_pl", "acct_daily_pl",
+        "acct_daily_net_loss_limit",
+    )
+    sierra["acct_ok"] = bool(_acct_ok) if _acct_ok is not None else False
+    for _f in _acct_fields:
+        sierra[_f] = _get(_f, float) if _acct_ok == 1 else None
+    for _f in ("acct_loss_limit_reached", "acct_under_margin",
+               "acct_trading_disabled", "acct_is_sim"):
+        sierra[_f] = _get(_f, int) if _acct_ok == 1 else None
+
     # Open system trade from TradeManager (if any)
     open_trade: Optional[Dict] = None
     tm = getattr(getattr(request.app, "state", None), "trade_manager", None)
@@ -121,3 +140,11 @@ def account_state(request: Request) -> Dict[str, Any]:
         "verdict": verdict,
         "source": "sierra_state.json",
     }
+
+
+@router.get("/daily_pnl")
+def daily_pnl(days: int = 30) -> Dict[str, Any]:
+    """P&L-by-day table from Sierra's trade activity journal (Michael 07-28:
+    'טבלה של רווח והפסד לפי ימים'). Poll slow — history changes once a day."""
+    from backend.v9.services.daily_pnl import daily_pnl_table
+    return daily_pnl_table(days_limit=max(1, min(int(days), 365)))
