@@ -1,52 +1,57 @@
-"""Daily P&L grouping from the Sierra activity journal (Michael 2026-07-28)."""
-import json
+"""Daily P&L from Sierra's per-day TradeActivityLog files (Michael 2026-07-28).
 
-from backend.v9.services.daily_pnl import group_daily
+He challenged the numbers — correctly. The previous implementation summed
+`trade_activity_events.jsonl`, whose feeder re-emitted the same log lines after
+any `strings` failure (2363 events / 309 unique; one −125.00 close counted 117
+times) and whose `ts` is the SCAN time, not the trade time. The day now comes
+from the log FILENAME and each close is read once from the file itself.
+"""
+from backend.v9.services.daily_pnl import parse_day_log
 
-
-def _ln(**kw):
-    return json.dumps(kw)
-
-
-def test_groups_by_et_day_and_sums():
-    lines = [
-        _ln(type="CLOSED_TRADE_PNL", pnl=-23.75, ts="2026-07-27T17:20:00+00:00"),
-        _ln(type="CLOSED_TRADE_PNL", pnl=10.0, ts="2026-07-27T19:00:00+00:00"),
-        _ln(type="POSITION_CHANGE", new_qty=0, ts="2026-07-27T19:00:00+00:00"),
-        _ln(type="CLOSED_TRADE_PNL", pnl=2.5, ts="2026-07-28T13:00:00+00:00"),
-    ]
-    d = group_daily(lines)
-    assert d["2026-07-27"]["pnl"] == -13.75
-    assert d["2026-07-27"]["closes"] == 2
-    assert d["2026-07-27"]["wins"] == 1 and d["2026-07-27"]["losses"] == 1
-    assert d["2026-07-28"]["pnl"] == 2.5
-
-
-def test_et_day_boundary_not_utc():
-    """23:30 UTC = 19:30 ET same day; 03:30 UTC = 23:30 ET PREVIOUS day."""
-    lines = [
-        _ln(type="CLOSED_TRADE_PNL", pnl=1.0, ts="2026-07-28T03:30:00+00:00"),
-    ]
-    d = group_daily(lines)
-    assert "2026-07-27" in d and "2026-07-28" not in d
+_REAL_0727 = """
+Cash Balance update | Closed Trade Profit/Loss: 90.00. Symbol: MESU26_FUT_CME. Currency: USD
+Updated Internal Position Quantity to -10. Previous: 0. Fill of InternalOrderID: 9632
+Cash Balance update | Closed Trade Profit/Loss: 43.75. Symbol: MESU26_FUT_CME. Currency: USD
+Updated Internal Position Quantity to -7. Previous: -10. Fill of InternalOrderID: 9635
+Cash Balance update | Closed Trade Profit/Loss: 15.00. Symbol: MESU26_FUT_CME. Currency: USD
+Updated Internal Position Quantity to 0. Previous: -4. Fill of InternalOrderID: 9633
+Updated Internal Position Quantity to 10. Previous: 0. Fill of InternalOrderID: 9638
+Cash Balance update | Closed Trade Profit/Loss: -3625.00. Symbol: MESU26_FUT_CME. Currency: USD
+Updated Internal Position Quantity to 0. Previous: 10. Fill of InternalOrderID: 9643
+"""
 
 
-def test_missing_ts_goes_to_unknown_never_guessed():
-    d = group_daily([_ln(type="CLOSED_TRADE_PNL", pnl=-5.0)])
-    assert d["unknown"]["closes"] == 1
+def test_parses_the_real_0727_log():
+    d = parse_day_log(_REAL_0727)
+    assert d["pnl"] == -3476.25
+    assert d["closes"] == 4 and d["wins"] == 3 and d["losses"] == 1
+    assert d["biggest_loss"] == -3625.0
 
 
-def test_garbage_lines_and_null_pnl_skipped():
-    d = group_daily(["not json", _ln(type="CLOSED_TRADE_PNL", pnl=None,
-                                     ts="2026-07-27T17:00:00+00:00")])
-    assert d == {}
+def test_entry_ladder_exposes_position_size():
+    """Only 0→N transitions are entries. 07-27 had exactly two, both 10 lots —
+    which is how we can tell the day was manual: system size is 1-5."""
+    d = parse_day_log(_REAL_0727)
+    assert d["entries"] == [10, 10]
+    assert d["max_entry_size"] == 10
 
 
-def test_biggest_win_loss_tracked():
-    lines = [
-        _ln(type="CLOSED_TRADE_PNL", pnl=-90.0, ts="2026-07-27T17:00:00+00:00"),
-        _ln(type="CLOSED_TRADE_PNL", pnl=-23.75, ts="2026-07-27T17:10:00+00:00"),
-        _ln(type="CLOSED_TRADE_PNL", pnl=427.5, ts="2026-07-27T18:00:00+00:00"),
-    ]
-    d = group_daily(lines)["2026-07-27"]
-    assert d["biggest_loss"] == -90.0 and d["biggest_win"] == 427.5
+def test_no_entries_when_account_never_opened_a_position():
+    """The signal that our books claim live trades Sierra never made."""
+    d = parse_day_log("Cash Balance update | Current account balance data request")
+    assert d["entries"] == [] and d["closes"] == 0
+
+
+def test_each_close_counted_once_even_if_values_repeat():
+    """Repeated identical values are separate real closes (per-contract) — but
+    each LINE is counted exactly once. The old journal path counted one close
+    117 times; this must not regress."""
+    txt = "\n".join(["Closed Trade Profit/Loss: -23.75. Symbol: X."] * 4)
+    d = parse_day_log(txt)
+    assert d["closes"] == 4 and d["pnl"] == -95.0
+
+
+def test_negative_and_decimal_values_parse():
+    d = parse_day_log("Closed Trade Profit/Loss: -3625.00. Symbol: X.\n"
+                      "Closed Trade Profit/Loss: 0.25. Symbol: X.")
+    assert d["values"] == [-3625.0, 0.25]

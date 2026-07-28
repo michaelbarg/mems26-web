@@ -57,6 +57,12 @@ def _extract_text(log_path: Path) -> list[str]:
 def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> tuple[list[dict], int]:
     """Parse text lines into structured events. Returns (events, new_offset)."""
     events = []
+    # NOTE (2026-07-28): this is the SCAN time, not the trade time — Sierra's
+    # binary log carries no recoverable per-line timestamp (`strings` finds zero
+    # HH:MM:SS patterns). It is now named honestly and must NEVER be used to
+    # place a close on a calendar day or to correlate it with a trade; for
+    # per-day P&L read the per-day log FILES (backend/v9/services/daily_pnl.py),
+    # whose day comes from the filename.
     ts_now = datetime.now(timezone.utc).isoformat()
     is_sim = account.lower().startswith("sim") if account else False
 
@@ -71,7 +77,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                 "type": "CLOSED_TRADE_PNL",
                 "pnl": float(m.group(1)),
                 "symbol": m.group(2),
-                "ts": ts_now,
+                "scan_ts": ts_now,
                 "line": i,
             })
 
@@ -85,7 +91,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                 "new_qty": int(m.group(1)),
                 "prev_qty": int(m.group(2)),
                 "order_id": int(m.group(3)),
-                "ts": ts_now,
+                "scan_ts": ts_now,
                 "line": i,
             })
 
@@ -99,7 +105,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
             events.append({
                 "type": "ORDER_REJECT",
                 "reason": m.group(1).strip(),
-                "ts": ts_now,
+                "scan_ts": ts_now,
                 "line": i,
             })
 
@@ -112,7 +118,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                 "type": "USER_ORDER_MODIFY",
                 "price": float(m.group(1)),
                 "qty": int(m.group(2)),
-                "ts": ts_now,
+                "scan_ts": ts_now,
                 "line": i,
             })
 
@@ -123,7 +129,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                 "type": "BRACKET_MODIFY",
                 "parent_price": float(m.group(1)),
                 "new_price": float(m.group(2)),
-                "ts": ts_now,
+                "scan_ts": ts_now,
                 "line": i,
             })
 
@@ -141,7 +147,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                     "bid": float(m.group(1)),
                     "ask": float(m.group(2)),
                     "last": float(m.group(3)),
-                    "ts": ts_now,
+                    "scan_ts": ts_now,
                     "line": i,
                 })
 
@@ -153,7 +159,7 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                     "type": "SIM_FLATTEN",
                     "last": float(m.group(1)),
                     "position_qty": int(m.group(2)),
-                    "ts": ts_now,
+                    "scan_ts": ts_now,
                     "line": i,
                 })
 
@@ -198,16 +204,46 @@ def run_once(account: str) -> list[dict]:
         else:
             return []
 
-    # Track offset per-account to avoid re-processing and cross-contamination
-    offset_file = EXPORT_DIR / f".trade_activity_offset_{account}"
+    # Offset key includes the LOG DAY (cowork 2026-07-28). It used to be
+    # per-account only, but the log file is per-DAY: every new day started with
+    # yesterday's large offset, so `i < last_offset` skipped whole sessions and
+    # the journal silently lost them. That is why cross-checking trades against
+    # the journal showed "Sierra saw nothing" for real trading days.
+    day_tag = log_path.name.split("_")[1] if "_" in log_path.name else "unknown"
+    offset_file = EXPORT_DIR / f".trade_activity_offset_{account}_{day_tag}"
+    legacy = EXPORT_DIR / f".trade_activity_offset_{account}"
     last_offset = 0
-    if offset_file.exists():
+    src = offset_file if offset_file.exists() else (legacy if legacy.exists() else None)
+    if src is not None:
         try:
-            last_offset = int(offset_file.read_text().strip())
+            last_offset = int(src.read_text().strip())
         except (ValueError, OSError):
             pass
+        if src is legacy:
+            last_offset = 0  # legacy value belongs to some other day — distrust it
 
     lines = _extract_text(log_path)
+
+    # `strings` failing (non-zero exit or the 10s timeout on a big log) used to
+    # return [] → new_offset 0 → the offset file was overwritten with 0 → the
+    # NEXT poll re-emitted the entire file. Measured damage: 2363 journal events
+    # of which only 309 were unique; one −125.00 close appeared 117 times, which
+    # inflated every P&L sum built on this file. An empty extraction is now a
+    # no-op that leaves the offset untouched.
+    if not lines:
+        print(f"[trade_activity_feed] extraction returned nothing for "
+              f"{log_path.name} — keeping offset {last_offset} (no re-emit)",
+              file=sys.stderr)
+        return []
+
+    # A shrinking line count means the extraction is not comparable to the
+    # previous one; re-emitting from a lower offset would duplicate. Skip.
+    if len(lines) < last_offset:
+        print(f"[trade_activity_feed] line count shrank "
+              f"({len(lines)} < offset {last_offset}) for {log_path.name} — "
+              f"skipping this poll", file=sys.stderr)
+        return []
+
     events, new_offset = _parse_events(lines, last_offset, account=account)
 
     if events:
