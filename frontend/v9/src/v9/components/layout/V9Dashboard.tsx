@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
+import { SierraTruthStrip } from './SierraTruthStrip';
 import { SidePanel } from './SidePanel';
 import { DemoMonitor } from './DemoMonitor';
 import { ViewTabs, type DashboardView } from './ViewTabs';
@@ -102,6 +103,9 @@ export function V9Dashboard() {
       {view === 'main' ? (
         <>
           <TopBar />
+          {/* מייקל 07-27: אמת-סיירה על המסך — פוזיציה/P&L/סטופים ישירות מהחשבון,
+              והאזהרה על פוזיציה-ללא-הגנה כבאנר במקום חלון-קופץ */}
+          <SierraTruthStrip />
           <Layer0Strip />
           <KeyLevelsStrip />
           {/* מייקל 07-21: פאנל סוג-פתיחה — סוג הפתיחה + מה הוא מבשר + התבניות הרלוונטיות */}
