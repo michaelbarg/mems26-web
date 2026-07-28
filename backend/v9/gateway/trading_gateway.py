@@ -1305,6 +1305,43 @@ class TradingGateway:
             except Exception as _cd_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] stop-cooldown errored (fail-open): %s", _cd_err)
 
+        # --- RELEASE_ENTRY_GATE_V1 (Michael 2026-07-28: "אתמול הכניסה הייתה
+        # טובה אבל מוקדמת … כניסה בשלב אחר שהמחיר הפסיק להיות תקוע באותו אזור").
+        # Direction is right ~3 times in 4; the entries are simply too early, so
+        # the stop is inside the noise and the trade is gone before the move it
+        # predicted arrives. 07-27: the long was entered at 19:24 inside the
+        # sticky zone; price released at 19:50 and ran 22pt. This gate holds the
+        # signal until the market leaves the zone — higher lows, volume drying
+        # up, then a close beyond it. It can only DELAY or SKIP; it never fires
+        # anything on its own. Fail-CLOSED on error: failing open would recreate
+        # the very early entry it exists to prevent.
+        try:
+            from backend.v9.systems import release_gate as _rg
+            if _rg.enabled():
+                from backend.v9.db.read import read_all as _rg_read
+                _rg_rows = _rg_read(
+                    "SELECT high, low, close, volume FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
+                    "ORDER BY ts DESC LIMIT 30", {})
+                _rg_bars = _rg.bars_from_rows(list(reversed(_rg_rows or [])))
+                _rg_v = _rg.check_release(_rg_bars, direction)
+                if not _rg_v.released:
+                    result["blocked_by"] = "awaiting_release"
+                    result["reason"] = f"waiting for the zone release — {_rg_v.reason}"
+                    logger.info("[Gateway] HELD by release-gate: %s", _rg_v.reason)
+                    return result
+                # Released: hand the structural stop to the caller. It sits beyond
+                # the real extreme, which is what makes this entry survivable.
+                if _rg_v.structural_stop is not None:
+                    result["release_structural_stop"] = _rg_v.structural_stop
+                logger.warning("[Gateway] release-gate PASSED: %s", _rg_v.reason)
+        except Exception as _rg_err:
+            result["blocked_by"] = "awaiting_release"
+            result["reason"] = f"release-gate unavailable (fail-closed): {_rg_err}"
+            logger.warning("[Gateway] release-gate errored — HOLDING entry: %s", _rg_err)
+            return result
+
         # --- IDEA-1 news blackout (Michael 2026-07-13): NO new entries inside the
         # window around a RED economic event (CPI/PPI/FOMC/NFP — config/news_calendar.yaml).
         # Blocks ENTRY only; management of open trades is untouched. Fail-open on any

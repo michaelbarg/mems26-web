@@ -279,7 +279,7 @@ def write_cancel(
     })
 
 
-def effective_contracts(setup: Dict[str, Any]) -> int:
+def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
     """The LIVE contract count for a setup — single source of truth (L7, 2026-07-08).
 
     Extracted verbatim from command_from_setup so accept_setup can persist the
@@ -370,6 +370,35 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
         _contracts = 3
     return _contracts
 
+
+
+def effective_contracts(setup: Dict[str, Any]) -> int:
+    """Sizing decision, then the account's own limit — in that order.
+
+    MARGIN_AWARE_SIZING_V1 (Michael 2026-07-28). The Account Monitor went live
+    today and immediately showed the system asking for four contracts
+    ($1,104.84 of margin) against $97.68 of available funds. Every such fire is
+    rejected by the broker: the signal is consumed, the slot churns, the books
+    fill with ORDER_FAILED, and nothing is traded. Sierra's log already held six
+    "Insufficient Account Value (NLV) for margin" rejections that morning.
+
+    Wrapping every return path of the sizing logic guarantees the cap cannot be
+    bypassed by whichever branch produced the number. It can only REDUCE — a
+    smaller real trade instead of a guaranteed rejection — and when the account
+    data is missing or stale it changes nothing rather than guessing (Rule 1).
+    """
+    n = _effective_contracts_raw(setup)
+    if n <= 0:
+        return n
+    try:
+        from backend.v9.services.margin_sizing import cap_contracts
+        allowed, why = cap_contracts(n)
+    except Exception as e:                       # never block a fire on a bug
+        logger.warning("[SierraCmd] margin sizing errored (size unchanged): %s", e)
+        return n
+    if allowed != n:
+        logger.warning("[SierraCmd] MARGIN SIZING %d → %d — %s", n, allowed, why)
+    return allowed
 
 def _zlr_mgmt_enabled() -> bool:
     """ZLR_MGMT_V1 (Michael 2026-07-14) — default OFF, no env var needed for the
