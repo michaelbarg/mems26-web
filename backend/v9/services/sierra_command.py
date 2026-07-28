@@ -118,34 +118,57 @@ def write_modify_target(
     })
 
 
-def write_place_stop(
+def write_place_bracket(
     *,
     qty: int,
-    price: float,
+    stop: float,
     side: str,
+    target: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Write a PLACE_STOP command — resting protective stop for an orphan position.
+    """Write a PLACE_BRACKET command — a resting stop (+ optional target) on an
+    EXISTING position.
 
-    W8 v2 (2026-07-28). DLL uses sc.SubmitOrder (standalone, not Exit-family).
-    TradeAccount is sc.SelectedTradeAccount in the DLL — NOT passed from here
-    (root cause of r=-1 on 07-20: string mismatch between command "account"
-    and Sierra's internal selected account). Side = the POSITION side to protect.
+    W8 v3 (Michael 2026-07-28: "המערכת כן תוכל לנהל עסקה שאני מבצע ולהוסיף לה
+    סטופ ונקודות מימוש"). v2 wrote op=PLACE_STOP for a DLL handler that called
+    sc.SubmitOrder — a symbol that does not exist in ACSIL. The DLL now uses the
+    Exit family with SCT_ORDERTYPE_OCO_LIMIT_STOP (target given) or
+    SCT_ORDERTYPE_STOP (stop only).
+
+    `side` is the side of the POSITION being protected (LONG/SHORT), not the
+    order side — the DLL derives the order side from the live position sign and
+    refuses on mismatch. No account field is ever sent: the DLL uses
+    sc.SelectedTradeAccount, which was the root cause of every r=-1 on 07-27.
+
+    Price sanity is enforced DLL-side against the live market price, but a
+    wrong-sided request is rejected here too so it never reaches the wire.
     """
     side = side.upper()
     if side not in ("LONG", "SHORT"):
-        raise ValueError(f"PLACE_STOP side must be LONG or SHORT, got {side!r}")
+        raise ValueError(f"PLACE_BRACKET side must be LONG or SHORT, got {side!r}")
     if qty <= 0:
-        raise ValueError(f"PLACE_STOP qty must be >0, got {qty}")
-    if price <= 0:
-        raise ValueError(f"PLACE_STOP price must be >0, got {price}")
+        raise ValueError(f"PLACE_BRACKET qty must be >0, got {qty}")
+    if stop <= 0:
+        raise ValueError(f"PLACE_BRACKET stop must be >0, got {stop}")
+    if target is not None:
+        if target <= 0:
+            raise ValueError(f"PLACE_BRACKET target must be >0, got {target}")
+        # long: stop below, target above. short: the reverse. Equal is invalid.
+        if side == "LONG" and not (stop < target):
+            raise ValueError(
+                f"PLACE_BRACKET LONG needs stop < target, got stop={stop} target={target}")
+        if side == "SHORT" and not (target < stop):
+            raise ValueError(
+                f"PLACE_BRACKET SHORT needs target < stop, got stop={stop} target={target}")
     payload: Dict[str, Any] = {
-        "op": "PLACE_STOP",
+        "op": "PLACE_BRACKET",
         "qty": qty,
-        "price": round(price, 2),
+        "stop": round(stop, 2),
         "side": side,
         "ts_submitted": time.time(),
     }
-    # NO account field — DLL uses sc.SelectedTradeAccount (requirement 1)
+    if target is not None:
+        payload["target"] = round(target, 2)
+    # NO account field — the DLL uses sc.SelectedTradeAccount.
     return _write_command(payload)
 
 

@@ -3311,108 +3311,148 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_MGMT";
                     }
-                    // ── OP: PLACE_STOP v2 (2026-07-28) — resting protective stop ──
-                    // Places a standalone resting STOP order via sc.SubmitOrder (NOT
-                    // Exit-family — SellExit/BuyExit only support MARKET, r=-1 on STOP).
+                    // ── OP: PLACE_BRACKET v3 (2026-07-28) — stop + optional target
+                    //    on an EXISTING position.
+                    //    Michael: "המערכת כן תוכל לנהל עסקה שאני מבצע ולהוסיף לה
+                    //    סטופ ונקודות מימוש" — and he was right.
                     //
-                    // 🔴 THREE HARD REQUIREMENTS (Michael 07-28):
-                    //   1. o.TradeAccount = sc.SelectedTradeAccount (NOT from command JSON —
-                    //      root cause of all r=-1 on 07-20: string mismatch between command
-                    //      "account" field and Sierra's internal selected account).
-                    //   2. Side check BEFORE sending: a stop on the wrong side becomes an
-                    //      immediate market execution, not protection. LONG → SELL stop
-                    //      below entry; SHORT → BUY stop above entry.
-                    //   3. This is NOT op=EXIT. Zero Exit-family calls. sc.SubmitOrder only.
+                    // v2 called sc.SubmitOrder: that symbol has ZERO public
+                    // definitions in ACSIL (only the private InternalSubmitOrder
+                    // pointer) — it would not compile. The 07-20 note claiming
+                    // "Exit = MARKET-only, ACSIL cannot place a resting stop" is
+                    // not documented anywhere in sierrachart.h and blocked this
+                    // feature for 8 days.
                     //
-                    // Reduce-only: qty clamped to abs(position). Flat → refuse.
-                    // Verification: orders[] before/after in SIM (test suite is not evidence).
-                    else if (cmd_content.find("\"PLACE_STOP\"") != std::string::npos)
+                    // The working path is the Exit family with an OCO order type:
+                    //   SCT_ORDERTYPE_OCO_LIMIT_STOP (=15): Price1 = LIMIT leg
+                    //   (target), Price2 = STOP leg. sc.SubmitOCOOrder REFUSES
+                    //   type 15 (it accepts only the bidirectional entry OCOs
+                    //   17/18/19 and returns SCTRADING_NOT_OCO_ORDER_TYPE), so it
+                    //   goes through SellExit/BuyExit — the same proven call
+                    //   FLATTEN_ORPHAN uses, with a resting type instead of MARKET.
+                    // No target -> plain SCT_ORDERTYPE_STOP (protection first).
+                    //
+                    // Order functions return DOUBLE (v2 assigned to int).
+                    //
+                    // SAFETY — all mandatory:
+                    //   1. reduce-only: qty clamped to abs(position); flat -> refuse
+                    //   2. side taken from the POSITION sign, cross-checked vs command
+                    //   3. price vs MARKET: long -> stop < last < target;
+                    //      short -> target < last < stop. A stop on the wrong side of
+                    //      the market executes instantly: a forced exit disguised as
+                    //      protection. v2 checked side-vs-position but NOT this.
+                    //   4. o.TradeAccount = sc.SelectedTradeAccount, never from JSON
+                    //      (root cause of every r=-1 on 07-27)
+                    //   5. This is NOT op=EXIT. Zero partial-exit calls.
+                    else if (cmd_content.find("\"PLACE_BRACKET\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
                         {
-                            int ps_qty = parse_int("\"qty\"");
-                            double ps_price = parse_float("\"price\"");
-                            char ps_side[16] = {0};
-                            parse_str("\"side\"", ps_side, sizeof(ps_side));
+                            int    pb_qty    = parse_int("\"qty\"");
+                            double pb_stop   = parse_float("\"stop\"");
+                            double pb_target = parse_float("\"target\"");   // <=0 => stop only
+                            char   pb_side[16] = {0};
+                            parse_str("\"side\"", pb_side, sizeof(pb_side));
 
-                            if (ps_qty <= 0 || ps_price <= 0 ||
-                                (strcmp(ps_side, "LONG") != 0 && strcmp(ps_side, "SHORT") != 0))
+                            if (pb_qty <= 0 || pb_stop <= 0 ||
+                                (strcmp(pb_side, "LONG") != 0 && strcmp(pb_side, "SHORT") != 0))
                             {
-                                result_status = "PLACE_STOP_BAD_INPUT";
+                                result_status = "PLACE_BRACKET_BAD_INPUT";
                                 order_err = -1;
                             }
                             else
                             {
-                                // Read actual position — refuse if flat
-                                s_SCPositionData ps_pos;
-                                sc.GetTradePosition(ps_pos);
-                                int actual_pos = ps_pos.PositionQuantity;
+                                s_SCPositionData pb_pos;
+                                sc.GetTradePosition(pb_pos);
+                                int    actual_pos = (int)pb_pos.PositionQuantity;
+                                double last_px    = (double)sc.LastTradePrice;
 
                                 if (actual_pos == 0)
                                 {
-                                    result_status = "PLACE_STOP_NO_POSITION";
+                                    result_status = "PLACE_BRACKET_NO_POSITION";
                                     order_err = 0;
-                                    sc.AddMessageToLog("MEMS26: PLACE_STOP refused — no position", 1);
+                                    sc.AddMessageToLog("MEMS26: PLACE_BRACKET refused — flat", 1);
                                 }
-                                // Side must match position sign
-                                else if ((strcmp(ps_side, "LONG") == 0 && actual_pos < 0) ||
-                                         (strcmp(ps_side, "SHORT") == 0 && actual_pos > 0))
+                                else if ((strcmp(pb_side, "LONG")  == 0 && actual_pos < 0) ||
+                                         (strcmp(pb_side, "SHORT") == 0 && actual_pos > 0))
                                 {
-                                    result_status = "PLACE_STOP_SIDE_MISMATCH";
+                                    result_status = "PLACE_BRACKET_SIDE_MISMATCH";
                                     order_err = -1;
-                                    sc.AddMessageToLog("MEMS26: PLACE_STOP side mismatch vs position", 1);
+                                    sc.AddMessageToLog("MEMS26: PLACE_BRACKET side mismatch vs position", 1);
+                                }
+                                else if (last_px <= 0.0)
+                                {
+                                    // No market price -> cannot validate side. Refuse
+                                    // rather than send blind (Rule 1).
+                                    result_status = "PLACE_BRACKET_NO_PRICE";
+                                    order_err = -1;
                                 }
                                 else
                                 {
-                                    // Clamp qty to position size (reduce-only, never flip)
-                                    int clamped_qty = (ps_qty < abs(actual_pos)) ? ps_qty : abs(actual_pos);
-
-                                    s_SCNewOrder o;
-                                    o.OrderQuantity = clamped_qty;
-                                    o.OrderType     = SCT_ORDERTYPE_STOP;
-                                    o.Price1        = static_cast<float>(ps_price);
-                                    o.TimeInForce   = SCT_TIF_DAY;
-
-                                    // 🔴 REQUIREMENT 1: TradeAccount = sc.SelectedTradeAccount
-                                    // NEVER from command JSON. Root cause of r=-1 on 07-20.
-                                    o.TradeAccount = sc.SelectedTradeAccount;
-
-                                    // 🔴 REQUIREMENT 2: BuySell side from position sign
-                                    // LONG position → SELL stop (close by selling)
-                                    // SHORT position → BUY stop (cover by buying)
+                                    bool side_ok;
                                     if (actual_pos > 0)
-                                        o.BuySell = BSE_SELL;
+                                        side_ok = (pb_stop < last_px) &&
+                                                  (pb_target <= 0.0 || pb_target > last_px);
                                     else
-                                        o.BuySell = BSE_BUY;
+                                        side_ok = (pb_stop > last_px) &&
+                                                  (pb_target <= 0.0 || pb_target < last_px);
 
-                                    // 🔴 REQUIREMENT 3: sc.SubmitOrder — NOT Exit-family
-                                    int r = sc.SubmitOrder(o);
-
-                                    result_status = (r > 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
-                                    order_err = r;
-
-                                    char msg[256];
-                                    if (r > 0)
+                                    if (!side_ok)
                                     {
+                                        result_status = "PLACE_BRACKET_REJECT_WRONG_SIDE";
+                                        order_err = -1;
+                                        char wmsg[256];
+                                        snprintf(wmsg, sizeof(wmsg),
+                                            "MEMS26: PLACE_BRACKET REJECTED wrong side — pos=%d last=%.2f stop=%.2f target=%.2f",
+                                            actual_pos, last_px, pb_stop, pb_target);
+                                        sc.AddMessageToLog(wmsg, 1);
+                                    }
+                                    else
+                                    {
+                                        int abs_pos = (actual_pos < 0) ? -actual_pos : actual_pos;
+                                        int clamped_qty = (pb_qty < abs_pos) ? pb_qty : abs_pos;
+
+                                        s_SCNewOrder o;
+                                        o.OrderQuantity = clamped_qty;
+                                        o.TimeInForce   = SCT_TIF_DAY;
+                                        o.TradeAccount  = sc.SelectedTradeAccount;
+
+                                        const char* route;
+                                        if (pb_target > 0.0)
+                                        {
+                                            o.OrderType = SCT_ORDERTYPE_OCO_LIMIT_STOP;
+                                            o.Price1    = pb_target;   // LIMIT leg
+                                            o.Price2    = pb_stop;     // STOP leg
+                                            route = "OCO_LIMIT_STOP";
+                                        }
+                                        else
+                                        {
+                                            o.OrderType = SCT_ORDERTYPE_STOP;
+                                            o.Price1    = pb_stop;
+                                            route = "STOP";
+                                        }
+
+                                        // Exit family closes the position: long -> Sell, short -> Buy.
+                                        double r = (actual_pos > 0) ? sc.SellExit(o) : sc.BuyExit(o);
+
+                                        result_status = (r > 0) ? "PLACE_BRACKET_OK" : "PLACE_BRACKET_FAIL";
+                                        order_err = (int)r;
+
+                                        char msg[320];
                                         snprintf(msg, sizeof(msg),
-                                            "MEMS26: PLACE_STOP_OK — %s stop qty=%d price=%.2f (pos=%d, order_id=%d)",
+                                            "MEMS26: PLACE_BRACKET_%s r=%.0f route=%s %s qty=%d stop=%.2f target=%.2f (pos=%d last=%.2f)",
+                                            (r > 0) ? "OK" : "FAIL", r, route,
                                             (actual_pos > 0) ? "SELL" : "BUY",
-                                            clamped_qty, ps_price, actual_pos, r);
+                                            clamped_qty, pb_stop, pb_target, actual_pos, last_px);
+                                        sc.AddMessageToLog(msg, (r > 0) ? 0 : 1);
                                     }
-                                    else
-                                    {
-                                        snprintf(msg, sizeof(msg),
-                                            "MEMS26: PLACE_STOP_FAIL r=%d — %s stop qty=%d price=%.2f (pos=%d)",
-                                            r, (actual_pos > 0) ? "SELL" : "BUY",
-                                            clamped_qty, ps_price, actual_pos);
-                                    }
-                                    sc.AddMessageToLog(msg, (r > 0) ? 0 : 1);
                                 }
                             }
                         }
                         else
                             result_status = "ACK_MGMT";
                     }
+
                     // ── OP: EXIT — PARTIAL market exit of N contracts ────
                     // Uses sc.BuyExit (for SHORT position) or sc.SellExit (for LONG position)
                     // with OrderQuantity = exit_qty. This exits exactly N contracts, NOT all.

@@ -234,7 +234,7 @@ def recommend_orphan_stop(sierra_qty: Optional[int],
     }
 
 
-def _read_place_stop_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
+def _read_place_bracket_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
     """Poll trade_result.json for a PLACE_STOP result newer than pre_mtime.
 
     W8 v2 (2026-07-28). Returns (True, "PLACE_STOP_OK") on success,
@@ -251,12 +251,12 @@ def _read_place_stop_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[b
                 if mtime > pre_mtime:
                     data = _safe_json_loads(result_path.read_text().strip() or "{}")
                     status = data.get("status", "")
-                    if "PLACE_STOP" in status:
-                        return status == "PLACE_STOP_OK", status
+                    if "PLACE_BRACKET" in status or "PLACE_STOP" in status:
+                        return status in ("PLACE_BRACKET_OK", "PLACE_STOP_OK"), status
         except (OSError, json.JSONDecodeError):
             pass
         _time_mod.sleep(0.25)
-    return False, "PLACE_STOP_TIMEOUT: no result within {:.0f}s".format(timeout_s)
+    return False, "PLACE_BRACKET_TIMEOUT: no result within {:.0f}s".format(timeout_s)
 
 
 def _read_flatten_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
@@ -369,6 +369,54 @@ def _flatten_orphan(rec: dict) -> Tuple[bool, str]:
     return _read_flatten_result(pre_mtime)
 
 
+def _place_bracket_enabled() -> bool:
+    """PLACE_BRACKET_OP_V1 — default OFF until the DLL op is sim-verified."""
+    return os.getenv("PLACE_BRACKET_OP_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _bracket_target_for(rec: dict) -> Optional[float]:
+    """Optional take-profit for the protective bracket.
+
+    OFF by default: protection must never wait on a profit decision. When
+    PLACE_BRACKET_TARGET_R is set, the target sits that many R from entry,
+    where R is the entry-to-stop distance. Returns None when it cannot be
+    computed honestly (Rule 1)."""
+    try:
+        rr = float(os.getenv("PLACE_BRACKET_TARGET_R", "0"))
+    except (TypeError, ValueError):
+        return None
+    if rr <= 0:
+        return None
+    entry, stop = rec.get("entry"), rec.get("stop")
+    if entry is None or stop is None:
+        return None
+    risk = abs(float(entry) - float(stop))
+    if risk <= 0:
+        return None
+    tgt = (float(entry) + rr * risk) if rec.get("side") == "LONG" else (float(entry) - rr * risk)
+    return round(round(tgt * 4) / 4, 2)          # snap to the 0.25 tick
+
+
+def _submit_real_bracket(rec: dict) -> Tuple[bool, str]:
+    """Send PLACE_BRACKET to the DLL and wait for its result.
+
+    The DLL owns the hard safety checks (position sign, price vs the live
+    market, reduce-only clamp) because only it sees the live position at
+    execution time. This function must not second-guess them — it only
+    submits and reports."""
+    from backend.v9.services.sierra_command import write_place_bracket
+    import time as _t
+
+    result_path = Path(os.path.expanduser(
+        os.getenv("MEMS26_SIGNALS_DIR", "~/SierraChart_Data/v9_export")
+    )) / "trade_result.json"
+    pre_mtime = result_path.stat().st_mtime if result_path.exists() else 0.0
+
+    write_place_bracket(qty=int(rec["qty"]), stop=float(rec["stop"]),
+                        side=str(rec["side"]), target=_bracket_target_for(rec))
+    return _read_place_bracket_result(pre_mtime)
+
+
 def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
     """Monitor an orphan position with a virtual structural stop.
 
@@ -411,7 +459,46 @@ def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
                          f"price={lp}, max_loss=${_orphan_max_loss_usd():.0f}, "
                          f"watching since {_virtual_stop[key]['set_ts']:.0f}")
 
-    # First time — register the virtual stop
+    # ── W8 v3 (Michael 2026-07-28) — try a REAL resting bracket first ────────
+    # "המערכת כן תוכל לנהל עסקה שאני מבצע ולהוסיף לה סטופ ונקודות מימוש".
+    # A real order rests on Sierra's book: it survives a backend crash, a
+    # restart, and a gap. The virtual stop below cannot — it needs this process
+    # alive and a tick to cross the level. So the virtual stop stops being the
+    # design and becomes the FALLBACK for when the real order is refused.
+    if _place_bracket_enabled():
+        try:
+            ok_r, status_r = _submit_real_bracket(rec)
+            if ok_r:
+                _virtual_stop[key] = {
+                    "stop": rec["stop"], "side": rec["side"],
+                    "set_ts": _time_mod.time(), "real": True,
+                }
+                logger.critical(
+                    "[Reconciler] REAL BRACKET PLACED: %s stop @ %.2f for %dc @ %.2f (%s)",
+                    rec["side"], rec["stop"], rec["qty"], rec["entry"], status_r)
+                try:
+                    from scripts.ops_log import log_event
+                    log_event("reconciler", "CRITICAL",
+                              f"REAL BRACKET PLACED: {rec['side']} stop @ {rec['stop']} "
+                              f"for {rec['qty']}c @ {rec['entry']} ({status_r})")
+                except Exception:
+                    pass
+                try:
+                    from backend.v9.services.phone_alert import push as _pp
+                    _pp("real_bracket", "\U0001f6e1 MEMS26: STOP PLACED",
+                        f"{rec['side']} {rec['qty']}c stop @ {rec['stop']}", priority=1)
+                except Exception:
+                    pass
+                return True, (f"REAL_BRACKET_PLACED: {rec['side']} stop @ {rec['stop']} "
+                              f"for {rec['qty']}c ({status_r})")
+            # Refused: say so loudly, then fall through to the virtual stop.
+            logger.warning("[Reconciler] real bracket refused (%s) — "
+                           "falling back to the virtual stop", status_r)
+        except Exception as e:
+            logger.warning("[Reconciler] real bracket errored (%s) — "
+                           "falling back to the virtual stop", e)
+
+    # Fallback — register the virtual stop
     _virtual_stop[key] = {
         "stop": rec["stop"],
         "side": rec["side"],
