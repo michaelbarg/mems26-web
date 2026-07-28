@@ -3432,56 +3432,76 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                             route = "STOP";
                                         }
 
-                                        // ── ROUTE LADDER (2026-07-28, after live sim evidence) ──
-                                        // Sim test on Sim1 with a real -5 position proved BOTH
-                                        // OCO_LIMIT_STOP and plain STOP return r=-1 through the Exit
-                                        // family. So the 07-20 note was right about ONE thing: Exit
-                                        // does not carry resting order types. But Sierra clearly CAN
-                                        // hold a stop+target on a position — Michael's own brackets
-                                        // are in orders[] — so the capability exists on another route.
-                                        // Try each in turn and REPORT WHICH ONE WORKED, instead of
-                                        // guessing again: one Remote Build settles it.
-                                        //   A. Exit family      (kept, so a regression is visible)
-                                        //   B. BuyOrder/SellOrder — routes to InternalSubmitOrder when
-                                        //      Symbol or TradeAccount is set, which is our case.
-                                        //   C. SetAttachedOrders — configure the bracket and let
-                                        //      Sierra attach it.
-                                        double r = 0.0;
+                                        // ── ROUTE LADDER v2 (2026-07-28) ──
+                                        // v1 reported PLACE_BRACKET_OK for route C because
+                                        // SetAttachedOrders returns void and I assumed success.
+                                        // orders[] was still EMPTY: nothing had been placed. That is
+                                        // a synthesized success — the exact failure this project has
+                                        // been chasing all day. v1 also swallowed route B's return
+                                        // code (`else if (r == 0)` never fired because r was already
+                                        // -1), so B's real answer was never seen.
+                                        //
+                                        // Now: every route's raw code is captured and reported, and
+                                        // success is only ever claimed from a POSITIVE order id or a
+                                        // VERIFIED change in the working-order count.
+                                        double rA = 0.0, rB = 0.0;
+                                        int    ordersBefore = 0, ordersAfter = 0;
                                         const char* used = "NONE";
 
-                                        r = (actual_pos > 0) ? sc.SellExit(o) : sc.BuyExit(o);
-                                        if (r > 0) used = "A_EXIT";
-
-                                        if (r <= 0)
-                                        {
-                                            s_SCNewOrder o2 = o;
-                                            // Force the Symbol/TradeAccount branch so the call lands
-                                            // on InternalSubmitOrder rather than InternalBuyEntry.
-                                            o2.Symbol       = sc.Symbol;
-                                            o2.TradeAccount = sc.SelectedTradeAccount;
-                                            double r2 = (actual_pos > 0) ? sc.SellOrder(o2) : sc.BuyOrder(o2);
-                                            if (r2 > 0) { r = r2; used = "B_ORDER"; }
-                                            else if (r == 0) r = r2;
+                                        for (int oi = 0; oi < 200; ++oi) {
+                                            s_SCTradeOrder t0;
+                                            if (sc.GetOrderByIndex(oi, t0) == 0) break;
+                                            if (t0.OrderStatusCode == SCT_OSC_OPEN ||
+                                                t0.OrderStatusCode == SCT_OSC_PENDING_CHILD_CLIENT ||
+                                                t0.OrderStatusCode == SCT_OSC_PENDING_CHILD_SERVER)
+                                                ordersBefore++;
                                         }
 
-                                        if (r <= 0)
-                                        {
-                                            // C: describe the protective bracket and let Sierra attach
-                                            // it to the position. Prices are absolute, not offsets.
+                                        // A — Exit family (proven r=-1 in the 07-28 sim; kept so a
+                                        //     regression stays visible if Sierra changes)
+                                        rA = (actual_pos > 0) ? sc.SellExit(o) : sc.BuyExit(o);
+                                        if (rA > 0) used = "A_EXIT";
+
+                                        // B — Buy/SellOrder with Symbol+TradeAccount set, which
+                                        //     forces InternalSubmitOrder instead of InternalBuyEntry
+                                        if (rA <= 0) {
+                                            s_SCNewOrder o2 = o;
+                                            o2.Symbol       = sc.Symbol;
+                                            o2.TradeAccount = sc.SelectedTradeAccount;
+                                            rB = (actual_pos > 0) ? sc.SellOrder(o2) : sc.BuyOrder(o2);
+                                            if (rB > 0) used = "B_ORDER";
+                                        }
+
+                                        // C — SetAttachedOrders. Configures the bracket Sierra will
+                                        //     attach; whether it reaches an EXISTING position is
+                                        //     exactly what we do not know, so it is VERIFIED, never
+                                        //     assumed.
+                                        if (rA <= 0 && rB <= 0) {
                                             s_SCNewOrder cfg;
                                             cfg.OrderQuantity = clamped_qty;
                                             cfg.TradeAccount  = sc.SelectedTradeAccount;
                                             cfg.Stop1Price    = pb_stop;
                                             cfg.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
-                                            if (pb_target > 0.0)
-                                            {
+                                            if (pb_target > 0.0) {
                                                 cfg.Target1Price = pb_target;
                                                 cfg.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
                                             }
-                                            sc.SetAttachedOrders(cfg);   // void — verify via orders[]
-                                            used = "C_ATTACHED";
-                                            r = 1.0;                     // provisional; orders[] is the proof
+                                            sc.SetAttachedOrders(cfg);
+                                            for (int oi = 0; oi < 200; ++oi) {
+                                                s_SCTradeOrder t1;
+                                                if (sc.GetOrderByIndex(oi, t1) == 0) break;
+                                                if (t1.OrderStatusCode == SCT_OSC_OPEN ||
+                                                    t1.OrderStatusCode == SCT_OSC_PENDING_CHILD_CLIENT ||
+                                                    t1.OrderStatusCode == SCT_OSC_PENDING_CHILD_SERVER)
+                                                    ordersAfter++;
+                                            }
+                                            if (ordersAfter > ordersBefore) used = "C_ATTACHED";
                                         }
+
+                                        // Success requires evidence, not a return of void.
+                                        const bool placed = (rA > 0) || (rB > 0) ||
+                                                            (ordersAfter > ordersBefore);
+                                        double r = placed ? ((rA > 0) ? rA : ((rB > 0) ? rB : 1.0)) : -1.0;
 
                                         result_status = (r > 0) ? "PLACE_BRACKET_OK" : "PLACE_BRACKET_FAIL";
                                         order_err = (int)r;
@@ -3495,7 +3515,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         // this block has gone out of scope.
                                         static char pb_route_txt[64];
                                         snprintf(pb_route_txt, sizeof(pb_route_txt),
-                                                 "via=%s type=%s", used, route);
+                                                 "via=%s type=%s rA=%.0f rB=%.0f ord=%d->%d",
+                                                 used, route, rA, rB, ordersBefore, ordersAfter);
                                         order_err_text = pb_route_txt;
 
                                         char msg[320];
