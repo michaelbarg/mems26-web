@@ -55,3 +55,13 @@ def test_v_reversal_needs_decisive_close_not_just_edge():
     ]
     v = check_release(bars, "LONG")
     assert not v.released
+
+
+def test_daytype_conf_sufficient_thresholds():
+    from backend.v9.gateway.trading_gateway import _daytype_conf_sufficient
+    assert _daytype_conf_sufficient(0.0, 0.4) is False    # today's poisoned label
+    assert _daytype_conf_sufficient(0.33, 0.4) is False
+    assert _daytype_conf_sufficient(0.4, 0.4) is True
+    assert _daytype_conf_sufficient(0.9, 0.4) is True
+    assert _daytype_conf_sufficient(None, 0.4) is True    # unknown => legacy behavior
+    assert _daytype_conf_sufficient("bad", 0.4) is True   # unparsable => legacy

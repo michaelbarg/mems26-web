@@ -102,6 +102,24 @@ def _opening_gate_exempt(setup, gate_name: str) -> bool:
         return False
 
 
+def _daytype_conf_sufficient(conf, min_conf: float) -> bool:
+    """Is the day-type label trustworthy enough for the playbook to VETO on it?
+
+    2026-07-29: bar contamination pinned classifier confidence at 0.0 the whole
+    session, and the playbook kept issuing SKIPs off a label that was noise —
+    11 blocks, 6 saved / 5 cost, a coin flip. A verdict built on an unfounded
+    label should not act (Rule 1 applied to gates). conf < min_conf ⇒ the
+    playbook's SKIP degrades to an advisory log. conf None (no classifier row —
+    pre-hydration) ⇒ keep the playbook active: unchanged legacy behavior, and
+    the opening-window override already covers the immature-label minutes."""
+    try:
+        if conf is None:
+            return True
+        return float(conf) >= min_conf
+    except (TypeError, ValueError):
+        return True
+
+
 import os as _os
 # Use the same DATABASE_URL as db/session.py — no more hardcoded path.
 # Tests can override via DATABASE_URL or db_path constructor arg.
@@ -955,7 +973,28 @@ class TradingGateway:
                             "[Gateway] opening-window override errored (no override): %s",
                             _ow_err,
                         )
+                    # LOW-CONFIDENCE BYPASS (2026-07-29): a SKIP is only as good as
+                    # the day-type label it reasons from. Read the classifier's own
+                    # confidence; below DAYTYPE_PLAYBOOK_MIN_CONF (0.4) the veto
+                    # degrades to an advisory log instead of a block.
+                    _pb_conf_ok = True
                     if not _ow_ok:
+                        try:
+                            from backend.v9.db.read import read_one as _pb_conf_read
+                            _pb_cr = _pb_conf_read(
+                                "SELECT confidence FROM v9_day_type_state "
+                                "ORDER BY id DESC LIMIT 1", {})
+                            _pb_conf = _pb_cr["confidence"] if _pb_cr else None
+                            _pb_min = float(os.getenv("DAYTYPE_PLAYBOOK_MIN_CONF", "0.4"))
+                            _pb_conf_ok = _daytype_conf_sufficient(_pb_conf, _pb_min)
+                            if not _pb_conf_ok:
+                                logger.warning(
+                                    "[Gateway] day-type playbook SKIP degraded to "
+                                    "ADVISORY (conf %s < %s): %s",
+                                    _pb_conf, _pb_min, _pb.reason)
+                        except Exception:
+                            _pb_conf_ok = True  # unknown ⇒ unchanged legacy behavior
+                    if not _ow_ok and _pb_conf_ok:
                         result["blocked_by"] = "daytype_playbook"
                         result["reason"] = _pb.reason  # precise — UI must not invent
                         logger.info("[Gateway] BLOCKED by day-type playbook: %s", _pb.reason)
@@ -1256,12 +1295,32 @@ class TradingGateway:
                     # Get session bars for today's RTH
                     from backend.v9.db.read import read_all as _ecg_read
                     _ecg_srows = _ecg_read(
-                        "SELECT high, low FROM v9_bars_5min_woodies "
+                        "SELECT open, high, low FROM v9_bars_5min_woodies "
                         "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
                                 "(now() AT TIME ZONE 'America/New_York')::date "
                                 "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
                         "ORDER BY ts ASC", {})
-                    if _ecg_srows and _ecg_entry is not None:
+                    # TREND BYPASS (2026-07-29 audit): a trending session makes new
+                    # extremes by definition — "too close to the extreme" is exactly
+                    # where with-move continuation enters. The guard's two blocked
+                    # shorts today (16:55 @7434, 17:39 @7403) ran +48.5 / +30.5.
+                    # Same displacement primitive as the release gate: displaced
+                    # >= RELEASE_TREND_BYPASS_PTS and the entry points WITH the
+                    # move -> skip the guard. Counter-move keeps it (that is where
+                    # chasing an extreme is actually fatal).
+                    _ecg_bypass = False
+                    try:
+                        from backend.v9.systems.release_gate import trend_bypass as _ecg_tb
+                        if _ecg_srows and _ecg_entry is not None:
+                            _ecg_bypass = _ecg_tb(
+                                float(_ecg_srows[0]["open"]), float(_ecg_entry), direction)
+                            if _ecg_bypass:
+                                logger.warning(
+                                    "[Gateway] extreme-chase-guard TREND BYPASS: %s "
+                                    "with-move on displaced session", direction)
+                    except Exception:
+                        _ecg_bypass = False
+                    if _ecg_srows and _ecg_entry is not None and not _ecg_bypass:
                         _ecg_bars = [{"high": float(r["high"]), "low": float(r["low"])}
                                      for r in _ecg_srows]
                         _ecg_sh = max(b["high"] for b in _ecg_bars)
