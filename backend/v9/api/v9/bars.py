@@ -1249,6 +1249,47 @@ def post_woodies_5min(
             continue
         _prev_studies = _cur_studies
 
+        # D3 / BAR_SEAM_REJECT_V1 (2026-07-29): reject bars that create a price
+        # discontinuity >15pt from their neighbor. Defense against shifted/rewritten
+        # bars (07-28 incident: 31.5pt seam at 17:20→17:25 from overnight re-push).
+        # Fail-open: errors never block a bar. Flag OFF → no-op.
+        if os.getenv("BAR_SEAM_REJECT_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _seam_max = float(os.getenv("BAR_SEAM_MAX_PTS", "15"))
+                _prev_h = getattr(post_woodies_5min, "_seam_prev_h", None)
+                _prev_l = getattr(post_woodies_5min, "_seam_prev_l", None)
+                if _prev_h is None:
+                    # First bar in batch: look up last DB bar
+                    try:
+                        from backend.v9.db.read import read_one
+                        _last = read_one(
+                            "SELECT high, low FROM v9_bars_5min_woodies "
+                            "WHERE symbol='MES' ORDER BY ts DESC LIMIT 1", {})
+                        if _last:
+                            _prev_h = float(_last["high"])
+                            _prev_l = float(_last["low"])
+                    except Exception:
+                        pass  # fail-open: no DB → skip seam check
+                if _prev_h is not None and _prev_l is not None:
+                    _gap = max(float(l) - _prev_h, _prev_l - float(h))
+                    if _gap > _seam_max:
+                        logger.warning(
+                            "[woodies_5min] BAR_SEAM_REJECT: gap=%.1fpt > %.0fpt "
+                            "ts=%s prev_HL=(%.2f,%.2f) cur_HL=(%.2f,%.2f) — bar rejected",
+                            _gap, _seam_max, bar.get("ts"), _prev_h, _prev_l, float(h), float(l))
+                        try:
+                            from scripts.ops_log import log_event
+                            log_event("bars", "WARNING",
+                                      f"BAR_SEAM_REJECT: {_gap:.1f}pt gap at ts={bar.get('ts')}")
+                        except Exception:
+                            pass
+                        continue  # skip this bar — do NOT write to DB
+                # Update prev for next iteration
+                post_woodies_5min._seam_prev_h = float(h)
+                post_woodies_5min._seam_prev_l = float(l)
+            except Exception as _seam_err:
+                logger.debug("[woodies_5min] seam guard error (fail-open): %s", _seam_err)
+
         # TREND_CCI_DIRECT_V1: trend follows CCI directly (cancel sticky GRAY)
         bar["trend_state"] = _trend_from_cci(bar.get("trend_state"), bar.get("cci_14"))
 

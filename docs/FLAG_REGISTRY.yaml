@@ -532,6 +532,27 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  MARKET_CONTEXT_V1:
+    category: misc
+    group: "system 0"
+    what: "P4/A: System 0 MarketContext unifier — single get_market_context() composes opening_type, day_type, dir_bias, expansion, balance_state into one contract. Escalation-only (fields only strengthen within session). Replaces scattered getters."
+    why: "OFF (default). Fragmented context caused contradictory answers (07-23: day=UNKNOWN, opening=NEUTRAL, LSMA=RED at the same time). When OFF, returns skeleton with UNKNOWN — zero behavior change."
+    status: awaiting_backtest
+    ref: "backend/v9/services/market_context.py · backend/v9/tests/test_market_context.py"
+  OPENING_ANCHOR_ET_V1:
+    category: s2
+    group: "opening entry"
+    what: "P0: anchor opening-bar detection on 09:30 ET (America/New_York) instead of 16:30 IL. Fixes DST hazard where IL 16:30 != ET 09:30 for 5 weeks/year. Also includes anti-phantom guard: opening signals only fire when bar age < 10min from real-time (replay/hydration bars produce nothing)."
+    why: "OFF (default). Cowork's root-fix normalizes TZ correctly for IL anchor; this upgrades to ET anchor + adds anti-phantom. Byte-identical when OFF (IL anchor preserved)."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/five_min/five_min_system.py:1181 · tests/v9/regression/test_opening_anchor_et.py"
+  BAR_SEAM_REJECT_V1:
+    category: misc
+    group: "data integrity"
+    what: "D3: reject incoming 5-min woodies bars that create a price discontinuity >15pt from the previous bar. Defense against shifted/rewritten bars (07-28 incident: 31.5pt seam from overnight re-push). Threshold env BAR_SEAM_MAX_PTS (default 15). Fail-open on DB errors."
+    why: "OFF (default). Without clean bar stream, no replay verification is reliable. Advisory: rejected bars are logged but the system continues."
+    status: awaiting_backtest
+    ref: "backend/v9/api/v9/bars.py:post_woodies_5min · scripts/bar_integrity_check.py"
   ORDER_REJECT_DETECT_V1:
     category: execution
     group: "order lifecycle"

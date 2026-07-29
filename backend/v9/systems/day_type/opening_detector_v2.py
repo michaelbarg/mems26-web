@@ -18,9 +18,14 @@ through to OPEN_AUCTION. That is exactly 2026-06-19 (9.75pt range, called OPEN_D
 """
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List, Optional, Tuple
 
 TICK = 0.25
+
+
+def _dalton_gaps_on() -> bool:
+    return os.getenv("OPENING_DALTON_GAPS_V1", "0").lower() in ("1", "true", "yes")
 
 
 def _g(bar, *keys):
@@ -96,6 +101,16 @@ def detect_opening_type(
 
     loc = _loc()
 
+    # B1 (OPENING_DALTON_GAPS_V1): balance_state as a primary axis
+    _dalton = _dalton_gaps_on()
+    if _dalton:
+        _conviction_map = {
+            "out_of_range": "high", "out_value_in_range": "medium",
+            "in_value": "low", "UNKNOWN": "low",
+        }
+        out["balance_state"] = loc
+        out["balance_conviction"] = _conviction_map.get(loc, "low")
+
     # 1) OPEN_DRIVE — holds beyond the OPENING RANGE (first bar) + strong directional close.
     #    Relaxed from the open-PRINT (which required ZERO ticks back through open → never fired).
     #    Michael 2026-06-20: Sierra doesn't export opening_type, so this detector must be reachable.
@@ -117,10 +132,24 @@ def detect_opening_type(
             _cvd_divergence_note = f"CVD divergence — drive not confirmed (cvd_pos={cvd_pos:.2f})"
             # fall through to OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION
         else:
-            out.update(opening_type="OPEN_DRIVE",
-                       direction="UP" if up_drive else "DOWN", confidence=0.85,
-                       reasons=["no return through opening print", "monotonic |price−open|", f"open_location={loc}"])
-            return out
+            # B2 (OPENING_DALTON_GAPS_V1): check if the drive was INVALIDATED
+            # by a later return through the opening range. If any bar after bar 1
+            # has a close back inside the opening range → drive invalidated.
+            _drive_invalidated = False
+            if _dalton and len(closes) > 2:
+                for _ci in range(2, len(closes)):
+                    if or_low <= closes[_ci] <= or_high:
+                        _drive_invalidated = True
+                        break
+            if _drive_invalidated:
+                # Fall through: drive invalidated → try TEST_DRIVE or ORR
+                out["invalidated"] = True
+                out["reasons"].append("drive invalidated: price returned through opening range")
+            else:
+                out.update(opening_type="OPEN_DRIVE",
+                           direction="UP" if up_drive else "DOWN", confidence=0.85,
+                           reasons=["no return through opening print", "monotonic |price−open|", f"open_location={loc}"])
+                return out
 
     init = closes[0] - open_price
     last = closes[-1] - open_price
@@ -157,8 +186,16 @@ def detect_opening_type(
 
     # 4) OPEN_AUCTION — rotational (crossings of the open), or no clear drive
     if loc == "out_of_range":
-        out.update(opening_type="OPEN_AUCTION_OUT", direction="NEUTRAL", confidence=0.5,
-                   reasons=[f"open out of yesterday's range; {crossings} crossings of open"])
+        # B3 (OPENING_DALTON_GAPS_V1): AUCTION_OUT = alertness, not neutral.
+        # Out-of-range opening with no clear drive → double-distribution potential.
+        _ao_conf = 0.55 if _dalton else 0.5
+        _ao_reasons = [f"open out of yesterday's range; {crossings} crossings of open"]
+        if _dalton:
+            _ao_reasons.append("out-of-balance: double-distribution potential")
+            out["balance_state"] = "out_of_range"
+            out["balance_conviction"] = "high"
+        out.update(opening_type="OPEN_AUCTION_OUT", direction="NEUTRAL",
+                   confidence=_ao_conf, reasons=_ao_reasons)
     else:
         out.update(opening_type="OPEN_AUCTION_IN", direction="NEUTRAL", confidence=0.4,
                    reasons=[f"rotational; {crossings} crossings of open; open_location={loc}"])

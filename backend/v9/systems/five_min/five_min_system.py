@@ -1181,18 +1181,34 @@ class FiveMinSystem(BaseV9TradingSystem):
                     try:
                         from zoneinfo import ZoneInfo as _ZI
                         _IL = _ZI("Asia/Jerusalem")
+                        # P0 (2026-07-29): OPENING_ANCHOR_ET_V1 — anchor on
+                        # 09:30 ET instead of 16:30 IL. IL 16:30 == ET 09:30
+                        # only outside DST transitions (5 weeks/year differ).
+                        # Flag OFF → legacy IL anchor (byte-identical to cowork's fix).
+                        _use_et = os.getenv("OPENING_ANCHOR_ET_V1", "0").lower() in (
+                            "1", "true", "yes")
+                        _anchor_tz = _ZI("America/New_York") if _use_et else _IL
+                        _anchor_hour = 9 if _use_et else 16
+                        _anchor_min = 30
                         if isinstance(_ts_raw, (int, float)):
-                            _bar_dt = datetime.fromtimestamp(
-                                _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw, tz=_IL)
+                            _bar_dt_utc = datetime.fromtimestamp(
+                                _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw,
+                                tz=timezone.utc)
                         elif _ts_raw:
                             _p = datetime.fromisoformat(str(_ts_raw).replace("Z", "+00:00"))
                             if _p.tzinfo is None:
-                                # naive ISO from the bridge is UTC — that was the bug
                                 _p = _p.replace(tzinfo=timezone.utc)
-                            _bar_dt = _p.astimezone(_IL)
+                            _bar_dt_utc = _p
+                        else:
+                            _bar_dt_utc = None
+                        _bar_dt = _bar_dt_utc.astimezone(_anchor_tz) if _bar_dt_utc else None
+                        # Also keep IL view for the day-key (date boundary)
+                        _bar_dt_il = _bar_dt_utc.astimezone(_IL) if _bar_dt_utc else None
                     except Exception:
                         _bar_dt = None
-                    _d_key = _bar_dt.date().isoformat() if _bar_dt else str(_ts_raw)[:10]
+                        _bar_dt_utc = None
+                        _bar_dt_il = None
+                    _d_key = (_bar_dt_il or _bar_dt).date().isoformat() if (_bar_dt_il or _bar_dt) else str(_ts_raw)[:10]
                     if getattr(self, "_oe_date", None) != _d_key:
                         self._oe_date = _d_key
                         self._oe_bars = []
@@ -1202,21 +1218,28 @@ class FiveMinSystem(BaseV9TradingSystem):
                         self._oe_fusion = None
                         self._oe_fusion_done = False
                     if not getattr(self, "_oe_disabled", False):
+                        # P0 anti-phantom (2026-07-29): opening signals only
+                        # when the bar is < 10 min old. Replay/hydration bars
+                        # are historical and must NOT produce opening signals.
+                        _anti_phantom_ok = True
+                        if _bar_dt_utc is not None:
+                            _bar_age_s = (datetime.now(timezone.utc) - _bar_dt_utc).total_seconds()
+                            if _bar_age_s > 600:  # > 10 minutes old
+                                _anti_phantom_ok = False
                         if not self._oe_bars:
-                            _is_open_bar = bool(_bar_dt and _bar_dt.hour == 16 and _bar_dt.minute == 30)
-                            # FIX 07-22 17:40: pre-open bars (e.g. a re-pushed
-                            # 16:25 ETH bar right after a restart) must WAIT,
-                            # not disable the day — that bug cost the shadow
-                            # evidence on a real OPEN_DRIVE day. Disable ONLY
-                            # when a bar AFTER 16:30 arrives while we have no
-                            # open bar (true mid-window start → no honest OR).
+                            _is_open_bar = bool(
+                                _bar_dt and _anti_phantom_ok
+                                and _bar_dt.hour == _anchor_hour
+                                and _bar_dt.minute == _anchor_min)
                             if _is_open_bar:
                                 self._oe_bars.append(bar)
-                            elif _bar_dt and (_bar_dt.hour, _bar_dt.minute) > (16, 30):
-                                self._oe_disabled = True
-                                logger.info(
-                                    "[FiveMin] OPENING_ENTRY: first seen bar %s is past the 16:30 open — honest skip today",
-                                    _ts_raw)
+                            elif _bar_dt and (_bar_dt.hour, _bar_dt.minute) > (_anchor_hour, _anchor_min):
+                                if _anti_phantom_ok:
+                                    self._oe_disabled = True
+                                    logger.info(
+                                        "[FiveMin] OPENING_ENTRY: first seen bar %s is past %02d:%02d — honest skip today",
+                                        _ts_raw, _anchor_hour, _anchor_min)
+                                # else: replay bar past the open → silently skip (not a real miss)
                             # else: pre-open bar → wait for the 16:30 bar
                         elif len(self._oe_bars) < _oe_win:
                             self._oe_bars.append(bar)
