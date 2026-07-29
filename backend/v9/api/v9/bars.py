@@ -6,6 +6,7 @@ for READ-ONLY queries only (e.g. enrichment lookups).  This eliminates the
 concurrent ORM-vs-raw-sqlite3 write race that caused recurring B-tree corruption.
 """
 
+import os  # FIX 2026-07-29 16:10, 20 min before the open: cc's seam guard used os.getenv but bars.py never imported os -> NameError on the IF line (outside the try) -> the whole 5-min ingest handler crashed on every push since the 15:40 restart. The _t-class again: a symbol the module does not define.
 import json as _json
 import logging
 from datetime import datetime, timedelta, timezone
