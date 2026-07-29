@@ -391,12 +391,14 @@ def opening_panel(request: Request) -> Dict[str, Any]:
     fired: List[Dict[str, Any]] = []
     try:
         from backend.v9.db.read import read_all as _fp_read
+        # column is `pattern` (NOT pattern_id) — the wrong name 500'd this panel
+        # section on every load; logger.debug hid it (found 2026-07-29 22:00).
         _fp_rows = _fp_read(
-            "SELECT pattern_id, direction, ts FROM v9_five_min_setups "
+            "SELECT pattern, direction, ts FROM v9_five_min_setups "
             "WHERE (ts::timestamptz AT TIME ZONE 'America/New_York')::date = :d "
             "ORDER BY ts::timestamptz DESC LIMIT 50",
             {"d": today})
-        fired = [{"pattern": r["pattern_id"], "direction": r.get("direction"),
+        fired = [{"pattern": r["pattern"], "direction": r.get("direction"),
                   "ts": str(r["ts"])} for r in _fp_rows]
     except Exception as exc:
         logger.debug("[opening_panel] fired patterns query failed: %s", exc)
