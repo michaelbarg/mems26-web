@@ -532,6 +532,20 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  OPENING_PLAYBOOK_V1:
+    category: s2
+    group: "opening entry"
+    what: "P1: per-opening-type trade templates from config/opening_playbook.yaml. Maps each opening type (DRIVE/TEST_DRIVE/ORR/AUCTION_IN/AUCTION_OUT) to entry, stop, T1, runner, and invalidation rules. Gate exemptions (awaiting_release, lsma_flat) as config fields."
+    why: "OFF (default). Opening trades were never signalled because the templates didn't exist. When OFF, resolve() returns None → existing triggers unchanged."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/opening_playbook_engine.py · config/opening_playbook.yaml"
+  OPENING_RUNNER_RIDE_V1:
+    category: s2
+    group: "opening entry"
+    what: "P2: structural trailing for opening trade runners. After T1, runner trails on 30-min swing low/high (6-bar window, 1pt buffer). Exits on LSMA color flip against trade direction or 15:45 ET (C4 handles). Does NOT place orders directly — caller issues MODIFY_STOP."
+    why: "OFF (default). Opening runners were closing at fixed T3 instead of riding the structure. Replay 07-28: ORR-long from ~7433 should hold to 7470+."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/opening_runner.py · backend/v9/tests/test_opening_runner.py"
   MARKET_CONTEXT_V1:
     category: misc
     group: "system 0"

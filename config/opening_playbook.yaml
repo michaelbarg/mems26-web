@@ -1,0 +1,54 @@
+# Opening Playbook — per-opening-type trade templates (P1, 2026-07-29)
+#
+# Michael mandate: "I want trades for every opening type, defined — not
+# scattered logic." Each opening type maps to a specific entry, stop,
+# T1, runner, and invalidation rule.
+#
+# Consumed by backend/v9/systems/opening_playbook_engine.py when
+# OPENING_PLAYBOOK_V1=1. Flag OFF → engine returns None → opening_entry.py
+# uses its existing triggers unchanged (byte-identical).
+#
+# Gate exemptions: opening trades are exempt from awaiting_release and
+# lsma_flat (they ARE the context, not followers of it) but NOT from
+# margin, bracket-slots, chase, or news gates.
+
+opening_types:
+  OPEN_DRIVE:
+    entry: "close_beyond_opening_range"         # bar close past OR edge
+    stop: "opposite_side_of_opening_range"      # other side of OR
+    t1: "1.5R"
+    runner: "structural_trail_30min"
+    invalidation: "return_through_opening"      # price crosses back through OR
+    exempt_gates: ["awaiting_release", "lsma_flat"]
+
+  OPEN_TEST_DRIVE:
+    entry: "close_through_open_after_edge_test"  # close back through open after testing edge
+    stop: "edge_test_extreme_plus_buffer"        # the poke extreme ± buffer
+    t1: "1.5R"
+    runner: "structural_trail_30min"
+    invalidation: "second_failed_test"           # second edge test that fails
+    exempt_gates: ["awaiting_release", "lsma_flat"]
+
+  ORR:                                           # Open Rejection Reverse
+    entry: "close_through_open_against_drive"    # reversal close back through the open
+    stop: "rejection_extreme_plus_buffer"        # the rejected extreme ± buffer
+    t1: "1.5R"
+    runner: "structural_trail_30min"
+    invalidation: "close_beyond_rejection_extreme" # price closes past the rejected high/low
+    exempt_gates: ["awaiting_release", "lsma_flat"]
+
+  AUCTION_OUT:
+    entry: "first_range_extension_with_acceptance" # RE + acceptance (System 0)
+    stop: "opposite_value_edge"                    # VAL (long) or VAH (short)
+    t1: "1.5R"
+    runner: "structural_trail_30min"
+    invalidation: "return_to_prior_value"          # price returns inside prior VA
+    exempt_gates: ["awaiting_release", "lsma_flat"]
+
+  AUCTION_IN:
+    entry: "value_edge_probe"                      # location_gate at edge + probe
+    stop: "beyond_edge"                            # past the VA edge being faded
+    t1: "1.0R"
+    runner: "none"                                 # fade trade, no runner
+    invalidation: "acceptance_outside_value"        # price accepted outside VA
+    exempt_gates: ["awaiting_release", "lsma_flat"]
