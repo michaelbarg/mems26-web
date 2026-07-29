@@ -59,6 +59,23 @@ lsma_flat בלבד ⇒ המלצת-סף מגובה-נתונים (או הורדת-
 ‏`RELEASE_TREND_BYPASS_PTS` (15) + `DAYTYPE_PLAYBOOK_MIN_CONF` (0.4) —
 רישום ב-`FLAG_REGISTRY.yaml` + ‏`gen_flag_index` + ‏flag_guard ירוק.
 
+## P5 — שני חוסמי-S2 פנימיים (נמצאו 22:00, הרגו את עסקאות-הערב לפני השערים)
+
+1. **pre_fire_validator R:R — מודל-reward שבור בפריצה:** ‏21:40 ‏DOUBLE_BOTTOM_EE_LONG
+   ‎@7444 נדחה "R:R<1.0 (risk 33.75, reward 16.34)" — ה-reward נמדד עד השיא-הישן
+   (7461−7444=16.3) בזמן שהשוק פורץ לשיאים חדשים (רץ ל-7482). ביום-פריצה מדידת-reward
+   לשיא-הישן = דחייה אוטומטית של כל פריצה. תקן: מצב-breakout (מחיר בתוך 5 נק' מקצה-
+   הסשן או מעברו) ⇒ reward = measured-move (גובה-הבסיס) או ‏ATR-multiple, לא המרחק
+   לקצה-הישן. flag-gated + טסט על 21:40 (חייב לעבור) + על פייד-ברוטציה (ללא שינוי).
+2. **Auth Table על תווית-רעש:** ‏17:00 ‏INITIATIVE_SHORT × ‏UNKNOWN ⇒ SKIP (העסקה
+   הגדולה של היום) · ‏21:55 ‏INITIATIVE_LONG × "Normal" (ביטחון-אפס) ⇒ SKIP. אותה
+   מחלה שתוקנה הערב ב-playbook-הגייטוויי, יושבת גם ב-setup_emitter. הצעה (ממתינה
+   לפסיקת-מייקל, אל תדליק): ‏conf<0.4 ⇒ ‏SKIP-של-הטבלה הופך ל-REDUCED (2 חוזים)
+   במקום 0. בנה מוכן-להדלקה + טסטים; ההדלקה רק אחרי מילת-מייקל.
+3. באג ‏TradeManager: ‏InvalidTransition ‏PARTIAL→PARTIAL ב-on_target_hit (ספאם-לוג;
+   ישבור רישום ‏T2 אחרי ‏T1 בעסקה חיה) — הפוך ל-idempotent (כבר PARTIAL ⇒ אל תעבור
+   מצב, רק רשום את היעד). טסט: ‏T1 ואז ‏T2 על אותה עסקה ⇒ אין חריגה.
+
 ## קבלה (חוק-5)
 
 רגרסיה ירוקה · replay שני-הימים עם פלט גולמי · flag_guard · דוח
