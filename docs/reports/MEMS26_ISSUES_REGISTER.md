@@ -57,14 +57,6 @@
 | I-65 | 🔴 חדש [07-09] **היפוך shadow↔live על סיגנל-זהה** — 332(shadow)=−2.28R מול 333(live)=+3.92R ($117.5), אותו REACTIVE_LONG (10:45, e7576.75, stop 7572.25). shadow הפך winner-אמת ל-loss דרך I-54+I-64. הסלמת I-56 | לוג 10:45–12:11 CT id332 מול id333; targets-diff (7566.5×3 מול t1=t2=7588.5) | למה targets+exit שונים לאותו-סיגנל | 🔴 | ה-live הוא ה-oracle-האמת. עיצוב DESIGNS_2026-07-09 §3 |
 | I-66 | 🟡 חדש [07-09] **10 דרילי-דמו `SIM_TEST` בטבלת-עסקאות** — ids 316,318,320–327 (טרום-RTH 03:32–05:28 CT), entry אחיד 7515.25, exit דרילי (sim_cleanup/drill_*/pre_restart_cleanup), R-אבסורדי (321/323 R48; 318 +$541.95). מזהמים `/trades/recent`/counters | `is_synthetic`/`is_drill` flag + restart-source (bars_in_db 3206→1549) | לוודא סינון drill≠signal | 🟡 | עיצוב DESIGNS_2026-07-09 §5; display/safe |
 | I-67 | 🟠 חדש [07-13] **תבנית `GHOST` (S4) לא-מתועדת — ירתה 2 לונגים נגד-מגמה עם targets מופרי-סדר** — ids 367(shadow)/368(live) 12:10 CT, LONG ביום-ירידה (−32.5pt), נעצרו −1R מיָדית; `t1=7589.5<t3=7603.5<t2=7610.5` (t2>t3, הפרת-מונוטוניות ל-LONG); GHOST אינה ברשימת-S4 (ZLR/TLB/TT/GB100/HFE/HTLB/FAMIR) | קוד woodies/S4 detectors + pattern-map; לוג 12:10 CT id367/368; Sierra v9_export (woodies/CCI-14 גולמי) | מה GHOST (S4-חדש/fallback/באג-שיוך)? למה נגד-מגמה? מקור target t2>t3 | 🟠 | עיצוב DESIGNS_2026-07-13 §2; [TRADING-LOGIC·SoT→CC] |
-| I-68 | 🔴🔴 [07-17] **יתום-שורט −5 עירום על-כסף-אמת + ledger-שקרי (S-13)** — reconciler C1 (מתייחס ל-`ORDER_SUBMITTED`=stop-קיים, לא-קורא `working_orders`) + C3 (alert-only, streak-נעול-0/3) + סגירה-פיקטיבית (#400 `CLOSED WIN` בעוד Sierra −5) | Sierra 37138283 · `reconcile.py` C1/C3 · #400 ledger | auto-flatten על-divergence + working_orders-אמת + חסימת-entry | 🔴🔴 [קוטלג-רטרו 07-20] | עיצוב DESIGNS_2026-07-17 §D1; **[TRADING-SAFETY·חוסם-LIVE·SoT→CC]** |
-| I-69 | 🟠 [07-17] **A5 INITIATIVE over-fire על Normal** — `INITIATIVE×Normal=SKIP` נעקף (auth-key `OFA_Initiative`≠`INITIATIVE` → "using max"→FULL); #396 ירה-מלא ונעצר −$78.75 חי | `sizing.py:42-46`/`five_min_system.py:1348-1373` · #396 raw | תיקון-מיפוי auth-key → SKIP-על-Normal | 🟠 [קוטלג-רטרו 07-20] | עיצוב DESIGNS_2026-07-17 §D4; [TRADING-LOGIC·SoT→CC] |
-| I-70 | 🔴🔴 חדש [07-20] **מיקום-הסטופ: `structural_stop_always_wins` לא-נאכף ב-S2/adaptive_stop** — `config/stop_anchors.yaml` מצהיר true אך `five_min/adaptive_stop.py` קובע `entry+1.75×ATR` (רצפת-~5pt) בתוך-מבנה-רחב. **הפסיד-חי:** #420(live −$82.5)/#424(live −$42.5) נעצרו על-סטופ 7–13pt בתוך-מבנה 7521–7527. CF: #421→T3(+0.58R), #424→T2(+0.62R), התאום-shadow #423 +$57.5 | `five_min/adaptive_stop.py` מול `stop_resolver.py`; #420/#424 raw + Sierra swing-high 7521–7527+6T | סטופ מעבר-קצה-מבני +6T, מבנה-גובר-על-ATR כשרחב-יותר, איחוד-נתיבים (S2→stop_resolver rung) | 🔴🔴 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D1; **[TRADING-LOGIC·הפסיד-חי·SoT→CC]** (=Task#7) |
-| I-71 | 🟠 חדש [07-20] **מקור-סוג-יום מפוצל תלת-כיוונית + פספוס-פריצת-IB-מטה** — `/day_type/current`=Neutral_Extreme(38) ≠ classify_replay=Normal ≠ override=Variation. IB 7506–7552 נשבר-מטה ל-7478 (28pt מתחת IB_L) = Variation-DOWN, אך המסווג קרא Neutral/Normal → G2/G3/G6/location הוחזרו-OFF | `app.state.day_type_machine` מול endpoint מול classify_replay; `extension_ratio=null` | מקור-אחד-קנוני (מנוע→endpoint+דאשבורד) + כיול-סף-הרחבה (acceptance מעבר-IB=הרחבה) | 🟠 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D4; [TRADING-LOGIC·SoT→CC] (=Task#5) |
-| I-72 | 🟠 חדש [07-20] **`require_with_trend` על-`trend_state`-רגעי במקום כיוון-היום** — `daytype_playbook.py:132-137`: `counter=(SHORT ∧ trend_state==BLUE)`. באונס-רגעי 7508→7534 צבע BLUE → חסם SHORT-עם-מגמה + התיר 5 לונגים-נגד-מגמה (#425–428/#433, כולם STOP). CF: כל-5 מפסידים עם-כל-סטופ = כיוון-שגוי | `daytype_playbook.py:132-137` + 5-הלונגים raw | ימים-כיווניים: require_with_trend מול כיוון-היום; responsive-fade פטור לפי-מיקום (VAH/VAL) | 🟠 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D3; [TRADING-LOGIC·SoT→CC] (=Task#5a) |
-| I-73 | 🟠 חדש [07-20] **`bars5min` 4 ברים-כפולים** — 13:40–13:55 CT זהים-בדיוק (OHLC+volume 9069/9088/13881/23376) ל-14:40–14:55 CT; אין-פער-ts → שכפול-תוכן/ts-misassign בזנב-feed (הד 06-26 +3h) | `/chart/bars5min` dup-scan (0 gaps, 4 dups) מול `~/SierraChart_Data/v9_export/` | dedup-guard ב-ingest (סמן dup_suspect+warning, לא-לכתוב-בשקט); Rule 1 propagate-None | 🟠 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D5; [DATA·SoT→CC] |
-| I-74 | 🟡 חדש [07-20] **buffer-S2 מתאפס בכל-ריסטארט → S2 עיוור 15–20דק'** — ~6 ריסטארטים היום איפסו buffer-S2 (סיבה-מרכזית לאי-הירי-אחה"צ); `BOOT_DAYTYPE_REPLAY` משחזר סוג-יום אך-לא-buffer | boot-log + `five_min` buffer_size post-restart | בבוט: replay ברי-RTH דרך process_bar בלי-persist/orders → S2 מוכן-מיד + תיקון תצוגת-cooldown | 🟡 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D6; [INFRA/DISPLAY-safe] (=Task#8) |
-| I-75 | 🔴 חדש [07-20] **`trade_fills.json` ריק → P&L/R מחושבים-ולא-אמת** — size=0, אין-מילויי-אמת; `pnl_usd` מחושב מ-target/stop-תיאורטי (#420 נרשם −$82.50 מול ~$15-אמת per EOD_FIX_LIST); `backend_trade_id` לא-מקושר. **daily_pnl=−125 עצמו לא-מאומת** | writer-של-fills (למה ריק?) + Sierra order-log; #420/#424 fills | fill-capture (price+qty+order_id) → טבלת-`trade_fills` PG · P&L-אמת + divergence · fail-loud | 🔴 חדש [07-20] | עיצוב DESIGNS_2026-07-20 §D2; **[TRADING-SAFETY/DATA·חוסם-אמון·SoT→CC]** (=Task#6, משפחת I-22/I-68) |
 
 > **הוראת-עדכון:** כל חשוד חדש ש-Michael מסמן → Cowork מוסיף שורה כאן עם SoT+spec+סטטוס,
 > לפני בדיקה. אסור "נראה תקין" בלי לעבור על הסעיף לעומק מול ה-SoT.
@@ -1484,100 +1476,24 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 
 **מקור-אמת (CC):** (1) Sierra=מקור-CCI · (2) ΣR-נגד-אמת ל-B/D/E מ-raw DB של iMac · (3) replay-נקי 15/07 אחרי P1 (בפרט D בקצה ~7583) · (4) reconcile day-structure (DOWN מול UP-invalidated) · (5) detection-lag quantify (P8). **שום קוד/flag/.env/DB לא-שונה (read-only).**
 
----
+### [2026-07-16 15:20 CT] Missed-Trades Investigator (Cowork, אוטונומי) — משלים ל-EOD §07-16
 
-## 📉 עדכון-ממצאים · MISSED_TRADES EOD 2026-07-20 (Cowork autonomous)
+**שער-זמן I-9:** ✅ CT 15:20 (`TZ=America/Chicago date`→`2026-07-16 15:20:48 CDT`; IL 23:20). דוח: `docs/reports/MISSED_TRADES_2026-07-16.md`. **מקור-CCI = Sierra.**
 
-**שער-זמן:** ✅ CT 15:16 (`TZ=America/Chicago date`→`2026-07-20 15:16:36 CDT`; IL 23:16). דוח: `docs/reports/MISSED_TRADES_2026-07-20.md`. read-only, לא שונה קוד/flag/.env/DB.
+**🟢 ריצה מחוברת (לא-עיוורת, בניגוד ל-07-15):** ה-sandbox עדיין עיוור (`localhost`→refused · `10.1.118.70:8000`→403), אבל **Chrome MCP מחובר** → נתונים חיים מ-iMac `http://10.1.118.70:8000/api/v9/*` (woodies `age_s=0.6 stale=false` · bars5min RTH מלא 08:30→14:55 CT · trades/decisions/day_type). **R היפותטי (replay-מבני), פרט ל-#36 (fill-צל אמיתי).**
 
-**🟢 ממצא-מרכזי — אפס פספוס-מגייט מורעל.** `blocked_by=null` על כל 14 הירי · `/missed-trades count=0` (I-60 נמשך) · chop-gates OFF (0 חסימות). ~33 חסימות-RTH **מבוזרות-ובריא** על 5 שערים (rr_entry_gate~16 · location_gate 5 · cont_trend_filter 5 · daytype_playbook 5 · s4_risk_cap 2) — אין שער-יחיד-מורעל.
+**🔴 יום-ירידה נקי (7612.5→שפל 7548→7577) שהגלאי ראה ולא-נלכד-חי.** לייב: 3 עסקאות, **−$28.75** (1W/2L): #35 LONG @09:04 +$72.50 · #39/#41 SHORT @11:36–11:40 STOP −$56.25/−$45 (whipsaw). הגלאי ירה **7 איתותי ZLR-DOWN** (מקור-Sierra): 3 מנצחות-T2 על הרגל 12:25/12:30/12:50 (mfeR 2.07/2.20/2.09) + 4 סטופים. ΣmfeR **+8.84R gross**.
 
-**🔴 פספוס-נקי יחיד — 13:25 REACTIVE_SHORT (S2) נחסם `rr_entry_gate` ≈ +2R:** רגל 7508→7489 (13:25→13:40, T1 7496.75 נפגע 13:40 L7488.5; highs≤7512.5 → סטופ 7514 שרד). אף ירי לא תפס (429 נעצר 12:41 לפני ה-bounce; 435 תפס רק רגל-אחרונה). **false-block יחיד — rr_entry_gate חסם על חשד-R:R-הדוק בעוד מבנית הכניסה תקפה.** → CC לבחון סף rr_entry_gate מול swing-structural.
+**🔴 החוסם-#1 = `location_gate` (10 חסימות, gate #13) על תווית-day_type מזויפת.** decisions@20:42 IL (AGENT_SYNC): fired=3 · blocked=22 → **location_gate=10** · cont_trend=6 · rr=3 · loss_breaker=2 · direction=1. שורש: `extract_g1` הזין תווית-כפויה ("Neutral_Center") לשערים בעוד S1-חיה=None (`LOCKED_LOW_CONF` conf 0.33) → location_gate fail-closed. **⇒ I-68 (חדש).** תוקן הערב `2d656607`+`36843b7b` (`_g1_replay_fallback_ok`, fallback רק מחוץ-סשן; midsession-None⇒day_type=None⇒allow; 3/3+6/6 טסטים) — **לאמת חי מחר: אפס-חסימה על תווית-מומצאת.**
 
-**🟢 I-40 (bars5min corruption) — השתפר היום.** תיקון ה-`-1h` (commit `81fe0e2e`) החזיק: bars5min↔woodies = **37/45 close-match** (max 8.25pt), **0 dup-adjacent**, 8 ברי-הצלבה ראשונים diff=0.0. ניגוד חד ל-07-17 (10/44, 8 dups). ⚠️ שאריות desync ~5–8pt בכמה ברי-אחה"צ + lag ~בר-אחד בין entry-prices(gateway/bars5min) ל-woodies-close ב-10:45–11:50 — → CC לאמת אין drift-חוזר.
+**🔴 הראיה-הקשה = short-הצל #36:** 10:45 CT · SHORT 7605 · **mode=shadow-בלבד (אין תאום-לייב)** → **+$191.25 · +1.37R · WIN**. בזון שה-location_gate חסם (7595–7605) המערכת ייצרה short-מנצח — רק בצל. **⇒ I-69 (חדש): routing-צל — למה short-מנצח רץ shadow ולא-live?**
 
-**🔴 I-22 (R-artifact / micro-stops) — נמשך.** 3 ה"נצחונות" (423/430/431) עם stop 0.25pt=0.03×ATR; S6 EOD סימן 3× "צמוד מדי"; `pnl_r` מנופח (23/17/22). → CC.
+**🟡 I-70 (חדש):** סטופ-הדוק ב-13:05 (entry 7567, mfe **1.79R** near-miss-T2 שנקטע) — ציר ניהול-סטופ בשפל, לא-חוסם-כניסה.
 
-**🔴 I-41/I-50/I-67 (לונג-נגד-מגמה) — נמשך.** 7/14 הירי היו LONG ביום-יורד (Neutral_Extreme, net −65pt); מרביתם הפסידו (425/426/427/428/433 = −$510 gross). פער-פילטר-מגמה. → CC (NORMAL_ROTATION_FIX_V1/REQUIRE_WITH_TREND — לאמת אם פעיל).
+**🎯 benchmark (template 06-05): 1/5 בוצעו נקי** = slot-2 LONG @09:04 (#35). slot-5 (~10:00 SHORT) **זוהה אך נחסם-חי** (#36-צל/אשכול-location). slots 1/3/4 = לא-רלוונטיים (מבנה-יום-שונה). **אין answer-key ייעודי ל-07-16.** ground-truth-אמיתי (מייקל: "היום הפך לנייטרלי והמערכת לא זיהתה"): הרגל-היורדת זוהתה-אך-לא-נלכדה-חי.
 
-**🔴 ביצוע-לייב = הכאב-האמת של היום (לא-פספוס).** live 420/424 הפסידו −$125; 432/434/436 `ORDER_FAILED:-1`→BE (op path); **naked orphan short 3c @7542.5** ללא-סטופ (reconciler-heal תקוע 0/3) — ראה `ALERT_NAKED_SHORT_2026-07-20.md`.
+**ΣR-נגד ≈ +3–4R deduped-מבני** (#36 +1.37R + רגל-ירידה ~+2R) · **+8.84R gross-MFE** (7 ZLR-DOWN) · **~4 setups-איכות פוספסו חי** (~2 הזדמנויות-נבדלות).
 
-**🟡 I-1 (day_type label split) — נמשך אך תפקד הגנתית.** state=`Neutral_Extreme` (degrade) מול commit-בוקר `Normal_Variation-DOWN`; `daytype_playbook` חסם נכון לונגים-נגד-מגמה למרות הפיצול. **I-25** (trades/recent limit=200 cap) נמשך — limit=50 עובד.
+**פירוק-gate:** location_gate=10 (I-68, תוקן) · cont_trend=6 (`LSMA_SUSTAIN 3→2`) · rr=3 (לגיטימי, `RR_MIN_ROTATION=0.65`) · loss_breaker=2 (מייקל שחרר `PATTERN_LOSS_BREAKER=0`) · direction=1 · daytype_playbook late×4 (by-design, עקיפת-Neutral) · eod/session late (נכון) · choppiness/sizing/A1/opening/FHB=0.
 
-**🎯 benchmark: K/5 —** 1/5 ירה-על-סלוט (9:20→09:25, אך 420 live הפסיד −$82.5) · 1/5 detected-late (8:35→09:25, החמיץ 7552→7508) · 1/5 detected-but-gated (9:35, rr marginal) · 2/5 לא-תקפים-היום (9:00 long / 10:00 short — קוטעו ע"י bounce-הבוקר 7501→7534). **לא חשף פער-גייט חדש.** גייטי-benchmark ההיסטוריים (I-13/14/15/16) מושבתים/מיושנים; הגייטים-הפעילים דור-חדש.
-
-**פירוק-gate:** choppiness/sizing/A1/FHB=0 · **rr_entry_gate~16** (1 false-block=13:25, שאר R:R-אמת) · location_gate 5 · cont_trend_filter 5 · daytype_playbook 5 · s4_risk_cap 2 — **כולם הגנתיים חוץ מ-13:25.** **ΣR-נגד ≈ +2R** (setup יחיד).
-
----
-
-### [2026-07-20 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי · יום-LIVE)
-
-**שער-זמן I-9:** ✅ CT 15:12 (`TZ=America/Chicago date`→`2026-07-20 15:12:10 CDT`; IL 23:12; `/api/v9/health=ok`). דוחות: **`PATTERN_EOD_2026-07-20.md`** (EOD-מלא, 14 עסקאות + טבלת-תבניות + counterfactual-עצמאי) + **`DESIGNS_2026-07-20.md`** (D0–D8). מקורות: API-חי דרך Chrome (`/trades/recent`, `/chart/bars5min` 78-ברים, `/gateway/*`, `/day_type`, `/woodies`) + handoff-docs-חיים + bar-replay עצמאי. **משלים לסעיף Missed-Trades לעיל** (הצלבה-מלאה; אין-סתירה). **אין PATTERN_DIAG-יומי** (snapshots-30דק' מושבת מ-06-10). **קטלוג עודכן:** נוספו שורות I-68/I-69 (רטרו מ-EOD-07-17 שלא-קוטלג) + **I-70…I-75 חדשים**. **שום קוד/flag/.env/DB לא-שונה (read-only).**
-
-**תמונת-יום:** LIVE · **Variation-DOWN** (override; המסווג קרא Neutral_Extreme/Normal — פספס פריצת-IB-מטה) · פתיחה 7534.5→שיא 7552.25→שפל 7478→נעילה 7485.75 (נטו −48.75pt, טווח 74). **14 עסקאות (2 live 0W/2L −$125 · 12 shadow 3W/9L −$661.25).** כל היציאות STOP_HIT.
-
-**🔴🔴 החמור-ביותר היום — I-68/S-13 (אורפן-עירום) חזר בפעם-ה-3-בשבוע על-כסף-אמת.** naked SHORT −3 @7542.5 (09:49 ET, working_orders=0, `/trades/active=null`, 0 ב-v9_trades); אחרי-שיטוח-ידני-מייקל ~18:13 → מחזור בנה-מחדש −5 @7520.5. `phantom-heal 0/3` (heal-נכשל). 668 שורות DIVERGENCE. שורש-משנה-חדש: `trade_activity_events.jsonl` תקוע-מ-07-17-17:46 → מרעיל-רקונסיילר (src=events-מעופש). מקור `ALERT_NAKED_SHORT_2026-07-20.md`. **בטיחות > P&L · חוסם-LIVE.** עיצוב DESIGNS_2026-07-20 §D0 (+ §D1-07-17).
-
-**חשודים-חדשים שקוטלגו היום (טבלת-קטלוג למעלה):**
-- **I-70 🔴🔴 מיקום-הסטופ (structural_stop_always_wins לא-נאכף ב-S2)** — **הפסיד-חי** (#420/#424). CF: #421→T3(+0.58R), #424→T2(+0.62R), shadow-twin #423 +$57.5. **השורש-העל-הטכני של-היום** (וגם מזין את rr_entry_gate-false-block ב-13:25). = Task#7 / CC_URGENT.
-- **I-71 🟠 מקור-סוג-יום מפוצל תלת-כיוונית** (endpoint Neutral_Extreme38 ≠ classify Normal ≠ override Variation; פספס פריצת-IB-מטה). = Task#5. **תואם I-1** (day_type label-split, sibling).
-- **I-72 🟠 require_with_trend על-trend_state-רגעי** (BLUE-באונס התיר 5 לונגים-נגד-מגמה). = Task#5a. **משפחת I-41/I-50/I-67** (לונג-נגד-מגמה, sibling מיפה לשם). CF מוכיח: כל-5 מפסידים עם-כל-סטופ = חסימתם מוצדקת.
-- **I-73 🟠 bars5min 4 ברים-כפולים** (13:40–13:55 == 14:40–14:55, OHLC+volume). **תת-מקרה של משפחת I-40** (bars5min corruption; sibling: 0-dup-**adjacent** אך שאריות-desync אחה"צ — הכפילות-שלי non-adjacent, שעה-מרחק).
-- **I-74 🟡 buffer-S2 מתאפס בכל-ריסטארט** (~6 ריסטארטים → S2 עיוור 15–20דק' → סיבה-מרכזית לאי-הירי-אחה"צ). = Task#8.
-- **I-75 🔴 trade_fills.json ריק → P&L/R מחושבים-ולא-אמת** (#420 −$82.50 מחושב מול ~$15-אמת; daily_pnl=−125 לא-מאומת). = Task#6. **משפחת I-22/I-68**.
-
-**עדכוני-סטטוס חשודים-קיימים (הצלבה עם sibling):**
-- **I-22 (R-artifact) — נמשך.** 3 ה"נצחונות" (423/430/431) עם micro-stop 0.25pt (S6 EOD: 3× "צמוד-מדי"), pnl_r מנופח (23/17/22). קשור-הדוק ל-I-70 (סטופ-שגוי→R-שגוי).
-- **I-65 (shadow↔live inversion) — חזר.** #423(shadow +57.5)/#424(live −42.5), אותו S4 SHORT (בר-כניסה 09:45 H=7521.75 מעל stop 7515). live=oracle. עיצוב §D7.
-- **I-60 (missed-store נמחק) — נמשך** (`/missed-trades count=0`). **I-25** (trades/recent limit≤100, לא-200) — נמשך.
-- **I-40 (bars5min) — השתפר** (fix `-1h` `81fe0e2e`: 37/45 close-match, 0-dup-adjacent) אך I-73 (dup non-adjacent) + שאריות-desync אחה"צ פתוחים.
-
-**מקור-אמת (CC) — לפי-עדיפות:** (1) 🔴🔴 **I-68 אורפן** — אימות-חזותי Sierra 37138283 + FLATTEN-ידני + שורש phantom-heal-0/3 + feed-אירועים-תקוע. (2) 🔴 **I-70** — adaptive_stop.py מול stop_resolver.py; #420/#424 מול Sierra swing-high+6T. (3) 🔴 **I-75** — למה fills.json ריק; P&L-אמת. (4) 🟠 **I-71** — endpoint≠machine≠override; פספוס-IB-breakout. (5) 🟠 **I-72** — daytype_playbook.py:132-137. (6) 🟠 **I-73** — 13:40–13:55 מול Sierra v9_export. **שום קוד/flag/.env/DB לא-שונה (read-only EOD).**
-
----
-
-### [2026-07-22 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי · יום-SIM-אחרי-cutover)
-
-**שער-זמן I-9:** ✅ CT 15:12 (`TZ=America/Chicago date`→`2026-07-22 15:12 CDT`; IL 23:12). דוחות: **`PATTERN_EOD_2026-07-22.md`** (טבלת-תבניות מלאה + counterfactual `cf_2026-07-22.py`) + **`DESIGNS_2026-07-22.md`** (D0–D8). **⚠️ הופק בלי-גישת-API/DB** — Chrome לא-מחובר + sandbox עיוור-ל-`localhost:8000`/Postgres; מסלול-המחיר שוחזר מ-`OPS_LOG_2026-07-22.md` (עקבת-ביצוע Sierra-מבוססת). **אין `PATTERN_DIAG-יומי`** (snapshots-30דק' מושבת מ-06-10). **שום קוד/flag/.env/DB לא-שונה (read-only).**
-
-**תמונת-יום:** בוקר-live פעיל → **cutover ל-SIM 12:09 ET** (Michael: "לא נעשה כמו שצריך") + מגה-אימות; ~6+ ריסטארטים. מחיר: פתיחה ~7515 → זחילה 7530→**שיא 7562.25 (12:33)** → דעיכה→צ'ופ 7544–7557. סוג-יום: מכונה-נתקעה `Trend_Normal` → **override-ידני→Normal** → breakout-watch. **P&L: v9_trades=$0.00 · Sierra=+$37.50 (GB100 SHORT #466 T1) → פער-רקונסיליאציה 🔴.** ~11 fires (S4-ZLR/GB100/FAMIR + S2-REACT) · ~30 blocks על 6 שערים.
-
-**🔴🔴 החמור-ביותר — I-68 (אורפן-עירום) חזר בפעם-ה-4-בשבוע על-כסף-אמת.** 18:07 IL naked SHORT **−10 @7538.12**, working=0, מחיר 7548.75 → **−$531 פתוח**; TM=0/Sierra=−10 (records≠reality); heal-חסום (`ORPHAN_AUTO_STOP_V1=0`, streak 0/3); journal ריק 17:50–18:10 (I-81). מייקל שיטח ידנית. **בטיחות > P&L · חוסם-LIVE.** עיצוב `DESIGNS_2026-07-22 §D0` (המשך §D0-07-20/§D1-07-17).
-
-**🎯 counterfactual (חסומים): ΣR-נגד = +2.0R · W4/L6/flat2.** הגייטינג **דוקטרינרית-שפוי** — 6/12 חסימות מוצדקות (חסכו 6R: שורט-לתוך-ראלי, קניית-שיא-7562, post-peak); **הדליפה (4/12, +8R-פוטנציאל) מרוכזת ב-`rr_entry_gate` ×3 + `lsma_flat` ×1** על לונגי-זחילת-הבוקר (7548→7562) → **המשך-ישיר של rr_entry false-block 07-20 (I-70 family)**. עיצוב §D1.
-
-**חשודים-חדשים שקוטלגו היום (לקיפול-לטבלת-הקטלוג העליונה):**
-- **I-76** | 🔴 חדש [07-22] **`order_failed r=−1` על כניסת-live** — #462/#464 ZLR LONG נורו live בשיא → Sierra דחתה (`ORDER_FAILED:-1`); P8a/P10a תיקנו כנות-תצוגה (outcome=CANCELLED, "Sierra דחתה") אך השורש (OCO-per-contract/dup-order-id) פתוח. משפחת op=EXIT-broken. | Sierra-log r=−1 code + `trading_gateway`/fill_poller | 🔴 | עיצוב §D2. **[SoT→CC]**
-- **I-77** | 🔴 חדש [07-22] **דליפת-state ברמת-החבילה מ-`_hydrate_decisions`** — `trading_gateway.py:240` טען `gateway_decisions.jsonl` האמיתי לכל gateway כולל-בטסטים (len16 vs 2) → 12–15 regressions + סיכון-פרודקשן (gateway-חדש בולע-החלטות-קודמות בריסטארט). HEAD `b00346e9` "hydrate opt-in" נחת אחרי-NO-GO. | pytest חבילה-מלאה parent-parity 145/145 | 🔴 חוסם-return-to-live | עיצוב §D6. **[SoT→CC: הרץ חבילה + raw]**
-- **I-78** | 🟠 חדש [07-22] **migration 023 (`pnl_sierra`) לא-אומת-רץ** — הקובץ קיים (`023_pnl_sierra_column.py`) + מודל עודכן, אך `\d v9_trades`→count=0 (cowork ~22:40) → P9c cross-check inert. | `\d v9_trades` + הרצת-migration | 🟠 | עיצוב §D7. **[SoT→CC]**
-- **I-79** | 🟠 חדש [07-22] **S2/S4 עיוורים ל-S1 בזיהוי + opening-type לא-מניע-ירי** — `day_type_at_fire` ריק 8/8; `_detect_reactive` לוקח רק-ברים; `OPEN_DRIVE` סווג אך `OPENING_ENTRY_V1=shadow`. arch-guard: S1-נתקע → מעוור-ידיים. triple-confirmed. | `day_type_at_fire` על-setups מול `v9_day_type_state` | 🟠 ארכי' | עיצוב §D5 (רצף-פסיקה S3). **[SoT→CC]**
-- **I-80** | 🔴 חדש [07-22] **TPO/VA מחושב-מ-ברים-מזוהמים במקום Sierra הקנוני** — `v9_tpo_sessions` id1523 VA=3.5pt מול `tpo.json` בריא 19.5pt; backend מחשב-מחדש TPO מ-bars ומתעלם מ-VA הקנוני (מפר Sierra=SoT/Rule 1). commit `f5a087d5` diagnose. **נפרד מ-I-73/I-40** (bar-contamination). | id1523 מול `tpo.json` raw | 🔴 | עיצוב §D3. **[SoT→CC]**
-- **I-81** | 🟡 חדש [07-22] **journal/`trade_activity_events.jsonl` capture-gap חזר** — ריק ל-17:50–18:10 (חלון-האורפן) למרות Task#6-sim-fix → regex live-format לא-תופס כתיבת-Sierra לחשבון-האמת (37138283) גם-בסים. מרעיל-רקונסיילר (מזין I-68). P9b הוסיף Sim1→live fallback (לאמת). | mtime-events + regex מול real-log-line | 🟡 | חלק-מ-§D0. **[SoT→CC]**
-
-**עדכוני-סטטוס חשודים-קיימים:**
-- **I-68 (אורפן-עירום) — 🔴🔴 חזר פעם-4 על-כסף-אמת** (−10 @7538, −$531). heal עדיין-חסום. **הבעיה-החמורה-ביותר, חוסם-LIVE.**
-- **I-70 (מיקום-סטופ S2) — טופל-חלקית היום:** cowork בנה+הדליק `T1_STRUCTURE_END_V1`+`STOP_STRUCTURE_EXTREME_V1`+REV-EDGE-DAY-STRUCTURE (flag_guard 111). דורש הוכחת-סים-חיה. ה-rr_entry false-block (§D1) הוא sibling-שנותר.
-- **I-73/I-40 (bars5min +1h) — נמשך:** 12 זוגות-דופ היום; cc בנה `WOODIES_TS_HOUR_FIX=0` (P2) **לא-הודלק**; `=0` מסיר-כפילות אך משאיר −1h (offset raw −5h) → צריך תיקון-offset-בכניסה. עיצוב §D4.
-- **I-71/I-1/I-44 (פיצול-סוג-יום) — תפקד-הגנתית אך נתקע:** escalation-only → override-ידני; `DAYTYPE_ACCEPTANCE_DEMOTION_V1`+`BOOT_SEED_CANONICAL` (P6a/b) בנויים RULED=1 **לא-ב-.env** → לא-חיים. עיצוב §D8.
-- **I-74 (buffer-S2 reset) — נמשך:** ~6 ריסטארטים → 0-דריכה של INITIATIVE/HNS/FLAGS. עיצוב §D8.
-- **I-75 (trade_fills.json ריק) — התעדכן:** P9a סיווג "by-design" (fill_poller מנקה q250ms; durable=`trade_fills_journal.jsonl`). אך פער-הרקונסיליאציה +37.50 vs 0 נמשך → I-78 (pnl_sierra) הוא הכלי-לסגירה.
-- **I-67 (GHOST/REV wrong-location) — טופל:** REV_LOCATION_ALL + REV-EDGE-DAY-STRUCTURE נבנו+הודלקו (מייקל 'מאשר'). דורש sim-proof.
-- **I-25 (trades/recent limit≤100) — נמשך** (relevant לריצה-הבאה עם-API).
-
-**מקור-אמת (CC) — לפי-עדיפות:** (1) 🔴🔴 **I-68** אורפן — Sierra 37138283 + phantom-heal 0/3 + feed-תקוע + מקור-ה-−10 (bracket-leak). (2) 🔴 **I-76** — r=−1 code על ENTRY. (3) 🔴 **I-77/I-78** — חבילה 145/145 (אחרי `b00346e9`) + migration 023 (raw, Rule 5). (4) 🔴 **I-80** — id1523 מול `tpo.json`. (5) 🔴 **I-73** — sim-verify בר-טרי ל-ts-נכון. (6) 🟠 **I-79** — `day_type_at_fire` 8/8. (7) 🔴 **D1** — LSMA-slope raw @11:10 + rr_entry entry-prices מול `v9_bars_5min_woodies`. **שום קוד/flag/.env/DB לא-שונה (read-only EOD).**
-
-### [2026-07-22 15:26 CT] Missed-Trades Investigator (Cowork, אוטונומי) — משלים ל-EOD 15:12 · דוח `MISSED_TRADES_2026-07-22.md`
-
-**שער-זמן I-9:** ✅ CT 15:26 (`TZ=America/Chicago date`→`2026-07-22 15:26:33 CDT`; IL 23:26). **read-only — לא שונה קוד/flag/.env/DB.**
-
-**⚠️ מגבלת-מקור (Rule 1):** בריצה זו Chrome-מנותק + sandbox-חסום-רשת ל-Mac (`localhost:8000`→http=000; `10.1.118.147`→403) + backend-קפוא-מ-DB-wedge → **אין API/CCI ברמת-הבר.** הכל משוחזר-מ-`OPS_LOG_2026-07-22.md` (fills/stops/T1 + gateway BLOCKED/FIRED) + הצלבה-עצמאית ל-`PATTERN_EOD_2026-07-22.md` §3 (`cf_2026-07-22.py`). כל שורות ה-R-נגד **↻CC** (הצלב מול `v9_bars_5min_woodies` 09:45–14:10 CT).
-
-**🟡 פספוס-שער נקי = +2.0R (n=12 · W4/L6/flat2)** — שתי ריצות-EOD אוטונומיות עצמאיות התכנסו לאותו מספר. **4 false-blocks (+8R על-השולחן):** `lsma_flat`@7548.75 · `rr_entry`@7552.25 · `rr_entry`@7554.0(cluster) · `rr_entry`@7552.75(pm-fade) — כולן **לונגי/fade זחילת-בוקר תקפים-מבנית** (7530→7562). 8/12 שאר = justified (חסכו ~6R: שורט-נגד-ראלי, קניית-שיא-7562, post-peak, צ'ופ).
-
-**🔴 I-70 (rr_entry_gate false-block) — פעם-שנייה-ברציפות:** 07-20 (~+2R) → 07-22 (~+2R). דפוס-קבוע: ה-detector צודק-בכיוון, ה-rr_entry חוסם את הכניסה-הטובה-המוקדמת ומאשר את המאוחרת-הגרועה (#461/#463 שירו→STOP). ריכוך שנבנה היום (`T1_STRUCTURE_END_V1`/`STOP_STRUCTURE_EXTREME_V1`/REV-EDGE-DAY-STRUCTURE, guard 111) **דורש הוכחת-סים.** → CC.
-
-**🟡 חדש — I-82 | `lsma_flat` false-block ראשון [07-22].** דגל-חדש `LSMA_FLAT_GATE_V1=1` (הודלק היום) חסם GB100_LONG@7548.75 ב-10:10 CT בזמן-שהמחיר-עלה-ברציפות +14pt (7548→7562) → LSMA לא-היה-באמת-שטוח שם → **חשד-סף-רגיש-מדי.** CF=T2 (+2R). → CC לכייל את סף-ה-flatness. | ראיה: `OPS_LOG_2026-07-22.md` 11:10 ET BLOCKED GB100 LONG @7548.75 gate=lsma_flat + מסלול-מחיר-עולה עד 7562.25@12:33 ET.
-
-**🎯 benchmark 06-05 (יום-יורד) מול היום (פריצה-עולה): K/5 = 3/5 זוהו-ואף-ירו** (סלוטים 8:35/9:20/9:35) **אך הפסידו** (היום התהפך UP, 32pt reversal מ-7530); 2/5 לא-תקפים (9:00 long, 10:00 short). **לא-נחשף פער-שער חדש** — ההזדמנות היום הייתה LONG (הקוטב שה-benchmark-יורד לא-בודק), ובדיוק שם הדליפה (rr_entry/lsma_flat).
-
-**הכאב-האמת = בטיחות+ביצוע, לא-פספוס** (מפורט ב-EOD 15:12 למעלה): I-68 אורפן-עירום −10/−$531 (פעם-4), I-76 order_failed r=−1, cutover-SIM, DB-wedge. **הגייטינג הציל יותר ממה שעלה.** דוח-מלא: `docs/reports/MISSED_TRADES_2026-07-22.md`.
+**פתוחים:** I-68 (location_gate — אמת חי) · I-69 (routing-צל) · I-70 (סטופ-הדוק) · **S1 low-conf** (`LOCKED_LOW_CONF`=שורש-ההרעלה; N1 בלילה) · `v9_missed_trades` count=0 למרות 22 חסימות (הגלאי-הפנימי לא-מאכלס) · decisions-persistence (ה-10 נמחקו בריסטארט). **שום קוד/flag/.env/DB לא-שונה (read-only).**
