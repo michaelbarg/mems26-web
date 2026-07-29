@@ -133,6 +133,23 @@ def _bar_integrity() -> str:
         return "unknown"
 
 
+def _system0_fields() -> Dict[str, Any]:
+    """balance/acceptance from System-0 when its flag is on; nulls otherwise."""
+    if os.getenv("MARKET_CONTEXT_V1", "0").strip().lower() not in ("1", "true", "yes"):
+        return {"balance_state": None, "acceptance": None}
+    try:
+        from backend.v9.services.market_context import get_market_context
+        mc = get_market_context()
+        if mc is None:
+            return {"balance_state": None, "acceptance": None}
+        bs = getattr(mc, "balance_state", None)
+        ac = getattr(mc, "acceptance", None)
+        return {"balance_state": None if bs in (None, "UNKNOWN") else bs,
+                "acceptance": ac}
+    except Exception:
+        return {"balance_state": None, "acceptance": None}
+
+
 @router.get("/radar")
 def radar(request: Request) -> Dict[str, Any]:
     st = _sierra()
@@ -170,9 +187,9 @@ def radar(request: Request) -> Dict[str, Any]:
         "opening_type": opening["type"],
         "opening_dir": opening["dir"],
         "opening_conf": opening["conf"],
-        # System-0 fields — null until MARKET_CONTEXT_V1 lands (CC Phase A/B)
-        "balance_state": None,
-        "acceptance": None,
+        # System-0 fields — live from get_market_context() when MARKET_CONTEXT_V1
+        # is on (enabled by Michael's 07-29 ruling); null otherwise. Same shape.
+        **_system0_fields(),
         "release_gate": _release_state(),
         "gates_last_hour": _gates_last_hour(),
         "trading": {
