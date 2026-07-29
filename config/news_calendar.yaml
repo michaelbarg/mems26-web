@@ -4,88 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-07-28 16:25 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-07-29 07:41 ET
 events:
-  - date: 2026-07-28
-    time_et: "08:15"
-    name: "ADP Employment Change Weekly"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "08:30"
-    name: "Retail Inventories Ex Autos MoM Adv"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "08:30"
-    name: "Goods Trade Balance Adv"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "08:30"
-    name: "Wholesale Inventories MoM Adv"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "08:55"
-    name: "Redbook YoY"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "09:00"
-    name: "S&P/Case-Shiller Home Price MoM"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "09:00"
-    name: "S&P/Case-Shiller Home Price YoY"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "09:00"
-    name: "House Price Index MoM"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "09:00"
-    name: "House Price Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "09:00"
-    name: "House Price Index YoY"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "10:00"
-    name: "Richmond Fed Manufacturing Shipments Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "10:00"
-    name: "Richmond Fed Manufacturing Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "10:00"
-    name: "Richmond Fed Services Revenues Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "10:00"
-    name: "CB Consumer Confidence"
-    severity: orange
-  - date: 2026-07-28
-    time_et: "10:30"
-    name: "Dallas Fed Services Revenues Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "10:30"
-    name: "Dallas Fed Services Index"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "11:30"
-    name: "6-Week Bill Auction"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "13:00"
-    name: "Money Supply"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "13:00"
-    name: "7-Year Note Auction"
-    severity: yellow
-  - date: 2026-07-28
-    time_et: "16:30"
-    name: "API Crude Oil Stock Change"
-    severity: orange
   - date: 2026-07-29
     time_et: "07:00"
     name: "MBA Mortgage Refinance Index"
@@ -330,3 +250,67 @@ events:
     time_et: "15:00"
     name: "Treasury Refunding Financing Estimates"
     severity: yellow
+  - date: 2026-08-04
+    time_et: "06:00"
+    name: "LMI Logistics Managers Index"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "08:30"
+    name: "Imports"
+    severity: orange
+  - date: 2026-08-04
+    time_et: "08:30"
+    name: "Balance of Trade"
+    severity: orange
+  - date: 2026-08-04
+    time_et: "08:30"
+    name: "Exports"
+    severity: orange
+  - date: 2026-08-04
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "09:20"
+    name: "NY Fed Bill Purchases 1 to 4 months"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "10:00"
+    name: "JOLTs Job Quits"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "10:00"
+    name: "RCM/TIPP Economic Optimism Index"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "10:00"
+    name: "Factory Orders ex Transportation"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "10:00"
+    name: "Factory Orders MoM"
+    severity: orange
+  - date: 2026-08-04
+    time_et: "10:00"
+    name: "JOLTs Job Openings"
+    severity: red
+  - date: 2026-08-04
+    time_et: "11:00"
+    name: "Total Household Debt"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "11:30"
+    name: "52-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "11:30"
+    name: "6-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "14:00"
+    name: "Total Vehicle Sales"
+    severity: yellow
+  - date: 2026-08-04
+    time_et: "16:30"
+    name: "API Crude Oil Stock Change"
+    severity: orange

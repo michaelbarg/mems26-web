@@ -1,0 +1,188 @@
+"""GET /api/v9/context/radar — one call, the whole picture (Michael 2026-07-29:
+"שיהיה לי רדאר זיהוי מסודר").
+
+Aggregates what already exists — day-type state, opening panel, account state,
+gateway decisions, bar integrity — into ONE stable shape for the frontend radar.
+When CC's System-0 (`MARKET_CONTEXT_V1`) lands, this route switches to
+`get_market_context()` WITHOUT changing the response shape (the contract is in
+CC_SYSTEM0_MARKET_CONTEXT_2026-07-29.md §Phase E).
+
+Missing source = null, never a guess (Rule 1).
+"""
+from __future__ import annotations
+
+import json
+import os
+import re as _re
+import time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Request
+
+router = APIRouter(prefix="/api/v9/context", tags=["v9-context"])
+
+_EXPORT = Path(os.path.expanduser("~/SierraChart_Data/v9_export"))
+_DECISIONS = _EXPORT / "gateway_decisions.jsonl"
+_STATE = _EXPORT / "sierra_state.json"
+_MES_MARGIN = 276.21          # fallback; live value derives from the account block
+
+
+def _sierra() -> Dict[str, Any]:
+    try:
+        raw = _re.sub(r':\s*-?inf\b', ':null', _STATE.read_text().strip() or "{}")
+        d = json.loads(raw)
+        if (time.time() - _STATE.stat().st_mtime) > 15:
+            d["_stale"] = True
+        return d
+    except Exception:
+        return {}
+
+
+def _day_state() -> Dict[str, Any]:
+    try:
+        from backend.v9.db.read import read_one
+        r = read_one(
+            "SELECT day_type, stage, confidence, direction, opening_type, lock_state "
+            "FROM v9_day_type_state ORDER BY id DESC LIMIT 1", {})
+        return dict(r) if r else {}
+    except Exception:
+        return {}
+
+
+def _leg(direction: Optional[str]) -> Optional[str]:
+    """'with_extension(UP)' → 'UP'. No leg → null, never a guess."""
+    if not direction:
+        return None
+    m = _re.search(r"\((UP|DOWN)\)", str(direction))
+    return m.group(1) if m else None
+
+
+def _gates_last_hour() -> Dict[str, Any]:
+    out = {"blocked": 0, "passed": 0, "top": [], "last_block": None}
+    try:
+        if not _DECISIONS.exists():
+            return out
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+        counts: Dict[str, int] = {}
+        # tail-read: the file grows all day; last ~1500 lines cover an hour easily
+        lines = _DECISIONS.read_text(encoding="utf-8").splitlines()[-1500:]
+        for ln in lines:
+            try:
+                d = json.loads(ln)
+                ts = datetime.fromisoformat(str(d.get("ts")))
+            except Exception:
+                continue
+            if ts < cutoff:
+                continue
+            b = d.get("blocked_by")
+            if b:
+                out["blocked"] += 1
+                counts[b] = counts.get(b, 0) + 1
+                out["last_block"] = {"gate": b, "pattern": d.get("pattern"),
+                                     "direction": d.get("direction"),
+                                     "ts": str(d.get("ts"))[11:16]}
+            else:
+                out["passed"] += 1
+        out["top"] = sorted(counts.items(), key=lambda x: -x[1])[:4]
+    except Exception:
+        pass
+    return out
+
+
+def _release_state() -> Dict[str, Any]:
+    """The release gate's current posture, judged from the freshest decision."""
+    try:
+        lines = _DECISIONS.read_text(encoding="utf-8").splitlines()[-200:]
+        for ln in reversed(lines):
+            try:
+                d = json.loads(ln)
+            except Exception:
+                continue
+            if d.get("blocked_by") == "awaiting_release":
+                ts = datetime.fromisoformat(str(d.get("ts")))
+                age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60
+                if age_min <= 15:
+                    return {"state": "holding", "reason": d.get("reason"),
+                            "age_min": round(age_min)}
+                break
+    except Exception:
+        pass
+    return {"state": "idle", "reason": None, "age_min": None}
+
+
+def _bar_integrity() -> str:
+    """Seam scan over today's bars (ET). suspect ⇒ nothing downstream is trustworthy."""
+    try:
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT high, low FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date ORDER BY ts", {})
+        prev = None
+        for r in rows:
+            h, l = float(r["high"]), float(r["low"])
+            if prev is not None:
+                gap = max(l - prev[0], prev[1] - h)
+                if gap > 15.0:
+                    return "suspect"
+            prev = (h, l)
+        return "clean" if rows else "no_data"
+    except Exception:
+        return "unknown"
+
+
+@router.get("/radar")
+def radar(request: Request) -> Dict[str, Any]:
+    st = _sierra()
+    ds = _day_state()
+
+    # opening block — prefer the live opening panel machinery already serving the UI
+    opening: Dict[str, Any] = {"type": ds.get("opening_type"), "dir": None, "conf": None}
+    try:
+        from backend.v9.services.trade_context import get_opening_dir_fusion
+        fu = get_opening_dir_fusion() or {}
+        if fu.get("direction"):
+            opening["dir"] = fu.get("direction")
+        if fu.get("confidence") is not None:
+            opening["conf"] = fu.get("confidence")
+    except Exception:
+        pass
+
+    contracts_allowed: Optional[int] = None
+    try:
+        avail = st.get("acct_available_funds")
+        req, qty = st.get("acct_margin_req"), abs(int(st.get("position_qty") or 0))
+        per = (float(req) / qty) if (req and qty) else _MES_MARGIN
+        if isinstance(avail, (int, float)) and abs(avail) < 1e15:
+            contracts_allowed = max(0, int((float(avail) - 50) // per))
+    except Exception:
+        contracts_allowed = None
+
+    return {
+        "day_type": ds.get("day_type"),
+        "stage": ds.get("stage"),
+        "confidence": ds.get("confidence"),
+        "leg": _leg(ds.get("direction")),
+        "direction_raw": ds.get("direction"),
+        "lock_state": ds.get("lock_state"),
+        "opening_type": opening["type"],
+        "opening_dir": opening["dir"],
+        "opening_conf": opening["conf"],
+        # System-0 fields — null until MARKET_CONTEXT_V1 lands (CC Phase A/B)
+        "balance_state": None,
+        "acceptance": None,
+        "release_gate": _release_state(),
+        "gates_last_hour": _gates_last_hour(),
+        "trading": {
+            "armed": st.get("order_placement_armed"),
+            "is_sim": st.get("is_sim"),
+            "sendorders": st.get("send_orders_to_trade_service"),
+            "position_qty": st.get("position_qty"),
+            "contracts_allowed": contracts_allowed,
+            "stale": bool(st.get("_stale")),
+        },
+        "bar_integrity": _bar_integrity(),
+        "updated_ts": time.time(),
+    }
