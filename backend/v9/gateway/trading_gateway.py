@@ -71,6 +71,37 @@ def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
 
 logger = logging.getLogger(__name__)
 
+
+def _opening_gate_exempt(setup, gate_name: str) -> bool:
+    """Opening-trade gate exemptions (Michael enabled OPENING_PLAYBOOK_V1 2026-07-29).
+
+    config/opening_playbook.yaml declares opening trades exempt from
+    awaiting_release and lsma_flat — they ARE the context, not followers of it.
+    Nothing ever read that declaration: at 16:35 today the engine fired its
+    first-ever real opening signals and awaiting_release held the ORR SHORT.
+    Module-level (not a closure) after a first attempt left the helper defined
+    BELOW one of its call sites — a latent NameError in a live gate, the _t
+    class again, caught within minutes. Applies ONLY to the two declared gates;
+    margin, chase, news and bracket caps always apply. Fail-closed: any doubt
+    means no exemption.
+    """
+    try:
+        import os as _oe_os
+        if _oe_os.getenv("OPENING_PLAYBOOK_V1", "0").lower() not in ("1", "true", "yes"):
+            return False
+        _pat = ""
+        try:
+            _pat = str(setup.get("pattern") or setup.get("pattern_id")
+                       or (setup.get("metadata") or {}).get("pattern_id") or "")
+        except Exception:
+            return False
+        if not _pat.upper().startswith("OPENING"):
+            return False
+        return gate_name in ("awaiting_release", "lsma_flat")
+    except Exception:
+        return False
+
+
 import os as _os
 # Use the same DATABASE_URL as db/session.py — no more hardcoded path.
 # Tests can override via DATABASE_URL or db_path constructor arg.
@@ -1187,7 +1218,7 @@ class TradingGateway:
                     _lf_applies = (_lf_fam == "CONT")
                 if _lf_slope is None:
                     logger.warning("[Gateway] lsma-flat gate: slope unavailable -> fail-open PASS")
-                elif _lf_applies and abs(_lf_slope) < _lf_min:
+                elif _lf_applies and abs(_lf_slope) < _lf_min and not _opening_gate_exempt(setup, "lsma_flat"):
                     result["blocked_by"] = "lsma_flat"
                     result["reason"] = (
                         f"|LSMA slope {_lf_slope:.4f}| < {_lf_min:.4f} pts/bar "
@@ -1317,7 +1348,7 @@ class TradingGateway:
         # the very early entry it exists to prevent.
         try:
             from backend.v9.systems import release_gate as _rg
-            if _rg.enabled():
+            if _rg.enabled() and not _opening_gate_exempt(setup, "awaiting_release"):
                 from backend.v9.db.read import read_all as _rg_read
                 _rg_rows = _rg_read(
                     "SELECT high, low, close, volume FROM v9_bars_5min_woodies "
