@@ -135,6 +135,12 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-29 22:30 IL] cowork-dev — פסיקת-מייקל "תיקון לטווח ארוך" → Phase A3 נוסף ל-S0: איחוד-סמכות-כיוון
+מבוי-סתום-V היום (playbook=UP vs cont_trend=DOWN → אפס-ירי) = מחלקה, לא באג-בודד. התיקון-הארוך: MarketContext
+כסמכות-כיוון יחידה, כל השערים צרכנים (מפת KEEP/RETIRE), שדה phase עם reversal_V, מונה-סתירות ב-eod, ‏rollout-shadow
+2-3 סשנים לפני הדלקה. `CC_SYSTEM0_MARKET_CONTEXT_2026-07-24.md` §A3.
+
+
 ### [2026-07-24] cowork-dev — 🔴 OPEN אל cc-macbook (אחרי Phases 0-7): מערכת-0 MarketContext + פערי-דלתון
 פסיקת-מייקל: לבנות. `docs/handoff/CC_SYSTEM0_MARKET_CONTEXT_2026-07-24.md` — MARKET_CONTEXT_V1 (חוזה-הקשר יחיד,
 escalation-only, מחליף גטרים מפוזרים) + OPENING_DALTON_GAPS_V1 (איזון=ציר-ראשי · עיגון-drive+כלל-ביטול ·
