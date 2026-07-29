@@ -1164,14 +1164,32 @@ class FiveMinSystem(BaseV9TradingSystem):
                     _fusion_on = os.getenv("OPENING_DIR_FUSION_V1", "0").lower() in ("1", "true", "yes")
                     _ts_raw = bar.get("ts")
                     _bar_dt = None
+                    # ROOT FIX 2026-07-29 (Michael: the big opening trades were
+                    # never signalled). The open-bar anchor below compares
+                    # hour:minute — but the ts was parsed into WHICHEVER tz its
+                    # format implied: epoch → Israel, ISO-naive → left as-is
+                    # (UTC). Mixed formats = mixed anchors: boot-replays fired
+                    # phantom OPENING_DRIVEs at 07:38 IL (blocked by
+                    # session_gate_closed) while the REAL 16:30 open bar parsed
+                    # as 13:30 and was never recognised — the opening engine
+                    # waited forever and the day's drive-short + reject-long
+                    # were never even signalled. Normalise EVERY format to the
+                    # exchange clock via UTC, then convert to IL for the
+                    # anchor. (Rule 4: the 16:30-IL anchor itself is a known
+                    # DST hazard — ET-anchoring is CC's follow-up; today IL
+                    # 16:30 == ET 09:30 so this fix is behaviour-correct now.)
                     try:
+                        from zoneinfo import ZoneInfo as _ZI
+                        _IL = _ZI("Asia/Jerusalem")
                         if isinstance(_ts_raw, (int, float)):
-                            from zoneinfo import ZoneInfo as _ZI
                             _bar_dt = datetime.fromtimestamp(
-                                _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw,
-                                tz=_ZI("Asia/Jerusalem"))
+                                _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw, tz=_IL)
                         elif _ts_raw:
-                            _bar_dt = datetime.fromisoformat(str(_ts_raw).replace("Z", "+00:00"))
+                            _p = datetime.fromisoformat(str(_ts_raw).replace("Z", "+00:00"))
+                            if _p.tzinfo is None:
+                                # naive ISO from the bridge is UTC — that was the bug
+                                _p = _p.replace(tzinfo=timezone.utc)
+                            _bar_dt = _p.astimezone(_IL)
                     except Exception:
                         _bar_dt = None
                     _d_key = _bar_dt.date().isoformat() if _bar_dt else str(_ts_raw)[:10]
