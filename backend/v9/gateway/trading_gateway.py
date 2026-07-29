@@ -1356,17 +1356,36 @@ class TradingGateway:
                     "(now() AT TIME ZONE 'America/New_York')::date "
                     "ORDER BY ts DESC LIMIT 30", {})
                 _rg_bars = _rg.bars_from_rows(list(reversed(_rg_rows or [])))
-                _rg_v = _rg.check_release(_rg_bars, direction)
-                if not _rg_v.released:
-                    result["blocked_by"] = "awaiting_release"
-                    result["reason"] = f"waiting for the zone release — {_rg_v.reason}"
-                    logger.info("[Gateway] HELD by release-gate: %s", _rg_v.reason)
-                    return result
-                # Released: hand the structural stop to the caller. It sits beyond
-                # the real extreme, which is what makes this entry survivable.
-                if _rg_v.structural_stop is not None:
-                    result["release_structural_stop"] = _rg_v.structural_stop
-                logger.warning("[Gateway] release-gate PASSED: %s", _rg_v.reason)
+                # TREND BYPASS (2026-07-29 audit: 60 decisions / 0 passed on an
+                # 80pt trend day; this gate alone blocked 16 validated winners
+                # while saving 8). A displaced session has no rotation zone to
+                # release from — with-move entries skip the hold; counter-move
+                # entries keep it (where it earned yesterday's 7/0).
+                _rg_open_row = _rg_read(
+                    "SELECT open FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "ORDER BY ts LIMIT 1", {})
+                _rg_sess_open = float(_rg_open_row[0]["open"]) if _rg_open_row else None
+                _rg_last = _rg_bars[-1].close if _rg_bars else None
+                if _rg.trend_bypass(_rg_sess_open, _rg_last, direction):
+                    logger.warning(
+                        "[Gateway] release-gate TREND BYPASS: %s with-move, "
+                        "session displaced (open %s → %s)",
+                        direction, _rg_sess_open, _rg_last)
+                else:
+                    _rg_v = _rg.check_release(_rg_bars, direction)
+                    if not _rg_v.released:
+                        result["blocked_by"] = "awaiting_release"
+                        result["reason"] = f"waiting for the zone release — {_rg_v.reason}"
+                        logger.info("[Gateway] HELD by release-gate: %s", _rg_v.reason)
+                        return result
+                    # Released: hand the structural stop to the caller. It sits
+                    # beyond the real extreme, which makes this entry survivable.
+                    if _rg_v.structural_stop is not None:
+                        result["release_structural_stop"] = _rg_v.structural_stop
+                    logger.warning("[Gateway] release-gate PASSED: %s", _rg_v.reason)
         except Exception as _rg_err:
             result["blocked_by"] = "awaiting_release"
             result["reason"] = f"release-gate unavailable (fail-closed): {_rg_err}"

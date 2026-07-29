@@ -131,7 +131,24 @@ def check_release(bars: Sequence[Bar], direction: str) -> ReleaseVerdict:
     if ratio is None:
         return ReleaseVerdict(False, "no volume on the extreme bar — cannot judge exhaustion",
                               higher_lows=hl)
+    last = after[-1]
     if ratio > vol_ratio_max:
+        # V-REVERSAL PATH (2026-07-29). The contraction requirement models a slow
+        # rotational turn (07-27). A V-reversal turns on HIGH volume — demanding
+        # dry-up meant today's bottom (low 7373 19:15, structure + closes beyond
+        # the zone by 19:25) was never "released" and every long into the +62pt
+        # recovery was held. If the structure has turned AND price has CLOSED
+        # decisively beyond the zone (a full zone-width past it), conviction
+        # replaces contraction. A single close just past the edge still waits.
+        decisive = (last.close > zone_hi + zone_pts) if is_long else (last.close < zone_lo - zone_pts)
+        if hl >= min_hl and decisive:
+            buf = _f("RELEASE_STOP_BUFFER_POINTS", 1.0)
+            stop = round((ext - buf) if is_long else (ext + buf), 2)
+            return ReleaseVerdict(
+                True,
+                f"released (V-reversal): {hl} higher lows, closed a full zone "
+                f"beyond ({last.close}) on active volume {ratio:.2f}",
+                structural_stop=stop, higher_lows=hl, vol_ratio=ratio)
         return ReleaseVerdict(False,
                               f"still active in the zone (vol {ratio:.2f} > {vol_ratio_max})",
                               higher_lows=hl, vol_ratio=ratio)
@@ -167,3 +184,31 @@ def bars_from_rows(rows: Sequence[dict]) -> List[Bar]:
         except (KeyError, TypeError, ValueError):
             continue
     return out
+
+def trend_bypass(session_open: Optional[float], last_price: Optional[float],
+                 direction: str, pts: Optional[float] = None) -> bool:
+    """With-move entries skip the gate once the session is DISPLACED (2026-07-29).
+
+    The audit that forced this: 29 validated winners blocked today, the release
+    gate responsible for 16 of them, on an 80pt trend-down + 62pt V-reversal.
+    Root: this gate models a ROTATION (higher lows, drying volume, then exit).
+    A trending session has no zone to release FROM — price just keeps going —
+    so the gate held every with-trend short all the way down. Yesterday, a
+    rotation day, the same gate saved 7/0. Right tool, wrong regime.
+
+    Bypass rule: when |last - session_open| >= RELEASE_TREND_BYPASS_PTS (15)
+    AND the signal points WITH the displacement, the market is trending and the
+    rotation model does not apply. Counter-move entries keep the gate (that is
+    where it earned its 7/0). Unknown inputs -> no bypass (fail-closed)."""
+    try:
+        if session_open is None or last_price is None:
+            return False
+        thr = pts if pts is not None else float(os.getenv("RELEASE_TREND_BYPASS_PTS", "15"))
+        disp = float(last_price) - float(session_open)
+        if abs(disp) < thr:
+            return False
+        d = str(direction).upper()
+        return (disp < 0 and d == "SHORT") or (disp > 0 and d == "LONG")
+    except Exception:
+        return False
+
