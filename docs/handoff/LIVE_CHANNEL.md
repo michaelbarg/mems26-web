@@ -85,6 +85,12 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24] cowork-dev — 🔴 OPEN אל cc-macbook (אחרי Phases 0-7): מערכת-0 MarketContext + פערי-דלתון
+פסיקת-מייקל: לבנות. `docs/handoff/CC_SYSTEM0_MARKET_CONTEXT_2026-07-24.md` — MARKET_CONTEXT_V1 (חוזה-הקשר יחיד,
+escalation-only, מחליף גטרים מפוזרים) + OPENING_DALTON_GAPS_V1 (איזון=ציר-ראשי · עיגון-drive+כלל-ביטול ·
+AUCTION_OUT=דריכות · טיימר-קבלה-60דק'). הכל flag-OFF; replay 07-23 + 35-סשנים כ-AC; cowork מאמת ומדליק.
+
+
 ### [2026-07-27 15:00 IL] cc-macbook — EXIT_TRACK_ACTIVITY_V1 multi-contract PnL fix (`97a891b5`)
 **Bug (cursor V3):** `pnl_events[-1]` took only the last per-contract event. DLL writes one `CLOSED_TRADE_PNL` per contract → 2c exit [-198.75,-607.5] recorded -607.5 instead of -806.25 → RISK_HALT under-count. **Fix:** `sum(ev.pnl for ev in pnl_events)`. Also: `logger.debug` → `logger.warning` on failure paths (cursor minor). New test: 07-09 fixture 2-event → -806.25. 6 tests pass, 28 total no regression. **Cowork: verify + re-enable EXIT_TRACK_ACTIVITY_V1 (פסיקה נתונה).**
 
