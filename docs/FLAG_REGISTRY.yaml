@@ -532,6 +532,20 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  RELEASE_TREND_BYPASS_PTS:
+    category: param
+    group: "release gate"
+    what: "P4: threshold points for trend-day release bypass. When |last − session_open| >= this value, the release gate is bypassed (the market is already trending). Default 15."
+    why: "15 (param, not a flag — always active). Documented for flag_guard completeness."
+    status: live
+    ref: "backend/v9/systems/release_gate.py:206 · backend/v9/gateway/trading_gateway.py:1308"
+  DAYTYPE_PLAYBOOK_MIN_CONF:
+    category: param
+    group: "direction discipline"
+    what: "P4: minimum day-type confidence below which the playbook veto is suppressed. Default 0.4 — below this the classification is too uncertain to block."
+    why: "0.4 (param, not a flag — always active). Documented for flag_guard completeness."
+    status: live
+    ref: "backend/v9/gateway/trading_gateway.py:988"
   OPENING_PLAYBOOK_V1:
     category: s2
     group: "opening entry"

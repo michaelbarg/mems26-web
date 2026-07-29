@@ -1227,8 +1227,17 @@ class FiveMinSystem(BaseV9TradingSystem):
                             if _bar_age_s > 600:  # > 10 minutes old
                                 _anti_phantom_ok = False
                         if not self._oe_bars:
+                            # FIX 16:44 (live): _anti_phantom_ok belonged to
+                            # EMISSION, not collection. With it here, a restart
+                            # mid-window could never rebuild the opening bars
+                            # from hydration (the 16:30 bar is >10min old by
+                            # then) → the next live bar found the window empty
+                            # → "honest skip today" → opening engine dead for
+                            # the day. Collection accepts the true open bar at
+                            # any age; the emission guard below still blocks
+                            # signals from stale bars.
                             _is_open_bar = bool(
-                                _bar_dt and _anti_phantom_ok
+                                _bar_dt
                                 and _bar_dt.hour == _anchor_hour
                                 and _bar_dt.minute == _anchor_min)
                             if _is_open_bar:
@@ -1265,7 +1274,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                             except Exception as _fx:
                                 self._oe_fusion = None
                                 logger.warning("[FiveMin] opening-dir-fusion failed (non-fatal): %s", _fx)
-                        if 2 <= len(self._oe_bars) <= _oe_win:
+                        if 2 <= len(self._oe_bars) <= _oe_win and _anti_phantom_ok:
                             _trig = evaluate_opening_entry(
                                 self._oe_bars, self._oe_fired,
                                 window_last_bar=_oe_win, enable_pullback=_of_on,
@@ -1878,12 +1887,55 @@ class FiveMinSystem(BaseV9TradingSystem):
                     tpo_data=_tpo_for_emit,
                 )
                 if t1_setup and self._gateway:
-                    gateway_setup = build_s2_gateway_setup(t1_setup, info)
+                    # P2 (2026-07-29): global anti-phantom — block signals from
+                    # replay/hydration bars. Two conditions:
+                    #   1. Bar age < 10 min from real time
+                    #   2. |entry − last_close| < 2% (catches garbage prices)
+                    # Fail-open: unknown age → allow (live bars don't carry age info).
+                    _phantom_block = False
                     try:
-                        self._gateway.route_setup(gateway_setup, 2)
-                        logger.info("[FiveMin] Auto-routed: %s %s → gateway (SHADOW records; DEMO/LIVE if gates pass)", pattern_name, direction)
-                    except Exception as gw_err:
-                        logger.warning("[FiveMin] Gateway route_setup failed: %s", gw_err)
+                        # Compute bar UTC time if not already available
+                        _ap_bar_utc = locals().get("_bar_dt_utc")
+                        if _ap_bar_utc is None and _ts_raw:
+                            try:
+                                if isinstance(_ts_raw, (int, float)):
+                                    _ap_bar_utc = datetime.fromtimestamp(
+                                        _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw,
+                                        tz=timezone.utc)
+                                else:
+                                    _p2 = datetime.fromisoformat(
+                                        str(_ts_raw).replace("Z", "+00:00"))
+                                    if _p2.tzinfo is None:
+                                        _p2 = _p2.replace(tzinfo=timezone.utc)
+                                    _ap_bar_utc = _p2
+                            except Exception:
+                                pass
+                        if _ap_bar_utc is not None:
+                            _age_s = (datetime.now(timezone.utc) - _ap_bar_utc).total_seconds()
+                            if _age_s > 600:  # > 10 min old
+                                _phantom_block = True
+                                logger.debug(
+                                    "[FiveMin] ANTI-PHANTOM: blocked %s %s (bar age %.0fs > 600s)",
+                                    pattern_name, direction, _age_s)
+                        _ap_close = _det_buf[-1].get("c", _det_buf[-1].get("close")) if _det_buf else None
+                        if not _phantom_block and entry_price and _ap_close:
+                            _price_dev = abs(entry_price - float(_ap_close)) / float(_ap_close)
+                            if _price_dev > 0.02:
+                                _phantom_block = True
+                                logger.warning(
+                                    "[FiveMin] ANTI-PHANTOM: blocked %s %s (|entry %.2f − close %.2f| = %.1f%% > 2%%)",
+                                    pattern_name, direction, entry_price, float(_ap_close), _price_dev * 100)
+                    except Exception:
+                        pass  # fail-open
+                    if _phantom_block:
+                        logger.info("[FiveMin] ANTI-PHANTOM: %s %s suppressed (replay/hydration bar)", pattern_name, direction)
+                    else:
+                        gateway_setup = build_s2_gateway_setup(t1_setup, info)
+                        try:
+                            self._gateway.route_setup(gateway_setup, 2)
+                            logger.info("[FiveMin] Auto-routed: %s %s → gateway (SHADOW records; DEMO/LIVE if gates pass)", pattern_name, direction)
+                        except Exception as gw_err:
+                            logger.warning("[FiveMin] Gateway route_setup failed: %s", gw_err)
                 elif t1_setup:
                     logger.info("[FiveMin] T1Setup emitted but no gateway injected: %s", pattern_name)
             except Exception as emit_err:

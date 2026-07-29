@@ -1250,44 +1250,65 @@ def post_woodies_5min(
             continue
         _prev_studies = _cur_studies
 
-        # D3 / BAR_SEAM_REJECT_V1 (2026-07-29): reject bars that create a price
-        # discontinuity >15pt from their neighbor. Defense against shifted/rewritten
-        # bars (07-28 incident: 31.5pt seam at 17:20→17:25 from overnight re-push).
+        # D3 v2 / BAR_SEAM_REJECT_V1 (2026-07-29, v2 night fixes):
+        # Three proven flaws from today's live:
+        #   א. Conflicting bar → quarantine + alarm (not silent reject — the
+        #      REAL bar was rejected 1,063× because the slot held junk)
+        #   ב. Neighbor by ts-proximity from DB (not batch order — the batch
+        #      may contain a stale bar whose HL is the comparator)
+        #   ג. Rate-limit: max 1 log per bar-ts per 5 min (150K lines today)
         # Fail-open: errors never block a bar. Flag OFF → no-op.
         if os.getenv("BAR_SEAM_REJECT_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 _seam_max = float(os.getenv("BAR_SEAM_MAX_PTS", "15"))
-                _prev_h = getattr(post_woodies_5min, "_seam_prev_h", None)
-                _prev_l = getattr(post_woodies_5min, "_seam_prev_l", None)
-                if _prev_h is None:
-                    # First bar in batch: look up last DB bar
-                    try:
-                        from backend.v9.db.read import read_one
-                        _last = read_one(
-                            "SELECT high, low FROM v9_bars_5min_woodies "
-                            "WHERE symbol='MES' ORDER BY ts DESC LIMIT 1", {})
-                        if _last:
-                            _prev_h = float(_last["high"])
-                            _prev_l = float(_last["low"])
-                    except Exception:
-                        pass  # fail-open: no DB → skip seam check
-                if _prev_h is not None and _prev_l is not None:
-                    _gap = max(float(l) - _prev_h, _prev_l - float(h))
+                # ב. Find neighbor by ts-proximity from DB (not batch order)
+                _bar_ts = bar.get("ts")
+                _nbr_h, _nbr_l = None, None
+                try:
+                    from backend.v9.db.read import read_one
+                    _nbr = read_one(
+                        "SELECT high, low, ts FROM v9_bars_5min_woodies "
+                        "WHERE symbol='MES' AND ts < :ts "
+                        "ORDER BY ts DESC LIMIT 1",
+                        {"ts": datetime.fromtimestamp(
+                            float(_bar_ts), tz=timezone.utc).isoformat()
+                         if isinstance(_bar_ts, (int, float)) else _bar_ts},
+                    )
+                    if _nbr:
+                        _nbr_h = float(_nbr["high"])
+                        _nbr_l = float(_nbr["low"])
+                except Exception:
+                    pass  # fail-open
+                if _nbr_h is not None and _nbr_l is not None:
+                    _gap = max(float(l) - _nbr_h, _nbr_l - float(h))
                     if _gap > _seam_max:
-                        logger.warning(
-                            "[woodies_5min] BAR_SEAM_REJECT: gap=%.1fpt > %.0fpt "
-                            "ts=%s prev_HL=(%.2f,%.2f) cur_HL=(%.2f,%.2f) — bar rejected",
-                            _gap, _seam_max, bar.get("ts"), _prev_h, _prev_l, float(h), float(l))
+                        # ג. Rate-limit: 1 log per bar-ts per 5 min
+                        _rl_key = f"seam_{_bar_ts}"
+                        _rl_now = datetime.now(timezone.utc).timestamp()
+                        _rl_last = getattr(post_woodies_5min, "_seam_rl", {}).get(_rl_key, 0)
+                        if _rl_now - _rl_last > 300:
+                            if not hasattr(post_woodies_5min, "_seam_rl"):
+                                post_woodies_5min._seam_rl = {}
+                            post_woodies_5min._seam_rl[_rl_key] = _rl_now
+                            # Cap the rate-limit dict
+                            if len(post_woodies_5min._seam_rl) > 200:
+                                post_woodies_5min._seam_rl = dict(
+                                    list(post_woodies_5min._seam_rl.items())[-100:])
+                            logger.warning(
+                                "[woodies_5min] BAR_SEAM_REJECT: gap=%.1fpt > %.0fpt "
+                                "ts=%s nbr_HL=(%.2f,%.2f) cur_HL=(%.2f,%.2f)",
+                                _gap, _seam_max, _bar_ts, _nbr_h, _nbr_l,
+                                float(h), float(l))
+                        # א. Quarantine: log the rejected bar for investigation
+                        # (so the real bar can be recovered if the slot held junk)
                         try:
                             from scripts.ops_log import log_event
                             log_event("bars", "WARNING",
-                                      f"BAR_SEAM_REJECT: {_gap:.1f}pt gap at ts={bar.get('ts')}")
+                                      f"BAR_SEAM_QUARANTINE: ts={_bar_ts} "
+                                      f"OHLC={o}/{h}/{l}/{c} gap={_gap:.1f}pt")
                         except Exception:
                             pass
                         continue  # skip this bar — do NOT write to DB
-                # Update prev for next iteration
-                post_woodies_5min._seam_prev_h = float(h)
-                post_woodies_5min._seam_prev_l = float(l)
             except Exception as _seam_err:
                 logger.debug("[woodies_5min] seam guard error (fail-open): %s", _seam_err)
 

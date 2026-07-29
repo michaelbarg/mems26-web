@@ -115,6 +115,16 @@ def detect_double_distribution(
     held = cpos <= close_extreme or cpos >= (1 - close_extreme)
 
     out["detected"] = bool(narrow and bimodal and held)
+    # P1 (2026-07-29): DD_BIMODAL_RELAX_V1 — detect DD even when close is not
+    # at an extreme (the `held` gate). 07-28 had bimodal=True, second_ratio=0.932,
+    # neck found, but close returned mid-range → detected=False. The bimodal
+    # profile itself IS the DD; the close position determines which sub-type
+    # (Trend_DD vs Normal), not whether the DD exists.
+    import os as _dd_os
+    if _dd_os.getenv("DD_BIMODAL_RELAX_V1", "0").lower() in ("1", "true", "yes"):
+        out["detected_relaxed"] = bool(narrow and bimodal)
+    else:
+        out["detected_relaxed"] = out["detected"]
     return out
 
 
