@@ -802,10 +802,36 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 _d_anchor = _SA_d.window_extreme(_s4_struct_win, direction)
                                 _d_stop = _SA_d.apply_offset(_d_anchor, direction, _off)
                                 _new_stop = _SA_d.widen_stop_to_structure(_s4_stop, _d_stop, direction)
+                                # CAP-AWARE WIDENING (Michael ruling 2026-07-30 18:05,
+                                # "הרחבה עד התקרה"): the 07-21 structure-widen ruling and
+                                # the 06-12 over-cap-SKIP ruling deadlocked ZLR on trend
+                                # days — the 12-bar structure extreme sat 30-44pt away,
+                                # the widener inflated the resolved 10pt stop to 41pt, and
+                                # the cap then skipped every entry (5 blocked longs today
+                                # 17:16-17:40). Widen TOWARD structure but never beyond
+                                # the pattern's max_risk_points; both rulings keep their
+                                # intent and ZLR trades again with a stop at the cap.
+                                try:
+                                    _d_cap = ((_sa_d.get("anchors", {}) or {}).get(
+                                        best.pattern_id, {}) or {}).get("max_risk_points")
+                                    if _d_cap and abs(_s4_entry - _new_stop) > float(_d_cap):
+                                        _d_capped = (_s4_entry - float(_d_cap)
+                                                     if direction == "LONG"
+                                                     else _s4_entry + float(_d_cap))
+                                        logger.info(
+                                            "[Woodies] STOP_STRUCTURE_EXTREME cap-clamp: %s %s "
+                                            "widened %.2f exceeds cap %.1fpt → %.2f",
+                                            best.pattern_id, direction, _new_stop,
+                                            float(_d_cap), _d_capped)
+                                        _new_stop = _d_capped
+                                except Exception as _d_cap_err:
+                                    logger.warning(
+                                        "[Woodies] cap-clamp failed (keeping widened): %s",
+                                        _d_cap_err)
                                 if _new_stop != _s4_stop:
                                     logger.info(
                                         "[Woodies] STOP_STRUCTURE_EXTREME: %s %s stop %.2f→%.2f (structure %.2f+%dT over %d bars)",
-                                        _pid, direction, _s4_stop, _new_stop, _d_anchor, _off, len(_s4_struct_win))
+                                        best.pattern_id, direction, _s4_stop, _new_stop, _d_anchor, _off, len(_s4_struct_win))
                                     _s4_stop = _new_stop
                         except Exception as _d_err:
                             logger.warning("[Woodies] STOP_STRUCTURE_EXTREME failed (keeping current stop): %s", _d_err)
