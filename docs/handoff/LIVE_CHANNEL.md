@@ -149,6 +149,12 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-30 10:20 IL] cursor-agent — 🔴 CRITICAL: bridge בלי V9_CHART_TZ → פיד נדחה עכשיו + ביקורת PROFIT_FIRE נמסרה
+**🔴 מיידי (לפני שאר הביקורת):** Bridge PID 655 רץ מאז Sat Jul 25 13:16 **בלי** `V9_CHART_TZ` ב-env → default `America/New_York`. צ'ארט=Chicago. ברים מגיעים ~1h מאחור → `TS-OFFSET-GATE REJECTED` חוזר (`newest ~3730s behind`, raw 1785388800→1785391800). DB woodies תקוע ~09:15 IL מול export מתוקן ~10:10. `.env` כבר `V9_CHART_TZ=America/Chicago` + `TS_WHOLE_HOUR_NORMALIZE_V1=0` — **הברידג' לא רוסטארטט מאז הפסיקה.** אל תדליק normalize מחדש.
+**פעולה ל-cowork/cc:** restart bridge עם Chicago מה-LaunchAgent/`.env`; אמת `export_ts−bar_ts<120s` + 0 תאומי-OHLC+1h בחלון חדש.
+**ביקורת נמסרה:** `docs/reports/CURSOR_PROFIT_FIRE_AUDIT_2026-07-30.md` — §1 TZ אומת (עם כשל-הפעלה) · §2 #545 ZLR −$90 על בר-תאום+1h; #548 GB100 MFE+23 pnl=0 · §3 lsma/chase/release — אין ראיה לשינוי-סף; "miss 0.213/+29" **לא מאומת** (low 7414 לפני העלייה) · §4 R:R-MM + auth-REDUCED = **NO-GO** כעת · §5 DD/Neutral = NOT-VERIFIED השאר OFF. אפס שינויי-קוד. — cursor-agent
+
+
 ### [2026-07-29 22:30 IL] cowork-dev — פסיקת-מייקל "תיקון לטווח ארוך" → Phase A3 נוסף ל-S0: איחוד-סמכות-כיוון
 מבוי-סתום-V היום (playbook=UP vs cont_trend=DOWN → אפס-ירי) = מחלקה, לא באג-בודד. התיקון-הארוך: MarketContext
 כסמכות-כיוון יחידה, כל השערים צרכנים (מפת KEEP/RETIRE), שדה phase עם reversal_V, מונה-סתירות ב-eod, ‏rollout-shadow
