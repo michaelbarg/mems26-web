@@ -49,6 +49,7 @@ export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export
 # CLOUD_URL is FORCED to localhost. Bridge must NEVER push to render or any
 # external endpoint. See CLAUDE.md "Bridge Local-Only Rule".
 export CLOUD_URL="http://localhost:8000"
+export V9_CHART_TZ="${V9_CHART_TZ:-America/Chicago}"  # chart=CT (cursor audit 07-30); bridge default is NY
 export BRIDGE_TOKEN="${BRIDGE_TOKEN:-michael-mems26-2026}"
 export V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"
 echo "=== Bridge starting at $(date) ===" >> /tmp/bridge.log
