@@ -1309,9 +1309,23 @@ class TradingGateway:
                     # move -> skip the guard. Counter-move keeps it (that is where
                     # chasing an extreme is actually fatal).
                     _ecg_bypass = False
+                    # SESSION MATURITY (2026-07-30 18:45, Michael's candle review):
+                    # the 16:42 ORR-reversal LONG (+26pt) was blocked for being
+                    # "too close to the session high" when the session was THREE
+                    # BARS old — an extreme of a 12-minute session is not an
+                    # extreme. Same doctrine as Michael's 07-02 opening-window
+                    # ruling (first 30 min = immature labels): the chase test
+                    # needs >= CHASE_MIN_SESSION_BARS (6 = 30 min) closed bars.
+                    _ecg_min_bars = int(os.getenv("CHASE_MIN_SESSION_BARS", "6") or 6)
+                    if _ecg_srows is not None and len(_ecg_srows) < _ecg_min_bars:
+                        _ecg_bypass = True
+                        logger.warning(
+                            "[Gateway] extreme-chase-guard SESSION-MATURITY bypass: "
+                            "%d bars < %d — extreme undefined this early",
+                            len(_ecg_srows), _ecg_min_bars)
                     try:
                         from backend.v9.systems.release_gate import trend_bypass as _ecg_tb
-                        if _ecg_srows and _ecg_entry is not None:
+                        if not _ecg_bypass and _ecg_srows and _ecg_entry is not None:
                             _ecg_bypass = _ecg_tb(
                                 float(_ecg_srows[0]["open"]), float(_ecg_entry), direction)
                             if _ecg_bypass:
