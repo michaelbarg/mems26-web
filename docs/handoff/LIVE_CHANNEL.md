@@ -1,3 +1,12 @@
+### 2026-07-30 14:07 — cowork-dev — רמה B (תרגיל-ירי בסים) בוצעה ✓
+
+‏Sim1, ‏is_sim=1 מאומת. ‏BUY 4 @7390 דרך ‏/api/v9/trade/command (הנתיב האמיתי):
+מולא מיידית, פוזיציה 4, **4 סטופים פר-חוזה @7380 + טרגט @7400** בסיירה (חוליות 8-9 ✓).
+‏FLATTEN_ACCOUNT: פוזיציה 0, הזמנות 0 תוך שניות (חוליית-הבטיחות ✓).
+**ממצא ל-cc (קל, לא-חוסם):** ‏MODIFY על trade_id של כניסת-API-גולמית מחזיר ACK אך לא
+מזיז סטופים (אין מיפוי-bracket ב-TM) — ACK-שקט-ללא-פעולה = הפרת-חוק-1; החזר NACK כשאין
+התאמה. נתיב-ה-BE הפרודקשני (TM+sierra_bracket_id) מוכח-לייב מ-#479 — לא רגרסיה.
+
 ### 2026-07-30 — cc-macbook — 5 שלבים סופקו (E2E→P0-P4→classifier→Level-D→System0-A3)
 **שלב 1 E2E Level A** (`841860a4`): 07-27 all-PASS (3 live, -$90); 07-29 **0 trades / 12 fires** (anchor TZ bug).
 **שלב 2 Night P0-P5** (`1b779a7d`+`bed1f936`): seam v2 · anti-phantom global · DD_BIMODAL_RELAX_V1 · NEUTRAL_ROUNDTRIP_V1 · flag hygiene. **P0**: chart TZ = Chicago (not NY); `TS_WHOLE_HOUR_NORMALIZE_V1=0` מומלץ.
