@@ -321,6 +321,19 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
         return out("Neutral_Center", "CLASSIFIED" if is_eod else "PROVISIONAL",
                    "2-sided, close resolving" + (" (EOD-committed)" if is_eod else " (provisional)"))
 
+    # ── P1 (2026-07-29): Neutral round-trip reclass (NEUTRAL_ROUNDTRIP_V1) ──
+    # sides==1 but expansion returned through the open AND close is mid-range
+    # → Neutral, not Normal_Variation. This is Dalton's "expansion that failed +
+    # return to value" = the market tried to trend, gave up, and came back.
+    # 07-29: 80pt drop then full V-reversal → should be Neutral, was Normal_Variation.
+    # Flag OFF → skips this block → byte-identical to before.
+    if (sides == 1 and oi
+            and os.environ.get("NEUTRAL_ROUNDTRIP_V1", "0").lower() in ("1", "true", "yes")
+            and cp is not None and cc_lo <= cp <= cc_hi):
+        return out("Neutral_Center", "CLASSIFIED",
+                   "1-sided expansion returned through open + close at center = "
+                   "failed expansion → Neutral (V-reversal round-trip)")
+
     # ── sides == 1 → Trend_DD (4) / Trend_Normal (5) / Normal_Variation (6) ──
     if sides == 1:
         at_extreme = cp is not None and (cp >= ce_hi or cp <= ce_lo)

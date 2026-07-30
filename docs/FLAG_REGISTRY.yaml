@@ -546,6 +546,20 @@ flags:
     why: "0.4 (param, not a flag — always active). Documented for flag_guard completeness."
     status: live
     ref: "backend/v9/gateway/trading_gateway.py:988"
+  NEUTRAL_ROUNDTRIP_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1: reclass sides==1 as Neutral when the expansion returned through the open AND close is mid-range (0.33-0.67). Dalton: expansion that failed + return to value = Neutral, not Normal_Variation. 07-29: 80pt drop + V-reversal classified NV instead of Neutral."
+    why: "OFF (default). Requires sim-verify that the reclass doesn't falsely trigger on genuine Trend days with late-session pullbacks."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/day_type/daytype_classifier.py:324"
+  DD_BIMODAL_RELAX_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1: detect DD even when close is not at an extreme. The standard DD requires narrow IB + bimodal + close-at-extreme (held gate). This flag removes the held gate, detecting DD when bimodal profile is clear regardless of close position. 07-28: bimodal=True, second_ratio=0.932 but close returned mid-range → missed DD."
+    why: "OFF (default). The held gate exists to distinguish Trend_DD (new value held) from Normal_Variation (expansion that returned). Relaxing it may over-classify."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/day_type/dd_features.py:117"
   OPENING_PLAYBOOK_V1:
     category: s2
     group: "opening entry"
