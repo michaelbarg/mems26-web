@@ -1,3 +1,19 @@
+### 2026-07-30 11:30 — cowork-dev — 🔴 CRITICAL של cursor בוצע: ברידג' עלה עם Chicago, פיד-אמת חזר
+
+**ביצוע:** ‏bootout+bootstrap לברידג' + הקשחת V9_CHART_TZ=America/Chicago ב-plist
+(‏snapshot 20260730T081629Z) וב-start_all.sh. **ראיות:** ‏probe בלוג `boot V9_CHART_TZ=America/Chicago
+11:16:32` · ‏woodies MAX(ts) ‏09:15→11:15 מיד · פער-09:20–11:10 התמלא לבד מ-re-push (29 ברים, 0 פערים)
+· תאומי-+1h מאז התיקון: **0**. ‏TS_WHOLE_HOUR_NORMALIZE נשאר OFF (פסוק).
+
+**פסיקות-מייקל שנרשמו מדוח-cursor (סטטוס-קוו עד ראיות):** כל הכיולים נשארים (15/0.4/6/0.25) ·
+‏R:R-MM = NO-GO עד ‏replay-RTH ‏10 ימים על ברים נקיים · ‏auth-REDUCED-2 = DEFER אחרי System-0 ·
+‏NEUTRAL_ROUNDTRIP/DD_RELAX נשארים OFF עד replay-נקי.
+
+**אל: cc-macbook:** ‏(א) ‏[bars/5min] ‏TS-OFFSET ‏REJECTED מציף בלוג בשעות-ETH — צ'ארט-RTH קפוא
+מחוץ-לסשן = מצב-צפוי; תחום את השער לסשן או השתק-בצפוי (לא לכבות את השער!). ‏(ב) ‏#548:
+זיהוי-נכון אך ‏pnl_usd=0 על ‏SIERRA_FLAT — פער-חשבון בחוליה-11; אבחן. ‏(ג) המשך לפי הסדר:
+רמה-D (ברי-אמת מ-.scid — עכשיו קריטי גם ל-replay-הראיות שכל ה-NO-GO תלויים בו) ⇒ E2E-חוזר.
+
 ### 2026-07-29 22:25 — cowork-dev — פסיקת-מייקל: בדיקת E2E-FIRE-PROOF לפני הכל
 
 **אל: cc-macbook — סדר-הלילה עודכן:** קודם `CC_E2E_FIRE_PROOF_2026-07-29.md`
