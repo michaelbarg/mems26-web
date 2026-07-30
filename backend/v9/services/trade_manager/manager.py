@@ -520,7 +520,12 @@ class TradeManager:
 
         # T0 scale-out (4-contract T0 ladder): PARTIAL, no BE
         if target == "T0":
-            machine.transition(TradeState.PARTIAL)
+            # P5.3 (2026-07-30): idempotent — a duplicate/late fill report when
+            # already PARTIAL raised InvalidTransition PARTIAL→PARTIAL (spammed
+            # bar_level_detector.on_bar all night 07-29 and would break booking
+            # the NEXT target on a live trade). Same guard the T1 branch has.
+            if machine.state != TradeState.PARTIAL:
+                machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
             self._log_management(trade_id, "T0_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)

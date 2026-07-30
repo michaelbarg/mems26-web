@@ -102,11 +102,40 @@ def emit_t1_setup(
                 pattern_name, _day_type, _ow_reason, sizing,
             )
         else:
-            logger.info(
-                "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
-                pattern_name, _day_type, quality_tier,
-            )
-            return None
+            # AUTH_LOWCONF_REDUCED_V1 (Michael ruling 2026-07-30 "תבצע אתה"):
+            # a SKIP is only as good as the day-type label it reasons from.
+            # 07-29: INITIATIVE_SHORT×UNKNOWN (17:00, the day's biggest trade)
+            # and INITIATIVE_LONG×"Normal" at classifier confidence 0.0 (21:55,
+            # the breakout) both died here on noise labels. When the classifier's
+            # own confidence is below DAYTYPE_PLAYBOOK_MIN_CONF (0.4) — same
+            # threshold as the gateway playbook fix — the table's SKIP degrades
+            # to REDUCED sizing (2 contracts), not zero. A trustworthy label
+            # (conf >= 0.4) keeps the full SKIP: the table's statistics stand.
+            import os as _lc_os
+            _lc_on = _lc_os.getenv("AUTH_LOWCONF_REDUCED_V1", "0").lower() in ("1", "true", "yes")
+            _lc_conf = None
+            if _lc_on:
+                try:
+                    from backend.v9.db.read import read_one as _lc_read
+                    _lc_row = _lc_read(
+                        "SELECT confidence FROM v9_day_type_state ORDER BY id DESC LIMIT 1", {})
+                    _lc_conf = float(_lc_row["confidence"]) if _lc_row and _lc_row["confidence"] is not None else None
+                except Exception:
+                    _lc_conf = None
+            _lc_min = float(_lc_os.getenv("DAYTYPE_PLAYBOOK_MIN_CONF", "0.4") or 0.4)
+            if _lc_on and _lc_conf is not None and _lc_conf < _lc_min:
+                verdict, sizing = 'REDUCED', 2
+                logger.warning(
+                    "[S2] AUTH_LOWCONF_REDUCED: Auth Table SKIP (%s × %s) degraded to "
+                    "REDUCED-2 — day-type conf %.2f < %.2f (label untrustworthy)",
+                    pattern_name, _day_type, _lc_conf, _lc_min,
+                )
+            else:
+                logger.info(
+                    "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
+                    pattern_name, _day_type, quality_tier,
+                )
+                return None
 
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)

@@ -65,3 +65,35 @@ def test_daytype_conf_sufficient_thresholds():
     assert _daytype_conf_sufficient(0.9, 0.4) is True
     assert _daytype_conf_sufficient(None, 0.4) is True    # unknown => legacy behavior
     assert _daytype_conf_sufficient("bad", 0.4) is True   # unparsable => legacy
+
+
+# ── P5 executions (Michael ruling 2026-07-30 "תבצע אתה") ──────────────────
+
+def _fire_req(mult):
+    from backend.v9.shared.pre_fire_validator import FireRequest
+    return FireRequest(system_id="T1_NUMBER_BAR", direction="LONG",
+                       entry_price=7444.0, stop_price=7410.25,
+                       t1_price=7452.0, t2_price=7460.25,
+                       time_stop_minutes=90, confidence=70,
+                       expected_t2_r_mult=mult)
+
+
+def test_rr_breakout_mm_rescues_capped_t2(monkeypatch):
+    """21:40 07-29: risk 33.75, t2-reward 16.25 (old high), continuation mult 2.0."""
+    monkeypatch.setenv("RR_BREAKOUT_MM_V1", "1")
+    from backend.v9.shared.pre_fire_validator import validate_fire
+    assert validate_fire(_fire_req(2.0)).valid is True
+
+
+def test_rr_breakout_mm_off_keeps_reject(monkeypatch):
+    monkeypatch.delenv("RR_BREAKOUT_MM_V1", raising=False)
+    from backend.v9.shared.pre_fire_validator import validate_fire
+    r = validate_fire(_fire_req(2.0))
+    assert r.valid is False and "R:R" in r.fail_reason
+
+
+def test_rr_breakout_mm_no_rescue_for_reversal_mult(monkeypatch):
+    """Reversal-class mult (1.5) is NOT > RR_BREAKOUT_MIN_MULT — stays rejected."""
+    monkeypatch.setenv("RR_BREAKOUT_MM_V1", "1")
+    from backend.v9.shared.pre_fire_validator import validate_fire
+    assert validate_fire(_fire_req(1.5)).valid is False
