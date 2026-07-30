@@ -321,6 +321,65 @@ class BarLevelDetector:
             logger.warning(
                 "[BarLevelDetector] W9 journal autoloop error (fail-safe): %s", _jl_err)
 
+    def _system0_shadow_log(self, bar_ts_key: str) -> None:
+        """System 0 Phase A3: shadow direction authority log (2026-07-29).
+
+        Compares what MarketContext.day_bias would say as the SINGLE direction
+        authority vs what the current scattered getters produce. Shadow only —
+        ZERO live behavior change. Logs the comparison for calibration.
+
+        Flag: MARKET_CONTEXT_V1 (must be ON to have a context to compare).
+        Rate-limited: once per 5 bars (~25 min) to avoid log flood.
+        """
+        import os as _s0_os
+        if _s0_os.getenv("MARKET_CONTEXT_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        # Rate-limit: once per 5 bars
+        _count = getattr(self, "_s0_bar_count", 0) + 1
+        self._s0_bar_count = _count
+        if _count % 5 != 1:
+            return
+        try:
+            from backend.v9.services.market_context import get_market_context
+            ctx = get_market_context()
+
+            # Compare to scattered getters
+            _scatter = {}
+            try:
+                from backend.v9.services.trade_context import get_live_expansion
+                _exp = get_live_expansion()
+                _scatter["expansion"] = _exp.get("dir") if _exp else None
+            except Exception:
+                _scatter["expansion"] = None
+            try:
+                from backend.v9.services.trade_context import get_live_dir_bias
+                _scatter["dir_bias"] = get_live_dir_bias()
+            except Exception:
+                _scatter["dir_bias"] = None
+            try:
+                from backend.v9.services.trade_context import get_opening_type_seed
+                _scatter["opening_seed"] = get_opening_type_seed()
+            except Exception:
+                _scatter["opening_seed"] = None
+
+            _agree = ctx.day_bias == (_scatter.get("expansion") or
+                                      _scatter.get("dir_bias") or
+                                      _scatter.get("opening_seed") or "NONE")
+
+            logger.info(
+                "[System0] SHADOW DIR: context.day_bias=%s | scattered: "
+                "expansion=%s dir_bias=%s seed=%s | agree=%s | "
+                "opening=%s(%s,%.2f) day_type=%s balance=%s bar=%s",
+                ctx.day_bias,
+                _scatter.get("expansion"), _scatter.get("dir_bias"),
+                _scatter.get("opening_seed"),
+                _agree,
+                ctx.opening_type, ctx.opening_dir, ctx.opening_conf,
+                ctx.day_type, ctx.balance_state, bar_ts_key,
+            )
+        except Exception as _s0_err:
+            logger.debug("[System0] shadow log error (fail-safe): %s", _s0_err)
+
     def _eod_flatten(self, active) -> None:
         """Auto-flatten open demo/live positions at RTH close (Michael 2026-07-07).
 
@@ -495,6 +554,9 @@ class BarLevelDetector:
             # Reconcile slot↔DB↔Sierra while in a position (flag-gated RECONCILE_LIVE_V1, OFF).
             # Capture the verdict so System 6 folds the DB↔Sierra truth into its diagnosis.
             _recon_v = self._reconcile_live()
+
+            # System 0 A3: shadow direction authority log (flag-gated, advisory)
+            self._system0_shadow_log(_ts_key)
 
             for trade in active:
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
