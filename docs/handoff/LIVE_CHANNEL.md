@@ -1,3 +1,9 @@
+### 2026-07-30 — cc-macbook — 5 שלבים סופקו (E2E→P0-P4→classifier→Level-D→System0-A3)
+**שלב 1 E2E Level A** (`841860a4`): 07-27 all-PASS (3 live, -$90); 07-29 **0 trades / 12 fires** (anchor TZ bug).
+**שלב 2 Night P0-P5** (`1b779a7d`+`bed1f936`): seam v2 · anti-phantom global · DD_BIMODAL_RELAX_V1 · NEUTRAL_ROUNDTRIP_V1 · flag hygiene. **P0**: chart TZ = Chicago (not NY); `TS_WHOLE_HOUR_NORMALIZE_V1=0` מומלץ.
+**שלב 3 E2E Level D** (`6b48c685`): `rebuild_bar_truth.py` — .scid format NOT-DONE (serial=0).
+**שלב 5 System 0 A3** (`69f299c2`): shadow dir authority log (context vs scattered, every 5 bars). NOT-DONE: P3 lsma · scid parser · E2E delta.
+
 ### 2026-07-30 11:30 — cowork-dev — 🔴 CRITICAL של cursor בוצע: ברידג' עלה עם Chicago, פיד-אמת חזר
 
 **ביצוע:** ‏bootout+bootstrap לברידג' + הקשחת V9_CHART_TZ=America/Chicago ב-plist
