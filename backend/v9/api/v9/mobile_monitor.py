@@ -82,6 +82,15 @@ async def mobile_data(request: Request):
     if rem is not None and "_remote_err" not in rem:
         return rem  # מכונת-המסחר עונה — הלינק מציג אותה
     out = {"ts": time.strftime("%H:%M:%S"), "sierra": _sierra(), "mid": _price()}
+    # רדאר בנייד (מייקל 2026-07-30: "תוסיף לאפליקציה של הפלאפון את הרדאר") —
+    # אותו מקור-אמת בדיוק כמו הרצועה במסך: /api/v9/context/radar, קריאה ישירה
+    # לפונקציה (לא self-HTTP — uvicorn עובד-יחיד, קריאה-עצמית = חסימה).
+    try:
+        from backend.v9.api.v9.context_radar import radar as _radar_fn
+        out["radar"] = _radar_fn(request)
+    except Exception as _rd_err:
+        out["radar"] = None
+        out["radar_err"] = str(_rd_err)[:80]
     out["_src"] = "local"
     if rem is not None:
         out["_remote_err"] = rem["_remote_err"]
@@ -260,6 +269,13 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
 <div class="card"><div class="row"><span class="dim">יומי (סגורות)</span><span class="dim" id="daymeta"></span></div>
 <div class="big" id="daypnl">—</div><div class="dim">עצירה ב-−$<span id="cap"></span></div></div>
+<div class="card"><div class="row"><span class="dim">חשבון</span><span id="acctmeta" class="dim"></span></div>
+<div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" style="font-weight:800;font-size:18px">—</span></div>
+<div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day">—</span></div>
+<div class="row"><span class="dim">P&L פוזיציה פתוחה</span><span id="acct_open">—</span></div>
+<div class="row"><span class="dim">זמין למרג'ין</span><span id="acct_avail" class="dim">—</span></div></div>
+<div class="card"><div class="row"><span class="dim">📡 רדאר</span><span id="rmeta" class="dim"></span></div>
+<div id="radar" style="font-size:12.5px;line-height:1.8">—</div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
 <div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
@@ -287,6 +303,33 @@ async function load(){
   document.getElementById('clock').textContent = d.ts + (d._src==='trading'? ' · 📡 מכונת-המסחר' : d._remote_err? ' · ⚠ מקומי (מכונת-המסחר לא-זמינה)' : '');
   const s = d.sierra||{}; const q = s.position_qty||0;
   document.getElementById('mode').textContent = (s.is_sim? 'סים':'אמת') + (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
+  // ── חשבון (Account Monitor דרך הסיארה, כמו במסך) ──
+  const $$ = (v,pfx)=> v==null? '—' : (pfx&&v>=0?'+':'')+Number(v).toFixed(2)+'$';
+  const cls = v => v==null?'dim':(v>=0?'green':'red');
+  document.getElementById('acct_val').textContent = $$(s.acct_account_value);
+  const ad=document.getElementById('acct_day'); ad.textContent=$$(s.acct_daily_pl,1); ad.className=cls(s.acct_daily_pl);
+  const ao=document.getElementById('acct_open'); ao.textContent=$$(s.acct_open_positions_pl,1); ao.className=cls(s.acct_open_positions_pl);
+  document.getElementById('acct_avail').textContent = $$(s.acct_available_funds);
+  document.getElementById('acctmeta').textContent = s.acct_trading_disabled? '🔴 מסחר-מושבת' : s.acct_loss_limit_reached? '🔴 תקרת-הפסד' : '';
+  // ── רדאר (אותו מקור כמו הרצועה במסך) ──
+  const R = d.radar; const rEl = document.getElementById('radar');
+  if(R){
+   const gl=R.gates_last_hour||{}, tr=R.trading||{}, rg=R.release_gate||{};
+   const leg = R.leg==='UP'?'<span class="green">▲ UP</span>':R.leg==='DOWN'?'<span class="red">▼ DOWN</span>':'—';
+   const integ = R.bar_integrity==='clean'?'<span class="green">✓ נקי</span>':R.bar_integrity==='suspect'?'<span class="red">🔴 חשוד</span>':(R.bar_integrity||'—');
+   const canTrade = tr.armed===1 && (tr.contracts_allowed||0)>0 && !tr.stale;
+   let lb='';
+   if(gl.last_block) lb='<div class="row"><span class="dim">חסימה אחרונה</span><span>'+gl.last_block.ts+' '+(GATE_HE[gl.last_block.gate]||gl.last_block.gate)+'</span></div>';
+   rEl.innerHTML =
+    '<div class="row"><span class="dim">סוג-יום</span><span>'+(R.day_type||'—')+(R.confidence!=null?' <span class=dim>'+Math.round(R.confidence*100)+'%</span>':'')+'</span></div>'+
+    '<div class="row"><span class="dim">רגל</span><span>'+leg+'</span></div>'+
+    '<div class="row"><span class="dim">פתיחה</span><span>'+(R.opening_type||'—')+(R.opening_dir?' '+R.opening_dir:'')+'</span></div>'+
+    '<div class="row"><span class="dim">שער-שחרור</span><span>'+(rg.state==='holding'?'<span style="color:#f0883e">מחזיק '+(rg.age_min??'?')+' דק\\'</span>':'פנוי')+'</span></div>'+
+    '<div class="row"><span class="dim">שערים/שעה</span><span><span class="'+((gl.passed||0)>0?'green':'dim')+'">'+(gl.passed||0)+' עברו</span> / <span style="color:#d29922">'+(gl.blocked||0)+' נחסמו</span></span></div>'+lb+
+    '<div class="row"><span class="dim">שלמות-ברים</span><span>'+integ+'</span></div>'+
+    '<div class="row"><span class="dim">מסחר</span><span>'+(canTrade?'<span class="green">✓ מוכן · עד '+tr.contracts_allowed+' חוזים</span>':'<span class="red">'+(tr.stale?'נתונים לא-טריים':tr.armed!==1?'לא-חמוש':'אין מרג\\'ין')+'</span>')+'</span></div>';
+   document.getElementById('rmeta').textContent = (tr.is_sim===0?'לייב':'סים');
+  } else { rEl.innerHTML='<span class="dim">'+(d.radar_err?'רדאר-שגיאה: '+d.radar_err:'רדאר לא-זמין (מכונה מרוחקת ישנה?)')+'</span>'; }
   const g = d.gate; const ge = document.getElementById('gate');
   if(g && g.last){
    const L = g.last; const t = L.ts? new Date(L.ts).toTimeString().slice(0,5) : '';
