@@ -97,3 +97,31 @@ def test_rr_breakout_mm_no_rescue_for_reversal_mult(monkeypatch):
     monkeypatch.setenv("RR_BREAKOUT_MM_V1", "1")
     from backend.v9.shared.pre_fire_validator import validate_fire
     assert validate_fire(_fire_req(1.5)).valid is False
+
+
+# ── Opening stop cap (Michael 2026-07-31: trade #575, 40pt opening stop) ────
+
+def _opening_setup(bar_low, entry=7512.75):
+    from backend.v9.systems.opening_entry import build_opening_setup
+    bars=[{"o":7495.0,"h":7513.5,"l":bar_low,"c":7512.0,"v":30000}]
+    return build_opening_setup(
+        {"type":"OPEN_DRIVE","direction":"LONG","entry":entry}, bars, shadow_only=True)
+
+
+def test_opening_stop_capped_at_15(monkeypatch):
+    monkeypatch.delenv("OPENING_STOP_CAP_PTS", raising=False)
+    s=_opening_setup(bar_low=7495.0)   # structural ≈ 19.25pt > 15 → cap
+    assert s is not None
+    assert abs(s["entry_price"]-s["stop"]) <= 15.0 + 1e-6
+
+
+def test_opening_skipped_when_chaotic(monkeypatch):
+    monkeypatch.delenv("OPENING_MAX_RISK_PTS", raising=False)
+    s=_opening_setup(bar_low=7471.5)   # structural ≈ 42.75pt > 25 → skip (#575 case)
+    assert s is None
+
+
+def test_opening_normal_stop_untouched():
+    s=_opening_setup(bar_low=7504.0)   # structural ≈ 10.25pt — below cap
+    assert s is not None
+    assert abs(s["entry_price"]-s["stop"]) < 15.0

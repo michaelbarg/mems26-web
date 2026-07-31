@@ -226,6 +226,31 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
     risk = abs(entry - stop)
     if risk <= 0:
         return None
+    # OPENING STOP CAP (Michael 2026-07-31 17:45 "למה לונג פתיחה על סכום כזה"):
+    # trade #575 — a 40pt opening bar made "stop behind the structure" a
+    # 39.75pt / $199-per-contract stop, 20% of the account on one trade. The
+    # structural rule is right on a normal open and ruinous on a volatile one.
+    # Same doctrine as the ZLR cap ruling (06-12) and the cap-clamp (07-30):
+    #   raw risk > OPENING_MAX_RISK_PTS (25) -> the open is chaos, NO trade;
+    #   raw risk > OPENING_STOP_CAP_PTS (15) -> stop capped at 15pt; T1 scales
+    #   off the capped risk. Env-tunable; Michael's word can revoke.
+    import os as _oc_os
+    import logging as _oc_logging
+    _oc_log = _oc_logging.getLogger(__name__)
+    _oc_max = float(_oc_os.getenv("OPENING_MAX_RISK_PTS", "25") or 25)
+    _oc_cap = float(_oc_os.getenv("OPENING_STOP_CAP_PTS", "15") or 15)
+    if risk > _oc_max:
+        _oc_log.warning(
+            "[OpeningEntry] SKIP %s %s: structural risk %.2fpt > max %.1fpt — "
+            "opening too volatile for a structural stop", trigger.get("type"),
+            direction, risk, _oc_max)
+        return None
+    if risk > _oc_cap:
+        stop = round(entry - _oc_cap, 2) if direction == "LONG" else round(entry + _oc_cap, 2)
+        _oc_log.warning(
+            "[OpeningEntry] STOP CAP %s %s: structural %.2fpt -> capped %.1fpt "
+            "(stop %.2f)", trigger.get("type"), direction, risk, _oc_cap, stop)
+        risk = _oc_cap
     # PULLBACK-CONT carries an explicit T1 (1.5R, Michael 07-23) so it does not
     # depend on the global T1_BANK_R; all other triggers keep the T1_BANK_R bank.
     _t1r_override = trigger.get("t1_r")
