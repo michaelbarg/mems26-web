@@ -106,7 +106,8 @@ ruled:
   PHANTOM_HEAL_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "אישור 'כן מאשר': reconciler סוגר עסקה-פנטום (backend-active + Sierra flat qty=0/working=0 מהstate-file, ≥3 בדיקות רצופות) → משחרר slot; שמרני (הפוך מ-07-10). פתר את הפנטום-#9 שחסם את יום-הסים" }
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
   LSMA_FLAT_GATE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "פסיקת-בוקר 07-22 Task E: 'מחיר תקוע = אנרגיה נצברת; כניסה מוקדמת = הפסד'. fixtures #449/452/456=BLOCK, #444=pass. מחליף כיבוי-07-13" }
-  FIXED_CONTRACTS_4:     {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר: 'אני רוצה לעבוד היום על 4 חוזים' — עדיפות-עליונה בכל 6 נקודות-החנק" }
+  FIXED_CONTRACTS_4:     {expected: "0", ruled_by: "מייקל", date: "2026-07-31", note: "פסיקת 31.07 13:40: 'תכין אותה למסחר עם 3 חוזים היום t1 t2 t3' — עבר ל-3 חוזים, מדרג T1/T2/T3 קלאסי (בלי T0-scalp). מחליף את פסיקת 4-החוזים מ-07-15." }
+  FIXED_CONTRACTS_3:     {expected: "1", ruled_by: "מייקל", date: "2026-07-31", note: "אותה פסיקה — 3 חוזים, חוזה לכל יעד T1/T2/T3; BE אחרי T1. תקרת-בראקט-4 מכסה." }
   T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
   WOODIES_TS_HOUR_FIX: {expected: "0", ruled_by: "מייקל", date: "2026-07-22", note: "P2: hour-fix יצר 11 זוגות-רפאים +1h היום (±120s window caught normal bar re-sends). default OFF. הדלקה=רק אם chartbook-TZ offset מאומת פעיל" }

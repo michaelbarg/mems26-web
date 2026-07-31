@@ -1171,13 +1171,46 @@ class TradingGateway:
                     if _fam == "CONT":
                         _sus = _dc.get("dir_sustained", "NEUTRAL")
                         if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
-                            result["blocked_by"] = "cont_trend_filter"
-                            result["reason"] = (
-                                f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
-                            )
-                            logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
-                                        _pat, _set_dir, _sus)
-                            return result
+                            # DISPLACEMENT CONSISTENCY (2026-07-31, third gate to
+                            # get the audited primitive): dir_sustained LAGS —
+                            # 07-29 it said UP through an 80pt drop, 07-30 evening
+                            # it said DOWN through a rally to 7471 and blocked 11
+                            # ZLR longs at 7450-7455. When the SESSION DISPLACEMENT
+                            # (>=15pt) agrees with the setup, the sustained read is
+                            # stale by definition — bypass with a loud log; the
+                            # nightly counterfactual judges it. No displacement /
+                            # counter-move => the filter stands (its chop fix).
+                            _ct_bypass = False
+                            try:
+                                from backend.v9.systems.release_gate import trend_bypass as _ct_tb
+                                from backend.v9.db.read import read_one as _ct_read
+                                _ct_row = _ct_read(
+                                    "SELECT open FROM v9_bars_5min_woodies "
+                                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                    "(now() AT TIME ZONE 'America/New_York')::date "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                    "ORDER BY ts LIMIT 1", {})
+                                _ct_open = float(_ct_row["open"]) if _ct_row else None
+                                _ct_entry = setup.get("entry_price")
+                                _ct_bypass = _ct_tb(
+                                    _ct_open,
+                                    float(_ct_entry) if _ct_entry is not None else None,
+                                    direction)
+                            except Exception:
+                                _ct_bypass = False
+                            if _ct_bypass:
+                                logger.warning(
+                                    "[Gateway] cont-trend-filter DISPLACEMENT BYPASS: "
+                                    "%s %s with-move vs stale sustained %s",
+                                    _pat, _set_dir, _sus)
+                            else:
+                                result["blocked_by"] = "cont_trend_filter"
+                                result["reason"] = (
+                                    f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
+                                )
+                                logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
+                                            _pat, _set_dir, _sus)
+                                return result
 
                 _dc_dir = _dc.get("dir")
                 if _dc_dir in ("UP", "DOWN"):
