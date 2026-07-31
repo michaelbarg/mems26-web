@@ -102,6 +102,36 @@ def _opening_gate_exempt(setup, gate_name: str) -> bool:
         return False
 
 
+def _live_leg(direction: str) -> bool:
+    """LEG_RIDE_V1 (Michael's screenshot ruling 2026-07-31): True when a live
+    intraday LEG (canonical LSMA/CCI structure, leg_state.detect_leg) agrees
+    with the setup direction. With-leg continuation is exempt from the
+    DAY-level direction/location gates; against-leg keeps every gate. Flag
+    off / any doubt / missing data => False (no exemption, fail-closed)."""
+    try:
+        import os as _lg_os
+        if _lg_os.getenv("LEG_RIDE_V1", "0").lower() not in ("1", "true", "yes"):
+            return False
+        from backend.v9.db.read import read_all as _lg_read
+        from backend.v9.systems.leg_state import detect_leg as _lg_detect
+        _rows = _lg_read(
+            "SELECT high, low, close, lsma_value, cci_14 FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "ORDER BY ts DESC LIMIT 10", {})
+        leg, age, why = _lg_detect(list(reversed(_rows or [])))
+        want = "UP" if str(direction).upper() == "LONG" else "DOWN"
+        if leg == want:
+            logger.warning("[Gateway] LEG_RIDE: live %s leg (age %d) agrees with "
+                           "%s — day-level gates exempt (%s)", leg, age, direction, why)
+            return True
+        return False
+    except Exception as _lg_err:
+        logger.warning("[Gateway] leg detection errored (no exemption): %s", _lg_err)
+        return False
+
+
 def _daytype_conf_sufficient(conf, min_conf: float) -> bool:
     """Is the day-type label trustworthy enough for the playbook to VETO on it?
 
@@ -1111,6 +1141,11 @@ class TradingGateway:
                     stop_price=setup.get("stop"),
                     session_bars=_lg_session_bars,
                 )
+                if not _lg_allow and _live_leg(direction):
+                    # LEG_RIDE (31.07): inside a live leg the "location" is the
+                    # LSMA, not the day range — "high in range" blocked the
+                    # stair-step longs Michael screenshotted. With-leg passes.
+                    _lg_allow, _lg_reason = True, "leg-ride exemption (live leg agrees)"
                 if not _lg_allow:
                     result["blocked_by"] = "location_gate"
                     result["reason"] = _lg_reason
@@ -1198,6 +1233,12 @@ class TradingGateway:
                                     direction)
                             except Exception:
                                 _ct_bypass = False
+                            # LEG_RIDE (Michael's screenshot, 31.07): a live leg
+                            # outranks the lagging dir_sustained entirely — the
+                            # 9 blocked ZLR longs of Friday evening are the
+                            # reference case.
+                            if not _ct_bypass and _live_leg(direction):
+                                _ct_bypass = True
                             if _ct_bypass:
                                 logger.warning(
                                     "[Gateway] cont-trend-filter DISPLACEMENT BYPASS: "
@@ -1356,6 +1397,10 @@ class TradingGateway:
                             "[Gateway] extreme-chase-guard SESSION-MATURITY bypass: "
                             "%d bars < %d — extreme undefined this early",
                             len(_ecg_srows), _ecg_min_bars)
+                    # LEG_RIDE (31.07): a live leg makes new extremes bar after
+                    # bar — proximity-to-extreme is the entry, not the danger.
+                    if not _ecg_bypass and _live_leg(direction):
+                        _ecg_bypass = True
                     try:
                         from backend.v9.systems.release_gate import trend_bypass as _ecg_tb
                         if not _ecg_bypass and _ecg_srows and _ecg_entry is not None:
