@@ -137,6 +137,35 @@ def emit_t1_setup(
                 )
                 return None
 
+    # T2/T3 SANITY CLAMP (2026-07-31 night, "לתקן את הכל"): trade #579 shipped
+    # t2 at 11R and t3 at 21R of the FINAL stop — the day-type R-ladder was
+    # computed off the RAW structural stop (40pt) and never re-based after the
+    # stop tightened to 8.75pt. Until cc fixes the order-of-operations, clamp
+    # runner targets to sane multiples of the FINAL risk so contracts 2-3 have
+    # reachable targets instead of riding to the stop. Env-tunable.
+    try:
+        import os as _tc_os
+        _risk_f = abs(float(entry_price) - float(stop_price))
+        _sgn = 1.0 if direction == "LONG" else -1.0
+        _t2_max = float(_tc_os.getenv("T2_MAX_R", "3.0") or 3.0)
+        _t3_max = float(_tc_os.getenv("T3_MAX_R", "5.0") or 5.0)
+        if _risk_f > 0 and t2_price is not None and \
+                abs(float(t2_price) - entry_price) > _t2_max * _risk_f:
+            _t2_old = t2_price
+            t2_price = entry_price + _sgn * _t2_max * _risk_f
+            logger.warning("[S2] T2 clamp: %.2f (%.1fR of final stop) -> %.2f (%.1fR)",
+                           float(_t2_old), abs(float(_t2_old)-entry_price)/_risk_f,
+                           t2_price, _t2_max)
+        if _risk_f > 0 and t3_price is not None and \
+                abs(float(t3_price) - entry_price) > _t3_max * _risk_f:
+            _t3_old = t3_price
+            t3_price = entry_price + _sgn * _t3_max * _risk_f
+            logger.warning("[S2] T3 clamp: %.2f (%.1fR of final stop) -> %.2f (%.1fR)",
+                           float(_t3_old), abs(float(_t3_old)-entry_price)/_risk_f,
+                           t3_price, _t3_max)
+    except Exception as _tc_err:
+        logger.warning("[S2] T2/T3 clamp failed (targets kept): %s", _tc_err)
+
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)
 

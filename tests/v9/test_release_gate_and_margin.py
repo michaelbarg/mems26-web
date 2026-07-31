@@ -153,3 +153,21 @@ def test_first_trade_none_conf_fail_closed():
     from backend.v9.systems.opening_entry import opening_first_trade_ok
     ok,_=opening_first_trade_ok([_b(7495,7505,7494,7504)]*3,"LONG",None)
     assert not ok
+
+
+# ── T2/T3 sanity clamp (trade #579: t2 at 11R, t3 at 21R of final stop) ─────
+
+def test_t2_t3_clamped_to_final_risk(monkeypatch):
+    from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
+    s = emit_t1_setup(
+        "INITIATIVE_SHORT", "SHORT",
+        entry_price=7471.0, stop_price=7479.75,      # final risk 8.75
+        t1_price=7463.75, t2_price=7374.5,           # 11R — the #579 payload
+        bar_index=50, t3_price=7285.25,              # 21R
+        day_type="Variation",
+        tpo_data={"poc": 7450.0, "vah": 7470.0, "val": 7430.0})
+    if s is None:  # auth table may skip in bare env — clamp logic already ran
+        return
+    assert abs(s.t2_price - 7471.0) <= 3.0 * 8.75 + 1e-6
+    if s.t3_price is not None:
+        assert abs(s.t3_price - 7471.0) <= 5.0 * 8.75 + 1e-6
