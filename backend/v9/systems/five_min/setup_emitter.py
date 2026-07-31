@@ -145,6 +145,13 @@ def emit_t1_setup(
     # reachable targets instead of riding to the stop. Env-tunable.
     try:
         import os as _tc_os
+        # Chart-measure patterns (HNS/DOUBLE/FLAG) target their MEASURED
+        # objective — a legitimate structural target, not an R-ladder; the
+        # #579 bug lives in the day-type R-LADDER path only. Skip them.
+        _tc_skip = any(k in str(pattern_name).upper()
+                       for k in ("HNS", "DOUBLE", "FLAG"))
+        if _tc_skip:
+            raise StopIteration  # exits the clamp block via except below
         _risk_f = abs(float(entry_price) - float(stop_price))
         _sgn = 1.0 if direction == "LONG" else -1.0
         _t2_max = float(_tc_os.getenv("T2_MAX_R", "3.0") or 3.0)
@@ -163,6 +170,8 @@ def emit_t1_setup(
             logger.warning("[S2] T3 clamp: %.2f (%.1fR of final stop) -> %.2f (%.1fR)",
                            float(_t3_old), abs(float(_t3_old)-entry_price)/_risk_f,
                            t3_price, _t3_max)
+    except StopIteration:
+        pass  # chart-measure pattern — clamp intentionally not applied
     except Exception as _tc_err:
         logger.warning("[S2] T2/T3 clamp failed (targets kept): %s", _tc_err)
 
