@@ -255,6 +255,25 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     if _reclass_on and not _failed_break and not oi and not (_neutral_precedence_on and sides == 2):
         _abrk = feat.get("accepted_break")           # "UP" | "DOWN" | None (dominant accepted side)
         _aref = feat.get("accepted_break_ref") or "ref"
+        # S1_RECLASS_REQUIRES_IB_EXT_V1 (2026-07-31, Michael: "הזיהוי לא נכון" —
+        # verified against the candles): the ratified MP rule says EXTENSION =
+        # post-B breaks TODAY'S IB. 07-31: IB 7427.5-7515.25, the entire
+        # afternoon traded INSIDE it (post-IB 7449-7501, zero extension bars),
+        # yet a prior-VA break promoted the day to "Variation with_extension
+        # UP" — a Variation whose extension never existed. Once the IB is
+        # LOCKED, an accepted break may only reclass to extension-class types
+        # (Variation/Trend) if the day actually extended beyond its own IB in
+        # the break direction (ext_up_hold/ext_dn_hold). Before IB lock the
+        # gap-and-go early-naming path is preserved unchanged.
+        if (_abrk in ("UP", "DOWN")
+                and os.environ.get("S1_RECLASS_REQUIRES_IB_EXT_V1", "0").lower()
+                in ("1", "true", "yes")
+                and n >= ib_lock_bars):
+            _ib_ext_ok = bool(feat.get("ext_up_hold")) if _abrk == "UP" \
+                else bool(feat.get("ext_dn_hold"))
+            if not _ib_ext_ok:
+                _abrk = None   # no IB extension => no extension-class reclass;
+                # fall through to the structural ladder (Normal/Neutral by shape)
         if _abrk in ("UP", "DOWN"):
             if feat.get("dd_second_dist"):
                 return out("Trend_DD", "CLASSIFIED",
