@@ -125,3 +125,31 @@ def test_opening_normal_stop_untouched():
     s=_opening_setup(bar_low=7504.0)   # structural ≈ 10.25pt — below cap
     assert s is not None
     assert abs(s["entry_price"]-s["stop"]) < 15.0
+
+
+# ── First-trade strictness (Michael ruling 2026-07-31 18:20) ────────────────
+
+def _b(o,h,l,c): return {"o":o,"h":h,"l":l,"c":c}
+
+def test_first_trade_blocked_without_confidence():
+    from backend.v9.systems.opening_entry import opening_first_trade_ok
+    ok,why=opening_first_trade_ok([_b(7495,7513,7494,7512)]*3,"LONG",0.0)
+    assert not ok and "certainty" in why or not ok
+
+def test_first_trade_blocked_without_confirm_bar():
+    from backend.v9.systems.opening_entry import opening_first_trade_ok
+    # conf fine, but last bar closed AGAINST the long
+    bars=[_b(7495,7513,7494,7512),_b(7512,7514,7500,7501),_b(7501,7505,7495,7496)]
+    ok,_=opening_first_trade_ok(bars,"LONG",0.85)
+    assert not ok
+
+def test_first_trade_passes_with_conf_and_confirm():
+    from backend.v9.systems.opening_entry import opening_first_trade_ok
+    bars=[_b(7495,7505,7494,7504),_b(7504,7509,7503,7508),_b(7508,7513,7507,7512)]
+    ok,why=opening_first_trade_ok(bars,"LONG",0.85)
+    assert ok, why
+
+def test_first_trade_none_conf_fail_closed():
+    from backend.v9.systems.opening_entry import opening_first_trade_ok
+    ok,_=opening_first_trade_ok([_b(7495,7505,7494,7504)]*3,"LONG",None)
+    assert not ok

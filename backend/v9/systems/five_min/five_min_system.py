@@ -1287,6 +1287,35 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     logger.info("[FiveMin] OPENING_DIR_FUSION gate dropped %s %s (fusion=%s)",
                                                 _trig.get("type"), _trig.get("direction"), _fb)
                                     _trig = None
+                            # OPENING_FIRST_TRADE_STRICT_V1 (Michael 2026-07-31
+                            # 18:20): the first trade fires only with opening-type
+                            # CERTAINTY (conf >= 0.7) + a confirmation bar. #575
+                            # fired on bar-1's close at conf 0.00 and lost $199.
+                            if _trig and os.getenv("OPENING_FIRST_TRADE_STRICT_V1",
+                                                   "0").lower() in ("1", "true", "yes"):
+                                try:
+                                    from backend.v9.systems.opening_entry import (
+                                        opening_first_trade_ok as _ft_ok_fn)
+                                    _ft_conf = None
+                                    try:
+                                        from backend.v9.services.market_context import (
+                                            get_market_context as _ft_mc)
+                                        _mc = _ft_mc()
+                                        _ft_conf = getattr(_mc, "opening_conf", None) if _mc else None
+                                    except Exception:
+                                        _ft_conf = None
+                                    _ft_ok, _ft_why = _ft_ok_fn(
+                                        self._oe_bars, _trig["direction"], _ft_conf)
+                                    if not _ft_ok:
+                                        logger.warning(
+                                            "[FiveMin] OPENING_FIRST_TRADE_STRICT held %s %s — %s",
+                                            _trig.get("type"), _trig.get("direction"), _ft_why)
+                                        _trig = None
+                                except Exception as _ft_err:
+                                    # fail-CLOSED: strictness gate broken => no first trade
+                                    logger.warning(
+                                        "[FiveMin] first-trade-strict errored — holding: %s", _ft_err)
+                                    _trig = None
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
                                 _setup = build_opening_setup(

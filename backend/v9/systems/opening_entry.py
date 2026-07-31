@@ -328,3 +328,45 @@ def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
     if acc is not None and acc != mom:             # break conflicts with momentum → skip
         return None
     return mom
+
+
+def opening_first_trade_ok(session_bars, direction, opening_conf,
+                           min_conf=None, min_bars=None):
+    """OPENING_FIRST_TRADE_STRICT_V1 (Michael ruling 2026-07-31 18:20:
+    "העסקה הראשונה צריכה להגיע רק בוודאות של סוג הפתיחה ולהחמיר כניסה").
+
+    Trade #575 fired on the bar-1 close of a 40pt opening bar with opening
+    confidence 0.00 and no confirmation — long at the top of a spike that
+    reversed. Two strict conditions, both required, fail-CLOSED:
+
+      1. CERTAINTY  — the opening-type detector's confidence must be >=
+         OPENING_MIN_CONF (0.7). Unknown/None confidence = no certainty = no
+         first trade. (Dalton grading: Drive .85 / Test .75 / ORR .65 — a
+         graded Drive passes, an ungraded guess never does.)
+      2. CONFIRMATION — at least OPENING_CONFIRM_BARS (3) closed bars, and
+         the LAST closed bar must close in the trigger direction (c>o for
+         LONG, c<o for SHORT). One impulsive bar is not an entry; the market
+         must confirm once.
+
+    Returns (ok: bool, reason: str)."""
+    import os as _os
+    if min_conf is None:
+        min_conf = float(_os.getenv("OPENING_MIN_CONF", "0.7") or 0.7)
+    if min_bars is None:
+        min_bars = int(_os.getenv("OPENING_CONFIRM_BARS", "3") or 3)
+    try:
+        conf = float(opening_conf) if opening_conf is not None else None
+    except (TypeError, ValueError):
+        conf = None
+    if conf is None or conf < min_conf:
+        return False, f"opening confidence {conf} < {min_conf} — no certainty, no first trade"
+    if not session_bars or len(session_bars) < min_bars:
+        return False, f"only {len(session_bars or [])} bars < {min_bars} — confirmation bar required"
+    last = session_bars[-1]
+    o, c = _f(last, "o", "open"), _f(last, "c", "close")
+    if o is None or c is None:
+        return False, "last bar unreadable — fail-closed"
+    confirmed = (c > o) if direction == "LONG" else (c < o)
+    if not confirmed:
+        return False, f"last bar did not confirm {direction} (o={o} c={c})"
+    return True, f"confirmed: conf={conf:.2f}, {len(session_bars)} bars, last bar with-direction"
