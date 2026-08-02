@@ -1,3 +1,9 @@
+### 2026-08-02 — cc-macbook — (א) delta→classifier+radar · (ב) MAE-scratch · (ג) scid parser fixed
+**(א) DELTA_FEATURES_V1** (`ed200a3a`): `delta_confirms_extension` (R5) vetoes acceptance-reclass when extension not delta-backed. `cvd_directionality` (R6) + DLL trend/divergence emitted to radar. Flag OFF.
+**(ב) S6_MAE_SCRATCH_V1** (`4902868a`): per-pattern MAE threshold from `mae_scratch.yaml` (ZLR:6, GB100:10, default:8). Responsive ×1.5. Pre-T1 only. FLATTEN, never EXIT. 10 tests. Flag OFF.
+**(ג) Level D scid parser** (`e98bd531`): .scid format cracked — int64 μs since 1899-12-30, prices ÷100. 07-29 truth: 1.1M raw → 78 RTH bars, 0 seams. Unblocks EDGE_FADE verification.
+**NOT-DONE:** P2.3-4 (stacked imbalance zones, R3/R4 divergence+absorption) · P3.3-4 (time-stop, failed-breakout) · P4 (stop-minimum, re-eval, runner banking, dedup) · FIRE_MATRIX all days.
+
 ### 2026-08-02 14:15 — cowork-dev — ביקורת-GO/NO-GO (תקן-קורסור) בוצעה + שני תיקוני-ביקורת
 
 ‏GONOGO_AUDIT_2026-08-02.md: כל הדגלים-החיים GO · ‏0 כשלים-חדשים (24 נסגרו ע"י cc) ·
