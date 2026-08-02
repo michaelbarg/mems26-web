@@ -226,6 +226,31 @@ def classify_session(
     feat["profile_imbalance"] = profile_imbalance(bars)
     feat["va_rule"] = va_rule_read(bars, prior_vah, prior_val, open_price)
 
+    # ── P2.1-2 (DEV_PLAN 02.08 §P2): delta/CVD features for classifier ──
+    # Wire delta_confirms_extension (R5) and cvd_directionality (R6) from the
+    # live cumulative_delta export. Computed always (pure + cheap); consumed
+    # by classify() only when DELTA_FEATURES_V1 is ON → byte-identical when off.
+    feat["delta_confirms_ext"] = None
+    feat["cvd_directionality"] = None
+    if os.getenv("DELTA_FEATURES_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            from backend.v9.systems.delta_features import (
+                delta_confirms_extension, cvd_directionality,
+            )
+            import json as _dj
+            from pathlib import Path as _dP
+            _delta_path = _dP(os.path.expanduser(
+                "~/SierraChart_Data/v9_export/cumulative_delta.json"))
+            if _delta_path.exists():
+                _dexport = _dj.loads(_delta_path.read_text().strip() or "{}")
+                _dpts = _dexport.get("points", [])
+                feat["cvd_directionality"] = cvd_directionality(_dpts)
+                # delta confirms extension only when we have a break direction
+                if _abrk:
+                    feat["delta_confirms_ext"] = delta_confirms_extension(_dpts, _abrk)
+        except Exception:
+            pass  # fail-open: missing delta = None fields (Rule 1)
+
     result = classify(feat, plan, is_eod=is_eod)
     result["ib_source"] = ib_source
     result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
@@ -238,6 +263,9 @@ def classify_session(
         "va_overlap_pct": feat["va_overlap_pct"], "value_migration": feat["value_migration"],
         # P2-9/11 observability (Michael 07-13)
         "profile_imbalance": feat["profile_imbalance"], "va_rule": feat["va_rule"],
+        # P2.1-2 delta features (DEV_PLAN 02.08)
+        "cvd_directionality": feat.get("cvd_directionality"),
+        "delta_confirms_ext": feat.get("delta_confirms_ext"),
     }
     return result
 

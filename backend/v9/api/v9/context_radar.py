@@ -133,6 +133,30 @@ def _bar_integrity() -> str:
         return "unknown"
 
 
+def _delta_features() -> Dict[str, Any]:
+    """P2.1-2 delta features from live cumulative_delta export."""
+    out: Dict[str, Any] = {"cvd_directionality": None, "delta_confirms_ext": None}
+    if os.getenv("DELTA_FEATURES_V1", "0").lower() not in ("1", "true", "yes"):
+        return out
+    try:
+        _dp = _EXPORT / "cumulative_delta.json"
+        if not _dp.exists():
+            return out
+        _dexport = json.loads(_dp.read_text().strip() or "{}")
+        from backend.v9.systems.delta_features import (
+            cvd_directionality, delta_confirms_extension,
+        )
+        _pts = _dexport.get("points", [])
+        out["cvd_directionality"] = cvd_directionality(_pts)
+        # delta_confirms_ext needs the break direction from day_type state
+        # — only if we have one
+        out["dll_trend"] = _dexport.get("trend")
+        out["dll_divergence"] = _dexport.get("divergence")
+    except Exception:
+        pass
+    return out
+
+
 def _system0_fields() -> Dict[str, Any]:
     """balance/acceptance from System-0 when its flag is on; nulls otherwise."""
     if os.getenv("MARKET_CONTEXT_V1", "0").strip().lower() not in ("1", "true", "yes"):
@@ -190,6 +214,8 @@ def radar(request: Request) -> Dict[str, Any]:
         # System-0 fields — live from get_market_context() when MARKET_CONTEXT_V1
         # is on (enabled by Michael's 07-29 ruling); null otherwise. Same shape.
         **_system0_fields(),
+        # P2.1-2 delta features (DEV_PLAN 02.08) — live from cumulative_delta export
+        **_delta_features(),
         "release_gate": _release_state(),
         "gates_last_hour": _gates_last_hour(),
         "trading": {

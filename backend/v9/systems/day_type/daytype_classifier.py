@@ -274,6 +274,16 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
             if not _ib_ext_ok:
                 _abrk = None   # no IB extension => no extension-class reclass;
                 # fall through to the structural ladder (Normal/Neutral by shape)
+        # P2.1 (DEV_PLAN 02.08): delta_confirms_extension (R5) — an extension
+        # WITHOUT delta confirmation is a failed-auction candidate → do NOT
+        # promote to Variation/Trend. Only vetoes when DELTA_FEATURES_V1 is ON
+        # and the data is available (False, not None). None = no data → pass.
+        if _abrk in ("UP", "DOWN"):
+            _delta_ext = feat.get("delta_confirms_ext")
+            if _delta_ext is False and os.environ.get(
+                "DELTA_FEATURES_V1", "0"
+            ).lower() in ("1", "true", "yes"):
+                _abrk = None  # extension not delta-confirmed → no reclass
         if _abrk in ("UP", "DOWN"):
             if feat.get("dd_second_dist"):
                 return out("Trend_DD", "CLASSIFIED",

@@ -532,6 +532,13 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  DELTA_FEATURES_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P2.1-2: wire delta/CVD features from cumulative_delta.json into classifier and radar. delta_confirms_extension (R5) vetoes acceptance-reclass when extension is NOT delta-backed. cvd_directionality (R6) emitted to radar for observability. Fail-open when data unavailable."
+    why: "OFF (default). Footprint data quality needs verification; extension without delta = failed-auction candidate."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/day_type/classifier_core.py · backend/v9/api/v9/context_radar.py · backend/v9/systems/delta_features.py"
   RELEASE_TREND_BYPASS_PTS:
     category: param
     group: "release gate"
