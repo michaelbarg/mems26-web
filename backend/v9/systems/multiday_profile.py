@@ -86,6 +86,9 @@ def session_tpo_profile(bars: Sequence[Dict[str, Any]]) -> Optional[Dict[str, An
         "high": levels[-1], "low": levels[0],
         "total_tpos": total, "n_periods": n_periods,
         "singles": singles,
+        # מייקל 02.08: "מדויק כמו של סיירה" — ההיסטוגרמה המלאה פר-רבע-נקודה,
+        # כדי שהפרונט יצייר פרופיל-TPO אמיתי ולא רק קופסת-VA.
+        "profile": [[p, counts[p]] for p in levels],
     }
 
 
