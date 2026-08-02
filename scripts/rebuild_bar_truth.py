@@ -33,39 +33,51 @@ sys.path.insert(0, str(ROOT))
 
 CT = ZoneInfo("America/Chicago")
 RECORD_SIZE = 40
-EXCEL_EPOCH = datetime(1899, 12, 30, tzinfo=timezone.utc)
+SC_EPOCH = datetime(1899, 12, 30, tzinfo=timezone.utc)
+PRICE_SCALE = 100.0  # .scid prices are ×100 (e.g., 750325 = 7503.25)
 
 
 def read_scid(filepath, start_date=None, end_date=None):
-    """Read .scid file and return list of (ts_utc, o, h, l, c, vol) tuples."""
+    """Read .scid file and return list of (ts_utc, o, h, l, c, vol) tuples.
+
+    Sierra .scid format (version 1, 40 bytes/record):
+      - int64: SCDateTime in microseconds since 1899-12-30 00:00 UTC
+      - float32 × 4: Open, High, Low, Close (prices × 100)
+      - int32 × 4: NumTrades, TotalVolume, BidVolume, AskVolume
+
+    Open field has garbage (-1.99e38) on tick records — ignored, only H/L/C
+    are reliable per-tick. Aggregation reconstructs Open from first tick.
+    """
     bars = []
     with open(filepath, "rb") as f:
-        # Read header (56 bytes for the standard .scid header)
+        # Read header
         header = f.read(56)
         if len(header) < 56:
             print(f"ERROR: file too small ({len(header)} bytes)")
             return bars
 
-        # Read records
+        hdr_size = struct.unpack('<I', header[4:8])[0]
+        rec_size = struct.unpack('<I', header[8:12])[0]
+        if rec_size != RECORD_SIZE:
+            print(f"WARNING: record size {rec_size} != expected {RECORD_SIZE}")
+
+        f.seek(hdr_size)
+
         while True:
-            rec = f.read(RECORD_SIZE)
-            if len(rec) < RECORD_SIZE:
+            rec = f.read(rec_size)
+            if len(rec) < rec_size:
                 break
 
-            dt_serial, o, h, l, c, num_trades, total_vol, bid_vol, ask_vol = struct.unpack(
-                "<dffffiiii", rec)
+            ts_us = struct.unpack('<q', rec[:8])[0]
+            o, h, l, c = struct.unpack('<ffff', rec[8:24])
+            num_trades, total_vol, bid_vol, ask_vol = struct.unpack('<iiii', rec[24:40])
 
-            if dt_serial <= 0 or o <= 0:
+            if ts_us <= 0:
                 continue
 
-            # Convert Excel serial to datetime (in chart TZ = Chicago)
-            days = int(dt_serial)
-            frac = dt_serial - days
+            # Convert microseconds since SC epoch to datetime
             try:
-                naive_dt = EXCEL_EPOCH + timedelta(days=days, seconds=frac * 86400)
-                # Reinterpret as Chicago time → convert to UTC
-                ct_dt = naive_dt.replace(tzinfo=CT)
-                utc_dt = ct_dt.astimezone(timezone.utc)
+                utc_dt = SC_EPOCH + timedelta(microseconds=ts_us)
             except (OverflowError, ValueError):
                 continue
 
@@ -74,7 +86,16 @@ def read_scid(filepath, start_date=None, end_date=None):
             if end_date and utc_dt.date() > end_date:
                 continue
 
-            bars.append((utc_dt, float(o), float(h), float(l), float(c), int(total_vol)))
+            # Scale prices (÷100) and filter garbage Open values
+            h_real = h / PRICE_SCALE
+            l_real = l / PRICE_SCALE
+            c_real = c / PRICE_SCALE
+            o_real = o / PRICE_SCALE if abs(o) < 1e10 else c_real  # garbage Open → use Close
+
+            if h_real < 1000 or h_real > 50000:
+                continue  # not MES range
+
+            bars.append((utc_dt, o_real, h_real, l_real, c_real, int(total_vol)))
 
     return bars
 
@@ -132,7 +153,7 @@ def compare_to_db(truth_bars, date_str):
         from backend.v9.db.read import read_all
         db_rows = read_all(
             "SELECT ts, high, low, close FROM v9_bars_5min_woodies "
-            "WHERE ts::date = :d ORDER BY ts",
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d ORDER BY ts",
             {"d": date_str},
         )
     except Exception as e:
