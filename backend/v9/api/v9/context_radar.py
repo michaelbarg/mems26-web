@@ -227,5 +227,31 @@ def radar(request: Request) -> Dict[str, Any]:
             "stale": bool(st.get("_stale")),
         },
         "bar_integrity": _bar_integrity(),
+        # MULTIDAY_CONTEXT_V1 (Michael 02.08): the 7-day Dalton balance in
+        # radar-compact form — range/value, value migration, today's open
+        # location. Sourced from the cached /context/multiday compute.
+        "balance7": _balance7_summary(),
         "updated_ts": time.time(),
     }
+
+
+def _balance7_summary() -> Optional[Dict[str, Any]]:
+    try:
+        from backend.v9.api.v9.context_multiday import multiday as _md
+        d = _md()
+        comp = d.get("composite")
+        if not comp:
+            return None
+        vm = d.get("value_migration") or {}
+        return {
+            "range": [comp.get("range_low"), comp.get("range_high")],
+            "value": [comp.get("val"), comp.get("vah")],
+            "poc": comp.get("poc"),
+            "migration": vm.get("direction"),
+            "migration_slope": vm.get("slope"),
+            "overlap": d.get("va_overlap_pct"),
+            "open_location": d.get("open_location"),
+            "n_days": d.get("n_days_used"),
+        }
+    except Exception:
+        return None

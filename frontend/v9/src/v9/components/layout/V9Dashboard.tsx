@@ -4,6 +4,7 @@ import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
 import { SierraTruthStrip } from './SierraTruthStrip';
 import { ContextRadar } from './ContextRadar';
+import { MultidayProfilePanel } from './MultidayProfilePanel';
 import { SidePanel } from './SidePanel';
 import { DemoMonitor } from './DemoMonitor';
 import { ViewTabs, type DashboardView } from './ViewTabs';
@@ -109,6 +110,9 @@ export function V9Dashboard() {
           <SierraTruthStrip />
           {/* מייקל 07-29: רדאר-זיהוי — סוג-יום/רגל/פתיחה/שערים/מסחר/שלמות-ברים במבט אחד */}
           <ContextRadar />
+          {/* מייקל 08-02: מאזן-7-ימים (TPO מהברים הקנוניים) — נדידת-ערך, חפיפה,
+              מיקום-הפתיחה מול המאזן — ההקשר הדלתוני לסוג-פתיחה/יום מדויק */}
+          <MultidayProfilePanel />
           <Layer0Strip />
           <KeyLevelsStrip />
           {/* מייקל 07-21: פאנל סוג-פתיחה — סוג הפתיחה + מה הוא מבשר + התבניות הרלוונטיות */}
