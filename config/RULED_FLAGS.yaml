@@ -20,6 +20,8 @@ ruled:
   MARGIN_AWARE_SIZING_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-28", note: "Account Monitor הראה בקשה ל-4 חוזים=$1104.84 מרג'ין מול $97.68 פנוי -> כל ירי נדחה ע\"י הברוקר (6 דחיות Insufficient NLV ב-07-28). מקטין-בלבד, לעולם לא מגדיל; נתוני-חשבון חסרים/ישנים -> לא משנה כלום (חוק 1)" }
   # ── בטיחות (הסט שחייב להיות דלוק בכל LIVE) ──
   LIVE_EXECUTION_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "ביצוע live" }
+  S6_MAE_SCRATCH_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-08-02", note: "פסיקת 02.08 ('תתחיל להחיל דגלים שיכולים לשפר... רק לאחר שהכל תקין') + פסיקת מערכת-6-חכמה מהבוקר. מכויל על 112 עסקאות: מנצחות MAE-חציון 3.2 מול מפסידות 11.2; NET חיובי (חיסכון ~$700-1,100 מול עלות ~$200-300). ספים config/mae_scratch.yaml, FLATTEN בלבד, לפני-T1 בלבד. 10 טסטים." }
+  DELTA_FEATURES_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-08-02", note: "אותה פסיקה + פסיקת-footprint מהבוקר (ביטול-דחיית-S3 שלב-1). R5 delta_confirms_extension וטו על reclass-הרחבה לא-מגובת-דלתא + R6 cvd_directionality לרדאר. מקור: cumulative_delta הקנוני בלבד (Rule 1)." }
   FIXED_CONTRACTS_2:     {expected: "1", ruled_by: "מייקל", date: "2026-08-02", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
