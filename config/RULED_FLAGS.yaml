@@ -20,7 +20,7 @@ ruled:
   MARGIN_AWARE_SIZING_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-28", note: "Account Monitor הראה בקשה ל-4 חוזים=$1104.84 מרג'ין מול $97.68 פנוי -> כל ירי נדחה ע\"י הברוקר (6 דחיות Insufficient NLV ב-07-28). מקטין-בלבד, לעולם לא מגדיל; נתוני-חשבון חסרים/ישנים -> לא משנה כלום (חוק 1)" }
   # ── בטיחות (הסט שחייב להיות דלוק בכל LIVE) ──
   LIVE_EXECUTION_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "ביצוע live" }
-  FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "כבוי — 4 חוזים בתוקף" }
+  FIXED_CONTRACTS_2:     {expected: "1", ruled_by: "מייקל", date: "2026-08-02", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
   RISK_MAX_TRADES_DAY:    {expected: "999", ruled_by: "מייקל", date: "2026-07-20", note: "היום בלי-מגבלת-עסקאות (999=בפועל-בלתי-מוגבל; הסף-האמיתי הוא $800). לשקול החזרה ל-5 מחר" }
@@ -107,7 +107,7 @@ ruled:
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
   LSMA_FLAT_GATE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "פסיקת-בוקר 07-22 Task E: 'מחיר תקוע = אנרגיה נצברת; כניסה מוקדמת = הפסד'. fixtures #449/452/456=BLOCK, #444=pass. מחליף כיבוי-07-13" }
   FIXED_CONTRACTS_4:     {expected: "0", ruled_by: "מייקל", date: "2026-07-31", note: "פסיקת 31.07 13:40: 'תכין אותה למסחר עם 3 חוזים היום t1 t2 t3' — עבר ל-3 חוזים, מדרג T1/T2/T3 קלאסי (בלי T0-scalp). מחליף את פסיקת 4-החוזים מ-07-15." }
-  FIXED_CONTRACTS_3:     {expected: "1", ruled_by: "מייקל", date: "2026-07-31", note: "אותה פסיקה — 3 חוזים, חוזה לכל יעד T1/T2/T3; BE אחרי T1. תקרת-בראקט-4 מכסה." }
+  FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-08-02", note: "SUPERSEDED בפסיקת 02.08: 'המערכת יכולה לירות רק 2 חוזים אחרי ההפסדים של שבוע שעבר... רק t1 and t2' — ירד ל-2 חוזים." }
   T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
   WOODIES_TS_HOUR_FIX: {expected: "0", ruled_by: "מייקל", date: "2026-07-22", note: "P2: hour-fix יצר 11 זוגות-רפאים +1h היום (±120s window caught normal bar re-sends). default OFF. הדלקה=רק אם chartbook-TZ offset מאומת פעיל" }

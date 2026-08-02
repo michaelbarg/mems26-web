@@ -44,17 +44,20 @@ def session_tpo_profile(bars: Sequence[Dict[str, Any]]) -> Optional[Dict[str, An
     if not bars or len(bars) < TPO_PERIOD_BARS:
         return None
     counts: Dict[float, int] = {}
+    letters: Dict[float, str] = {}   # מייקל 02.08: אות פר-תקופת-30-דק' — כמו סיירה
     n_periods = 0
-    for p0 in range(0, len(bars), TPO_PERIOD_BARS):
+    for idx, p0 in enumerate(range(0, len(bars), TPO_PERIOD_BARS)):
         period = bars[p0:p0 + TPO_PERIOD_BARS]
         hi = max((_f(b, "h", "high") or float("-inf")) for b in period)
         lo = min((_f(b, "l", "low") or float("inf")) for b in period)
         if hi == float("-inf") or lo == float("inf"):
             continue
         n_periods += 1
+        letter = chr(ord("A") + idx) if idx < 26 else "?"
         lvl = round(round(lo / TICK) * TICK, 2)
         while lvl <= hi + 1e-9:
             counts[lvl] = counts.get(lvl, 0) + 1
+            letters[lvl] = letters.get(lvl, "") + letter
             lvl = round(lvl + TICK, 2)
     if not counts or n_periods == 0:
         return None
@@ -86,9 +89,10 @@ def session_tpo_profile(bars: Sequence[Dict[str, Any]]) -> Optional[Dict[str, An
         "high": levels[-1], "low": levels[0],
         "total_tpos": total, "n_periods": n_periods,
         "singles": singles,
-        # מייקל 02.08: "מדויק כמו של סיירה" — ההיסטוגרמה המלאה פר-רבע-נקודה,
-        # כדי שהפרונט יצייר פרופיל-TPO אמיתי ולא רק קופסת-VA.
-        "profile": [[p, counts[p]] for p in levels],
+        # מייקל 02.08: "מדויק כמו של סיירה" — ההיסטוגרמה המלאה פר-רבע-נקודה
+        # + מחרוזת-האותיות (אות פר-תקופת-30-דק' שנגעה ברמה, A=התקופה הראשונה),
+        # כדי שהפרונט יצייר קוביות-אותיות אמיתיות ולא רק ברים.
+        "profile": [[p, counts[p], letters[p]] for p in levels],
     }
 
 

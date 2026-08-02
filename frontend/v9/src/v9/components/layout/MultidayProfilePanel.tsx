@@ -30,7 +30,9 @@ const MIN_H = 320, MAX_H = 1000, DEF_H = 560;
 
 interface DayProf {
   poc: number; vah: number; val: number; high: number; low: number;
-  singles?: number[]; profile?: [number, number][];
+  singles?: number[];
+  // [price, count, letters] — letters = אות פר-תקופת-30-דק' (A=ראשונה), כמו סיירה
+  profile?: [number, number, string?][];
 }
 interface Multiday {
   days?: DayProf[]; dates?: string[];
@@ -238,14 +240,34 @@ function TpoCanvas({ days, dates, comp, suspects, w, h }: {
       const maxC = Math.max(1, ...prof.map(([, c]) => c));
       const barMax = colW - 26;
 
-      // TPO histogram — בר אופקי פר-רבע-נקודה; בתוך-VA מודגש
-      for (const [p, c] of prof) {
-        const bw = Math.max(1, (c / maxC) * barMax);
+      // מייקל 02.08: "לכל 30 דקות יש קוביה עם אות — שגם אצלנו יהיה זהה".
+      // כשגובה-השורה מספיק (≥6px) מציירים קוביות-אותיות A,B,C... פר-תקופה,
+      // בדיוק כמו סיירה; בזום-אאוט נופלים חזרה לברים (מה שסיירה עצמה עושה).
+      const drawLetters = rowH >= 6;
+      const cellW = drawLetters ? Math.min(9, barMax / 13) : 0;
+      ctx.textAlign = 'left';
+      for (const [p, c, ltrs] of prof) {
         const inVA = p >= day.val && p <= day.vah;
-        ctx.fillStyle = inVA
-          ? `rgba(22,163,74,${0.75 * alpha})`
-          : `rgba(90,120,132,${0.5 * alpha})`;
-        ctx.fillRect(x0, y(p) - rowH / 2, bw, Math.max(1, rowH * 0.9));
+        if (drawLetters && ltrs) {
+          ctx.font = `${Math.min(rowH - 1, 9)}px ui-monospace, monospace`;
+          for (let k = 0; k < ltrs.length; k++) {
+            const cx = x0 + k * cellW;
+            ctx.fillStyle = inVA
+              ? `rgba(22,163,74,${0.35 * alpha})`
+              : `rgba(90,120,132,${0.22 * alpha})`;
+            ctx.fillRect(cx, y(p) - rowH / 2, cellW - 1, rowH - 1);
+            ctx.fillStyle = inVA
+              ? `rgba(190,242,210,${alpha})`
+              : `rgba(170,195,205,${0.85 * alpha})`;
+            ctx.fillText(ltrs[k], cx + 1.5, y(p) + rowH / 2 - 2);
+          }
+        } else {
+          const bw = Math.max(1, (c / maxC) * barMax);
+          ctx.fillStyle = inVA
+            ? `rgba(22,163,74,${0.75 * alpha})`
+            : `rgba(90,120,132,${0.5 * alpha})`;
+          ctx.fillRect(x0, y(p) - rowH / 2, bw, Math.max(1, rowH * 0.9));
+        }
       }
       // singles — נקודות לבנות בקצה
       for (const p of day.singles ?? []) {
