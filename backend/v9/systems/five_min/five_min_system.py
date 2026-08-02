@@ -1331,6 +1331,107 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _oe_err:
                     logger.warning("[FiveMin] opening-entry failed (non-fatal): %s", _oe_err)
 
+                # ── EDGE_FADE_V1 (DEV_PLAN 02.08 §P1 — the $1,550 detection gap):
+                # responsive edge-fade on balance days. Location+direction here;
+                # TIMING stays with awaiting_release (deliberately not exempt) —
+                # the 07-27 winner was edge-location + release-timing combined.
+                try:
+                    if (os.getenv("EDGE_FADE_V1", "0").lower() in ("1", "true", "yes")
+                            and self._gateway):
+                        from backend.v9.systems.edge_fade import (
+                            evaluate_edge_fade, build_edge_fade_setup, FADE_DAY_TYPES)
+                        from backend.v9.db.read import read_one as _ef_read1, read_all as _ef_readN
+                        _ef_dt_row = _ef_read1(
+                            "SELECT day_type, confidence FROM v9_day_type_state "
+                            "ORDER BY id DESC LIMIT 1", {})
+                        _ef_dt = _ef_dt_row["day_type"] if _ef_dt_row else None
+                        try:
+                            _ef_conf = float(_ef_dt_row["confidence"]) if _ef_dt_row and \
+                                _ef_dt_row["confidence"] is not None else 0.0
+                        except (TypeError, ValueError):
+                            _ef_conf = 0.0
+                        if _ef_dt in FADE_DAY_TYPES and _ef_conf >= 0.4:
+                            _ef_rows = _ef_readN(
+                                "SELECT extract(epoch from ts) ets, open o, high h, "
+                                "low l, close c FROM v9_bars_5min_woodies "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                "ORDER BY ts", {})
+                            _ef_rows = list(_ef_rows or [])
+                            # anti-phantom: newest closed bar must be fresh (<10 min)
+                            import time as _ef_time
+                            _ef_fresh = bool(_ef_rows) and (
+                                _ef_time.time() - float(_ef_rows[-1]["ets"])) < 600
+                            if _ef_fresh:
+                                # ARM → RELEASE two-stage (see edge_fade.py header)
+                                from backend.v9.systems.edge_fade import (
+                                    build_release_entry_setup, ARM_WINDOW_BARS)
+                                from backend.v9.systems.release_gate import (
+                                    Bar as _ef_Bar, check_release as _ef_release)
+                                if not hasattr(self, "_ef_fired"):
+                                    self._ef_fired = set()
+                                if not hasattr(self, "_ef_armed"):
+                                    self._ef_armed = {}
+                                _ef_n_bars = len(_ef_rows)
+                                # stage 1 — arm on an edge rejection
+                                _ef_trig = evaluate_edge_fade(
+                                    _ef_rows, _ef_dt, self._ef_fired)
+                                if _ef_trig and _ef_trig["type"] not in self._ef_armed:
+                                    self._ef_armed[_ef_trig["type"]] = (_ef_n_bars, _ef_trig)
+                                    logger.info(
+                                        "[FiveMin] EDGE_FADE ARMED %s %s (edge %.2f, "
+                                        "awaiting release)", _ef_trig["type"],
+                                        _ef_trig["direction"], _ef_trig["edge"])
+                                # stage 2 — enter on the release confirmation
+                                for _ef_side, (_ef_ai, _ef_tg) in list(self._ef_armed.items()):
+                                    if _ef_side in self._ef_fired:
+                                        continue
+                                    if _ef_n_bars - _ef_ai > ARM_WINDOW_BARS:
+                                        del self._ef_armed[_ef_side]
+                                        continue
+                                    _ef_rbars = [
+                                        _ef_Bar(float(b["h"]), float(b["l"]),
+                                                float(b["c"]), 0.0)
+                                        for b in _ef_rows]
+                                    # volume needed for the release check — refetch light
+                                    try:
+                                        _ef_v = _ef_readN(
+                                            "SELECT volume FROM v9_bars_5min_woodies "
+                                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                            "(now() AT TIME ZONE 'America/New_York')::date "
+                                            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                            "ORDER BY ts", {})
+                                        for _bi, _vr in enumerate(_ef_v or []):
+                                            if _bi < len(_ef_rbars):
+                                                _ef_rbars[_bi].volume = float(_vr["volume"] or 0)
+                                    except Exception:
+                                        pass
+                                    _ef_verdict = _ef_release(_ef_rbars, _ef_tg["direction"])
+                                    if not _ef_verdict.released:
+                                        continue
+                                    self._ef_fired.add(_ef_side)
+                                    del self._ef_armed[_ef_side]
+                                    _ef_n = 3 if os.getenv("FIXED_CONTRACTS_3", "0") == "1" \
+                                        else (4 if os.getenv("FIXED_CONTRACTS_4", "0") == "1" else 1)
+                                    _ef_setup = build_release_entry_setup(
+                                        _ef_tg["direction"],
+                                        float(_ef_rows[-1]["c"]),
+                                        _ef_verdict.structural_stop,
+                                        float(_ef_tg["target_mid"]),
+                                        float(_ef_tg["stop"]),
+                                        contracts=_ef_n)
+                                    logger.info(
+                                        "[FiveMin] EDGE_FADE RELEASE-ENTRY %s %s "
+                                        "entry=%.2f stop=%.2f t1=%.2f t2=%.2f (%s)",
+                                        _ef_side, _ef_tg["direction"],
+                                        _ef_setup["entry_price"], _ef_setup["stop"],
+                                        _ef_setup["t1"], _ef_setup["t2"],
+                                        _ef_verdict.reason[:60])
+                                    self._gateway.route_setup(_ef_setup, 2)
+                except Exception as _ef_err:
+                    logger.warning("[FiveMin] edge-fade failed (non-fatal): %s", _ef_err)
+
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
         # Uses last 14 bars (rolling window) for stable measurement.
