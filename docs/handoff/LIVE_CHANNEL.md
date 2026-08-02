@@ -1,3 +1,13 @@
+### 2026-08-02 16:30 — cowork-dev — MULTIDAY_CONTEXT שלבים A-C חיים
+
+מנוע-TPO-רב-יומי מהברים הקנוניים (אפס-סיירה) + endpoint + פאנל-פרונטאנד + balance7
+ברדאר. הקשר-מחר כבר מחושב: **שבוע-מגמה-עולה** (נדידה +7.8/יום, חפיפה 0.27), מאזן
+7326.5-7541, ערך 7373.5-7531, POC 7447. תיקון-תוכנית ישר: מקרה-21.07 = נדידה
+תוך-יומית (תחום-המסווג) — הכלי-הרב-יומי צדק שקרא DOWN לשבוע-שלפניו.
+**אל: cc — שלב-D (flag MULTIDAY_CONTEXT_V1, OFF):** פיצ'ר-מסווג open_vs_balance7 ·
+קצוות-EDGE_FADE מהמורכב · חיזוק-conf-פתיחה · וטו-נדידה-תוך-יומית (המקרה האמיתי של
+21.07) — עם replay-קבלה לפני כל הדלקה.
+
 ### 2026-08-02 — cc-macbook — (א) delta→classifier+radar · (ב) MAE-scratch · (ג) scid parser fixed
 **(א) DELTA_FEATURES_V1** (`ed200a3a`): `delta_confirms_extension` (R5) vetoes acceptance-reclass when extension not delta-backed. `cvd_directionality` (R6) + DLL trend/divergence emitted to radar. Flag OFF.
 **(ב) S6_MAE_SCRATCH_V1** (`4902868a`): per-pattern MAE threshold from `mae_scratch.yaml` (ZLR:6, GB100:10, default:8). Responsive ×1.5. Pre-T1 only. FLATTEN, never EXIT. 10 tests. Flag OFF.
