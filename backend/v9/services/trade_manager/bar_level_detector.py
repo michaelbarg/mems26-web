@@ -628,6 +628,47 @@ class BarLevelDetector:
                     # W9: journal all exit/hold signals per bar (advisory, flag-gated)
                     self._system6_journal_autoloop(trade, _ts_key)
 
+                # S6 MAE scratch (DEV_PLAN 02.08 §P3.1): adverse excursion ≥
+                # per-pattern threshold before T1 → FLATTEN. Flag-gated
+                # S6_MAE_SCRATCH_V1 (OFF). Never op=EXIT. Fail-safe.
+                if _is_demo_live:
+                    try:
+                        from backend.v9.systems.mae_scratch import should_scratch
+                        _q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+                        _pat = _q.get("pattern_name", _q.get("setup_type", ""))
+                        _scratch, _scratch_reason = should_scratch(
+                            pattern_name=_pat,
+                            entry_price=float(trade.entry_price),
+                            direction=direction,
+                            bar_low=bar_low,
+                            bar_high=bar_high,
+                            t1_hit=trade.t1_hit_ts is not None,
+                        )
+                        if _scratch:
+                            logger.warning(
+                                "[BarLevelDetector] S6 MAE SCRATCH: trade %d — %s",
+                                trade.id, _scratch_reason)
+                            self._tm.close_trade(trade.id, reason="MAE_SCRATCH")
+                            if self._gateway:
+                                try:
+                                    self._gateway.on_trade_close({
+                                        "trade_id": trade.id,
+                                        "mode": getattr(trade, "mode", "demo"),
+                                        "pnl_usd": 0.0,
+                                        "outcome": "SCRATCH",
+                                        "direction": direction,
+                                    })
+                                except Exception:
+                                    pass
+                            try:
+                                from scripts.ops_log import log_event
+                                log_event("mae_scratch", "WARNING", _scratch_reason)
+                            except Exception:
+                                pass
+                            continue  # trade scratched — skip further checks
+                    except Exception as _mae_err:
+                        logger.debug("[BarLevelDetector] MAE scratch error (fail-safe): %s", _mae_err)
+
                 # 1. Stop check FIRST (adverse fill priority)
                 if stop is not None:
                     if (direction == "LONG" and bar_low <= stop) or \

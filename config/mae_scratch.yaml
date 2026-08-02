@@ -1,0 +1,25 @@
+# MAE Scratch thresholds (Sweeney, DEV_PLAN 02.08 §P3.1)
+#
+# Calibrated on 112 trades 15.07–01.08: median MAE winners 3.2pt,
+# losers 11.2pt (3.5× separation). Scratch when adverse excursion ≥
+# threshold BEFORE T1 hit. After T1 → BE already covers it.
+#
+# Responsive trades (REACTIVE/HNS/EDGE_FADE) get threshold × 1.5
+# per Kaminski&Lo: early exit hurts mean-reversion strategies.
+
+default_threshold_pts: 8.0
+responsive_multiplier: 1.5
+
+# Responsive pattern families (get the multiplied threshold)
+responsive_patterns:
+  - REACTIVE
+  - HNS
+  - EDGE_FADE
+  - INVERSE_HNS
+
+# Per-pattern overrides (when n >= 10 in calibration data)
+pattern_thresholds:
+  ZLR: 6.0            # winners MAE 0.4pt — tight
+  GB100: 10.0          # winners MAE 1.0pt
+  INITIATIVE_SHORT: 10.0
+  INITIATIVE_LONG: 16.0  # small sample (n=6), conservative

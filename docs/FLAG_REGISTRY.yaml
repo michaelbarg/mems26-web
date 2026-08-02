@@ -532,6 +532,13 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  S6_MAE_SCRATCH_V1:
+    category: risk
+    group: "system 6"
+    what: "P3.1: MAE-based scratch — when adverse excursion >= per-pattern threshold before T1, FLATTEN the trade. Thresholds from config/mae_scratch.yaml (Sweeney calibration on 112 trades). Responsive patterns get 1.5× threshold (Kaminski&Lo). Post-T1 never fires (BE handles it). Uses FLATTEN only, never op=EXIT."
+    why: "OFF (default). Calibration data: winners median MAE 3.2pt, losers 11.2pt (3.5× separation). The 8 exhaustion trades (-$631) would have been cut at ≈BE. Requires replay verification before enable."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/mae_scratch.py · config/mae_scratch.yaml · docs/reports/MAE_CALIBRATION_2026-08-02.md"
   DELTA_FEATURES_V1:
     category: s1
     group: "day-type classifier"
