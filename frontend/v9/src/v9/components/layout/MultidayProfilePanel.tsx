@@ -34,6 +34,15 @@ const LOC_HE: Record<string, string> = {
 
 export function MultidayProfilePanel() {
   const [d, setD] = useState<Multiday | null>(null);
+  // מייקל 02.08 ("אל תפגע לי בטבלה ותסדר טוב יותר"): ברירת-מחדל = שורת-סיכום
+  // דקה בלבד; הסולם נפתח בלחיצה. הבחירה נשמרת.
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem('multiday-panel-open') === '1') setOpen(true);
+  }, []);
+  const toggle = () => {
+    setOpen(o => { localStorage.setItem('multiday-panel-open', o ? '0' : '1'); return !o; });
+  };
 
   useEffect(() => {
     let alive = true;
@@ -52,13 +61,8 @@ export function MultidayProfilePanel() {
 
   const days = d?.days ?? [];
   const comp = d?.composite;
-  if (!comp || days.length === 0) {
-    return (
-      <div style={{ padding: '4px 10px', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
-        <span style={{ fontSize: 8, color: COLORS.textDim }}>מאזן 7-ימים — אין נתונים</span>
-      </div>
-    );
-  }
+  // אין נתונים ⇒ אין פאנל — לא תופסים שורה על המסך (מייקל 02.08)
+  if (!comp || days.length === 0) return null;
 
   // scale: composite range → panel height
   const H = 92, PADW = 46;
@@ -74,9 +78,11 @@ export function MultidayProfilePanel() {
   const suspects = new Set(d?.suspect_dates ?? []);
 
   return (
-    <div style={{ padding: '4px 10px', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-        <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '1px', color: C }}>מאזן 7-ימים</span>
+    <div style={{ padding: '3px 10px', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
+      <div onClick={toggle} title={open ? 'סגור סולם' : 'פתח סולם 7-ימים'}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+        <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '1px', color: C }}>
+          {open ? '▾' : '▸'} מאזן 7-ימים</span>
         <span style={{ fontSize: 9, color: migColor, fontWeight: 700 }}>{migTxt}
           {d?.value_migration?.slope != null ? ` (${d.value_migration.slope > 0 ? '+' : ''}${d.value_migration.slope}/יום)` : ''}
         </span>
@@ -90,7 +96,8 @@ export function MultidayProfilePanel() {
           ערך {comp.val}–{comp.vah} · POC {comp.poc} · טווח {comp.range_low}–{comp.range_high}
         </span>
       </div>
-      <svg width={days.length * PADW + 8} height={H + 14} style={{ display: 'block' }}>
+      {open && (
+      <svg width={days.length * PADW + 8} height={H + 14} style={{ display: 'block', marginTop: 2 }}>
         {/* פס-הערך-המורכב */}
         <rect x={0} y={y(comp.vah)} width={days.length * PADW}
           height={Math.max(2, y(comp.val) - y(comp.vah))}
@@ -121,6 +128,7 @@ export function MultidayProfilePanel() {
           );
         })}
       </svg>
+      )}
     </div>
   );
 }
