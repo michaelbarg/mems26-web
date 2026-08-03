@@ -34,6 +34,8 @@ class MarketContext:
     acceptance: str = "pending"         # pending | accepted | rejected
     day_bias: str = "NONE"              # UP / DOWN / NONE
     day_type: str = "UNKNOWN"           # from get_live_day_type
+    leg_dir: Optional[str] = None       # UP / DOWN / None (from leg_state)
+    leg_age: int = 0                    # bars since leg started
     updated_ts: float = 0.0
 
 
@@ -155,6 +157,28 @@ def get_market_context() -> MarketContext:
             _current.balance_state, "in_value_accepted",
             ("UNKNOWN", "in_value_accepted", "out_value_in_range", "out_of_range"))
         _current.balance_conviction = "low"
+
+    # 5. Leg state (N4: from leg_state.py — the intraday leg detector)
+    try:
+        from backend.v9.systems.leg_state import detect_leg
+        from backend.v9.db.read import read_all
+        _leg_rows = read_all(
+            "SELECT high, low, close, lsma_value, cci_14 FROM v9_bars_5min_woodies "
+            "ORDER BY ts DESC LIMIT 12", {},
+        )
+        if _leg_rows:
+            # Reverse to oldest→newest
+            _leg_bars = [{"high": float(r["high"]), "low": float(r["low"]),
+                          "close": float(r["close"]),
+                          "lsma_value": float(r["lsma_value"]) if r.get("lsma_value") else None,
+                          "cci_14": float(r["cci_14"]) if r.get("cci_14") else None}
+                         for r in _leg_rows][::-1]
+            _leg_dir, _leg_age, _ = detect_leg(_leg_bars)
+            if _leg_dir in ("UP", "DOWN"):
+                _current.leg_dir = _leg_dir
+                _current.leg_age = _leg_age
+    except Exception:
+        pass
 
     _current.updated_ts = time.time()
     return _current
