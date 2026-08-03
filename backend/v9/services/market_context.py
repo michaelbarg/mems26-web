@@ -36,6 +36,8 @@ class MarketContext:
     day_type: str = "UNKNOWN"           # from get_live_day_type
     leg_dir: Optional[str] = None       # UP / DOWN / None (from leg_state)
     leg_age: int = 0                    # bars since leg started
+    multiday_migration: Optional[str] = None  # UP / DOWN / FLAT (from multiday_profile)
+    multiday_veto_dir: Optional[str] = None   # SHORT (migration=UP) / LONG (migration=DOWN)
     updated_ts: float = 0.0
 
 
@@ -177,6 +179,42 @@ def get_market_context() -> MarketContext:
             if _leg_dir in ("UP", "DOWN"):
                 _current.leg_dir = _leg_dir
                 _current.leg_age = _leg_age
+    except Exception:
+        pass
+
+    # 6. Multiday migration (D2: from classifier's feat or direct computation)
+    try:
+        from backend.v9.db.read import read_all as _md_read_all
+        from backend.v9.systems.multiday_profile import build_context, session_tpo_profile
+        from collections import defaultdict as _md_dd
+        _md_rows = _md_read_all(
+            "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date < "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::date >= "
+            "((now() AT TIME ZONE 'America/New_York')::date - interval '10 days') "
+            "ORDER BY ts", {},
+        )
+        if _md_rows:
+            _md_by = _md_dd(list)
+            for r in _md_rows:
+                d = r["ts"].date() if hasattr(r["ts"], "date") else str(r["ts"])[:10]
+                _md_by[d].append({
+                    "o": float(r["open"]), "h": float(r["high"]),
+                    "l": float(r["low"]), "c": float(r["close"]),
+                    "vol": int(r["volume"] or 0),
+                })
+            _md_sessions = [_md_by[d] for d in sorted(_md_by) if len(_md_by[d]) >= 12]
+            if _md_sessions:
+                _md_ctx = build_context(_md_sessions)
+                _mig = _md_ctx.get("value_migration", {})
+                _mdir = _mig.get("direction")
+                if _mdir in ("UP", "DOWN", "FLAT"):
+                    _current.multiday_migration = _mdir
+                    if _mdir == "UP":
+                        _current.multiday_veto_dir = "SHORT"
+                    elif _mdir == "DOWN":
+                        _current.multiday_veto_dir = "LONG"
     except Exception:
         pass
 

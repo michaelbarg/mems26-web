@@ -1306,6 +1306,35 @@ class TradingGateway:
             except Exception as _dc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
 
+        # --- MULTIDAY_VETO_V1 (D2, 2026-08-03): block trades against multi-day
+        # value migration. SHORT blocked when 7-day migration = UP (selling into
+        # upward-migrating value, the 07-21 case: −$209); LONG blocked when DOWN.
+        # Exception: a live leg in the trade direction overrides (the leg is a
+        # stronger, more immediate signal than the multi-day drift).
+        # Flag OFF → byte-identical (no block).
+        if os.getenv("MULTIDAY_VETO_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.market_context import get_market_context
+                _mc = get_market_context()
+                _veto_dir = getattr(_mc, "multiday_veto_dir", None) if _mc else None
+                if _veto_dir and direction == _veto_dir:
+                    # Leg exemption: a live leg in the trade direction overrides
+                    _leg_exempt = False
+                    _leg = getattr(_mc, "leg_dir", None)
+                    if _leg and _leg == direction:
+                        _leg_exempt = True
+                    if not _leg_exempt:
+                        _mig = getattr(_mc, "multiday_migration", None) if _mc else None
+                        result["blocked_by"] = "multiday_veto"
+                        result["reason"] = (
+                            f"{direction} blocked: 7-day value migration = {_mig} "
+                            f"(selling into rising value / buying into falling value)")
+                        logger.info("[Gateway] BLOCKED by multiday-veto: %s vs migration %s",
+                                    direction, _mig)
+                        return result
+            except Exception as _mv_err:
+                logger.debug("[Gateway] multiday-veto errored (fail-open): %s", _mv_err)
+
         # --- LSMA-flat gate (Michael 2026-07-08): NO fires while the Woodies LSMA is
         # too horizontal (no clear trend angle). |slope| in points/bar over
         # LSMA_FLAT_LOOKBACK_BARS (default 4) must be >= LSMA_FLAT_MIN_SLOPE_PTS
