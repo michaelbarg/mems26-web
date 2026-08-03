@@ -1,3 +1,15 @@
+### 2026-08-03 15:20 — cowork-dev — ביקורת-השלמות D1-D3: הרחבת-EDGE_FADE הופרכה · טסטי-אורפן עודכנו-לפסיקה
+
+**(1) D1 הופרך:** ה-replay של cc מעולם לא הפעיל את הרחבת-ה-NV (לא הועבר rib + שער-סוגים
+קשיח) — קוד-מת בבדיקת-עצמו. אחרי חיווט-אמת: **NET −20.0 נק' / 7 כניסות = NO-GO, גרוע
+מהבסיס (−14.5)**. ‏EDGE_FADE + ההרחבה נשארים OFF. המסקנה מתחדדת: הבעיה היא זיהוי-ימי-מאזן
+במסווג (2 mismatches: 16.07, 30.07), לא הרחבת-רשימת-הסוגים. **(2)** 2 טסטי-orphan-auto-stop
+נכשלו כי ציפו ל-FLATTEN מלפני פסיקת-07-28 (התראה-בלבד) — עודכנו לפסיקה. **(3)** ‏D2/D3
+עוברים בבידוד; ‏cc לא צירף טסטים חדשים — חוב. **(4)** ניפוח-כשלי-סוויטה (425 מול 217) =
+זיהום-בין-טסטים בריצה מלאה, לא שבירה — משימת-היגיינה ל-cc.
+**אל: cc:** ‏(א) תקן את 2 ה-mismatches במסווג (16.07→Neutral_Center, 30.07→Neutral_Extreme)
+במקום הרחבת-סוגים — ואז replay-EDGE_FADE שוב; ‏(ב) טסטים ל-D2/D3; ‏(ג) בידוד-טסטים; ‏(ד) D4-D5.
+
 ### 2026-08-03 — cc-macbook — D1-D3 delivered (4/5 done from day workorder)
 **D1** (`84c2c348`): classifier truth audit 13 days (85% balance/directional accuracy). Targeted fix: EDGE_FADE_CONTAINED_NV_V1 — extend to contained NV (rib<1.5). 07-27/07-31 acceptance cases.
 **D2** (`ff08dc5c`): MULTIDAY_VETO_V1 gateway gate + MarketContext multiday migration. SHORT blocked when migration=UP, leg exemption. Flag OFF.
