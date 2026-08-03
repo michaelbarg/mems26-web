@@ -1261,7 +1261,14 @@ def post_woodies_5min(
         if os.getenv("BAR_SEAM_REJECT_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 _seam_max = float(os.getenv("BAR_SEAM_MAX_PTS", "15"))
-                # ב. Find neighbor by ts-proximity from DB (not batch order)
+                # ב. Find neighbor by ts-proximity from DB (not batch order).
+                # 03.08 root-fix: ADJACENT neighbor only (≤30 min back). The
+                # unbounded query matched Friday's last bar as the "neighbor"
+                # of Monday's first bar — a legitimate 46pt weekend gap read
+                # as a seam, and the guard rejected the entire live morning
+                # (bars_2h=0, day_type=UNKNOWN, no trading). A seam is a
+                # discontinuity between adjacent bars; across a session gap
+                # there is no adjacency and nothing to guard.
                 _bar_ts = bar.get("ts")
                 _nbr_h, _nbr_l = None, None
                 try:
@@ -1269,6 +1276,7 @@ def post_woodies_5min(
                     _nbr = read_one(
                         "SELECT high, low, ts FROM v9_bars_5min_woodies "
                         "WHERE symbol='MES' AND ts < :ts "
+                        "AND ts > (CAST(:ts AS timestamptz) - interval '30 minutes') "
                         "ORDER BY ts DESC LIMIT 1",
                         {"ts": datetime.fromtimestamp(
                             float(_bar_ts), tz=timezone.utc).isoformat()
