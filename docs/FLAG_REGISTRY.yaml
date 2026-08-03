@@ -532,6 +532,13 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  EDGE_FADE_CONTAINED_NV_V1:
+    category: s2
+    group: "edge fade"
+    what: "D1: extend EDGE_FADE to contained Normal_Variation days (rib < 1.5). These are functionally balance days with a minor extension. The classifier truth audit (13 days) shows 07-27 (rib=1.31) and 07-31 (rib=1.29) are contained NV days where edge-fade should be eligible."
+    why: "OFF (default). EDGE_FADE needs this to find opportunities — the classifier labels most days NV which was excluded from FADE_DAY_TYPES."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/edge_fade.py:FADE_DAY_TYPES_EXTENDED"
   S6_MAE_SCRATCH_V1:
     category: risk
     group: "system 6"

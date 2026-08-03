@@ -52,6 +52,11 @@ EDGE_MIN_RANGE_PTS = 20.0    # no fading inside a coil
 EDGE_STOP_OFFSET_PTS = 1.5   # stop beyond the probe extreme
 EDGE_STOP_CAP_PTS = 15.0     # same cap doctrine as opening/ZLR (rulings 06-12/07-31)
 FADE_DAY_TYPES = ("Normal", "Neutral_Center", "Neutral_Extreme")
+# D1 (2026-08-03): contained Normal_Variation (rib < 1.5) is functionally
+# a balance day — the extension is minor. Eligible for edge-fade when
+# EDGE_FADE_CONTAINED_NV_V1 is ON.
+FADE_DAY_TYPES_EXTENDED = FADE_DAY_TYPES + ("Normal_Variation",)
+CONTAINED_NV_RIB_MAX = 1.5
 
 
 def _f(bar: Dict[str, Any], *keys: str) -> Optional[float]:
@@ -68,15 +73,26 @@ def _f(bar: Dict[str, Any], *keys: str) -> Optional[float]:
 def evaluate_edge_fade(session_bars: List[Dict[str, Any]],
                        day_type: Optional[str],
                        already_fired: Optional[Set[str]] = None,
-                       *, min_bars: int = 6) -> Optional[Dict[str, Any]]:
+                       *, min_bars: int = 6,
+                       rib: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """Evaluate the LAST closed bar for an edge rejection. Returns a trigger
     dict {type, direction, entry, stop, edge, probe_extreme} or None.
 
     `session_bars` = today's closed RTH 5-min bars oldest→newest.
     `day_type` must be one of FADE_DAY_TYPES (caller passes the live label);
-    None/other → no trade (the fade is a balance-day tool, full stop)."""
+    None/other → no trade (the fade is a balance-day tool, full stop).
+
+    D1 (2026-08-03): contained Normal_Variation (rib < 1.5) is also eligible
+    when the day range is large enough but the extension is minor."""
+    import os as _ef_os
     fired = already_fired or set()
-    if day_type not in FADE_DAY_TYPES:
+    # D1: extend to contained NV when flag ON + rib available + rib < threshold
+    _contained_nv_on = _ef_os.getenv("EDGE_FADE_CONTAINED_NV_V1", "0").lower() in (
+        "1", "true", "yes")
+    _valid_types = FADE_DAY_TYPES
+    if _contained_nv_on and day_type == "Normal_Variation" and rib is not None and rib < CONTAINED_NV_RIB_MAX:
+        _valid_types = FADE_DAY_TYPES_EXTENDED
+    if day_type not in _valid_types:
         return None
     n = len(session_bars)
     if n < min_bars:                      # session too young for "edges"
