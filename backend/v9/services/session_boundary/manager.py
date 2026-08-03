@@ -190,9 +190,21 @@ class SessionBoundaryManager:
               FROM v9_tpo_sessions
               WHERE trading_date < ?
         """, (today_iso,))
+        # 03.08 root-fix: SELECT * broke silently on every session boundary —
+        # the live table gained 6 columns (czi_state..is_synthetic) the archive
+        # lacked ("INSERT has more expressions than target columns"). Archive
+        # ALTERed to match; explicit column list so future drift fails loudly
+        # in one obvious place instead of a star-expansion mismatch.
         safe_execute("""
             INSERT INTO v9_woodies_signals_archive
-              SELECT *, CURRENT_TIMESTAMP AS archived_at
+              (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+               reasoning, session, created_at, czi_state, swi_state,
+               persistence_bars, signal_type_core, signal_confidence,
+               is_synthetic, archived_at)
+              SELECT ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+                     reasoning, session, created_at, czi_state, swi_state,
+                     persistence_bars, signal_type_core, signal_confidence,
+                     is_synthetic, CURRENT_TIMESTAMP
               FROM v9_woodies_signals
               WHERE date(ts) < ?
         """, (today_iso,))
