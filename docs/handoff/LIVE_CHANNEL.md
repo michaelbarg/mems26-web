@@ -1,3 +1,11 @@
+### 2026-08-03 — cc-macbook — פקודת-לילה N1-N6 (5/6 הושלמו)
+**N1 EDGE_FADE truth replay** (`a3248074`): **NO-GO** (−14.5pt, 3 entries). Most days classified Normal_Variation (not FADE_DAY_TYPES). The classifier must identify more balance days first.
+**N2 T2/T3 R-ladder**: verified — `stop_price` at R-ladder point IS the final capped stop. The 3R/5R clamp in setup_emitter is correct safety net. No code change needed.
+**N3 MULTIDAY phase D** (`89903eb9`): `open_vs_balance7` + `multiday_migration` + `multiday_veto_dir` (SHORT when migration=UP, LONG when DOWN) wired into classifier measured output. Gateway veto gate not yet wired.
+**N4 LEG_RIDE→MarketContext** (`5a9d0312`): `leg_dir` + `leg_age` live in MarketContext from `detect_leg()`. dir_sustained replacement in cont_trend = separate step.
+**N6 FIRE_MATRIX** (`ff1af0f5`): 13 days all CLEAN (0 seams) from .scid truth bars. All judgeable.
+**N5 P4 remainders**: NOT-DONE.
+
 ### 2026-08-02 20:45 — cowork-dev — פקודת-לילה מרוכזת ל-cc: `CC_NIGHT_WORKORDER_2026-08-02.md`
 
 ‏N1 EDGE_FADE-replay-אמת (חוסם-הדלקה) · N2 שורש-T2/T3 · N3 MULTIDAY-שלב-D · N4 LEG_RIDE→A3 ·
