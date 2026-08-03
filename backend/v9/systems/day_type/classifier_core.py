@@ -251,6 +251,54 @@ def classify_session(
         except Exception:
             pass  # fail-open: missing delta = None fields (Rule 1)
 
+    # ── N3 (MULTIDAY_CONTEXT_V1 phase D): open_vs_balance7 + migration veto ──
+    # Where today opens vs the 7-day composite → confidence adjustment +
+    # veto sell-against-migrating-value (21.07 case: −$209 shorting upward-
+    # migrating value). Computed always when flag ON; consumed by classify()
+    # through feat dict → byte-identical when OFF.
+    feat["open_vs_balance7"] = None
+    feat["multiday_migration"] = None
+    feat["multiday_veto_dir"] = None
+    if os.getenv("MULTIDAY_CONTEXT_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            from backend.v9.systems.multiday_profile import build_context
+            from backend.v9.db.read import read_all as _md_read
+            # Load last 7 trading days' bars
+            _md_sessions = []
+            _md_rows = _md_read(
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies "
+                "WHERE (ts AT TIME ZONE 'America/New_York')::date < "
+                "(now() AT TIME ZONE 'America/New_York')::date "
+                "AND (ts AT TIME ZONE 'America/New_York')::date >= "
+                "((now() AT TIME ZONE 'America/New_York')::date - interval '10 days') "
+                "ORDER BY ts", {},
+            )
+            if _md_rows:
+                from collections import defaultdict as _dd
+                _by_day = _dd(list)
+                for r in _md_rows:
+                    d = r["ts"].date() if hasattr(r["ts"], "date") else str(r["ts"])[:10]
+                    _by_day[d].append({
+                        "o": float(r["open"]), "h": float(r["high"]),
+                        "l": float(r["low"]), "c": float(r["close"]),
+                        "vol": int(r["volume"] or 0),
+                    })
+                _md_sessions = [_by_day[d] for d in sorted(_by_day) if len(_by_day[d]) >= 12]
+
+            if _md_sessions and open_price:
+                _md_ctx = build_context(_md_sessions, today_open=open_price)
+                feat["open_vs_balance7"] = _md_ctx.get("open_location")
+                _mig = _md_ctx.get("value_migration", {})
+                feat["multiday_migration"] = _mig.get("direction")
+                # Veto: don't sell against upward-migrating value / don't buy
+                # against downward-migrating value
+                if _mig.get("direction") == "UP":
+                    feat["multiday_veto_dir"] = "SHORT"  # don't sell against UP migration
+                elif _mig.get("direction") == "DOWN":
+                    feat["multiday_veto_dir"] = "LONG"   # don't buy against DOWN migration
+        except Exception:
+            pass  # fail-open
+
     result = classify(feat, plan, is_eod=is_eod)
     result["ib_source"] = ib_source
     result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
@@ -266,6 +314,10 @@ def classify_session(
         # P2.1-2 delta features (DEV_PLAN 02.08)
         "cvd_directionality": feat.get("cvd_directionality"),
         "delta_confirms_ext": feat.get("delta_confirms_ext"),
+        # N3 multiday context (phase D)
+        "open_vs_balance7": feat.get("open_vs_balance7"),
+        "multiday_migration": feat.get("multiday_migration"),
+        "multiday_veto_dir": feat.get("multiday_veto_dir"),
     }
     return result
 
