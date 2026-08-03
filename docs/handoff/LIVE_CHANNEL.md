@@ -1,3 +1,9 @@
+### 2026-08-03 — cc-macbook — D1-D3 delivered (4/5 done from day workorder)
+**D1** (`84c2c348`): classifier truth audit 13 days (85% balance/directional accuracy). Targeted fix: EDGE_FADE_CONTAINED_NV_V1 — extend to contained NV (rib<1.5). 07-27/07-31 acceptance cases.
+**D2** (`ff08dc5c`): MULTIDAY_VETO_V1 gateway gate + MarketContext multiday migration. SHORT blocked when migration=UP, leg exemption. Flag OFF.
+**D3** (`b3109d3d`): LEG_REPLACES_SUSTAINED_V1 — leg overrides dir_sustained in cont_trend. Flag OFF.
+**D4-D5**: NOT-DONE.
+
 ### 2026-08-03 14:00 — cowork-dev — פקודת-יום ל-cc: `CC_WORKORDER_2026-08-03_DAY.md`
 
 ‏D1 כיול-ימי-מאזן (חוסם-EDGE_FADE, הממצא של cc עצמו) · D2 חיווט-וטו-רב-יומי (flag-OFF) ·
