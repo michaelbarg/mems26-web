@@ -85,7 +85,21 @@ def replay_day(bars_5min, day_date):
     results = {"day": day_date.isoformat(), "bars": len(rth), "day_type": day_type,
                "armings": 0, "entries": 0, "trades": [], "pnl_pts": 0}
 
-    if day_type not in FADE_DAY_TYPES:
+    # D1-completion (03.08, cowork audit): the replay hard-gated on
+    # FADE_DAY_TYPES and never passed `rib`, so EDGE_FADE_CONTAINED_NV_V1
+    # was dead code here — the NV extension was UNPROVEN. Compute rib
+    # (day range / IB width, IB = first 12 bars) and route contained-NV
+    # days through when the flag is on, mirroring the live logic.
+    import os as _os
+    _ib = rth[:12]
+    _ib_w = max(b["h"] for b in _ib) - min(b["l"] for b in _ib)
+    _rng = max(b["h"] for b in rth) - min(b["l"] for b in rth)
+    rib = round(_rng / _ib_w, 2) if _ib_w > 0 else 0.0
+    results["rib"] = rib
+    _nv_on = _os.getenv("EDGE_FADE_CONTAINED_NV_V1", "0").lower() in ("1", "true", "yes")
+    _eligible = (day_type in FADE_DAY_TYPES
+                 or (_nv_on and day_type == "Normal_Variation" and rib < 1.5))
+    if not _eligible:
         return results
 
     fired = set()
@@ -95,7 +109,7 @@ def replay_day(bars_5min, day_date):
         window = rth[:i + 1]
 
         # Check for edge rejection → ARM
-        trigger = evaluate_edge_fade(window, day_type, already_fired=fired)
+        trigger = evaluate_edge_fade(window, day_type, already_fired=fired, rib=rib)
         if trigger and trigger["direction"] not in armed:
             armed[trigger["direction"]] = {"bar_idx": i, "trigger": trigger}
             results["armings"] += 1

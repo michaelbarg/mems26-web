@@ -291,7 +291,10 @@ def test_orphan_not_flattened_immediately(tmp_path, monkeypatch):
 # ── Test 15: flatten triggers on stop-cross ──────────────────────────────────
 
 def test_flatten_on_stop_cross(tmp_path, monkeypatch):
-    """Price crosses structural stop → FLATTEN_TRIGGERED."""
+    """Price crosses structural stop → breach ALERT (Michael ruling 07-28,
+    9279a3e8: auto-flatten of open positions CANCELED — alert-only; the
+    position is left open for Michael. Test updated 03.08 to the ruling;
+    it previously asserted the pre-ruling FLATTEN behavior)."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
     monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
     _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
@@ -310,14 +313,15 @@ def test_flatten_on_stop_cross(tmp_path, monkeypatch):
     }))
     with patch.object(reconciler, "_flatten_orphan", return_value=(True, "FLATTEN_ORPHAN_OK")):
         ok2, msg2 = reconciler.reconcile_position(tm)
-    assert "FLATTEN_TRIGGERED" in msg2
+    assert "BREACH_ALERT_ONLY" in msg2
     assert "STOP_CROSSED" in msg2
 
 
 # ── Test 16: flatten triggers on max loss ────────────────────────────────────
 
 def test_flatten_on_max_loss(tmp_path, monkeypatch):
-    """Unrealized loss >= $200 → FLATTEN_TRIGGERED even if stop not crossed."""
+    """Unrealized loss >= $200 → breach ALERT even if stop not crossed
+    (Michael ruling 07-28: alert-only, no auto-flatten; updated 03.08)."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
     monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
     monkeypatch.setenv("ORPHAN_MAX_LOSS_USD", "200")
@@ -337,7 +341,7 @@ def test_flatten_on_max_loss(tmp_path, monkeypatch):
     }))
     with patch.object(reconciler, "_flatten_orphan", return_value=(True, "FLATTEN_ORPHAN_OK")):
         ok2, msg2 = reconciler.reconcile_position(tm)
-    assert "FLATTEN_TRIGGERED" in msg2
+    assert "BREACH_ALERT_ONLY" in msg2
     assert "MAX_LOSS" in msg2
 
 
