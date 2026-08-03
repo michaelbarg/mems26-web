@@ -11,8 +11,13 @@
 2. **העתקת הדגלים (קריטי — ‎.env לא בגיט):** להעביר את `.env` מהמקבוק (AirDrop/USB) לשורש-הריפו
    במחשב-השני. הוא כולל את פסיקות-היום: **2 חוזים T1+T2**, MAE-scratch, דלתא, LEG_RIDE, כל התקרות.
    אימות שם: `python3 scripts/flag_guard.py` → חייב `150/150 PASS`.
-3. **DLL:** במחשב-השני `./scripts/build_monolithic_cpp.sh --deploy` → Sierra: Remote Build + טעינת-הסטאדי
-   מחדש → לוודא ייצוא חי תחת `~/SierraChart_Data/v9_export/` (הדוקטור בודק).
+3. **DLL מעודכן (פסיקת-מייקל 03.08 — "חסר לי הנושא של DLL מעודכן"):** המקור היחיד הוא
+   הריפו — `sc_study/MES_AI_DataExport_merged.cpp` מגיע עם `git pull` (כל תיקוני 08/‏07 בפנים).
+   במחשב-השני: `./scripts/build_monolithic_cpp.sh --deploy` (עושה snapshot אוטומטית) →
+   ‏Sierra שם: ‏Analysis ▸ Build Custom Studies DLL ▸ Remote Build → הסרה+הוספה מחדש של
+   הסטאדי על הצ'ארט → ‏Input 4 = נתיב-הייצוא המקומי של אותה מכונה → לוודא ייצוא חי תחת
+   `~/SierraChart_Data/v9_export/` (עדכון-שניה) + `scripts/mems26_verify.sh` שם חייב להראות
+   ‏deployed==repo. **אימות-זהות:** אותו checksum כמו במקבוק (`shasum` על ה-cpp בשתי המכונות).
 4. **נטרול המקבוק (המכונה הזו):** ב-Sierra המקומית — Trade ▸ Auto Trading OFF + מעבר לחשבון SIM.
    המקבוק נשאר פיתוח: backend/bridge ממשיכים לרוץ לצרכי-פיתוח, אבל לא חמוש ולא על חשבון-האמת.
 5. **חימוש המחשב-השני (מייקל בלבד — cowork לא מחמש):** Sierra שם על חשבון-האמת 37138283,
