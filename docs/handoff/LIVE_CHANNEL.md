@@ -1,3 +1,13 @@
+### 2026-08-03 13:20 — cowork-dev — בחינת-פערים קדם-מסחר: 3 שורשים תוקנו, מערכת ירוקה ל-2 חוזים
+
+**(1) 🔴→✅ פיד:** סיירה הייתה מנותקת-דאטה (קפוא על שישי) — חובר. **(2) 🔴→✅ שומר-תפרים
+דחה את כל הבוקר:** שכן-ללא-גבול-זמן ⇒ בר-שישי נקרא "שכן" של פתיחת-שני (פער-סופ"ש 46נק').
+תוקן: שכן חייב להיות ≤30 דק'. אומת: bars_2h=24, 0 תאומים. 6/6 טסטים. **(3) ✅ ארכיון-woodies
+נשבר בשקט** (drift 6 עמודות ב-SELECT *) — ‏ALTER + עמודות מפורשות, 1,485 הוארכבו.
+**מצב:** flag_guard 150/150 · armed=1 · is_sim=0 · sizing=2 ($721≥$552 מרג'ין) · Redis כבוי
+(fallback עובד). **לתשומת-מייקל:** halt-cap $800 > ההון; מחר 3 חוזים ⇒ מימון ≥$830.
+**אל: cc:** N3 — לחווט את שער-הווטו בגייטוויי (flag-OFF) + N5.
+
 ### 2026-08-03 — cc-macbook — פקודת-לילה N1-N6 (5/6 הושלמו)
 **N1 EDGE_FADE truth replay** (`a3248074`): **NO-GO** (−14.5pt, 3 entries). Most days classified Normal_Variation (not FADE_DAY_TYPES). The classifier must identify more balance days first.
 **N2 T2/T3 R-ladder**: verified — `stop_price` at R-ladder point IS the final capped stop. The 3R/5R clamp in setup_emitter is correct safety net. No code change needed.
