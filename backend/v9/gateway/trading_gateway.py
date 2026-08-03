@@ -1204,7 +1204,21 @@ class TradingGateway:
                     # fire against the trend by design. Only CONT requires sustained trend.
                     # Unknown pattern (_fam=None) → fail-open (not filtered).
                     if _fam == "CONT":
+                        # D3 (2026-08-03): LEG_REPLACES_SUSTAINED_V1 — use
+                        # MarketContext.leg_dir as the sustained direction
+                        # instead of the lagging dir_sustained primitive.
+                        # The leg is a more immediate, structural signal.
                         _sus = _dc.get("dir_sustained", "NEUTRAL")
+                        if os.getenv("LEG_REPLACES_SUSTAINED_V1", "0").lower() in (
+                            "1", "true", "yes"):
+                            try:
+                                from backend.v9.services.market_context import get_market_context
+                                _mc_d3 = get_market_context()
+                                _leg_d3 = getattr(_mc_d3, "leg_dir", None) if _mc_d3 else None
+                                if _leg_d3 in ("UP", "DOWN"):
+                                    _sus = _leg_d3  # leg overrides dir_sustained
+                            except Exception:
+                                pass  # fail-open: use dir_sustained
                         if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
                             # DISPLACEMENT CONSISTENCY (2026-07-31, third gate to
                             # get the audited primitive): dir_sustained LAGS —

@@ -532,6 +532,13 @@ flags:
     why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
     status: live
     ref: "backend/v9/services/trade_manager/manager.py:501"
+  LEG_REPLACES_SUSTAINED_V1:
+    category: s2
+    group: "direction discipline"
+    what: "D3: in cont_trend_filter, use MarketContext.leg_dir as the sustained direction instead of the lagging dir_sustained primitive. A live leg is a more immediate, structural signal than K-bar LSMA side. The 07-31 case: dir_sustained=DOWN blocked 9 ZLR longs during an active UP leg."
+    why: "OFF (default). The existing displacement-bypass + leg exemption already handle the 07-31 case; this makes leg the primary signal. Requires replay on the 4 test cases from this week."
+    status: awaiting_backtest
+    ref: "backend/v9/gateway/trading_gateway.py:cont_trend_filter"
   MULTIDAY_VETO_V1:
     category: risk
     group: "direction discipline"
