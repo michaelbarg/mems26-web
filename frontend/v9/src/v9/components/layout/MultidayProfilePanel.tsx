@@ -34,6 +34,10 @@ interface DayProf {
   // [price, count, letters] — letters = אות פר-תקופת-30-דק' (A=ראשונה), כמו סיירה
   profile?: [number, number, string?][];
 }
+interface TodayProf extends DayProf {
+  partial?: boolean; day_type?: string | null; day_type_conf?: number | null;
+  opening_type?: string | null;
+}
 interface Multiday {
   days?: DayProf[]; dates?: string[];
   composite?: { range_high: number; range_low: number; vah: number; val: number; poc: number } | null;
@@ -41,6 +45,7 @@ interface Multiday {
   va_overlap_pct?: number | null;
   open_location?: string | null;
   suspect_dates?: string[];
+  today?: TodayProf | null;
 }
 
 const G = '#16a34a', R = '#dc2626', Y = '#eab308', C = '#67e8f9';
@@ -57,6 +62,9 @@ function loadNum(key: string, fb: number, min: number, max: number): number {
 
 export function MultidayProfilePanel() {
   const [d, setD] = useState<Multiday | null>(null);
+  // מייקל 03.08 ("להוסיף לשורת הביקורת"): סיווג-היום החי מהרדאר — מוצג מיד,
+  // גם לפני שה-endpoint מגיש את עמודת-היום (עד ריסטארט-בקאנד בחלון-מת).
+  const [liveDT, setLiveDT] = useState<{ t?: string | null; c?: number | null }>({});
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ left: 60, top: 90 });
   const [size, setSize] = useState({ w: DEF_W, h: DEF_H });
@@ -83,8 +91,18 @@ export function MultidayProfilePanel() {
       } catch { /* honest silence — the strip shows nothing */ }
     };
     load();
+    const loadDT = async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/v9/context/radar`);
+        if (!r.ok) return;
+        const j = await r.json();
+        if (alive) setLiveDT({ t: j.day_type, c: j.confidence });
+      } catch { /* dashes */ }
+    };
+    loadDT();
     const id = setInterval(load, 60000);
-    return () => { alive = false; clearInterval(id); };
+    const id2 = setInterval(loadDT, 60000);
+    return () => { alive = false; clearInterval(id); clearInterval(id2); };
   }, []);
 
   // drag / resize (Woodies pattern — window listeners, persist on release)
@@ -141,6 +159,13 @@ export function MultidayProfilePanel() {
           חפיפה {overlap ?? '—'}{regime ? ` · משטר-${regime}` : ''}
         </span>
         {loc && <span style={{ fontSize: 9, fontWeight: 700, color: C }}>פתיחת-היום: {loc}</span>}
+        {(d?.today?.day_type ?? liveDT.t) && (
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#fbbf24' }}>
+            סיווג-היום: {d?.today?.day_type ?? liveDT.t}
+            {(d?.today?.day_type_conf ?? liveDT.c) != null
+              ? ` (${Math.round(((d?.today?.day_type_conf ?? liveDT.c) as number) * 100)}%)` : ''}
+          </span>
+        )}
         <span style={{ fontSize: 8, color: COLORS.textDim, marginInlineStart: 'auto' }}>
           ערך {comp.val}–{comp.vah} · POC {comp.poc} · טווח {comp.range_low}–{comp.range_high}
         </span>
@@ -165,6 +190,13 @@ export function MultidayProfilePanel() {
             <span style={{ fontSize: 10, color: migColor, fontWeight: 700 }}>{migTxt}</span>
             <span style={{ fontSize: 9, color: COLORS.textDim }}>חפיפה {overlap ?? '—'}{regime ? ` · ${regime}` : ''}</span>
             {loc && <span style={{ fontSize: 10, fontWeight: 700, color: C }}>פתיחה: {loc}</span>}
+            {(d?.today?.day_type ?? liveDT.t) && (
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#fbbf24' }}>
+                היום: {d?.today?.day_type ?? liveDT.t}
+                {(d?.today?.day_type_conf ?? liveDT.c) != null
+                  ? ` ${Math.round(((d?.today?.day_type_conf ?? liveDT.c) as number) * 100)}%` : ''}
+              </span>
+            )}
             <button onClick={toggle}
               style={{
                 marginInlineStart: 'auto', background: 'transparent', border: 'none',
@@ -173,7 +205,7 @@ export function MultidayProfilePanel() {
           </div>
 
           <TpoCanvas days={days} dates={d?.dates ?? []} comp={comp} suspects={suspects}
-            w={size.w} h={size.h - 30} />
+            today={d?.today ?? null} w={size.w} h={size.h - 30} />
 
           {/* פינת-שינוי-גודל */}
           <div
@@ -189,10 +221,10 @@ export function MultidayProfilePanel() {
 }
 
 /** ציור-הפרופילים בקנבס — 7 עמודות-TPO פר-רבע-נקודה + ציר-מחיר כמו סיירה. */
-function TpoCanvas({ days, dates, comp, suspects, w, h }: {
+function TpoCanvas({ days, dates, comp, suspects, today, w, h }: {
   days: DayProf[]; dates: string[];
   comp: { range_high: number; range_low: number; vah: number; val: number; poc: number };
-  suspects: Set<string>; w: number; h: number;
+  suspects: Set<string>; today: TodayProf | null; w: number; h: number;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -208,7 +240,10 @@ function TpoCanvas({ days, dates, comp, suspects, w, h }: {
 
     const AXIS_W = 58, PAD_T = 8, PAD_B = 18;
     const chartW = w - AXIS_W, chartH = h - PAD_T - PAD_B;
-    const pLo = comp.range_low - 2, pHi = comp.range_high + 2, span = pHi - pLo;
+    // מייקל 03.08: עמודת-היום-המתהווה — הסקאלה חייבת לכלול גם אותה
+    const pLo = Math.min(comp.range_low, today?.low ?? comp.range_low) - 2;
+    const pHi = Math.max(comp.range_high, today?.high ?? comp.range_high) + 2;
+    const span = pHi - pLo;
     const y = (price: number) => PAD_T + chartH - ((price - pLo) / span) * chartH;
     const rowH = Math.max(1, (0.25 / span) * chartH);
 
@@ -229,8 +264,9 @@ function TpoCanvas({ days, dates, comp, suspects, w, h }: {
       ctx.fillStyle = '#7a99a5'; ctx.fillText(String(p), chartW + 6, yy + 3);
     }
 
-    // עמודות-הימים
-    const colW = chartW / days.length;
+    // עמודות-הימים (+1 להיום-המתהווה כשקיים)
+    const nCols = days.length + (today ? 1 : 0);
+    const colW = chartW / nCols;
     days.forEach((day, i) => {
       const x0 = i * colW + 4;
       const date = dates[i] ?? '';
@@ -293,11 +329,33 @@ function TpoCanvas({ days, dates, comp, suspects, w, h }: {
       }
     });
 
+    // עמודת-היום-המתהווה (מייקל 03.08) — מסגרת מקווקו + צהוב-ענבר, חלקי
+    if (today) {
+      const x0 = days.length * colW + 6;
+      const barMax = colW - 26;
+      const prof = today.profile ?? [];
+      const maxC = Math.max(1, ...prof.map(([, c]) => c));
+      ctx.strokeStyle = '#fbbf24'; ctx.setLineDash([3, 3]);
+      ctx.strokeRect(x0 - 3, PAD_T, colW - 8, chartH);
+      ctx.setLineDash([]);
+      for (const [p, c] of prof) {
+        const inVA = p >= today.val && p <= today.vah;
+        ctx.fillStyle = inVA ? 'rgba(251,191,36,0.55)' : 'rgba(251,191,36,0.22)';
+        ctx.fillRect(x0, y(p) - rowH / 2, Math.max(1, (c / maxC) * barMax), Math.max(1, rowH * 0.9));
+      }
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(x0, y(today.poc) - 1, barMax, 2);
+      ctx.textAlign = 'center'; ctx.font = 'bold 9px ui-monospace, monospace';
+      ctx.fillText(`היום${today.day_type ? ' · ' + today.day_type : ''}`,
+        x0 + barMax / 2, h - 5);
+      ctx.textAlign = 'left';
+    }
+
     // POC-מורכב — מקווקו ציאן על כל הרוחב
     ctx.strokeStyle = C; ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.7;
     ctx.beginPath(); ctx.moveTo(0, y(comp.poc) + 0.5); ctx.lineTo(chartW, y(comp.poc) + 0.5); ctx.stroke();
     ctx.setLineDash([]); ctx.globalAlpha = 1;
-  }, [days, dates, comp, suspects, w, h]);
+  }, [days, dates, comp, suspects, today, w, h]);
 
   return <canvas ref={ref} style={{ width: w, height: h, display: 'block' }} />;
 }

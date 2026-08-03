@@ -57,16 +57,47 @@ def _compute() -> Dict[str, Any]:
     return ctx
 
 
+def _today_block() -> Dict[str, Any] | None:
+    """מייקל 03.08 ("למה לא מופיע של היום?"): הפרופיל-המתהווה של היום +
+    סיווג-המערכת החי. מחושב טרי בכל קריאה (לא בקאש — היום משתנה)."""
+    try:
+        from backend.v9.db.read import read_all, read_one
+        from backend.v9.systems.multiday_profile import session_tpo_profile
+        bars = list(read_all(
+            "SELECT open o, high h, low l, close c FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "ORDER BY ts", {}))
+        prof = session_tpo_profile(bars)
+        if not prof:
+            return None
+        ds = read_one(
+            "SELECT day_type, confidence, opening_type FROM v9_day_type_state "
+            "ORDER BY id DESC LIMIT 1", {}) or {}
+        prof["partial"] = True
+        prof["day_type"] = ds.get("day_type")
+        prof["day_type_conf"] = ds.get("confidence")
+        prof["opening_type"] = ds.get("opening_type")
+        return prof
+    except Exception:
+        return None
+
+
 @router.get("/multiday")
 def multiday() -> Dict[str, Any]:
     now = time.time()
     if _CACHE["data"] is not None and now - _CACHE["ts"] < _CACHE_TTL_S:
-        return _CACHE["data"]
+        out = dict(_CACHE["data"])
+        out["today"] = _today_block()
+        return out
     try:
         data = _compute()
         data["computed_ts"] = now
         _CACHE.update(ts=now, data=data)
-        return data
+        out = dict(data)
+        out["today"] = _today_block()
+        return out
     except Exception as exc:
         logger.warning("[multiday] compute failed: %s", exc)
         return {"error": str(exc)[:120], "composite": None, "n_days_used": 0}
