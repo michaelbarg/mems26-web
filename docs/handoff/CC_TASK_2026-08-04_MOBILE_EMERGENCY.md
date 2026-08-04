@@ -1,0 +1,24 @@
+# cc — כפתורי-חירום בפלאפון-Render (פסיקת-מייקל 04.08: "למקרי חירום שאני לא מול מסך")
+
+**דרישה:** באפליקציית-Render (mems26-mobile.onrender.com): (1) **יציאה-כפויה** מעסקה
+(FLATTEN) · (2) **PAUSE** — מהלחיצה, אפס עסקאות-אמת; הירי ממשיך כצל-בלבד. ביטול-PAUSE מהכפתור.
+
+**ארכיטקטורה (שומרת local-only):** ה-Mac לא נפתח לעולם — ערוץ-פקודות בהיפוך-משיכה:
+1. **Render app** (`render_mobile_relay/app.py`): POST `/cmd` (auth: MOBILE_ACCESS_KEY,
+   body: {action: FLATTEN|PAUSE|RESUME, ts}) שומר פקודה-ממתינה בזיכרון (תור באורך 1,
+   TTL 60s) + GET `/cmd/pending` (auth) + UI: שני כפתורים גדולים עם אישור-כפול
+   (לחיצה→"בטוח?"→אישור) + חיווי-מצב PAUSED אדום קבוע בראש-הדף.
+2. **הצד-המקומי** (`mobile_relay.py` שכבר דוחף כל 5ש'): באותו לופ — GET `/cmd/pending`;
+   פקודה חדשה ⇒ ביצוע מקומי + ACK (מוחק את התור) + שורת-warning ללוג + ops_log.
+3. **ביצוע מקומי:** FLATTEN ⇒ הנתיב-המוכח הקיים (FLATTEN_ACCOUNT — כמו SystemControlPanel;
+   לאתר את ה-endpoint הקיים, לא לבנות חדש). PAUSE ⇒ מנגנון קיים אם יש (halt/shadow-route);
+   אם אין — דגל-קובץ `~/SierraChart_Data/v9_export/trading_paused.json` שהגייטוויי בודק
+   בראש ה-fire-path: paused ⇒ ניתוב-לצל בלבד (אותו מסלול-shadow קיים), עם לוג-warning
+   rate-limited. RESUME מוחק. **בדיקת-הדגל fail-open** (קובץ-חסר/שבור ⇒ מסחר רגיל).
+4. **UI מקומי** (`/api/v9/mobile`): אותם כפתורים (ישירות, בלי Render).
+
+**בטיחות:** אישור-כפול בכל פעולה · auth בכל endpoint · PAUSE לא נוגע בפוזיציה קיימת
+(רק חוסם כניסות-חדשות; ההגנות/BE/MAE ממשיכות) · כל הפעלה/כיבוי נרשמים ל-LIVE_CHANNEL.
+**קבלה:** סים: PAUSE⇒ירי-הופך-צל (ראיה מהחלטות-הגייטוויי) · RESUME⇒חוזר · FLATTEN מהטלפון
+סוגר פוזיציית-סים תוך <10ש' · פקודה-כפולה לא מבוצעת פעמיים (TTL/ACK) · auth-שגוי נדחה.
+**עבודה אחרי-סגירה בלבד (23:00+); פריסת-Render — מייקל מאשר.**
