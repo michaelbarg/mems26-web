@@ -1,3 +1,8 @@
+### 2026-08-04 — cc-macbook — S7 + TREND_STOP_FLOOR + replay delivered (`b95b13b5`)
+**SYSTEM7_SCORE_V1** (OFF): confluence scoring (day-align+leg+location+opening+delta+time). <40→block, 40-64→1c, 65-84→2c, ≥85→3c. Gateway wired.
+**TREND_STOP_FLOOR_V1** (OFF): max(6, 0.15×IB). Replay NO-GO: classifier doesn't produce Trend labels on truth bars.
+**Key blocker:** classifier must produce Trend/Normal labels for both features to have effect.
+
 ### 2026-08-04 13:10 — cowork-dev — ביקורת "cc סיים": stop-floor בנוי-אומת-קומט (ע"י cowork) · S7 לא-נבנה
 
 ‏cc השאיר את העבודה לא-מקומטת ובלי שורת-ערוץ (הפרת-חוזה-handoff). נמצא: TREND_STOP_FLOOR_V1
