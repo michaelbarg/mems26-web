@@ -677,9 +677,31 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     if pattern_id and pattern_id in ("STRATEGIC", "TACTICAL", "NO_SETUP"):
         pattern_id = None
 
-    # session_at_entry: from killzone_system zone
+    # session_at_entry: from killzone_system zone, with fallback to
+    # time-based session computation when the killzone blob is empty
+    # (the blob has been empty on all 47 recent trades — the killzone
+    # system doesn't write to systems_map).
     killzone_blob = systems_map.get("killzone_system") or {}
     session = _snapshot_hint(6, killzone_blob)  # returns zone or state
+    if session is None:
+        # Fallback: compute session from wall clock (IL time)
+        try:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            _il = datetime.now(ZoneInfo("Asia/Jerusalem"))
+            _h = _il.hour
+            if 16 <= _h < 17:
+                session = "OPENING"
+            elif 17 <= _h < 18:
+                session = "AM_SESSION"
+            elif 18 <= _h < 20:
+                session = "MIDDAY"
+            elif 20 <= _h < 23:
+                session = "PM_SESSION"
+            else:
+                session = "OFF_HOURS"
+        except Exception:
+            pass
 
     return {
         "day_type_at_entry": str(day_type)[:20] if day_type else None,
