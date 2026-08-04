@@ -1653,6 +1653,77 @@ class FiveMinSystem(BaseV9TradingSystem):
                     logger.info("[FiveMin] adaptive_stop reduce_size: family=%s · A_tighter_than_B", family)
                     # actual size reduction handled in Pkg 3c · for now just log
 
+            # ── TREND_STOP_FLOOR_V1 (2026-08-04): on Trend days (or Variation
+            # with a live leg), with-trend trades get a stop floor = max(6,
+            # 0.15 × IB_width). The 08-03 case: 4/4 losses were with-trend
+            # trades stopped on noise (2.5-4pt stops); all 4 would have reached
+            # T1 with the floor. Before T1 only (after T1 → BE). Opening trades
+            # exempt (they have their own caps). Flag OFF → byte-identical.
+            if _flag("TREND_STOP_FLOOR_V1") and stop_price is not None:
+                try:
+                    _tsf_day_type = _emit_day_type or self.current_day_type or ""
+                    _tsf_is_trend = _tsf_day_type.startswith("Trend") or (
+                        _tsf_day_type == "Normal_Variation"
+                        and hasattr(self, "_live_leg")
+                        and callable(getattr(self, "_live_leg", None))
+                    )
+                    # Check with-trend: setup direction matches day direction
+                    _tsf_with_trend = False
+                    if _tsf_is_trend:
+                        try:
+                            from backend.v9.services.market_context import get_market_context
+                            _tsf_mc = get_market_context()
+                            _tsf_bias = getattr(_tsf_mc, "day_bias", "NONE") if _tsf_mc else "NONE"
+                            _tsf_leg = getattr(_tsf_mc, "leg_dir", None) if _tsf_mc else None
+                            _tsf_with_trend = (
+                                (direction == "LONG" and (_tsf_bias == "UP" or _tsf_leg == "UP"))
+                                or (direction == "SHORT" and (_tsf_bias == "DOWN" or _tsf_leg == "DOWN"))
+                            )
+                        except Exception:
+                            pass
+                    # Not opening trade (they have their own caps)
+                    _tsf_is_opening = kind in (
+                        "OPENING_DRIVE", "OPENING_TEST_DRIVE", "OPENING_ORR",
+                        "OPENING_EXTREME_REJECT", "OPENING_PULLBACK_CONT",
+                        "EDGE_FADE_LONG", "EDGE_FADE_SHORT",
+                    )
+                    if _tsf_with_trend and not _tsf_is_opening:
+                        # Compute floor: max(6.0, 0.15 × IB_width)
+                        _tsf_ib_w = None
+                        try:
+                            from backend.v9.db.read import read_one as _tsf_rd
+                            _tsf_ib = _tsf_rd(
+                                "SELECT MAX(high) - MIN(low) as ib_w FROM ("
+                                "  SELECT high, low FROM v9_bars_5min_woodies "
+                                "  WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "  (now() AT TIME ZONE 'America/New_York')::date "
+                                "  ORDER BY ts LIMIT 12"
+                                ") sub", {})
+                            if _tsf_ib and _tsf_ib.get("ib_w"):
+                                _tsf_ib_w = float(_tsf_ib["ib_w"])
+                        except Exception:
+                            pass
+                        _tsf_floor = max(6.0, 0.15 * (_tsf_ib_w or 40.0))
+                        _tsf_sign = 1.0 if direction == "LONG" else -1.0
+                        _tsf_risk = abs(entry_price - stop_price)
+                        if _tsf_risk < _tsf_floor:
+                            _tsf_new_stop = entry_price - _tsf_sign * _tsf_floor
+                            # Clamp to pattern max risk (SIZE_CAP, not expand)
+                            _tsf_max = float(os.getenv("TREND_STOP_FLOOR_MAX_PTS", "15"))
+                            if abs(entry_price - _tsf_new_stop) <= _tsf_max:
+                                logger.info(
+                                    "[FiveMin] TREND_STOP_FLOOR: %s %s stop %.2f→%.2f "
+                                    "(floor=%.1f, IB=%.1f, was=%.1f)",
+                                    kind, direction, stop_price, _tsf_new_stop,
+                                    _tsf_floor, _tsf_ib_w or 0, _tsf_risk)
+                                stop_price = _tsf_new_stop
+                            else:
+                                logger.info(
+                                    "[FiveMin] TREND_STOP_FLOOR: floor %.1f exceeds max %.1f — not applied",
+                                    _tsf_floor, _tsf_max)
+                except Exception as _tsf_err:
+                    logger.debug("[FiveMin] trend stop floor error (fail-safe): %s", _tsf_err)
+
             # Sizing decision (Cockpit V5 — S2 internal only)
             cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
             amt_val = info.get("amt") or self._get_amt_from_footprint() or 0
