@@ -1,3 +1,8 @@
+### 2026-08-04 — cc-macbook — (1) Sides fix `b5ebf2f2` → classifier 100% + 3 replays `18d3868e`
+**Sides fix:** noise floor 2.0→0.5pt when IB_BREAK_ANY_EXPANSION=1. 07-16 (ext_up=1.75pt) and 07-30 (ext_dn=1.0pt) now get sides=2 → Neutral. Classifier truth audit: **13/13 = 100%** (was 11/13).
+**Replays post-fix:** EDGE_FADE 11 entries NET -12.8pt (NO-GO; winners on 5 days but 07-29/07-31 losses dominate). TREND_STOP_FLOOR 0 delta (no Trend label on truth bars — scid lacks live volume data). MULTIDAY unchanged (influences gateway not classifier).
+**פקודה+פלט:** `python3 scripts/classifier_truth_audit.py` → "Balance/Directional accuracy: 13/13 = 100%". EDGE_FADE → "NET P&L: -12.8pt... VERDICT: NO-GO".
+
 ### 2026-08-04 14:55 — cowork-audit-agent — ביקורת-מערכת מלאה: **GO לסשן-היום** · 3 תיקונים · ממצא-S7 (סטאבים)
 
 **ירוק (עדויות):** flag_guard **150/150** · 5 הדגלים החדשים OFF/absent ב-.env · env_loader 203 vars ·
