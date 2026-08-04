@@ -107,9 +107,11 @@ export function V9Dashboard() {
           <TopBar />
           {/* מייקל 07-27: אמת-סיירה על המסך — פוזיציה/P&L/סטופים ישירות מהחשבון,
               והאזהרה על פוזיציה-ללא-הגנה כבאנר במקום חלון-קופץ */}
-          <SierraTruthStrip />
-          {/* מייקל 07-29: רדאר-זיהוי — סוג-יום/רגל/פתיחה/שערים/מסחר/שלמות-ברים במבט אחד */}
-          <ContextRadar />
+          {/* מייקל 04.08: אמת-סיירה + רדאר בשורה אחת — לא שתי שורות נפרדות */}
+          <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}><SierraTruthStrip /></div>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}><ContextRadar /></div>
+          </div>
           {/* מייקל 04.08: המאזן-7-ימים = כפתור-צף בקצה כמו WOODY, אפס-שורות מהטבלה */}
           <MultidayProfilePanel />
           <Layer0Strip />

@@ -151,7 +151,12 @@ export function MultidayProfilePanel() {
           position: 'fixed', left: 0, bottom: 200, zIndex: 25, width: 22,
           writingMode: 'vertical-rl', textOrientation: 'mixed', padding: '6px 2px',
           background: open ? 'rgba(103,232,249,0.22)' : 'rgba(45,85,85,0.92)',
-          border: `1px solid ${open ? C : '#1A3A3A'}`, borderLeft: 'none',
+          // explicit sides — mixing `border` shorthand with borderLeft triggered
+          // a React style-conflict console error (Michael's screenshot 04.08)
+          borderTop: `1px solid ${open ? C : '#1A3A3A'}`,
+          borderRight: `1px solid ${open ? C : '#1A3A3A'}`,
+          borderBottom: `1px solid ${open ? C : '#1A3A3A'}`,
+          borderLeft: 'none',
           borderRadius: '0 4px 4px 0', color: open ? C : '#A3E0E0',
           fontSize: 8, fontWeight: 800, fontFamily: 'ui-monospace, monospace',
           letterSpacing: 0.5, lineHeight: 1.1, cursor: 'pointer', userSelect: 'none',
