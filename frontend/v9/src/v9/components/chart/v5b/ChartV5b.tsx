@@ -234,6 +234,10 @@ export function ChartV5b() {
   // Michael 07-22: keep the user's zoom/pan across the 5s data refresh. Once the
   // user interacts (wheel/drag), stop re-fitting the visible range on reload.
   const userAdjustedRef = useRef(false);
+  // מייקל 04.08 ("ציר-הזמן קופץ... תקף גם לטבלת-הקומולטיב הצמודה"): שומרים
+  // את טווח-הזמן האחרון שהמשתמש קבע ומשחזרים אותו אחרי כל טעינת-נתונים.
+  // ה-CVD הוא pane על אותו time-scale ⇒ הנעילה חלה גם עליו אוטומטית.
+  const userRangeRef = useRef<{ from: any; to: any } | null>(null);
   const skipRangeEventsRef = useRef(2);
   const allBarsRef = useRef<any[]>([]);
   /** Last candle time on the series — guards stale WS ticks / poll rows (TASK B). */
@@ -657,6 +661,13 @@ export function ChartV5b() {
         } else {
           chartRef.current?.timeScale().fitContent();
         }
+      } else if (userRangeRef.current) {
+        // מייקל 04.08: המשתמש קבע טווח — משחזרים אותו אחרי הטעינה, כך
+        // שציר-הזמן (וה-CVD שצמוד אליו) לא קופץ בשום רענון.
+        try {
+          skipRangeEventsRef.current += 1;
+          chartRef.current?.timeScale().setVisibleRange(userRangeRef.current);
+        } catch { /* chart busy */ }
       }
       void fetchCvd();
       if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
@@ -841,7 +852,17 @@ export function ChartV5b() {
       }
     };
     chartRef.current.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
-    return () => { try { chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange); } catch {} };
+    // מייקל 04.08: זכירת טווח-הזמן שהמשתמש קבע (time-based, חסין להזזת
+    // אינדקסים של setData) — משוחזר אחרי כל reload ב-load().
+    const onTimeRange = (r: any) => {
+      if (skipRangeEventsRef.current > 0) return;
+      if (userAdjustedRef.current && r && r.from != null) userRangeRef.current = r;
+    };
+    chartRef.current.timeScale().subscribeVisibleTimeRangeChange(onTimeRange);
+    return () => { try {
+      chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
+      chartRef.current?.timeScale().unsubscribeVisibleTimeRangeChange(onTimeRange);
+    } catch {} };
   }, [activeTf, applyTpoToChart]);
 
   // TASK C: six TPO lines — hydrate from DB/periods when Sierra JSON has corrupt zeros.

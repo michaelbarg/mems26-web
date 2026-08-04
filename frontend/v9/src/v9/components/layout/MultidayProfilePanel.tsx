@@ -144,31 +144,16 @@ export function MultidayProfilePanel() {
 
   return (
     <>
-      {/* רצועת-סיכום דקה — הטוגל של החלון הצף */}
-      <div onClick={toggle} title={open ? 'סגור פרופיל 7-ימים' : 'פתח פרופיל 7-ימים'}
+      {/* מייקל 04.08 ("כמו הכפתור של הוודי"): כפתור-קצה אנכי צף — אפס-שורות מהטבלה */}
+      <div onClick={toggle} title={open ? 'סגור מאזן 7-ימים' : 'פתח מאזן 7-ימים'}
         style={{
-          padding: '3px 10px', borderBottom: `1px solid ${COLORS.borderFaint}`,
-          display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none',
+          position: 'fixed', right: 0, top: '46%', zIndex: 15,
+          writingMode: 'vertical-rl', padding: '10px 3px',
+          background: '#0b1418', border: `1px dashed ${C}`, borderRight: 'none',
+          borderRadius: '6px 0 0 6px', color: C, fontSize: 10, fontWeight: 800,
+          letterSpacing: '1px', cursor: 'pointer', userSelect: 'none',
         }}>
-        <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '1px', color: C }}>
-          {open ? '▾' : '▸'} מאזן 7-ימים</span>
-        <span style={{ fontSize: 9, color: migColor, fontWeight: 700 }}>{migTxt}
-          {d?.value_migration?.slope != null ? ` (${d.value_migration.slope > 0 ? '+' : ''}${d.value_migration.slope}/יום)` : ''}
-        </span>
-        <span style={{ fontSize: 8, color: COLORS.textDim }}>
-          חפיפה {overlap ?? '—'}{regime ? ` · משטר-${regime}` : ''}
-        </span>
-        {loc && <span style={{ fontSize: 9, fontWeight: 700, color: C }}>פתיחת-היום: {loc}</span>}
-        {(d?.today?.day_type ?? liveDT.t) && (
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#fbbf24' }}>
-            סיווג-היום: {d?.today?.day_type ?? liveDT.t}
-            {(d?.today?.day_type_conf ?? liveDT.c) != null
-              ? ` (${Math.round(((d?.today?.day_type_conf ?? liveDT.c) as number) * 100)}%)` : ''}
-          </span>
-        )}
-        <span style={{ fontSize: 8, color: COLORS.textDim, marginInlineStart: 'auto' }}>
-          ערך {comp.val}–{comp.vah} · POC {comp.poc} · טווח {comp.range_low}–{comp.range_high}
-        </span>
+        מאזן 7 {mig === 'UP' ? '▲' : mig === 'DOWN' ? '▼' : '↔'}
       </div>
 
       {open && (

@@ -10,6 +10,7 @@ import { TPOLensContent } from '../systems/TPOLensContent';
 import { KillzoneLensContent } from '../systems/KillzoneLensContent';
 import { ActiveTradeCard } from '../sidepanel/ActiveTradeCard';
 import { COLORS, SIZES } from '../../design/tokens';
+import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { SYSTEM_META } from '../../design/system_colors';
 
 export function SidePanel() {
@@ -29,6 +30,11 @@ export function SidePanel() {
         flexShrink: 0,
       }}
     >
+      {/* מייקל 04.08: שורת-הרמות עברה לכאן מעל-הטבלה ("תמצא לזה מקום בפאנל") */}
+      <div style={{ overflowX: 'auto', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
+        <KeyLevelsStrip />
+      </div>
+
       {/* Active Trade Card */}
       <ActiveTradeCard onTradeContext={setTradeCtx} />
 
