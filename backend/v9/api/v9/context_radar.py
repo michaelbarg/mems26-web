@@ -43,7 +43,12 @@ def _sierra() -> Dict[str, Any]:
 def _day_state() -> Dict[str, Any]:
     try:
         from backend.v9.db.read import read_one
-        # Prefer today's row; fallback to the latest regardless of date
+        # Prefer today's row; fallback to the latest regardless of date.
+        # NOTE (nit-TZ): ts is naive-UTC stored in PG without timezone qualifier.
+        # PG interprets naive as its session TZ (UTC by default on our setup).
+        # The AT TIME ZONE converts for ET-date comparison. Edge: between
+        # midnight-UTC and midnight-ET (~04:00/05:00 UTC) we may see
+        # yesterday's ET date — display-only, not a trading concern.
         r = read_one(
             "SELECT day_type, stage, confidence, direction, opening_type, lock_state "
             "FROM v9_day_type_state "
