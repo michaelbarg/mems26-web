@@ -1,3 +1,9 @@
+### 2026-08-04 — cc-macbook — (1)-(6) complete: sides fix + S7 location/delta + session_at_entry + TZ nit
+**(2) S7 location+delta** (`e380202c`): location reads live session bars, mid=+15/chase=0 (trend-day exempt). Delta reads cumulative_delta confirmed=+10. Max score 100, sizing-3 reachable.
+**(3) session_at_entry** (`aae14d7d`): time-based fallback (OPENING/AM/MIDDAY/PM/OFF_HOURS) when killzone blob empty. Fixes NULL on all 47 trades.
+**(6) nit-TZ** (`45d29256`): documented edge case in radar day_state query.
+**NOT-DONE:** (4) test isolation (425 vs 217 — needs investigation). (5) 78 undocumented flags in FLAG_REGISTRY.
+
 ### 2026-08-04 — cc-macbook — (1) Sides fix `b5ebf2f2` → classifier 100% + 3 replays `18d3868e`
 **Sides fix:** noise floor 2.0→0.5pt when IB_BREAK_ANY_EXPANSION=1. 07-16 (ext_up=1.75pt) and 07-30 (ext_dn=1.0pt) now get sides=2 → Neutral. Classifier truth audit: **13/13 = 100%** (was 11/13).
 **Replays post-fix:** EDGE_FADE 11 entries NET -12.8pt (NO-GO; winners on 5 days but 07-29/07-31 losses dominate). TREND_STOP_FLOOR 0 delta (no Trend label on truth bars — scid lacks live volume data). MULTIDAY unchanged (influences gateway not classifier).
