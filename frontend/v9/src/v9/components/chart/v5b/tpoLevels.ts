@@ -752,14 +752,14 @@ export function extendAutoscaleForTpo(
       };
     },
   });
-  series.priceScale().applyOptions({ autoScale: true });
+  // מייקל 04.08 ("העמודה של המחיר שאני מותח צריכה להישאר ולא לקפוץ"):
+  // אין יותר כפיית autoScale בכל עדכון — זה מה שאיפס את מתיחת-ציר-המחיר
+  // של מייקל בכל רענון-TPO. משאירים את מצב-הסקאלה כפי שהמשתמש קבע;
+  // autoScale נקבע פעם-אחת באתחול-הצ'ארט בלבד.
 }
 
 export function refitPriceScaleForTpo(series: ISeriesApi<'Candlestick'> | null): void {
-  if (!series) return;
-  try {
-    series.priceScale().applyOptions({ autoScale: true });
-  } catch {
-    /* noop */
-  }
+  // מייקל 04.08: לשעבר כפה autoScale:true על כל רענון — מאפס את המתיחה
+  // הידנית. הפונקציה נשארת כ-no-op מפורש כדי לא לשבור קוראים קיימים.
+  void series;
 }
