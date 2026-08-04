@@ -30,11 +30,6 @@ export function SidePanel() {
         flexShrink: 0,
       }}
     >
-      {/* מייקל 04.08: שורת-הרמות עברה לכאן מעל-הטבלה ("תמצא לזה מקום בפאנל") */}
-      <div style={{ overflowX: 'auto', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
-        <KeyLevelsStrip />
-      </div>
-
       {/* Active Trade Card */}
       <ActiveTradeCard onTradeContext={setTradeCtx} />
 
@@ -68,6 +63,17 @@ export function SidePanel() {
         ) : (
           <Lens systemId={selectedSystem} />
         )}
+      </div>
+
+      {/* מייקל 04.08 תיקון-2: הרמות בתחתית-הפאנל, שורה אחת עם גלילה-אופקית —
+          לא חוסמות את המערכות; nowrap כופה שורה-יחידה */}
+      <div style={{
+        borderTop: `1px solid ${COLORS.borderFaint}`, overflowX: 'auto',
+        whiteSpace: 'nowrap', flexShrink: 0, maxHeight: 40,
+      }}>
+        <div style={{ display: 'inline-block', minWidth: 'max-content' }}>
+          <KeyLevelsStrip />
+        </div>
       </div>
     </div>
   );

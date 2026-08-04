@@ -147,11 +147,14 @@ export function MultidayProfilePanel() {
       {/* מייקל 04.08 ("כמו הכפתור של הוודי"): כפתור-קצה אנכי צף — אפס-שורות מהטבלה */}
       <div onClick={toggle} title={open ? 'סגור מאזן 7-ימים' : 'פתח מאזן 7-ימים'}
         style={{
-          position: 'fixed', right: 0, top: '46%', zIndex: 15,
-          writingMode: 'vertical-rl', padding: '10px 3px',
-          background: '#0b1418', border: `1px dashed ${C}`, borderRight: 'none',
-          borderRadius: '6px 0 0 6px', color: C, fontSize: 10, fontWeight: 800,
-          letterSpacing: '1px', cursor: 'pointer', userSelect: 'none',
+          // מייקל 04.08 תיקון-2: אותו קצה כמו WOODY (שמאל, bottom:96) — בדיוק מעליו
+          position: 'fixed', left: 0, bottom: 200, zIndex: 25, width: 22,
+          writingMode: 'vertical-rl', textOrientation: 'mixed', padding: '6px 2px',
+          background: open ? 'rgba(103,232,249,0.22)' : 'rgba(45,85,85,0.92)',
+          border: `1px solid ${open ? C : '#1A3A3A'}`, borderLeft: 'none',
+          borderRadius: '0 4px 4px 0', color: open ? C : '#A3E0E0',
+          fontSize: 8, fontWeight: 800, fontFamily: 'ui-monospace, monospace',
+          letterSpacing: 0.5, lineHeight: 1.1, cursor: 'pointer', userSelect: 'none',
         }}>
         מאזן 7 {mig === 'UP' ? '▲' : mig === 'DOWN' ? '▼' : '↔'}
       </div>

@@ -194,7 +194,8 @@ export function KeyLevelsStrip() {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        flexWrap: 'wrap',
+        // מייקל 04.08: שורה אחת בלבד (בפאנל-הצדדי עם גלילה-אופקית) — בלי wrap
+        flexWrap: 'nowrap',
         opacity: loading ? 0.4 : 1,
         transition: 'opacity 0.3s',
       }}
@@ -220,32 +221,32 @@ export function KeyLevelsStrip() {
 
       <Sep />
 
-      {/* 3. IB Today — pre-open the Sierra study still carries YESTERDAY's IB;
-          showing it as "IB TODAY" misled (07-21). Honest display: 'pre-open'. */}
-      <IbBlock
-        label="IB TODAY"
-        high={t.ib_status === 'pre_open' ? null : t.ib_high}
-        low={t.ib_status === 'pre_open' ? null : t.ib_low}
-        width={t.ib_status === 'pre_open' ? null : t.ib_width}
-        klass={t.ib_status === 'pre_open' ? null : t.ib_class}
-        emptyText={ibTodayEmpty}
-        primary
-      />
-
-      <Sep />
-
-      {/* 4. Y IB — Sierra Input 19 → Yesterday IB study (Step 9, 2026-05-28) */}
-      <IbBlock
-        label="Y IB"
-        high={p.ib_high}
-        low={p.ib_low}
-        width={p.ib_width}
-        klass={p.ib_class}
-        emptyText="dll_missing"
-        primary={false}
-      />
-
-      <Sep />
+      {/* 3+4. IB Today / Y IB — מייקל 04.08 ("מה שלא רלוונטי אין צורך"):
+          כשאין ערך (pre-open / dll_missing) הבלוק לא מוצג בכלל. */}
+      {t.ib_status !== 'pre_open' && t.ib_high != null && (<>
+        <IbBlock
+          label="IB TODAY"
+          high={t.ib_high}
+          low={t.ib_low}
+          width={t.ib_width}
+          klass={t.ib_class}
+          emptyText={ibTodayEmpty}
+          primary
+        />
+        <Sep />
+      </>)}
+      {p.ib_high != null && (<>
+        <IbBlock
+          label="Y IB"
+          high={p.ib_high}
+          low={p.ib_low}
+          width={p.ib_width}
+          klass={p.ib_class}
+          emptyText="dll_missing"
+          primary={false}
+        />
+        <Sep />
+      </>)}
 
       {/* 5. Yest Range */}
       <RangeBlock
