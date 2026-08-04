@@ -1,3 +1,9 @@
+### 2026-08-04 ערב — cowork-dev — פקודת-לילה ל-cc: חירום-בטלפון + רדאר-מורחב (מאושר-מייקל)
+
+`CC_TASK_2026-08-04_MOBILE_EMERGENCY.md`: ‏FLATTEN + PAUSE-לצל מ-Render בערוץ-משיכה
+(local-only נשמר) + כרטיסי-רדאר-מורחבים בטלפון. אחרי-23:00 בלבד · קבלה-בסים · פריסת-Render
+באישור-מייקל. בנוסף בתור: S7 replay-קבלה + רצפת-סטופ replay (חוסמי-הדלקה לפסיקות-מחר).
+
 ### 2026-08-04 — cc-macbook — (1)-(6) complete: sides fix + S7 location/delta + session_at_entry + TZ nit
 **(2) S7 location+delta** (`e380202c`): location reads live session bars, mid=+15/chase=0 (trend-day exempt). Delta reads cumulative_delta confirmed=+10. Max score 100, sizing-3 reachable.
 **(3) session_at_entry** (`aae14d7d`): time-based fallback (OPENING/AM/MIDDAY/PM/OFF_HOURS) when killzone blob empty. Fixes NULL on all 47 trades.
