@@ -207,12 +207,13 @@ export function MultidayProfilePanel() {
           <TpoCanvas days={days} dates={d?.dates ?? []} comp={comp} suspects={suspects}
             today={d?.today ?? null} w={size.w} h={size.h - 30} />
 
-          {/* פינת-שינוי-גודל */}
+          {/* פינת-שינוי-גודל — z-index above the canvas so mouse events reach it */}
           <div
             onMouseDown={(e) => { drag.current = { mode: 'resize', sx: e.clientX, sy: e.clientY, ox: size.w, oy: size.h }; e.preventDefault(); }}
             style={{
-              position: 'absolute', right: 0, bottom: 0, width: 14, height: 14,
-              cursor: 'nwse-resize', borderRight: '2px solid #24444f', borderBottom: '2px solid #24444f',
+              position: 'absolute', right: 0, bottom: 0, width: 18, height: 18,
+              cursor: 'nwse-resize', borderRight: '3px solid #24444f', borderBottom: '3px solid #24444f',
+              zIndex: 5,
             }} />
         </div>
       )}

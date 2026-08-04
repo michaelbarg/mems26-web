@@ -43,9 +43,43 @@ def _sierra() -> Dict[str, Any]:
 def _day_state() -> Dict[str, Any]:
     try:
         from backend.v9.db.read import read_one
+        # Prefer today's row; fallback to the latest regardless of date
         r = read_one(
             "SELECT day_type, stage, confidence, direction, opening_type, lock_state "
-            "FROM v9_day_type_state ORDER BY id DESC LIMIT 1", {})
+            "FROM v9_day_type_state "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "ORDER BY id DESC LIMIT 1", {})
+        if not r:
+            r = read_one(
+                "SELECT day_type, stage, confidence, direction, opening_type, lock_state "
+                "FROM v9_day_type_state ORDER BY id DESC LIMIT 1", {})
+        if not r:
+            # Rehydrate from live bars when DB state is empty (post-restart)
+            try:
+                from backend.v9.db.read import read_all
+                from backend.v9.systems.day_type.classifier_core import classify_session
+                bars = read_all(
+                    "SELECT open, high, low, close, volume FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
+                    "ORDER BY ts", {})
+                if bars and len(bars) >= 6:
+                    bar_dicts = [{"o": float(b["open"]), "h": float(b["high"]),
+                                  "l": float(b["low"]), "c": float(b["close"]),
+                                  "v": int(b["volume"] or 0)} for b in bars]
+                    ib_bars = bar_dicts[:12] if len(bar_dicts) >= 12 else bar_dicts
+                    ib_h = max(b["h"] for b in ib_bars)
+                    ib_l = min(b["l"] for b in ib_bars)
+                    cls = classify_session(bars=bar_dicts, ib_high=ib_h, ib_low=ib_l,
+                                           open_price=bar_dicts[0]["o"])
+                    return {"day_type": cls.get("day_type"), "stage": cls.get("status"),
+                            "confidence": cls.get("confidence"),
+                            "direction": cls.get("direction"),
+                            "opening_type": cls.get("opening_type"),
+                            "lock_state": None}
+            except Exception:
+                pass
         return dict(r) if r else {}
     except Exception:
         return {}

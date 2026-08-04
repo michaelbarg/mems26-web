@@ -238,6 +238,7 @@ export function ChartV5b() {
   const allBarsRef = useRef<any[]>([]);
   /** Last candle time on the series — guards stale WS ticks / poll rows (TASK B). */
   const lastBarTimeRef = useRef<number | null>(null);
+  const staleWarnRef = useRef<number | null>(null);
   /** Block live updates until initial setData completes (prevents refresh glitches). */
   const barsLoadedRef = useRef(false);
   const formingBarRef = useRef<{
@@ -293,11 +294,16 @@ export function ChartV5b() {
     if (!Number.isFinite(t)) return false;
     const last = lastBarTimeRef.current;
     if (last !== null && t < last) {
-      console.warn('[ChartV5b] dropped stale bar update', {
-        tickTime: t,
-        lastTime: last,
-        diffSec: last - t,
-      });
+      // Rate-limit: at most once per 30s to avoid hundreds of console lines
+      const now = Date.now();
+      if (!staleWarnRef.current || now - staleWarnRef.current > 30000) {
+        staleWarnRef.current = now;
+        console.warn('[ChartV5b] dropped stale bar update (rate-limited)', {
+          tickTime: t,
+          lastTime: last,
+          diffSec: last - t,
+        });
+      }
       return false;
     }
     const lastDb = allBarsRef.current[allBarsRef.current.length - 1];

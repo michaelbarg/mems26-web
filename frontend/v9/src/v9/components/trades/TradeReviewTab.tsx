@@ -61,7 +61,10 @@ export function TradeReviewTab() {
   const [patternFilter, setPatternFilter] = useState<string>('');
   const [selId, setSelId] = useState<number | null>(null);
   const [marks, setMarks] = useState<MarksMap>({});
-  const [panelW, setPanelW] = useState<number>(400);
+  const [panelW, setPanelW] = useState<number>(() => {
+    if (typeof window === 'undefined') return 400;
+    try { const v = localStorage.getItem('mems26_tradeReviewPanelW'); return v ? Math.max(260, Math.min(640, Number(v))) : 400; } catch { return 400; }
+  });
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const [iframeV] = useState<number>(() => Date.now()); // cache-bust the static marker.html per mount
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -96,7 +99,7 @@ export function TradeReviewTab() {
   // panel resize
   useEffect(() => {
     const mv = (e: MouseEvent) => { if (!dragRef.current.on) return; setPanelW(Math.max(260, Math.min(640, dragRef.current.w0 + (e.clientX - dragRef.current.x0)))); };
-    const up = () => { dragRef.current.on = false; };
+    const up = () => { dragRef.current.on = false; try { localStorage.setItem('mems26_tradeReviewPanelW', String(panelW)); } catch { /* SSR */ } };
     window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
     return () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
   }, []);
