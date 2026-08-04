@@ -1530,6 +1530,42 @@ class TradingGateway:
             except Exception as _cd_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] stop-cooldown errored (fail-open): %s", _cd_err)
 
+        # --- SYSTEM7_SCORE_V1 (Michael 2026-08-03, "אפשר להתחיל"):
+        # Confluence-scoring judgment layer. Score < 40 → block; 40-64 → 1c;
+        # 65-84 → 2c; ≥85 → 3c. Based on internal evidence (32 live + 90
+        # shadow): score ≥ 2 factors = 88% WR. Flag OFF → byte-identical.
+        if os.getenv("SYSTEM7_SCORE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.system7_score import score as _s7_score
+                _s7_mc = None
+                try:
+                    from backend.v9.services.market_context import get_market_context
+                    _s7_mc = get_market_context()
+                except Exception:
+                    pass
+                _s7_ts = None
+                try:
+                    _s7_ts = datetime.now(timezone.utc)
+                except Exception:
+                    pass
+                _s7 = _s7_score(setup=setup, market_context=_s7_mc, bar_ts=_s7_ts)
+                result["s7_score"] = _s7["score"]
+                result["s7_sizing"] = _s7["sizing"]
+                if _s7["blocked"]:
+                    result["blocked_by"] = "system7_score"
+                    result["reason"] = _s7["reason"]
+                    logger.info("[Gateway] BLOCKED by S7: %s", _s7["reason"])
+                    return result
+                else:
+                    # Apply sizing recommendation
+                    _s7_contracts = _s7["sizing"]
+                    if _s7_contracts < result.get("contracts", 3):
+                        result["contracts"] = _s7_contracts
+                        logger.info("[Gateway] S7 sizing: %d contracts (score %d)",
+                                    _s7_contracts, _s7["score"])
+            except Exception as _s7_err:
+                logger.warning("[Gateway] S7 score errored (fail-open): %s", _s7_err)
+
         # --- RELEASE_ENTRY_GATE_V1 (Michael 2026-07-28: "אתמול הכניסה הייתה
         # טובה אבל מוקדמת … כניסה בשלב אחר שהמחיר הפסיק להיות תקוע באותו אזור").
         # Direction is right ~3 times in 4; the entries are simply too early, so
