@@ -1,3 +1,8 @@
+### 2026-08-04 — cc-macbook — Frontend fixes (`4043d511`) + D2/D3 tests (`3166abf1`) + S7 + TREND_STOP_FLOOR
+**Frontend** (`4043d511`): (1) TradeReviewTab panel width persists to localStorage. (2) ChartV5b stale-bar warn rate-limited 30s. (4) TPO resize corner enlarged+z-indexed. (5) radar _day_state rehydrates from live bars when DB empty (fixes UNKNOWN after restart).
+**D2/D3 tests** (`3166abf1`): 11 tests — multiday veto (6) + leg replaces sustained (5).
+**Remaining from task:** (3) identify fault component (needs Michael's screenshot), (6) MULTIDAY replay — next.
+
 ### 2026-08-04 — cc-macbook — S7 + TREND_STOP_FLOOR + replay delivered (`b95b13b5`)
 **SYSTEM7_SCORE_V1** (OFF): confluence scoring (day-align+leg+location+opening+delta+time). <40→block, 40-64→1c, 65-84→2c, ≥85→3c. Gateway wired.
 **TREND_STOP_FLOOR_V1** (OFF): max(6, 0.15×IB). Replay NO-GO: classifier doesn't produce Trend labels on truth bars.
