@@ -86,10 +86,39 @@ def score(
     total += leg_pts
 
     # ── 3. Location (not chasing) ──
+    # Mid-range (30-70% of running day range) = pullback entry → +15pts.
+    # Chase (entry in the last 30% toward the extreme in trade direction) → 0.
+    # On trend days, chase is NOT a penalty (EFFICIENCY doc update).
     loc_pts = 0
-    # Simplified: if entry_price is available and market_context has extremes,
-    # compute position in the running range. For now, use a placeholder.
-    # In production, this reads from the bar history.
+    _trend_chase_exempt = components.get("trend_day_chase_exempt", False)
+    if entry_price is not None:
+        try:
+            from backend.v9.db.read import read_all as _s7_read
+            _s7_rows = _s7_read(
+                "SELECT high, low FROM v9_bars_5min_woodies "
+                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                "(now() AT TIME ZONE 'America/New_York')::date "
+                "ORDER BY ts", {},
+            )
+            if _s7_rows and len(_s7_rows) >= 6:
+                _s7_sh = max(float(r["high"]) for r in _s7_rows)
+                _s7_sl = min(float(r["low"]) for r in _s7_rows)
+                _s7_rng = _s7_sh - _s7_sl
+                if _s7_rng >= 8:
+                    _s7_pos = (float(entry_price) - _s7_sl) / _s7_rng
+                    if direction == "SHORT":
+                        _s7_pos = 1.0 - _s7_pos  # normalize: 0=near extreme, 1=far from it
+                    _s7_is_chase = _s7_pos > 0.70
+                    _s7_is_mid = 0.30 <= _s7_pos <= 0.70
+                    if _s7_is_mid:
+                        loc_pts = W_LOCATION  # pullback entry
+                    elif _s7_is_chase and not _trend_chase_exempt:
+                        loc_pts = 0  # chasing (penalty by omission)
+                    elif _trend_chase_exempt:
+                        loc_pts = W_LOCATION  # trend day: chase allowed
+                    components["loc_pos"] = round(_s7_pos, 2)
+        except Exception:
+            pass
     components["location"] = loc_pts
     total += loc_pts
 
@@ -110,8 +139,31 @@ def score(
     total += open_pts
 
     # ── 5. Delta confirmation ──
+    # R5: delta confirms extension → +10pts (the extension is real, not a
+    # failed auction). Reads from cumulative_delta export via delta_features.
     delta_pts = 0
-    # Reads from classifier measured output when available
+    try:
+        import os as _s7_os
+        if _s7_os.getenv("DELTA_FEATURES_V1", "0").lower() in ("1", "true", "yes"):
+            from backend.v9.systems.delta_features import (
+                delta_confirms_extension as _s7_dce,
+                cvd_directionality as _s7_cvd_d,
+            )
+            import json as _s7_json
+            from pathlib import Path as _s7_P
+            _s7_dp = _s7_P(os.path.expanduser(
+                "~/SierraChart_Data/v9_export/cumulative_delta.json"))
+            if _s7_dp.exists():
+                _s7_de = _s7_json.loads(_s7_dp.read_text().strip() or "{}")
+                _s7_pts = _s7_de.get("points", [])
+                _break_dir = "UP" if direction == "LONG" else "DOWN"
+                _s7_confirmed = _s7_dce(_s7_pts, _break_dir)
+                if _s7_confirmed is True:
+                    delta_pts = W_DELTA
+                # Also report cvd_directionality for observability
+                components["cvd_directionality"] = _s7_cvd_d(_s7_pts)
+    except Exception:
+        pass
     components["delta"] = delta_pts
     total += delta_pts
 
