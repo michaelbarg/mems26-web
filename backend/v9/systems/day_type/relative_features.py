@@ -266,7 +266,12 @@ def compute_relative_features(
             # fixed minimum pts, typically 2pt). Overrides the IB-frac gate that
             # filtered real breaks on wide IB days (#420: 5pt break < 8pt floor).
             if os.getenv("IB_BREAK_ANY_EXPANSION_V1", "0").lower() in ("1", "true", "yes"):
-                _noise = float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0"))
+                # The intent of IB_BREAK_ANY_EXPANSION is "any acceptance beyond
+                # IB = expansion" — the noise floor should be minimal (2 ticks =
+                # 0.5pt for MES). The old default of 2.0pt blocked real 1.75pt
+                # extensions (07-16) and 1.0pt (07-30) → sides=1 instead of 2 →
+                # misclassified as NV instead of Neutral.
+                _noise = float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "0.5"))
             else:
                 _noise = max(
                     float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0")),
