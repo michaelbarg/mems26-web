@@ -1,3 +1,28 @@
+### 2026-08-04 14:55 — cowork-audit-agent — ביקורת-מערכת מלאה: **GO לסשן-היום** · 3 תיקונים · ממצא-S7 (סטאבים)
+
+**ירוק (עדויות):** flag_guard **150/150** · 5 הדגלים החדשים OFF/absent ב-.env · env_loader 203 vars ·
+mems26_verify OK (warn-אחד, ר' להלן) · health 200 · frontend 200 · ברים 12/שעה, בר-אחרון 14:20, **0 תאומים-24h** ·
+integrity=clean · flat (position_qty=0, orders=0) · טסטי-פיצ'רים-חדשים **42/42** (D2 6 · D3 5 · stop-floor 9 ·
+rotation/leg_state/multiday/a7). **day_type=UNKNOWN עכשיו = תקין** (קדם-פתיחה, שורות A2 של היום-ET);
+תיקון-ה-rehydrate של cc (`4043d511`) **אומת פונקציונלית** (סימולציית-DB-ריק ⇒ Neutral_Center מברים-חיים,
+לא UNKNOWN) אך **לא פעיל בתהליך הרץ** (backend עלה 09:44 < קומיט 11:10) — ייטען בריסטארט הבא; לא קריטי-למסחר
+(כל הקוד הממתין = flag-OFF/תצוגה). עמודת-היום-TPO חיה (today=null קדם-RTH = תקין, פילטר 09:30-ET).
+**מסחר 08-03 (אומת DB):** לייב **9 עסקאות +$183.75** (תואם בדיוק לדיווח-הבוקר) · צל 15 +$336.25 · סה"כ $520 ·
+7W/2L-לייב, כל העסקאות סגורות, EOD flat — אפס סימני-אורפן. היום (08-04): 0 עסקאות עד 14:35 (קדם-סשן).
+**תוקן (הסוכן):** ‏(1) FLAG_INDEX חודש (217 דגלים). ‏(2) ‏TREND_STOP_FLOOR_V1 + EDGE_FADE_V1 נוספו
+ל-FLAG_REGISTRY (היו undocumented — דגלי-סיכון עם פסיקות; סמנטיקה מהקוד: החריגה-מ-MAX_PTS **לא מקטינה-סייז**
+אלא לא-מחילה את הרצפה). ‏(3) `backend/v9/tests/test_system7_score.py` — **9/9** (ל-S7 לא היה אף טסט).
+**ממצא-S7 חדש:** רכיבי location+delta ב-system7_score.py הם **סטאבים (תמיד 0)** ⇒ תקרת-ניקוד 75 ⇒
+sizing-3 (≥85) בלתי-נגיש. להשלים לפני replay. אימות-שער: הקריאה ב-gateway:1537 מוגנת flag (default-OFF).
+**טבלת-פתוחים:** ‏(א) **cc — תיקון-sides במסווג (16.07/30.07)** = החוסם-הראשי (חוסם replay של stop-floor,
+EDGE_FADE, MULTIDAY). ‏(ב) cc — השלמת location+delta ב-S7 + replay-קבלה. ‏(ג) cc — session_at_entry
+NULL 47/47-7d; אבחון-ממוקד: day_type 34/47 + pattern 47/47 כן נכתבים ⇒ השבר מבודד ל-killzone_system
+blob ריק/hint-None ‏(trade_context.py:681). ‏(ד) cc — בידוד-טסטים (זיהום-סוויטה-מלאה). ‏(ה) cc —
+D4 שאריות-P4 · D5/Mac2 (עם מייקל). ‏(ו) מייקל — צילום-מסך fault-component. ‏(ז) מייקל/cc — ריסטארט-בקאנד
+בחלון מותר (אחרי-23:00) להפעלת ה-rehydrate. ‏(ח) cc — חוב-FLAG_REGISTRY: **78 דגלים undocumented**
+(ה-warn של verify יישאר עד סגירתו). ‏(ט) nit ל-cc: ‏v9_day_type_state.ts נאיבי-UTC אך מסונן `AT TIME ZONE 'ET'`
+ברדאר-החדש (סטיית-תאריך בשעות-הלילה, תצוגה-בלבד); ‏_today_block קורא day_type בלי פילטר-היום (אותה משפחה).
+
 ### 2026-08-04 — cc-macbook — Frontend fixes (`4043d511`) + D2/D3 tests (`3166abf1`) + S7 + TREND_STOP_FLOOR
 **Frontend** (`4043d511`): (1) TradeReviewTab panel width persists to localStorage. (2) ChartV5b stale-bar warn rate-limited 30s. (4) TPO resize corner enlarged+z-indexed. (5) radar _day_state rehydrates from live bars when DB empty (fixes UNKNOWN after restart).
 **D2/D3 tests** (`3166abf1`): 11 tests — multiday veto (6) + leg replaces sustained (5).

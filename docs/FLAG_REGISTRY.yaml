@@ -539,6 +539,13 @@ flags:
     why: "OFF (default). Requires replay validation on truth bars — the first trade-count-changing gate in the system. Michael must see the monotonicity of expectancy across score buckets."
     status: awaiting_backtest
     ref: "backend/v9/systems/system7_score.py · docs/research/SYSTEM7_INTERNAL_EVIDENCE_2026-08-03.md"
+  TREND_STOP_FLOOR_V1:
+    category: stops
+    group: "trend stop floor"
+    what: "Michael ruling 2026-08-04: on Trend days (or Normal_Variation with a live leg), with-trend entries get a minimum stop width = max(6.0, 0.15 × IB_width). Applies pre-T1 only (post-T1 → BE); opening patterns + EDGE_FADE exempt (own caps). If the floored risk exceeds TREND_STOP_FLOOR_MAX_PTS (default 15) the floor is NOT applied (original stop kept, logged). The 08-03 case: 4/4 with-trend losses were noise-stops (2.5-4pt) that would have reached T1 with the floor (≈+$412.50)."
+    why: "OFF (default). Enable gate = 14-day truth-replay acceptance (CC_TASK_2026-08-04_TREND_STOP_FLOOR). First replay NO-GO: the classifier does not produce Trend labels on truth bars (sides-computation issue, 07-16/07-30 mismatches) — blocked on the classifier fix."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/five_min/five_min_system.py:1662 · backend/v9/tests/test_trend_stop_floor.py"
   LEG_REPLACES_SUSTAINED_V1:
     category: s2
     group: "direction discipline"
@@ -553,6 +560,13 @@ flags:
     why: "OFF (default). The 07-21 case: 5 shorts sold into upward-migrating value. Replay needed on 21.07 + 30.07 + 29.07 before enable."
     status: awaiting_backtest
     ref: "backend/v9/gateway/trading_gateway.py:multiday_veto · backend/v9/services/market_context.py"
+  EDGE_FADE_V1:
+    category: s2
+    group: "edge fade"
+    what: "Responsive edge-fade for balance days (DEV_PLAN 02.08 §P1 — the $1,550 detection gap): fade entries at the edges of the balance area on FADE day-types. Pure logic in backend/v9/systems/edge_fade.py (no env/IO); the five_min_system caller gates on this flag + day_type."
+    why: "OFF (Michael 2026-08-02: stays OFF until a truth-scid replay passes). Replays so far both NO-GO: N1 −14.5pt/3 entries (most days classified Normal_Variation), contained-NV extension NET −20.0pt/7 entries (worse than base −14.5). Root cause is balance-day identification in the classifier (07-16/07-30 mismatches), not the fade logic."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/edge_fade.py · backend/v9/systems/five_min/five_min_system.py:1339"
   EDGE_FADE_CONTAINED_NV_V1:
     category: s2
     group: "edge fade"
