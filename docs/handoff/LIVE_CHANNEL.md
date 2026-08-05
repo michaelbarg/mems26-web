@@ -1,3 +1,10 @@
+### 2026-08-05 — cc-macbook — M4 verified: TPO real-time profile (`9fc28a71`)
+
+**כבר מיושם ועובד.** אימות 5 דרישות: (1) _today_block נבנה טרי בכל קריאה. (2) TPOHistorySnapshotter
+כותב כל 30 דקות RTH. (3) POC מתקדם: 08-04 היו 7 snapshots, POC 7631→7701. (4) rehydrate מ-DB
+בריסטארט. (5) מסווג קורא poc_now חי מ-tpo.json (main.py:449-465). **אין צורך בשינוי-קוד.**
+קבלה-ויזואלית (צילומים ב-3 זמנים) מחכה לסשן-חי.
+
 ### 2026-08-05 — cc-macbook — M3 complete: overnight queue (`4a65ae24`, `28fec8a4`, `9792b099`)
 
 **(ב) S7 replay — NO-GO (data limitation).** 120 עסקאות 14 ימים: 0/120 accepted (כל הציונים <40).
