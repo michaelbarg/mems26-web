@@ -1305,6 +1305,14 @@ class TradeManager:
             "pnl_usd": trade.pnl_usd,
         })
 
+        # POST_MORTEM_V1: auto-diagnose losses (observability only, never raises)
+        if trade.outcome == "LOSS":
+            try:
+                from backend.v9.services.postmortem.analyzer import on_trade_closed
+                on_trade_closed(trade_id, self._db)
+            except Exception:
+                pass
+
         # N12: central OPS_LOG line (never raises)
         try:
             from scripts.ops_log import log_event as _ops
@@ -1353,6 +1361,14 @@ class TradeManager:
             "outcome": trade.outcome,
             "pnl_usd": trade.pnl_usd,
         })
+
+        # POST_MORTEM_V1: auto-diagnose losses (observability only, never raises)
+        if trade.outcome == "LOSS":
+            try:
+                from backend.v9.services.postmortem.analyzer import on_trade_closed
+                on_trade_closed(trade_id, self._db)
+            except Exception:
+                pass
 
         # N12: central OPS_LOG line (never raises)
         try:

@@ -29,6 +29,7 @@ from .tpo_history import V9TpoHistory
 from .killzone_log import V9KillzoneLog
 from .five_min_state import V9FiveMinState
 from .woodies_trade_terminals import WoodiesTradeTerminal
+from .postmortem import V9Postmortem
 from .missing_tables import (
     V9BarsCumulativeDelta, V9BarsImbalance, V9BarsStackedImbalance,
     V9BarsVolumeProfile, V9BarsWoodies, V9BuildStatusArchive,
