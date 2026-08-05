@@ -1,3 +1,20 @@
+### 2026-08-05 — cc-macbook — M3 complete: overnight queue (`4a65ae24`, `28fec8a4`, `9792b099`)
+
+**(ב) S7 replay — NO-GO (data limitation).** 120 עסקאות 14 ימים: 0/120 accepted (כל הציונים <40).
+סיבה: S7 דורש הקשר-שוק-חי (leg/location/delta/opening_conf) שלא נשמר ב-cross_context.
+בסיס(30)+day_align(20) בלבד — לא מספיק. S7 מוכן ללייב; replay דורש snapshot עשיר יותר.
+**מייקל צריך לפסוק: הפעלה עם SIM בלבד או דחייה.**
+**(ג) Stop-floor replay — NO-GO (classifier limitation).** 10 ימים SCID: 0pt delta.
+המסווג לא מייצר Trend labels מברי-SCID (חסר volume profile חי). ידוע מ-04.08.
+**(ד) בידוד-טסטים:** 7 שגיאות-collection תוקנו (BRIDGE_TOKEN+A1Output). 912 נאספים, 878 ירוקים.
+**FLAG_REGISTRY חוב-78:** 78 stubs נוספו, 0 undocumented (295 סה"כ). gen_flag_index נקי.
+```
+pytest backend/v9/tests/ -q → 912 collected, 878 passed, 31 pre-existing failures
+gen_flag_index → 295 flags, 0 undocumented
+replay_s7_acceptance → 0/120 accepted, NO-GO
+replay_trend_stop_floor → 0pt delta, NO-GO
+```
+
 ### 2026-08-05 — cc-macbook — M3a complete: Mobile emergency (`05c4818c`)
 
 **FLATTEN + PAUSE/RESUME מהטלפון** — ערוץ-משיכה (Mac לא נחשף). 3 שכבות:
