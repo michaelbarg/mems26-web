@@ -1,3 +1,15 @@
+### 2026-08-05 — cc-macbook — M3a complete: Mobile emergency (`05c4818c`)
+
+**FLATTEN + PAUSE/RESUME מהטלפון** — ערוץ-משיכה (Mac לא נחשף). 3 שכבות:
+(1) Render relay: POST /cmd → תור-1 TTL=60s → GET /cmd/pending → ACK. UI עם כפתורים+אישור-כפול.
+(2) mobile_relay.py: פול כל 5ש' → ביצוע-מקומי (FLATTEN/PAUSE/RESUME) → ACK.
+(3) Gateway: _is_trading_paused בודק trading_paused.json (fail-open). PAUSE→צל-בלבד.
+UI מקומי: כפתורי PAUSE/RESUME + באנר-אדום + endpoints /pause, /resume.
+**7/7 טסטים ירוקים.** פריסת-Render = מייקל מאשר (אחרי-23:00).
+```
+pytest backend/v9/tests/test_mobile_emergency.py -v → 7 passed in 0.49s
+```
+
 ### 2026-08-05 — cc-macbook — M2 complete: POST_MORTEM_V1 (`f27fd337`)
 
 **מערכת-אבחון-אוטומטית-אחרי-הפסד** — observability טהור, אפס שינוי-התנהגות.
