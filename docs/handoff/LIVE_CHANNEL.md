@@ -1,3 +1,15 @@
+### 2026-08-05 — cc-macbook — M1 complete: S6 review (`7f0949f7`)
+
+**BE-אחרי-T1 מוקדם מדי ביום-מגמה.** 39 עסקאות 03-04.08 נסקרו. 04.08 (Trend_Normal):
+SMART_BE עלה **-$72.50** על 3 עסקאות (620:-$16 · 622:-$20 · 625:-$36) מול צל. 03.08 (balance):
+0/5 BE-exits — אפס-עלות. STRUCT_TRAIL-צל על #611 הדגים -$415 נוסף (T3-exit vs trailing).
+**המלצה:** פוסט-T1 stop = רצפת-מגמה (max(6,0.15×IB)) במקום entry — מתכתב עם TREND_STOP_FLOOR_V1.
+דוח: `docs/reports/system6/S6_REVIEW_2026-08-03_04.md`. **פקודה+פלט:**
+```
+psycopg2 → v9_trades WHERE entry_ts 2026-08-03..05 → 39 rows
+v9_trade_management_log JOIN → SMART_BE/TARGET_REALISM/STRUCT_TRAIL actions mapped
+```
+
 ### 2026-08-05 14:50 — cowork-dev — סקירת-אתמול + פקודת-יום ל-cc + מוכנות-היום
 
 אתמול: **לייב +$535 (5/5 מנצחות, T3-עבד), צל +$1,135**, סיווג מדויק; מייקל סגר-ידנית באמצע.
