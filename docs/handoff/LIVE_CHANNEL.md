@@ -1,3 +1,9 @@
+### 2026-08-05 ערב — cowork-dev — פסיקת-מייקל: מצב-צל-3-ימים ל-S7+רצפה (מאושר) + תקלת-כותב-סוג-היום
+
+‏M5 נוסף לפקודה: S7_SHADOW_LOG_V1 + TSF_SHADOW_LOG_V1 (observability-ON, אפס-השפעה) ⇒ דוח
+אחרי 3 ימי-מסחר ⇒ הדלקה על ראיות-חיות. + חקירת מות-כותב-day_type (11:45, SYS-2) + M1/M2 בתור.
+היום: איחור-חיבור ⇒ opening-skip ישר; אחרי ריסטארט-flat המערכת סיווגה Trend_Normal והכל חי.
+
 ### 2026-08-05 — cc-macbook — M4 verified: TPO real-time profile (`9fc28a71`)
 
 **כבר מיושם ועובד.** אימות 5 דרישות: (1) _today_block נבנה טרי בכל קריאה. (2) TPOHistorySnapshotter
