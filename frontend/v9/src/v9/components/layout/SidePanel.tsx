@@ -65,16 +65,40 @@ export function SidePanel() {
         )}
       </div>
 
-      {/* מייקל 04.08 תיקון-2: הרמות בתחתית-הפאנל, שורה אחת עם גלילה-אופקית —
-          לא חוסמות את המערכות; nowrap כופה שורה-יחידה */}
-      <div style={{
-        borderTop: `1px solid ${COLORS.borderFaint}`, overflowX: 'auto',
-        whiteSpace: 'nowrap', flexShrink: 0, maxHeight: 40,
-      }}>
+      {/* מייקל 05.08: "מגירת-מידע-משני" — רכיב מתקפל בתחתית הפאנל לכל מה שלא
+          רלוונטי-כרגע (מתחיל עם שורת-הרמות; מוסיפים לכאן כל מידע-משני עתידי).
+          סגור כברירת-מחדל; הבחירה נשמרת. */}
+      <SecondaryDrawer>
         <div style={{ display: 'inline-block', minWidth: 'max-content' }}>
           <KeyLevelsStrip />
         </div>
+      </SecondaryDrawer>
+    </div>
+  );
+}
+
+/** מגירת-מידע-משני מתקפלת (מייקל 05.08) */
+function SecondaryDrawer({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('sidepanel-secondary-open') === '1') setOpen(true);
+    return undefined;
+  });
+  return (
+    <div style={{ borderTop: `1px solid ${COLORS.borderFaint}`, flexShrink: 0 }}>
+      <div
+        onClick={() => setOpen(o => { localStorage.setItem('sidepanel-secondary-open', o ? '0' : '1'); return !o; })}
+        style={{
+          padding: '3px 8px', fontSize: 9, fontWeight: 700, color: COLORS.textTertiary,
+          cursor: 'pointer', userSelect: 'none',
+        }}>
+        {open ? '▾' : '▸'} מידע משני (רמות ועוד)
       </div>
+      {open && (
+        <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', maxHeight: 60 }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

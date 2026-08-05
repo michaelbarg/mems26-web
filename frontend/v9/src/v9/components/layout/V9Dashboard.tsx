@@ -30,8 +30,9 @@ import { SystemControlPanel } from '../controls/SystemControlPanel';
 import { COLORS } from '../../design/tokens';
 
 const STORAGE_KEY = 'chart-height-v5c';
-const MIN_H = 200, DEFAULT_H = 720, MAX_H = 800;
-const PRESETS = { Min: 240, Md: 480, Max: 720 } as const;
+// מייקל 05.08: "הטבלה גדולה יותר" — תקרת-הגובה הוגדלה; השורות שהוסרו פינו מקום
+const MIN_H = 200, DEFAULT_H = 780, MAX_H = 1000;
+const PRESETS = { Min: 240, Md: 560, Max: 900 } as const;
 
 function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
 
@@ -107,10 +108,14 @@ export function V9Dashboard() {
           <TopBar />
           {/* מייקל 07-27: אמת-סיירה על המסך — פוזיציה/P&L/סטופים ישירות מהחשבון,
               והאזהרה על פוזיציה-ללא-הגנה כבאנר במקום חלון-קופץ */}
-          {/* מייקל 04.08: אמת-סיירה + רדאר בשורה אחת — לא שתי שורות נפרדות */}
-          <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}><SierraTruthStrip /></div>
-            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}><ContextRadar /></div>
+          {/* מייקל 05.08: אמת-סיירה + רדאר = שורה אחת שמתאימה גם ל-MacBook 13":
+              בלי wrap; במסך צר גוללים אופקית בתוך השורה במקום לשבור לשתיים */}
+          <div style={{
+            display: 'flex', alignItems: 'stretch', minWidth: 0,
+            overflowX: 'auto', whiteSpace: 'nowrap', maxHeight: 64,
+          }}>
+            <div style={{ flexShrink: 0, minWidth: 'max-content' }}><SierraTruthStrip /></div>
+            <div style={{ flexShrink: 0, minWidth: 'max-content' }}><ContextRadar /></div>
           </div>
           {/* מייקל 04.08: המאזן-7-ימים = כפתור-צף בקצה כמו WOODY, אפס-שורות מהטבלה */}
           <MultidayProfilePanel />
