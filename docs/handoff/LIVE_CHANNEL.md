@@ -1,3 +1,16 @@
+### 2026-08-05 — cc-macbook — M2 complete: POST_MORTEM_V1 (`f27fd337`)
+
+**מערכת-אבחון-אוטומטית-אחרי-הפסד** — observability טהור, אפס שינוי-התנהגות.
+Hook ב-trade_manager (record_stop_hit + close_trade) → try/except, לעולם לא חוסם. בכל LOSS:
+שורת-DB ב-v9_postmortem + דוח PM_<trade_id>.md. 5 שדות-מפתח: day_type entry vs EOD · S7 score ·
+MAE/MFE · range position · root verdict (WRONG_CLASS/LATE_ENTRY/TIGHT_STOP/MANAGEMENT/NORMAL_NOISE).
+**ריצה-רטרואקטיבית 7 הפסדים 03-04.08:** 2×WRONG_CLASS (598,599 — חשבו Trend/EOD=Variation) ·
+1×LATE_ENTRY (610 — range 87.6%) · 4×NORMAL_NOISE. **10/10 טסטים ירוקים** (כולל timing <2s).
+```
+pytest backend/v9/tests/test_postmortem_v1.py -v → 10 passed in 0.57s
+psycopg2 retroactive → 7 rows in v9_postmortem, 7 report files
+```
+
 ### 2026-08-05 — cc-macbook — M1 complete: S6 review (`7f0949f7`)
 
 **BE-אחרי-T1 מוקדם מדי ביום-מגמה.** 39 עסקאות 03-04.08 נסקרו. 04.08 (Trend_Normal):
