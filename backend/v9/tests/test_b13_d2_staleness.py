@@ -4,9 +4,14 @@ if reverted → RED because _is_stale_bar returns None for stale bars,
 allowing them through to DB write + _route_bar dispatch to S2.
 """
 
+import os
 import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
+# bars module imports auth which requires BRIDGE_TOKEN at import time
+if not os.getenv("BRIDGE_TOKEN"):
+    os.environ["BRIDGE_TOKEN"] = "test-token-for-isolation"
 
 from backend.v9.api.v9 import bars
 

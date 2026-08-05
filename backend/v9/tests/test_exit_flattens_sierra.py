@@ -9,6 +9,10 @@ import os
 import tempfile
 from unittest.mock import patch, MagicMock
 
+# trades module imports auth which requires BRIDGE_TOKEN at import time
+if not os.getenv("BRIDGE_TOKEN"):
+    os.environ["BRIDGE_TOKEN"] = "test-token-for-isolation"
+
 from backend.v9.api.v9.trades import _flatten_sierra_position
 
 

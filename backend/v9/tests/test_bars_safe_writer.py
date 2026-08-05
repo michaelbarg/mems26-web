@@ -12,6 +12,10 @@ import os
 import sqlite3
 import tempfile
 
+# bars module imports auth which requires BRIDGE_TOKEN at import time
+if not os.getenv("BRIDGE_TOKEN"):
+    os.environ["BRIDGE_TOKEN"] = "test-token-for-isolation"
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient

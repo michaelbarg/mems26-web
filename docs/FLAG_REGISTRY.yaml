@@ -1283,3 +1283,239 @@ flags:
     why: "ENABLED 07-25 per Michael ruling same day ('התראה-בלבד' chosen from 3 options). Closes the gap: manual naked entries had zero watch after the ownership fix. 12 tests."
     status: enabled
     ref: "RULED מייקל 07-25 · built+enabled cowork 07-25 · sierra_position_reconciler.py"
+
+  # ── AUTO-STUBS (2026-08-05, M3d debt-78) — fill in what/why per flag ──
+  AGENT_CHAT_MAX_TOKENS:
+    category: infra
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/agent_chat.py:30"
+  AGENT_CHAT_MODEL:
+    category: infra
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/agent_chat.py:29"
+  ANTHROPIC_API_KEY:
+    category: infra
+    what: "[auto-stub] undocumented — see backend/v9/app.py:89"
+  AUTH_LOWCONF_REDUCED_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/setup_emitter.py:105"
+  BAR_SEAM_MAX_PTS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:1263"
+  C4_RULING6_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_command.py:490"
+  CHASE_MIN_DIST_IB_FRAC:
+    category: cascade_gate
+    what: "[auto-stub] undocumented — see backend/v9/systems/daytype_playbook.py:266"
+  CHASE_MIN_SESSION_BARS:
+    category: cascade_gate
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:1435"
+  CROSS_SOURCE_PRICE_BAND:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:94"
+  DAYTYPE_ACCEPTANCE_DEMOTION_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/main.py:548"
+  DAYTYPE_BOOT_SEED_CANONICAL_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/main.py:824"
+  DAYTYPE_DEMOTION_K_BARS:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/main.py:571"
+  DAYTYPE_LOCATION_GATE:
+    category: cascade_gate
+    what: "[auto-stub] undocumented — see backend/v9/systems/location_gate.py:1"
+  DAY_TYPE_MANUAL_OVERRIDE:
+    category: s1
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/daytype_classify_routes.py:94"
+  FEED_CONTENT_STALE_SECONDS:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/feed_watchdog.py:58"
+  FILL_POLLER_WARN_THROTTLE_S:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/fill_poller.py:80"
+  FIXED_CONTRACTS_4:
+    category: sizing
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/mobile_monitor.py:198"
+  GATEWAY_DECISIONS_HYDRATE:
+    category: cascade_gate
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:386"
+  HLST_MARGIN_TICKS:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/patterns/higher_low_second_test.py:38"
+  HLST_MIN_PUSH_PTS:
+    category: param
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/patterns/higher_low_second_test.py:36"
+  HLST_RECOVERY_PCT:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/patterns/higher_low_second_test.py:37"
+  HLST_SEARCH_WINDOW:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/patterns/higher_low_second_test.py:39"
+  LEG_RIDE_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/leg_state.py:1"
+  LIVE_TRADING_ARMED:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/trade_commands.py:71"
+  LOCAL_ALERTS_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/local_alert.py:14"
+  MANUAL_FLATTEN_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/mobile_monitor.py:214"
+  MANUAL_GUARD_GRACE_S:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:171"
+  MANUAL_GUARD_REALERT_S:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:172"
+  MARGIN_BUFFER_USD:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/margin_sizing.py:116"
+  MES_MARGIN_PER_CONTRACT:
+    category: sizing
+    what: "[auto-stub] undocumented — see backend/v9/services/margin_sizing.py:79"
+  MOBILE_ACCESS_KEY:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/mobile_monitor.py:27"
+  MOBILE_REMOTE_URL:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/mobile_monitor.py:59"
+  MULTIDAY_CONTEXT_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/context_radar.py:269"
+  NORMAL_ROTATION_FIX_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/stop_anchors/stop_resolver.py:75"
+  OPENING_CONFIRM_BARS:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/opening_entry.py:346"
+  OPENING_DALTON_GAPS_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/day_type/opening_detector_v2.py:28"
+  OPENING_MAX_RISK_PTS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/systems/opening_entry.py:234"
+  OPENING_MIN_CONF:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/systems/opening_entry.py:343"
+  OPENING_STOP_CAP_PTS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/systems/opening_entry.py:235"
+  ORPHAN_AUTO_FLATTEN_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:421"
+  ORPHAN_STOP_POINTS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:212"
+  PATTERN_STOP_COOLDOWN_BARS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:170"
+  PATTERN_STOP_COOLDOWN_MIN_DIST_PT:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:171"
+  PHANTOM_HEAL_STREAK:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/tests/test_trade_reality_detection.py:87"
+  PHONE_ALERT_PROVIDER:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/phone_alert.py:6"
+  PLACE_BRACKET_OP_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:373"
+  PLACE_BRACKET_TARGET_R:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_position_reconciler.py:381"
+  POSITION_TRUTH_GRACE_S:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/fill_poller.py:183"
+  POSITION_TRUTH_SYNC_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/fill_poller.py:68"
+  PROBE_REJECT_MIN_PTS:
+    category: param
+    what: "[auto-stub] undocumented — see backend/v9/systems/location_gate.py:70"
+  PUSHOVER_TOKEN:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/phone_alert.py:7"
+  PUSHOVER_USER:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/phone_alert.py:7"
+  PYTEST_CURRENT_TEST:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/sierra_command.py:51"
+  RR_BREAKOUT_MIN_MULT:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/shared/pre_fire_validator.py:99"
+  RR_BREAKOUT_MM_V1:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/shared/pre_fire_validator.py:88"
+  S1_RECLASS_REQUIRES_IB_EXT_V1:
+    category: s1
+    what: "[auto-stub] undocumented — see backend/v9/systems/day_type/daytype_classifier.py:258"
+  S2_AUTH_MATRIX_SINGLE_SOURCE_V1:
+    category: s2
+    what: "[auto-stub] undocumented — see backend/v9/systems/stop_anchors/sizing.py:84"
+  S2_REACTIVE_EDGE_FIX_V1:
+    category: s2
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/five_min_system.py:969"
+  S4_GRAY_RELABEL_CCI:
+    category: s4
+    what: "[auto-stub] undocumented — see backend/v9/systems/woodies/trend_relabel.py:28"
+  S4_GRAY_RELABEL_V1:
+    category: s4
+    what: "[auto-stub] undocumented — see backend/v9/systems/woodies/trend_relabel.py:24"
+  S4_OVERRIDE_AWARE_V1:
+    category: s4
+    what: "[auto-stub] undocumented — see backend/v9/systems/woodies/woodies_system.py:652"
+  STOP_ANCHOR_OFFSET_TICKS_OVERRIDE:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/config_loader.py:352"
+  STOP_FLOOR_ROTATION_ATR:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/systems/stop_anchors/stop_resolver.py:71"
+  STOP_WIDEN_TO_FLOOR_ON_REJECT_V1:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:1853"
+  T0_TARGET_PTS:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/services/trade_manager/manager.py:351"
+  T1_BANK_R:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/systems/opening_entry.py:42"
+  T2T3_NO_STOMP_V1:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:1981"
+  T2_MAX_R:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/setup_emitter.py:157"
+  T3_MAX_R:
+    category: targets
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/setup_emitter.py:158"
+  TELEGRAM_BOT_TOKEN:
+    category: infra
+    what: "[auto-stub] undocumented — see backend/v9/services/phone_alert.py:8"
+  TELEGRAM_CHAT_ID:
+    category: infra
+    what: "[auto-stub] undocumented — see backend/v9/services/phone_alert.py:8"
+  TREND_CCI_DIRECT_PT:
+    category: s1
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:411"
+  TREND_CCI_DIRECT_V1:
+    category: s1
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:404"
+  TREND_STOP_FLOOR_MAX_PTS:
+    category: risk
+    what: "[auto-stub] undocumented — see backend/v9/systems/five_min/five_min_system.py:1712"
+  TS_HOUR_FIX_TOL_SEC:
+    category: param
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:466"
+  TS_WHOLE_HOUR_TOL_SEC:
+    category: param
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:530"
+  V9_CHART_TZ:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/services/trade_manager/manager.py:787"
+  WOODIES_TS_HOUR_FIX:
+    category: misc
+    what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:442"

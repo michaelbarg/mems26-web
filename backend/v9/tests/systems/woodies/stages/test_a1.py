@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, "/Users/michael/Downloads/mems26_web_git")
 
 import pytest
-from backend.v9.systems.woodies.stages.a1_strategic_gate import A1StrategicGate, A1Output
+from backend.v9.systems.woodies.stages.a1_strategic_gate import A1StrategicGate, StrategicGateResult as A1Output
 
 
 @pytest.fixture

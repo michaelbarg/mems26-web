@@ -13,7 +13,7 @@ sys.path.insert(0, "/Users/michael/Downloads/mems26_web_git")
 
 import pytest
 
-from backend.v9.systems.woodies.stages.a1_strategic_gate import A1StrategicGate, A1Output
+from backend.v9.systems.woodies.stages.a1_strategic_gate import A1StrategicGate, StrategicGateResult as A1Output
 from backend.v9.systems.woodies.stages.a2_day_type_query import A2DayTypeQuery, A2Output
 from backend.v9.systems.woodies.stages.a3_pattern_detection import A3PatternDetection, A3Output
 from backend.v9.systems.woodies.stages.a4_poc_suffering_query import A4PocSufferingQuery, A4Output
