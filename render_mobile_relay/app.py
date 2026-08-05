@@ -1,18 +1,19 @@
-"""MEMS26 — Mobile Monitor Relay (Render, display-only).
+"""MEMS26 — Mobile Monitor + Emergency Command Relay (Render).
 
 07-21 (Michael): "שהלינק לפלאפון יעבוד דרך Render — רק הוא, לא כל המערכת."
+08-04 (Michael): "למקרי חירום שאני לא מול מסך" — FLATTEN + PAUSE from phone.
 
 Standalone FastAPI service. NO database, NO trading, NO backend imports.
 The Mac pushes a display snapshot (the output of the local /api/v9/mobile/data)
 every ~5s via scripts/mobile_relay.py; this service keeps the LAST snapshot
-in memory and serves the same pocket page. If the feed stops, the page shows
-an honest stale badge. The FLATTEN button is intentionally ABSENT here —
-cloud is display-only; closing trades happens on the trading machine only.
+in memory and serves the pocket page.
 
-Page HTML copied from backend/v9/api/v9/mobile_monitor.py (07-21) with:
-flatten removed · relay-age badge added. Keep visually in sync by hand.
+COMMAND RELAY (pull-based, Mac never exposes ports):
+  POST /cmd {action: FLATTEN|PAUSE|RESUME} → stores in memory (queue=1, TTL 60s)
+  GET  /cmd/pending → local relay polls this every 5s, executes locally, ACKs
+  POST /cmd/ack → clears the queue after execution
 
-Env (set in Render dashboard): MOBILE_ACCESS_KEY (page auth, same as local),
+Env (set in Render dashboard): MOBILE_ACCESS_KEY (page+cmd auth),
 MOBILE_PUSH_KEY (snapshot push auth).
 """
 import json
@@ -25,6 +26,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 app = FastAPI(title="mems26-mobile-relay")
 
 _SNAP = {"data": None, "recv_ts": 0.0}
+
+# ── Command relay state (in-memory, queue of 1, TTL 60s) ──
+_CMD = {"pending": None, "ts": 0.0, "counter": 0}
+_CMD_TTL = 60
 
 
 def _page_key_ok(request: Request) -> bool:
@@ -56,6 +61,67 @@ async def snapshot(request: Request):
     _SNAP["data"] = body
     _SNAP["recv_ts"] = time.time()
     return {"ok": True}
+
+
+# ── Command relay endpoints ──
+
+@app.post("/cmd")
+async def post_cmd(request: Request):
+    """Submit emergency command (FLATTEN/PAUSE/RESUME). Queue of 1, TTL 60s.
+    Double-confirm in UI; auth required."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+
+    action = (body.get("action") or "").upper()
+    if action not in ("FLATTEN", "PAUSE", "RESUME"):
+        raise HTTPException(status_code=400, detail=f"unknown action: {action}")
+
+    _CMD["counter"] += 1
+    _CMD["pending"] = {
+        "action": action,
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "id": _CMD["counter"],
+    }
+    _CMD["ts"] = time.monotonic()
+    return {"ok": True, "cmd": _CMD["pending"]}
+
+
+@app.get("/cmd/pending")
+async def get_cmd_pending(request: Request):
+    """Local relay polls this every 5s. Returns null if no pending command."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+
+    if _CMD["pending"] is None:
+        return {"cmd": None}
+
+    # TTL check
+    if time.monotonic() - _CMD["ts"] > _CMD_TTL:
+        _CMD["pending"] = None
+        return {"cmd": None, "expired": True}
+
+    return {"cmd": _CMD["pending"]}
+
+
+@app.post("/cmd/ack")
+async def ack_cmd(request: Request):
+    """Local relay ACKs after executing the command (clears queue)."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    cmd_id = body.get("id")
+    if _CMD["pending"] and (cmd_id is None or cmd_id == _CMD["pending"].get("id")):
+        _CMD["pending"] = None
+        return {"ok": True, "cleared": True}
+    return {"ok": True, "cleared": False}
 
 
 @app.get("/api/v9/mobile/data")
@@ -107,7 +173,10 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
 <div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
-<div class="dim" style="text-align:center;margin:4px 0 8px">🖥 תצוגה-בלבד דרך הענן · סגירת-עסקאות — רק מהמוניטור המקומי/ZT</div>
+<div id="pausedBanner" style="display:none;background:#f85149;color:#fff;text-align:center;padding:10px;border-radius:12px;margin-bottom:10px;font-size:16px;font-weight:800">PAUSED — shadow only</div>
+<button id="pauseBtn" style="width:100%;padding:14px;margin:4px 0;border-radius:12px;border:2px solid #d29922;background:#2d2614;color:#d29922;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer">⏸ השהה מסחר (צל-בלבד)</button>
+<button id="flatBtn" style="width:100%;padding:14px;margin:4px 0;border-radius:12px;border:2px solid #f85149;background:#2d1214;color:#f85149;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer">⏻ סגור עסקאות-אמת (FLATTEN)</button>
+<div id="cmdStatus" class="dim" style="text-align:center;min-height:18px;margin:4px 0 8px"></div>
 <div class="dim" id="health" style="text-align:center"></div>
 <script>
 const Q = location.search || '';
@@ -210,6 +279,28 @@ async function load(){
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר לענן — '+e; }
 }
 load(); setInterval(load, 5000);
+let _paused=false;
+function updatePause(p){
+ _paused=p; document.getElementById('pausedBanner').style.display=p?'block':'none';
+ const b=document.getElementById('pauseBtn');
+ if(p){b.textContent='▶ חדש מסחר (RESUME)';b.style.borderColor='#3fb950';b.style.color='#3fb950';b.style.background='#0d2818';}
+ else{b.textContent='⏸ השהה מסחר (צל-בלבד)';b.style.borderColor='#d29922';b.style.color='#d29922';b.style.background='#2d2614';}
+}
+async function sendCmd(action){
+ const msg={FLATTEN:'לסגור את כל הפוזיציות?',PAUSE:'להשהות מסחר? כניסות חדשות → צל-בלבד.',RESUME:'לחדש מסחר רגיל?'}[action];
+ if(!confirm(msg)) return;
+ if(!confirm('אישור סופי — '+action+'?')) return;
+ const st=document.getElementById('cmdStatus'); st.textContent='שולח...';
+ try{
+  const r=await fetch('/cmd'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action})});
+  const d=await r.json();
+  st.textContent=d.ok?'✓ פקודה נשלחה — ממתין לביצוע (עד 10s)':'✗ '+(d.error||'failed');
+  st.style.color=d.ok?'#3fb950':'#f85149';
+ }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
+ setTimeout(()=>{st.textContent='';st.style.color='';},8000);
+}
+document.getElementById('pauseBtn').onclick=()=>sendCmd(_paused?'RESUME':'PAUSE');
+document.getElementById('flatBtn').onclick=()=>sendCmd('FLATTEN');
 </script></body></html>"""
 
 

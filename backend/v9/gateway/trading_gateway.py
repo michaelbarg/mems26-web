@@ -2545,6 +2545,15 @@ class TradingGateway:
             )
             return result
 
+        # PAUSE gate: when trading_paused.json exists, shadow-only (fail-open:
+        # missing/corrupt file = not paused). Mobile emergency feature.
+        if self._is_trading_paused():
+            result["paused"] = True
+            result["blocked_by"] = "trading_paused"
+            result["reason"] = "trading paused via mobile/emergency — shadow only"
+            logger.warning("[Gateway] TRADING PAUSED — shadow recorded, demo/live blocked")
+            return result
+
         # DEMO/LIVE: D-094 R:R selection or first-wins
         # Self-heal (Michael 2026-07-02: "שתמיד יהיה ניקוי של המערכת"): if the demo
         # slot points at a trade that is already CLOSED/CANCELLED in the DB (a close
@@ -2676,6 +2685,19 @@ class TradingGateway:
             return classify_state(float(score))
         except Exception:
             return "UNKNOWN"
+
+    def _is_trading_paused(self) -> bool:
+        """Check for trading_paused.json in the signals dir.
+
+        Fail-open: missing/corrupt/unreadable file = NOT paused (safe default).
+        Written by mobile emergency PAUSE; removed by RESUME.
+        """
+        try:
+            pause_file = Path(os.path.expanduser(
+                "~/SierraChart_Data/v9_export/trading_paused.json"))
+            return pause_file.exists()
+        except Exception:
+            return False  # fail-open
 
     def _selfheal_demo_slot(self) -> None:
         """Free the demo slot if its trade is already closed in the DB.

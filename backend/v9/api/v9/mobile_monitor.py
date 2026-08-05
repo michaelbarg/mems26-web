@@ -193,6 +193,7 @@ async def mobile_data(request: Request):
     except Exception:
         out["daily"] = None
     # דגלי-קריטיים + halt
+    out["trading_paused"] = _is_paused()
     out["halt_cap"] = os.getenv("RISK_DAILY_LOSS_CAP", "400")
     out["contracts_cfg"] = 4 if os.getenv("FIXED_CONTRACTS_4", "0") == "1" else 3
     # התראות אחרונות (לא-פתורות בלבד, 3 שורות)
@@ -252,6 +253,106 @@ async def mobile_flatten(request: Request):
         return {"ok": False, "error": str(e)[:80]}
 
 
+_PAUSE_FILE = os.path.expanduser("~/SierraChart_Data/v9_export/trading_paused.json")
+
+
+def _is_paused() -> bool:
+    return os.path.exists(_PAUSE_FILE)
+
+
+@router.post("/pause")
+async def mobile_pause(request: Request):
+    """PAUSE: route all fires to shadow-only (no new live/demo entries).
+    Existing positions untouched — defenses/BE/MAE continue. Double-confirm required."""
+    if not _key_ok(request):
+        raise HTTPException(status_code=401, detail="mobile access key required")
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    if body.get("confirm") != "PAUSE":
+        return {"ok": False, "error": "confirm=PAUSE required"}
+
+    base = (os.getenv("MOBILE_REMOTE_URL") or "").strip().rstrip("/")
+    if base:
+        import asyncio
+        def _fwd():
+            import urllib.request
+            req = urllib.request.Request(
+                f"{base}/api/v9/mobile/pause",
+                data=json.dumps({"confirm": "PAUSE"}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.loads(r.read().decode())
+        try:
+            out = await asyncio.to_thread(_fwd)
+            out["_via"] = "trading-machine"
+            return out
+        except Exception as e:
+            return {"ok": False, "error": f"trading machine unreachable: {str(e)[:60]}"}
+
+    try:
+        import time as _t
+        Path(_PAUSE_FILE).write_text(
+            json.dumps({"paused": True, "ts": _t.strftime("%Y-%m-%dT%H:%M:%S"),
+                         "source": "mobile"}),
+            encoding="utf-8")
+        try:
+            from scripts.ops_log import log_event
+            log_event("mobile", "WARN", "TRADING PAUSED via mobile emergency")
+        except Exception:
+            pass
+        return {"ok": True, "msg": "PAUSED — fires routed to shadow only"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:80]}
+
+
+@router.post("/resume")
+async def mobile_resume(request: Request):
+    """RESUME: restore normal trading (fires go to demo/live again)."""
+    if not _key_ok(request):
+        raise HTTPException(status_code=401, detail="mobile access key required")
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    if body.get("confirm") != "RESUME":
+        return {"ok": False, "error": "confirm=RESUME required"}
+
+    base = (os.getenv("MOBILE_REMOTE_URL") or "").strip().rstrip("/")
+    if base:
+        import asyncio
+        def _fwd():
+            import urllib.request
+            req = urllib.request.Request(
+                f"{base}/api/v9/mobile/resume",
+                data=json.dumps({"confirm": "RESUME"}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.loads(r.read().decode())
+        try:
+            out = await asyncio.to_thread(_fwd)
+            out["_via"] = "trading-machine"
+            return out
+        except Exception as e:
+            return {"ok": False, "error": f"trading machine unreachable: {str(e)[:60]}"}
+
+    try:
+        p = Path(_PAUSE_FILE)
+        if p.exists():
+            p.unlink()
+        try:
+            from scripts.ops_log import log_event
+            log_event("mobile", "WARN", "TRADING RESUMED via mobile")
+        except Exception:
+            pass
+        return {"ok": True, "msg": "RESUMED — normal trading restored"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:80]}
+
+
 _PAGE = """<!DOCTYPE html><html lang="he" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -285,6 +386,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
 <div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
+<div id="pauseBanner" style="display:none;background:#f85149;color:#fff;text-align:center;padding:10px;border-radius:12px;margin-bottom:10px;font-size:16px;font-weight:800">PAUSED — fires routed to shadow only</div>
+<button id="pauseBtn" style="width:100%;padding:12px;margin:4px 0;border-radius:12px;border:1px solid #d29922;
+background:#2d2614;color:#d29922;font-size:14px;font-weight:700;font-family:inherit">⏸ השהה מסחר (צל-בלבד)</button>
 <button id="flat" style="width:100%;padding:12px;margin:4px 0 8px;border-radius:12px;border:1px solid #f85149;
 background:#2d1214;color:#f85149;font-size:14px;font-weight:700;font-family:inherit">⏻ סגור עסקאות-אמת (השטח הכל)</button>
 <div class="dim" id="health" style="text-align:center"></div>
@@ -381,10 +485,34 @@ async function load(){
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
   document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
+  updatePause(!!d.trading_paused);
   document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+d.contracts_cfg+' · רענון-5ש';
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר למערכת — '+e; }
 }
 load(); setInterval(load, 5000);
+// Pause banner update
+function updatePause(paused){
+ const b=document.getElementById('pauseBanner'); b.style.display=paused?'block':'none';
+ const pb=document.getElementById('pauseBtn');
+ if(paused){pb.textContent='▶ חדש מסחר (RESUME)';pb.style.borderColor='#3fb950';pb.style.color='#3fb950';pb.style.background='#0d2818';}
+ else{pb.textContent='⏸ השהה מסחר (צל-בלבד)';pb.style.borderColor='#d29922';pb.style.color='#d29922';pb.style.background='#2d2614';}
+ window._paused=paused;
+}
+document.getElementById('pauseBtn').onclick = async () => {
+ const action = window._paused? 'RESUME':'PAUSE';
+ const msg = action==='PAUSE'? 'להשהות את המסחר? כניסות חדשות ינותבו לצל-בלבד.':'לחדש מסחר רגיל?';
+ if(!confirm(msg)) return;
+ if(!confirm('אישור סופי — '+action+' עכשיו?')) return;
+ const b=document.getElementById('pauseBtn'); b.disabled=true; b.textContent='שולח...';
+ try{
+  const ep=action==='PAUSE'?'pause':'resume';
+  const r=await fetch('/api/v9/mobile/'+ep+Q,{method:'POST',headers:{'Content-Type':'application/json','X-Mobile-Key':KEY},body:JSON.stringify({confirm:action})});
+  const d=await r.json();
+  b.textContent=d.ok? '✓ '+d.msg : '✗ '+(d.error||'failed');
+  if(d.ok) updatePause(action==='PAUSE');
+ }catch(e){ b.textContent='✗ no connection'; }
+ setTimeout(()=>{ updatePause(window._paused); b.disabled=false; }, 4000);
+};
 document.getElementById('flat').onclick = async () => {
  if(!confirm('לסגור את כל עסקאות-האמת ולבטל את כל ההוראות?')) return;
  if(!confirm('אישור סופי — FLATTEN עכשיו?')) return;
