@@ -26,6 +26,7 @@ ruled:
   TSF_SHADOW_LOG_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "אותה פסיקה — לוג-רצפת-סטופ-הייתה-עושה, observability בלבד." }
   S6_TARGET_APPROACH_REALIZE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "הכלל הוגדר ע\"י מייקל 05.08 (45-הנקודות): מחיר ≤1נק' מיעד + 2 ברים בלי-מילוי + חתימת-דחייה ⇒ FLATTEN (לא op=EXIT). replay 186 עסקאות: 4 הפעלות, +$258.75, 0 מוקדמות. 12/12 טסטים. הדלקה לפי פרוטוקול פסיקה-עומדת." }
   EXTREMES_AWARE_REALIZE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "פסיקת שלב-1-דלתון (06.08 מאשר): EXCESS⇒מימוש-מיידי, POOR⇒דיכוי-מגנט. replay 186: +$668.75 מול +$258.75 בסיס (+$410). 17/17 טסטים. הדלקה בפרוטוקול פסיקה-עומדת." }
+  OPENING_WINDOWS_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "שלב-2-דלתון מאושר: חלונות-פתיחה מדורגים + מיקום-drive (VALUE_DRIVEN/EXHAUSTION_RISK) — גילוי-טהור, אפס-שינוי-ירי. replay: מסנן-המיקום שווה $401+$657; אכיפת-הווטו תבוא כדגל-נפרד אחרי חיווט." }
   FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-08-04", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
