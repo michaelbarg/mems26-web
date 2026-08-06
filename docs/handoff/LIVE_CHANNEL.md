@@ -1,3 +1,31 @@
+### 2026-08-06 — cc-macbook — (5) GO לסשן · flag_guard 150/150 · verify OK · 28/28 טסטים חדשים
+
+**flag_guard:** PASS — all 150 ruled flags match.
+**mems26_verify:** OK · 0 warn. Backend :8000 OK, bridge OK, DLL==repo, feed fresh (1s), DB lag 3:40.
+**טסטים חדשים:** 28/28 ירוקים (fix-633:6 + invariant-10:5 + postmortem:10 + mobile:7).
+**אין ריסטארט נדרש** — תיקון-633 ו-invariant-10 הם תנאי-כניסה (משפיעים רק על עסקאות חדשות).
+M5 shadow logs (S7+TSF) דורשים הדלקת flags ב-.env + ריסטארט-flat (חלון-מת/אישור-מייקל).
+```
+flag_guard → PASS — 150/150
+mems26_verify.sh → OK · 0 warn
+pytest new tests → 28 passed in 1.27s
+```
+**GO להיום.** פתוח: (א) הדלקת S7_SHADOW_LOG_V1+TSF_SHADOW_LOG_V1 בריסטארט-flat. (ב) day_type watchdog (תקלת 2h15m אתמול).
+
+### 2026-08-06 — cc-macbook — (3) מחקר סשן 05.08 (`b76878e8`)
+
+**10 עסקאות +$1,107.50** (2 חיות +$246.25). #633 עלות-יעדים-שגויים: **$86.25** (C2 לא מולא —
+Sierra שמר t2 ישן). #635 (צל LONG נגד-כיוון) הוכיח כלל-S6 "חסום-על-רגל-נגדית". תקלת-כותב-סוג-היום:
+פער 2h15m (08:45-11:00 ET) — לא פגע במסחר (עסקה ראשונה 14:40) אבל צריך watchdog.
+דוח: `docs/research/SESSION_ANALYSIS_2026-08-05.md`.
+
+### 2026-08-06 — cc-macbook — (4) M5: S7+TSF shadow logs (`8f0b24f6`)
+
+**S7_SHADOW_LOG_V1 + TSF_SHADOW_LOG_V1** — observability טהור, אפס שינוי-התנהגות.
+Hooked ב-_execute_shadow (gateway) → auto-create tables. כל fire מתועד: S7 score+sizing+components,
+TSF floor_pts+current_risk+would_apply. **Off by default — דורש הדלקה ב-.env + ריסטארט-flat.**
+FLAG_REGISTRY עודכן (awaiting_backtest).
+
 ### 2026-08-06 — cc-macbook — (2) S6 Invariant-10: target reconciliation (`593779fa`)
 
 **בדיקה חדשה ב-diagnose_trade:** DB t1/t2/t3 מול sierra_targets (מה-PLACE/MODIFY_TARGET האחרון).
