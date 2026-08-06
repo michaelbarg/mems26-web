@@ -24,6 +24,7 @@ ruled:
   DELTA_FEATURES_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-08-02", note: "אותה פסיקה + פסיקת-footprint מהבוקר (ביטול-דחיית-S3 שלב-1). R5 delta_confirms_extension וטו על reclass-הרחבה לא-מגובת-דלתא + R6 cvd_directionality לרדאר. מקור: cumulative_delta הקנוני בלבד (Rule 1)." }
   S7_SHADOW_LOG_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "פסיקת 05.08 (מאשר מצב-צל-3-ימים): לוג-ציון-S7 על כל fire, observability בלבד, אפס-השפעה. אחרי 3 ימי-מסחר — דוח ⇒ פסיקת-הדלקה ל-SYSTEM7_SCORE_V1." }
   TSF_SHADOW_LOG_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "אותה פסיקה — לוג-רצפת-סטופ-הייתה-עושה, observability בלבד." }
+  S6_TARGET_APPROACH_REALIZE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "הכלל הוגדר ע\"י מייקל 05.08 (45-הנקודות): מחיר ≤1נק' מיעד + 2 ברים בלי-מילוי + חתימת-דחייה ⇒ FLATTEN (לא op=EXIT). replay 186 עסקאות: 4 הפעלות, +$258.75, 0 מוקדמות. 12/12 טסטים. הדלקה לפי פרוטוקול פסיקה-עומדת." }
   FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-08-04", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
