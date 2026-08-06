@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — (2) S6 Invariant-10: target reconciliation (`593779fa`)
+
+**בדיקה חדשה ב-diagnose_trade:** DB t1/t2/t3 מול sierra_targets (מה-PLACE/MODIFY_TARGET האחרון).
+פער >0.25 → AUTO issue עם MODIFY_TARGET correction. שקט כש-sierra_targets חסר (Rule 1).
+לוכד את מחלקת-באג-633 ב-scan, גם אם ה-clamp ב-PLACE נעקף. **5/5 טסטים ירוקים.**
+```
+pytest backend/v9/tests/test_s6_invariant10_target_reconcile.py -v → 5 passed in 0.11s
+```
+
 ### 2026-08-06 — cc-macbook — (1) fix trade-633: R-clamp targets before PLACE (`cc46f06b`)
 
 **השורש:** gateway recomputed t2/t3 מ-t1/stop כש-setup.t3=None, עקף את R-clamp של setup_emitter.
