@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — Drive exhaustion veto (`085cefb1`)
+
+**OPENING_DRIVE_EXHAUSTION_VETO_V1** (flag-OFF): OPEN_DRIVE בקצה-מאזן-7 (EXHAUSTION_RISK) → **חסימה**.
+VALUE_DRIVEN (רחוק מהערך) → עובר. Fail-open (חסר-דאטה=לא-חוסם). חווט בגייטוויי אחרי opening_type_gate.
+Replay כבר GO: **$401 הפסדי-תשישות שהיו נמנעים.** **8/8 טסטים.**
+```
+pytest test_drive_exhaustion_veto.py → 8 passed in 0.06s
+```
+
 ### 2026-08-06 — cc-macbook — Watchdog: day-type writer staleness (`5f2d9556`)
 
 **תקלת 08-05 (2h15m gap): watchdog חדש.** בכל בר: בודק אם v9_day_type_state ישן מ-10 דק' בזמן RTH.
