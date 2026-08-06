@@ -1,3 +1,14 @@
+### 2026-08-06 — cc-macbook — 1d: Extremes-aware replay — GO (`532e300b`)
+
+**Replay 186 עסקאות (07-15..08-05):**
+BASE (approach-realize בלבד): 4 triggers, **+$258.75**
+EXTREMES-AWARE (+EXCESS/POOR): 8 triggers, **+$668.75**
+**שיפור: +$410.00.** EXCESS מצא 5 realizes חדשים (#572 חסך $283 מהפסד -$285!).
+POOR דיכא #598 (מגנט — נכון). **VERDICT: GO.** דוח: `docs/reports/EXTREMES_AWARE_REALIZE_REPLAY.md`.
+```
+replay_extremes_aware.py → BASE +$258.75, AWARE +$668.75, IMPROVEMENT +$410.00
+```
+
 ### 2026-08-06 — cc-macbook — 1c: EXTREMES_AWARE_REALIZE_V1 (`49d3914a`)
 
 **EXCESS → מימוש-מיידי** (1 בר, בלי המתנת K-ברים). **POOR → דיכוי** (מגנט, אל-תממש-מוקדם).
