@@ -628,6 +628,42 @@ class BarLevelDetector:
                     # W9: journal all exit/hold signals per bar (advisory, flag-gated)
                     self._system6_journal_autoloop(trade, _ts_key)
 
+                # S6 Target Approach Realize (2026-08-06): price within 1pt of
+                # target for 2+ bars + rejection → realize via FLATTEN. Flag-gated
+                # S6_TARGET_APPROACH_REALIZE_V1 (OFF). Never op=EXIT. Fail-safe.
+                if _is_demo_live:
+                    try:
+                        from backend.v9.systems.target_approach_realize import should_realize as _tar_should
+                        _tar_state_key = f"_tar_state_{trade.id}"
+                        _tar_prev_state = getattr(self, _tar_state_key, None)
+                        bar_close = float(bar_data.get("close", bar_data.get("c", 0)))
+                        _tar_ok, _tar_reason, _tar_new_state = _tar_should(
+                            trade={
+                                "direction": direction,
+                                "entry_price": float(trade.entry_price),
+                                "t1": float(trade.t1) if trade.t1 else None,
+                                "t2": float(trade.t2) if trade.t2 else None,
+                                "t3": float(trade.t3) if trade.t3 else None,
+                                "t1_hit_ts": trade.t1_hit_ts,
+                                "t2_hit_ts": trade.t2_hit_ts,
+                            },
+                            bar_high=bar_high, bar_low=bar_low, bar_close=bar_close,
+                            approach_state=_tar_prev_state,
+                        )
+                        setattr(self, _tar_state_key, _tar_new_state)
+                        if _tar_ok:
+                            logger.warning(
+                                "[BarLevelDetector] S6 TARGET APPROACH REALIZE: trade %d — %s",
+                                trade.id, _tar_reason)
+                            from backend.v9.services.sierra_command import write_trade_command
+                            write_trade_command(
+                                action="FLATTEN_ACCOUNT",
+                                context={"source": "target_approach_realize",
+                                         "trade_id": str(trade.id), "reason": _tar_reason})
+                            self._tm.close_trade(trade.id, reason="TARGET_APPROACH_REALIZE")
+                    except Exception as _tar_err:
+                        logger.debug("[BarLevelDetector] target-approach error (fail-safe): %s", _tar_err)
+
                 # S6 MAE scratch (DEV_PLAN 02.08 §P3.1): adverse excursion ≥
                 # per-pattern threshold before T1 → FLATTEN. Flag-gated
                 # S6_MAE_SCRATCH_V1 (OFF). Never op=EXIT. Fail-safe.

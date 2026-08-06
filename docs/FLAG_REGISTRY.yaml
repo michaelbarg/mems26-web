@@ -1529,3 +1529,9 @@ flags:
     what: "Shadow-log Trend Stop Floor computation on every fire (observability-only)"
     why: "3-day shadow collection before ignition — Michael ruling 2026-08-05"
     status: awaiting_backtest
+  S6_TARGET_APPROACH_REALIZE_V1:
+    category: s1
+    what: "S6 discretionary realize: price near target + K bars + rejection → FLATTEN"
+    why: "Replay 07-15..08-05: 4 triggers, +$258.75 NET, 0 premature. Awaiting Michael ruling"
+    status: awaiting_backtest
+    ref: "docs/reports/TARGET_APPROACH_REALIZE_REPLAY.md"
