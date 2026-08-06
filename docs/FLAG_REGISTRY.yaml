@@ -1519,3 +1519,13 @@ flags:
   WOODIES_TS_HOUR_FIX:
     category: misc
     what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:442"
+  S7_SHADOW_LOG_V1:
+    category: misc
+    what: "Shadow-log S7 scoring on every fire (observability-only, no behavior change)"
+    why: "3-day shadow collection before ignition — Michael ruling 2026-08-05"
+    status: awaiting_backtest
+  TSF_SHADOW_LOG_V1:
+    category: misc
+    what: "Shadow-log Trend Stop Floor computation on every fire (observability-only)"
+    why: "3-day shadow collection before ignition — Michael ruling 2026-08-05"
+    status: awaiting_backtest

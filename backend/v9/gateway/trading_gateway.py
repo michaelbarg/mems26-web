@@ -2855,6 +2855,38 @@ class TradingGateway:
                 "[Gateway] SHADOW trade TM id=%d: %s %s system=%d",
                 trade_id, tm_setup["direction"], setup.get("classification", ""), system_id,
             )
+
+            # M5: S7 + TSF shadow logs (observability-only, never raises)
+            try:
+                from backend.v9.services.shadow_logs.s7_shadow import log_s7_shadow
+                log_s7_shadow(
+                    trade_id=trade_id, mode="shadow",
+                    setup={"direction": tm_setup["direction"],
+                           "pattern": tm_setup.get("classification", ""),
+                           "entry_price": tm_setup.get("entry_price")},
+                    bar_ts=None,
+                )
+            except Exception:
+                pass
+            try:
+                from backend.v9.services.shadow_logs.tsf_shadow import log_tsf_shadow
+                _dt_blob = {}
+                if isinstance(cross_context, list) and cross_context:
+                    _dt_blob = (cross_context[0] or {}).get("systems", {}).get("day_type_machine", {})
+                elif isinstance(cross_context, dict):
+                    _dt_blob = cross_context.get("systems", {}).get("day_type_machine", {})
+                log_tsf_shadow(
+                    trade_id=trade_id, mode="shadow",
+                    direction=tm_setup["direction"],
+                    entry_price=float(tm_setup.get("entry_price") or 0),
+                    stop=float(tm_setup.get("stop") or 0),
+                    day_type=_dt_blob.get("day_type"),
+                    day_direction=_dt_blob.get("direction"),
+                    ib_width=_dt_blob.get("ib_width"),
+                )
+            except Exception:
+                pass
+
             return {
                 "trade_id": str(trade_id),
                 "mode": "shadow",
