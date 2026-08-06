@@ -1,3 +1,9 @@
+### 2026-08-06 15:10 — cowork-dev — פסיקת-מייקל: פערי-דלתון בשלבים — שלב-1 Excess/Poor
+
+`CC_WORKORDER_2026-08-06_DALTON_GAPS.md`: (1) גילוי-Excess/Poor-high-low + חיבור-לכלל-המימוש
+(EXTREMES_AWARE_REALIZE, בנה-OFF⇒replay) · (2) חלונות-פתיחה פר-סוג · (3) מתג-מאזן מאוחד ·
+Profile-shapes נדחה. הערכת-המסמך: #12/#9/#4 כבר-נסגרו מאז 24.07; #7-8 הפער-האמיתי.
+
 ### 2026-08-06 — cc-macbook — (7) S6 Target Approach Realize — build OFF + replay GO (`baa99ae2`)
 
 **S6_TARGET_APPROACH_REALIZE_V1:** מחיר בטווח ≤1 נק' מיעד, 2+ ברים בלי מילוי, חתימת-דחייה
