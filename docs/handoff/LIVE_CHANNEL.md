@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — 2a+2b: Opening windows + drive location (`c3ec9a7f`)
+
+**חלונות-זמן מדורגים:** Drive 5-15ד' · Test 10-20 · Reject 15-30 · Auction 30-60. evaluate_window
+מחזיר DEVELOPING/CONFIRMED/STALE עם confidence ramp. שינוי-סיווג=STALE.
+**מסנן-מיקום-drive:** VALUE_DRIVEN (רחוק מ-VA >30%) / EXHAUSTION_RISK (בקצה מאזן-7). **16/16 טסטים.**
+```
+pytest test_opening_windows.py → 16 passed in 0.14s
+```
+
 ### 2026-08-06 — cc-macbook — 1d: Extremes-aware replay — GO (`532e300b`)
 
 **Replay 186 עסקאות (07-15..08-05):**
