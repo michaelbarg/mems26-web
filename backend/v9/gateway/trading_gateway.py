@@ -832,6 +832,67 @@ class TradingGateway:
             except Exception as _og_err:
                 logger.warning("[Gateway] opening-type gate errored (fail-open): %s", _og_err)
 
+        # OPENING_DRIVE_EXHAUSTION_VETO_V1 (Dalton Step 2, default OFF):
+        # When an OPEN_DRIVE fires at the balance-7 edge (EXHAUSTION_RISK),
+        # block/reduce the trade. VALUE_DRIVEN passes through unchanged.
+        # Replay evidence: $401 exhaustion losses on 29 sessions (07-01..08-05).
+        if os.getenv("OPENING_DRIVE_EXHAUSTION_VETO_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.opening_windows import evaluate_drive_location
+                # Need: opening_type, open_price, current_price, balance7
+                _dtm = self._system_registry.get("day_type_machine")
+                _opening_type = "UNKNOWN"
+                if _dtm and hasattr(_dtm, "opening") and _dtm.opening:
+                    _ot = _dtm.opening.opening_type
+                    _opening_type = _ot.value if hasattr(_ot, "value") else str(_ot)
+
+                if "DRIVE" in _opening_type:
+                    _ed_open = None
+                    try:
+                        from backend.v9.db.read import read_one as _ed_read
+                        _ed_row = _ed_read(
+                            "SELECT open FROM v9_bars_5min_woodies "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                            "(now() AT TIME ZONE 'America/New_York')::date "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30:00' "
+                            "ORDER BY ts LIMIT 1", {},
+                        )
+                        _ed_open = float(_ed_row["open"]) if _ed_row else None
+                    except Exception:
+                        pass
+
+                    _ed_b7 = None
+                    try:
+                        from backend.v9.api.v9.context_radar import _balance7_summary
+                        _ed_b7 = _balance7_summary()
+                    except Exception:
+                        pass
+
+                    _ed_entry = setup.get("entry_price")
+                    if _ed_open and _ed_entry and _ed_b7:
+                        _ed_loc = evaluate_drive_location(
+                            opening_type=_opening_type,
+                            open_price=_ed_open,
+                            current_price=float(_ed_entry),
+                            balance7=_ed_b7,
+                        )
+                        if _ed_loc == "EXHAUSTION_RISK":
+                            result["blocked_by"] = "drive_exhaustion_veto"
+                            result["reason"] = (
+                                f"OPEN_DRIVE at balance-7 edge (EXHAUSTION_RISK): "
+                                f"entry {_ed_entry} near value boundary — potential exhaustion"
+                            )
+                            result["drive_location"] = _ed_loc
+                            logger.warning(
+                                "[Gateway] BLOCKED by drive-exhaustion veto: %s %s entry=%.2f",
+                                _opening_type, direction, float(_ed_entry))
+                            return result
+                        elif _ed_loc == "VALUE_DRIVEN":
+                            result["drive_location"] = "VALUE_DRIVEN"
+                            logger.info("[Gateway] drive-exhaustion PASS (VALUE_DRIVEN)")
+            except Exception as _ed_err:
+                logger.warning("[Gateway] drive-exhaustion veto errored (fail-open): %s", _ed_err)
+
         # Day-type playbook fire-veto — DISABLED by default (env DAYTYPE_PLAYBOOK=1
         # + Michael approval). Blocks fires that the pattern×day-type playbook marks
         # SKIP (reversals on a trend day, counter-trend REACTIVE, Nontrend, ...) per

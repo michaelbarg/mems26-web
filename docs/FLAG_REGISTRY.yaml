@@ -1541,3 +1541,9 @@ flags:
     why: "Dalton Step 1: session extreme quality modulates the target approach realize decision"
     status: awaiting_backtest
     ref: "docs/handoff/CC_WORKORDER_2026-08-06_DALTON_GAPS.md"
+  OPENING_DRIVE_EXHAUSTION_VETO_V1:
+    category: cascade_gate
+    what: "Veto OPEN_DRIVE fires at balance-7 edge (EXHAUSTION_RISK); VALUE_DRIVEN passes"
+    why: "Replay GO: $401 exhaustion losses filtered on 29 sessions. Dalton Step 2"
+    status: awaiting_backtest
+    ref: "docs/reports/OPENING_WINDOWS_REPLAY.md"
