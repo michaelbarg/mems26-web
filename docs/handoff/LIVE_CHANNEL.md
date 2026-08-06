@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — 2c: Opening windows replay — GO (`c8df8a1a`)
+
+**29 סשנים, 291 עסקאות.** DEVELOPING 58% WR (14W/10L) מול CONFIRMED 49% (114W/119L) — כניסות-מוקדמות
+עובדות **יותר טוב** (הערך לא בתזמון-חלון אלא במסנן-מיקום). Drive location filter: **$401 exhaustion
+filtered + $657 value-driven confirmed.** VERDICT: GO למודעות-מיקום-drive.
+```
+replay_opening_windows.py → 29 sessions, 291 trades, EXHAUSTION $401 saved
+```
+
 ### 2026-08-06 — cc-macbook — 2a+2b: Opening windows + drive location (`c3ec9a7f`)
 
 **חלונות-זמן מדורגים:** Drive 5-15ד' · Test 10-20 · Reject 15-30 · Auction 30-60. evaluate_window
