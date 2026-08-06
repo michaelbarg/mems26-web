@@ -1,3 +1,15 @@
+### 2026-08-06 — cc-macbook — (1) fix trade-633: R-clamp targets before PLACE (`cc46f06b`)
+
+**השורש:** gateway recomputed t2/t3 מ-t1/stop כש-setup.t3=None, עקף את R-clamp של setup_emitter.
+Sierra קיבל t2=7656.0 ב-11.3R; TARGET_REALISM per-bar תיקן DB ל-7757.25 אבל Sierra שמר את הגולמיים.
+**תיקון:** `_clamp_targets_to_max_r()` ב-_execute_demo + _execute_live **אחרי** seeding, **לפני** DB+Sierra.
+אותם T2_MAX_R(3.0) / T3_MAX_R(5.0) כמו setup_emitter. + endpoint POST /api/v9/trade/modify_target
+לתיקון-ידני-חירום (auth+double-confirm). **6/6 טסטים** (תרחיש-633 מדויק + LONG + edge cases).
+```
+pytest backend/v9/tests/test_fix633_target_clamp.py -v → 6 passed in 0.06s
+trade #633 mgmt log: TARGET_REALISM t2 from 7656.0 → 7757.25 (ceiling)
+```
+
 ### 2026-08-05 ~19:00 — cowork-dev — 🔴 באג-לייב אומת: יעדי-T2/T3 בסיירה = ערכי-קדם-קלאמפ
 
 עסקה #633 (שורט חי): DB t2=7757.25/t3=7743 אבל סיירה קיבלה 7732.5/7645.5 — הגולמיים.
