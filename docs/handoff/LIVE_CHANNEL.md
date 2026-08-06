@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — Step 3: Balance/Imbalance toggle (`d94bab77`)
+
+**מתג-מאזן מאוחד:** day_type + leg + VA-overlap-7 → BALANCE / IMBALANCE / TRANSITIONAL.
+Trend+leg=IMBALANCE · Balance+overlap>60%=BALANCE · mixed=TRANSITIONAL · Rule-1 (חסר→TRANSITIONAL).
+חשוף ברדאר (שדה `regime`). S2/S4 fire-path modulation = BALANCE_IMBALANCE_TOGGLE_V1 (not_built — observability בלבד כרגע). **9/9 טסטים.**
+```
+pytest test_balance_imbalance_toggle.py → 9 passed in 0.07s
+```
+
 ### 2026-08-06 — cc-macbook — Drive exhaustion veto (`085cefb1`)
 
 **OPENING_DRIVE_EXHAUSTION_VETO_V1** (flag-OFF): OPEN_DRIVE בקצה-מאזן-7 (EXHAUSTION_RISK) → **חסימה**.
