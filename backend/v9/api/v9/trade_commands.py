@@ -168,6 +168,93 @@ def get_trade_result(
         raise HTTPException(status_code=500, detail=f"Failed to read result: {e}")
 
 
+class ModifyTargetIn(BaseModel):
+    """Manual target correction (emergency — trade #633 scenario)."""
+    trade_id: int
+    target: str  # "t2" or "t3"
+    new_price: float
+    confirm: str  # must be "MODIFY" (double-confirm)
+
+
+@router.post("/modify_target")
+def modify_target(
+    cmd: ModifyTargetIn,
+    _token: str = Depends(verify_bridge_token),
+):
+    """Emergency manual MODIFY_TARGET: update DB + send Sierra command.
+
+    Fix #633 (2026-08-05): when a target diverges between DB and Sierra,
+    this endpoint corrects both. Auth required, double-confirm.
+    """
+    if cmd.confirm != "MODIFY":
+        raise HTTPException(status_code=400, detail="confirm='MODIFY' required")
+    if cmd.target not in ("t1", "t2", "t3"):
+        raise HTTPException(status_code=400, detail="target must be t1/t2/t3")
+
+    from backend.v9.db.session import SessionLocal
+    from backend.v9.db.models.trades import V9Trade
+
+    db = SessionLocal()
+    try:
+        trade = db.query(V9Trade).filter(V9Trade.id == cmd.trade_id).first()
+        if not trade:
+            raise HTTPException(status_code=404, detail=f"Trade {cmd.trade_id} not found")
+        if trade.state == "CLOSED":
+            raise HTTPException(status_code=409, detail=f"Trade {cmd.trade_id} already closed")
+
+        old_val = getattr(trade, cmd.target)
+        setattr(trade, cmd.target, cmd.new_price)
+
+        # Log management entry
+        from backend.v9.db.models.trade_log import V9TradeManagementLog
+        from datetime import datetime, timezone
+        log = V9TradeManagementLog(
+            trade_id=cmd.trade_id,
+            ts=datetime.now(timezone.utc),
+            action="MODIFY_TARGET_MANUAL",
+            value={"target": cmd.target, "from": old_val, "to": cmd.new_price,
+                   "source": "api_manual"},
+        )
+        db.add(log)
+        db.commit()
+
+        # Send MODIFY to Sierra
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        order_id_key = {"t1": "c1_target_id", "t2": "c2_target_id", "t3": "c3_target_id"}[cmd.target]
+        order_id = q.get(order_id_key)
+
+        sierra_result = None
+        if order_id:
+            try:
+                command = write_trade_command(
+                    action="MODIFY",
+                    trade_id=str(cmd.trade_id),
+                    target_price=cmd.new_price,
+                    context={"sierra_bracket_id": str(order_id),
+                             "target": cmd.target, "source": "manual_modify_target"},
+                )
+                sierra_result = "sent"
+            except Exception as e:
+                sierra_result = f"failed: {str(e)[:60]}"
+        else:
+            sierra_result = "no order_id — Sierra command not sent"
+
+        logger.warning(
+            "[modify_target] trade=%d %s: %.2f → %.2f (sierra=%s)",
+            cmd.trade_id, cmd.target, old_val or 0, cmd.new_price, sierra_result,
+        )
+        return {
+            "ok": True,
+            "trade_id": cmd.trade_id,
+            "target": cmd.target,
+            "old": old_val,
+            "new": cmd.new_price,
+            "sierra": sierra_result,
+        }
+    finally:
+        db.close()
+
+
 from fastapi import Request as _FReq
 
 @router.post("/debug_gateway_fire")

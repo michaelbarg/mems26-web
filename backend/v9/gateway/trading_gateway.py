@@ -2871,6 +2871,27 @@ class TradingGateway:
                      trade["direction"], system_id)
         return trade
 
+    @staticmethod
+    def _clamp_targets_to_max_r(direction: str, entry: float, stop: float,
+                                 t1: float, t2: float, t3: float) -> tuple:
+        """R-clamp on t2/t3: same logic as setup_emitter sanity clamp.
+
+        Prevents unclamped raw targets from reaching Sierra via PLACE.
+        Bug #633 (2026-08-05): gateway recomputed t2/t3 from t1/stop when
+        the setup had None/0, bypassing the emitter's clamp entirely.
+        """
+        risk = abs(entry - stop) if entry and stop else 0.0
+        if risk <= 0:
+            return t1, t2, t3
+        t2_max_r = float(os.environ.get("T2_MAX_R", "3.0") or 3.0)
+        t3_max_r = float(os.environ.get("T3_MAX_R", "5.0") or 5.0)
+        sgn = 1.0 if direction == "LONG" else -1.0
+        if t2 and abs(t2 - entry) > t2_max_r * risk:
+            t2 = round(entry + sgn * t2_max_r * risk, 2)
+        if t3 and abs(t3 - entry) > t3_max_r * risk:
+            t3 = round(entry + sgn * t3_max_r * risk, 2)
+        return t1, t2, t3
+
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
         """DEMO: create a REAL TM trade (mode=demo) + write Sierra SIM command.
 
@@ -2893,6 +2914,15 @@ class TradingGateway:
                 direction = (setup.get("direction") or "").upper()
                 t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
                     else t1 - abs(t1 - (setup.get("stop") or t1))
+
+            # FIX #633 (2026-08-05): R-clamp seeded targets BEFORE both DB
+            # persist and Sierra command. The setup_emitter's clamp only ran
+            # on the T1Setup; when the gateway recomputes t2/t3 (above), the
+            # new values bypass that clamp → raw targets reach Sierra.
+            _d = (setup.get("direction") or "LONG").upper()
+            _e = setup.get("entry_price") or 0.0
+            _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
+            t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
 
             tm_setup = {
                 "firing_system": system_id,
@@ -2983,6 +3013,12 @@ class TradingGateway:
                 direction = (setup.get("direction") or "").upper()
                 t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
                     else t1 - abs(t1 - (setup.get("stop") or t1))
+
+            # FIX #633: R-clamp before PLACE (same as _execute_demo)
+            _d = (setup.get("direction") or "LONG").upper()
+            _e = setup.get("entry_price") or 0.0
+            _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
+            t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
 
             tm_setup = {
                 "firing_system": system_id,
