@@ -1,3 +1,11 @@
+### 2026-08-06 — cc-macbook — 1c: EXTREMES_AWARE_REALIZE_V1 (`49d3914a`)
+
+**EXCESS → מימוש-מיידי** (1 בר, בלי המתנת K-ברים). **POOR → דיכוי** (מגנט, אל-תממש-מוקדם).
+NEUTRAL → התנהגות-רגילה. Flag-OFF. **17/17 טסטים** (6 חדשים + 11 קיימים ללא-שינוי).
+```
+pytest test_target_approach_realize.py → 17 passed in 0.07s
+```
+
 ### 2026-08-06 — cc-macbook — 1b: extremes → radar + TPO (`b20f3b58`)
 
 שדה `extremes` חדש ב-/api/v9/context/radar וב-/api/v9/tpo/current: high_quality, low_quality
