@@ -1,3 +1,16 @@
+### 2026-08-06 — cc-macbook — Watchdog: day-type writer staleness (`5f2d9556`)
+
+**תקלת 08-05 (2h15m gap): watchdog חדש.** בכל בר: בודק אם v9_day_type_state ישן מ-10 דק' בזמן RTH.
+אם כן → WARNING ל-log + ops_log (cooldown 5 דק'). לא מרים exception. **4/4 טסטים.**
+```
+pytest test_daytype_watchdog.py → 4 passed in 0.35s
+```
+
+### 2026-08-06 — cc-macbook — M1 debt: ביקורת-מימושי-S6 — **כבר בוצע** (08-05 `7f0949f7`)
+
+ביקורת S6 על 39 עסקאות 03-04.08 הושלמה אתמול. דוח: `docs/reports/system6/S6_REVIEW_2026-08-03_04.md`.
+BE-אחרי-T1 מוקדם מדי ביום-מגמה (-$72.50). אין חוב-פתוח.
+
 ### 2026-08-06 — cc-macbook — 2c: Opening windows replay — GO (`c8df8a1a`)
 
 **29 סשנים, 291 עסקאות.** DEVELOPING 58% WR (14W/10L) מול CONFIRMED 49% (114W/119L) — כניסות-מוקדמות
