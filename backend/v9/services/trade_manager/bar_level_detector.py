@@ -558,6 +558,13 @@ class BarLevelDetector:
             # System 0 A3: shadow direction authority log (flag-gated, advisory)
             self._system0_shadow_log(_ts_key)
 
+            # Day-type writer watchdog (2026-08-05 incident: 2h15m gap)
+            try:
+                from backend.v9.services.daytype_watchdog import check_daytype_staleness
+                check_daytype_staleness()  # logs warning if stale, never raises
+            except Exception:
+                pass
+
             for trade in active:
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
                 if trade.state not in (
