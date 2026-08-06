@@ -387,7 +387,30 @@ def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> d
             "stuck_minutes": 0,
             "previous_poc": None,
         },
+        "extremes": _extremes_for_tpo(),
     }
+
+
+def _extremes_for_tpo() -> Optional[dict]:
+    """Excess/Poor extremes for TPO panel display (Dalton Step 1)."""
+    try:
+        from backend.v9.db.read import read_all
+        from backend.v9.systems.extremes_quality import classify_extremes_live
+        rows = read_all(
+            "SELECT open, high, low, close FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30:00' "
+            "ORDER BY ts", {},
+        )
+        if not rows or len(rows) < 3:
+            return None
+        bars = [{"open": float(r["open"]), "high": float(r["high"]),
+                 "low": float(r["low"]), "close": float(r["close"])}
+                for r in rows]
+        return classify_extremes_live(bars)
+    except Exception:
+        return None
 
 
 def _load_sierra_tpo(path: Path = SIERRA_TPO_PATH, max_age_s: float = SIERRA_TPO_MAX_AGE_S) -> Optional[dict]:

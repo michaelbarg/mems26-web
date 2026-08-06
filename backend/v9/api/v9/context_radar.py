@@ -213,6 +213,28 @@ def _system0_fields() -> Dict[str, Any]:
         return {"balance_state": None, "acceptance": None}
 
 
+def _extremes_quality() -> Optional[Dict[str, Any]]:
+    """Excess/Poor high/low from today's session bars (Dalton Step 1)."""
+    try:
+        from backend.v9.db.read import read_all
+        from backend.v9.systems.extremes_quality import classify_extremes_live
+        rows = read_all(
+            "SELECT open, high, low, close FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30:00' "
+            "ORDER BY ts", {},
+        )
+        if not rows or len(rows) < 3:
+            return None
+        bars = [{"open": float(r["open"]), "high": float(r["high"]),
+                 "low": float(r["low"]), "close": float(r["close"])}
+                for r in rows]
+        return classify_extremes_live(bars)
+    except Exception:
+        return None
+
+
 @router.get("/radar")
 def radar(request: Request) -> Dict[str, Any]:
     st = _sierra()
@@ -270,6 +292,7 @@ def radar(request: Request) -> Dict[str, Any]:
         # radar-compact form — range/value, value migration, today's open
         # location. Sourced from the cached /context/multiday compute.
         "balance7": _balance7_summary(),
+        "extremes": _extremes_quality(),
         "updated_ts": time.time(),
     }
 
