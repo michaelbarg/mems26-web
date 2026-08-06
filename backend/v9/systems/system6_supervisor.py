@@ -259,6 +259,26 @@ def diagnose_trade(
                                         correction={"op": "MODIFY_TARGET", "price": _new_tgt}))
                     break  # only the next open target
 
+    # 13. Invariant-10 — target command reconciliation (FIX #633, 2026-08-05):
+    # detect divergence between DB targets and what Sierra was actually sent.
+    # The caller passes in the last sierra command context (target prices from
+    # the PLACE or most recent MODIFY_TARGET). Any gap > 0.25 ticks → ALERT +
+    # correction via MODIFY_TARGET path. Silent when sierra_targets missing
+    # (Rule 1 — honest skip when we can't read Sierra's command state).
+    _sierra_tgts = trade.get("sierra_targets")
+    if isinstance(_sierra_tgts, dict) and entry is not None:
+        for _tk in ("t1", "t2", "t3"):
+            _db_val = trade.get(_tk)
+            _sierra_val = _sierra_tgts.get(_tk)
+            if _db_val is not None and _sierra_val is not None:
+                if abs(float(_db_val) - float(_sierra_val)) > 0.25:
+                    issues.append(Issue(
+                        f"target_divergence_{_tk}", WARN, AUTO,
+                        f"DB {_tk}={_db_val} != Sierra {_tk}={_sierra_val} "
+                        f"(gap {abs(float(_db_val)-float(_sierra_val)):.2f}pt)",
+                        correction={"op": "MODIFY_TARGET", "target": _tk,
+                                    "price": float(_db_val)}))
+
     return SupervisorReport(healthy=(len(issues) == 0), issues=issues,
                             reconcile_verdict=reconcile_verdict)
 
