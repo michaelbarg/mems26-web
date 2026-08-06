@@ -1,3 +1,12 @@
+### 2026-08-06 — cc-macbook — 1a: extremes_quality.py (`cfa40f18`)
+
+**מנוע-גילוי excess/poor high/low (Dalton).** EXCESS = זנב-דחייה ≥2pt/≥1.5×גוף + סגירה-נסוגה +
+ללא-ביקור-חוזר 3 ברים. POOR = שטוח ≤0.5pt + ≥2 נגיעות. NEUTRAL = אין-מספיק-דאטה (Rule-1).
+**14/14 טסטים.**
+```
+pytest backend/v9/tests/test_extremes_quality.py -v → 14 passed in 0.09s
+```
+
 ### 2026-08-06 15:10 — cowork-dev — פסיקת-מייקל: פערי-דלתון בשלבים — שלב-1 Excess/Poor
 
 `CC_WORKORDER_2026-08-06_DALTON_GAPS.md`: (1) גילוי-Excess/Poor-high-low + חיבור-לכלל-המימוש
