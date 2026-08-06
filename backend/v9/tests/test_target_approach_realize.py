@@ -155,6 +155,93 @@ class TestTargetSelection:
         )
         assert state.target_field == "t1"
 
+class TestExtremesAwareRealize:
+    """EXTREMES_AWARE_REALIZE_V1 tests."""
+
+    def test_excess_immediate_realize(self, monkeypatch):
+        """EXCESS extreme + near target → realize after just 1 bar (no K-bar wait)."""
+        monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")
+        monkeypatch.setenv("EXTREMES_AWARE_REALIZE_V1", "1")
+        trade = _trade(t1=7606.0)
+        extremes = {"high_quality": "EXCESS", "low_quality": "NEUTRAL",
+                     "session_high": 7606.5}
+
+        ok, reason, _ = should_realize(
+            trade=trade, bar_high=7605.8, bar_low=7604.0, bar_close=7605.0,
+            extremes=extremes,
+        )
+        assert ok, "EXCESS + near should realize after 1 bar"
+        assert "EXCESS" in reason
+
+    def test_poor_suppresses_realize(self, monkeypatch):
+        """POOR extreme at target → suppress realize (magnet effect)."""
+        monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")
+        monkeypatch.setenv("EXTREMES_AWARE_REALIZE_V1", "1")
+        trade = _trade(t1=7606.0)
+        extremes = {"high_quality": "POOR", "low_quality": "NEUTRAL",
+                     "session_high": 7606.2}
+
+        # 2 bars near + close_away rejection — would normally trigger
+        _, _, state = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7604.0, bar_close=7605.0,
+            extremes=extremes,
+        )
+        ok, _, state = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7603.0, bar_close=7603.0,
+            approach_state=state, extremes=extremes,
+        )
+        assert not ok, "POOR extreme should SUPPRESS realize (magnet)"
+
+    def test_neutral_no_change(self, monkeypatch):
+        """NEUTRAL extreme → standard behavior (no boost, no suppress)."""
+        monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")
+        monkeypatch.setenv("EXTREMES_AWARE_REALIZE_V1", "1")
+        trade = _trade(t1=7606.0)
+        extremes = {"high_quality": "NEUTRAL", "low_quality": "NEUTRAL"}
+
+        _, _, state = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7604.0, bar_close=7605.0,
+            extremes=extremes,
+        )
+        ok, _, state = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7603.0, bar_close=7603.0,
+            approach_state=state, extremes=extremes,
+        )
+        assert ok, "NEUTRAL → standard close_away trigger"
+
+    def test_extremes_flag_off_no_effect(self, monkeypatch):
+        """When EXTREMES_AWARE flag OFF, extremes dict is ignored."""
+        monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")
+        monkeypatch.delenv("EXTREMES_AWARE_REALIZE_V1", raising=False)
+        trade = _trade(t1=7606.0)
+        extremes = {"high_quality": "POOR"}  # would suppress if flag ON
+
+        _, _, state = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7604.0, bar_close=7605.0,
+            extremes=extremes,
+        )
+        ok, _, _ = should_realize(
+            trade=trade, bar_high=7605.5, bar_low=7603.0, bar_close=7603.0,
+            approach_state=state, extremes=extremes,
+        )
+        assert ok, "Flag OFF → POOR should NOT suppress"
+
+    def test_short_excess_low_realizes(self, monkeypatch):
+        """SHORT trade near low with EXCESS low → realize."""
+        monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")
+        monkeypatch.setenv("EXTREMES_AWARE_REALIZE_V1", "1")
+        trade = _trade(direction="SHORT", entry=7600.0, t1=7594.0)
+        extremes = {"high_quality": "NEUTRAL", "low_quality": "EXCESS",
+                     "session_low": 7593.5}
+
+        ok, reason, _ = should_realize(
+            trade=trade, bar_high=7596.0, bar_low=7594.5, bar_close=7595.5,
+            extremes=extremes,
+        )
+        assert ok
+        assert "EXCESS" in reason
+
+
     def test_pending_t2_after_t1_hit(self, monkeypatch):
         """After T1 hit, approach checks T2."""
         monkeypatch.setenv("S6_TARGET_APPROACH_REALIZE_V1", "1")

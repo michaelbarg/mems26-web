@@ -50,6 +50,7 @@ def should_realize(
     cci_previous: Optional[float] = None,
     delta_direction: Optional[str] = None,
     delta_direction_prev: Optional[str] = None,
+    extremes: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, Optional[str], Optional[ApproachState]]:
     """Check if a target-approach-realize condition is met.
 
@@ -105,6 +106,29 @@ def should_realize(
             approach_state.bars_near = 0
         return False, None, approach_state
 
+    # ── EXTREMES_AWARE_REALIZE_V1: EXCESS boost (before K-bar gate) ──
+    # On an EXCESS extreme, realize after just 1 bar near (no K-bar wait).
+    # On a POOR extreme, suppress realize entirely (magnet — target will fill).
+    _extremes_aware = os.getenv("EXTREMES_AWARE_REALIZE_V1", "0").lower() in ("1", "true", "yes")
+    _extreme_quality = None
+    if _extremes_aware and isinstance(extremes, dict):
+        if direction == "LONG":
+            _extreme_quality = extremes.get("high_quality")
+        else:
+            _extreme_quality = extremes.get("low_quality")
+
+        if _extreme_quality == "POOR":
+            return False, None, approach_state
+
+        if _extreme_quality == "EXCESS" and near and approach_state.bars_near >= 1:
+            approach_state.triggered = True
+            reason = (
+                f"{tgt_field} EXCESS-realize: {approach_state.bars_near} bars within "
+                f"{approach_state.high_water:.2f}pt of {tgt_price:.2f}, "
+                f"EXCESS extreme (protected — auction complete)"
+            )
+            return True, reason, approach_state
+
     # Need at least MAX_APPROACH_BARS near without fill
     if approach_state.bars_near < MAX_APPROACH_BARS:
         return False, None, approach_state
@@ -143,6 +167,8 @@ def should_realize(
         f"{approach_state.high_water:.2f}pt of {tgt_price:.2f}, rejection: "
         f"{'+'.join(rejections)}"
     )
+    if _extremes_aware and _extreme_quality:
+        reason += f" [extreme={_extreme_quality}]"
     return True, reason, approach_state
 
 

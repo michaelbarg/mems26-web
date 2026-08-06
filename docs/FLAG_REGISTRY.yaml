@@ -1535,3 +1535,9 @@ flags:
     why: "Replay 07-15..08-05: 4 triggers, +$258.75 NET, 0 premature. Awaiting Michael ruling"
     status: awaiting_backtest
     ref: "docs/reports/TARGET_APPROACH_REALIZE_REPLAY.md"
+  EXTREMES_AWARE_REALIZE_V1:
+    category: s1
+    what: "Extremes-aware target realize: EXCESS→immediate realize, POOR→suppress (magnet)"
+    why: "Dalton Step 1: session extreme quality modulates the target approach realize decision"
+    status: awaiting_backtest
+    ref: "docs/handoff/CC_WORKORDER_2026-08-06_DALTON_GAPS.md"
