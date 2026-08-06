@@ -1,3 +1,8 @@
+### 2026-08-06 — cc-macbook — 1b: extremes → radar + TPO (`b20f3b58`)
+
+שדה `extremes` חדש ב-/api/v9/context/radar וב-/api/v9/tpo/current: high_quality, low_quality
+(EXCESS/POOR/NEUTRAL) + tail_pts + touches + session levels. קריאה-בלבד, Rule-1 (None כש-<3 ברים).
+
 ### 2026-08-06 — cc-macbook — 1a: extremes_quality.py (`cfa40f18`)
 
 **מנוע-גילוי excess/poor high/low (Dalton).** EXCESS = זנב-דחייה ≥2pt/≥1.5×גוף + סגירה-נסוגה +
