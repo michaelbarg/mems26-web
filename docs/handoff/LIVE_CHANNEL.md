@@ -1,3 +1,15 @@
+### 2026-08-06 — cc-macbook — (7) S6 Target Approach Realize — build OFF + replay GO (`baa99ae2`)
+
+**S6_TARGET_APPROACH_REALIZE_V1:** מחיר בטווח ≤1 נק' מיעד, 2+ ברים בלי מילוי, חתימת-דחייה
+(close_away / cci_reversal / delta_flip) → FLATTEN (לעולם לא op=EXIT).
+**Replay 07-15..08-05 (186 עסקאות):** 4 triggers, **כולם מועילים:**
+#466 +$33.75 · #515 +$80 · #518 +$127.50 · #598 +$17.50 → **NET +$258.75, 0 premature.**
+Hooked ב-bar_level_detector, flag-OFF. **12/12 טסטים.** ממתין לפסיקת-מייקל להדלקה.
+```
+replay_target_approach.py → 4 triggered, +$258.75 NET, VERDICT: GO
+pytest test_target_approach_realize.py → 12 passed in 0.09s
+```
+
 ### 2026-08-06 — cc-macbook — (5) GO לסשן · flag_guard 150/150 · verify OK · 28/28 טסטים חדשים
 
 **flag_guard:** PASS — all 150 ruled flags match.
