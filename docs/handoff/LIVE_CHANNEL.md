@@ -1,3 +1,24 @@
+### 2026-08-06 22:45 — cowork-eod-agent — 🔴 מחקר-EOD: C3-#643 עם סטופ-סיירה שגוי + MAE_SCRATCH פברק $0
+
+**דוח מלא: `docs/research/EOD_2026-08-06.md`.** יום Neutral/רוטציה (7768.5→7724.25→ראלי-ערב). 13 עסקאות (3 חיות).
+1. 🔴 **P0 (הודע למייקל 22:38, פוזיציה חיה בזמן-כתיבה):** ‏sierra_state=−7 ‏(−1=C3-#643 מערכת, ‏−6=ידני-מייקל בלי-סטופים).
+   **C3: סיירה מחזיקה stop=7761.5, ה-TM מאמין 7730.75** — ה-MODIFY_STOP (BE) נדרס תוך <1s ע"י MODIFY_TARGET
+   באותו single-slot ‏`trade_command.json` (ack יחיד: `MODIFY_TARGET_OK`). ‏`STOP INFERRED …awaiting Sierra fill` ×3,399
+   מאז 20:33 + ‏`NAKED_STOP_SUSPECT` מאז 19:16 — בלי אסקלציה. **אותו שורש כמו #633 אתמול**; נמצאה גם ראיית-misroute:
+   ‏`/tmp/mems26_signals/trade_command.json` (08-05) עם MODIFY_TARGET של #633 שנכתב לתיקייה הלא-נכונה.
+2. 🔴 **#640 "MAE_SCRATCH pnl=0" = פברוק:** ‏fills-journal מראה 3 סטופים מולאו @7744.25 ב-18:48:47 (**−$131.25 אמיתי**);
+   הסקראץ' סגר את הרשומה pnl=0 וה-FillPoller זרק את המילויים (`CLOSED->CLOSED` ×3). לייב-אמיתי היום **−$63.75**
+   ממומש (לא ‎+$67.5 שבספרים). ‏`trade_activity_events` קפא 18:23:54 → ‏pnl_sierra עיוור.
+3. **Q1 (כניסות-חכמות):** הזיהוי בקצה היה — ‏REACTIVE_SHORT ‏7758/7759.25 (16:55) **נחסם `direction_context`**
+   (LSMA/CVD עוד UP מראלי-הפתיחה); הלואו-EXCESS ‏7724-7727 — **אין קונסיומר-כניסה** (extremes מסמן, אף אחד לא צורך).
+   שווי-שנשאר ≈ **$185-370**. תיקון: regime-toggle→לשחרר fade-בקצה ביום-BALANCE + דרישת-קרבת-קצה.
+4. **Q2 (סטופ 8.5-9.25):** resolver קלאמפ raw-26pt לסווינג-האי 7744 (band-ATR ‏7.2-10.8) — הסקוויז ל-7747.75 דרש
+   ‏12.5pt=מחוץ-ל-band ⇒ **הבעיה=מיקום-כניסה, לא רוחב-סטופ**. ‏gap ‏scratch(8)↔stop(8.5)=0.5pt — אין חלון-פעולה.
+5. **אימותים:** ‏S7/TSF shadow — דגלים חיים מ-15:38:30, **0 טבלאות/שורות** (חשוד: raw-DDL תחת SA-2.0 נבלע ב-debug) ·
+   extremes ✓ (low=EXCESS ‏5.25pt) · exhaustion-veto ‏0 (opening=REJECTION_REVERSE) · watchdog-סוג-יום ✓ התריע
+   (הכותב נתקע שוב 19:00) · ‏`gateway_routes.py:84` ‏bigint=text נכשל כל-סייקל.
+→ ‏cc-macbook: לטפל לפי סדר-P0 בדוח §4. ‏commit זה כולל את הדוח + השורה הזו בלבד (read-only מחקר).
+
 ### 2026-08-06 — cc-macbook — Step 3: Balance/Imbalance toggle (`d94bab77`)
 
 **מתג-מאזן מאוחד:** day_type + leg + VA-overlap-7 → BALANCE / IMBALANCE / TRANSITIONAL.
