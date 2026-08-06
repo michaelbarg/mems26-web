@@ -1547,3 +1547,9 @@ flags:
     why: "Replay GO: $401 exhaustion losses filtered on 29 sessions. Dalton Step 2"
     status: awaiting_backtest
     ref: "docs/reports/OPENING_WINDOWS_REPLAY.md"
+  BALANCE_IMBALANCE_TOGGLE_V1:
+    category: cascade_gate
+    what: "Unified Balance/Imbalance regime toggle for S2/S4 fire path modulation"
+    why: "Dalton Step 3: day_type + leg + 7-day VA overlap → single regime signal"
+    status: not_built
+    ref: "docs/handoff/CC_WORKORDER_2026-08-06_DALTON_GAPS.md"

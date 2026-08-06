@@ -213,6 +213,15 @@ def _system0_fields() -> Dict[str, Any]:
         return {"balance_state": None, "acceptance": None}
 
 
+def _regime_toggle() -> Optional[Dict[str, Any]]:
+    """Unified Balance↔Imbalance regime (Dalton Step 3)."""
+    try:
+        from backend.v9.systems.balance_imbalance_toggle import assess_regime_live
+        return assess_regime_live()
+    except Exception:
+        return None
+
+
 def _extremes_quality() -> Optional[Dict[str, Any]]:
     """Excess/Poor high/low from today's session bars (Dalton Step 1)."""
     try:
@@ -293,6 +302,7 @@ def radar(request: Request) -> Dict[str, Any]:
         # location. Sourced from the cached /context/multiday compute.
         "balance7": _balance7_summary(),
         "extremes": _extremes_quality(),
+        "regime": _regime_toggle(),
         "updated_ts": time.time(),
     }
 
