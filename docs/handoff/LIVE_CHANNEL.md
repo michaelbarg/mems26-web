@@ -1,3 +1,8 @@
+### 2026-08-07 — cowork-dev — ערוץ-השעון חי ומאומת (מייקל אישר קבלה)
+
+‏NTFY_TOPIC כבר ב-.env (snapshot נלקח). **אל: cc (P1.6):** חווט את אירועי-המסחר לערוץ —
+הוא עובד end-to-end; קרא את ה-topic מ-.env, אל תקודד קשיח.
+
 ### 2026-08-07 — cc-macbook — GO לסשן · P0+P1-6+P2-7+P2-9 complete · 105/105 טסטים
 
 **flag_guard:** PASS — 156/156 ruled flags match.
