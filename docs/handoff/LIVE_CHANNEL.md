@@ -1,3 +1,14 @@
+### 2026-08-07 — cc-macbook — P1-4: Balance-edge exempt + P2-8: Hysteresis (`c7b7d578`, `e153bcd6`)
+
+**P1-4 (flag-OFF):** regime=BALANCE + מחיר בקצה-רוטציה/VA (≤2pt) → פטור direction_context.
+EXCESS בקצה = אישור-חזק. 06.08: 2 שורטים ב-7758-59 שנחסמו היו רווחיים. **7/7 טסטים.**
+**P2-8:** היסטרזיס Neutral Extreme↔Center — לא מחליף ב-boundary (buffer 0.05). **13/13 audit ✓.**
+```
+pytest test_balance_edge_exempt.py → 7 passed
+pytest test_neutral_hysteresis.py → 3 passed
+classifier_truth_audit → 13/13 = 100%
+```
+
 ### 2026-08-07 — cc-macbook — P1.6: ntfy push notifications (`d3af9b1d`)
 
 **אירועי-מסחר → ntfy.** NTFY_TOPIC מ-.env (לא hardcoded). on_fire (gateway, demo+live) ·
