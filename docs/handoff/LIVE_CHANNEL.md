@@ -1,3 +1,21 @@
+### 2026-08-07 — cc-macbook — GO לסשן · P0+P1-6+P2-7+P2-9 complete · 105/105 טסטים
+
+**flag_guard:** PASS — 156/156 ruled flags match.
+**mems26_verify:** OK · 1 warn (FLAG_INDEX regenerated). Feed fresh (2s), DB lag 1:07.
+**105 טסטים חדשים ירוקים** (כל מה שנבנה מ-05.08 ועד היום).
+**P0 (3 תנאי-GO):** ✅ ערוץ-פקודות ✅ חשבונאות-fills ✅ לוגי-צל
+**P1-6:** ✅ gateway_routes bigint fix
+**P2-7:** ✅ כותב-סוג-היום self-heal (reset signature)
+**P2-9:** ✅ scratch↔stop gap (stop-2pt minimum)
+**ריסטארט נדרש:** flat-window — לטעון command queue + fill-on-closed + shadow logs + self-heal.
+```
+flag_guard → PASS 156/156
+mems26_verify.sh → OK · 1 warn (regenerated)
+pytest (105 new tests) → 105 passed in 2.07s
+#640 retroactive: $0 → -$131.25 corrected
+```
+**GO.** פתוח: P1-4/P1-5 (replay), P1.5 (כרטיס-טלפון — cowork כבר עשה), P2-8 (היסטרזיס).
+
 ### 2026-08-07 — cc-macbook — P0 complete: 3 תנאי-GO (`2a79a9da`, `78c2500d`, `29b671fd`)
 
 **(1) ערוץ-פקודות:** תור-ממוספר command_queue/cmd_<seq>.json + drain + ACK. 6/6 טסטים.
