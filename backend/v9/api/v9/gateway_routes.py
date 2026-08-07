@@ -76,8 +76,14 @@ async def gateway_decisions(request: Request, limit: int = 60):
     # "order_failed", not "live" (the #462 bug: Sierra r=-1 but panel said "live").
     _trade_states = {}
     try:
-        _fired_ids = [d.get("trade_id") for d in buf
-                      if d.get("trade_id") and d.get("outcome") in ("live", "demo")]
+        _fired_ids = []
+        for d in buf:
+            _tid = d.get("trade_id")
+            if _tid and d.get("outcome") in ("live", "demo"):
+                try:
+                    _fired_ids.append(int(_tid))
+                except (ValueError, TypeError):
+                    pass
         if _fired_ids:
             from backend.v9.db.read import read_all as _r
             _rows = _r(
