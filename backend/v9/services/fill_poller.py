@@ -930,6 +930,13 @@ class FillPoller:
         logger.info("[FillPoller] fill: kind=%s order=%s trade=%s price=%s",
                      kind, order_id, trade_id, price)
 
+        # P1.6: ntfy push notification on fills
+        try:
+            from backend.v9.services.ntfy_notify import on_fill
+            on_fill(trade_id, kind, float(price) if price else 0)
+        except Exception:
+            pass
+
         try:
             # P0-2 (#640): check if trade is already CLOSED before processing.
             # If so, update P&L from the fill instead of trying a state transition.

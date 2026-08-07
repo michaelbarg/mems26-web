@@ -3061,6 +3061,15 @@ class TradingGateway:
                 trade_id, tm_setup["direction"], setup.get("classification", ""),
                 system_id, t1, t2, t3,
             )
+            # P1.6: ntfy push notification
+            try:
+                from backend.v9.services.ntfy_notify import on_fire
+                on_fire(trade_id, tm_setup["direction"],
+                        setup.get("classification", ""), "demo",
+                        float(setup.get("entry_price") or 0))
+            except Exception:
+                pass
+
             return {
                 "trade_id": str(trade_id),
                 "mode": "demo",
@@ -3158,6 +3167,15 @@ class TradingGateway:
                 system_id, t1, t2, t3,
                 _sierra_route_account(),
             )
+            # P1.6: ntfy push notification (LIVE = high priority)
+            try:
+                from backend.v9.services.ntfy_notify import on_fire
+                on_fire(trade_id, tm_setup["direction"],
+                        setup.get("classification", ""), "live",
+                        float(setup.get("entry_price") or 0))
+            except Exception:
+                pass
+
             return {
                 "trade_id": str(trade_id),
                 "mode": "live",
