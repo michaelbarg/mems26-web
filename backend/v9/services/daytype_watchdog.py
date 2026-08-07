@@ -26,8 +26,13 @@ _last_alert_ts: float = 0.0
 _ALERT_COOLDOWN_S = 300  # 5 min between alerts
 
 
-def check_daytype_staleness() -> Optional[str]:
-    """Check if the day-type writer is stale.
+def check_daytype_staleness(app_state=None) -> Optional[str]:
+    """Check if the day-type writer is stale. If stale, attempt self-heal.
+
+    When app_state is provided and staleness is detected, resets the
+    write-on-change signature (_last_dts_sig) so the next bar forces a
+    fresh DB write. This is the self-heal for the 08-05/08-06 incidents
+    where the writer died silently.
 
     Returns:
         None if healthy, or a warning string if stale.
@@ -61,10 +66,22 @@ def check_daytype_staleness() -> Optional[str]:
         age_min = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
 
         if age_min > STALE_THRESHOLD_MIN:
-            return _warn(
+            msg = _warn(
                 f"day_type_state stale: last entry {age_min:.0f}min ago "
                 f"(threshold {STALE_THRESHOLD_MIN}min), last_type={row['day_type']}"
             )
+            # Self-heal: reset the write-on-change signature so the next bar
+            # forces a fresh DB write. This fixes the silent writer death where
+            # _last_dts_sig stays frozen after an error.
+            if app_state is not None:
+                try:
+                    if hasattr(app_state, "_last_dts_sig"):
+                        app_state._last_dts_sig = None
+                        logger.warning("[DAYTYPE_WATCHDOG] SELF-HEAL: reset _last_dts_sig — "
+                                       "next bar will force a DB write")
+                except Exception:
+                    pass
+            return msg
         return None
     except Exception as e:
         logger.debug("daytype_watchdog check failed: %s", e)

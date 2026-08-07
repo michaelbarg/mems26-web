@@ -561,7 +561,11 @@ class BarLevelDetector:
             # Day-type writer watchdog (2026-08-05 incident: 2h15m gap)
             try:
                 from backend.v9.services.daytype_watchdog import check_daytype_staleness
-                check_daytype_staleness()  # logs warning if stale, never raises
+                # Pass app_state for self-heal (resets _last_dts_sig on staleness)
+                _app_st = getattr(self, "_app_state", None)
+                if _app_st is None and self._gateway:
+                    _app_st = getattr(self._gateway, "_app_state", None)
+                check_daytype_staleness(app_state=_app_st)
             except Exception:
                 pass
 
