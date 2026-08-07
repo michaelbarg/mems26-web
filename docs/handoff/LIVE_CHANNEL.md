@@ -1,3 +1,14 @@
+### 2026-08-07 — cc-macbook — P1.6: ntfy push notifications (`d3af9b1d`)
+
+**אירועי-מסחר → ntfy.** NTFY_TOPIC מ-.env (לא hardcoded). on_fire (gateway, demo+live) ·
+on_fill (fill_poller, כל kind). daemon-thread, fire-and-forget, timeout 5s, swallowed errors.
+
+### 2026-08-07 — cc-macbook — P1.5: כרטיס-עסקה-חיה בטלפון (`dc841d9d`)
+
+**כרטיס-עסקה פתוחה:** כיוון·חוזים·כניסה·P&L-גדול-צבעוני. **אימות-סיירה ✅/🔴:** פר-רמה (stop/T1/T2/T3)
+DB מול sierra_state.orders — פער = 🔴 עם שני המחירים. **מד-התקדמות:** פס פר-יעד (% מכניסה ליעד,
+ירוק >90% / צהוב >50%). מה-snapshot הקיים, אפס-endpoints חדשים.
+
 ### 2026-08-07 — cc-macbook — P0.5: סיווג-06.08 תוקן — 13/13 = 100% (`510e1b3a`)
 
 **שורש:** רצפת-רעש-0.5 בלי ספירת-ברים → דקירת-1-בר נספרת כצד → sides=2 כוזב.
