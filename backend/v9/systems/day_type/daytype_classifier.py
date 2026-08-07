@@ -343,12 +343,33 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
 
     # ── Priority 3 = Neutral: extension BOTH sides (each side volume-accepted) ──
     if sides == 2:
+        # P2-8 hysteresis: prevent oscillation between Neutral_Extreme↔Center.
+        # Once classified as one sub-type, require the close to move CLEARLY
+        # into the other zone (beyond a buffer band) before switching.
+        # Without this, #647 oscillated every bar at the zone boundary.
+        _hysteresis_pts = float(os.environ.get("NEUTRAL_HYSTERESIS_PTS", "0.05"))
+        _prev_neutral = feat.get("_prev_neutral_subtype")
         if cp is not None and (cp >= ce_hi or cp <= ce_lo):
-            return out("Neutral_Extreme", "CLASSIFIED", "2-sided, close at an extreme (one side won late)")
-        if cp is not None and cc_lo <= cp <= cc_hi:
-            return out("Neutral_Center", "CLASSIFIED", "2-sided, close at center (balanced)")
-        return out("Neutral_Center", "CLASSIFIED" if is_eod else "PROVISIONAL",
-                   "2-sided, close resolving" + (" (EOD-committed)" if is_eod else " (provisional)"))
+            _want = "Neutral_Extreme"
+        elif cp is not None and cc_lo <= cp <= cc_hi:
+            _want = "Neutral_Center"
+        else:
+            _want = "Neutral_Center"  # default provisional
+
+        # Hysteresis: if switching sub-type, require close position to be
+        # clearly in the new zone (not at the boundary)
+        if _prev_neutral and _want != _prev_neutral and cp is not None:
+            # At the boundary — stick with previous classification
+            in_buffer = (abs(cp - ce_hi) < _hysteresis_pts or
+                         abs(cp - ce_lo) < _hysteresis_pts or
+                         abs(cp - cc_hi) < _hysteresis_pts or
+                         abs(cp - cc_lo) < _hysteresis_pts)
+            if in_buffer:
+                _want = _prev_neutral
+
+        _reason = ("2-sided, close at an extreme (one side won late)" if _want == "Neutral_Extreme"
+                   else "2-sided, close at center (balanced)")
+        return out(_want, "CLASSIFIED" if is_eod else "PROVISIONAL", _reason)
 
     # ── P1 (2026-07-29): Neutral round-trip reclass (NEUTRAL_ROUNDTRIP_V1) ──
     # sides==1 but expansion returned through the open AND close is mid-range
