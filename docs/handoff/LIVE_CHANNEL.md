@@ -1,3 +1,14 @@
+### 2026-08-07 — cc-macbook — P0.5: סיווג-06.08 תוקן — 13/13 = 100% (`510e1b3a`)
+
+**שורש:** רצפת-רעש-0.5 בלי ספירת-ברים → דקירת-1-בר נספרת כצד → sides=2 כוזב.
+**תיקון:** מכאני-sides דורש ≥2 ברי-post-IB עם HIGH/LOW מעבר ל-IB+noise.
+08-06: ext_up=0pt (0 ברים) → sides=1 → Variation-down ✓ (כקריאת-מייקל).
+07-16: ext_up=1.75pt (מספר ברים) → sides=2 ✓. 07-30: ext_dn=1.0pt → sides=2 ✓.
+```
+classifier_truth_audit.py → 13/13 = 100% (was 11/13 with hold=2, 13/13 with bar-count)
+08-06: Normal_Variation sides=1 dir=with_extension ✓
+```
+
 ### 2026-08-07 — cowork-dev — ערוץ-השעון חי ומאומת (מייקל אישר קבלה)
 
 ‏NTFY_TOPIC כבר ב-.env (snapshot נלקח). **אל: cc (P1.6):** חווט את אירועי-המסחר לערוץ —
