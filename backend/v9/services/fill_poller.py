@@ -931,6 +931,19 @@ class FillPoller:
                      kind, order_id, trade_id, price)
 
         try:
+            # P0-2 (#640): check if trade is already CLOSED before processing.
+            # If so, update P&L from the fill instead of trying a state transition.
+            _get = getattr(self._tm, "_get_trade", None)
+            _existing = _get(trade_id) if callable(_get) else None
+            if _existing and getattr(_existing, "state", "") == "CLOSED" and kind in ("STOP", "T1", "T2", "T3", "T4"):
+                _fill_px = float(price) if price is not None else None
+                if _fill_px is not None:
+                    self._tm.update_closed_trade_pnl(trade_id, _fill_px, exit_reason=f"{kind}_FILL")
+                    logger.warning("[FillPoller] P0-2: fill %s on CLOSED trade %s → P&L updated @ %s",
+                                   kind, trade_id, _fill_px)
+                    self._notify_gateway_close(trade_id, kind)
+                return
+
             if kind == "ENTRY":
                 # Entry fill — transition PENDING→FILLED via on_fill
                 if price is not None:

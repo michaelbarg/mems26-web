@@ -1596,6 +1596,46 @@ class TradeManager:
                 total_risk = n_contracts * risk_per_contract
                 trade.pnl_r = round(total_pnl / total_risk, 2)
 
+    def update_closed_trade_pnl(self, trade_id: int, exit_price: float,
+                                exit_reason: Optional[str] = None) -> bool:
+        """P0-2 (#640): accept a fill on an already-CLOSED trade.
+
+        Only updates P&L and outcome — no state transition. This handles
+        the case where the FillPoller receives a Sierra fill event after
+        the bar-level detector already closed the trade (CLOSED→CLOSED
+        would raise InvalidTransition).
+
+        Returns True if the update changed P&L.
+        """
+        try:
+            trade = self._get_trade(trade_id)
+            if trade.state != "CLOSED":
+                return False  # not our case — use normal close path
+
+            old_pnl = trade.pnl_usd
+            trade.exit_price = exit_price
+            if exit_reason:
+                trade.exit_reason = exit_reason
+
+            self._calculate_pnl(trade)
+            self._set_outcome(trade)
+            self._db.flush()
+
+            logger.warning(
+                "[TradeManager] P0-2 CLOSED trade #%d P&L update: $%.2f → $%.2f "
+                "(exit_price=%.2f, outcome=%s)",
+                trade_id, old_pnl or 0, trade.pnl_usd or 0,
+                exit_price, trade.outcome,
+            )
+            self._log_management(trade_id, "PNL_CORRECTION", {
+                "old_pnl": old_pnl, "new_pnl": trade.pnl_usd,
+                "exit_price": exit_price, "reason": "fill_on_closed",
+            })
+            return True
+        except Exception as e:
+            logger.warning("[TradeManager] update_closed_trade_pnl failed: %s", e)
+            return False
+
     def _set_outcome(self, trade: V9Trade) -> None:
         """Set outcome based on PnL: WIN / LOSS / BE."""
         if trade.pnl_usd is None:
