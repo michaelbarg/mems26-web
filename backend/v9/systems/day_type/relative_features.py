@@ -285,8 +285,24 @@ def compute_relative_features(
                 _n_ib = min(ib_bars, len(bars))
                 _mech_hi = max(highs[_n_ib:]) if len(highs) > _n_ib else None
                 _mech_lo = min(lows[_n_ib:]) if len(lows) > _n_ib else None
-            _mech_up = _mech_hi is not None and (_mech_hi - ib_ref_h) >= _noise
-            _mech_dn = _mech_lo is not None and (ib_ref_l - _mech_lo) >= _noise
+            # P0.5 (08-07): range-extension PLUS acceptance bar count.
+            # Without a minimum bar count, brief 1-bar pokes (≥0.5pt)
+            # count as a side → sides=2 on what's really 1-sided (#06.08:
+            # Neutral instead of Variation-down, ext_up=0pt but session_high
+            # barely above IB_high). Fix: require ≥N bars whose HIGH (up)
+            # or LOW (down) exceeds the noise-adjusted IB edge.
+            _mech_up_range = _mech_hi is not None and (_mech_hi - ib_ref_h) >= _noise
+            _mech_dn_range = _mech_lo is not None and (ib_ref_l - _mech_lo) >= _noise
+            _mech_min_bars = int(os.getenv("DAYTYPE_MECH_HOLD_BARS", "2"))
+            # Count using bar highs/lows (not just closes) — catches real
+            # extensions that didn't close beyond (wicks that held).
+            _post_ib = bars[min(ib_bars, len(bars)):]
+            _up_bars = sum(1 for b in _post_ib
+                           if (_g(b, "h", "high") or 0) >= ib_ref_h + _noise)
+            _dn_bars = sum(1 for b in _post_ib
+                           if (_g(b, "l", "low") or 1e9) <= ib_ref_l - _noise)
+            _mech_up = _mech_up_range and _up_bars >= _mech_min_bars
+            _mech_dn = _mech_dn_range and _dn_bars >= _mech_min_bars
             f.sides = int(_mech_up) + int(_mech_dn)
 
     period_lows: List[float] = []
