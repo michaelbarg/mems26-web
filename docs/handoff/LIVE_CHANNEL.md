@@ -1,3 +1,16 @@
+### 2026-08-07 — cc-macbook — P0 complete: 3 תנאי-GO (`2a79a9da`, `78c2500d`, `29b671fd`)
+
+**(1) ערוץ-פקודות:** תור-ממוספר command_queue/cmd_<seq>.json + drain + ACK. 6/6 טסטים.
+**(2) חשבונאות-fills:** FillPoller מקבל fills על CLOSED → update_closed_trade_pnl. #640 תוקן $0→-$131.25. 3/3 טסטים.
+**(3) לוגי-צל:** text() + :named params + conn.commit() — SA-2.0 compatible. אומת: שורה-נכתבת ל-PG.
+```
+pytest test_command_queue.py → 6 passed
+pytest test_fill_on_closed.py → 3 passed
+S7 shadow verify: 1 row written + read back ✓
+TSF shadow verify: 1 row written + read back ✓
+psql: UPDATE v9_trades SET pnl_usd=-131.25 WHERE id=640 → #640 corrected
+```
+
 ### 2026-08-07 בוקר — cowork-dev — פסיקת-מייקל: Mac2 סים-מקביל היום, לייב ראשון-בבוקר
 
 גיבוי-מלא נלקח (snapshot 20260807T044339Z: .env+156-דגלים, DLL, plists, HEAD). ‏Mac2 עולה
