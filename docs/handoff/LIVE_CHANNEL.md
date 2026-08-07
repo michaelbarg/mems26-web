@@ -1,3 +1,13 @@
+### 2026-08-07 — cc-macbook — P0-1: Command queue with ACK (`2a79a9da`)
+
+**שורש-השורשים תוקן:** כל פקודה נכתבת ל-command_queue/cmd_<seq>.json (ממוספר, thread-safe).
+נתיב-מהיר: פקודה-יחידה עדיין כותבת ל-trade_command.json (backward-compat, אפס-שינוי-DLL).
+drain_command_queue() מעבד לפי-סדר, ממתין ACK (trade_result.json mtime), מוחק אחרי-עיבוד.
+**6/6 טסטים** (single, two-rapid-no-overwrite, drain-order, timeout, sequence, 10-thread concurrency).
+```
+pytest backend/v9/tests/test_command_queue.py -v → 6 passed in 0.88s
+```
+
 ### 2026-08-07 בוקר — cowork-dev — P0.5: ביקורת-סיווג-06.08 (מייקל: Variation-down, לא Neutral)
 
 השערת-שורש: רצפת-רעש-0.5 מתיקון-04.08 בלי דרישת-החזקה ⇒ דקירות=הרחבות ⇒ sides=2 כוזב.
