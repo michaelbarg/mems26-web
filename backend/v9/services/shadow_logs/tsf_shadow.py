@@ -16,6 +16,8 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+_table_created = False
+
 
 def log_tsf_shadow(
     *,
@@ -58,7 +60,6 @@ def _compute_tsf(*, direction, entry_price, stop, day_type,
         "with" in (day_direction or "").lower()
     )
 
-    # Check if trade is with-the-trend
     dir_up = direction == "LONG"
     trend_up = day_direction and "UP" in (day_direction or "").upper()
     with_trend = is_trend and (dir_up == trend_up)
@@ -92,13 +93,16 @@ def _compute_tsf(*, direction, entry_price, stop, day_type,
     }
 
 
-def _persist(*, trade_id, mode, **data):
-    """Write to v9_tsf_shadow_log (DB)."""
+def _ensure_table():
+    """Create v9_tsf_shadow_log if it doesn't exist (SA-2.0 safe)."""
+    global _table_created
+    if _table_created:
+        return
     try:
-        import json
+        from sqlalchemy import text
         from backend.v9.db.session import engine
         with engine.connect() as conn:
-            conn.execute("""
+            conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS v9_tsf_shadow_log (
                     id SERIAL PRIMARY KEY,
                     ts TIMESTAMP DEFAULT NOW(),
@@ -115,18 +119,37 @@ def _persist(*, trade_id, mode, **data):
                     widened_stop FLOAT,
                     delta_pts FLOAT
                 )
-            """)
+            """))
+            conn.commit()
+        _table_created = True
+    except Exception:
+        logger.debug("TSF shadow table creation failed: %s", traceback.format_exc())
+
+
+def _persist(*, trade_id, mode, **data):
+    """Write to v9_tsf_shadow_log (SA-2.0 compatible)."""
+    try:
+        from sqlalchemy import text
+        from backend.v9.db.session import engine
+        _ensure_table()
+        with engine.connect() as conn:
             conn.execute(
-                "INSERT INTO v9_tsf_shadow_log "
-                "(trade_id, mode, direction, day_type, is_trend, with_trend, "
-                "ib_width, floor_pts, current_risk, would_apply, widened_stop, delta_pts) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                (trade_id, mode, data.get("direction"), data.get("day_type"),
-                 data.get("is_trend"), data.get("with_trend"),
-                 data.get("ib_width"), data.get("floor_pts"),
-                 data.get("current_risk"), data.get("would_apply"),
-                 data.get("widened_stop"), data.get("delta_pts")),
+                text(
+                    "INSERT INTO v9_tsf_shadow_log "
+                    "(trade_id, mode, direction, day_type, is_trend, with_trend, "
+                    "ib_width, floor_pts, current_risk, would_apply, widened_stop, delta_pts) "
+                    "VALUES (:tid, :mode, :dir, :dt, :ist, :wt, :iw, :fp, :cr, :wa, :ws, :dp)"
+                ),
+                {
+                    "tid": trade_id, "mode": mode, "dir": data.get("direction"),
+                    "dt": data.get("day_type"), "ist": data.get("is_trend"),
+                    "wt": data.get("with_trend"), "iw": data.get("ib_width"),
+                    "fp": data.get("floor_pts"), "cr": data.get("current_risk"),
+                    "wa": data.get("would_apply"), "ws": data.get("widened_stop"),
+                    "dp": data.get("delta_pts"),
+                },
             )
+            conn.commit()
         logger.info("TSF_SHADOW: trade=%s would_apply=%s floor=%.1f risk=%.1f delta=%.1f",
                      trade_id, data.get("would_apply"), data.get("floor_pts", 0),
                      data.get("current_risk", 0), data.get("delta_pts", 0))

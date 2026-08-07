@@ -16,6 +16,8 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
+_table_created = False
+
 
 def log_s7_shadow(
     *,
@@ -51,17 +53,16 @@ def log_s7_shadow(
         return None
 
 
-def _persist(*, trade_id, mode, direction, pattern, entry_price,
-             score, sizing, blocked, components, outcome):
-    """Write to v9_s7_shadow_log (DB) — create table if needed."""
+def _ensure_table():
+    """Create v9_s7_shadow_log if it doesn't exist (SA-2.0 safe)."""
+    global _table_created
+    if _table_created:
+        return
     try:
-        from backend.v9.db.read import read_all
-        import json
-
-        # Auto-create table if missing
+        from sqlalchemy import text
         from backend.v9.db.session import engine
         with engine.connect() as conn:
-            conn.execute("""
+            conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS v9_s7_shadow_log (
                     id SERIAL PRIMARY KEY,
                     ts TIMESTAMP DEFAULT NOW(),
@@ -76,17 +77,39 @@ def _persist(*, trade_id, mode, direction, pattern, entry_price,
                     components JSON,
                     outcome VARCHAR(10)
                 )
-            """)
+            """))
+            conn.commit()
+        _table_created = True
+    except Exception:
+        logger.debug("S7 shadow table creation failed: %s", traceback.format_exc())
 
-        from backend.v9.db.session import engine as _eng
-        with _eng.connect() as conn:
+
+def _persist(*, trade_id, mode, direction, pattern, entry_price,
+             score, sizing, blocked, components, outcome):
+    """Write to v9_s7_shadow_log (SA-2.0 compatible)."""
+    try:
+        import json
+        from sqlalchemy import text
+        from backend.v9.db.session import engine
+
+        _ensure_table()
+
+        with engine.connect() as conn:
             conn.execute(
-                "INSERT INTO v9_s7_shadow_log "
-                "(trade_id, mode, direction, pattern, entry_price, score, sizing, blocked, components, outcome) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (trade_id, mode, direction, pattern, entry_price,
-                 score, sizing, blocked, json.dumps(components), outcome),
+                text(
+                    "INSERT INTO v9_s7_shadow_log "
+                    "(trade_id, mode, direction, pattern, entry_price, score, sizing, blocked, components, outcome) "
+                    "VALUES (:tid, :mode, :dir, :pat, :ep, :sc, :sz, :bl, :comp, :oc)"
+                ),
+                {
+                    "tid": trade_id, "mode": mode, "dir": direction,
+                    "pat": pattern, "ep": entry_price, "sc": score,
+                    "sz": sizing, "bl": blocked,
+                    "comp": json.dumps(components) if components else None,
+                    "oc": outcome,
+                },
             )
+            conn.commit()
         logger.info("S7_SHADOW: trade=%s score=%s sizing=%s blocked=%s",
                      trade_id, score, sizing, blocked)
     except Exception:
