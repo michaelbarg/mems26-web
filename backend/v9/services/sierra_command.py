@@ -64,17 +64,112 @@ def _assert_not_a_test_writing_live(out: Path) -> None:
         )
 
 
+_cmd_seq = 0
+_cmd_lock = __import__("threading").Lock()
+
+
+def _command_queue_dir() -> Path:
+    return signals_dir() / "command_queue"
+
+
 def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Write a command payload to the command file."""
+    """Write a command to the sequenced queue (P0-1 fix, #633/#643).
+
+    Instead of overwriting a single file (race: MODIFY_STOP clobbered by
+    MODIFY_TARGET), each command gets its own numbered file in command_queue/.
+    The drainer (_drain_command_queue) picks up the oldest, writes it to
+    trade_command.json, waits for ACK, then removes it.
+
+    Backward compat: also writes to trade_command.json directly when the
+    queue is empty (single-command fast path — no DLL change needed).
+    """
+    global _cmd_seq
     out = command_file()
     _assert_not_a_test_writing_live(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2))
-    # WARNING, not INFO: this is the moment an order reaches the broker. It was
-    # logged at INFO before, which is why nobody noticed commands going out.
-    logger.warning("[SierraCmd] COMMAND WRITTEN → %s (op=%s)",
-                   out, payload.get("op") or payload.get("action"))
+
+    with _cmd_lock:
+        _cmd_seq += 1
+        payload["_seq"] = _cmd_seq
+        payload["_ts_queued"] = time.time()
+
+        # Write to queue directory
+        queue_dir = _command_queue_dir()
+        queue_dir.mkdir(parents=True, exist_ok=True)
+        queue_file = queue_dir / f"cmd_{_cmd_seq:06d}.json"
+        queue_file.write_text(json.dumps(payload, indent=2))
+
+        # Also write to the live command file (backward compat for DLL).
+        # If the queue has >1 pending, the drainer will handle sequencing.
+        pending = sorted(queue_dir.glob("cmd_*.json"))
+        if len(pending) <= 1:
+            # Fast path: single command, write directly
+            out.write_text(json.dumps(payload, indent=2))
+
+    logger.warning("[SierraCmd] COMMAND QUEUED #%d → %s (op=%s, pending=%d)",
+                   _cmd_seq, queue_file, payload.get("op") or payload.get("action"),
+                   len(pending) if 'pending' in dir() else 1)
     return payload
+
+
+def drain_command_queue(*, timeout_s: float = 2.0) -> int:
+    """Drain the command queue: write oldest pending to trade_command.json.
+
+    Called by the bridge or a periodic task. For each pending command:
+    1. Write to trade_command.json
+    2. Wait up to timeout_s for DLL ACK (trade_result.json mtime change)
+    3. Remove the queue file
+    4. Proceed to next
+
+    Returns number of commands drained.
+    """
+    queue_dir = _command_queue_dir()
+    if not queue_dir.exists():
+        return 0
+
+    out = command_file()
+    result_file = signals_dir() / "trade_result.json"
+    drained = 0
+
+    pending = sorted(queue_dir.glob("cmd_*.json"))
+    for cmd_file in pending:
+        try:
+            payload = json.loads(cmd_file.read_text())
+
+            # Write to the live command file
+            out.write_text(json.dumps(payload, indent=2))
+            logger.info("[SierraCmd] DRAIN #%s → trade_command.json (op=%s)",
+                        cmd_file.name, payload.get("op"))
+
+            # Wait for ACK: trade_result.json mtime newer than our write
+            write_ts = time.time()
+            deadline = write_ts + timeout_s
+            acked = False
+            while time.time() < deadline:
+                try:
+                    if result_file.exists() and result_file.stat().st_mtime > write_ts:
+                        acked = True
+                        break
+                except OSError:
+                    pass
+                time.sleep(0.1)
+
+            if acked:
+                logger.info("[SierraCmd] ACK received for #%s", cmd_file.name)
+            else:
+                logger.warning("[SierraCmd] ACK timeout for #%s (%.1fs) — proceeding",
+                               cmd_file.name, timeout_s)
+
+            # Remove processed command
+            cmd_file.unlink(missing_ok=True)
+            drained += 1
+
+        except Exception as e:
+            logger.warning("[SierraCmd] drain error on %s: %s", cmd_file.name, e)
+            # Don't remove on error — retry next cycle
+            break
+
+    return drained
 
 
 def write_trade_command(
