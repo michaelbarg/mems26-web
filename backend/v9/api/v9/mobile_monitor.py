@@ -94,7 +94,7 @@ async def mobile_data(request: Request):
     out["_src"] = "local"
     if rem is not None:
         out["_remote_err"] = rem["_remote_err"]
-    # עסקאות פעילות + P&L צף
+    # עסקאות פעילות + P&L צף + Sierra order verification
     try:
         from backend.v9.db.read import read_all
         rows = read_all("""
@@ -102,16 +102,40 @@ async def mobile_data(request: Request):
                    COALESCE((quality->>'t0')::float, NULL) AS t0,
                    COALESCE((quality->>'contracts')::int, 0) AS contracts,
                    quality->>'pattern' AS pattern, state, mode,
-                   to_char(entry_ts AT TIME ZONE 'Asia/Jerusalem','HH24:MI') AS t_in
+                   quality->>'c1_target_id' AS c1_tgt_id,
+                   quality->>'c2_target_id' AS c2_tgt_id,
+                   quality->>'c3_target_id' AS c3_tgt_id,
+                   quality->>'c1_stop_id' AS c1_stop_id,
+                   to_char(entry_ts AT TIME ZONE 'Asia/Jerusalem','HH24:MI') AS t_in,
+                   t1_hit_ts IS NOT NULL AS t1_hit,
+                   t2_hit_ts IS NOT NULL AS t2_hit
             FROM v9_trades WHERE mode != 'shadow'
               AND state NOT IN ('CLOSED','CANCELLED') ORDER BY id DESC LIMIT 4""", {})
         mid = out["mid"]
+        sierra = out.get("sierra") or {}
         acts = []
         for r in rows:
             r = dict(r)
             if mid and r.get("entry_price"):
                 sign = 1 if (r.get("direction") or "").upper() == "LONG" else -1
                 r["upnl_usd"] = round(sign * (mid - float(r["entry_price"])) * 5 * (r.get("contracts") or 1), 1)
+
+            # P1.5: per-level Sierra verification (✅/🔴)
+            # Compare DB targets vs Sierra working orders
+            r["sierra_verify"] = _verify_sierra_levels(r, sierra)
+
+            # P1.5: per-target progress bars
+            if mid and r.get("entry_price"):
+                entry = float(r["entry_price"])
+                r["progress"] = {}
+                for tgt in ("t1", "t2", "t3"):
+                    tv = r.get(tgt)
+                    if tv and float(tv) != 0:
+                        total = abs(float(tv) - entry)
+                        current = abs(mid - entry) if total > 0 else 0
+                        pct = min(round(current / total * 100, 0), 100) if total > 0 else 0
+                        r["progress"][tgt] = {"target": float(tv), "pct": pct}
+
             acts.append(r)
         out["active"] = acts
         day = read_all("""
@@ -251,6 +275,43 @@ async def mobile_flatten(request: Request):
         return {"ok": True, "msg": "FLATTEN_ACCOUNT נשלח לסיירה"}
     except Exception as e:
         return {"ok": False, "error": str(e)[:80]}
+
+
+def _verify_sierra_levels(trade: dict, sierra: dict) -> dict:
+    """P1.5: Compare DB target/stop levels vs Sierra working orders.
+
+    Returns per-level verification: ✅ match / 🔴 gap with both prices.
+    """
+    result = {}
+    orders = sierra.get("orders") or []
+    if not orders or not trade.get("entry_price"):
+        return result
+
+    # Build order price lookup from Sierra
+    sierra_prices = {}
+    for o in orders:
+        oid = o.get("order_id") or o.get("id")
+        price = o.get("price") or o.get("limit_price")
+        if oid and price:
+            sierra_prices[str(oid)] = float(price)
+
+    # Check each level
+    for level, order_key in [("stop", "c1_stop_id"), ("t1", "c1_tgt_id"),
+                              ("t2", "c2_tgt_id"), ("t3", "c3_tgt_id")]:
+        db_val = trade.get(level)
+        oid = trade.get(order_key)
+        if db_val is None or oid is None:
+            continue
+        db_val = float(db_val)
+        sierra_val = sierra_prices.get(str(oid))
+        if sierra_val is None:
+            result[level] = {"db": db_val, "sierra": None, "match": None, "status": "unknown"}
+        elif abs(db_val - sierra_val) <= 0.25:
+            result[level] = {"db": db_val, "sierra": sierra_val, "match": True, "status": "ok"}
+        else:
+            result[level] = {"db": db_val, "sierra": sierra_val, "match": False,
+                              "status": "gap", "gap": round(abs(db_val - sierra_val), 2)}
+    return result
 
 
 _PAUSE_FILE = os.path.expanduser("~/SierraChart_Data/v9_export/trading_paused.json")
@@ -464,10 +525,36 @@ async function load(){
   posEl.className = 'big ' + (q===0?'':'pulse');
   document.getElementById('posdet').textContent = q!==0? ('ממוצע '+s.avg_price+' · '+s.working_orders+' הוראות-הגנה') : ('עין-מצב '+(s._age_s??'?')+'ש');
   const a = d.active||[];
-  document.getElementById('active').innerHTML = a.length? a.map(t=>
-   `<div class="row"><span>#${t.id} ${t.direction} ×${t.contracts} ${t.pattern||''} @${t.entry_price} <span class="dim">${t.t_in}</span></span>`+
-   `<span class="${(t.upnl_usd||0)>=0?'green':'red'}">${t.upnl_usd!=null? (t.upnl_usd>=0?'+':'')+t.upnl_usd+'$':''}</span></div>`+
-   `<div class="dim">סטופ ${t.stop??'—'} · T0 ${t.t0??'—'} · T1 ${t.t1??'—'} · T2 ${t.t2??'—'} · T3 ${t.t3??'—'}</div>`).join('')
+  document.getElementById('active').innerHTML = a.length? a.map(t=>{
+   // P1.5: Sierra verification icons
+   const sv = t.sierra_verify||{};
+   function vIcon(level){
+    const v=sv[level]; if(!v) return '';
+    if(v.match===true) return '<span class="green">✅</span>';
+    if(v.match===false) return '<span class="red">🔴 '+v.db+'≠'+v.sierra+'</span>';
+    return '<span class="dim">❓</span>';
+   }
+   // P1.5: progress bars
+   const prog = t.progress||{};
+   function pBar(tgt){
+    const p=prog[tgt]; if(!p) return '';
+    const pct=Math.min(p.pct,100);
+    const col=pct>=90?'#3fb950':pct>=50?'#d29922':'#8b949e';
+    return `<div style="background:#21262d;border-radius:4px;height:6px;margin:2px 0"><div style="background:${col};width:${pct}%;height:100%;border-radius:4px"></div></div>`;
+   }
+   return `<div style="border:1px solid #2a3140;border-radius:10px;padding:8px;margin-bottom:8px">`+
+   `<div class="row"><span style="font-weight:700">#${t.id} ${t.direction} ×${t.contracts} ${t.pattern||''}</span>`+
+   `<span class="${(t.upnl_usd||0)>=0?'green':'red'}" style="font-size:18px;font-weight:800">${t.upnl_usd!=null?(t.upnl_usd>=0?'+':'')+t.upnl_usd+'$':''}</span></div>`+
+   `<div class="dim">כניסה ${t.entry_price} · ${t.t_in}</div>`+
+   `<div style="font-size:11px;margin-top:4px">`+
+   `<div class="row"><span>סטופ ${t.stop??'—'} ${vIcon('stop')}</span><span>T1 ${t.t1??'—'} ${vIcon('t1')}</span></div>`+
+   `<div class="row"><span>T2 ${t.t2??'—'} ${vIcon('t2')}</span><span>T3 ${t.t3??'—'} ${vIcon('t3')}</span></div>`+
+   `</div>`+
+   (prog.t1?`<div class="dim" style="font-size:10px">T1 ${prog.t1.pct}%</div>${pBar('t1')}`:'')+
+   (prog.t2?`<div class="dim" style="font-size:10px">T2 ${prog.t2.pct}%</div>${pBar('t2')}`:'')+
+   (prog.t3?`<div class="dim" style="font-size:10px">T3 ${prog.t3.pct}%</div>${pBar('t3')}`:'')+
+   `</div>`;
+  }).join('')
    : '<span class="dim">אין עסקה פעילה</span>';
   const td = d.today||{}; const pnl = td.pnl??0;
   const de = document.getElementById('daypnl');
