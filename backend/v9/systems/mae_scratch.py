@@ -102,6 +102,9 @@ def compute_mae(
     return 0.0
 
 
+SCRATCH_STOP_GAP_PTS = float(os.environ.get("S6_SCRATCH_STOP_GAP_PTS", "2.0") or 2.0)
+
+
 def should_scratch(
     *,
     pattern_name: str,
@@ -110,6 +113,7 @@ def should_scratch(
     bar_low: float,
     bar_high: float,
     t1_hit: bool = False,
+    stop_price: Optional[float] = None,
 ) -> Tuple[bool, str]:
     """Determine if a trade should be scratched based on MAE.
 
@@ -117,6 +121,12 @@ def should_scratch(
     Returns (False, "") otherwise or when flag is OFF.
 
     NEVER returns True after T1 (BE already covers post-T1).
+
+    P2-9 (08-07): scratch↔stop gap enforcement. The scratch threshold
+    must be at least SCRATCH_STOP_GAP_PTS (default 2pt) BELOW the stop.
+    Without this, scratch=8pt + stop=8.5pt → 0.5pt window → no time to
+    react. The gap ensures the scratch fires early enough for FLATTEN to
+    execute before the stop is hit.
     """
     if not _flag_on():
         return (False, "")
@@ -126,6 +136,15 @@ def should_scratch(
 
     mae = compute_mae(entry_price, direction, bar_low, bar_high)
     threshold = get_threshold(pattern_name)
+
+    # P2-9: enforce minimum gap between scratch and stop
+    if stop_price is not None:
+        stop_distance = abs(entry_price - stop_price)
+        max_scratch = stop_distance - SCRATCH_STOP_GAP_PTS
+        if max_scratch > 0 and threshold > max_scratch:
+            threshold = max_scratch
+            logger.debug("[MAE_SCRATCH] gap-enforced threshold: %.1f (stop=%.1f, gap=%.1f)",
+                         threshold, stop_distance, SCRATCH_STOP_GAP_PTS)
 
     if mae >= threshold:
         reason = (f"MAE scratch: {mae:.1f}pt >= {threshold:.1f}pt threshold "

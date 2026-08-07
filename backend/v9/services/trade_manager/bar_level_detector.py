@@ -690,6 +690,7 @@ class BarLevelDetector:
                             bar_low=bar_low,
                             bar_high=bar_high,
                             t1_hit=trade.t1_hit_ts is not None,
+                            stop_price=float(trade.stop) if trade.stop else None,
                         )
                         if _scratch:
                             logger.warning(
