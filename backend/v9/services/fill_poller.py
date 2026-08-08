@@ -135,6 +135,7 @@ class FillPoller:
                 await asyncio.sleep(POLL_INTERVAL)
                 self._last_poll_ts = time.time()  # P3 heartbeat
                 self._guard_duplicate_command()
+                await self._drain_command_queue_safe()
                 self._check_result()
                 self._check_fills()
                 self._check_activity_exits()
@@ -149,6 +150,38 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    async def _drain_command_queue_safe(self) -> None:
+        """K1b (2026-08-08): runtime host for the P0-1 command-queue drainer.
+
+        Why THIS loop: it is the only always-alive ~1s-class loop in the
+        backend that is armed exactly when Sierra commands exist (started for
+        DEMO or LIVE execution, backend/main.py), it already owns the
+        trade_command/trade_result shepherding (_guard_duplicate_command,
+        _check_result), and its run() continues on every exception — the
+        drainer inherits that survival guarantee. Without this call
+        drain_command_queue() had NO runtime caller, so any command after the
+        first sat in command_queue/ forever (Friday 08-07: PLACE #652 + CANCEL
+        never reached the DLL, and the jammed queue disabled the fast path for
+        every future command — an arming blocker).
+
+        Offloaded to a worker thread because the drain blocks on the DLL ACK
+        (up to ~2s per command); the event loop must keep serving. Cheap gate:
+        skip the thread hop entirely when the queue is empty (the common case).
+        Exceptions can never kill the poll loop — rate-limited WARNING only.
+        """
+        try:
+            from backend.v9.services.sierra_command import (
+                drain_command_queue, pending_command_count,
+            )
+            if pending_command_count() <= 0:
+                return
+            drained = await asyncio.to_thread(drain_command_queue)
+            if drained:
+                logger.info("[FillPoller] command queue: %d command(s) completed", drained)
+        except Exception as e:
+            self._warn_throttled("cmd_drain",
+                                 "[FillPoller] command-queue drain error (fail-safe): %s", e)
 
     def _sync_position_truth(self) -> None:
         """POSITION_TRUTH_SYNC_V1 (2026-07-27, Michael: "המערכת לא מסמנת מתי יש
@@ -193,6 +226,25 @@ class FillPoller:
                 avg = _sq_avg()
                 for t in open_trades:
                     if getattr(t, "state", "") != "PENDING":
+                        continue
+                    # K1e ownership guard (#652, 2026-08-07): only attribute the
+                    # Sierra position to a trade whose command Sierra actually
+                    # ACKed (ORDER_SUBMITTED → quality.sierra_order_id, set by
+                    # _register_submitted_order). #652's PLACE never left the
+                    # jammed command queue, yet this branch booked it FILLED
+                    # @7783.0 — the avg price of a MANUAL position — recording
+                    # a SHORT with the stop on the wrong side (System6 screamed
+                    # stop_wrong_side for hours). No submit-ack ⇒ the position
+                    # is not provably ours (manual / not ours) ⇒ never invent a
+                    # fill (Rule 1); same ownership principle as
+                    # RECONCILER_OWNERSHIP_AWARE (Michael 07-24).
+                    _q = t.quality if isinstance(getattr(t, "quality", None), dict) else {}
+                    if not _q.get("sierra_order_id"):
+                        self._warn_throttled(
+                            f"pt_unacked_{t.id}",
+                            "[FillPoller] POSITION_TRUTH: Sierra holds %sc but trade %s "
+                            "has NO submit-ack — NOT attributing (manual/not-ours "
+                            "position? command still queued? #652 class)", qty, t.id)
                         continue
                     px = avg or getattr(t, "entry_price", None)
                     if px is None:

@@ -2655,8 +2655,9 @@ class TradingGateway:
             if self._is_demo_enabled(system_id):
                 if self.demo_slot is None:
                     demo_trade = self._execute_demo(setup, system_id, cross_context)
-                    self.demo_slot = demo_trade
-                    result["demo"] = demo_trade["trade_id"]
+                    if demo_trade is not None:  # K1e: None = zero-size skip, slot stays free
+                        self.demo_slot = demo_trade
+                        result["demo"] = demo_trade["trade_id"]
                 else:
                     logger.info("[Gateway] DEMO slot occupied, skipping system %d setup", system_id)
 
@@ -2664,8 +2665,9 @@ class TradingGateway:
             if self._is_live_enabled(system_id):
                 if self.live_slot is None and passes_strict_checks(setup, "live", self):
                     live_trade = self._execute_live(setup, system_id, cross_context)
-                    self.live_slot = live_trade
-                    result["live"] = live_trade["trade_id"]
+                    if live_trade is not None:  # K1e: None = zero-size skip, slot stays free
+                        self.live_slot = live_trade
+                        result["live"] = live_trade["trade_id"]
                 elif self.live_slot is not None:
                     logger.info("[Gateway] LIVE slot occupied, skipping system %d setup", system_id)
 
@@ -2706,21 +2708,23 @@ class TradingGateway:
             # DEMO slot fill
             if self._is_demo_enabled(system_id) and self.demo_slot is None:
                 demo_trade = self._execute_demo(setup, system_id, cross_context)
-                self.demo_slot = demo_trade
-                logger.info(
-                    "[Gateway] D-094 WINNER: system=%d R:R=%.2f classification=%s → DEMO slot filled",
-                    system_id, scored[0][0], setup.get("classification", "?"),
-                )
+                if demo_trade is not None:  # K1e: None = zero-size skip, slot stays free
+                    self.demo_slot = demo_trade
+                    logger.info(
+                        "[Gateway] D-094 WINNER: system=%d R:R=%.2f classification=%s → DEMO slot filled",
+                        system_id, scored[0][0], setup.get("classification", "?"),
+                    )
 
             # LIVE slot fill
             if self._is_live_enabled(system_id) and self.live_slot is None:
                 if passes_strict_checks(setup, "live", self):
                     live_trade = self._execute_live(setup, system_id, cross_context)
-                    self.live_slot = live_trade
-                    logger.info(
-                        "[Gateway] D-094 WINNER: system=%d R:R=%.2f → LIVE slot filled",
-                        system_id, scored[0][0],
-                    )
+                    if live_trade is not None:  # K1e: None = zero-size skip, slot stays free
+                        self.live_slot = live_trade
+                        logger.info(
+                            "[Gateway] D-094 WINNER: system=%d R:R=%.2f → LIVE slot filled",
+                            system_id, scored[0][0],
+                        )
 
         # Log outranked candidates
         for i, (rr, conf, neg_sys, c) in enumerate(scored[1:], 1):
@@ -3039,6 +3043,26 @@ class TradingGateway:
                 "session_at_entry": g1["session_at_entry"],
             }
 
+            # K1e (#652): if sizing collapses to 0 (margin cap "no margin" /
+            # explicit SKIP), abort the fire BEFORE any DB row or Sierra
+            # command exists. #652 was created + PLACEd with contracts:0 —
+            # the DLL would have defaulted that to 3 real contracts.
+            from backend.v9.services.sierra_command import effective_contracts as _eff_n
+            if _eff_n(setup) <= 0:
+                logger.warning(
+                    "[Gateway] DEMO fire SKIPPED — effective contracts <= 0 "
+                    "(margin cap / SKIP): %s %s sys=%d — no trade row, no slot, "
+                    "no Sierra command",
+                    setup.get("direction"), setup.get("classification", ""), system_id)
+                try:
+                    from scripts.ops_log import log_event as _ops
+                    _ops("gateway", "WARNING",
+                         f"SKIP[demo] {setup.get('classification','')} "
+                         f"{setup.get('direction')} — effective contracts <= 0")
+                except Exception:
+                    pass
+                return None
+
             trade_id = self._trade_manager.accept_setup(tm_setup, "demo")
             try:
                 self._trade_manager._db.commit()
@@ -3049,12 +3073,27 @@ class TradingGateway:
             demo_setup = dict(setup)
             demo_setup["t2"] = t2
             demo_setup["t3"] = t3
-            command = command_from_setup(
-                demo_setup,
-                trade_id=str(trade_id),
-                account="PA-APEX-125218-01",
-                mode="demo",
-            )
+            try:
+                command = command_from_setup(
+                    demo_setup,
+                    trade_id=str(trade_id),
+                    account="PA-APEX-125218-01",
+                    mode="demo",
+                )
+            except ValueError as _ve:
+                # K1e race-belt: sizing collapsed to 0 between the guard above
+                # and the command write (margin state re-read) — cancel the
+                # just-created row honestly, free everything, send nothing.
+                logger.warning("[Gateway] DEMO PLACE refused post-accept (%s) — "
+                               "cancelling trade %s", _ve, trade_id)
+                try:
+                    self._trade_manager.close_trade(
+                        trade_id, reason="NO_CONTRACTS", outcome_override="CANCELLED")
+                    self._trade_manager._db.commit()
+                except Exception as _ce:
+                    logger.warning("[Gateway] cancel of zero-size demo trade %s failed: %s",
+                                   trade_id, _ce)
+                return None
 
             logger.info(
                 "[Gateway] DEMO trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f",
@@ -3144,6 +3183,24 @@ class TradingGateway:
                 "session_at_entry": g1["session_at_entry"],
             }
 
+            # K1e (#652): abort a zero-size fire BEFORE any DB row or Sierra
+            # command exists (see _execute_demo).
+            from backend.v9.services.sierra_command import effective_contracts as _eff_n
+            if _eff_n(setup) <= 0:
+                logger.warning(
+                    "[Gateway] LIVE fire SKIPPED — effective contracts <= 0 "
+                    "(margin cap / SKIP): %s %s sys=%d — no trade row, no slot, "
+                    "no Sierra command",
+                    setup.get("direction"), setup.get("classification", ""), system_id)
+                try:
+                    from scripts.ops_log import log_event as _ops
+                    _ops("gateway", "WARNING",
+                         f"SKIP[live] {setup.get('classification','')} "
+                         f"{setup.get('direction')} — effective contracts <= 0")
+                except Exception:
+                    pass
+                return None
+
             trade_id = self._trade_manager.accept_setup(tm_setup, "live")
             try:
                 self._trade_manager._db.commit()
@@ -3154,12 +3211,25 @@ class TradingGateway:
             live_setup = dict(setup)
             live_setup["t2"] = t2
             live_setup["t3"] = t3
-            command = command_from_setup(
-                live_setup,
-                trade_id=str(trade_id),
-                account=_sierra_route_account(),
-                mode="live",
-            )
+            try:
+                command = command_from_setup(
+                    live_setup,
+                    trade_id=str(trade_id),
+                    account=_sierra_route_account(),
+                    mode="live",
+                )
+            except ValueError as _ve:
+                # K1e race-belt (see _execute_demo).
+                logger.warning("[Gateway] LIVE PLACE refused post-accept (%s) — "
+                               "cancelling trade %s", _ve, trade_id)
+                try:
+                    self._trade_manager.close_trade(
+                        trade_id, reason="NO_CONTRACTS", outcome_override="CANCELLED")
+                    self._trade_manager._db.commit()
+                except Exception as _ce:
+                    logger.warning("[Gateway] cancel of zero-size live trade %s failed: %s",
+                                   trade_id, _ce)
+                return None
 
             logger.warning(
                 "[Gateway] LIVE trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f account=%s",

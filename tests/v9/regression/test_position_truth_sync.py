@@ -15,11 +15,23 @@ import backend.v9.services.fill_poller as fp
 
 
 class _T:
-    def __init__(self, tid, state="PENDING", mode="live", entry=7456.0, age_s=999):
+    def __init__(self, tid, state="PENDING", mode="live", entry=7456.0, age_s=999,
+                 quality=None, acked=True):
         self.id = tid
         self.state = state
         self.mode = mode
         self.entry_price = entry
+        # K1e (#652, 2026-08-08): the PENDING→FILLED branch now requires a
+        # Sierra submit-ack (quality.sierra_order_id). Default the fixture to
+        # an acked trade so the original tests keep expressing the intended
+        # flow (ORDER_SUBMITTED ack → fill → qty≠0); acked=False models the
+        # #652 shape (command never sent — position is not provably ours).
+        if quality is not None:
+            self.quality = quality
+        elif acked:
+            self.quality = {"sierra_order_id": 10050}
+        else:
+            self.quality = {}
 
         class _C:
             def __init__(self, ts): self._ts = ts
@@ -73,12 +85,38 @@ def _on(monkeypatch):
 
 
 def test_sierra_holds_position_marks_pending_filled(monkeypatch):
-    """The core miss: Sierra is long 4, our trade sits PENDING → must become FILLED."""
+    """The core miss: Sierra is long 4, our SUBMIT-ACKED trade sits PENDING →
+    must become FILLED. (K1e: the ack requirement is what proves the position
+    is ours — set by _register_submitted_order on ORDER_SUBMITTED.)"""
     tm = _TM([_T(541)])
     p = _poller(tm, monkeypatch, qty=4, avg=7456.0)
     p._sync_position_truth()
     assert tm.filled == [(541, 7456.0)]
     assert tm._trades[0].state == "FILLED"
+
+
+def test_unacked_pending_never_gets_invented_fill(monkeypatch):
+    """#652 regression (2026-08-07): the PLACE never left the jammed command
+    queue (no ORDER_SUBMITTED ack), Sierra held a MANUAL position, and the sync
+    booked our SHORT as FILLED @ the manual position's avg — stop on the wrong
+    side, System6 stop_wrong_side CRITICAL spam for hours. No submit-ack ⇒ the
+    position is not provably ours ⇒ NEVER invent a fill (Rule 1)."""
+    tm = _TM([_T(652, acked=False)])
+    p = _poller(tm, monkeypatch, qty=3, avg=7783.0)
+    p._sync_position_truth()
+    assert tm.filled == []
+    assert tm._trades[0].state == "PENDING"
+
+
+def test_unacked_skip_does_not_block_acked_sibling(monkeypatch):
+    """One un-acked PENDING must not stop the sync from filling a properly
+    acked PENDING in the same pass."""
+    tm = _TM([_T(700, acked=False), _T(701)])
+    p = _poller(tm, monkeypatch, qty=2, avg=7500.0)
+    p._sync_position_truth()
+    assert tm.filled == [(701, 7500.0)]
+    assert tm._trades[0].state == "PENDING"
+    assert tm._trades[1].state == "FILLED"
 
 
 def test_sierra_flat_closes_stale_trade_after_grace(monkeypatch):

@@ -100,6 +100,14 @@ flags:
     why: "OFF (default). Incident 07-09: v9_day_type_state writer died, gates read stale table while in-memory machine kept running. Trading-risk-surface → Michael sign-off."
     status: deferred
     ref: "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md"
+  SIERRA_CMD_TTL_S:
+    category: param
+    what: "K1 (2026-08-08): backend-side TTL for queued Sierra commands (default 90s). The drainer ARCHIVES (never sends) a queued-unsent command older than this — the DLL op-path has NO TTL, so a stale PLACE/CANCEL replayed later would EXECUTE (Friday 08-07: PLACE #652 + CANCEL sat in the jammed queue for hours)."
+    why: "Param, always active in drain_command_queue. Raising it widens the window in which a delayed command may still fire — keep small."
+  SIERRA_CMD_ACK_GRACE_S:
+    category: param
+    what: "K1 (2026-08-08): how long a SENT command may wait for the DLL ACK (trade_result.json mtime) before the drainer archives it (default 15s). Never resent — a missing ACK is indistinguishable from 'executed, result write failed' (merged.cpp:3040), so a resend could double-place."
+    why: "Param, always active in drain_command_queue. While a sent command waits within grace, the queue holds (in-flight command is never overwritten)."
   SIERRA_RECONCILER_V1:
     category: risk
     what: "Periodic Sierra position reconciliation: compare TM open trades vs TradeActivityLog position qty. Divergence → WARNING + freeze auto-management. Runs in FillPoller loop every 30s."

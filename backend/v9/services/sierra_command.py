@@ -72,16 +72,89 @@ def _command_queue_dir() -> Path:
     return signals_dir() / "command_queue"
 
 
+def _archived_stale_dir() -> Path:
+    return _command_queue_dir() / "archived_stale"
+
+
+def _cmd_ttl_s() -> float:
+    """Backend-side command TTL. The DLL op-path has NO TTL/dedup (only the
+    legacy C5 checksum path does), so a stale queue file replayed later would
+    EXECUTE — including CANCEL (= FlattenAndCancelAllOrders) and PLACE with
+    contracts<=0 (DLL defaults it to 3, merged.cpp:2870). Friday 08-07 left a
+    PLACE+CANCEL from hours earlier sitting in the queue; this TTL is the root
+    protection that they can never auto-send (K1c, 2026-08-08)."""
+    try:
+        return float(os.getenv("SIERRA_CMD_TTL_S", "90"))
+    except (TypeError, ValueError):
+        return 90.0
+
+
+def _ack_grace_s() -> float:
+    """How long a SENT command may wait for a DLL ACK before it is archived.
+    We never RESEND a sent command: a missing ACK cannot be distinguished from
+    'executed but trade_result.json write failed' (a known silent-failure mode,
+    merged.cpp:3040) — resending could double-place. Archive + WARNING."""
+    try:
+        return float(os.getenv("SIERRA_CMD_ACK_GRACE_S", "15"))
+    except (TypeError, ValueError):
+        return 15.0
+
+
+def pending_command_count() -> int:
+    """Number of queue files awaiting the drainer (cheap gate for the host loop)."""
+    queue_dir = _command_queue_dir()
+    if not queue_dir.exists():
+        return 0
+    try:
+        return sum(1 for _ in queue_dir.glob("cmd_*.json"))
+    except OSError:
+        return 0
+
+
+def _seed_seq_from_disk_locked(queue_dir: Path) -> None:
+    """Continue the on-disk numbering after a backend restart (call under _cmd_lock).
+
+    _cmd_seq starts at 0 in every new process; without this, the first command
+    after a restart would be cmd_000001.json and OVERWRITE an unsent file left
+    from the previous run."""
+    global _cmd_seq
+    if _cmd_seq != 0:
+        return
+    top = 0
+    for d in (queue_dir, _archived_stale_dir()):
+        try:
+            if not d.exists():
+                continue
+            for f in d.glob("cmd_*.json"):
+                try:
+                    top = max(top, int(f.stem.split("_")[1]))
+                except (IndexError, ValueError):
+                    continue
+        except OSError:
+            continue
+    _cmd_seq = top
+
+
 def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Write a command to the sequenced queue (P0-1 fix, #633/#643).
 
     Instead of overwriting a single file (race: MODIFY_STOP clobbered by
     MODIFY_TARGET), each command gets its own numbered file in command_queue/.
-    The drainer (_drain_command_queue) picks up the oldest, writes it to
-    trade_command.json, waits for ACK, then removes it.
+    The drainer (drain_command_queue, hosted by the FillPoller loop) sends the
+    oldest unsent file to trade_command.json, waits for the DLL ACK, then
+    removes it.
 
-    Backward compat: also writes to trade_command.json directly when the
-    queue is empty (single-command fast path — no DLL change needed).
+    Fast path (latency): when the queue is EMPTY, the command is also written
+    to trade_command.json immediately and the queue file is stamped
+    `_sent_ts`, so a lone fire/emergency command does not wait for a poller
+    tick. The drainer then only ACK-tracks it — it never re-sends a stamped
+    file (re-sending an already-executed PLACE would double-place; the DLL
+    op-path has no dedup).
+
+    2026-08-08 (K1a root): the old fast path checked the queue AFTER writing
+    its own file (`len(pending) <= 1`) and nothing ever drained — after
+    Friday's first command the queue held a file forever, so every later
+    command (PLACE #652, CANCEL #652) was queued and never reached the DLL.
     """
     global _cmd_seq
     out = command_file()
@@ -89,85 +162,143 @@ def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with _cmd_lock:
+        queue_dir = _command_queue_dir()
+        queue_dir.mkdir(parents=True, exist_ok=True)
+        _seed_seq_from_disk_locked(queue_dir)
         _cmd_seq += 1
         payload["_seq"] = _cmd_seq
         payload["_ts_queued"] = time.time()
 
-        # Write to queue directory
-        queue_dir = _command_queue_dir()
-        queue_dir.mkdir(parents=True, exist_ok=True)
+        # Fast-path decision BEFORE writing our own queue file: only when no
+        # other command is pending may we write the live file directly.
+        others_pending = sum(1 for _ in queue_dir.glob("cmd_*.json"))
+        fast_path = others_pending == 0
+        if fast_path:
+            payload["_sent_ts"] = time.time()
+
         queue_file = queue_dir / f"cmd_{_cmd_seq:06d}.json"
         queue_file.write_text(json.dumps(payload, indent=2))
-
-        # Also write to the live command file (backward compat for DLL).
-        # If the queue has >1 pending, the drainer will handle sequencing.
-        pending = sorted(queue_dir.glob("cmd_*.json"))
-        if len(pending) <= 1:
-            # Fast path: single command, write directly
+        if fast_path:
             out.write_text(json.dumps(payload, indent=2))
 
-    logger.warning("[SierraCmd] COMMAND QUEUED #%d → %s (op=%s, pending=%d)",
-                   _cmd_seq, queue_file, payload.get("op") or payload.get("action"),
-                   len(pending) if 'pending' in dir() else 1)
+    logger.warning(
+        "[SierraCmd] COMMAND QUEUED #%d → %s (op=%s, pending_before=%d, fast_path=%s)",
+        _cmd_seq, queue_file, payload.get("op") or payload.get("action"),
+        others_pending, fast_path)
     return payload
 
 
 def drain_command_queue(*, timeout_s: float = 2.0) -> int:
-    """Drain the command queue: write oldest pending to trade_command.json.
+    """Drain the command queue → trade_command.json, one command at a time.
 
-    Called by the bridge or a periodic task. For each pending command:
-    1. Write to trade_command.json
-    2. Wait up to timeout_s for DLL ACK (trade_result.json mtime change)
-    3. Remove the queue file
-    4. Proceed to next
+    Runtime host: the FillPoller loop (backend/v9/services/fill_poller.py, the
+    0.25s always-alive task that already shepherds trade_command/trade_result).
+    Offloaded to a worker thread there because the ACK wait blocks.
 
-    Returns number of commands drained.
+    Per queue file, oldest first:
+      • sent (`_sent_ts`) + ACKed (trade_result.json mtime > _sent_ts) → remove.
+      • sent + no ACK, within SIERRA_CMD_ACK_GRACE_S → STOP draining (the wire
+        is busy; never overwrite an in-flight command).
+      • sent + no ACK past grace → archive to archived_stale/ + WARNING. Never
+        resent: 'no ACK' is indistinguishable from 'executed, result write
+        failed' — a resend could double-place.
+      • unsent + older than SIERRA_CMD_TTL_S → archive + WARNING, never sent
+        (stale trading commands must not fire later; the DLL op-path has no TTL).
+      • unsent + fresh → mark `_sent_ts` (under _cmd_lock, so the fast path
+        cannot double-send it), write to trade_command.json, wait up to
+        timeout_s for ACK. ACKed → remove + continue; no ACK yet → STOP (next
+        cycle re-checks; grace expiry above eventually archives).
+
+    Returns the number of queue files completed (ACKed+removed or archived).
+    Exceptions on one file never propagate — WARNING + stop, retry next cycle.
     """
     queue_dir = _command_queue_dir()
     if not queue_dir.exists():
         return 0
 
     out = command_file()
+    _assert_not_a_test_writing_live(out)
     result_file = signals_dir() / "trade_result.json"
+    now = time.time()
     drained = 0
 
-    pending = sorted(queue_dir.glob("cmd_*.json"))
-    for cmd_file in pending:
+    def _result_mtime() -> float:
+        try:
+            return result_file.stat().st_mtime if result_file.exists() else 0.0
+        except OSError:
+            return 0.0
+
+    def _archive(cmd_file: Path, why: str) -> None:
+        dest_dir = _archived_stale_dir()
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / cmd_file.name
+        cmd_file.rename(dest)
+        logger.warning("[SierraCmd] ARCHIVED %s → archived_stale/ (%s) — NOT sent",
+                       cmd_file.name, why)
+
+    for cmd_file in sorted(queue_dir.glob("cmd_*.json")):
         try:
             payload = json.loads(cmd_file.read_text())
+            queued_ts = float(payload.get("_ts_queued") or payload.get("ts_submitted")
+                              or cmd_file.stat().st_mtime)
+            sent_ts = payload.get("_sent_ts")
 
-            # Write to the live command file
-            out.write_text(json.dumps(payload, indent=2))
-            logger.info("[SierraCmd] DRAIN #%s → trade_command.json (op=%s)",
-                        cmd_file.name, payload.get("op"))
+            if sent_ts is not None:
+                # Already on the wire (fast path or a previous drain cycle).
+                if _result_mtime() > float(sent_ts):
+                    cmd_file.unlink(missing_ok=True)
+                    drained += 1
+                    logger.info("[SierraCmd] ACK confirmed for %s — removed from queue",
+                                cmd_file.name)
+                    continue
+                if (now - float(sent_ts)) > _ack_grace_s():
+                    _archive(cmd_file, f"sent {now - float(sent_ts):.0f}s ago, no DLL ACK "
+                                       f"(grace {_ack_grace_s():.0f}s) — will not resend")
+                    drained += 1
+                    continue
+                break  # in-flight, wire busy — never overwrite it
 
-            # Wait for ACK: trade_result.json mtime newer than our write
-            write_ts = time.time()
+            if (now - queued_ts) > _cmd_ttl_s():
+                _archive(cmd_file, f"queued {now - queued_ts:.0f}s ago > TTL "
+                                   f"{_cmd_ttl_s():.0f}s (op={payload.get('op')}, "
+                                   f"trade_id={payload.get('trade_id')})")
+                drained += 1
+                continue
+
+            # Fresh + unsent → send now. Re-check under the lock so a racing
+            # fast-path write of THIS file cannot lead to a double-send.
+            with _cmd_lock:
+                payload = json.loads(cmd_file.read_text())
+                if payload.get("_sent_ts") is not None:
+                    continue  # fast path beat us to it — next cycle ACK-tracks
+                payload["_sent_ts"] = time.time()
+                cmd_file.write_text(json.dumps(payload, indent=2))
+                out.write_text(json.dumps(payload, indent=2))
+            write_ts = payload["_sent_ts"]
+            logger.info("[SierraCmd] DRAIN %s → trade_command.json (op=%s, trade_id=%s)",
+                        cmd_file.name, payload.get("op"), payload.get("trade_id"))
+
             deadline = write_ts + timeout_s
             acked = False
             while time.time() < deadline:
-                try:
-                    if result_file.exists() and result_file.stat().st_mtime > write_ts:
-                        acked = True
-                        break
-                except OSError:
-                    pass
+                if _result_mtime() > write_ts:
+                    acked = True
+                    break
                 time.sleep(0.1)
 
             if acked:
-                logger.info("[SierraCmd] ACK received for #%s", cmd_file.name)
-            else:
-                logger.warning("[SierraCmd] ACK timeout for #%s (%.1fs) — proceeding",
-                               cmd_file.name, timeout_s)
-
-            # Remove processed command
-            cmd_file.unlink(missing_ok=True)
-            drained += 1
+                cmd_file.unlink(missing_ok=True)
+                drained += 1
+                logger.info("[SierraCmd] ACK received for %s", cmd_file.name)
+                continue
+            logger.warning("[SierraCmd] no ACK for %s within %.1fs — holding queue "
+                           "(re-check next cycle, archive after %.0fs grace)",
+                           cmd_file.name, timeout_s, _ack_grace_s())
+            break
 
         except Exception as e:
             logger.warning("[SierraCmd] drain error on %s: %s", cmd_file.name, e)
-            # Don't remove on error — retry next cycle
-            break
+            break  # don't remove on error — retry next cycle
 
     return drained
 
@@ -541,6 +672,16 @@ def command_from_setup(
     # L7 (2026-07-08): count comes from effective_contracts — same source accept_setup
     # persists, so the Sierra bracket and the DB row can never disagree.
     _contracts = effective_contracts(setup)
+    # K1e (#652, 2026-08-07): a PLACE with contracts<=0 must NEVER reach the
+    # wire. The margin cap legitimately returns 0 ("no margin"), but the
+    # deployed DLL DEFAULTS contracts<=0 → 3 (MES_AI_DataExport_merged.cpp:2870)
+    # — a zero-size command becomes a REAL 3-contract order. The gateway skips
+    # the fire upstream when effective contracts <= 0; this raise is the belt
+    # at the single choke point every PLACE passes through.
+    if _contracts <= 0:
+        raise ValueError(
+            f"PLACE refused for trade {trade_id}: effective contracts={_contracts} "
+            "(margin cap / explicit SKIP) — the fire must be aborted, not sent")
 
     # Per-contract targets → the DLL PLACE handler (MES_AI_DataExport.cpp) builds
     # three 1-lot OCO groups and reads target_price for C1, context.t2 for C2,
