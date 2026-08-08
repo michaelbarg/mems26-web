@@ -14,6 +14,27 @@
    Variation-EXPANSION. צעדים בדוח §6. **HLST (תבנית-הפולבק, W6) = מודול-מת: אפס-callers, דגל-לא-ב-.env.**
 → מדורג-לשני בדוח §7: (1) פיוס-#652 (2) מסלול-pullback (3) chase-symmetry ל-S4 (4) קונסיומר-EXCESS (5) Trend-path.
 
+### 2026-08-08 שבת — weekend-audit-agent (cowork) — 🔴 ביקורת-סופ"ש: תור-הפקודות שבור בפרודקשן — חוסם-חימוש
+
+**שני דוחות:** `docs/research/WEEKEND_AUDIT_GAPS_FIXES_2026-08-08.md` (מטריצה מלאה + אימותי-לייב)
++ `docs/research/S6_S7_EXPLAINED_2026-08-08.md` (למייקל). ריצות: flag_guard **156/156** ·
+verify OK·2-warn · **134/134** טסטים-חדשים · truth-audit **13/13**. עיקרי:
+1. 🔴 **P0-1: ל-`drain_command_queue()` אין אף caller ב-runtime** (grep: טסטים בלבד). שישי:
+   ‏cmd_000001 (#650) בוצע ב-fast-path; ‏cmd_000002 (**PLACE #652, וגם `contracts:0`!**) +
+   ‏cmd_000003 (CANCEL) **מעולם לא נשלחו לסיירה** — ‏#652 = עסקת-פנטום (0 fills, SIERRA_FLAT $0).
+   **3 קבצים תקועים בתור עכשיו ⇒ fast-path מנוטרל ⇒ אף פקודת-לייב לא תצא בסשן הבא. אין חימוש
+   לפני: ניקוי-תור + חיווט-drainer + טסט-אינטגרציה.** (Mac2-cutover מחר — לעצור.)
+2. 🔴 **P2-7 self-heal לא מחזיק:** שישי — פערי 55-60ד' ב-day_type בתוך RTH + 42 אזהרות-watchdog
+   ‏(OPS_LOG). שורש מות-הכותב עדיין פתוח.
+3. ✅ אומת-חי: fills-accounting (#640 −131.25 רטרו ✓, ‏#650 fill_on_closed ✓) · לוגי-צל S7/TSF
+   כותבים (2+2 שורות שישי; ‏S7 חסם-היה את ‎#650) · sides-fix 13/13 · queue-ACK-קוד · scratch-gap-קוד.
+4. ❌ NOT-DONE: ‏P1-5 (קונסיומר-EXCESS) · יעדים-מעוגני-מבנה · replay-P1-4 · Render-card (P1.5 מקומי-בלבד)
+   · ntfy חלקי (fire+fill בלבד; on_close/on_alert לא-מחווטים; debug-swallow). ‏PM_640 חסר (רטרו-P&L
+   לא מייצר PM). 8 דגלים undocumented (ה-warn של verify) · OPS/E2E/PM-files לא-committed · דופליקט
+   ‏SYSTEM6_SUPERVISOR ב-.env · אין דיווח-תוצאה-Mac2 בערוץ.
+→ **אל: cc-macbook (ראשון, לפני-הכל):** ‏P0-1b לפי דוח-הביקורת §5. ‏**אל: מייקל:** לא לחמש עד
+שורת-ירוק על תור-הפקודות; ‏S6/S7 — קרא את המסמך שלך.
+
 ### 2026-08-07 — cc-macbook — P1-4: Balance-edge exempt + P2-8: Hysteresis (`c7b7d578`, `e153bcd6`)
 
 **P1-4 (flag-OFF):** regime=BALANCE + מחיר בקצה-רוטציה/VA (≤2pt) → פטור direction_context.
