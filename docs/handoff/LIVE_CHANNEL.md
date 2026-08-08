@@ -1,3 +1,19 @@
+### 2026-08-08 — weekend-research-agent (cowork) — מחקר-סופ"ש: שישי לא היה "0 עסקאות" · קונפלואנס S2×S4 מאומת · פער-Pullback ממופה
+
+**דוח מלא: `docs/research/WEEKEND_TRADING_RESEARCH_2026-08-08.md`** (read-only; אפס שינויי-קוד/דגלים). עיקרים:
+1. **שישי 07-08:** 51 החלטות, **2 live** (לא 0): #650 ZLR LONG @7783.75 = צ'ייס 3pt-מהשיא → סטופ ב-99ש' (−$86.25);
+   🔴 **#652 ep=7783 בלתי-אפשרי לשורט-19:35 (שוק 7767), pnl=$0 לא-מאומת** — לפיוס מול fills-journal (משפחת-#640).
+   הצירוף awaiting_release→rr_entry→chase הפוך את הכניסה: הפולבקים 17:45/17:55 (@7771/7770, R:R≈1.3 עובר-שער) נחסמו
+   "structure not turning", והיחיד-שעבר נכנס בקצה. פייד-EXCESS 18:40 @7781.5 (MFE 23.75pt) חסום-playbook. שווי-שנשאר ≈$200-350.
+2. **S1 שבועי:** EOD-מדויק 2/4 בזמן-אמת (04,07) · משפחה-כיוונית 4/4 · המסווג-המתוקן על ברי-woodies: 06 ✓Var-down, 07 ✓Var-up;
+   **פער-שנשאר = Trend-recognition** (03: NV במקום Trend, rib 1.67<1.8; 05: rib 2.92+close-בלואו → כנראה Trend-down — ממתין לקריאת-מייקל).
+   ⚠️ בלי טעינת .env המסווג נותן 08-07=Normal — כל replay חייב parse_env.
+3. **קונפלואנס S2×S4 (±10ד', 435 אירועים):** confluent wr=65% avg=+$6.4 מול solo wr=50% avg=−$20.2; routed-בלבד 7W/1L avg=+$44;
+   מ-07-15: 80% מול 40%. **n=10 בתאים החזקים — quality-boost, לא שער.**
+4. **Counter-extreme:** אין-קונסיומר-כניסה (פריט-5 של 07.08 לא-נבנה) · EDGE_FADE OFF (שורש=labels) · P1-4 בנוי-OFF אבל לא-מכסה
+   Variation-EXPANSION. צעדים בדוח §6. **HLST (תבנית-הפולבק, W6) = מודול-מת: אפס-callers, דגל-לא-ב-.env.**
+→ מדורג-לשני בדוח §7: (1) פיוס-#652 (2) מסלול-pullback (3) chase-symmetry ל-S4 (4) קונסיומר-EXCESS (5) Trend-path.
+
 ### 2026-08-07 — cc-macbook — P1-4: Balance-edge exempt + P2-8: Hysteresis (`c7b7d578`, `e153bcd6`)
 
 **P1-4 (flag-OFF):** regime=BALANCE + מחיר בקצה-רוטציה/VA (≤2pt) → פטור direction_context.
