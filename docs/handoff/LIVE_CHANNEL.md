@@ -1,3 +1,51 @@
+### 2026-08-08 שבת-ערב — cowork-exec-agent — ✅ K1+K2 סגורים: drainer מחווט · תור-נוקה · #652 פויס · כותב-סוג-היום root-fix (`ef01d040`, `4f67739f`)
+
+**K1 — תור-הפקודות (חוסם-החימוש) סגור:**
+1. **חיווט (K1a/b):** `drain_command_queue()` מחווט ללופ-`FillPoller` (0.25s, always-alive, כבר
+   מנהל את trade_command/trade_result; שורד-חריגות; offload ב-`asyncio.to_thread`, WARNING מוגבל-קצב).
+   פרוטוקול תוקן: fast-path מוחלט **לפני** כתיבת קובץ-התור (השורש: `len(pending)<=1` נבדק אחרי־הכתיבה
+   ⇒ אחרי הפקודה הראשונה התור נתקע לנצח); קובץ שנשלח מוחתם `_sent_ts` ו**לעולם לא נשלח שוב** (ל-DLL
+   אין dedup ב-op-path — resend = double-place); ראש-תור in-flight לא נדרס; **TTL-בקאנד
+   `SIERRA_CMD_TTL_S=90s`** — פקודה ישנה מאורכבת ל-`archived_stale/` ולעולם לא נשלחת (ל-DLL אין TTL
+   ב-op-path, ו-`contracts<=0` הופך שם ל-**3 חוזים אמיתיים** — merged.cpp:2870!). seq נזרע מהדיסק
+   (ריסטארט לא דורס קבצים).
+2. **התור-התקוע (K1c):** 3 הקבצים אורכבו ידנית ל-`command_queue/archived_stale/` + README —
+   **לא נשלחו**: cmd_000001 = PLACE #650 (בוצע-כבר ב-fast-path שישי 18:40, רק ג'ימת את התור) ·
+   cmd_000002 = PLACE #652 `contracts:0` (מסוכן — ה-DLL היה שם 3c) · cmd_000003 = CANCEL #652
+   (= FlattenAndCancelAllOrders על כל פוזיציה שתהיה!).
+3. **#652 (K1e) — שני שורשים + פיוס:** (א) `contracts:0` = margin-cap החזיר 0 כדין ("no margin" —
+   פוזיציה ידנית צרכה מרג'ין) אבל ה-PLACE נשלח בכל-זאת ⇒ עכשיו: gateway מדלג-בכנות לפני כל DB/slot
+   (`effective_contracts<=0` ⇒ SKIP+ops_log), `command_from_setup` זורק (belt), race מבוטל-בכנות.
+   (ב) **ה-ep-הבלתי-אפשרי 7783.0** = `POSITION_TRUTH_SYNC` המציא fill מ-avg של פוזיציה **ידנית**
+   (אין ORDER_SUBMITTED-ack ⇒ הפוזיציה לא שלנו) ⇒ עכשיו: המרה PENDING→FILLED רק עם submit-ack
+   (`quality.sierra_order_id`) — עקרון-הבעלות של 07-24. **DB פויס:** #652 → outcome=**PHANTOM**,
+   exit_reason=CMD_NEVER_SENT_P0-1, entry_price=NULL, pnl=0, audit-trail מלא ב-quality
+   (fills-journal: 0 fills ל-652 — אומת).
+4. **טסטים:** test_command_queue 6→13 (אינטגרציה: 2 פקודות-מהירות מגיעות שתיהן ל-DLL-file
+   סדרתית עם סימולטור-ACK+clear; stale-archive; no-resend; in-flight-block; seq-restart;
+   PLACE-0 נדחה ×2) · position_truth 9→12 (pin: unacked-לעולם-לא-מקבל-fill).
+
+**K2 — כותב-סוג-היום: לא "מת-thread" — 3 באגים מוערמים (אבחון Rule-2 מ-DB+OPS_LOG):**
+פער 15:00→16:00Z = **הרעבת-קלט** (אפס ברים ב-5min 14:45-16:10Z — הפיד מת; הכותב הוא event-handler
+על topic '5min', בלי ברים אין ריצה). פער 18:10→19:05Z = ברים זרמו ו-watchdog איפס כל 5ד' — ואפס
+שורות: (1) **ה-self-heal של P2-7 היה קוד-מת בפרודקשן** — `_app_state` לא הוצב בשום מקום ⇒
+app_state=None בכל קריאה ⇒ בלוק-האיפוס מעולם לא רץ; עכשיו ה-watchdog פותר בעצמו את
+backend.main.app.state (+חיווט belt ב-main). (2) **החתימה נדרכה לפני ה-INSERT** — כתיבה שנכשלה
+(safe_execute מחזיר None, לא זורק) השתיקה את הכותב עד שינוי-state; עכשיו arm-after-success
+(`state_persist.py`, חולץ+נבדק — כתיבה שנכשלה ⇒ retry בבר הבא). (3) **להרעבה לא היה heal** —
+`force_close_if_stale()` של האגרגטור היה עם 0 callers (אותה מחלקה כמו ה-drainer!); עכשיו סולם-הסלמה
+ב-watchdog: איפוס-sig (עובד) → force-close לבר-חלקי-תקוע (בר אמיתי, לא סינתטי) → CRITICAL+ops_log
+כשהפיד עצמו מת. **טסטים:** state_persist 5 חדשים (pin: כישלון-כתיבה לא דורך sig) · watchdog 4→10.
+
+**אימות (Rule-5):** touched-sweep **191 passed** + 25 (K1) + 15 (K2) · flag_guard **156/156 PASS** ·
+gen_flag_index: 2 הפרמטרים החדשים תועדו (undocumented נשאר 8 — החוב-הקודם בלבד) · אינדקסים חודשו.
+⚠️ **ממצא-אגבי (לא-שלי, קדם-קיים):** `test_release_gate_and_margin::test_no_release_while_still_active_in_the_zone`
+נכשל גם על HEAD נקי (V-reversal משחרר "2 higher lows" בתוך הזון) — לתור של cc.
+⚠️ **ל-Mac2 (K8):** ה-DLL default `contracts<=0→3` (merged.cpp:2870) ראוי לתיקון ב-deploy של שני —
+לא נגעתי ב-DLL היום (verify דורש deployed==repo).
+**אל: cc-macbook:** K1 סגור — המשך K3+ לפי הוורק-אורדר. **אל: מייקל:** התור נקי, drainer חי אחרי
+ריסטארט; אין חימוש בלי אימות-סים של PLACE+MODIFY בסשן (K1ג של הוורק-אורדר — ריצה חיה בסים ראשון).
+
 ### 2026-08-08 — cowork-dev — תוכנית-הסופ"ש (2 סוכני-עומק) + פקודת-ראשון K1-K9
 
 🔴 **ממצא-חוסם-חימוש: תור-הפקודות שבור בפרודקשן** (אין drainer ב-runtime; 3 תקועים; PLACE+CANCEL
