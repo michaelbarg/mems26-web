@@ -10,9 +10,8 @@ import time
 from datetime import timedelta
 
 
-class _SkipPersist(Exception):
-    """07-15 decision 4/6: raised inside the day-type persist block when the
-    state signature is unchanged — write-on-change, silently skipped."""
+# (_SkipPersist removed 2026-08-08 K2 — the day-type persist block moved to
+# backend/v9/systems/day_type/state_persist.py, which returns a status instead.)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -227,6 +226,9 @@ async def _startup():
 
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
+            # K2 note: this import used to live inside the (now-extracted)
+            # persist block; the publish at the bottom still needs it.
+            from datetime import datetime, timezone
             bar = event.payload if hasattr(event, 'payload') else event
             # 4B dedup: bridge republishes the same bar ~41× per 5min interval
             # (every file-poll mtime change). Skip if bar ts unchanged.
@@ -633,58 +635,17 @@ async def _startup():
                 # conf), not another copy of the same state (07-14: 288 dup rows,
                 # 2-3 per timestamp). Full per-bar truth remains in memory +
                 # app.state.last_cls_result.
+                # K2 (2026-08-08): body extracted to state_persist.persist_state_row
+                # with the ARM-AFTER-SUCCESS fix — the old inline block armed
+                # _last_dts_sig BEFORE the INSERT, so one failed write silenced
+                # the writer until the state next changed (Friday's 54-min gaps).
                 try:
-                    from datetime import datetime, timezone
-                    from backend.v9.db.safe_writer import safe_execute
-                    _cur_sig = (
-                        state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
-                        state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
-                        round(float(state.confidence or 0.0), 2),
-                        str(state.lock_state),
+                    from backend.v9.systems.day_type.state_persist import persist_state_row
+                    persist_state_row(
+                        app.state, state, opening_type,
+                        getattr(app.state, "last_cls_result", None),
+                        now_et().date().isoformat(),
                     )
-                    if getattr(app.state, "_last_dts_sig", None) == _cur_sig:
-                        raise _SkipPersist()
-                    app.state._last_dts_sig = _cur_sig
-                    _dts_row = (
-                        datetime.now(timezone.utc).isoformat(),
-                        state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
-                        state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
-                        state.day_type.value if state.lock_state == "LOCKED" else None,
-                        state.confidence,
-                        state.ib_width.value if hasattr(state.ib_width, 'value') else None,
-                        opening_type,
-                        state.behavior.value if hasattr(state.behavior, 'value') else None,
-                        str(state.lock_state),
-                        datetime.now(timezone.utc).isoformat(),
-                    )
-                    # N1 RC#4 (migration 022): additive observability columns from TODAY's
-                    # canonical classify_session result (honest NULLs when absent/stale —
-                    # state_row_extras enforces the session_date freshness stamp, Rule 1).
-                    from backend.v9.systems.day_type.classifier_core import state_row_extras
-                    _xtr = state_row_extras(getattr(app.state, "last_cls_result", None),
-                                            now_et().date().isoformat())
-                    _ins = safe_execute(
-                        """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
-                           ib_width_class, opening_type, behavior, lock_state, created_at,
-                           direction, reason, sides, rib)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        _dts_row + (_xtr["direction"], _xtr["reason"], _xtr["sides"], _xtr["rib"]),
-                    )
-                    if _ins is None:
-                        # Extended INSERT failed (e.g. migration 022 not applied on this DB
-                        # yet) — never let observability columns stop state persistence:
-                        # fall back to the legacy column set + loud warning (no silent drift).
-                        safe_execute(
-                            """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
-                               ib_width_class, opening_type, behavior, lock_state, created_at)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            _dts_row,
-                        )
-                        _logger.warning(
-                            "[DayType] extended persist failed — wrote legacy columns; run "
-                            "backend/v9/db/migrations/versions/022_day_type_state_n1_columns.py")
-                except _SkipPersist:
-                    pass  # write-on-change: state unchanged since last row (by design, silent)
                 except Exception as db_err:
                     _logger.warning("[DayType] DB persist skipped: %s", db_err, exc_info=True)
 
@@ -1033,6 +994,11 @@ async def _startup():
         tm_db = SessionLocal()
         trade_manager = TradeManager(db=tm_db)
         bar_level_detector = BarLevelDetector(trade_manager=trade_manager)
+        # K2 (2026-08-08): the daytype-watchdog self-heal reads _app_state from
+        # here — it was NEVER set anywhere, so the P2-7 signature reset was dead
+        # code live (app_state=None on every call). The watchdog now also
+        # resolves backend.main.app.state itself as a fallback; this is the belt.
+        bar_level_detector._app_state = app.state
         bar_level_detector.subscribe(bar_router)
         app.state.trade_manager = trade_manager
         app.state.bar_level_detector = bar_level_detector
