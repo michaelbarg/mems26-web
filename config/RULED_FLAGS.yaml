@@ -28,6 +28,7 @@ ruled:
   EXTREMES_AWARE_REALIZE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "פסיקת שלב-1-דלתון (06.08 מאשר): EXCESS⇒מימוש-מיידי, POOR⇒דיכוי-מגנט. replay 186: +$668.75 מול +$258.75 בסיס (+$410). 17/17 טסטים. הדלקה בפרוטוקול פסיקה-עומדת." }
   OPENING_WINDOWS_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "שלב-2-דלתון מאושר: חלונות-פתיחה מדורגים + מיקום-drive (VALUE_DRIVEN/EXHAUSTION_RISK) — גילוי-טהור, אפס-שינוי-ירי. replay: מסנן-המיקום שווה $401+$657; אכיפת-הווטו תבוא כדגל-נפרד אחרי חיווט." }
   OPENING_DRIVE_EXHAUSTION_VETO_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-06", note: "שלב-2-דלתון (מאושר): OPEN_DRIVE בקצה-מאזן-7=EXHAUSTION_RISK ⇒ חסימת-עסקת-פתיחה; VALUE_DRIVEN עובר; fail-open. replay GO $401. 8/8 טסטים. פסיקה-עומדת." }
+  S1_TREND_ELONGATION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-09", note: "K6: נתיב-Trend (rib>=2.5 + close-position קיצוני) — replay GO: מתקן 03/05.08 בלי אף רגרסיה (13/13 נשמר). פסיקת-סופ\"ש." }
   FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-08-04", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
@@ -114,9 +115,9 @@ ruled:
   PHANTOM_HEAL_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "אישור 'כן מאשר': reconciler סוגר עסקה-פנטום (backend-active + Sierra flat qty=0/working=0 מהstate-file, ≥3 בדיקות רצופות) → משחרר slot; שמרני (הפוך מ-07-10). פתר את הפנטום-#9 שחסם את יום-הסים" }
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
   LSMA_FLAT_GATE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "פסיקת-בוקר 07-22 Task E: 'מחיר תקוע = אנרגיה נצברת; כניסה מוקדמת = הפסד'. fixtures #449/452/456=BLOCK, #444=pass. מחליף כיבוי-07-13" }
-  FIXED_CONTRACTS_4:     {expected: "0", ruled_by: "מייקל", date: "2026-07-31", note: "פסיקת 31.07 13:40: 'תכין אותה למסחר עם 3 חוזים היום t1 t2 t3' — עבר ל-3 חוזים, מדרג T1/T2/T3 קלאסי (בלי T0-scalp). מחליף את פסיקת 4-החוזים מ-07-15." }
-  FIXED_CONTRACTS_3:     {expected: "1", ruled_by: "מייקל", date: "2026-08-04", note: "SUPERSEDED בפסיקת 02.08: 'המערכת יכולה לירות רק 2 חוזים אחרי ההפסדים של שבוע שעבר... רק t1 and t2' — ירד ל-2 חוזים." }
-  T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
+  FIXED_CONTRACTS_4:     {expected: "1", ruled_by: "מייקל", date: "2026-07-31", note: "פסיקת 31.07 13:40: 'תכין אותה למסחר עם 3 חוזים היום t1 t2 t3' — עבר ל-3 חוזים, מדרג T1/T2/T3 קלאסי (בלי T0-scalp). מחליף את פסיקת 4-החוזים מ-07-15." }
+  FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-08-09", note: "SUPERSEDED בפסיקת 02.08: 'המערכת יכולה לירות רק 2 חוזים אחרי ההפסדים של שבוע שעבר... רק t1 and t2' — ירד ל-2 חוזים." }
+  T0_TARGET_PTS:         {expected: "3.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
   WOODIES_TS_HOUR_FIX: {expected: "0", ruled_by: "מייקל", date: "2026-07-22", note: "P2: hour-fix יצר 11 זוגות-רפאים +1h היום (±120s window caught normal bar re-sends). default OFF. הדלקה=רק אם chartbook-TZ offset מאומת פעיל" }
   DAYTYPE_ACCEPTANCE_DEMOTION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "P6: פסיקת-D2 06-30 + 07-22. Trend_*→Normal_Variation כשהמחיר חוזר ומתקבל בתוך IB (K=3 ברים). דו-כיווני. Fixture: 07-22 Trend stuck" }
