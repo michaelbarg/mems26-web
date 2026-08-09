@@ -135,3 +135,44 @@ def test_no_bars_fail_open(monkeypatch):
     """No session bars → fail-open (no block)."""
     r = _run_gate(monkeypatch, 7420.0, "SHORT", "INITIATIVE_SHORT", [])
     assert not r["blocked"], "No bars should fail-open"
+
+
+# ── K3d: Chase-symmetry bypass revocation tests ─────────────────────────────
+
+# Friday 08-07 bars: open 7757.25, IB-high 7780.5, session high 7786.75
+BARS_FRIDAY_0807 = [
+    {"high": 7760.0, "low": 7757.25},   # 16:30 open
+    {"high": 7765.0, "low": 7755.0},
+    {"high": 7770.0, "low": 7750.0},
+    {"high": 7758.0, "low": 7743.25},   # IB low
+    {"high": 7770.0, "low": 7752.0},    # V-reversal start
+    {"high": 7780.5, "low": 7765.0},    # IB high
+    {"high": 7776.0, "low": 7764.5},    # pullback bar
+    {"high": 7775.0, "low": 7765.0},    # pullback
+    {"high": 7778.0, "low": 7770.0},
+    {"high": 7782.0, "low": 7775.0},
+    {"high": 7786.75, "low": 7778.0},   # session high
+    {"high": 7785.0, "low": 7780.0},    # near-high entry zone
+]
+
+
+def test_chase_at_tip_blocked_despite_displaced_session(monkeypatch):
+    """K3d: ZLR LONG @7783.75, session_high=7786.75, dist=3pt < 6pt.
+    The session IS displaced (7757→7783 = 26pt > 15pt), so trend_bypass
+    would fire. But the entry is at the tip (3pt from high) — the bypass
+    must be revoked. This is #650 from Friday 08-07."""
+    r = _run_gate(monkeypatch, 7783.75, "LONG", "ZLR", BARS_FRIDAY_0807)
+    assert r["blocked"], (
+        f"ZLR LONG @7783.75 (3pt from session high) should be BLOCKED "
+        f"even on displaced session: {r}. "
+        "K3d: chase at the tip must not pass regardless of trend bypass"
+    )
+
+
+def test_with_trend_entry_away_from_tip_allowed(monkeypatch):
+    """A with-trend entry well AWAY from the extreme should still pass.
+    LONG @7770 on the same displaced session: dist=16.75pt >> 6pt."""
+    r = _run_gate(monkeypatch, 7770.0, "LONG", "ZLR", BARS_FRIDAY_0807)
+    assert not r["blocked"], (
+        f"ZLR LONG @7770 (16.75pt from high) should PASS: {r}"
+    )

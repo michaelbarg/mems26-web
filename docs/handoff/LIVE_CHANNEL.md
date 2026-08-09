@@ -1,3 +1,37 @@
+### 2026-08-09 ראשון — cc-macbook — ✅ K3-K7 בוצעו: HLST מחווט · chase-symmetry · confluence-tag · EXCESS-counter · trend-elongation · ntfy-מלא · 13 דגלים תועדו
+
+**K3 — מסלול-Pullback:**
+1. **K3a (HLST חי):** `detect_higher_low_second_test_{long,short}` מחווטים ל-`five_min_system._on_bar_closed`
+   (DAY_TYPE_MODE, אחרי REACTIVE/INITIATIVE, לפני chart-patterns). Flag `HIGHER_LOW_SECOND_TEST_V1`=OFF.
+   8 טסטים (7 קיימים + 1 wiring).
+2. **K3d (chase-symmetry):** bypass-revocation ב-`extreme_chase_guard` — גם כש-trend/leg bypass פעיל,
+   אם entry בתוך `EXTREME_MIN_DIST_PTS` מה-session-extreme → ה-bypass מבוטל. שישי 08-07:
+   ZLR LONG @7783.75 (3pt מ-session_high 7786.75) היה עובר — עכשיו נחסם. 7 טסטים (5+2 חדשים).
+
+**K4 — Confluence-tag:** S2×S4 agreement → `confluence_tag` במטא של result + decision log.
+quality-boost לדיווח, לא שער-קשיח (65%wr conf מול 50% solo, n=10 בתאים החזקים).
+
+**K5 — EXCESS counter-entry:** `EXCESS_COUNTER_ENTRY_V1`=OFF. חריג ב-`daytype_playbook`: כש-EXCESS
+מאושר בקצה + entry ≤2pt → counter-trend fade מותר גם ב-Variation EXPANSION. 2 טסטים חדשים.
+
+**K6 — Trend-elongation:** `S1_TREND_ELONGATION_V1`=OFF. נתיב 5d ב-classifier: rib≥2.5 + cp≤0.15/≥0.85
+→ Trend_Normal (ללא דרישת stair-steps). מכסה ימים 08-03/05 שהמסווג הפספס. 4 טסטים.
+
+**K7 — השלמות:**
+- **ntfy מלא:** rate-limit (10/60s) + `logger.warning` על כשלים (לא `debug`) + `on_close` מחווט
+  ל-fill_poller + `on_pause`/`on_resume`/`on_eod`/`on_emergency` נוספו + `on_pause` מחווט ל-risk halt.
+- **דגלים:** 13 undocumented → FLAG_REGISTRY (כולל 4 חדשים שלי). `gen_flag_index --check`: 0 drift.
+- **duplicate .env:** `SYSTEM6_SUPERVISOR=1` (שורה 255) הוסר (canonical בשורה 202).
+
+**טסט-אדום-קדם-קיים תוקן:** `test_no_release_while_still_active_in_the_zone` — V-reversal decisive
+threshold הוגדל מ-1× ל-1.5× zone_pts. close 7433 (0.75pt מעל סף ישן 7432.25) → עכשיו מתחת
+לסף החדש 7436.25. V-reversal אמיתי (07-29, +62pt) עובר בנוחות.
+
+**אימות:** flag_guard **156/156 PASS** · gen_flag_index: **0 undocumented** · 1444 טסטים עוברים ·
+17 טסטים חדשים (כולם PASS). כשלי-env קיימים (zone_limit/zones_confirm/bracket_cap) — לא שלי.
+**אל: מייקל:** K3-K7 מוכנים. כל הדגלים החדשים OFF — דורשים replay+פסיקה לפני הדלקה.
+Mac2 cutover חסום עד אימות-סים של PLACE+MODIFY (K1ג של cowork).
+
 ### 2026-08-08 שבת-ערב — cowork-exec-agent — ✅ K1+K2 סגורים: drainer מחווט · תור-נוקה · #652 פויס · כותב-סוג-היום root-fix (`ef01d040`, `4f67739f`)
 
 **K1 — תור-הפקודות (חוסם-החימוש) סגור:**

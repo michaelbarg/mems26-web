@@ -17,10 +17,13 @@ not duplicated here.
 """
 from __future__ import annotations
 
+import logging
 import math
 import os
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from backend.v9.config_loader import _load_yaml  # reuse loader + config dir
 
@@ -253,11 +256,61 @@ def decide(
                     _is_with_trend = (d == "LONG" and _dd == "UP") or (
                         d == "SHORT" and _dd == "DOWN")
                     if _vphase == "EXPANSION" and not _is_with_trend:
-                        return Decision(
-                            "SKIP", 0,
-                            f"{pkey} counter-trend fade during Variation EXPANSION "
-                            f"(day_dir={_dd}) — fade only after rebalance",
-                        )
+                        # K5: EXCESS_COUNTER_ENTRY_V1 (08-09, flag OFF → shadow/replay).
+                        # A confirmed EXCESS at the extending edge is strong evidence
+                        # of auction completion — the fade IS the correct play, even
+                        # during EXPANSION. Friday 08-07: REACTIVE SHORT @7781.5 was
+                        # blocked here while EXCESS @7786.75 had MFE 23.75pt (+$150-250).
+                        # Requirements: flag ON + EXCESS quality at the relevant edge
+                        # + entry within 2pt of the extreme + stop above the tail.
+                        _excess_exempt = False
+                        if os.environ.get("EXCESS_COUNTER_ENTRY_V1", "").lower() in (
+                            "1", "true", "yes"
+                        ):
+                            try:
+                                from backend.v9.systems.extremes_quality import (
+                                    classify_session_extremes,
+                                )
+                                from backend.v9.db.read import read_all as _exc_read
+                                _exc_rows = _exc_read(
+                                    "SELECT open, high, low, close FROM v9_bars_5min_woodies "
+                                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                    "(now() AT TIME ZONE 'America/New_York')::date "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                    "ORDER BY ts ASC", {})
+                                if _exc_rows and len(_exc_rows) >= 6:
+                                    _exc_bars = [dict(r) for r in _exc_rows]
+                                    _exc_ext = classify_session_extremes(_exc_bars)
+                                    _exc_edge_q = (
+                                        _exc_ext.high if d == "SHORT"
+                                        else _exc_ext.low
+                                    )
+                                    _exc_ep = float(entry_price) if entry_price is not None else None
+                                    _exc_level = _exc_edge_q.level if _exc_edge_q else None
+                                    if (
+                                        _exc_edge_q
+                                        and _exc_edge_q.quality == "EXCESS"
+                                        and _exc_ep is not None
+                                        and _exc_level is not None
+                                        and abs(_exc_ep - _exc_level) <= 2.0
+                                    ):
+                                        _excess_exempt = True
+                                        logger.info(
+                                            "[Playbook] K5 EXCESS counter-entry EXEMPT: "
+                                            "%s %s @%.2f, EXCESS at %.2f (tail %.1fpt) "
+                                            "during %s EXPANSION",
+                                            pkey, d, _exc_ep, _exc_level,
+                                            _exc_edge_q.tail_pts, day_type)
+                            except Exception as _exc_err:
+                                logger.warning(
+                                    "[Playbook] EXCESS counter-entry check failed "
+                                    "(fail-closed, original SKIP applies): %s", _exc_err)
+                        if not _excess_exempt:
+                            return Decision(
+                                "SKIP", 0,
+                                f"{pkey} counter-trend fade during Variation EXPANSION "
+                                f"(day_dir={_dd}) — fade only after rebalance",
+                            )
                     if _is_with_trend and _vphase == "EXPANSION":
                         # Chase check: distance from session extreme (A2 amendment:
                         # IB-scaled threshold, not fixed 6pt)

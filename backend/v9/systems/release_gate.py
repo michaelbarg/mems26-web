@@ -138,9 +138,12 @@ def check_release(bars: Sequence[Bar], direction: str) -> ReleaseVerdict:
         # dry-up meant today's bottom (low 7373 19:15, structure + closes beyond
         # the zone by 19:25) was never "released" and every long into the +62pt
         # recovery was held. If the structure has turned AND price has CLOSED
-        # decisively beyond the zone (a full zone-width past it), conviction
-        # replaces contraction. A single close just past the edge still waits.
-        decisive = (last.close > zone_hi + zone_pts) if is_long else (last.close < zone_lo - zone_pts)
+        # decisively beyond the zone (1.5× zone-width past the edge), conviction
+        # replaces contraction. A close barely past the edge on flat volume is
+        # NOT a V-reversal — the market is still trading the level.
+        v_factor = _f("RELEASE_V_REVERSAL_CLOSE_FACTOR", 1.5)
+        v_threshold = zone_pts * v_factor
+        decisive = (last.close > zone_hi + v_threshold) if is_long else (last.close < zone_lo - v_threshold)
         if hl >= min_hl and decisive:
             buf = _f("RELEASE_STOP_BUFFER_POINTS", 1.0)
             stop = round((ext - buf) if is_long else (ext + buf), 2)

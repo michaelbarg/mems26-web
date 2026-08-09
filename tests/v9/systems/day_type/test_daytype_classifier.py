@@ -129,3 +129,35 @@ def test_all_seven_types_reachable():
     for t in ("Trend_Normal", "Trend_DD", "Normal_Variation", "Neutral_Extreme",
               "Neutral_Center", "Normal", "Nontrend"):
         assert t in got, (t, got)
+
+
+# ── K6: Trend-elongation path ─────────────────────────────────────────────
+
+def test_elongation_path_off_falls_through_to_nv(monkeypatch):
+    """S1_TREND_ELONGATION_V1 OFF → rib≥2.5 + extreme cp stays Normal_Variation."""
+    monkeypatch.delenv("S1_TREND_ELONGATION_V1", raising=False)
+    r = c(sides=1, rib=2.9, close_pos=0.10)  # extreme cp-low, high rib
+    assert r["day_type"] == "Normal_Variation"
+
+
+def test_elongation_path_on_promotes_to_trend(monkeypatch):
+    """S1_TREND_ELONGATION_V1 ON → rib≥2.5 + cp≤0.15 = Trend_Normal (DOWN)."""
+    monkeypatch.setenv("S1_TREND_ELONGATION_V1", "1")
+    r = c(sides=1, rib=2.9, close_pos=0.10)
+    assert r["day_type"] == "Trend_Normal"
+    assert "elongation" in r.get("reason", "").lower()
+
+
+def test_elongation_path_up_direction(monkeypatch):
+    """Elongation path UP: rib≥2.5 + cp≥0.85 = Trend_Normal (UP)."""
+    monkeypatch.setenv("S1_TREND_ELONGATION_V1", "1")
+    r = c(sides=1, rib=3.0, close_pos=0.90)
+    assert r["day_type"] == "Trend_Normal"
+    assert "elongation" in r.get("reason", "").lower()
+
+
+def test_elongation_path_needs_extreme_cp(monkeypatch):
+    """Elongation: rib≥2.5 but cp=0.50 (not extreme) → stays Normal_Variation."""
+    monkeypatch.setenv("S1_TREND_ELONGATION_V1", "1")
+    r = c(sides=1, rib=2.9, close_pos=0.50)
+    assert r["day_type"] == "Normal_Variation"

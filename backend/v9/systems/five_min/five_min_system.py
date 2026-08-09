@@ -1482,6 +1482,17 @@ class FiveMinSystem(BaseV9TradingSystem):
         if not direction:
             direction, conf, info = self._detect_initiative(_det_buf)
 
+        # HLST — Higher-Low Second Test (W6, pullback pattern, flag-gated OFF)
+        # Detects push→L1→recovery→L2>L1→rejection-bar. RTH/DAY_TYPE_MODE only.
+        if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
+            from backend.v9.systems.five_min.patterns.higher_low_second_test import (
+                detect_higher_low_second_test_long,
+                detect_higher_low_second_test_short,
+            )
+            direction, conf, info = detect_higher_low_second_test_long(_det_buf)
+            if not direction:
+                direction, conf, info = detect_higher_low_second_test_short(_det_buf)
+
         # Pkg 5a · chart patterns (Stage 3 + day-type gated · D-091 §5+§6)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
             if self.current_day_type is None:

@@ -1561,3 +1561,97 @@ flags:
     why: "Dalton Step 3: day_type + leg + 7-day VA overlap → single regime signal"
     status: not_built
     ref: "docs/handoff/CC_WORKORDER_2026-08-06_DALTON_GAPS.md"
+
+  # ── K7b: previously undocumented flags (08-09) ──────────────────────────────
+
+  BALANCE_EDGE_EXEMPT_V1:
+    category: cascade_gate
+    what: "BALANCE regime + entry ≤2pt from session edge → exempts direction_context gate (allows responsive fades at rotation edges)"
+    why: "OFF (default, awaiting replay 06.08+14 days). P1-4: on Variation-EXPANSION the direction context blocks edge fades that are profitable — Balance-edge is strong structural confirmation"
+    status: awaiting_backtest
+    ref: "CC_WORKORDER_2026-08-07 P1-4"
+
+  DAYTYPE_MECH_HOLD_BARS:
+    category: param
+    group: "S1 classification"
+    what: "Number of bars to hold the mechanical sides result before re-evaluating (anti-noise). Default varies by implementation"
+    why: "Tuning parameter for S1 sides computation stability"
+    status: param
+
+  DAYTYPE_STALE_THRESHOLD_MIN:
+    category: param
+    group: "S1 classification"
+    what: "Minutes after which day_type state is considered stale by the watchdog. Default 10"
+    why: "P2-7 daytype_watchdog threshold — triggers staleness warnings when writer gaps exceed this"
+    status: param
+
+  EXCESS_COUNTER_ENTRY_V1:
+    category: cascade_gate
+    what: "EXCESS quality at session edge → exempts the Variation-EXPANSION counter-trend fade block in daytype_playbook (K5)"
+    why: "OFF (default). Friday 08-07: REACTIVE SHORT @7781.5 blocked during EXPANSION while EXCESS tail at 7786.75 had MFE 23.75pt (+$150-250). Confirmed EXCESS = auction complete → fade is correct even during expansion"
+    status: awaiting_backtest
+    ref: "CC_WORKORDER_2026-08-09 K5"
+
+  NEUTRAL_HYSTERESIS_PTS:
+    category: param
+    group: "S1 classification"
+    what: "Buffer points for Neutral_Extreme↔Neutral_Center transition (P2-8 hysteresis). Default 0.05"
+    why: "Prevents flapping at the boundary — close_pos at the exact threshold oscillated 16 times on 08-06"
+    status: param
+    ref: "CC_WORKORDER_2026-08-07 P2-8"
+
+  NTFY_TOPIC:
+    category: misc
+    what: "ntfy.sh topic name for push notifications to Michael's watch/phone (P1.6/K7a)"
+    why: "Infrastructure — notification channel routing"
+    status: param
+
+  S1_TREND_ELONGATION_V1:
+    category: s1
+    what: "Trend recognition via range magnitude: rib≥2.5 + close pressing extreme (cp≤0.15 or ≥0.85) → Trend_Normal, even without stair-steps (K6)"
+    why: "OFF (default). Research 08-08: days 03 (rib 1.67) and 05 (rib 2.92, no steps) classified NV when Michael saw Trend. Complements the control-path (5c) with a structural-range path"
+    status: awaiting_backtest
+    ref: "WEEKEND_TRADING_RESEARCH_2026-08-08 §2+§7.5"
+
+  S1_TREND_ELON_MIN_RIB:
+    category: param
+    group: "S1 trend-elongation"
+    what: "Minimum rib for elongation-path Trend recognition. Default 2.5"
+    why: "Dalton range-magnitude floor — 2.5× IB means significant one-sided extension"
+    status: param
+
+  S1_TREND_ELON_CP_HI:
+    category: param
+    group: "S1 trend-elongation"
+    what: "Close-position threshold for UP elongation (cp ≥ this = pressing high). Default 0.85"
+    why: "Tuning parameter — close must be in the top 15% of the range to qualify"
+    status: param
+
+  S1_TREND_ELON_CP_LO:
+    category: param
+    group: "S1 trend-elongation"
+    what: "Close-position threshold for DOWN elongation (cp ≤ this = pressing low). Default 0.15"
+    why: "Tuning parameter — close must be in the bottom 15% of the range to qualify"
+    status: param
+
+  S6_APPROACH_DIST_PTS:
+    category: param
+    group: "S6 target approach"
+    what: "Distance in points from target at which approach-realize triggers (S6_TARGET_APPROACH_REALIZE_V1). Default varies"
+    why: "Tuning parameter for the ≤1pt approach detection (Michael's 45-point rule)"
+    status: param
+
+  S6_MAX_APPROACH_BARS:
+    category: param
+    group: "S6 target approach"
+    what: "Maximum bars in the approach zone before forcing realize (S6_TARGET_APPROACH_REALIZE_V1). Default varies"
+    why: "Tuning parameter — bars near target without fill = rejection signature"
+    status: param
+
+  S6_SCRATCH_STOP_GAP_PTS:
+    category: param
+    group: "S6 MAE scratch"
+    what: "Minimum gap between scratch-flatten price and stop price to avoid scratch-before-stop races (P2-9). Default 2.0"
+    why: "P2-9 fix: without gap, scratch and stop can fire simultaneously on the same bar"
+    status: param
+    ref: "CC_WORKORDER_2026-08-07 P2-9"

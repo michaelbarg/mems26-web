@@ -591,6 +591,28 @@ class TradingGateway:
                 "[Gateway] confluence detector errored (parents unaffected): %s",
                 _conf_err)
         result = self._route_setup_inner(setup, system_id)
+        # K4: Confluence S2×S4 quality-boost tag (08-09). If observe_route found
+        # a counterpart (S2 matched S4 or vice versa), tag this parent's result
+        # with confluence_tag. This is a SCORING COMPONENT (65%wr conf vs 50%
+        # solo from research) — not a hard gate. The tag is used for logging,
+        # priority, and future sizing hints. Does not change routing.
+        if _conf_setup is not None:
+            try:
+                result["confluence_tag"] = {
+                    "counterpart_system": 4 if system_id == 2 else 2,
+                    "counterpart_pattern": _conf_setup.get("metadata", {}).get(
+                        "confluence", {}).get("parents", [{}])[-1].get("pattern"),
+                    "combined_entry": _conf_setup.get("entry_price"),
+                    "quality_boost": True,
+                }
+                logger.info(
+                    "[Gateway] K4 confluence-tag: system=%s %s %s @%s has S2×S4 "
+                    "agreement (quality boost)",
+                    system_id, setup.get("direction"),
+                    setup.get("classification") or setup.get("pattern"),
+                    setup.get("entry_price"))
+            except Exception:
+                pass
         bb = result.get("blocked_by")
         if bb:
             logger.warning(
@@ -619,6 +641,7 @@ class TradingGateway:
                 "reason": result.get("reason"),
                 "outcome": _outcome,
                 "trade_id": result.get("live") or result.get("demo") or result.get("shadow"),
+                "confluence_tag": result.get("confluence_tag"),
             }
             self.decisions.append(_dec)
             self._persist_decision(_dec)
@@ -1516,6 +1539,36 @@ class TradingGateway:
                                     "with-move on displaced session", direction)
                     except Exception:
                         _ecg_bypass = False
+                    # K3d CHASE-SYMMETRY (08-09): trend/leg bypass should NOT
+                    # exempt entries at the very tip of the extreme. Friday 08-07:
+                    # trend-bypass let ZLR LONG @7783.75 through (3pt from session
+                    # high 7786.75) while playbook blocked REACTIVE at 6pt. If the
+                    # entry is within EXTREME_MIN_DIST_PTS of the WITH-MOVE extreme,
+                    # the bypass is revoked — chasing the last few points of a trend
+                    # is dangerous even in a displaced session.
+                    if _ecg_bypass and _ecg_srows and _ecg_entry is not None:
+                        try:
+                            _ecg_bars_tip = [{"high": float(r["high"]), "low": float(r["low"])}
+                                             for r in _ecg_srows]
+                            _ecg_tip_sh = max(b["high"] for b in _ecg_bars_tip)
+                            _ecg_tip_sl = min(b["low"] for b in _ecg_bars_tip)
+                            _ecg_entry_tip = float(_ecg_entry)
+                            _ecg_tip_dist = (
+                                (_ecg_tip_sh - _ecg_entry_tip) if direction == "LONG"
+                                else (_ecg_entry_tip - _ecg_tip_sl)
+                            )
+                            if _ecg_tip_dist < _ecg_min_dist:
+                                _ecg_bypass = False
+                                logger.warning(
+                                    "[Gateway] extreme-chase-guard BYPASS REVOKED: "
+                                    "%s entry %.2f only %.1fpt from session %s %.2f "
+                                    "— chase at the tip, bypass does not help",
+                                    direction, _ecg_entry_tip, _ecg_tip_dist,
+                                    "high" if direction == "LONG" else "low",
+                                    _ecg_tip_sh if direction == "LONG" else _ecg_tip_sl)
+                        except Exception:
+                            pass  # fail-open on the revocation check
+
                     if _ecg_srows and _ecg_entry is not None and not _ecg_bypass:
                         _ecg_bars = [{"high": float(r["high"]), "low": float(r["low"])}
                                      for r in _ecg_srows]
@@ -2481,6 +2534,12 @@ class TradingGateway:
                     _phone_push("daily_loss_halt", "🛑 MEMS26: עצירת-יום",
                                 f"P&L ${self._daily_pnl:.2f} חצה את התקרה -${_dl_cap:.0f} — אין כניסות חדשות היום.",
                                 priority=1)
+                except Exception:
+                    pass
+                # K7a: ntfy notification for risk halt
+                try:
+                    from backend.v9.services.ntfy_notify import on_pause
+                    on_pause(f"STOP DAY: P&L ${self._daily_pnl:.2f} <= -${_dl_cap:.0f}")
                 except Exception:
                     pass
                 return result

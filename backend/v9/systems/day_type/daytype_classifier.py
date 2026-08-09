@@ -468,6 +468,28 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
                            + (f" + value migrating {_vm}" if _vm else "")
                            + (" + CVD-confirmed" if cvd_dir else ""),
                            cvd_confirms=cvd_dir, trend_control_path=True)
+        # 5d) K6 Trend-elongation path (S1_TREND_ELONGATION_V1, default OFF — 08-09).
+        #     Research (08-08): days 08-03 (rib 1.67<1.8 control-floor) and 08-05
+        #     (rib 2.92 but no 3 stair-steps) classified NV when Michael saw Trend.
+        #     Dalton's range-magnitude criterion: rib >= 2.5 + close pressing the
+        #     extreme (cp ≤ 0.15 or ≥ 0.85) = the market moved far enough AND held
+        #     the edge. This is the STRUCTURAL complement to the control-path's
+        #     process measure (stair-steps). Flag OFF → byte-identical, falls through.
+        if os.environ.get("S1_TREND_ELONGATION_V1", "0").lower() in ("1", "true", "yes"):
+            _elon_min_rib = float(os.environ.get("S1_TREND_ELON_MIN_RIB", "2.5"))
+            _elon_cp_hi = float(os.environ.get("S1_TREND_ELON_CP_HI", "0.85"))
+            _elon_cp_lo = float(os.environ.get("S1_TREND_ELON_CP_LO", "0.15"))
+            if (rib is not None and rib >= _elon_min_rib
+                    and cp is not None
+                    and (cp >= _elon_cp_hi or cp <= _elon_cp_lo)):
+                _elon_dir = "UP" if cp >= _elon_cp_hi else "DOWN"
+                return out("Trend_Normal", "CLASSIFIED",
+                           f"elongation-path: rib {rib}>={_elon_min_rib} + "
+                           f"close-at-extreme (cp {cp:.2f}) = Trend {_elon_dir} "
+                           f"(stair-steps waived per range magnitude)"
+                           + (" + CVD-confirmed" if cvd_dir else ""),
+                           cvd_confirms=cvd_dir, trend_elongation_path=True)
+
         # 6) Normal_Variation (Expanded Typical) — catch-all. PROVISIONAL until EOD: a 1-sided day
         #    can still get side-2 (→ Neutral) or build DD/Trend structure as it extends.
         return out("Normal_Variation", "CLASSIFIED" if is_eod else "PROVISIONAL",

@@ -109,14 +109,24 @@ class FillPoller:
             return
         try:
             trade = self._tm._get_trade(trade_id) if self._tm is not None else None
+            _close_mode = getattr(trade, "mode", "demo") if trade else "demo"
+            _close_pnl = (getattr(trade, "pnl_usd", 0.0) or 0.0) if trade else 0.0
             self._gateway.on_trade_close({
                 "trade_id": trade_id,
-                "mode": getattr(trade, "mode", "demo") if trade else "demo",
-                "pnl_usd": (getattr(trade, "pnl_usd", 0.0) or 0.0) if trade else 0.0,
+                "mode": _close_mode,
+                "pnl_usd": _close_pnl,
                 "outcome": outcome,
                 "direction": getattr(trade, "direction", "") if trade else "",
             })
             logger.info("[FillPoller] notified gateway: trade %s closed (%s)", trade_id, outcome)
+            # K7a: push notification on trade close (live/demo only)
+            if _close_mode in ("live", "demo"):
+                try:
+                    from backend.v9.services.ntfy_notify import on_close
+                    on_close(trade_id, outcome, _close_pnl,
+                             getattr(trade, "exit_reason", outcome) if trade else outcome)
+                except Exception:
+                    pass
         except Exception as e:
             logger.warning("[FillPoller] gateway notify failed (non-fatal): %s", e)
 

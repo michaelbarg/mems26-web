@@ -8,6 +8,7 @@ Tests:
 5. Flag ON + SHORT symmetric structure → SHORT detected
 6. Rejection bar not in upper half → no detection
 7. revert→RED: tests 2,5 fail without the code
+8. Wiring: five_min_system detection chain includes HLST (K3a)
 """
 import os
 import pytest
@@ -172,3 +173,19 @@ def test_bad_rejection_bar_rejected(monkeypatch):
     bars[-1] = {"high": 7456, "low": 7451, "close": 7452, "open": 7455}
     d, c, info = detect_higher_low_second_test_long(bars)
     assert d is None
+
+
+# ── Test 8: Wiring — five_min_system detection chain includes HLST (K3a) ────
+
+def test_hlst_wired_in_five_min_system():
+    """HLST must be in the five_min_system detection chain. Grep-based wiring
+    verification — if the import is removed, this fails."""
+    import inspect
+    from backend.v9.systems.five_min import five_min_system as fms
+    src = inspect.getsource(fms)
+    assert "detect_higher_low_second_test_long" in src, (
+        "HLST LONG not wired in five_min_system — K3a regression"
+    )
+    assert "detect_higher_low_second_test_short" in src, (
+        "HLST SHORT not wired in five_min_system — K3a regression"
+    )

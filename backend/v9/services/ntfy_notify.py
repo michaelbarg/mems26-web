@@ -1,6 +1,7 @@
-"""Push notifications via ntfy.sh for trading events (P1.6).
+"""Push notifications via ntfy.sh for trading events (P1.6 + K7a).
 
-Sends to the NTFY_TOPIC from .env. Events: fire, fill, close, alert.
+Sends to the NTFY_TOPIC from .env. Events: fire, fill, close, alert,
+pause, eod, emergency. Rate-limited to avoid flooding the watch.
 Fire-and-forget on a daemon thread — never blocks the trading loop.
 """
 
@@ -9,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 import traceback
 from typing import Optional
 import urllib.request
@@ -17,10 +19,31 @@ logger = logging.getLogger(__name__)
 
 NTFY_URL = "https://ntfy.sh"
 
+# K7a rate limiter: max RATE_LIMIT_MAX sends per RATE_LIMIT_WINDOW_S seconds
+RATE_LIMIT_WINDOW_S = 60.0
+RATE_LIMIT_MAX = 10
+_send_timestamps: list = []
+_rate_lock = threading.Lock()
+
 
 def _topic() -> Optional[str]:
     t = os.getenv("NTFY_TOPIC", "").strip()
     return t if t else None
+
+
+def _rate_limited() -> bool:
+    """True if we've exceeded the rate limit. Thread-safe."""
+    now = time.monotonic()
+    with _rate_lock:
+        # Prune old timestamps
+        _send_timestamps[:] = [
+            ts for ts in _send_timestamps
+            if now - ts < RATE_LIMIT_WINDOW_S
+        ]
+        if len(_send_timestamps) >= RATE_LIMIT_MAX:
+            return True
+        _send_timestamps.append(now)
+        return False
 
 
 def notify(title: str, message: str, *, priority: str = "default",
@@ -28,6 +51,11 @@ def notify(title: str, message: str, *, priority: str = "default",
     """Send a push notification. Never raises — fire-and-forget."""
     topic = _topic()
     if not topic:
+        return
+
+    if _rate_limited():
+        logger.warning("ntfy rate-limited: dropping '%s' (%d sends in last %.0fs)",
+                        title, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_S)
         return
 
     def _send():
@@ -44,7 +72,8 @@ def notify(title: str, message: str, *, priority: str = "default",
             with urllib.request.urlopen(req, timeout=5) as r:
                 r.read()
         except Exception:
-            logger.debug("ntfy send failed: %s", traceback.format_exc())
+            # K7a: failures must be visible, not swallowed (No Silent Failures rule)
+            logger.warning("ntfy send failed: %s", traceback.format_exc())
 
     t = threading.Thread(target=_send, daemon=True)
     t.start()
@@ -88,3 +117,25 @@ def on_close(trade_id: int, outcome: str, pnl: float, reason: str) -> None:
 def on_alert(title: str, message: str) -> None:
     """Notify on a system alert."""
     notify(f"⚠️ {title}", message, priority="high", tags="warning")
+
+
+# ── K7a: new event types (PAUSE/EOD/emergency) ──────────────────────────────
+
+def on_pause(reason: str) -> None:
+    """Notify when trading is paused (risk halt, manual pause, etc.)."""
+    notify("⏸ PAUSE", reason, priority="high", tags="pause")
+
+
+def on_resume(reason: str) -> None:
+    """Notify when trading resumes after a pause."""
+    notify("▶️ RESUME", reason, priority="default", tags="resume")
+
+
+def on_eod(summary: str) -> None:
+    """End-of-day summary notification."""
+    notify("📊 EOD", summary, priority="default", tags="eod")
+
+
+def on_emergency(title: str, message: str) -> None:
+    """Critical system emergency — max priority."""
+    notify(f"🚨 {title}", message, priority="urgent", tags="emergency,skull")
