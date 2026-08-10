@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import threading
 import time
 import traceback
@@ -59,18 +60,21 @@ def notify(title: str, message: str, *, priority: str = "default",
         return
 
     def _send():
+        # 10.08 root-fix: urllib on Framework-Python 3.9 fails SSL verification
+        # against ntfy.sh (certs not installed) — every live notification died
+        # with CERTIFICATE_VERIFY_FAILED while manual /usr/bin/curl worked.
+        # Use system curl (macOS trust store) as the primary transport.
         try:
             url = f"{NTFY_URL}/{topic}"
-            data = message.encode("utf-8")
-            headers = {
-                "Title": title,
-                "Priority": priority,
-            }
+            cmd = ["/usr/bin/curl", "-s", "-m", "6",
+                   "-H", f"Title: {title}", "-H", f"Priority: {priority}"]
             if tags:
-                headers["Tags"] = tags
-            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=5) as r:
-                r.read()
+                cmd += ["-H", f"Tags: {tags}"]
+            cmd += ["-d", message, url]
+            r = subprocess.run(cmd, capture_output=True, timeout=8)
+            if r.returncode != 0:
+                logger.warning("ntfy curl send failed rc=%s: %s",
+                               r.returncode, r.stderr.decode()[:200])
         except Exception:
             # K7a: failures must be visible, not swallowed (No Silent Failures rule)
             logger.warning("ntfy send failed: %s", traceback.format_exc())
