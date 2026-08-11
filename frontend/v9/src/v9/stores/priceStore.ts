@@ -34,6 +34,16 @@ export const usePriceStore = create<PriceState>()((set) => ({
   onTick: (tick) =>
     set((s) => {
       const newPrice = tick.price;
+      // 11.08 fix: identical ticks still bumped tickCount + lastUpdateMs on every
+      // message, so every subscriber re-rendered on every tick — React hit
+      // "Maximum update depth exceeded". A tick that changes nothing is now a
+      // no-op (same object back = zustand skips the notify).
+      const same =
+        newPrice === s.price &&
+        (tick.bid ?? s.bid) === s.bid &&
+        (tick.ask ?? s.ask) === s.ask &&
+        (tick.last_size ?? s.lastSize) === s.lastSize;
+      if (same) return s;
       let dir: PriceDirection = 'unchanged';
       if (s.price != null && newPrice !== s.price) {
         dir = newPrice > s.price ? 'up' : 'down';
