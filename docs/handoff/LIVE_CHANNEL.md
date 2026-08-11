@@ -1,3 +1,9 @@
+### 2026-08-11 — cc-macbook — ✅ B2 סגור: כרטיס-עסקה פר-חוזה בדף-Render/נייד
+
+`/api/v9/mobile/data` מחזיר `legs[]` פר-חוזה (C1/C2/C3): target, status (OPEN/HIT_TARGET/HIT_STOP),
+P&L, R, מרחק-ליעד, %, BE badge. דף-HTML מציג שורה פר-חוזה עם פס-התקדמות, סטטוס צבעוני, P&L
+סיכומי + R. + שמות-שערים חדשים בעברית (cold_start_guard, structural_targets_wrong_side, rr_hard_floor).
+
 ### 2026-08-11 — cc-macbook — ✅ A2 בנוי: `COLD_START_GUARD_V1` (דגל-OFF, ממתין-cowork)
 
 אין ירי עד `bars_processed_today >= COLD_START_MIN_BARS` (default 3). Fail-closed: חוסר-נתונים

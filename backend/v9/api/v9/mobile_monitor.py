@@ -98,7 +98,7 @@ async def mobile_data(request: Request):
     out["_src"] = "local"
     if rem is not None:
         out["_remote_err"] = rem["_remote_err"]
-    # עסקאות פעילות + P&L צף + Sierra order verification
+    # עסקאות פעילות + P&L צף + Sierra order verification + B2 per-contract
     try:
         from backend.v9.db.read import read_all
         rows = read_all("""
@@ -106,13 +106,17 @@ async def mobile_data(request: Request):
                    COALESCE((quality->>'t0')::float, NULL) AS t0,
                    COALESCE((quality->>'contracts')::int, 0) AS contracts,
                    quality->>'pattern' AS pattern, state, mode,
+                   pattern_id_at_entry,
+                   firing_system,
                    quality->>'c1_target_id' AS c1_tgt_id,
                    quality->>'c2_target_id' AS c2_tgt_id,
                    quality->>'c3_target_id' AS c3_tgt_id,
                    quality->>'c1_stop_id' AS c1_stop_id,
                    to_char(entry_ts AT TIME ZONE 'Asia/Jerusalem','HH24:MI') AS t_in,
                    t1_hit_ts IS NOT NULL AS t1_hit,
-                   t2_hit_ts IS NOT NULL AS t2_hit
+                   t2_hit_ts IS NOT NULL AS t2_hit,
+                   t3_hit_ts IS NOT NULL AS t3_hit,
+                   stop_hit_ts IS NOT NULL AS stop_hit
             FROM v9_trades WHERE mode != 'shadow'
               AND state NOT IN ('CLOSED','CANCELLED') ORDER BY id DESC LIMIT 4""", {})
         mid = out["mid"]
@@ -125,10 +129,54 @@ async def mobile_data(request: Request):
                 r["upnl_usd"] = round(sign * (mid - float(r["entry_price"])) * 5 * (r.get("contracts") or 1), 1)
 
             # P1.5: per-level Sierra verification (✅/🔴)
-            # Compare DB targets vs Sierra working orders
             r["sierra_verify"] = _verify_sierra_levels(r, sierra)
 
-            # P1.5: per-target progress bars
+            # B2: per-contract breakdown (C1/C2/C3 — same logic as trades.py /active)
+            _entry = float(r.get("entry_price") or 0)
+            _stop = float(r.get("stop") or 0)
+            _is_long = (r.get("direction") or "").upper() == "LONG"
+            _mul = 1.0 if _is_long else -1.0
+            _risk = abs(_entry - _stop) if _entry and _stop else 1.0
+            _risk_usd = _risk * 5.0
+            _contract_specs = [
+                ("C1", r.get("t1"), r.get("t1_hit")),
+                ("C2", r.get("t2"), r.get("t2_hit")),
+                ("C3", r.get("t3"), r.get("t3_hit")),
+            ]
+            _n = max(r.get("contracts") or 0, 1)
+            _contracts = []
+            for _cid, _tgt, _hit in _contract_specs[:_n]:
+                _tv = float(_tgt) if _tgt else 0
+                if _hit:
+                    _status = "HIT_TARGET"
+                    _cpnl = round((_tv - _entry) * _mul * 5.0, 1)
+                elif r.get("stop_hit"):
+                    _status = "HIT_STOP"
+                    _cpnl = round((_stop - _entry) * _mul * 5.0, 1)
+                else:
+                    _status = "OPEN"
+                    _cpnl = round((_mul * (mid - _entry) * 5.0), 1) if mid else 0
+                _cr = round(_cpnl / _risk_usd, 2) if _risk_usd > 0 else 0
+                _cdist = None
+                _cpct = None
+                if _status == "OPEN" and _tv > 0 and mid:
+                    _cdist = round((_tv - mid) if _is_long else (mid - _tv), 2)
+                    _total = abs(_tv - _entry)
+                    if _total > 0:
+                        _cpct = min(round(abs(mid - _entry) / _total * 100, 0), 100)
+                _contracts.append({
+                    "id": _cid, "target": _tv, "status": _status,
+                    "pnl": _cpnl, "r": _cr,
+                    "dist_pts": _cdist, "pct": _cpct,
+                    "be": _cid == "C2" and r.get("t1_hit") and not r.get("t2_hit"),
+                })
+            r["legs"] = _contracts
+            r["total_pnl"] = round(sum(c["pnl"] for c in _contracts), 1)
+            r["total_r"] = round(sum(c["r"] for c in _contracts), 2)
+            r["hits"] = sum(1 for c in _contracts if c["status"] == "HIT_TARGET")
+            r["summary"] = f"{r['hits']}/{len(_contracts)} hit"
+
+            # P1.5: per-target progress bars (kept for backwards compat)
             if mid and r.get("entry_price"):
                 entry = float(r["entry_price"])
                 r["progress"] = {}
@@ -465,7 +513,7 @@ trend_direction_gate:'כיוון-מגמה',reactive_location:'מיקום ריא�
 daytype_position_gate:'משפחה×סוג-יום',cont_trend_filter:'המשך-עם-מגמה',direction_context:'הקשר-כיוון',
 lsma_flat:'LSMA שטוח',news_blackout:'חלון-חדשות',day_direction_doctrine:'דוקטרינת-כיוון',
 entry_not_confirmed:'אין אישור-כניסה',t1_wrong_side:'T1 בצד שגוי',rr_entry_gate:'שער R:R',
-daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה'};
+daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה',cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים בצד-שגוי',rr_hard_floor:'רצפת R:R'};
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
@@ -538,25 +586,39 @@ async function load(){
     if(v.match===false) return '<span class="red">🔴 '+v.db+'≠'+v.sierra+'</span>';
     return '<span class="dim">❓</span>';
    }
-   // P1.5: progress bars
-   const prog = t.progress||{};
-   function pBar(tgt){
-    const p=prog[tgt]; if(!p) return '';
-    const pct=Math.min(p.pct,100);
-    const col=pct>=90?'#3fb950':pct>=50?'#d29922':'#8b949e';
-    return `<div style="background:#21262d;border-radius:4px;height:6px;margin:2px 0"><div style="background:${col};width:${pct}%;height:100%;border-radius:4px"></div></div>`;
+   // B2: per-contract rows (C1/C2/C3)
+   const legs = t.legs||[];
+   const SC={'OPEN':'#d29922','HIT_TARGET':'#3fb950','HIT_STOP':'#f85149'};
+   const SL={'OPEN':'פתוח','HIT_TARGET':'✓ מילוי','HIT_STOP':'✗ סטופ'};
+   function legRow(c){
+    const col=SC[c.status]||'#8b949e';
+    const pnlCol=c.pnl>=0?'green':'red';
+    let bar='';
+    if(c.status==='OPEN'&&c.pct!=null){
+     const bc=c.pct>=90?'#3fb950':c.pct>=50?'#d29922':'#8b949e';
+     bar=`<div style="background:#21262d;border-radius:3px;height:5px;margin:2px 0"><div style="background:${bc};width:${c.pct}%;height:100%;border-radius:3px"></div></div>`;
+    }
+    const dist=c.dist_pts!=null?(c.dist_pts>=0?c.dist_pts.toFixed(1)+'pt ליעד':Math.abs(c.dist_pts).toFixed(1)+'pt מעבר'):'';
+    return `<div style="border-bottom:1px solid #1c2330;padding:3px 0">`+
+     `<div class="row"><span style="font-weight:600;width:24px;color:#8b949e">${c.id}</span>`+
+     `<span style="font-family:monospace;font-size:11px;width:55px">${c.target?c.target.toFixed(2):'—'}</span>`+
+     `<span style="font-size:10px;color:${col};padding:0 4px">${SL[c.status]||c.status}${c.be?' ⇄':''}</span>`+
+     `<span style="font-family:monospace;font-size:11px;width:40px;text-align:left" class="${pnlCol}">${c.pnl>=0?'+':''}${c.pnl}$</span>`+
+     `<span class="dim" style="font-family:monospace;font-size:10px;width:30px;text-align:left">${c.r.toFixed(1)}R</span></div>`+
+     (dist?`<div class="dim" style="font-size:10px;padding-right:24px">${dist} · ${c.pct??0}%</div>`:'')+
+     bar+`</div>`;
    }
+   // Total P&L from per-contract
+   const tPnl=t.total_pnl??t.upnl_usd??0;
+   const tR=t.total_r??0;
    return `<div style="border:1px solid #2a3140;border-radius:10px;padding:8px;margin-bottom:8px">`+
-   `<div class="row"><span style="font-weight:700">#${t.id} ${t.direction} ×${t.contracts} ${t.pattern||''}</span>`+
-   `<span class="${(t.upnl_usd||0)>=0?'green':'red'}" style="font-size:18px;font-weight:800">${t.upnl_usd!=null?(t.upnl_usd>=0?'+':'')+t.upnl_usd+'$':''}</span></div>`+
-   `<div class="dim">כניסה ${t.entry_price} · ${t.t_in}</div>`+
+   `<div class="row"><span style="font-weight:700">#${t.id} ${t.direction} ×${legs.length||t.contracts} ${t.pattern_id_at_entry||t.pattern||''}</span>`+
+   `<span class="${tPnl>=0?'green':'red'}" style="font-size:18px;font-weight:800">${tPnl>=0?'+':''}${tPnl.toFixed(0)}$ <span class="dim" style="font-size:11px">${tR.toFixed(1)}R</span></span></div>`+
+   `<div class="dim">כניסה ${t.entry_price} · סטופ ${t.stop??'—'} ${vIcon('stop')} · ${t.t_in} · S${t.firing_system||'?'}</div>`+
+   (legs.length?`<div style="margin-top:6px">${legs.map(legRow).join('')}</div>`:
    `<div style="font-size:11px;margin-top:4px">`+
-   `<div class="row"><span>סטופ ${t.stop??'—'} ${vIcon('stop')}</span><span>T1 ${t.t1??'—'} ${vIcon('t1')}</span></div>`+
-   `<div class="row"><span>T2 ${t.t2??'—'} ${vIcon('t2')}</span><span>T3 ${t.t3??'—'} ${vIcon('t3')}</span></div>`+
-   `</div>`+
-   (prog.t1?`<div class="dim" style="font-size:10px">T1 ${prog.t1.pct}%</div>${pBar('t1')}`:'')+
-   (prog.t2?`<div class="dim" style="font-size:10px">T2 ${prog.t2.pct}%</div>${pBar('t2')}`:'')+
-   (prog.t3?`<div class="dim" style="font-size:10px">T3 ${prog.t3.pct}%</div>${pBar('t3')}`:'')+
+   `<div class="row"><span>T1 ${t.t1??'—'} ${vIcon('t1')}</span><span>T2 ${t.t2??'—'} ${vIcon('t2')}</span><span>T3 ${t.t3??'—'} ${vIcon('t3')}</span></div></div>`)+
+   `<div class="row dim" style="margin-top:4px;font-size:10px"><span>${t.summary||''}</span></div>`+
    `</div>`;
   }).join('')
    : '<span class="dim">אין עסקה פעילה</span>';
