@@ -81,6 +81,36 @@ def notify(title: str, message: str, *, priority: str = "default",
 
     t = threading.Thread(target=_send, daemon=True)
     t.start()
+    # dual-transport: Pushover (primary on iPhone/Watch) + ntfy (backup)
+    threading.Thread(target=_pushover,
+                     args=(title, message, priority, tags),
+                     daemon=True).start()
+
+
+def _pushover(title: str, message: str, priority: str, tags: str) -> None:
+    """Pushover transport (Michael 11.08) — APNs-backed, has a native Apple
+    Watch app; ntfy proved unreliable on iOS background delivery. Sends only
+    when both PUSHOVER_USER_KEY and PUSHOVER_API_TOKEN are set. Emergency
+    priority=urgent maps to Pushover priority 1 (bypasses quiet hours)."""
+    user = os.getenv("PUSHOVER_USER_KEY", "").strip()
+    token = os.getenv("PUSHOVER_API_TOKEN", "").strip()
+    if not (user and token):
+        return
+    prio = {"urgent": "1", "high": "1", "default": "0", "low": "-1"}.get(priority, "0")
+    try:
+        cmd = ["/usr/bin/curl", "-s", "-m", "6",
+               "--form-string", f"token={token}",
+               "--form-string", f"user={user}",
+               "--form-string", f"title={title}",
+               "--form-string", f"message={message}",
+               "--form-string", f"priority={prio}",
+               "https://api.pushover.net/1/messages.json"]
+        r = subprocess.run(cmd, capture_output=True, timeout=8)
+        if r.returncode != 0 or b'"status":1' not in r.stdout:
+            logger.warning("pushover send failed rc=%s: %s",
+                           r.returncode, (r.stdout or r.stderr).decode()[:200])
+    except Exception:
+        logger.warning("pushover send failed: %s", traceback.format_exc())
 
 
 def on_fire(trade_id: int, direction: str, pattern: str, mode: str,
