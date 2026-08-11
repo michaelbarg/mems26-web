@@ -5,6 +5,15 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ C3 בנוי: כיול chase-guard (env-tunable, backward compatible)
+
+שני שיפורים ב-`extreme_chase_guard`:
+(a) **סף-מבני**: `max(EXTREME_MIN_DIST_PTS, CHASE_IB_FRAC × ib_width)` — סף 6.0pt הישן
+    חסם עסקאות ביום IB-צר (20.25pt), עכשיו הסף עולה עם רוחב-ה-IB. Default: CHASE_IB_FRAC=0.30.
+(b) **היקף REV**: `EXTREME_CHASE_SCOPE=CONT+REV` מרחיב את הגנה לתבניות-REV שרודפות קצה
+    (#655 DBDT LONG בשיא-סשן היה פטור כמשפחת REV). Default: CONT (backward compatible).
+7/7 טסטים. שני ה-env חדשים ולא דורשים דגל נפרד — הכיול מיידי.
+
 ### 2026-08-11 — cc-macbook — ✅ C2 בנוי: `RE_PULLBACK_ENTRY_V1` (דגל-OFF)
 
 תבנית חדשה ב-five_min: אחרי שה-IB נפרץ (≥15% ib_width), המחיר מתרחק ואז חוזר לבדוק

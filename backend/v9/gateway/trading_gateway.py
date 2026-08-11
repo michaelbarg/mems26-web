@@ -1506,15 +1506,17 @@ class TradingGateway:
                 logger.warning("[Gateway] lsma-flat gate errored (fail-open): %s", _lf_err)
 
         # --- EXTREME_CHASE_GUARD_V1 (Michael ruling 2026-07-23, Phase 2):
-        # Blocks CONT-family entries that chase an extreme — SHORT too close to
-        # session low, LONG too close to session high. Two checks:
-        #   1) Distance-from-extreme: entry must be ≥ EXTREME_MIN_DIST_PTS from
-        #      session_low (SHORT) or session_high (LONG).
+        # Blocks entries that chase an extreme — SHORT too close to session low,
+        # LONG too close to session high. Two checks:
+        #   1) Distance-from-extreme: entry must be ≥ min_dist from extreme.
         #   2) Pullback: at least one of the last 3 bars must show a bounce ≥
-        #      PULLBACK_MIN_PTS from the extreme (SHORT: bar.high ≥ session_low +
-        #      pullback_min; LONG: bar.low ≤ session_high − pullback_min).
-        # Scope: INITIATIVE / ZLR / CONT families — REACTIVE already covered by
-        # RESPONSIVE_WITH_DAY_TREND_V1.  Fail-open on missing data.
+        #      pullback_min from the extreme.
+        # C3 calibration (2026-08-11): structure-relative thresholds + REV scope.
+        #   - min_dist = max(EXTREME_MIN_DIST_PTS, CHASE_IB_FRAC × ib_width)
+        #     instead of flat 6.0pt (on 2026-08-10: 6.0 blocked 19pt while IB was 20.25)
+        #   - EXTREME_CHASE_SCOPE: "CONT" (original) or "CONT+REV" (C3: extends
+        #     to REV patterns firing WITH the prevailing leg — #655 DBDT was exempt)
+        # Fail-open on missing data.
         # Flag: EXTREME_CHASE_GUARD_V1 (default OFF).
         if os.getenv("EXTREME_CHASE_GUARD_V1", "0").lower() in ("1", "true", "yes"):
             try:
@@ -1522,11 +1524,29 @@ class TradingGateway:
                 _ecg_g1 = extract_g1_entry_context(cross_context)
                 _ecg_pat = resolve_pattern_id(setup, _ecg_g1) or ""
                 _ecg_fam = _ecg_fam_fn(_ecg_pat)
-                # Only apply to CONT family (INITIATIVE, ZLR, CONT patterns)
-                if _ecg_fam == "CONT":
+                # C3: scope — CONT only (original) or CONT+REV (extends to reversals
+                # chasing the tip of a move, like #655 DBDT LONG at session high)
+                _ecg_scope = (os.getenv("EXTREME_CHASE_SCOPE", "CONT") or "CONT").strip().upper()
+                _ecg_in_scope = (_ecg_fam == "CONT")
+                if _ecg_scope == "CONT+REV" and _ecg_fam == "REV":
+                    _ecg_in_scope = True
+                if _ecg_in_scope:
                     _ecg_entry = setup.get("entry_price")
-                    _ecg_min_dist = float(os.getenv("EXTREME_MIN_DIST_PTS", "6.0") or "6.0")
+                    _ecg_min_dist_base = float(os.getenv("EXTREME_MIN_DIST_PTS", "6.0") or "6.0")
                     _ecg_pb_min = float(os.getenv("PULLBACK_MIN_PTS", "3.0") or "3.0")
+                    # C3: structure-relative threshold — max(base, frac × ib_width)
+                    _ecg_ib_frac = float(os.getenv("CHASE_IB_FRAC", "0.30") or "0.30")
+                    _ecg_tpo = (cross_context.get("tpo_system")
+                                if isinstance(cross_context, dict) else None) or {}
+                    _ecg_ibh = _ecg_tpo.get("ib_high")
+                    _ecg_ibl = _ecg_tpo.get("ib_low")
+                    _ecg_ib_w = (float(_ecg_ibh) - float(_ecg_ibl)
+                                 if _ecg_ibh is not None and _ecg_ibl is not None else 0)
+                    _ecg_min_dist = max(_ecg_min_dist_base, _ecg_ib_frac * _ecg_ib_w)
+                    if _ecg_min_dist != _ecg_min_dist_base:
+                        logger.debug(
+                            "[Gateway] chase-guard C3: min_dist %.1f = max(%.1f, %.2f×%.1f)",
+                            _ecg_min_dist, _ecg_min_dist_base, _ecg_ib_frac, _ecg_ib_w)
                     # Get session bars for today's RTH
                     from backend.v9.db.read import read_all as _ecg_read
                     _ecg_srows = _ecg_read(

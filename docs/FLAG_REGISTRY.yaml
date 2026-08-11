@@ -1656,6 +1656,22 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  CHASE_IB_FRAC:
+    category: param
+    group: "C3 chase calibration"
+    what: "IB-relative chase threshold fraction. min_dist = max(EXTREME_MIN_DIST_PTS, CHASE_IB_FRAC × ib_width). Default 0.30"
+    why: "2026-08-10: flat 6.0pt blocked 19pt away on a narrow IB (20.25pt). Structure-relative threshold scales with IB width"
+    status: param
+    ref: "MASTER_BACKLOG C3"
+
+  EXTREME_CHASE_SCOPE:
+    category: param
+    group: "C3 chase calibration"
+    what: "Scope of chase guard: CONT (original) or CONT+REV (extends to REV patterns chasing the tip). Default CONT"
+    why: "Case #655: DBDT (REV family) LONG at session high was exempt — chase guard should have blocked it"
+    status: param
+    ref: "MASTER_BACKLOG C3"
+
   RE_PULLBACK_ENTRY_V1:
     category: s2
     group: "C2 pullback retest"
