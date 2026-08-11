@@ -1517,7 +1517,15 @@ class TradingGateway:
                     _lf_applies = (_lf_fam == "CONT")
                 if _lf_slope is None:
                     logger.warning("[Gateway] lsma-flat gate: slope unavailable -> fail-open PASS")
-                elif _lf_applies and abs(_lf_slope) < _lf_min and not _opening_gate_exempt(setup, "lsma_flat"):
+                # LEG_RIDE exemption (Michael 11.08, live): inside a live leg the
+                # LSMA slope dips below the flat-threshold on every pause between
+                # steps — exactly where the with-trend entry belongs. The leg IS
+                # the direction evidence the gate is looking for, so with-leg
+                # setups skip it. Against-leg keeps the gate.
+                elif (_lf_applies and abs(_lf_slope) < _lf_min
+                      and not _opening_gate_exempt(setup, "lsma_flat")
+                      and not (os.getenv("LEG_EXEMPT_LSMA_FLAT_V1", "0").lower()
+                               in ("1", "true", "yes") and _live_leg(direction))):
                     result["blocked_by"] = "lsma_flat"
                     result["reason"] = (
                         f"|LSMA slope {_lf_slope:.4f}| < {_lf_min:.4f} pts/bar "
