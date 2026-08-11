@@ -1655,3 +1655,18 @@ flags:
     why: "P2-9 fix: without gap, scratch and stop can fire simultaneously on the same bar"
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
+
+  STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1:
+    category: targets
+    group: "A1 wrong-side veto"
+    what: "Hard block when ALL structural targets land on the wrong side of entry (no trade location) OR R:R < 0.3 (un-rescuable floor)"
+    why: "Case #655 (2026-08-10): c1/c2/c3 all below LONG entry, R-fallback rescued trade → −$63.75. The system computed the correct Dalton read and then executed the opposite. This veto makes the structural 'no objective' verdict binding"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG A1, docs/research/DALTON_DAY_TYPE_2026-08-10.md §6.1"
+
+  RR_HARD_FLOOR:
+    category: param
+    group: "A1 wrong-side veto"
+    what: "Minimum R:R ratio that cannot be rescued by any spec multiplier or rotation relief (default 0.3). Gated by STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1"
+    why: "Case #655: R:R 0.19 was rescued by RR_BREAKOUT_MM spec multiplier — this floor sits in the gateway AFTER the rescue and is un-bypassable"
+    status: param

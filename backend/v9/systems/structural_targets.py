@@ -517,6 +517,29 @@ def _build_result(
             else:
                 c1 = entry - c1_floor
 
+    # Wrong-side detection: count how many targets are on the wrong side of entry
+    # BEFORE applying R-fallback rescue. When ALL non-None targets are wrong-side,
+    # it means the market structure offers NO objective in the trade direction —
+    # this is the textbook "no trade location" (case #655, 2026-08-10).
+    def _is_wrong_side(tgt):
+        if tgt is None:
+            return False  # None is not wrong-side, it's missing
+        if direction == "LONG" and tgt <= entry:
+            return True
+        if direction == "SHORT" and tgt >= entry:
+            return True
+        return False
+
+    _ws_targets = [t for t in (c1, c2, c3) if t is not None]
+    _ws_count = sum(1 for t in _ws_targets if _is_wrong_side(t))
+    _all_wrong_side = len(_ws_targets) > 0 and _ws_count == len(_ws_targets)
+
+    if _all_wrong_side:
+        logger.warning(
+            "[structural_targets] ALL %d targets on wrong side of %s entry=%.2f "
+            "(c1=%s c2=%s c3=%s) — no_trade=True",
+            _ws_count, direction, entry, c1, c2, c3)
+
     # Wrong-side protection: targets must be on the correct side of entry.
     # Replace wrong-side targets with R-based fallbacks rather than None.
     def _fix_side(tgt, tgt_name, r_mult):
@@ -572,5 +595,6 @@ def _build_result(
         "trail_after_t2": trail_after_c2,
         "structural": True,
         "day_type": day_type,
-        "no_trade": False,
+        "no_trade": _all_wrong_side,
+        "all_wrong_side": _all_wrong_side,
     }

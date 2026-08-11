@@ -2028,6 +2028,26 @@ class TradingGateway:
                     )
                     _structural_t2t3_applied = False
                     if _st is not None:
+                        # A1 (STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1, default OFF):
+                        # when ALL structural objectives land on the wrong side of
+                        # entry, the market structure offers NO target in the trade
+                        # direction — hard block, not clamp-and-continue.
+                        # Case #655 (2026-08-10): c1/c2/c3 all below LONG entry,
+                        # R-fallback rescued the trade, −$63.75.
+                        if (_st.get("all_wrong_side")
+                                and os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
+                                in ("1", "true", "yes")):
+                            result["blocked_by"] = "structural_targets_wrong_side"
+                            result["reason"] = (
+                                f"ALL structural targets on wrong side of {direction} "
+                                f"entry={setup.get('entry_price')} "
+                                f"(c1={_st.get('t1_price')}, c2={_st.get('t2_price')}, "
+                                f"c3={_st.get('t3_price')}, day_type={_st.get('day_type')})"
+                            )
+                            logger.warning(
+                                "[Gateway] BLOCKED structural_targets_wrong_side: %s",
+                                result["reason"])
+                            return result
                         _old_t1 = setup.get("t1")
                         _old_t2 = setup.get("t2")
                         # P0-1 (Michael ruling 07-21 T1=entry-structure-end; cursor
@@ -2342,6 +2362,34 @@ class TradingGateway:
                             _rr_dir, float(_rr_t1), _rr_e,
                         )
                         return result
+                    # A1: hard R:R floor (STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1,
+                    # default OFF). R:R < 0.3 is un-rescuable — no spec multiplier,
+                    # no rotation relief, no confluence override can pass it. This
+                    # runs in the gateway AFTER pre_fire_validator's RR_BREAKOUT_MM
+                    # rescue, so it is the final word. Case #655: R:R 0.19 was
+                    # "rescued" by spec multiplier and traded to a loss.
+                    if (os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
+                            in ("1", "true", "yes")):
+                        try:
+                            _rr_hard_floor = float(
+                                os.getenv("RR_HARD_FLOOR", "0.3") or "0.3")
+                        except (TypeError, ValueError):
+                            _rr_hard_floor = 0.3
+                        if _stop_dist > 0:
+                            _rr_actual = _t1_dist / _stop_dist
+                            if _rr_actual < _rr_hard_floor:
+                                result["blocked_by"] = "rr_hard_floor"
+                                result["reason"] = (
+                                    f"R:R {_rr_actual:.2f} < hard floor "
+                                    f"{_rr_hard_floor:.2f} (T1_dist={_t1_dist:.2f} "
+                                    f"stop_dist={_stop_dist:.2f}) — un-rescuable"
+                                )
+                                logger.warning(
+                                    "[Gateway] BLOCKED rr_hard_floor: R:R %.2f < %.2f "
+                                    "(un-rescuable, T1=%.2f entry=%.2f stop=%.2f)",
+                                    _rr_actual, _rr_hard_floor,
+                                    float(_rr_t1), _rr_e, float(_rr_stop))
+                                return result
                     # CONFLUENCE_RI_ZLR per-pattern R:R (spec §2/§5.4): the generic
                     # T1-only test (4pt vs a ≤7pt stop → 0.57..0.86 < 1.0) would
                     # dead-letter the pattern exactly on the Trend day-types where

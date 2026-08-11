@@ -1,3 +1,21 @@
+### 2026-08-11 — cc-macbook — ✅ A1 בנוי: `STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1` (דגל-OFF, ממתין-cowork)
+
+**שני זרועות:**
+(a) **all-wrong-side veto:** `structural_targets._build_result` מזהה כשכל c1/c2/c3 בצד-הלא-נכון
+  של הכניסה (לפני R-fallback) → `no_trade=True` → השער בגייטוויי חוסם `blocked_by=structural_targets_wrong_side`.
+(b) **R:R hard floor:** R:R < 0.3 (env `RR_HARD_FLOOR`, default 0.3) — לא ניתן-להצלה ע"י
+  `RR_BREAKOUT_MM` / rotation-relief / confluence override. יושב בגייטוויי אחרי ה-pre_fire_validator.
+
+**קבצים:** `structural_targets.py` (detection) · `trading_gateway.py:~2045` (wrong-side veto) ·
+  `trading_gateway.py:~2380` (hard floor) · `docs/FLAG_REGISTRY.yaml` (entries) ·
+  `test_structural_targets_wrong_side_veto.py` (19/19 ✅) · `scripts/replay_a1_wrong_side_veto.py`.
+
+**Replay 15 ימים (106 עסקאות):** 0 חסומות wrong-side (העסקאות בDB כבר עברו R-fallback) ·
+  12 חסומות R:R<0.3 (net PnL $+250, כלומר הסף חוסך כסף) · 94 עוברות. **אפס רגרסיה על
+  24 טסטי-target/gateway קיימים.**
+
+**דגל OFF כברירת-מחדל.** אל: cowork — להדליק אחרי replay + פסיקת-מייקל.
+
 ### 2026-08-11 — cowork-dev — ✅ B1 סגור: Pushover ערוץ-ראשי לשעון (אומת ע"י מייקל)
 
 ‏ntfy לא נמסר באייפון (הודעות הגיעו לשרת, לא למכשיר) ⇒ **Pushover** חובר כערוץ-ראשי
