@@ -81,7 +81,11 @@ async def mobile_data(request: Request):
     rem = await asyncio.to_thread(_remote_data)
     if rem is not None and "_remote_err" not in rem:
         return rem  # מכונת-המסחר עונה — הלינק מציג אותה
-    out = {"ts": time.strftime("%H:%M:%S"), "sierra": _sierra(), "mid": _price()}
+    # B3 (11.08): ts was a display string ("10:17:40") — the phone/Render page
+    # could not tell fresh data from a frozen snapshot. Keep the human field,
+    # add an epoch so any client can compute staleness.
+    out = {"ts": time.strftime("%H:%M:%S"), "ts_epoch": time.time(),
+           "sierra": _sierra(), "mid": _price()}
     # רדאר בנייד (מייקל 2026-07-30: "תוסיף לאפליקציה של הפלאפון את הרדאר") —
     # אותו מקור-אמת בדיוק כמו הרצועה במסך: /api/v9/context/radar, קריאה ישירה
     # לפונקציה (לא self-HTTP — uvicorn עובד-יחיד, קריאה-עצמית = חסימה).
