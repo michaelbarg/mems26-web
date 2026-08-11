@@ -5,6 +5,12 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ C4 בנוי: `NEUTRAL_PLAYBOOK_V1` (דגל-OFF)
+
+ב-`structural_targets.py`: Neutral_Center + Neutral_Extreme עודכנו:
+  - 2 חוזים (היה 3) · time-stop 60 דק' (12 ברים) · C1=POC · C2=קצה-נגדי · ללא-ראנר.
+  כשדגל OFF → התנהגות ישנה (backward compatible). 12/12 טסטים.
+
 ### 2026-08-11 — cc-macbook — ✅ C3 בנוי: כיול chase-guard (env-tunable, backward compatible)
 
 שני שיפורים ב-`extreme_chase_guard`:

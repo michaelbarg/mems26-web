@@ -1656,6 +1656,14 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  NEUTRAL_PLAYBOOK_V1:
+    category: targets
+    group: "C4 neutral playbook"
+    what: "Neutral day trade management: 2 contracts, 60min time-stop, C1=POC, C2=opposite edge, no runner/trail"
+    why: "Michael spec: edges only, POC target, opposite edge (80% rule), 1-2 contracts, time-stop 12 bars. Changes sizing+targets on neutral days"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG C4"
+
   CHASE_IB_FRAC:
     category: param
     group: "C3 chase calibration"

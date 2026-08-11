@@ -263,26 +263,34 @@ def _resolve_neutral_extreme(
     ibh: float, ibl: float, ib_center: float,
     poc: float, vah: Optional[float], val: Optional[float],
 ) -> Dict:
-    """Neutral Extreme: fade VA edges to POC, trail toward winner. 3 contracts.
+    """Neutral Extreme: fade VA edges to POC, runner toward opposite edge.
 
-    SHORT from VAH area: C1=POC, C2=opposite edge (VAL/IBL), C3=winning extreme (trail)
-    LONG from VAL area:  C1=POC, C2=opposite edge (VAH/IBH), C3=winning extreme (trail)
+    C4 (2026-08-11): edges only · C1=POC · C2=opposite edge (80% rule) ·
+    1-2 contracts · time-stop 60min (12 bars) · stop beyond EXCESS.
+
+    SHORT from VAH area: C1=POC, C2=VAL/IBL (opposite edge)
+    LONG from VAL area:  C1=POC, C2=VAH/IBH (opposite edge)
     """
+    import os as _os_c4
+    _c4_on = _os_c4.getenv("NEUTRAL_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes")
+    _c4_contracts = 2 if _c4_on else 3
+    _c4_time_stop = 60 if _c4_on else 45
+
     if direction == "SHORT":
         c1 = poc
         c2 = val if val is not None else ibl
-        c3 = ibl  # trail toward winning extreme
+        c3 = ibl if not _c4_on else c2  # C4: no runner beyond C2
     else:
         c1 = poc
         c2 = vah if vah is not None else ibh
-        c3 = ibh
+        c3 = ibh if not _c4_on else c2
 
     return _build_result(
         direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
-        contracts=3,
-        time_stop_minutes=45,
-        trail_after_c2=True,
+        contracts=_c4_contracts,
+        time_stop_minutes=_c4_time_stop,
+        trail_after_c2=not _c4_on,  # C4: no trailing (time-stop exits)
         day_type="Neutral_Extreme",
     )
 
@@ -292,14 +300,22 @@ def _resolve_neutral_center(
     ibh: float, ibl: float, ib_center: float,
     poc: float, vah: Optional[float], val: Optional[float],
 ) -> Dict:
-    """Neutral Center: fade edges to center. 3 contracts.
+    """Neutral Center: fade edges to center, exit at POC.
 
-    SHORT: C1=POC, C2=opposite IB edge (IBL), C3=trail
-    LONG:  C1=POC, C2=opposite IB edge (IBH), C3=trail
+    C4 (2026-08-11): edges only · C1=POC · C2=opposite IB edge ·
+    1-2 contracts · time-stop 60min (12 bars) · no runner.
+
+    SHORT: C1=POC, C2=IBL
+    LONG:  C1=POC, C2=IBH
     """
+    import os as _os_c4
+    _c4_on = _os_c4.getenv("NEUTRAL_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes")
+    _c4_contracts = 2 if _c4_on else 3
+    _c4_time_stop = 60 if _c4_on else 30
+
     if direction == "SHORT":
         c2 = ibl
-        c3 = ibl  # same as C2 for NeuC (no runner beyond)
+        c3 = ibl
     else:
         c2 = ibh
         c3 = ibh
@@ -307,8 +323,8 @@ def _resolve_neutral_center(
     return _build_result(
         direction=direction, entry=entry, stop=stop,
         c1=poc, c2=c2, c3=c3,
-        contracts=3,
-        time_stop_minutes=30,
+        contracts=_c4_contracts,
+        time_stop_minutes=_c4_time_stop,
         trail_after_c2=False,
         day_type="Neutral_Center",
     )
