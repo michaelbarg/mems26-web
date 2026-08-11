@@ -5,6 +5,12 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ B3+B5: stale-data banner + PAUSE/RESUME/feed notifications
+
+**B3:** באנר צהוב "נתונים ישנים — Xש מאז עדכון" כש-`ts_epoch` > 30ש מאחורי שעון-הלקוח.
+**B5:** `on_pause`/`on_resume` wired מכפתורי-נייד; `on_emergency` wired מ-feed_watchdog block.
+  Pushover/ntfy מגיע לשעון על: PAUSE · RESUME · פיד-קפוא · (fire/close/halt כבר חוּבְּרוּ).
+
 ### 2026-08-11 — cc-macbook — ✅ D1+D5: WEEKEND stuck fix + daily_pnl auto-reset
 
 **D1:** `FiveMinMode.WEEKEND` now transitions to `FIRST_HOUR_TACTICAL`/`DAY_TYPE_MODE`

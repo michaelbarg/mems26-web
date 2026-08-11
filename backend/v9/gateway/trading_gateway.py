@@ -812,6 +812,12 @@ class TradingGateway:
                 result["blocked_by"] = "feed_watchdog"
                 result["reason"] = _feed_reason or "canonical feed stale"
                 logger.warning("[Gateway] BLOCKED by feed watchdog: %s", _feed_reason)
+                # B5: push notification on frozen feed (rate-limited by ntfy itself)
+                try:
+                    from backend.v9.services.ntfy_notify import on_emergency
+                    on_emergency("🔴 פיד קפוא", _feed_reason or "canonical feed stale — no fires")
+                except Exception:
+                    pass
                 return result
         except Exception as _fw_err:
             logger.debug("[Gateway] feed watchdog check failed (fail-open): %s", _fw_err)

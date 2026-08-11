@@ -416,6 +416,12 @@ async def mobile_pause(request: Request):
             log_event("mobile", "WARN", "TRADING PAUSED via mobile emergency")
         except Exception:
             pass
+        # B5: push notification on PAUSE
+        try:
+            from backend.v9.services.ntfy_notify import on_pause
+            on_pause("PAUSED via mobile — fires routed to shadow only")
+        except Exception:
+            pass
         return {"ok": True, "msg": "PAUSED — fires routed to shadow only"}
     except Exception as e:
         return {"ok": False, "error": str(e)[:80]}
@@ -461,6 +467,12 @@ async def mobile_resume(request: Request):
             log_event("mobile", "WARN", "TRADING RESUMED via mobile")
         except Exception:
             pass
+        # B5: push notification on RESUME
+        try:
+            from backend.v9.services.ntfy_notify import on_resume
+            on_resume("RESUMED via mobile — normal trading restored")
+        except Exception:
+            pass
         return {"ok": True, "msg": "RESUMED — normal trading restored"}
     except Exception as e:
         return {"ok": False, "error": str(e)[:80]}
@@ -499,6 +511,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
 <div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
+<div id="staleBanner" style="display:none;background:#d29922;color:#000;text-align:center;padding:8px;border-radius:12px;margin-bottom:10px;font-size:14px;font-weight:700">⚠ נתונים ישנים</div>
 <div id="pauseBanner" style="display:none;background:#f85149;color:#fff;text-align:center;padding:10px;border-radius:12px;margin-bottom:10px;font-size:16px;font-weight:800">PAUSED — fires routed to shadow only</div>
 <button id="pauseBtn" style="width:100%;padding:12px;margin:4px 0;border-radius:12px;border:1px solid #d29922;
 background:#2d2614;color:#d29922;font-size:14px;font-weight:700;font-family:inherit">⏸ השהה מסחר (צל-בלבד)</button>
@@ -639,6 +652,15 @@ async function load(){
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
   document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
   updatePause(!!d.trading_paused);
+  // B3: stale-data indicator — compare ts_epoch to client clock
+  const staleEl = document.getElementById('staleBanner');
+  if(d.ts_epoch){
+   const age = Math.round(Date.now()/1000 - d.ts_epoch);
+   if(age > 30){
+    staleEl.style.display='block';
+    staleEl.textContent='⚠ נתונים ישנים — '+age+'ש מאז עדכון אחרון';
+   } else { staleEl.style.display='none'; }
+  }
   document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+d.contracts_cfg+' · רענון-5ש';
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר למערכת — '+e; }
 }
