@@ -1,3 +1,24 @@
+### 2026-08-11 15:47 — preopen-agent — ✅ בדיקת-טרום-פתיחה (45 דק') — **GO**
+
+**T1/T2 (הפקודה של הבוקר):** נמסרו ע"י cc והודלקו ע"י cowork ב-14:50 —
+`STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1` + `COLD_START_GUARD_V1` **חיים** (41 טסטים).
+
+| בדיקה | פלט גולמי |
+|---|---|
+| `flag_guard.py` | `FLAG-GUARD: PASS — all 161 ruled flags match.` |
+| `mems26_verify.sh` | `verdict: OK · 1 warn` — services ✅ · LaunchAgents ✅ · DLL==monolith ✅ · feed 2s ✅ · DB lag 00:01:18 ✅ · ⚠️ `FLAG_INDEX drift → run gen_flag_index.py` |
+| `sierra_state.json` | `position_qty=0` · `order_placement_armed=1` · `is_sim=0` (לייב) · `acct_account_value=2480.84` · MESU26 |
+| feed freshness | `woodies_5min.json age = 1.5s` (<30s) · `sierra_state age = 0.5s` |
+| `command_queue/` | ריק — רק `archived_stale/` |
+| `/api/v9/health` | `{"status":"ok","version":"v9.0.0"}` |
+| `/api/v9/context/radar` | `bar_integrity="clean"` · `trading={armed:1, is_sim:0, sendorders:1, position_qty:0, contracts_allowed:8, stale:false}` |
+| frontend :3000 | `200` |
+| מרג'ין 4 חוזים | `4×276 = $1,104` < `$2,480.84` ✅ |
+
+**פסיקה: GO.** אין חוסם. חוב-פתוח יחיד (לא-חוסם): להריץ `python3 scripts/gen_flag_index.py`
++ commit — סחיפת-תיעוד מהדלקת C3 ב-15:45, אפס השפעה על מסחר.
+דחיפת ntfy נשלחה (id `Xhk2iyJct9K9`). לא הודלק דגל · לא בוצע ריסטארט · לא חומש דבר.
+
 ### 2026-08-11 15:45 — cowork-dev — ✅ ששת-הסעיפים טופלו · C3 הודלק · GO לפתיחה
 
 **C3 (היחיד שעבר):** EXTREME_CHASE_SCOPE=CONT+REV + CHASE_MIN_SESSION_BARS=8 — הודלק
