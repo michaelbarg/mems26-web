@@ -1639,7 +1639,13 @@ class TradingGateway:
                             from backend.v9.services.trade_context import (
                                 get_live_day_type as _ecg_gldt)
                             _ecg_dt = str((_ecg_gldt() or {}).get("day_type") or "")
-                            if _ecg_dt.startswith("Trend") and _live_leg(direction):
+                            # 11.08 (same session): the label oscillates
+                            # Trend_DD ↔ Variation on a one-sided day; both are
+                            # directional in our taxonomy (Variation = one-sided
+                            # extension). The live LEG in the trade's direction is
+                            # the real qualifier — rotation days have no leg.
+                            if (_ecg_dt.startswith(("Trend", "Variation"))
+                                    and _live_leg(direction)):
                                 _ecg_trend_exempt = True
                                 logger.warning(
                                     "[Gateway] chase-guard TREND-LEG EXEMPT: %s on %s "
