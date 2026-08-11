@@ -1,3 +1,12 @@
+### 2026-08-11 — cc-macbook — ✅ C1 בנוי: ATR ×13 fix (ATR_DAILY_FIX_V1, דגל-OFF)
+
+**באג:** `_last_atr_daily` = ממוצע טווחי ברים-5דק' (~5-7pt) במקום ATR יומי אמיתי (~80-100pt).
+IB 20.25 / ATR 5.2 = 3.89 → EXTREME (שגוי!) · IB 20.25 / ATR 84 = 0.24 → NARROW (נכון).
+**תיקון:** `compute_daily_atr()` — שאילתת DB ל-14 סשנים, mean(day_high - day_low).
+State machine seeds את ה-ATR האמיתי פעם-בסשן כש-`ATR_DAILY_FIX_V1=1`.
+Fail-open: DB חסר / שגיאה → fallback להתנהגות ישנה. 17/17 טסטים.
+**דגל OFF, shadow שבוע** — משנה תוויות + סייז. cowork מדליק אחרי פסיקה.
+
 ### 2026-08-11 — cc-macbook — ✅ B4 סגור: FLATTEN/PAUSE/RESUME E2E tests (19/19)
 
 כל הנתיבים נבדקו: double-confirm gate · access-key gate · MANUAL_FLATTEN_V1 flag gate ·

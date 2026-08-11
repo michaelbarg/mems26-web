@@ -254,7 +254,9 @@ class DayTypeStateMachine:
         self.meta: Dict[str, Any] = {}  # shadow/calibration metadata (CVD opening, etc.)
         # S1_IB_WIDTH_ATR: rolling ATR-14 from 5-min bar ranges
         self._bar_ranges: List[float] = []  # last 14 bar ranges (high-low)
-        self._last_atr_daily: Optional[float] = None
+        self._last_atr_5min_avg: Optional[float] = None  # mean of 5-min ranges (BUG: was _last_atr_daily)
+        self._last_atr_daily: Optional[float] = None  # real daily ATR (C1 fix)
+        self._atr_daily_seeded: bool = False
         self._max_tpo_row_width: int = 0
         self._active_zohar_rules: List[str] = []
         self._last_state: Optional[DayTypeState] = None
@@ -341,7 +343,32 @@ class DayTypeStateMachine:
             if len(self._bar_ranges) > 14:
                 self._bar_ranges = self._bar_ranges[-14:]
             if len(self._bar_ranges) >= 5:
-                self._last_atr_daily = sum(self._bar_ranges) / len(self._bar_ranges)
+                self._last_atr_5min_avg = sum(self._bar_ranges) / len(self._bar_ranges)
+
+        # C1 fix (ATR_DAILY_FIX_V1, default OFF): seed _last_atr_daily from the
+        # real 14-session daily ATR (DB query, once per session). The old code
+        # used _last_atr_5min_avg (~5-7pt) as the "daily ATR" — 13× too small,
+        # making IB/ATR ratio ~always EXTREME → wrong day-type classification.
+        import os as _os_atr
+        if (_os_atr.getenv("ATR_DAILY_FIX_V1", "0").lower() in ("1", "true", "yes")
+                and not self._atr_daily_seeded):
+            try:
+                from .detector import compute_daily_atr
+                _real_atr = compute_daily_atr(14)
+                if _real_atr is not None and _real_atr > 0:
+                    self._last_atr_daily = _real_atr
+                    self._atr_daily_seeded = True
+                    import logging as _log_atr
+                    _log_atr.getLogger(__name__).info(
+                        "[DayType] C1 ATR_DAILY_FIX: seeded daily ATR=%.2f "
+                        "(was using 5-min avg=%.2f, ratio=%.1f×)",
+                        _real_atr, self._last_atr_5min_avg or 0,
+                        (_real_atr / self._last_atr_5min_avg) if self._last_atr_5min_avg else 0)
+            except Exception:
+                pass  # fail-open: fall back to old behavior
+        # Fallback: when fix OFF or not yet seeded, use old (buggy) behavior
+        if self._last_atr_daily is None:
+            self._last_atr_daily = self._last_atr_5min_avg
 
         # Track session range (all bars) + split Globex vs RTH
         self.session_high = max(self.session_high, bar.high)

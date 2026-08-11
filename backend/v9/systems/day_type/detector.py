@@ -50,7 +50,44 @@ _REEVAL_RETRACE_HOLD = 0.25  # retrace <25% → hold classification
 _REEVAL_RETRACE_REDIAG = 0.50  # retrace ≥50% → re-diagnose
 
 
-_DEFAULT_ATR_MES = 20.0  # MES historical average 5-min ATR (fallback when bars < 5)
+_DEFAULT_ATR_MES = 20.0  # MES historical average daily ATR (cold-start fallback only)
+
+
+def compute_daily_atr(n_sessions: int = 14) -> Optional[float]:
+    """Compute the true daily ATR: mean of session (high-low) ranges over
+    the last n_sessions RTH trading days.
+
+    C1 fix (2026-08-11): the old _last_atr_daily was the mean of 5-min bar
+    ranges (~5-7pt for MES) — approximately 13× too small vs the real daily
+    ATR (~80-100pt). This function queries completed RTH sessions from the
+    canonical v9_bars_5min_woodies table and computes the TRUE daily range
+    (max(high) - min(low)) per session day.
+
+    Returns None on any error or insufficient data (honest missing, Rule 1).
+    """
+    try:
+        from backend.v9.db.read import read_all
+        rows = read_all(f"""
+            SELECT (ts AT TIME ZONE 'America/New_York')::date AS session_date,
+                   MAX(high) AS day_high, MIN(low) AS day_low
+            FROM v9_bars_5min_woodies
+            WHERE ts >= now() - interval '{n_sessions + 2} days'
+              AND EXTRACT(HOUR FROM ts AT TIME ZONE 'America/New_York') BETWEEN 9 AND 15
+            GROUP BY session_date
+            HAVING COUNT(*) >= 10
+            ORDER BY session_date DESC
+            LIMIT :n
+        """, {"n": n_sessions})
+        if not rows or len(rows) < 3:
+            return None
+        ranges = [float(r["day_high"]) - float(r["day_low"])
+                  for r in rows
+                  if r.get("day_high") is not None and r.get("day_low") is not None]
+        if len(ranges) < 3:
+            return None
+        return round(sum(ranges) / len(ranges), 2)
+    except Exception:
+        return None
 
 
 def classify_ib_width_atr(

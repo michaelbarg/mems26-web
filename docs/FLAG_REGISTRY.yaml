@@ -1656,6 +1656,14 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  ATR_DAILY_FIX_V1:
+    category: s1
+    group: "C1 ATR fix"
+    what: "Seeds _last_atr_daily from real 14-session daily ATR (DB) instead of mean 5-min bar range (13x too small)"
+    why: "Bug: _last_atr_daily=5.2 (5-min avg) vs real=84 (daily) made IB/ATR always EXTREME → wrong day-type. Materially changes labels+sizing — needs shadow week"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG C1, docs/research/DALTON_DAY_TYPE_2026-08-10.md §6.2"
+
   COLD_START_GUARD_V1:
     category: risk
     group: "A2 cold start"
