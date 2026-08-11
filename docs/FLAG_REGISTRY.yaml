@@ -1656,6 +1656,21 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  COLD_START_GUARD_V1:
+    category: risk
+    group: "A2 cold start"
+    what: "Blocks ALL firing until bars_processed_today >= COLD_START_MIN_BARS (default 3) after startup/restart. Fail-closed"
+    why: "Case #655 (2026-08-10): fired 8s after restart with bars=0, profile_shape=NA, cot=0 — no market context"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG A2"
+
+  COLD_START_MIN_BARS:
+    category: param
+    group: "A2 cold start"
+    what: "Minimum bars_processed_today required before firing is allowed (default 3). Gated by COLD_START_GUARD_V1"
+    why: "3 bars = 15 minutes of data — enough for IB to start forming and day-type to have initial classification"
+    status: param
+
   STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1:
     category: targets
     group: "A1 wrong-side veto"

@@ -731,6 +731,40 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
             return result
 
+        # A2: COLD_START_GUARD_V1 (default OFF) — no firing until the system
+        # has processed enough bars after startup/restart. Case #655 (2026-08-10):
+        # trade fired 8 seconds after restart with bars_processed_today=0,
+        # profile_shape=NA, cot=0 — the system had no market context at all.
+        # Fail-closed: missing/zero bars_processed → block.
+        if os.getenv("COLD_START_GUARD_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _cs_min_bars = int(os.getenv("COLD_START_MIN_BARS", "3") or "3")
+                _cs_tpo = (cross_context.get("tpo_system")
+                           if isinstance(cross_context, dict) else None) or {}
+                _cs_5min = (cross_context.get("five_min_system")
+                            if isinstance(cross_context, dict) else None) or {}
+                _cs_bars = int(_cs_tpo.get("bars_processed_today") or 0)
+                _cs_buf = int(_cs_5min.get("buffer_size") or 0)
+                if _cs_bars < _cs_min_bars:
+                    result["blocked_by"] = "cold_start_guard"
+                    result["reason"] = (
+                        f"bars_processed_today={_cs_bars} < {_cs_min_bars} "
+                        f"(five_min buffer={_cs_buf}) — system not hydrated"
+                    )
+                    logger.warning(
+                        "[Gateway] BLOCKED cold_start_guard: bars=%d < min=%d "
+                        "(buffer=%d) — system not hydrated after restart",
+                        _cs_bars, _cs_min_bars, _cs_buf)
+                    return result
+            except Exception as _cs_err:
+                # Fail-closed: if we can't read the bar count, block
+                result["blocked_by"] = "cold_start_guard"
+                result["reason"] = f"cold_start_guard error (fail-closed): {_cs_err}"
+                logger.warning(
+                    "[Gateway] BLOCKED cold_start_guard (fail-closed error): %s",
+                    _cs_err)
+                return result
+
         # Item-21: EOD entry cutoff — no new entries in the last 45 minutes before close
         if os.getenv("EOD_RISK_WINDOW_V1", "0").lower() in ("1", "true", "yes"):
             try:

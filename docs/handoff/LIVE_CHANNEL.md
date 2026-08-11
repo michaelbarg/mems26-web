@@ -1,3 +1,10 @@
+### 2026-08-11 — cc-macbook — ✅ A2 בנוי: `COLD_START_GUARD_V1` (דגל-OFF, ממתין-cowork)
+
+אין ירי עד `bars_processed_today >= COLD_START_MIN_BARS` (default 3). Fail-closed: חוסר-נתונים
+או שגיאה → חוסם. מקרה #655: 8 שניות אחרי ריסטארט, `bars=0`, `profile_shape=NA`, `cot=0`.
+השער יושב בגייטוויי אחרי `session_gate` ולפני `eod_cutoff`.
+14/14 טסטים. דגל OFF, cowork מדליק.
+
 ### 2026-08-11 — cc-macbook — ✅ A1 בנוי: `STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1` (דגל-OFF, ממתין-cowork)
 
 **שני זרועות:**
