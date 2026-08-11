@@ -1,3 +1,12 @@
+### 2026-08-11 15:45 — cowork-dev — ✅ ששת-הסעיפים טופלו · C3 הודלק · GO לפתיחה
+
+**C3 (היחיד שעבר):** EXTREME_CHASE_SCOPE=CONT+REV + CHASE_MIN_SESSION_BARS=8 — הודלק
+(snapshot · 161/161 · ריסטארט-flat 217 vars). זה סוגר את הפרצה של #655 (משפחת-REV הייתה
+מחוץ-להיקף) ופותח את הלונגים-הנכונים של 10.08. **C2 NO-GO (−$77.60) · C4 DEFER (n=7,
+צריך רצפת-R:R) · E2 NO-GO-כפי-שנבנה (הצעה: BE מותנה ≥1.0R במקום ביטול)** — נשארים OFF.
+**C1 ATR + C7 S7** — באיסוף-צל. **E1 Mac2** — ממתין לפסיקת-מייקל.
+מצב: armed · flat · feed חי · integrity clean · 4 חוזים · תור נקי.
+
 ### 2026-08-11 — replay-agent — 📊 REPLAY-ACCEPTANCE C2/C3/C4/E2 — **רק C3 = GO**
 
 **דוח מלא:** `docs/reports/REPLAY_ACCEPTANCE_C2_C3_C4_E2_2026-08-11.md` ·
