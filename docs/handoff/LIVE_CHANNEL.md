@@ -1,3 +1,9 @@
+### 2026-08-11 — cc-macbook — ✅ B4 סגור: FLATTEN/PAUSE/RESUME E2E tests (19/19)
+
+כל הנתיבים נבדקו: double-confirm gate · access-key gate · MANUAL_FLATTEN_V1 flag gate ·
+FLATTEN_ACCOUNT Sierra command write · PAUSE file create/remove · RESUME idempotent ·
+full pause→resume cycle · HTML page content (buttons, per-contract renderer).
+
 ### 2026-08-11 — cc-macbook — ✅ B2 סגור: כרטיס-עסקה פר-חוזה בדף-Render/נייד
 
 `/api/v9/mobile/data` מחזיר `legs[]` פר-חוזה (C1/C2/C3): target, status (OPEN/HIT_TARGET/HIT_STOP),
