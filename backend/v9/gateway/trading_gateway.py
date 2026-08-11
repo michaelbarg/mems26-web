@@ -1661,7 +1661,16 @@ class TradingGateway:
                                     direction, _ecg_dt)
                         except Exception:
                             _ecg_trend_exempt = False  # fail-closed
-                    if (_ecg_bypass and not _ecg_trend_exempt
+                    # KILL-SWITCH (Michael 11.08, live ruling): the K3d tip-
+                    # revocation blocked 14 with-trend entries today on a Trend_DD
+                    # session (252pt of MFE left on the table). It is now OFF by
+                    # default — restoring the behaviour of our two most profitable
+                    # trend days (08-03 +$184, 08-04 +$535, where 11 of 14 winning
+                    # entries were <6pt from the extreme). Set
+                    # EXTREME_CHASE_TIP_REVOKE_V1=1 to re-enable.
+                    _ecg_revoke_on = os.getenv(
+                        "EXTREME_CHASE_TIP_REVOKE_V1", "0").lower() in ("1", "true", "yes")
+                    if (_ecg_bypass and _ecg_revoke_on and not _ecg_trend_exempt
                             and _ecg_srows and _ecg_entry is not None):
                         try:
                             _ecg_bars_tip = [{"high": float(r["high"]), "low": float(r["low"])}
