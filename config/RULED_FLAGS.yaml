@@ -31,6 +31,8 @@ ruled:
   S1_TREND_ELONGATION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-09", note: "K6: נתיב-Trend (rib>=2.5 + close-position קיצוני) — replay GO: מתקן 03/05.08 בלי אף רגרסיה (13/13 נשמר). פסיקת-סופ\"ש." }
   STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-11", note: "A1: חסימה קשיחה כשיעדים-מבניים בצד-הלא-נכון של הכניסה או R:R<0.3. מקרה #655 (10.08): נפתחה למרות R:R=0.19 ושלוש אזהרות wrong-side, −$63.75. 41 טסטים עם A2." }
   COLD_START_GUARD_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-08-11", note: "A2: אין ירי עד שמאגר-הברים מלא אחרי ריסטארט/עלייה. #655 נורתה 8ש' אחרי ריסטארט עם profile_shape=NA, cot=0. fail-closed." }
+  EXTREME_CHASE_SCOPE:   {expected: "CONT+REV", ruled_by: "מייקל", date: "2026-08-11", note: "C3: משפחת-REV הייתה מחוץ-להיקף ולכן #655 (DOUBLE_BOTTOM, REV) נורתה 2 נק' משיא-היום בעוד ZLR זהה נחסם. replay: 4/4 מקרי-קבלה, +$977 blended." }
+  CHASE_MIN_SESSION_BARS: {expected: "8", ruled_by: "מייקל", date: "2026-08-11", note: "C3: בגרות-שיא — הלונגים הנכונים של 10.08 (7777/7778) נחסמו מול שיא בן-5-ברים. 8 = החלופה השמרנית שעוברת 4/4 (במקום 10 שמשבית 50 דק')." }
   FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-08-04", note: "פסיקת 02.08: 2 חוזים, T1+T2 בלבד (הון-בחשבון ~$721 ≈ 2×מרג'ין). ה-DLL בונה בדיוק 2 קבוצות-OCO כש-contracts=2 (C1→T1, C2→T2, t3 מתעלם) — אומת מהקוד merged.cpp:2893-2925." }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
