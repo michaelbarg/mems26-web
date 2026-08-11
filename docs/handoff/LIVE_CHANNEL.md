@@ -5,6 +5,13 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ D1+D5: WEEKEND stuck fix + daily_pnl auto-reset
+
+**D1:** `FiveMinMode.WEEKEND` now transitions to `FIRST_HOUR_TACTICAL`/`DAY_TYPE_MODE`
+  on RTH open (same as `OVERNIGHT_MODE`). Was stuck forever. 3/3 tests.
+**D5:** `_daily_pnl` auto-resets on ET date change in `_route_setup_inner` (was −831.25
+  on Globex open from previous day carry-over). `reset_daily()` existed but was never called.
+
 ### 2026-08-11 — cc-macbook — ✅ C4 בנוי: `NEUTRAL_PLAYBOOK_V1` (דגל-OFF)
 
 ב-`structural_targets.py`: Neutral_Center + Neutral_Extreme עודכנו:

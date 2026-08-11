@@ -1060,10 +1060,13 @@ class FiveMinSystem(BaseV9TradingSystem):
         """
         bar = dict(event.payload) if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
 
-        # Live session transition: advance out of OVERNIGHT_MODE when RTH opens.
-        # hydrate() sets mode at startup — if backend started pre-RTH this check
-        # promotes mode automatically on the first RTH bar without a restart.
-        if self.mode == FiveMinMode.OVERNIGHT_MODE:
+        # Live session transition: advance out of OVERNIGHT_MODE / WEEKEND when
+        # RTH opens. hydrate() sets mode at startup — if backend started pre-RTH
+        # (or on a weekend) this check promotes mode automatically on the first
+        # RTH bar without a restart.
+        # D1 fix (2026-08-11): WEEKEND label was stuck because there was no
+        # transition code for it — bars were buffered silently forever.
+        if self.mode in (FiveMinMode.OVERNIGHT_MODE, FiveMinMode.WEEKEND):
             try:
                 info = self.session_classifier.classify()
                 if info.session in (Session.CASH_OPEN, Session.FIRST_HOUR):

@@ -355,6 +355,7 @@ class TradingGateway:
         self._daily_trades: int = 0
         self._daily_pnl: float = 0.0
         self._consecutive_losses: int = 0
+        self._session_date: Optional[str] = None  # D5: track current trading date for auto-reset
         # ζ.A4 + ζ.A5 + ζ.B2: risk filters
         self.cooldown = CooldownManager()
         self.cluster_guard = ClusterGuard()
@@ -701,6 +702,24 @@ class TradingGateway:
         """
         cross_context = self._capture_cross_context()
         result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
+
+        # D5 fix (2026-08-11): auto-reset daily counters on session-date change.
+        # Without this, _daily_pnl carried over from the previous day (observed:
+        # −831.25 at Globex open). The session date = today's ET date at 18:00+
+        # (futures session rolls at 18:00 ET).
+        try:
+            from datetime import datetime as _d5_dt
+            from zoneinfo import ZoneInfo as _d5_ZI
+            _d5_et = _d5_dt.now(_d5_ZI("America/New_York"))
+            _d5_date = _d5_et.strftime("%Y-%m-%d")
+            if self._session_date is not None and _d5_date != self._session_date:
+                logger.info(
+                    "[Gateway] D5 day-roll reset: %s → %s (was pnl=$%.2f trades=%d)",
+                    self._session_date, _d5_date, self._daily_pnl, self._daily_trades)
+                self.reset_daily()
+            self._session_date = _d5_date
+        except Exception:
+            pass
 
         # CONFLUENCE_RI_ZLR (spec §2/§4.5): C1/C2 = entry±4/±8 and the ≤7pt-capped
         # structural stop are DEFINITIONAL for the combined pattern — the stop/
