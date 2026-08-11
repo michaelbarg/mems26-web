@@ -1656,6 +1656,14 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  RE_PULLBACK_ENTRY_V1:
+    category: s2
+    group: "C2 pullback retest"
+    what: "New five_min pattern: pullback to broken IB edge with rejection bar → entry WITH the break direction"
+    why: "The missing Dalton entry — already written as prose in daytype_playbook.yaml but never coded. 2026-08-10: would have offered LONG at ~7791.25 with objectives at 7801/7811"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG C2, docs/research/DALTON_DAY_TYPE_2026-08-10.md §6.3"
+
   ATR_DAILY_FIX_V1:
     category: s1
     group: "C1 ATR fix"

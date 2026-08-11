@@ -220,7 +220,8 @@ class FiveMinSystem(BaseV9TradingSystem):
         self._fire_dedup: Dict[str, int] = {}
         _DEDUP_COOLDOWN = {"DOUBLE_TOP_AA": 30, "DOUBLE_BOTTOM_EE": 30,
                            "INVERSE_HNS": 30, "HNS_TOP": 30,
-                           "BULL_FLAG": 20, "BEAR_FLAG": 20}
+                           "BULL_FLAG": 20, "BEAR_FLAG": 20,
+                           "RE_PULLBACK": 12}
         self._dedup_cooldown = _DEDUP_COOLDOWN
         self._hydrated = False
         self.current_state: Dict[str, Any] = {}
@@ -1522,6 +1523,39 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if not direction:
                     direction, conf, info = detect_bear_flag(_det_buf)
 
+        # Pkg 5d · RE_PULLBACK_ENTRY_V1 (C2, default OFF): pullback retest of
+        # broken IB edge — the missing Dalton entry. Fires after IB lock when
+        # price breaks the IB, extends, pulls back to the edge, and a rejection
+        # bar closes WITH the break direction. Needs IB context from Sierra TPO.
+        if not direction and os.getenv("RE_PULLBACK_ENTRY_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.five_min.patterns.pullback_retest import detect_pullback_retest
+                _pb_tpo = _load_sierra_tpo() or {}
+                _pb_ibh = _pb_tpo.get("ib_high")
+                _pb_ibl = _pb_tpo.get("ib_low")
+                _pb_ib_locked = bool(_pb_tpo.get("ib_locked", False))
+                # session_min from the current bar's position
+                _pb_session_min = 0
+                if _det_buf:
+                    _pb_ts = _det_buf[-1].get("ts")
+                    if _pb_ts:
+                        try:
+                            from datetime import datetime as _pb_dt
+                            from zoneinfo import ZoneInfo as _pb_ZI
+                            _pb_et = _pb_dt.fromtimestamp(float(_pb_ts), _pb_ZI("America/New_York"))
+                            _pb_session_min = max(0, (_pb_et.hour - 9) * 60 + _pb_et.minute - 30)
+                        except Exception:
+                            _pb_session_min = 90  # assume post-IB if time unavailable
+                direction, conf, info = detect_pullback_retest(
+                    _det_buf,
+                    ib_high=float(_pb_ibh) if _pb_ibh else None,
+                    ib_low=float(_pb_ibl) if _pb_ibl else None,
+                    ib_locked=_pb_ib_locked,
+                    session_min=_pb_session_min,
+                )
+            except Exception as _pb_err:
+                logger.warning("[FiveMin] RE_PULLBACK errored (fail-open): %s", _pb_err)
+
         # A2: per-pattern fire dedup — stateless detectors (Double Top, H&S, Flag)
         # fire on every bar after breakout. Skip same pattern+direction within cooldown.
         if direction:
@@ -1566,6 +1600,13 @@ class FiveMinSystem(BaseV9TradingSystem):
             elif kind in ("BULL_FLAG", "BEAR_FLAG"):
                 family = "Flag"
                 structural_anchor = info["structural_anchor"]
+            elif kind == "RE_PULLBACK":
+                family = "CONT"
+                # Stop and targets come from the detection info
+                structural_anchor = (
+                    info.get("retest_low", entry_price) if direction == "LONG"
+                    else info.get("retest_high", entry_price)
+                )
             else:
                 family = "Reactive" if kind == "REACTIVE" else "OFA"
                 # cc-1 (STRUCTURAL_STOP_ORIGIN_V1): use the pattern's structural

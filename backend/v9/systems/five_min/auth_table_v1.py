@@ -101,6 +101,21 @@ _AUTH_TABLE_V1: Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]] = {
     ("BEAR_FLAG_SHORT",      "Neutral_Center"):  ("SKIP",    0, 0, 0),
     ("BEAR_FLAG_SHORT",      "Normal"):          ("REDUCED", 2, 1, 0),
     ("BEAR_FLAG_SHORT",      "Nontrend"):        ("SKIP",    0, 0, 0),
+    # C2: RE_PULLBACK — pullback to broken IB edge (CONT-family)
+    ("RE_PULLBACK_LONG",     "Trend_Normal"):    ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_LONG",     "Trend_DD"):        ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_LONG",     "Neutral_Extreme"): ("REDUCED", 2, 2, 0),
+    ("RE_PULLBACK_LONG",     "Variation"):       ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_LONG",     "Neutral_Center"):  ("SKIP",    0, 0, 0),
+    ("RE_PULLBACK_LONG",     "Normal"):          ("REDUCED", 2, 1, 0),
+    ("RE_PULLBACK_LONG",     "Nontrend"):        ("SKIP",    0, 0, 0),
+    ("RE_PULLBACK_SHORT",    "Trend_Normal"):    ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_SHORT",    "Trend_DD"):        ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_SHORT",    "Neutral_Extreme"): ("REDUCED", 2, 2, 0),
+    ("RE_PULLBACK_SHORT",    "Variation"):       ("FULL",    3, 2, 2),
+    ("RE_PULLBACK_SHORT",    "Neutral_Center"):  ("SKIP",    0, 0, 0),
+    ("RE_PULLBACK_SHORT",    "Normal"):          ("REDUCED", 2, 1, 0),
+    ("RE_PULLBACK_SHORT",    "Nontrend"):        ("SKIP",    0, 0, 0),
 }
 
 # ── YAML override with fallback ──────────────────────────────────────
@@ -109,7 +124,7 @@ def _try_load_yaml_auth() -> Dict[Tuple[str, str], Tuple[QualityVerdict, int, in
     try:
         from backend.v9.config_loader import load_auth_matrix
         loaded = load_auth_matrix()
-        if loaded is not None and len(loaded) == 70:
+        if loaded is not None and len(loaded) >= 70:
             logger.info("[Pkg8/auth_table_v1] loaded %d cells from auth_matrix.yaml", len(loaded))
             return loaded
     except Exception as e:
@@ -118,8 +133,8 @@ def _try_load_yaml_auth() -> Dict[Tuple[str, str], Tuple[QualityVerdict, int, in
 
 AUTH_TABLE: Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]] = _try_load_yaml_auth()
 
-assert len(AUTH_TABLE) == 70
-assert len(_AUTH_TABLE_V1) == 70
+assert len(AUTH_TABLE) >= 70  # 70 (YAML from before C2) or 84 (hardcoded incl. RE_PULLBACK)
+assert len(_AUTH_TABLE_V1) == 84
 _pattern_names = set(get_args(PatternName))
 assert {k[0] for k in _AUTH_TABLE_V1} == _pattern_names
 assert {k[1] for k in _AUTH_TABLE_V1} == set(DAY_TYPES)

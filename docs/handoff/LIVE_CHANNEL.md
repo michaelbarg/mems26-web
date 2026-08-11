@@ -5,6 +5,13 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ C2 בנוי: `RE_PULLBACK_ENTRY_V1` (דגל-OFF)
+
+תבנית חדשה ב-five_min: אחרי שה-IB נפרץ (≥15% ib_width), המחיר מתרחק ואז חוזר לבדוק
+את הקצה-שנשבר. בר-דחייה שסוגר עם-הפריצה = כניסה. סטופ מתחת/מעל retest extreme.
+יעדים: edge ± 0.5/1/2 × ib_width (מבניים). Auth-table: CONT-family (FULL על Trend/Variation).
+13/13 טסטים. דגל OFF, sim-verify לפני הדלקה.
+
 ### 2026-08-11 — cc-macbook — ✅ C1 בנוי: ATR ×13 fix (ATR_DAILY_FIX_V1, דגל-OFF)
 
 **באג:** `_last_atr_daily` = ממוצע טווחי ברים-5דק' (~5-7pt) במקום ATR יומי אמיתי (~80-100pt).
