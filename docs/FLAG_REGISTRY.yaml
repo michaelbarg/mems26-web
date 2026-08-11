@@ -1656,6 +1656,14 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  S6_TREND_BE_DELAY_V1:
+    category: risk
+    group: "E2 trend BE delay"
+    what: "On Trend days, skip immediate BE move after T1 — let trailing stop manage the runner instead"
+    why: "Measured cost -$72.50 from trades where BE clipped a trend runner. On trend days the move continues past T1; early BE kills it"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG E2"
+
   NEUTRAL_PLAYBOOK_V1:
     category: targets
     group: "C4 neutral playbook"

@@ -192,6 +192,16 @@ def score(
     components["late_zlr"] = late_zlr
     total += late_zlr
 
+    # ── E4. S2×S4 confluence boost (65% WR vs 50% solo) ──
+    # When the gateway detected an S2×S4 same-bar agreement (K4 confluence_tag),
+    # the combined pattern has measurably higher edge. +10pts.
+    confluence_pts = 0
+    _conf_tag = setup.get("confluence_tag") or (setup.get("metadata") or {}).get("confluence_tag")
+    if _conf_tag and _conf_tag.get("quality_boost"):
+        confluence_pts = 10
+    components["s2_s4_confluence"] = confluence_pts
+    total += confluence_pts
+
     # Clamp to 0-100
     total = max(0, min(100, total))
 

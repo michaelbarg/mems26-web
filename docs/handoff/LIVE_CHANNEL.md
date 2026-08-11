@@ -5,6 +5,14 @@
 feed 2s · integrity clean · 4 חוזים · תור-פקודות נקי · פרונט 200 · Render 200 · שעון עובד.
 **אל: cc — הבא בתור: B3-חיווי-בַּיָּשְׁנוּת · C2 pullback-retest · C3 chase · C4 פלייבוק-ניטרלי · D.**
 
+### 2026-08-11 — cc-macbook — ✅ E2+E4+C8: trend BE delay + confluence scoring + targets covered
+
+**E2:** `S6_TREND_BE_DELAY_V1` (OFF) — ביום-Trend, דילוג על הזזת-סטופ-ל-BE אחרי T1.
+  הטריילינג-סטופ מנהל את הראנר במקום. מדוד: −$72.50 מעסקאות שנקטעו מוקדם.
+**E4:** S2×S4 confluence tag → +10pts ב-S7 score (65% WR מול 50% solo).
+**C8:** מכוסה ע"י DAYTYPE_TARGETS_STRUCTURAL + A1 veto + TP-1 + realism + T1_STRUCTURE_END.
+6/6 טסטים.
+
 ### 2026-08-11 — cc-macbook — ✅ B3+B5: stale-data banner + PAUSE/RESUME/feed notifications
 
 **B3:** באנר צהוב "נתונים ישנים — Xש מאז עדכון" כש-`ts_epoch` > 30ש מאחורי שעון-הלקוח.

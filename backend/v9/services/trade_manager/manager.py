@@ -695,6 +695,30 @@ class TradeManager:
                         trade.id, stop_before, trade.stop)
             return
 
+        # E2 (S6_TREND_BE_DELAY_V1, default OFF): on Trend days, skip the
+        # immediate BE move after T1 — let the trailing stop handle it instead.
+        # Measured cost: −$72.50 from trades where BE clipped a trend runner.
+        # When ON and day_type is Trend_*: return without moving the stop.
+        # The structural trail (STOP_PERBAR_STRUCT_V1) or the bar-level trail
+        # will manage the stop on subsequent bars.
+        if os.environ.get("S6_TREND_BE_DELAY_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _dt_at_entry = (dict(trade.quality) if isinstance(trade.quality, dict) else {}).get(
+                    "day_type_at_entry") or ""
+                if not _dt_at_entry:
+                    # Try from cross_context
+                    _cc = trade.cross_context
+                    if isinstance(_cc, dict):
+                        _dt_at_entry = _cc.get("day_type_at_entry", "")
+                if str(_dt_at_entry).startswith("Trend"):
+                    logger.info(
+                        "[TradeManager] E2 S6_TREND_BE_DELAY: skipping BE move on %s "
+                        "(Trend day — trailing stop will manage) trade=%s",
+                        _dt_at_entry, getattr(trade, "id", "?"))
+                    return
+            except Exception:
+                pass  # fail-open: proceed with normal BE
+
         # STOP_STRUCTURE_TRAIL_V1 (Michael ruling 2026-07-08, flag-OFF): after T1
         # the stop goes to the nearest STRUCTURE, not mechanically to BE — "לקרב
         # לכניסה אבל לשים באזור המבנה כדי לא לפספס הרחבה". BE+1T gets wicked by
