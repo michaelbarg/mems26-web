@@ -1625,7 +1625,30 @@ class TradingGateway:
                     # entry is within EXTREME_MIN_DIST_PTS of the WITH-MOVE extreme,
                     # the bypass is revoked — chasing the last few points of a trend
                     # is dangerous even in a displaced session.
-                    if _ecg_bypass and _ecg_srows and _ecg_entry is not None:
+                    # TREND_LEG_CHASE_EXEMPT_V1 (Michael 08-11, live evidence):
+                    # on a genuine TREND day with a live leg in the trade's own
+                    # direction, the "tip" keeps extending — that IS the trade
+                    # (Dalton: trend days are traded WITH the move). Today the
+                    # revocation blocked 5 with-trend shorts on a Trend_DD/leg-DOWN
+                    # session; the two cleanest ran +9.5pt and +7.0pt with ≤2pt
+                    # adverse. The revocation therefore applies only to
+                    # rotation/balance regimes, never to with-leg trend entries.
+                    _ecg_trend_exempt = False
+                    if os.getenv("TREND_LEG_CHASE_EXEMPT_V1", "0").lower() in ("1", "true", "yes"):
+                        try:
+                            from backend.v9.services.trade_context import (
+                                get_live_day_type as _ecg_gldt)
+                            _ecg_dt = str((_ecg_gldt() or {}).get("day_type") or "")
+                            if _ecg_dt.startswith("Trend") and _live_leg(direction):
+                                _ecg_trend_exempt = True
+                                logger.warning(
+                                    "[Gateway] chase-guard TREND-LEG EXEMPT: %s on %s "
+                                    "with live leg — revocation skipped",
+                                    direction, _ecg_dt)
+                        except Exception:
+                            _ecg_trend_exempt = False  # fail-closed
+                    if (_ecg_bypass and not _ecg_trend_exempt
+                            and _ecg_srows and _ecg_entry is not None):
                         try:
                             _ecg_bars_tip = [{"high": float(r["high"]), "low": float(r["low"])}
                                              for r in _ecg_srows]
