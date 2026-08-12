@@ -3418,7 +3418,8 @@ class TradingGateway:
             # K1e (#652): abort a zero-size fire BEFORE any DB row or Sierra
             # command exists (see _execute_demo).
             from backend.v9.services.sierra_command import effective_contracts as _eff_n
-            if _eff_n(setup) <= 0:
+            _n_live = _eff_n(setup)
+            if _n_live <= 0:
                 logger.warning(
                     "[Gateway] LIVE fire SKIPPED — effective contracts <= 0 "
                     "(margin cap / SKIP): %s %s sys=%d — no trade row, no slot, "
@@ -3429,6 +3430,44 @@ class TradingGateway:
                     _ops("gateway", "WARNING",
                          f"SKIP[live] {setup.get('classification','')} "
                          f"{setup.get('direction')} — effective contracts <= 0")
+                except Exception:
+                    pass
+                return None
+
+            # F1 (2026-08-12, CC_WORKORDER F1 — ORDER_FAILED:-1 root-fix): pre-send
+            # account-state guard. 32% of live routes died on Sierra's synchronous
+            # reject because the account already carried an unmanaged position
+            # (orphan / Michael's manual trade) at fire time. Block BEFORE any DB
+            # row, slot, or Sierra command exists — same shape as K1e above.
+            # Kill-switch: PRE_SEND_ENTRY_GUARD_V1=0.
+            try:
+                from backend.v9.services.entry_guard import check_live_entry
+                _eg_ok, _eg_why, _eg_warns = check_live_entry(
+                    setup.get("direction"), _n_live)
+            except Exception as _eg_err:  # a guard bug must not block trading
+                logger.warning("[Gateway] entry_guard errored (fire allowed): %s", _eg_err)
+                _eg_ok, _eg_why, _eg_warns = True, f"guard error: {_eg_err}", []
+            for _w in _eg_warns:
+                logger.warning("[Gateway] LIVE pre-send warning: %s", _w)
+            if not _eg_ok:
+                logger.critical(
+                    "[Gateway] LIVE fire BLOCKED pre-send: %s — %s %s sys=%d — "
+                    "no trade row, no slot, no Sierra command",
+                    _eg_why, setup.get("direction"),
+                    setup.get("classification", ""), system_id)
+                try:
+                    from scripts.ops_log import log_event as _ops
+                    _ops("gateway", "CRITICAL",
+                         f"PRE_SEND_BLOCK[live] {setup.get('classification','')} "
+                         f"{setup.get('direction')} — {_eg_why}")
+                except Exception:
+                    pass
+                try:
+                    from backend.v9.services.ntfy_notify import on_emergency
+                    on_emergency(
+                        "LIVE ENTRY BLOCKED",
+                        f"{setup.get('classification','')} {setup.get('direction')} "
+                        f"x{_n_live} — {_eg_why}")
                 except Exception:
                     pass
                 return None

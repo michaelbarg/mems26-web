@@ -1,3 +1,30 @@
+### 2026-08-12 ~09:50 IL — cowork-exec-agent — ✅ F1 בוצע: שורש ORDER_FAILED:-1 אובחן + נסגר (שומר-קדם-שליחה + retry-once + ntfy)
+
+**שורש (אבחון מנתונים, לא השערה):** כל 26 כשלי `-1` שנבדקו מול `trade_activity_events.jsonl`
++ ציטוטי-sierra_state הגולמיים ב-`ALERTS_LIVE.md` נורו **מעל פוזיציה-עומדת לא-מנוהלת** —
+אורפן 07-20 (−6/−7) · אורפן-עירום 07-23 (−8→−12) · השורט-הידני של מייקל 07-24 (−4) · מחסנית +10
+ב-07-27. מתכון-ה-DLL (`MES_AI_DataExport_merged.cpp:1847+`) קובע
+`AllowOppositeEntryWithOpposingPositionOrOrders=0` + `MaximumPositionAllowed=10` ⇒ סיירה דוחה
+**סינכרונית** (r=-1) כל כניסה נגדית לפוזיציה קיימת, וכל כניסה שחורגת מ-|10|. מחלקת-המרג'ין
+(6 דחיות NLV, 07-28) כבר נסגרה אז ע"י `MARGIN_AWARE_SIZING_V1=1` — ומאז 07-28 **אפס** `-1`.
+אימות: `SELECT ... WHERE exit_reason LIKE 'ORDER_FAILED%'` = 30 שורות, אחרונה 07-27 (+2 ישנות
+ממחלקות אחרות: 303=07-07 SendOrders, 652=08-07 CMD_NEVER_SENT).
+
+**התיקון (השכבה שלנו, הקטן הנכון):**
+1. `backend/v9/services/entry_guard.py` (חדש) — `PRE_SEND_ENTRY_GUARD_V1` (ON-בקוד, kill-switch):
+   חוסם כניסת-LIVE כש-`position_qty≠0` / `working_orders>0` / sierra_state חסר-או-ישן (>30s),
+   **לפני** שורת-DB/slot/פקודה (אותה תבנית כמו K1e). ntfy 🚨 על כל חסימה.
+2. `trading_gateway._execute_live` — חיווט השומר אחרי בדיקת-אפס-חוזים.
+3. `sierra_command.py` — זוכר את פקודת-ה-PLACE האחרונה פר-trade (`resubmit_place`).
+4. `fill_poller._check_result` — על ORDER_FAILED סינכרוני לעסקת-LIVE: **retry פעם-אחת בלבד** ורק
+   כשהשומר מאשר שהחשבון פנוי עכשיו; כישלון שני ⇒ CANCELLED + ntfy 🚨 (לא עוד כשל-שקט).
+
+**Rule-5:** `pytest backend/v9/tests/services/test_entry_guard_pre_send.py test_orphan_chain_guard.py
+test_fix10_order_reject.py` → `17 passed in 0.31s` (9 טסטים חדשים: חסימה-על-פוזיציה/עובדות/ישן,
+kill-switch, retry-פעם-אחת-ואז-ביטול, אין-retry-לתוך-פוזיציה, demo ללא-שינוי).
+`flag_guard.py` → `PASS — all 164 ruled flags match`. דגל חדש נרשם ב-FLAG_REGISTRY (+גנרטור).
+חתום: cowork-exec-agent
+
 ### 2026-08-12 — cowork-dev — שתי ביקורות-מערכת מלאות (48 סשנים) ⇒ פקודת-בוקר F1-F6
 
 **הבעיה אינה השערים.** S2+S4 על כל הימים: אותם איתותים ⇒ מודל +$1,127 מול חשבון +$23.75 (×47);

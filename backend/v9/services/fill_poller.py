@@ -67,6 +67,8 @@ class FillPoller:
         self._activity_exit_pos: Optional[int] = None
         # POSITION_TRUTH_SYNC_V1: when Sierra first reported flat (grace timer)
         self._flat_since: Optional[float] = None
+        # F1 (2026-08-12): trade ids whose ORDER_FAILED was already retried once.
+        self._order_failed_retried: set = set()
 
     _warn_last: Dict[str, float] = {}
 
@@ -713,6 +715,40 @@ class FillPoller:
                         )
                         RESULT_PATH.write_text("")
                         return
+                    # F1 (2026-08-12, CC_WORKORDER F1): retry a LIVE entry ONCE.
+                    # A synchronous ORDER_FAILED means BuyEntry/SellEntry returned
+                    # <= 0 — no order exists at Sierra, so a single resend is safe.
+                    # Guarded: only when the pre-send account guard passes NOW
+                    # (the dominant -1 root is a standing position — retrying into
+                    # it would just fail again) and only once per trade.
+                    if (getattr(trade, "mode", "") == "live"
+                            and trade.id not in self._order_failed_retried):
+                        try:
+                            from backend.v9.services.entry_guard import check_live_entry
+                            from backend.v9.services.sierra_command import (
+                                get_last_place_command, resubmit_place)
+                            _cmd = get_last_place_command(trade.id)
+                            _n = int((_cmd or {}).get("contracts") or 0)
+                            _dir = (_cmd or {}).get("direction")
+                            _ok, _why, _ = check_live_entry(_dir, _n) if _cmd else (
+                                False, "no remembered PLACE command", [])
+                            if _cmd is not None and _ok:
+                                self._order_failed_retried.add(trade.id)
+                                resubmit_place(trade.id)
+                                logger.critical(
+                                    "[FillPoller] ORDER_FAILED error=%s (%s) for LIVE "
+                                    "trade %d — RETRYING once (account clear: %s)",
+                                    err_code, err_text, trade.id, _why)
+                                RESULT_PATH.write_text("")
+                                return
+                            logger.warning(
+                                "[FillPoller] ORDER_FAILED for LIVE trade %d — NOT "
+                                "retrying: %s", trade.id, _why)
+                        except Exception as _re:
+                            logger.warning(
+                                "[FillPoller] ORDER_FAILED retry path errored for "
+                                "trade %d (falling through to cancel): %s",
+                                trade.id, _re)
                     try:
                         # Truncate reason to fit varchar(30)
                         _reason = f"ORDER_FAILED:{err_code}"[:30]
@@ -734,6 +770,20 @@ class FillPoller:
                             "[FillPoller] CANCELLED trade %d (mode=%s) due to ORDER_FAILED",
                             trade.id, getattr(trade, "mode", "?"),
                         )
+                        # F1 (2026-08-12): a live entry that died even after the
+                        # pre-send guard + retry is a broken execution path —
+                        # scream, don't just log ("No silent failures").
+                        if getattr(trade, "mode", "") == "live":
+                            try:
+                                from backend.v9.services.ntfy_notify import on_emergency
+                                on_emergency(
+                                    "LIVE ORDER FAILED",
+                                    f"trade {trade.id} error={err_code} ({err_text}) — "
+                                    f"cancelled after pre-send guard"
+                                    + (" + 1 retry" if trade.id in
+                                       self._order_failed_retried else ""))
+                            except Exception:
+                                pass
                     except Exception as e:
                         logger.warning("[FillPoller] failed to cancel trade %d: %s", trade.id, e)
 

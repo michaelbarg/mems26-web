@@ -185,7 +185,42 @@ def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
         "[SierraCmd] COMMAND QUEUED #%d → %s (op=%s, pending_before=%d, fast_path=%s)",
         _cmd_seq, queue_file, payload.get("op") or payload.get("action"),
         others_pending, fast_path)
+
+    # F1 (2026-08-12, ORDER_FAILED retry-once): remember the last PLACE payload
+    # per trade_id so the FillPoller can resubmit it exactly once when Sierra
+    # returns a synchronous ORDER_FAILED (r<=0 → no order exists, resend-safe).
+    # In-memory only — a restart forgets, which is the safe direction.
+    if payload.get("op") == "PLACE" and payload.get("trade_id") is not None:
+        clean = {k: v for k, v in payload.items() if not k.startswith("_")}
+        _LAST_PLACE[str(payload["trade_id"])] = clean
+        while len(_LAST_PLACE) > _LAST_PLACE_CAP:
+            _LAST_PLACE.pop(next(iter(_LAST_PLACE)))
     return payload
+
+
+# F1 (2026-08-12): last PLACE payload per trade_id — see note in _write_command.
+_LAST_PLACE: Dict[str, Dict[str, Any]] = {}
+_LAST_PLACE_CAP = 50
+
+
+def get_last_place_command(trade_id) -> Optional[Dict[str, Any]]:
+    """The clean (no queue metadata) PLACE payload last sent for trade_id, or None."""
+    return _LAST_PLACE.get(str(trade_id))
+
+
+def resubmit_place(trade_id) -> Optional[Dict[str, Any]]:
+    """Re-queue the remembered PLACE for trade_id (fresh seq/ts). None if unknown.
+
+    Only safe after a SYNCHRONOUS ORDER_FAILED (BuyEntry/SellEntry returned <= 0,
+    so no order exists at Sierra). Callers enforce the once-only policy.
+    """
+    cmd = get_last_place_command(trade_id)
+    if cmd is None:
+        return None
+    payload = dict(cmd)
+    payload["ts_submitted"] = time.time()
+    payload["_retry_of"] = str(trade_id)
+    return _write_command(payload)
 
 
 def drain_command_queue(*, timeout_s: float = 2.0) -> int:
