@@ -17,6 +17,26 @@
   (b) `_isolate_sierra_commands`: `V9_EXPORT_DIR` → tmp_path/v9_export
 5/5 isolation tests. 1108/1108 passed (41 pre-existing failures unchanged).
 
+### 2026-08-12 ~08:05 IL — dalton-compliance-agent — 📊 ביקורת-דלתון READ-ONLY: מטריצת-תאימות + פער-כניסת-פתיחה + צילום-שערים להיום
+
+**דוח:** `docs/research/DALTON_COMPLIANCE_2026-08-12.md` (0 שינויי קוד/דגל/ריסטארט).
+1. **🔴 לתשומת-לב מיידית:** לונג-ידני **6 חוזים @7758** פתוח עכשיו בחשבון-האמת (sierra_state טרי 07:52,
+   radar qty=6; אין עסקת-TM ⇒ ownership=מייקל; reconciler שם סטופ-וירטואלי @7748). **כל עוד פתוח —
+   F1 `PRE_SEND_ENTRY_GUARD` חוסם כל כניסת-LIVE של המערכת**, ומרג'ין מקצץ ל-allowed=2.
+2. **מטריצת-דלתון:** with-trend/רספונסיבי/זיהוי-פתיחה/בלימת-רדיפה/excess-ביציאות = **LIVE**;
+   **IB-width עדיין שבור-חי** (`ib_width_class=EXTREME` בכל 9 הסשנים 08-03→08-12; תיקון C1 קיים אך
+   `ATR_DAILY_FIX_V1` לא ב-.env=OFF — הפריט השבור היחיד שנותר); כניסת-פולבק/כניסת-excess (ספק-K5)/
+   multiday-veto/opening→sizing = לא מגיעים לירי.
+3. **פער-הפתיחה:** 0 עסקאות-OPENING מאז 07-31 למרות 5 זיהויים כיווניים (3 DRIVE+2 ORR) ב-7 סשנים.
+   הרוצחים: מיפוי-DRIVE צר (`OR_NARROW_MAX_PTS=10` מול OR חציוני 14-22 ⇒ 08-03/04 בלי טריגר) ·
+   strict-conf מה-detector בלבד (ימי-auction=0.0 ⇒ מוות-מובנה; הרג גם ER-LONG@7777.75 ב-08-10) ·
+   fusion שקט · חוצץ-מורעל עד-F2 (08-11: DRIVE-SHORT×4 פנטום על OR=14 — בלתי-אפשרי על ברים נקיים).
+   וטו-מיצוי + cold-start: **0 חסימות** — לא הם הבעיה. פריטי-בנייה B1-B6 בדוח (cc; flag-OFF⇒replay).
+4. **שערים היום:** revocation מת-בקוד + פטורי-רגל + release-12 (var #221, חי מ-07:37) + פלייבוק-הפוך —
+   כולם בתהליך הרץ (`flag_guard PASS 165/165`). חיכוך-שיורי: ה-6-לוט → מרג'ין → תווית-Neutral-מהבאג →
+   שעה-ראשונה-על-auction → R:R-מול-מדרגה (F3 בנוי-OFF) → ביצוע (retry בלי כיסוי-חי).
+חתום: dalton-compliance-agent
+
 ### 2026-08-12 בוקר — cowork-dev — "תתחיל" בוצע: כל תיקוני-הבוקר חיים · תוכנית-היום פעילה
 
 ✅ ריסטארט-בוקר (flat, snapshot): F1 (ORDER_FAILED) + F2 (הזנה-כפולה) + F4 (פלייבוק-הפוך:
