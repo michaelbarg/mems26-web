@@ -49,6 +49,32 @@ kill-switch, retry-פעם-אחת-ואז-ביטול, אין-retry-לתוך-פוז
 חי, אבל זה footgun (מחלקת ה-wrapper-המת מ-06-05). מומלץ להעביר ל-`__init__` בהזדמנות.
 חתום: cowork-exec-agent
 
+### 2026-08-12 ~10:40 IL — cowork-exec-agent — ✅ F4 בוצע: היפוך-הפלייבוק (daytype_playbook.yaml בלבד, אפס-.env)
+
+**סנאפשוט לפני עריכה:** `~/mems26_snapshots/20260812T034947Z_f4-playbook-inversion/` (rollback:
+`scripts/mems26_restore.sh`). **הפסיקה = הנחיית-מייקל מהבוקר**, מתועדת בכותרת-הקובץ.
+
+**דיף-התאים (רק תבניות שנקבו בפסיקה):**
+- **GB100:** REDUCED→**FULL** על Trend_Normal/Trend_DD/Normal/Variation (Neutral_*/Nontrend נשארים SKIP).
+- **ZLR:** FULL→**REDUCED** על Trend_Normal/Trend_DD/Variation · Normal REDUCED→**SKIP** (Neutral_* היו-ונשארו SKIP).
+- **FAMIR:** **SKIP בכל התאים** (היה FULL על Normal/Neutral_*, REDUCED על Variation).
+- **VEGAS:** **SKIP בכל התאים** (כנ"ל).
+- **GHOST:** Normal FULL→**REDUCED** · Variation נשאר REDUCED · Neutral_C/E FULL→**SKIP** (סוגי-יום
+  מותרים ל-S4 עפ"י הפסיקה: Trend_*/Variation/Normal בלבד) · Trend_* נשארים SKIP (לא פותחים הרשאה חדשה).
+- **לא נגעתי:** TLB/TT/HTLB/DBDT/CONFLUENCE/שורות-S2 — HTLB/TLB מודדים חיובי; שינוי שלהם צריך פסיקה משלו.
+
+**Rule-5:** `pytest tests/v9/regression/test_playbook_inversion_2026_08_12.py` (8 טסטים חדשים,
+נועלים כל תא שנפסק, אנטי-טאוטולוגיים — קוראים את ה-YAML האמיתי דרך decide()) +
+`tests/v9/systems/test_daytype_playbook.py::test_reduced_sizes_down` עודכן לפסיקה (ZLR/Variation=REDUCED)
++ טסט חדש ZLR/Normal=SKIP → **15 passed**. auth-matrix/auth-table (אותו-מקור) → ירוקים.
+
+**⚠️ 3 כשלונות קדם-קיימים (לא-שלי — נכשלים גם על HEAD נקי, אומת ב-stash):**
+`test_hfe_skip_on_trend` (שורת-HFE הוסרה מה-YAML כשה-HFE נוטרל, decide נופל-פתוח FULL — הטסט פיגר) ·
+`test_expansion_counter_fade_blocked/exempt` (K5: פטור-EXCESS נראה **מת** — RESPONSIVE_WITH_DAY_TREND
+חוסם לפני בדיקת-ה-EXCESS; ייתכן רגרסיה-חיה מאז 07-23, שווה בדיקת-cc) ·
+`test_AP4_reeval_halt` (compliance). לא תוקנו כאן — מחוץ ל-scope של F4; מתועדים לטיפול.
+חתום: cowork-exec-agent
+
 ### 2026-08-12 — cowork-dev — שתי ביקורות-מערכת מלאות (48 סשנים) ⇒ פקודת-בוקר F1-F6
 
 **הבעיה אינה השערים.** S2+S4 על כל הימים: אותם איתותים ⇒ מודל +$1,127 מול חשבון +$23.75 (×47);

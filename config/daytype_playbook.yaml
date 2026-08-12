@@ -14,6 +14,23 @@
 # GATED by env DAYTYPE_PLAYBOOK=1 (default OFF). When OFF the decision engine is a
 # no-op (returns FULL for everything) → ZERO change to current firing behavior.
 # Source: docs/research/PATTERN_DAYTYPE_PLAYBOOK_RESEARCH_2026-06-11.md (Part E matrix).
+#
+# ── RULING 2026-08-12 (Michael, morning directive = the ruling; CC_WORKORDER F4) ──
+# The 48-session audits (SYSTEM4_FULL_AUDIT_2026-08-11 §7-§9 + SYSTEM2 audit)
+# found this matrix INVERTED vs the evidence, so the S4 cells were flipped:
+#   GB100  REDUCED→FULL  on Trend_*/Normal/Variation — the ONLY pattern positive
+#          in live (+$167.50, 3W-0L), shadow (+$530.20, 82%) AND 48-session replay
+#          (+$2,282.50 net, both halves, all 3 months, every stop 4-12pt, to 4
+#          ticks slippage). Neutral_*/Nontrend stay SKIP.
+#   ZLR    FULL→REDUCED (+ SKIP on Normal) — 65% of S4 signal volume, negative
+#          everywhere: live −$270 (39%), shadow −$849 (51%), replay −$134; no
+#          slice survives out-of-sample. Neutral_* stay SKIP.
+#   FAMIR  → SKIP everywhere (replay −$1,607 / 38%; shadow −$660; 0 live wins).
+#   VEGAS  → SKIP everywhere (replay −$1,015 / 40%; shadow −$276.50).
+#   GHOST  FULL→REDUCED on Normal; Neutral_* FULL→SKIP (live 0W-3L −$177.50;
+#          allowed S4 day-types per the ruling: Trend_*/Variation/Normal only).
+# Patterns NOT named in the ruling (TLB/TT/HTLB/DBDT/CONFLUENCE/S2 rows) are
+# untouched — HTLB/TLB measure positive; changing them needs its own ruling.
 # ─────────────────────────────────────────────────────────────────────────────
 
 version: 1
@@ -140,10 +157,12 @@ opening_stance:
 # Per-pattern gate. Columns = the 7 day-types. (E=FULL, D=REDUCED, S=SKIP in the spec.)
 patterns:
   # ── Continuation (S4 Woodies + S2 INITIATIVE) ──
-  ZLR:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  # ZLR inverted 2026-08-12 (ruling above): FULL→REDUCED, Normal→SKIP.
+  ZLR:        { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: SKIP,    Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   TLB:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
   TT:         { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
-  GB100:      { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  # GB100 inverted 2026-08-12 (ruling above): REDUCED→FULL on the 4 allowed day-types.
+  GB100:      { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: FULL,    Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   # HTLB moved to reversal section below (HTLB = reversal, not continuation)
   INITIATIVE: { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   # S2×S4 combined pattern (CONFLUENCE_RI_ZLR_V1, default OFF — SHADOW-only V1).
@@ -155,9 +174,10 @@ patterns:
 
   # ── Reversal (S4 Woodies + S2 REACTIVE) — SKIP on trend days per spec ──
   HTLB:       { group: REV, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: REDUCED, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
-  VEGAS:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
-  GHOST:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
-  FAMIR:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
+  # VEGAS/FAMIR → SKIP everywhere · GHOST capped at REDUCED, Neutral shut (ruling 2026-08-12 above).
+  VEGAS:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: SKIP,    Variation: SKIP,    Neutral_Center: SKIP, Neutral_Extreme: SKIP, Nontrend: SKIP, Nonconviction: SKIP } }
+  GHOST:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP, Nontrend: SKIP, Nonconviction: SKIP } }
+  FAMIR:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: SKIP,    Variation: SKIP,    Neutral_Center: SKIP, Neutral_Extreme: SKIP, Nontrend: SKIP, Nonconviction: SKIP } }
   # HFE:     DISABLED (not Michael's pattern, −$2,987; flag HFE_DISABLED)
   DBDT:       { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: REDUCED, Normal: FULL,  Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
 

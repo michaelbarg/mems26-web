@@ -55,10 +55,19 @@ def test_reactive_with_trend_ok(monkeypatch):
 
 
 def test_reduced_sizes_down(monkeypatch):
-    # spec: ZLR on Normal = SIZE-DOWN.  if reverted (ZLR.Normal->FULL) → RED
+    # Ruling 2026-08-12 (playbook inversion, CC_WORKORDER F4): ZLR is REDUCED
+    # on Variation (was FULL) and SKIP on Normal (was REDUCED). REDUCED must
+    # still size down to 2. If reverted (ZLR.Variation->FULL) → RED.
+    _on(monkeypatch)
+    d = P.decide("ZLR_LONG", "Variation", "LONG", "GRAY")
+    assert d.verdict == "REDUCED" and d.contracts == 2
+
+
+def test_zlr_skip_on_normal_ruling_2026_08_12(monkeypatch):
+    # Ruling 2026-08-12: ZLR on Normal = SKIP (live −$270 / 39%, 65% of volume).
     _on(monkeypatch)
     d = P.decide("ZLR_LONG", "Normal", "LONG", "GRAY")
-    assert d.verdict == "REDUCED" and d.contracts == 2
+    assert d.verdict == "SKIP" and not d.allow
 
 
 def test_unknown_pattern_fails_open(monkeypatch):
