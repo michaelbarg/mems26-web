@@ -48,6 +48,14 @@ def test_process_bar_passes_trimmed_buffer_to_detect():
     fs.mode = FiveMinMode.DAY_TYPE_MODE
     fs.current_day_type = "Normal"
     fs._hydrated = True
+    # 2026-08-12 flake fix (pre-existing, exposed by the F2 suite run): when the
+    # suite runs OUTSIDE RTH and session_gate was already imported by an earlier
+    # test, process_bar flips DAY_TYPE→OVERNIGHT via is_after_firing_close() and
+    # detection never runs (alone, the lazy import fails → except: pass → green).
+    # Pin the gate so the test exercises the RTH path at any wall-clock.
+    import backend.v9.gateway.session_gate as _sg
+    _orig_iafc = _sg.is_after_firing_close
+    _sg.is_after_firing_close = lambda *a, **k: False
 
     completed_bars, partial_bar = _make_bars()
     loop = asyncio.new_event_loop()
@@ -74,6 +82,7 @@ def test_process_bar_passes_trimmed_buffer_to_detect():
         loop.run_until_complete(fs.process_bar(Evt(partial_bar)))
     finally:
         fs._detect_reactive = original
+        _sg.is_after_firing_close = _orig_iafc
         loop.close()
 
     # With fix (buffer[:-1]): last bar in detection = completed (c=7411)

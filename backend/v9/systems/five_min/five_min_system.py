@@ -27,6 +27,36 @@ from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
 
 logger = logging.getLogger("mems26.systems.five_min")
 
+
+def _canon_bar_ts(raw) -> str:
+    """F2 (2026-08-12): canonical UTC key for the process_bar dedup.
+
+    The old dedup compared the RAW ts string, so the same instant arriving as
+    "2026-08-11 16:20:00+00:00" (Sierra path, str(datetime)) and
+    "2026-08-11T16:20:00+00:00" (aggregator path, isoformat()) counted as TWO
+    new bars — every 5-min bar entered the S2 buffer twice from two different
+    price series (SYSTEM2_FULL_AUDIT §7). Normalise datetime / epoch / ISO
+    ('T' or ' ', 'Z' or offset, naive → assume UTC) to one aware-UTC ISO
+    string; unparseable input falls back to the raw string (never raises).
+    """
+    if isinstance(raw, datetime):
+        dt = raw
+    else:
+        s = str(raw or "").strip()
+        if not s:
+            return ""
+        try:
+            if s.replace(".", "", 1).isdigit():          # epoch seconds
+                dt = datetime.fromtimestamp(float(s), tz=timezone.utc)
+            else:
+                dt = datetime.fromisoformat(s.replace("Z", "+00:00").replace(" ", "T"))
+        except (ValueError, OSError, OverflowError):
+            return s
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+
+
 # Pkg 2bc · OFA configuration (config-driven thresholds per Master Sheet 7)
 DROP_THRESHOLD_PCT: float = 0.10               # bar 2 vol ≤ 10% of bar 1 vol (90% drop)
 EXPANSION_MIN_PT: float = 1.5                  # Initiative bar 1 range min (points)
@@ -1122,7 +1152,9 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Dedup: bridge pushes same bar ~20x while building. Buffer always
         # updates (latest OHLC), but bar counting + FHB + pattern detection
         # only run on genuinely new bar timestamps.
-        _bar_ts = str(bar.get("ts", ""))
+        # F2 (2026-08-12): compare the CANONICAL UTC instant, not the raw
+        # string — "…T16:20:00+00:00" and "…16:20:00+00:00" are the same bar.
+        _bar_ts = _canon_bar_ts(bar.get("ts", ""))
         is_new_bar = _bar_ts != self._last_bar_ts_for_count
         if is_new_bar:
             self._last_bar_ts_for_count = _bar_ts

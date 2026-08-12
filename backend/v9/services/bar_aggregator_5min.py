@@ -5,6 +5,7 @@ Bars are built ALWAYS when ticks flow. Session is a tag, not a gate.
 """
 
 import logging
+import os
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -189,21 +190,33 @@ def _on_bar_close_default(bar: Bar5Min) -> None:
     except Exception as e:
         logger.error("[Aggregator] Bar persist error: %s", e)
 
-    # 2. Publish via BarRouter (ts as string — fine for downstream)
-    bar_dict = {
-        "ts": ts_str,
-        "open": bar.open,
-        "high": bar.high,
-        "low": bar.low,
-        "close": bar.close,
-        "volume": bar.volume,
-        "delta": 0,
-        "symbol": "MES",
-        "session": bar.session,
-    }
-    from backend.v9.api.v9.bars import _bar_router
-    if _bar_router is not None:
-        _bar_router.publish_threadsafe("5min", bar_dict)
+    # 2. Publish via BarRouter — DEFAULT OFF since 2026-08-12 (F2 of
+    # CC_WORKORDER_2026-08-12). Wired 2026-05-12 (fe86c3ee), this made the
+    # "5min" topic DOUBLE-fed: bars.py:764 publishes the canonical Sierra bar
+    # (ts = str(datetime), vol>100k guard applied) and this aggregator
+    # published a SECOND, locally-built price series for the same instant
+    # (ts = isoformat(), NO volume guard — cumulative tick_reversal volume
+    # 100-800× real poisoned the S2 D-RVX rolling average, and the ts-string
+    # dedup in FiveMinSystem treated the two formats as two different bars, so
+    # the 4-bar REACTIVE window spanned ~2 real bars). Per SOURCE_OF_TRUTH:
+    # Sierra bars are the ONLY canonical "5min" publisher. Re-enabling this
+    # publisher (AGGREGATOR_5MIN_PUBLISH_V1=1) is a trading-risk-surface
+    # change → Michael sign-off. Full evidence: SYSTEM2_FULL_AUDIT §7.
+    if os.getenv("AGGREGATOR_5MIN_PUBLISH_V1", "0").strip().lower() in ("1", "true", "yes"):
+        bar_dict = {
+            "ts": ts_str,
+            "open": bar.open,
+            "high": bar.high,
+            "low": bar.low,
+            "close": bar.close,
+            "volume": bar.volume,
+            "delta": 0,
+            "symbol": "MES",
+            "session": bar.session,
+        }
+        from backend.v9.api.v9.bars import _bar_router
+        if _bar_router is not None:
+            _bar_router.publish_threadsafe("5min", bar_dict)
 
     logger.info(
         "[Aggregator] Bar closed: %s O=%.2f H=%.2f L=%.2f C=%.2f V=%d session=%s",
