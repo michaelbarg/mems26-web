@@ -48,4 +48,8 @@
 | E2 | S6 — BE-מוקדם-מדי ביום-מגמה (−$72.50 מדוד) — כיול | cc | ⏸ **replay DEFER** (−$55.00 / n=16, האוכלוסייה המושפעת = 4 עסקאות; טרייל-מבנה מפסיד ב-07-15 יותר משהוא מרוויח ב-08-03). דגל-OFF; להתנות BE (≥1.0R מעבר ל-T1) במקום לבטלו |
 | E3 | Trend-path 03/05.08 (S1_TREND_ELONGATION חי) — אימות המשך | cw | חי-במעקב |
 | E4 | קונפלואנס S2×S4 כרכיב-ציון (65% מול 50%) | cc | ✅ סגור (+10pts ב-S7) |
+| F1 | `ORDER_FAILED:-1` root-fix — pre-send account-state guard + retry-once + ntfy | cw | ✅ חי 12.08 |
+| F2 | הזנה-כפולה — single-source '5min' channel + canonical dedup key | cw | ✅ חי 12.08 |
 | F3 | `STEP_SCALED_LADDER_V1` — סולם-סטופ-לפי-מדרגה (stop=max(4,0.6×median_step), targets=0.5/1.0/1.5×step) | cc | ✅ בנוי, דגל-OFF, ממתין-פסיקה |
+| F4 | פלייבוק-הפוך — GB100=FULL, ZLR=REDUCED/SKIP-Normal, FAMIR+VEGAS=SKIP (48-session evidence) | cw | ✅ חי 12.08 |
+| F6 | רוטציית-יומית gateway_decisions.jsonl + sticky zlr_detected | cw | ✅ חי 12.08 |
