@@ -1,3 +1,12 @@
+### 2026-08-12 בוקר — cowork-dev — "תתחיל" בוצע: כל תיקוני-הבוקר חיים · תוכנית-היום פעילה
+
+✅ ריסטארט-בוקר (flat, snapshot): F1 (ORDER_FAILED) + F2 (הזנה-כפולה) + F4 (פלייבוק-הפוך:
+GB100=FULL, ZLR=REDUCED/SKIP-Normal, FAMIR+VEGAS=SKIP) + F6 — **טעונים ורצים** (220 vars,
+164/164). לוג-ההחלטות רותץ נקי (הישן ב-.bak). קדם-פתיחה אוטומטי 15:50 (אחרי-CPI-15:30) → שעון.
+**אל: cc — היום:** F3 סולם-סטופ-לפי-מדרגה (flag-OFF⇒replay⇒פסיקה; שלוש אנליזות התכנסו) +
+היגיינת-conftest (ריצות-pytest זיהמו פעמיים את לוג-ההחלטות החי — redirect ל-tmp_path) +
+עדכון-סטטוסים ב-MASTER_BACKLOG. **ממתין לפסיקת-מייקל:** RELEASE_TREND_BYPASS_PTS 15→12 (n=3, +$540 אתמול).
+
 ### 2026-08-12 ~07:45 IL — quality-blocks-agent — 📊 טבלת-איכות לכל חסימות 08-10/08-11 + תוכנית-עבודה מסודרת להיום (READ-ONLY)
 
 **דוחות:** `docs/research/QUALITY_BLOCKS_2026-08-10_11.md` + `docs/handoff/WORK_PLAN_2026-08-12.md`.
