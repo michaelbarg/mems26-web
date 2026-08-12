@@ -1185,6 +1185,30 @@ def post_woodies(
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
+def _sticky_zlr(ts_iso: str, zlr_flag: int, zlr_dir):
+    """F6b (2026-08-12, S4-audit Finding B): keep zlr_detected sticky per bar.
+
+    The DLL raises zlr_detected on a mid-bar push; the row is INSERT-OR-REPLACEd
+    on every push, so the final push (zlr=0) used to erase the earlier 1
+    (2026-08-10: table said 0 DLL-ZLR bars vs 17 live signals). If the incoming
+    push has zlr=0 but the stored row for the same bar already has 1, carry the
+    1 (and its direction) forward. read_one returns None on any error → the
+    incoming values pass through unchanged (fail-open, never raises).
+    """
+    if zlr_flag:
+        return zlr_flag, zlr_dir
+    from backend.v9.db.read import read_one
+    prev = read_one(
+        "SELECT zlr_detected, zlr_direction FROM v9_bars_5min_woodies "
+        "WHERE ts = :ts AND symbol = 'MES'", {"ts": ts_iso})
+    try:
+        if prev and int(prev.get("zlr_detected") or 0) == 1:
+            return 1, (prev.get("zlr_direction") or zlr_dir)
+    except (TypeError, ValueError):
+        pass
+    return zlr_flag, zlr_dir
+
+
 # ── POST /api/v9/bars/woodies_5min (D-074: primary S4 path) ──
 
 @router.post("/woodies_5min")
@@ -1323,6 +1347,17 @@ def post_woodies_5min(
         # TREND_CCI_DIRECT_V1: trend follows CCI directly (cancel sticky GRAY)
         bar["trend_state"] = _trend_from_cci(bar.get("trend_state"), bar.get("cci_14"))
 
+        # F6b (2026-08-12, S4-audit Finding B): zlr_detected fires on a MID-BAR
+        # push (Mechanism-C) but this INSERT OR REPLACE runs on EVERY push of
+        # the bar — the last push (zlr=0) overwrote the earlier 1, so the table
+        # said "0 DLL-ZLR bars" on 2026-08-10 while the decision log held 17
+        # live ZLR signals. Sticky-carry via _sticky_zlr (fails-open).
+        _woodies_ts = (_ts_from_unix(bar.get("ts", 0)).isoformat()
+                       if isinstance(bar.get("ts"), (int, float)) else bar.get("ts", ""))
+        _zlr_flag, _zlr_dir = _sticky_zlr(
+            _woodies_ts, 1 if bar.get("zlr_detected") else 0,
+            bar.get("zlr_direction"))
+
         # Persist to v9_bars_5min_woodies (dedicated table per D-074)
         # DB Root Fix (2026-06-03): safe_execute replaces raw sqlite3.connect
         result = safe_execute(
@@ -1334,13 +1369,13 @@ def post_woodies_5min(
             "lsma_above_price) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                _ts_from_unix(bar.get("ts", 0)).isoformat() if isinstance(bar.get("ts"), (int, float)) else bar.get("ts", ""),
+                _woodies_ts,
                 "MES", o, h, l, c, vol,
                 bar.get("cci_14"), bar.get("cci_6_tcci"),
                 bar.get("lsma_value"), bar.get("swi_value"),
                 bar.get("czi_value"), bar.get("ema_34"),
                 bar.get("trend_state"), bar.get("predictor_next_cci"),
-                1 if bar.get("zlr_detected") else 0, bar.get("zlr_direction"),
+                _zlr_flag, _zlr_dir,
                 bar.get("proj_hi"), bar.get("proj_lo"),
                 1 if bar.get("hfe_detected") else 0,
                 bar.get("hfe_direction") or "NONE",

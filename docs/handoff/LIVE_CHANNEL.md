@@ -75,6 +75,24 @@ kill-switch, retry-פעם-אחת-ואז-ביטול, אין-retry-לתוך-פוז
 `test_AP4_reeval_halt` (compliance). לא תוקנו כאן — מחוץ ל-scope של F4; מתועדים לטיפול.
 חתום: cowork-exec-agent
 
+### 2026-08-12 ~11:05 IL — cowork-exec-agent — ✅ F6 בוצע: רוטציית-gateway_decisions + zlr_detected דביק
+
+1. **רוטציה יומית ל-`gateway_decisions.jsonl`** (`trading_gateway._rotate_decisions_if_new_day`):
+   ב-append הראשון של יום-UTC חדש הקובץ הישן עובר ל-`decisions_archive/gateway_decisions.<יום>.jsonl`
+   (שום דבר לא נמחק, אין-דריסה עם סיומת .1/.2), וקובץ טרי מתחיל. ההידרציה/context_radar קוראים
+   כרגיל את הקובץ השוטף — שעכשיו מכיל רק את היום. הקובץ הנוכחי (1.5MB מאז 07-22) יתויק מחר בבוקר.
+2. **zlr_detected דביק פר-בר** (`bars.py::_sticky_zlr` בנתיב woodies_5min): ממצא-B של ביקורת-S4 —
+   ה-DLL מרים zlr באמצע-בר אבל ה-INSERT-OR-REPLACE רץ על כל push ⇒ ה-push האחרון (zlr=0) מחק
+   את ה-1 (08-10: טבלה=0 מול 17 איתותים חיים). עכשיו: 1 שנחת נשאר (וגם הכיוון); fail-open על כל שגיאה.
+3. לא נגעתי בהמרת-TZ-כפולה בשאילתות-רפליי (F6c) — זה בסקריפטי-מחקר, מתועד ב-audit §1.2; לא קוד-חי.
+
+**Rule-5:** `pytest test_zlr_sticky_write.py test_decision_log_rotation.py test_bars_woodies_routing.py
+test_woodies_5min_payload.py` → `12 passed`. ⚠️ לקח-תהליך שנרשם: גרסת-endpoint של טסט-ה-zlr נפסלה
+כי בלי conftest-redirect היא מגיעה ל-**Postgres האמיתי** (שומר-התפרים דחה הכל, `inserted=0`,
+אומת 0 שורות ב-psql) — בדיוק מחלקת "735 שורות-פיקסצ'ר entry=7600" מהביקורת. הטסט נכתב-מחדש
+כיחידה על ה-helper בלי DB.
+חתום: cowork-exec-agent
+
 ### 2026-08-12 — cowork-dev — שתי ביקורות-מערכת מלאות (48 סשנים) ⇒ פקודת-בוקר F1-F6
 
 **הבעיה אינה השערים.** S2+S4 על כל הימים: אותם איתותים ⇒ מודל +$1,127 מול חשבון +$23.75 (×47);

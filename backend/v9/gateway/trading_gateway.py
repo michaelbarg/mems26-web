@@ -414,9 +414,44 @@ class TradingGateway:
         except Exception as e:
             logger.warning("[Gateway] decisions hydration failed (non-fatal): %s", e)
 
+    def _rotate_decisions_if_new_day(self) -> None:
+        """F6 (2026-08-12): daily rotation of gateway_decisions.jsonl.
+
+        The file grew unbounded since 2026-07-22 (1.5 MB / 5,900+ lines) and
+        every reader (hydration, context_radar, audits) scanned all of it. On
+        the first append of a new UTC day, the existing file is MOVED to
+        decisions_archive/gateway_decisions.<last-day>.jsonl (nothing is ever
+        deleted) and a fresh file starts. Checked once per day per process;
+        never raises.
+        """
+        try:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if getattr(self, "_decisions_rotated_day", None) == today:
+                return
+            self._decisions_rotated_day = today
+            p = self._decisions_path
+            if not p.exists():
+                return
+            mday = datetime.fromtimestamp(
+                p.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d")
+            if mday >= today:
+                return  # file already belongs to today
+            arch = p.parent / "decisions_archive"
+            arch.mkdir(parents=True, exist_ok=True)
+            dest = arch / f"{p.stem}.{mday}{p.suffix}"
+            n = 1
+            while dest.exists():
+                dest = arch / f"{p.stem}.{mday}.{n}{p.suffix}"
+                n += 1
+            p.rename(dest)
+            logger.info("[Gateway] DECISIONS rotated → %s", dest)
+        except Exception as e:
+            logger.warning("[Gateway] decisions rotation failed (non-fatal): %s", e)
+
     def _persist_decision(self, decision: dict) -> None:
         """P10 (2026-07-22): append one decision to the JSONL file."""
         try:
+            self._rotate_decisions_if_new_day()
             with open(self._decisions_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(decision) + "\n")
         except Exception:
