@@ -648,6 +648,24 @@ class BarLevelDetector:
                         _tar_state_key = f"_tar_state_{trade.id}"
                         _tar_prev_state = getattr(self, _tar_state_key, None)
                         bar_close = float(bar_data.get("close", bar_data.get("c", 0)))
+                        # K5 fix (2026-08-12): feed extremes dict to should_realize.
+                        # Without this, EXTREMES_AWARE_REALIZE_V1 was dead — the
+                        # EXCESS/POOR consumer never received its input.
+                        _tar_extremes = None
+                        try:
+                            from backend.v9.systems.extremes_quality import classify_extremes_live
+                            from backend.v9.db.read import read_all as _k5_read
+                            _k5_bars = _k5_read(
+                                "SELECT high AS h, low AS l, close AS c, open AS o "
+                                "FROM v9_bars_5min_woodies "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                "ORDER BY ts ASC", {})
+                            if _k5_bars and len(_k5_bars) >= 5:
+                                _tar_extremes = classify_extremes_live(_k5_bars) or None
+                        except Exception:
+                            pass  # fail-open: no extremes = NEUTRAL behavior
                         _tar_ok, _tar_reason, _tar_new_state = _tar_should(
                             trade={
                                 "direction": direction,
@@ -660,6 +678,7 @@ class BarLevelDetector:
                             },
                             bar_high=bar_high, bar_low=bar_low, bar_close=bar_close,
                             approach_state=_tar_prev_state,
+                            extremes=_tar_extremes,
                         )
                         setattr(self, _tar_state_key, _tar_new_state)
                         if _tar_ok:

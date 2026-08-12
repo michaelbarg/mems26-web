@@ -53,3 +53,7 @@
 | F3 | ✅ **חי 12.08** — סולם-סטופ-לפי-מדרגה (פסיקת-מייקל; replay GO בשני המשטרים; 166 ruled) | cw | ✅ סגור |
 | F4 | פלייבוק-הפוך — GB100=FULL, ZLR=REDUCED/SKIP-Normal, FAMIR+VEGAS=SKIP (48-session evidence) | cw | ✅ חי 12.08 |
 | F6 | רוטציית-יומית gateway_decisions.jsonl + sticky zlr_detected | cw | ✅ חי 12.08 |
+| G1 | `OPENING_CONF_ENGINE_FUSE_V1` — ציון-מנוע (DRIVE=0.85) מחליף ציון-גלאי כשטריגר מסכים | cc | ✅ בנוי, דגל-OFF |
+| G2 | `OR_NARROW_MAX_PTS` parameterization + `OPENING_OR_ATR_SCALE_V1` | cc | ✅ בנוי, env-tunable |
+| G4 | לוג-fusion קבוע (B4 מהמפרט) | cc | ✅ סגור |
+| K5 | `extremes` wired ל-should_realize — EXCESS/POOR consumer היה מת | cc | ✅ סגור |

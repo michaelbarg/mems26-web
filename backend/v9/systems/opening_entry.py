@@ -31,7 +31,12 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 # Revised parameters (agent report §4; YAML-tunable later if promoted)
-OR_NARROW_MAX_PTS = 10.0     # DRIVE fires only when bar-1 range <= this
+# B2 (2026-08-12): parameterized OR threshold — was hardcoded 10pt, but
+# real opening ranges are 14-22pt. Env-tunable; the historical range says
+# ~20pt is correct for MES. When OPENING_OR_ATR_SCALE_V1=1, the threshold
+# is max(OR_NARROW_MAX_PTS, 0.25 × daily_atr) — scales with volatility.
+import os as _os_or
+OR_NARROW_MAX_PTS = float(_os_or.getenv("OR_NARROW_MAX_PTS", "10.0") or "10.0")
 TD_EXCURSION_FRAC = 0.5      # TEST excursion >= 50% of OR width, from bar 2
 WINDOW_LAST_BAR = 6          # bars 2..6 (first 30 min)
 ORR_FIRST_BAR = 3            # reversal earliest at bar 3
@@ -147,7 +152,18 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
         return None
 
     # ── DRIVE: close beyond OR extreme, one-directional, NARROW OR only.
-    if or_width <= OR_NARROW_MAX_PTS:
+    # B2: ATR-scaled threshold when OPENING_OR_ATR_SCALE_V1=1
+    _or_max = OR_NARROW_MAX_PTS
+    try:
+        import os as _os_drive
+        if _os_drive.getenv("OPENING_OR_ATR_SCALE_V1", "0").lower() in ("1", "true", "yes"):
+            from backend.v9.systems.day_type.detector import compute_daily_atr
+            _daily_atr = compute_daily_atr(14)
+            if _daily_atr and _daily_atr > 0:
+                _or_max = max(OR_NARROW_MAX_PTS, 0.25 * _daily_atr)
+    except Exception:
+        pass
+    if or_width <= _or_max:
         if close > or_high and not drove_dn_before:
             return {"type": "DRIVE", "direction": "LONG", "entry": close,
                     "or_width": or_width}
@@ -301,9 +317,20 @@ def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
                        *, pdh: Optional[float] = None, pdl: Optional[float] = None,
                        prior_vah: Optional[float] = None, prior_val: Optional[float] = None,
                        mom_min_pts: float = FUSION_MOM_MIN_PTS) -> Optional[str]:
+    # B4 (2026-08-12): permanent fusion logging — inputs + decision, always.
+    # The fusion was silent when it dropped (vol < median → None, no log line).
+    import logging as _log_fus
+    _fus_log = _log_fus.getLogger(__name__)
+
     if not bars or open_price is None or opening_vol is None or median_open_vol is None:
+        _fus_log.info(
+            "[OPENING_DIR_FUSION] SKIP: missing inputs (bars=%d open=%s vol=%s median=%s)",
+            len(bars or []), open_price, opening_vol, median_open_vol)
         return None
-    if opening_vol < median_open_vol:              # auction / low conviction → skip
+    if opening_vol < median_open_vol:
+        _fus_log.info(
+            "[OPENING_DIR_FUSION] SKIP: opening_vol %.0f < median %.0f — auction/low-conviction",
+            opening_vol, median_open_vol)
         return None
     closes = [_f(b, "c", "close") for b in bars]
     highs = [_f(b, "h", "high") for b in bars]
@@ -325,13 +352,19 @@ def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
         acc = "UP"
     elif refs_dn and b6c < min(refs_dn) and b6h <= max(refs_dn) + FUSION_ACCEPT_BUFFER_PTS:
         acc = "DOWN"
-    if acc is not None and acc != mom:             # break conflicts with momentum → skip
+    if acc is not None and acc != mom:
+        _fus_log.info(
+            "[OPENING_DIR_FUSION] CONFLICT: mom=%s acc=%s — skip", mom, acc)
         return None
+    _fus_log.info(
+        "[OPENING_DIR_FUSION] RESULT=%s (vol=%.0f/%.0f delta=%.2f mom=%s acc=%s)",
+        mom, opening_vol, median_open_vol, delta, mom, acc)
     return mom
 
 
 def opening_first_trade_ok(session_bars, direction, opening_conf,
-                           min_conf=None, min_bars=None):
+                           min_conf=None, min_bars=None,
+                           trigger_type=None):
     """OPENING_FIRST_TRADE_STRICT_V1 (Michael ruling 2026-07-31 18:20:
     "העסקה הראשונה צריכה להגיע רק בוודאות של סוג הפתיחה ולהחמיר כניסה").
 
@@ -348,6 +381,11 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
          LONG, c<o for SHORT). One impulsive bar is not an entry; the market
          must confirm once.
 
+    B1 (2026-08-12): OPENING_CONF_ENGINE_FUSE_V1 — when the entry engine's
+    own trigger agrees with the direction, use the engine's graded confidence
+    (DRIVE=0.85, TEST=0.75, ORR=0.65) instead of the detector's opening_conf.
+    This prevents auction days (conf=0.0) from killing valid engine triggers.
+
     Returns (ok: bool, reason: str)."""
     import os as _os
     if min_conf is None:
@@ -358,6 +396,22 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
         conf = float(opening_conf) if opening_conf is not None else None
     except (TypeError, ValueError):
         conf = None
+
+    # B1: engine confidence fuse — when the entry engine itself detected a
+    # directional type, use its own graded confidence as a floor.
+    _ENGINE_CONF = {"DRIVE": 0.85, "TEST_DRIVE": 0.75, "ORR": 0.65,
+                    "PULLBACK_CONT": 0.70, "EXTREME_REJECT": 0.70}
+    if (_os.getenv("OPENING_CONF_ENGINE_FUSE_V1", "0").lower() in ("1", "true", "yes")
+            and trigger_type in _ENGINE_CONF):
+        engine_conf = _ENGINE_CONF[trigger_type]
+        if conf is None or conf < engine_conf:
+            import logging as _log_b1
+            _log_b1.getLogger(__name__).info(
+                "[opening_entry] B1 CONF_FUSE: trigger=%s engine_conf=%.2f "
+                "overrides detector_conf=%s (was below min_conf=%.2f)",
+                trigger_type, engine_conf, conf, min_conf)
+            conf = engine_conf
+
     if conf is None or conf < min_conf:
         return False, f"opening confidence {conf} < {min_conf} — no certainty, no first trade"
     if not session_bars or len(session_bars) < min_bars:

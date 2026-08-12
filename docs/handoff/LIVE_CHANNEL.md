@@ -1,3 +1,12 @@
+### 2026-08-12 — cc-macbook — ✅ B1-B4 opening gap fixes + K5 excess wiring
+
+**B1:** `OPENING_CONF_ENGINE_FUSE_V1` (OFF) — trigger engine confidence (DRIVE=0.85)
+  overrides detector conf on matching direction. Auction days (conf=0) won't kill valid triggers.
+**B2:** `OR_NARROW_MAX_PTS` env-tunable + `OPENING_OR_ATR_SCALE_V1` ATR-derived scale.
+**B4:** Fusion logs INFO on every skip/result (was completely silent on vol<median drop).
+**K5:** `extremes` wired to `should_realize` — EXCESS/POOR consumer was dead (always None).
+12/12 טסטים. כל הדגלים OFF ⇒ replay ⇒ פסיקה.
+
 ### 2026-08-12 — cc-macbook — ✅ F3 בנוי: `STEP_SCALED_LADDER_V1` (דגל-OFF, ממתין-פסיקה)
 
 **בעיה:** StopResolver מייצר סטופ ATR-sized (11pt) על מדרגת-סשן של 11pt → R=15, אף עסקה לא בונקת.
