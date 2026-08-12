@@ -1,3 +1,14 @@
+### 2026-08-12 — cc-macbook — 🟢 G1+G2 replay GO: +$248.75 / 7 sessions
+
+**Replay:** `OPENING_CONF_ENGINE_FUSE_V1=1` + OR threshold=19.9pt (0.25×ATR 79.4).
+  - Auction days (08-10, 08-11): ✅ entry-free (14 triggers blocked, conf=0 < 0.6)
+  - 08-04 DRIVE LONG: **+$388.75** (was dead — OR=14.2 > old threshold 10)
+  - 08-05/06/07: entries produced, net −$140 (tight stops on non-trend days)
+  - 08-03: no trigger (OR=22.5 > threshold — correctly blocked)
+  - **NET: +$248.75** · 4/5 directional sessions produced entries.
+B1 fuse fix: conf≥0.5 = detector-directional → fuse fires; conf<0.5 = auction → fuse silent.
+[דוח מלא](../reports/REPLAY_G1G2_OPENING_ENTRY_2026-08-12.md). ממתין לפסיקת-מייקל; cowork ידליק.
+
 ### 2026-08-12 — cc-macbook — ✅ B1-B4 opening gap fixes + K5 excess wiring
 
 **B1:** `OPENING_CONF_ENGINE_FUSE_V1` (OFF) — trigger engine confidence (DRIVE=0.85)

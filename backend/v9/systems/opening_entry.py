@@ -397,14 +397,18 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
     except (TypeError, ValueError):
         conf = None
 
-    # B1: engine confidence fuse — when the entry engine itself detected a
-    # directional type, use its own graded confidence as a floor.
+    # B1: engine confidence fuse — when the entry engine detects a directional
+    # trigger AND the detector's opening-type is ALSO directional (DRIVE/ORR/TD),
+    # use the engine's graded confidence. This does NOT fire on auction days
+    # (detector conf=0, opening_type=AUCTION) — only when the detector agrees.
     _ENGINE_CONF = {"DRIVE": 0.85, "TEST_DRIVE": 0.75, "ORR": 0.65,
                     "PULLBACK_CONT": 0.70, "EXTREME_REJECT": 0.70}
+    _DETECTOR_IS_DIRECTIONAL = (conf is not None and conf >= 0.5)
     if (_os.getenv("OPENING_CONF_ENGINE_FUSE_V1", "0").lower() in ("1", "true", "yes")
-            and trigger_type in _ENGINE_CONF):
+            and trigger_type in _ENGINE_CONF
+            and _DETECTOR_IS_DIRECTIONAL):
         engine_conf = _ENGINE_CONF[trigger_type]
-        if conf is None or conf < engine_conf:
+        if conf < engine_conf:
             import logging as _log_b1
             _log_b1.getLogger(__name__).info(
                 "[opening_entry] B1 CONF_FUSE: trigger=%s engine_conf=%.2f "
