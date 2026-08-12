@@ -1,3 +1,14 @@
+### 2026-08-12 — cc-macbook — ✅ F3 בנוי: `STEP_SCALED_LADDER_V1` (דגל-OFF, ממתין-פסיקה)
+
+**בעיה:** StopResolver מייצר סטופ ATR-sized (11pt) על מדרגת-סשן של 11pt → R=15, אף עסקה לא בונקת.
+**תיקון:** `step_scaled_ladder.py` — חישוב מדרגה-חציונית מברי-RTH.
+  stop = max(4, 0.6×median_step) · T1 = 0.5×step · T2 = 1.0×step · T3 = 1.5×step.
+  הסולם דורס את stop/t1/t2/t3 אחרי structural-targets + target-zones, לפני I-61 guard.
+  Fail-open: <3 מדרגות / שגיאה → שומר על stop/targets מקוריים.
+**Replay 15 ימים (73 עסקאות):** R:R משתפר משמעותית (0.24→0.31 טיפוסי, 0.00→0.50 קיצוני).
+  Trend n=21 $+2008.75 · Rotation n=52 $+1735.00 — ללא-הרעה.
+15/15 טסטים + replay. **דגל OFF, ממתין-פסיקת-מייקל.**
+
 ### 2026-08-12 — cc-macbook — ✅ conftest isolation: gateway_decisions redirected to tmp_path
 
 **בעיה:** pytest כתב 510 שורות-fixture ל-gateway_decisions.jsonl החי (08-11 19:26 + 08-12 07:00).

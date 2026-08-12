@@ -2345,6 +2345,44 @@ class TradingGateway:
             except Exception as _tz_err:
                 logger.warning("[Gateway] target zones errored (kept targets): %s", _tz_err)
 
+        # F3 (STEP_SCALED_LADDER_V1, default OFF): scale stop+targets to the
+        # session's median step size. Three analyses converged: LEG_EXEMPTION_REPLAY
+        # §R2, TREND_STEP_ENTRY §9, SYSTEM4_AUDIT D4. Problem: detector stop →
+        # StopResolver → ATR-sized stop (0.8×ATR = 11pt) on a session step of 11pt
+        # → R=15, no trade banks. Fix: stop = max(4, 0.6×median_step), targets =
+        # 0.5/1.0/1.5×step. Overrides stop+targets when the ladder is available;
+        # fail-open (keeps existing stop/targets) when < 3 steps or error.
+        if (not _confluence_fixed) and os.getenv("STEP_SCALED_LADDER_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.five_min.step_scaled_ladder import build_step_ladder
+                from backend.v9.db.read import read_all as _ssl_read
+                _ssl_rows = _ssl_read(
+                    "SELECT high AS h, low AS l FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "ORDER BY ts ASC", {})
+                _ssl_entry = setup.get("entry_price")
+                if _ssl_rows and _ssl_entry is not None:
+                    _ssl = build_step_ladder(
+                        float(_ssl_entry), str(direction).upper(), _ssl_rows,
+                        stop_floor=float(os.getenv("STEP_STOP_FLOOR", "4.0") or "4.0"),
+                        stop_frac=float(os.getenv("STEP_STOP_FRAC", "0.6") or "0.6"),
+                    )
+                    if _ssl is not None:
+                        setup["stop"] = _ssl["stop"]
+                        setup["t1"] = _ssl["t1"]
+                        setup["t2"] = _ssl["t2"]
+                        setup["t3"] = _ssl["t3"]
+                        result["step_ladder"] = _ssl
+                        logger.info(
+                            "[Gateway] F3 STEP_SCALED_LADDER: %s median=%.2f → "
+                            "stop=%.2f t1=%.2f t2=%.2f t3=%.2f",
+                            direction, _ssl["median_step"],
+                            _ssl["stop"], _ssl["t1"], _ssl["t2"], _ssl["t3"])
+            except Exception as _ssl_err:
+                logger.warning("[Gateway] step-scaled-ladder errored (fail-open): %s", _ssl_err)
+
         # I-61 (Michael 2026-07-02 ~20:1x, trades 279/280): FINAL target-side guard for
         # EVERY setup (S2 has no A7 validator — a LONG went to Sierra with t2/t3 BELOW
         # entry and disintegrated instantly). Any target on the wrong side of entry is

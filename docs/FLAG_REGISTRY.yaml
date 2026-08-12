@@ -1670,6 +1670,26 @@ flags:
     status: param
     ref: "CC_WORKORDER_2026-08-07 P2-9"
 
+  STEP_SCALED_LADDER_V1:
+    category: targets
+    group: "F3 step ladder"
+    what: "Scale stop+targets to the session median price step. stop=max(4,0.6×step), targets=0.5/1.0/1.5×step"
+    why: "Three analyses converged: ATR-sized stops produce R=15 on a step of 11pt — no trade banks"
+    status: awaiting_backtest
+    ref: "MASTER_BACKLOG F3"
+
+  STEP_STOP_FLOOR:
+    category: param
+    group: "F3 step ladder"
+    what: "Minimum stop distance in points for step-scaled ladder. Default 4.0"
+    status: param
+
+  STEP_STOP_FRAC:
+    category: param
+    group: "F3 step ladder"
+    what: "Stop as fraction of median session step. Default 0.6"
+    status: param
+
   S6_TREND_BE_DELAY_V1:
     category: risk
     group: "E2 trend BE delay"
