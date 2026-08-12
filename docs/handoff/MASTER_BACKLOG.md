@@ -50,6 +50,6 @@
 | E4 | קונפלואנס S2×S4 כרכיב-ציון (65% מול 50%) | cc | ✅ סגור (+10pts ב-S7) |
 | F1 | `ORDER_FAILED:-1` root-fix — pre-send account-state guard + retry-once + ntfy | cw | ✅ חי 12.08 |
 | F2 | הזנה-כפולה — single-source '5min' channel + canonical dedup key | cw | ✅ חי 12.08 |
-| F3 | `STEP_SCALED_LADDER_V1` — סולם-סטופ-לפי-מדרגה (stop=max(4,0.6×median_step), targets=0.5/1.0/1.5×step) | cc | ✅ בנוי, דגל-OFF, ממתין-פסיקה |
+| F3 | ✅ **חי 12.08** — סולם-סטופ-לפי-מדרגה (פסיקת-מייקל; replay GO בשני המשטרים; 166 ruled) | cw | ✅ סגור |
 | F4 | פלייבוק-הפוך — GB100=FULL, ZLR=REDUCED/SKIP-Normal, FAMIR+VEGAS=SKIP (48-session evidence) | cw | ✅ חי 12.08 |
 | F6 | רוטציית-יומית gateway_decisions.jsonl + sticky zlr_detected | cw | ✅ חי 12.08 |
