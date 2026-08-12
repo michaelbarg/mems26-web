@@ -1,3 +1,11 @@
+### 2026-08-12 — cc-macbook — ✅ conftest isolation: gateway_decisions redirected to tmp_path
+
+**בעיה:** pytest כתב 510 שורות-fixture ל-gateway_decisions.jsonl החי (08-11 19:26 + 08-12 07:00).
+**תיקון:** `backend/v9/tests/conftest.py` עם 2 autouse fixtures:
+  (a) `_isolate_gateway_decisions`: `GATEWAY_DECISIONS_PATH` → tmp_path, `MEMS26_TEST_MODE=1`
+  (b) `_isolate_sierra_commands`: `V9_EXPORT_DIR` → tmp_path/v9_export
+5/5 isolation tests. 1108/1108 passed (41 pre-existing failures unchanged).
+
 ### 2026-08-12 בוקר — cowork-dev — "תתחיל" בוצע: כל תיקוני-הבוקר חיים · תוכנית-היום פעילה
 
 ✅ ריסטארט-בוקר (flat, snapshot): F1 (ORDER_FAILED) + F2 (הזנה-כפולה) + F4 (פלייבוק-הפוך:
