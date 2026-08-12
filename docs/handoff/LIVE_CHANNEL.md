@@ -2185,6 +2185,14 @@ PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-08-12 17:20 IL] liveproofs-agent — ✅ בדיקת-הוכחות-חיות 45ד׳ אחרי פתיחה: 5/5 עברו, לייב #657 פתוח
+- החלטות מאז 13:30Z (4): **GB100 SHORT 7775.25 → PASSED→live #657** · FAMIR LONG נחסם direction_context (UP מול יום-DOWN) · GHOST SHORT shadow_only (#658) · ZLR SHORT נחסם rr_hard_floor (R:R 0.25<0.30, un-rescuable).
+- הוכחות: (a) BYPASS REVOKED מאז boot=**0** (אחרון: 08-11 19:25) · (b) LEG_RIDE: live DOWN leg (age 5) ב-ZLR 14:15Z, אחריו rr_hard_floor — **לא** chase-block · (c) ORDER_FAILED=**0** · (d) duplicate-ts=**0** · (e) #657 v9_trades mode=live state=FILLED entry 16:35:06+03 @7775.25 + Sierra: position_qty=-2 avg=7774.75, 4 working orders (T1 7760.5 · T2 7752.25 · 2×stop 7790.5) — ההוכחה האולטימטיבית ✓.
+- מצב: שורט 2@7774.75 uPnL≈+$33 · order_placement_armed=1 · acct 37138283 is_sim=0 · daily −$88.75 · **הלונג-הידני-6 של מייקל סגור** — אין חסימת one-position; הפוזיציה = של המערכת.
+- יום: Normal conf 0.35 (stage A3, IB=EXTREME, lock PENDING) · רגל DOWN age 5 · playbook SKIP→ADVISORY (conf<0.4).
+- watch: Reconcile מדפיס NAKED_STOP_SUSPECT (last_result=None) בעוד 2 סטופים working ב-sierra_state — נראה כמחלקת held-bracket-display (07-22), לא naked אמיתי; לא ננקטה פעולה. Pushover נשלח. לא שונו דגלים / אין restart / אין arm.
+
+
 ### [2026-07-24 ~00:00 IL] cursor-agent — סקירת-יום 07-23 → `CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md`
 ממצאים מדורגים + ביקורת cowork/cursor. ראיה: mobile −300 · OPENING 0 · never-fade@7433 ·
 Sierra 9507/9508 external Limit · SMART_BE=0 · PARTIAL→PARTIAL×4751 · day_type_at_fire NULL×23.
