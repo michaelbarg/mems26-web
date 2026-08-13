@@ -61,3 +61,26 @@ class TestDecisionIsolation:
         path = os.environ.get("V9_EXPORT_DIR", "")
         assert path, "V9_EXPORT_DIR must be set by conftest"
         assert "SierraChart" not in path
+
+    def test_ops_log_disabled(self):
+        """OPS_LOG_DISABLE must be set to prevent file writes."""
+        assert os.environ.get("OPS_LOG_DISABLE") == "1"
+
+    def test_ops_log_noop(self):
+        """log_event must not write to the live file when disabled."""
+        from scripts.ops_log import log_event, log_path
+        before_exists = log_path().exists()
+        log_event("test_conftest_isolation", "INFO", "should be silenced")
+        # The live file must not contain our test marker
+        if log_path().exists():
+            content = log_path().read_text()
+            assert "test_conftest_isolation" not in content
+
+    def test_ntfy_topic_unset(self):
+        """NTFY_TOPIC must be unset to prevent push notifications."""
+        assert os.environ.get("NTFY_TOPIC") in (None, "")
+
+    def test_pushover_keys_unset(self):
+        """Pushover keys must be unset."""
+        assert os.environ.get("PUSHOVER_USER_KEY") in (None, "")
+        assert os.environ.get("PUSHOVER_APP_TOKEN") in (None, "")

@@ -34,3 +34,22 @@ def _isolate_sierra_commands(tmp_path, monkeypatch):
     """Prevent tests from writing Sierra trade commands to the real export dir."""
     monkeypatch.setenv("V9_EXPORT_DIR", str(tmp_path / "v9_export"))
     os.makedirs(str(tmp_path / "v9_export"), exist_ok=True)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_ops_log(monkeypatch):
+    """H3 (2026-08-13): prevent tests from writing to OPS_LOG files.
+
+    Incident: MagicMock leaked to OPS_LOG at 00:39 12.08 — a mock object's
+    repr was written as a log line to the live ops log file. OPS_LOG_DISABLE=1
+    makes log_event() a silent no-op (already supported).
+    """
+    monkeypatch.setenv("OPS_LOG_DISABLE", "1")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_phone_alerts(monkeypatch):
+    """H3: prevent tests from sending real push notifications."""
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    monkeypatch.delenv("PUSHOVER_USER_KEY", raising=False)
+    monkeypatch.delenv("PUSHOVER_APP_TOKEN", raising=False)

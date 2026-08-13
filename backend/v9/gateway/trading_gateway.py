@@ -596,6 +596,37 @@ class TradingGateway:
         except Exception:
             return False
 
+    def _effective_rr_min(self) -> float:
+        """Single source for the rr_entry_gate minimum (13.08, H6 realign).
+
+        1.0 everywhere; RR_MIN_ROTATION relief applies ONLY on rotation-family
+        labels (Variation/Normal/Neutral) or in the unclassified relief window
+        (07-16 ruling). Trend labels always 1.0. Fail-conservative → 1.0.
+        Used by BOTH rr_entry_gate and the F3 step-ladder's structural T1
+        floor, so the ladder is built to pass the exact gate that will judge it.
+        """
+        rr_min = 1.0
+        rr_min_env = os.getenv("RR_MIN_ROTATION", "").strip()
+        if rr_min_env:
+            try:
+                from backend.v9.services.trade_context import (
+                    get_live_day_type as _rr_dt_fn,
+                )
+                _rr_dt = str(_rr_dt_fn() or "")
+                _rr_relief = _rr_dt.startswith(
+                    ("Variation", "Normal_Variation", "Normal", "Neutral")
+                )
+                # 07-16 Michael ("מאשר — תקן עכשיו"): relief ALSO while the
+                # label is UNCLASSIFIED (""), but only in the post-opening
+                # window. Trend labels keep 1.0; error paths keep 1.0.
+                if not _rr_relief and _rr_dt == "":
+                    _rr_relief = self._rr_unclassified_relief_window()
+                if _rr_relief:
+                    rr_min = max(0.1, min(float(rr_min_env), 1.0))
+            except Exception:
+                rr_min = 1.0
+        return rr_min
+
     def route_setup(self, setup: dict, system_id: int) -> Dict:
         """Route a setup, then LOG the gate block reason so blocks are not silent
         (no silent failures — every blocked setup records WHY it didn't fire)."""
@@ -2364,10 +2395,15 @@ class TradingGateway:
                     "ORDER BY ts ASC", {})
                 _ssl_entry = setup.get("entry_price")
                 if _ssl_rows and _ssl_entry is not None:
+                    # 13.08 H6 realign (Michael "ליישר לפי רחב יותר"): wide
+                    # zigzag-leg measure + structural T1 floor at the SAME
+                    # rr_min the gate downstream will enforce.
                     _ssl = build_step_ladder(
                         float(_ssl_entry), str(direction).upper(), _ssl_rows,
                         stop_floor=float(os.getenv("STEP_STOP_FLOOR", "4.0") or "4.0"),
                         stop_frac=float(os.getenv("STEP_STOP_FRAC", "0.6") or "0.6"),
+                        zz_rev=float(os.getenv("STEP_ZZ_REV", "5.0") or "5.0"),
+                        min_rr=self._effective_rr_min(),
                     )
                     if _ssl is not None:
                         setup["stop"] = _ssl["stop"]
@@ -2631,27 +2667,7 @@ class TradingGateway:
                     # required ratio ONLY on rotation day-types; unset → 1.0
                     # everywhere (unchanged). Trend days always 1.0. Fail-
                     # conservative: any error → 1.0.
-                    _rr_min = 1.0
-                    _rr_min_env = os.getenv("RR_MIN_ROTATION", "").strip()
-                    if _rr_min_env:
-                        try:
-                            from backend.v9.services.trade_context import (
-                                get_live_day_type as _rr_dt_fn,
-                            )
-                            _rr_dt = str(_rr_dt_fn() or "")
-                            _rr_relief = _rr_dt.startswith(
-                                ("Variation", "Normal_Variation", "Normal", "Neutral")
-                            )
-                            # 07-16 Michael ("מאשר — תקן עכשיו"): relief ALSO
-                            # while the label is UNCLASSIFIED (""), but only in
-                            # the post-opening window (see helper). Trend labels
-                            # keep 1.0; error paths keep 1.0 (except below).
-                            if not _rr_relief and _rr_dt == "":
-                                _rr_relief = self._rr_unclassified_relief_window()
-                            if _rr_relief:
-                                _rr_min = max(0.1, min(float(_rr_min_env), 1.0))
-                        except Exception:
-                            _rr_min = 1.0
+                    _rr_min = self._effective_rr_min()
                     if (not _confluence_fixed) and _stop_dist > 0 and _t1_dist < _stop_dist * _rr_min:
                         result["blocked_by"] = "rr_entry_gate"
                         result["reason"] = (
