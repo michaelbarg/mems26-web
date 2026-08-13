@@ -19,8 +19,12 @@
 #
 # Link after deploy: https://mems26-phone-mac2.onrender.com/?key=<MOBILE_ACCESS_KEY>
 #
-# NOTE plan: free sleeps after idle (~50s cold start — annoying for
-# emergencies). Upgrade to starter in the dashboard for always-on.
+# PLAN: FREE ONLY (Michael 13.08: "בחינם ולא בחבילה שעולה כסף").
+# Free-tier math: 750 instance-hours/month for the whole workspace; the 5s
+# snapshot pushes keep a service awake. Two machines pushing 24/7 ≈ 1,460h →
+# mid-month suspension. Therefore BOTH Macs gate the pusher with
+# RELAY_WINDOW_IL=11:30-23:59 + RELAY_DAYS_IL=Sun..Fri (~650h total < 750).
+# Outside the window the page still opens (cold start ~50s, last snapshot).
 #
 # DR for מק-1: if mems26-mobile ever dies, duplicate the service block below
 # with name mems26-phone, deploy, and point mac-1's RENDER_MOBILE_URL at it.
@@ -29,6 +33,7 @@ services:
   - type: web
     name: mems26-phone-mac2
     runtime: python
+    plan: free  # Michael 13.08 — free only, never a paid plan
     rootDir: render_mobile_relay
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT

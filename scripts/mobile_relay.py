@@ -124,6 +124,42 @@ def _execute_local(action, access_key):
         return False
 
 
+def _in_active_window(env: dict) -> bool:
+    """Free-tier hours budget (Michael 13.08: "רנדר בחינם, לא בחבילה שעולה כסף").
+
+    Render free tier = 750 instance-hours/month for the WHOLE workspace; a
+    service stays awake as long as traffic arrives, and our 5s pushes are
+    exactly such traffic. Two machines pushing 24/7 ≈ 1,460h → mid-month
+    suspension (the mems26-web class of death). Gating the pusher to the
+    trading window keeps both phone services free AND alive:
+      RELAY_WINDOW_IL="11:30-23:59" (default when set) ≈ 12.5h/day
+      RELAY_DAYS_IL="Sun,Mon,Tue,Wed,Thu,Fri" (Sat = market closed)
+      ⇒ ~325h/month per service, ~650h for two < 750 ✓
+    Unset RELAY_WINDOW_IL → 24/7 (backward-compatible). Outside the window
+    the loop idles (no push, no cmd-poll) — the Render service spins down,
+    the page still opens (cold start ~50s) showing the last snapshot.
+    """
+    win = (env.get("RELAY_WINDOW_IL", "") or "").strip()
+    if not win:
+        return True
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+        days = (env.get("RELAY_DAYS_IL", "Sun,Mon,Tue,Wed,Thu,Fri") or "").strip()
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        if day_names[now.weekday()] not in [d.strip() for d in days.split(",")]:
+            return False
+        lo, hi = win.split("-")
+        lo_h, lo_m = (int(x) for x in lo.split(":"))
+        hi_h, hi_m = (int(x) for x in hi.split(":"))
+        cur = now.hour * 60 + now.minute
+        return (lo_h * 60 + lo_m) <= cur <= (hi_h * 60 + hi_m)
+    except Exception as e:
+        print(f"[relay] window parse error ({e}) — failing OPEN (24/7)", flush=True)
+        return True
+
+
 def main() -> None:
     env = _env()
     access_key = env.get("MOBILE_ACCESS_KEY", "")
@@ -132,9 +168,18 @@ def main() -> None:
     if not (access_key and push_key and render):
         print("[relay] missing MOBILE_ACCESS_KEY/MOBILE_PUSH_KEY/RENDER_MOBILE_URL — exit", flush=True)
         sys.exit(1)
-    print(f"[relay] start → {render} (interval {INTERVAL_OK}s, cmd relay enabled)", flush=True)
+    print(f"[relay] start → {render} (interval {INTERVAL_OK}s, cmd relay enabled, "
+          f"window={env.get('RELAY_WINDOW_IL') or '24/7'})", flush=True)
     fails = 0
+    idle_logged = False
     while True:
+        if not _in_active_window(env):
+            if not idle_logged:
+                print("[relay] outside active window — idling (free-tier hours budget)", flush=True)
+                idle_logged = True
+            time.sleep(60)
+            continue
+        idle_logged = False
         try:
             _push_snapshot(access_key, push_key, render)
             if fails:

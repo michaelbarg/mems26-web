@@ -13,12 +13,14 @@
 2ב. **התראות-נפרדות (פסיקת-מייקל 13.08):** ב-.env של מק-2: `MACHINE_TAG=מק-2` +
    `PHONE_ALERTS_V1=1` + `PUSHOVER_USER_KEY`/`PUSHOVER_API_TOKEN`/`NTFY_TOPIC` (זהים למק-1,
    מ-.env שם — לא ב-git). שלח פוש-בדיקה ואמת שמייקל רואה `[מק-2]` בכותרת. הדבק פלט (Rule-5).
-2ג. **רנדר-נפרד למק-2 (פסיקת-מייקל 13.08 10:30):** אחרי שמייקל פורס את ה-blueprint
-   (`render.yaml` → שירות `mems26-phone-mac2`): ב-.env של מק-2:
+2ג. **רנדר-נפרד למק-2 (פסיקת-מייקל 13.08 10:30; 11:00: חינם-בלבד):** אחרי שמייקל פורס
+   את ה-blueprint (`render.yaml` → שירות `mems26-phone-mac2`, **plan: free**): ב-.env של מק-2:
    `RENDER_MOBILE_URL=https://mems26-phone-mac2.onrender.com` + `MOBILE_ACCESS_KEY`/
-   `MOBILE_PUSH_KEY` (זהים למק-1) → טען את ה-LaunchAgent `com.mems26.mobile_relay`
-   (מ-`launchagents/`) → אמת: `curl -s https://mems26-phone-mac2.onrender.com/healthz`
-   מחזיר `has_snapshot:true, age_s<10`, והדף מציג תג `מק-2` בכותרת. הדבק פלט.
+   `MOBILE_PUSH_KEY` (זהים למק-1) + **תקציב-שעות-החינם (חובה, אחרת השעיה באמצע-חודש):**
+   `RELAY_WINDOW_IL=10:00-23:30` + `RELAY_DAYS_IL=Sun,Mon,Tue,Wed,Thu,Fri` →
+   טען את ה-LaunchAgent `com.mems26.mobile_relay` (מ-`launchagents/`) → אמת:
+   `curl -s https://mems26-phone-mac2.onrender.com/healthz` מחזיר `has_snapshot:true,
+   age_s<10`, והדף מציג תג `מק-2` בכותרת. הדבק פלט.
    **אסור** להצביע על `mems26-mobile` (זה של מק-1) — כל מכונה והשירות שלה.
 3. **גשר Local-Only:** `CLOUD_URL=http://localhost:8000` · LaunchAgent bridge `KeepAlive/SuccessfulExit=false` + `V9_DISABLE_WATCHDOG=1`.
 4. **DLL:** `./scripts/build_monolithic_cpp.sh --deploy` → Sierra ACS_Source → Remote Build → reload study.
