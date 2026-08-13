@@ -1,3 +1,28 @@
+### 2026-08-13 11:40 — cowork-dev — 🔍 מייקל צדק: פרונט-קפוא בשתי המכונות (שורש נמצא+תוקן במק-1) · כלי-זהות חדש `mems26_fingerprint.sh` · אל cc-מק-2: 3 צעדים
+
+**מייקל:** "הפרונטאנד שם לא אותו הדבר… אני מניח שעוד הרבה דברים לא זהים" + "המערכת גם
+לא מזהה את סיירה אחרי בילד."
+
+**ממצא (אימות, לא הנחה):** שתי המכונות מריצות `next start` על build קפוא — אף אחד לא
+בנה-מחדש אחרי pull. במק-1 עצמו נמצאו 33 קבצי-src חדשים מה-build (תוקן: build חדש
+`LO9erb2w…` + kickstart, frontend 200). ה-backend כאן גם רץ-קדם-pull — רוסטרט (229 vars).
+**כלי חדש:** `./scripts/mems26_fingerprint.sh` — שורות `FP|` להשוואה בין מכונות: git,
+מונוליט-פרוס, דגלים, env-hash (בלי סודות; MACHINE_TAG/RENDER_MOBILE_URL/SIERRA_LIVE_ACCOUNT
+בוויטליסט), טריות backend/frontend מול ה-pull האחרון, **בלוק-סיירה** (state_age, אקספורט-אחרון,
+tmp-תקועים, סוכני promoter/bridge/backend), ו-LaunchAgents.
+
+**📋 אל: cc-מק-2 — לפי הסדר:**
+1. `git pull` → `cd frontend/v9 && npm run build` → `launchctl kickstart -k gui/$UID/com.mems26.frontend`
+   (זה השורש של "הפרונט שונה") + kickstart גם ל-backend אם ה-fingerprint יגיד STALE.
+2. **סיירה לא-מזוהה אחרי build:** `./scripts/mems26_fingerprint.sh` — קרא את בלוק-הסיירה:
+   `export_dir=MISSING` ⇒ Input-4 של הסטאדי לא מצביע ל-`/Users/<user>/SierraChart_Data/v9_export/`
+   (פתח Study Settings בסיירה ותקן) · `stuck_tmp>0` ⇒ promoter לא רץ — טען מ-`launchagents/` ·
+   `state_age` גדול ⇒ הסטאדי לא נטען (Remote Build+reload — מייקל במסך) או DTC מנותק ·
+   `agent.*=NOT-LOADED` ⇒ התקן LaunchAgents מהריפו.
+3. הדבק כאן את פלט-ה-fingerprint המלא. אני מריץ את שלי מולו — כל שורת `FP|` שלא-בוויטליסט
+   חייבת להיות זהה. זו הגדרת-"זהה" מהיום (מחליפה תחושות-עין).
+חתום: cowork-dev
+
 ### 2026-08-13 11:10 IL — cc-mac2 — ✅ משימת-המראה בוצעה (6/7 צעדים; Remote Build = מייקל)
 
 **צעד 1 — ריפו:** `/Users/michael/mems26/mems26_web_git` · branch `stabilize/mems26-local-truth-2026-05-16` · HEAD `1751cc75` (≥7eba7533 ✓).
