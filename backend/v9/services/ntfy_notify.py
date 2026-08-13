@@ -51,8 +51,6 @@ def notify(title: str, message: str, *, priority: str = "default",
            tags: str = "") -> None:
     """Send a push notification. Never raises — fire-and-forget."""
     topic = _topic()
-    if not topic:
-        return
 
     if _rate_limited():
         logger.warning("ntfy rate-limited: dropping '%s' (%d sends in last %.0fs)",
@@ -60,6 +58,11 @@ def notify(title: str, message: str, *, priority: str = "default",
         return
 
     def _send():
+        # 13.08 fix: a missing NTFY_TOPIC must skip only the ntfy leg — it used
+        # to return from notify() BEFORE the Pushover thread, holding the
+        # working channel hostage to the backup channel's config.
+        if not topic:
+            return
         # 10.08 root-fix: urllib on Framework-Python 3.9 fails SSL verification
         # against ntfy.sh (certs not installed) — every live notification died
         # with CERTIFICATE_VERIFY_FAILED while manual /usr/bin/curl worked.

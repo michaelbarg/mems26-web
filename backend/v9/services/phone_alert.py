@@ -85,10 +85,20 @@ def push(key: str, title: str, msg: str, priority: int = 1) -> None:
     def _bg():
         try:
             prov = os.getenv("PHONE_ALERT_PROVIDER", "pushover").strip().lower()
-            ok = _send_telegram(title, msg, priority) if prov == "telegram" \
-                else _send_pushover(title, msg, priority)
-            if not ok:
-                logger.warning("[phone_alert] send failed/no-creds (provider=%s, key=%s)", prov, key)
+            if prov == "telegram":
+                ok = _send_telegram(title, msg, priority)
+                if not ok:
+                    logger.warning("[phone_alert] send failed/no-creds (provider=%s, key=%s)", prov, key)
+                return
+            # ROOT-FIX 2026-08-13 (orphan-breach 08-12 died silently): delegate to
+            # ntfy_notify — the proven transport (system curl, Pushover-primary with
+            # the real env names PUSHOVER_USER_KEY/PUSHOVER_API_TOKEN + ntfy backup).
+            # The old _send_pushover here used urllib (broken SSL on Framework-Python)
+            # and read PUSHOVER_TOKEN/PUSHOVER_USER, which were never in .env.
+            from backend.v9.services import ntfy_notify as _nn
+            _nn.notify(title, msg,
+                       priority=("urgent" if priority >= 1 else "default"),
+                       tags="rotating_light")
         except Exception as e:
             logger.warning("[phone_alert] error (never blocks trading): %s", e)
 

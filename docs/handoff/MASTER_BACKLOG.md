@@ -57,3 +57,14 @@
 | G2 | ✅ **חי 12.08 15:00** — תקרת-OR דינמית max(10, 0.25×ATR) | cw | ✅ סגור |
 | G4 | לוג-fusion קבוע (B4 מהמפרט) | cc | ✅ סגור |
 | K5 | `extremes` wired ל-should_realize — EXCESS/POOR consumer היה מת | cc | ✅ סגור |
+
+## 🆕 H — פערי 12-13.08 (מסקירת יום-היומולדת)
+| # | משימה | בעלים | סטטוס |
+|---|---|---|---|
+| H1 | ✅ **חי 13.08 07:00** — phone_alert מת-בשקט על הפרת-אורפן (PHONE_ALERTS_V1 + שמות-env + urllib) → delegation ל-ntfy_notify + notify() לא-בורח + 3 טסטים + 169/169 | cw | ✅ סגור |
+| H2 | day_type writer — קצב מדרדר + נעצר 19:55 יומית (תבנית ותיקה, לא F2); watchdog מזייף "starved" כל היום | cc | 🔴 root-cause |
+| H3 | בידוד-טסטים חלקי: MagicMock דלף ל-OPS_LOG (00:39 12.08) — להרחיב conftest גם ל-ops_log/mobile-relay/phone_alert | cc | פתוח |
+| H4 | מדיניות multi-slot: GHOST #658 נשאר shadow_only כי slot-לייב-יחיד תפוס (עלות ~$39 צל) — החלטת-מוצר | מייקל | פסיקה |
+| H5 | שורת-עמלות ב-EOD (ברוטו 73.75 מול נטו 49.15) | cc | פתוח |
+| H6 | **F3 step-function mismatch** — פרודקשן 2-3pt מול replay ~10.4 ⇒ סולם בלתי-עביר ב-rr_entry_gate על Trend; (א) OFF עד יישור או (ב) T1≥rr_min×stop | מייקל⇒cc | ⚠️ פסיקה-דחופה |
+| H7 | אורפן-6c גלובקס 12.08 (~−$229): זהות-הפותח — ידני-של-מייקל או תעלומה | מייקל | בירור |
