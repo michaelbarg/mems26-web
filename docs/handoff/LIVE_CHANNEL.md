@@ -1811,6 +1811,17 @@ STOP_HIT **−$63.75** (+ צל #563 −$67.50). חוליות 8-10 לא מכוס�
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-08-13 07:15 IL] cowork-dev — SCALE_IN_V1 בנוי (OFF) + חבילת מק-2-LIVE + עדכון-כן למייקל
+**תיאום-מציאות:** מייקל אמר "לא בוצע כלום" — בפועל הרבה חי (169 ruled, אתמול 657 GB100 שורט לייב +$73.75).
+אבל 2 אמיתות: (1) עסקאות OPEN_DRIVE מפסידות (07-30/07-31, תואם מחקר-התשישות); (2) scale-in לא היה קיים.
+**SCALE_IN_V1 (פסיקת-מייקל 08-13 "אם הכיוון ממשיך אפשר לחזק"):** תוסף-ניהול additive — child-trade +2 חוזים
+כשההורה פתוח+T1-נבנק+עם-הטרנד+רץ≥6pt+לא-scaled+תחת-תקרה, סטופ-add ב-BE-של-ההורה (לא יכול להפוך מנצח למפסיד).
+**לא נוגע בכניסה** (אזהרת-מייקל). מודול טהור scale_in.py + hook ב-bar_level_detector.on_bar. טסטים 9/9, flag OFF,
+flag_guard 169/169. **להדלקה חסר:** Sierra-sim drill של child-PLACE (Sierra לייב עכשיו → drill בחלון-סים/טרום-פתיחה).
+**מק-2 LIVE:** `docs/handoff/MAC2_GO_LIVE_PARALLEL_2026-08-13.md` — 🔴 חוסם: החלטת-חשבון (נפרד מול משותף; כפל-ירי).
+3 כשלי-טסט (dll_exit_monitor/pipeline5) = חוב-env ידוע קיים-מראש, לא-קשור ל-scale-in.
+
+
 ### [2026-07-30 10:20 IL] cursor-agent — 🔴 CRITICAL: bridge בלי V9_CHART_TZ → פיד נדחה עכשיו + ביקורת PROFIT_FIRE נמסרה
 **🔴 מיידי (לפני שאר הביקורת):** Bridge PID 655 רץ מאז Sat Jul 25 13:16 **בלי** `V9_CHART_TZ` ב-env → default `America/New_York`. צ'ארט=Chicago. ברים מגיעים ~1h מאחור → `TS-OFFSET-GATE REJECTED` חוזר (`newest ~3730s behind`, raw 1785388800→1785391800). DB woodies תקוע ~09:15 IL מול export מתוקן ~10:10. `.env` כבר `V9_CHART_TZ=America/Chicago` + `TS_WHOLE_HOUR_NORMALIZE_V1=0` — **הברידג' לא רוסטארטט מאז הפסיקה.** אל תדליק normalize מחדש.
 **פעולה ל-cowork/cc:** restart bridge עם Chicago מה-LaunchAgent/`.env`; אמת `export_ts−bar_ts<120s` + 0 תאומי-OHLC+1h בחלון חדש.
