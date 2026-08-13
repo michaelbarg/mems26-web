@@ -54,10 +54,26 @@ def build(day: str) -> dict:
             day_type = dt[0]
     except Exception:
         pass
+    # H5 (2026-08-13): read Sierra account daily P&L for commissions line
+    sierra_daily_pl = None
+    try:
+        import json as _h5_json
+        import os as _h5_os
+        _sp = _h5_os.path.expanduser("~/SierraChart_Data/v9_export/sierra_state.json")
+        _sd = _h5_json.loads(open(_sp).read().strip() or "{}")
+        sierra_daily_pl = _sd.get("acct_daily_pl")
+    except Exception:
+        pass
+    commissions = None
+    if sierra_daily_pl is not None and pnl != 0:
+        commissions = round(pnl - float(sierra_daily_pl), 2)
+
     return {
         "date": day,
         "generated": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z"),
         "pnl_usd": pnl,
+        "pnl_net": round(float(sierra_daily_pl), 2) if sierra_daily_pl is not None else None,
+        "commissions": commissions,
         "n_trades": len(closed),
         "wins": wins,
         "losses": len(closed) - wins,
@@ -67,8 +83,12 @@ def build(day: str) -> dict:
 
 
 def to_md(r: dict) -> str:
+    _comm_line = ""
+    if r.get("commissions") is not None:
+        _comm_line = (f" · נטו: {'+' if (r.get('pnl_net') or 0)>=0 else ''}"
+                      f"{r.get('pnl_net')}$ (עמלות: {r['commissions']}$)")
     lines = [f"# דוח-יומי — {r['date']}", "",
-             f"**P&L: {'+' if r['pnl_usd']>=0 else ''}{r['pnl_usd']}$** · "
+             f"**P&L: {'+' if r['pnl_usd']>=0 else ''}{r['pnl_usd']}$**{_comm_line} · "
              f"{r['n_trades']} עסקאות ({r['wins']}W/{r['losses']}L) · "
              f"סוג-יום: {(r.get('day_type') or {}).get('day_type','—')}",
              f"_נוצר {r['generated']}_", ""]

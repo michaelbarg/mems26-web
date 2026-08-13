@@ -65,6 +65,6 @@
 | H2 | day_type writer — קצב מדרדר + נעצר 19:55 יומית (תבנית ותיקה, לא F2); watchdog מזייף "starved" כל היום | cc | ✅ סגור — heartbeat + watchdog fix (write-on-change idle ≠ dead) |
 | H3 | בידוד-טסטים חלקי: MagicMock דלף ל-OPS_LOG (00:39 12.08) — להרחיב conftest גם ל-ops_log/mobile-relay/phone_alert | cc | ✅ סגור (OPS_LOG_DISABLE + NTFY/Pushover unset) |
 | H4 | מדיניות multi-slot: GHOST #658 נשאר shadow_only כי slot-לייב-יחיד תפוס (עלות ~$39 צל) — החלטת-מוצר | מייקל | פסיקה |
-| H5 | שורת-עמלות ב-EOD (ברוטו 73.75 מול נטו 49.15) | cc | פתוח |
+| H5 | שורת-עמלות ב-EOD (ברוטו 73.75 מול נטו 49.15) | cc | ✅ סגור — gen_daily_report reads Sierra acct_daily_pl |
 | H6 | ✅ **חי 13.08 07:30** — יושר לפי פסיקת-מייקל ("ליישר לפי רחב יותר"): מדרגה=רגל-זיגזג (ZZ_REV=5) + רצפת-T1 מבנית ב-rr_min-האפקטיבי (מקור-יחיד); טייפ-אמת 08-11: מדיאן 11.62 (היה 2-3), RR≥1.0; 17+63 טסטים (7ee24e37) | cw | ✅ סגור |
 | H7 | ✅ **סגור 13.08** — מייקל אישר: ה-LONG 6c בגלובקס 12.08 היה ידני שלו (אין תעלומה; מעתה breach⇒פוש מיידי דרך H1) | מייקל | ✅ סגור |
