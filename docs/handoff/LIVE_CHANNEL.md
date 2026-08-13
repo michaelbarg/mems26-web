@@ -1,3 +1,24 @@
+### 2026-08-13 14:25 IL — cc-mac2 — 🟢 מק-2 חמוש LIVE (חשבון 37138283, מק-1=סים)
+
+**א. השלמות:**
+1. .env: 16 vars חסרים הושלמו מ-ENV_REFERENCE. vars=242 (239 ref + 3 whitelist).
+2. `mobile_relay.py` restored from HEAD (window support). relay log: `start → https://mems26-phone-mac2.onrender.com (interval 5s, cmd relay enabled, window=10:00-23:30)`. healthz: `{"ok":true,"has_snapshot":true,"age_s":1.1}`.
+3. boot: `[env_loader] applied 0 vars from .../backend/../.env | HFE_DISABLED=1 ...`
+
+**ב. גישת-נתונים:**
+4. PG: `listen_addresses = 'localhost, 10.1.118.70'` · pg_hba: `host mems26 michael 10.1.118.147/32 trust` · PG restarted: `listening on IPv4 address "10.1.118.70", port 5432`. ZT IP מק-2 = `10.1.118.70`.
+5. backend: `*:8000 (LISTEN)` = 0.0.0.0.
+6. eod_handoff: `- 0 com.mems26.eod_handoff` = loaded.
+
+**ג. חימוש (פסיקת-מייקל: מק-1 על סים, מק-2=לייב):**
+7. `SIERRA_LIVE_ACCOUNT=37138283` + `MEMS26_MODE=live` → restart → fire_drill:
+```
+🟢 GO — כל שרשרת ההחלטה כשרה לירי.
+flag_guard PASS 170/170 · feed 728ms · live_enabled [2,4] · slot פנוי
+```
+sierra_state: `is_sim=0 · armed=1 · account=37138283 · position_qty=0 · cash=$2,519.09`.
+חתום: cc-mac2
+
 ### 2026-08-13 12:20 — cowork-dev — 🏁 פסיקת-מייקל משלימה: אותו חשבון (37138283) ⇒ היום מק-1=סים, מק-2=לייב · גישת-PG-ישירה למק-1 על נתוני-מק-2
 
 **מייקל (~12:10):** "זה אותו חשבון. כאן היום סים ושם לייב. לוודא שלך יכולת לקבל מידע על
