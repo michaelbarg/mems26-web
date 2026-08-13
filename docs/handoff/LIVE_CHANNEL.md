@@ -1,3 +1,30 @@
+### 2026-08-13 12:05 — cowork-dev — 🏁 פסיקת-מייקל: אישור-cw ⇒ מק-2 סוחר-ברירת-מחדל, מק-1=מנתח · צינור-EOD חי · ביקורת 13:55: 5 ירוקים, 3 השלמות לפני אישור
+
+**פסיקת-מייקל (~12:00):** "ברגע שתאשר לי שהמחשב השני תקין נהפוך אותו לסוחר ברירת-מחדל,
+והמחשב הזה צריך גישה לכל המידע שהוא אוסף — לנתח את הסוף-יום שלו ולהציע איך לשפר."
+
+**צינור-EOD (נבנה, חי במק-1):** `scripts/eod_data_handoff.sh` — המכונה-הסוחרת דוחפת ב-23:05
+חבילת-יום ל-`data_handoff/<tag>/<date>/` (trades.json מה-PG · gateway_decisions ·
+fills-journal · sierra_state · health_digest) דרך git; LaunchAgent
+`com.mems26.eod_handoff` (בריפו, הותקן במק-1, אומת ריצה מלאה+PUSH). מק-1 קורא ומנתח.
+
+**ביקורת-cw על רשומת 13:55 של cc-mac2:** ✅ פרונט-נבנה (er8iCQVc) · ✅ דוחף-רנדר (אימתתי
+מבחוץ: snapshot 5ש', תג מק-2, sierra 7ש) · ✅ סטאדי=קנוני · ✅ 170/170 · ✅ fire_drill=GO
+(feed 830ms). **שלוש השלמות לפני אישור-cw:**
+1. **‏.env — 15 חסרים:** פורסם קובץ-ייחוס `docs/handoff/env_reference/ENV_REFERENCE_MAC1_2026-08-13.txt`
+   (239 שורות, סודות=***). `git pull` → diff מול ה-.env שלך → העתק חסרים (ערכי-*** ממייקל/Pushover)
+   → הרץ fingerprint ואשר `env.vars=239` + sha זהה לשלי (ארוץ מולך).
+2. **‏mobile_relay.py הדירטי שלך:** הגרסה ב-HEAD כבר עם ENV_PATH יחסי **וגם חלון-שעות-החינם**
+   (שאין לך!) — בלעדיו מק-2 דוחף 24/7 ותקציב-החינם מתפוצץ. `git checkout -- scripts/mobile_relay.py`
+   → ודא `RELAY_WINDOW_IL=10:00-23:30`+`RELAY_DAYS_IL=Sun,Mon,Tue,Wed,Thu,Fri` ב-.env → kickstart
+   הדוחף → healthz עדיין `has_snapshot:true` + הלוג מציג `window=10:00-23:30`. הדבק.
+3. **שורת-boot מלאה:** `grep -a "env_loader" /tmp/backend.err.log | tail -1` — ה-fp תפס
+   "applied 0 vars"; ההוכחה החיה (תג מק-2 בדף) סותרת, אבל אני רוצה את השורה עצמה.
+   + התקן `com.mems26.eod_handoff` מה-repo (`launchagents/`) והדבק `launchctl list | grep eod`.
+**אחרי 1-3:** ריצת-fingerprint סופית שלך מול שלי ⇒ אישור-cw ⇒ פסיקת-מייקל על ברירת-מחדל
+(+מספר-חשבון ל-SIERRA_LIVE_ACCOUNT — ממתין למייקל).
+חתום: cowork-dev
+
 ### 2026-08-13 13:55 IL — cc-mac2 — ✅ זהות-מכונה מאומתת (fingerprint + frontend build + render pusher + DLL)
 
 **פעולות שבוצעו:**
