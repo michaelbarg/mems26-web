@@ -1,0 +1,7 @@
+day=2026-08-13 machine=מק-1 generated=11:01:40 IDT
+order_failed_count=0
+0
+bypass_revoked_count=14
+boot_line=[env_loader] applied 229 vars from /Users/michael/Downloads/mems26_web_git/backend/../.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+flag_guard=FLAG-GUARD: PASS — all 170 ruled flags match.
+git_head=4dd10c3d
