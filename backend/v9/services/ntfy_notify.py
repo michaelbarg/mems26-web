@@ -47,9 +47,28 @@ def _rate_limited() -> bool:
         return False
 
 
+def _machine_tag() -> str:
+    """Per-machine notification prefix (Michael 13.08: two Macs live in
+    parallel → every push must say WHICH machine sent it).
+
+    MACHINE_TAG env wins; falls back to the short hostname so an unset
+    machine is still distinguishable (never silently identical)."""
+    tag = os.getenv("MACHINE_TAG", "").strip()
+    if not tag:
+        try:
+            import socket
+            tag = socket.gethostname().split(".")[0]
+        except Exception:
+            tag = ""
+    return tag
+
+
 def notify(title: str, message: str, *, priority: str = "default",
            tags: str = "") -> None:
     """Send a push notification. Never raises — fire-and-forget."""
+    _mt = _machine_tag()
+    if _mt and not title.startswith(f"[{_mt}]"):
+        title = f"[{_mt}] {title}"
     topic = _topic()
 
     if _rate_limited():

@@ -84,3 +84,24 @@ def test_phone_alert_disabled_still_no_crash(monkeypatch):
     monkeypatch.setenv("PHONE_ALERTS_V1", "0")
     from backend.v9.services import phone_alert
     phone_alert.push("k", "t", "m", priority=1)  # must not raise
+
+
+def test_machine_tag_prefixes_title(monkeypatch, _creds):
+    """13.08 (two Macs live in parallel): every push title carries the
+    machine tag so Michael knows WHICH machine is talking."""
+    monkeypatch.setenv("MACHINE_TAG", "מק-1")
+    monkeypatch.setenv("NTFY_TOPIC", "t-test")
+    from backend.v9.services import ntfy_notify
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        m = mock.Mock(); m.returncode = 0; m.stdout = b'{"status":1}'; m.stderr = b""
+        return m
+
+    monkeypatch.setattr(ntfy_notify.subprocess, "run", fake_run)
+    monkeypatch.setattr(ntfy_notify, "_rate_limited", lambda: False)
+    ntfy_notify.notify("FIRED GB100", "x", priority="high")
+    _drain_threads()
+    joined = " ".join(str(a) for c in calls for a in c)
+    assert "[מק-1] FIRED GB100" in joined
