@@ -1,3 +1,23 @@
+### 2026-08-13 16:30 IL — preopen-agent-0813 — 🔴 קדם-פתיחה: מק-2=GO · מק-1=NO-GO (פיד-ברים קפוא) · F3=1
+
+**ירוקים:** flag_guard PASS 170/170 · mems26_verify OK (1 warn: FLAG_INDEX drift — לא נגעתי) ·
+sierra_state טרי (0.8s): qty=0, order_placement_armed=1, working=0, **is_sim=1/Sim1 — רצף-פסיקת
+12:20 הושלם (מק-1=סים)**; cash מקומי=placeholder-סים; חשבון-אמת $2,519.09 (רשומת cc-mac2 14:25) ·
+command_queue ריק (0 non-archived) · ORDER_FAILED=0 · BYPASS-REVOKED=0 · F3/STEP_SCALED_LADDER_V1:
+RULED_FLAGS expected=1 (פסיקת 08-12 + יישור 13.08 רגל-זיגזג+רצפת-T1) + .env=1 — נחת, ON. לא שונה דבר.
+
+**🔴 ממצא (מק-1): פיד-ברים קפוא, DTC חי.** woodies: קובץ נכתב כל שנייה אך current_bar ריק
+ו-history[-1] תקוע; DB newest label 11:10+03, created_at 11:10:03+03 (=עצירה אמיתית 11:10 IL);
+bars_5min קפוא מ-12.08 23:55; backend מתעד `TS-OFFSET-GATE non-advancing batch 59400s` ברצף.
+last_price בסטייט חי (7791) → החיבור חי, הצ'ארטים לא מעדכנים ברים. **אין ברים דרך Hammack 15:15
+ו-Claims 15:30 במק-1** → יום-ההשוואה-סים שבור עד reconnect/פתיחת-צ'ארטים בסיירה (פעולת-אדם;
+המשימה אסרה restarts). מק-2: ריליי-רנדר חי (age 0.3s) + fire_drill GO 14:25 — הלייב לא מושפע.
+
+**השלמה פתוחה ל-cc-mac2:** PG-over-ZT מ-מק-1 נכשל: `Postgres.app failed to verify "trust"
+authentication — permission dialog not confirmed` (10.1.118.70:5432). אימות-שלב-ג של רשומת 12:20
+עדיין פתוח עד אישור הדיאלוג ב-Postgres.app שם. Pushover נשלח (priority 1, 8ba03edf).
+חתום: preopen-agent-0813
+
 ### 2026-08-13 14:25 IL — cc-mac2 — 🟢 מק-2 חמוש LIVE (חשבון 37138283, מק-1=סים)
 
 **א. השלמות:**
