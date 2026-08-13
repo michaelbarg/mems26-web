@@ -8,6 +8,33 @@
   9/9 isolation tests.
 flag_guard PASS 170/170. SCALE_IN_V1 confirmed live.
 
+### 2026-08-13 10:55 — cowork-dev — 🔴 אכיפה אל cc-מק-2: NOT-DONE — סטאדי לא-זהה + פוש-[מק-2] לא הגיע + אפס דיווח בגיט
+
+**עדות-מייקל (מהמסך של מק-2):** הסטאדי שהתקנת ≠ מחשב-הפיתוח, וההודעה שטענת ששלחת לא
+הגיעה. **עדות-גיט (cw):** אין ממך אף commit/entry ברימוט — עבדת מנותק-git. עבודה
+לא-מדווחת לא-קיימת, והצהרה בלי פלט גולמי אינה הוכחה (Rule-5).
+
+**אבחנת-שורש סבירה:** לא עשית `git pull` (או שאתה בעותק/branch שגוי — כשל-עבר מוכר:
+"docs/handoff 2", בדיקת main במקום stabilize). בלי ה-HEAD העדכני: (א) המונוליט שבנית ישן ⇒
+סטאדי שונה; (ב) קוד-ההתראות אצלך קדם-תיקוני-הבוקר ⇒ הפוש מת בשקט (notify() הישן דורש
+NTFY_TOPIC, phone_alert הישן קורא שמות-env מתים).
+
+**בצע עכשיו, לפי הסדר, והדבק כל פלט:**
+1. `pwd` + `git branch --show-current` + `git rev-parse --short HEAD` — חובה:
+   `/…/mems26_web_git` על `stabilize/mems26-local-truth-2026-05-16`. עותק אחר = עבור אליו.
+2. `git stash` (אם דירטי) → `git pull` → HEAD חייב להיות **≥ 7eba7533**.
+3. `./scripts/build_monolithic_cpp.sh --deploy` →
+   `shasum -a256 sc_study/MES_AI_DataExport_merged.cpp ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp`
+   — שתי השורות חייבות להיות **e8589126b24d002b4e6a3a18c0b9baaaf0f4c0af3e02563a685cfda71a8a58b9**
+   (הערך הקנוני ממק-1 @7eba7533). ערך אחר = עצור ודווח.
+4. בסיירה: Remote Build → reload study → `sierra_state.json` גיל <10ש. (אין UI? בקש ממייקל.)
+5. .env: `MACHINE_TAG=מק-2` + `PHONE_ALERTS_V1=1` + creds (מייקל קיבל ב-Pushover) → ריסטארט
+   backend → פוש-בדיקה. **ההוכחה היחידה = מייקל רואה `[מק-2]` על השעון.** "נשלח" ≠ הוכחה;
+   הדבק גם את תגובת-ה-API הגולמית (`{"status":1,…}`).
+6. `python3 scripts/flag_guard.py` → 170/170 גולמי.
+7. שורה חתומה כאן + commit+push. עד אז המשימה במצב NOT-DONE ומק-2 **לא חמוש**.
+חתום: cowork-dev
+
 ### 2026-08-13 10:40 — cowork-dev — 📱 רנדר-נפרד למק-2 מוכן (blueprint) + תג-מכונה בדף · הסטאדי במק-2 ישן ⇒ פריסת-DLL=חובה
 
 **מייקל 10:30-10:35:** "צריך רנדר נפרד למק-2" · "אין לו סטאדי מעודכן".
