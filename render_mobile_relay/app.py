@@ -150,7 +150,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 .alert{color:#f0883e;font-size:12px;line-height:1.5}.pulse{animation:p 2s infinite}@keyframes p{50%{opacity:.4}}
 .stale{background:#2d1214;border:1px solid #f85149;color:#f85149;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;display:none}
 </style></head><body>
-<h1>⚡ MEMS26 · מוניטור-כיס <span id="clock" class="dim"></span></h1>
+<h1>⚡ MEMS26 · מוניטור-כיס <span id="machine" class="tag" style="background:#1f6feb;color:#fff"></span> <span id="clock" class="dim"></span></h1>
 <div id="stale" class="stale">⚠ הנתונים מעופשים — המק לא דוחף עדכונים</div>
 <div class="card"><div class="row"><span class="dim">פוזיציה בסיירה</span><span id="mode" class="tag"></span></div>
 <div class="big" id="pos">—</div><div class="dim" id="posdet"></div></div>
@@ -197,6 +197,7 @@ async function load(){
   if(d._relay==='empty'){ document.getElementById('health').textContent='ממתין ל-snapshot ראשון מהמק...'; return; }
   const s = d.sierra||{}; const q = s.position_qty||0;
   document.getElementById('mode').textContent = (s.is_sim? 'סים':'אמת') + (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
+  if (d.machine) document.getElementById('machine').textContent = d.machine;
   // ── חשבון (Account Monitor, מה-snapshot) ──
   const $$ = (v,pfx)=> v==null? '—' : (pfx&&v>=0?'+':'')+Number(v).toFixed(2)+'$';
   const cls = v => v==null?'dim':(v>=0?'green':'red');

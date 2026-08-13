@@ -85,7 +85,10 @@ async def mobile_data(request: Request):
     # could not tell fresh data from a frozen snapshot. Keep the human field,
     # add an epoch so any client can compute staleness.
     out = {"ts": time.strftime("%H:%M:%S"), "ts_epoch": time.time(),
-           "sierra": _sierra(), "mid": _price()}
+           "sierra": _sierra(), "mid": _price(),
+           # 13.08 (two machines, separate Render per machine): the page must
+           # SAY which Mac it is showing. Same tag as the notification prefix.
+           "machine": os.getenv("MACHINE_TAG", "").strip() or None}
     # רדאר בנייד (מייקל 2026-07-30: "תוסיף לאפליקציה של הפלאפון את הרדאר") —
     # אותו מקור-אמת בדיוק כמו הרצועה במסך: /api/v9/context/radar, קריאה ישירה
     # לפונקציה (לא self-HTTP — uvicorn עובד-יחיד, קריאה-עצמית = חסימה).

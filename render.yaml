@@ -1,24 +1,33 @@
-# MEMS26 — Render Blueprint (Michael 2026-08-13: "אפליקציה נפרדת לפלאפון ברנדר")
+# MEMS26 — Render Blueprint (Michael 2026-08-13: "אפליקציה נפרדת לפלאפון ברנדר"
+# + "צריך רנדר נפרד למק-2")
 #
-# Deploys ONLY the standalone phone relay (render_mobile_relay/) — a display
-# + emergency-command service. NO database, NO trading logic, NO backend.
-# The trading Mac pushes a snapshot every ~5s (scripts/mobile_relay.py via
-# the com.mems26.mobile_relay LaunchAgent) and polls /cmd/pending for
-# FLATTEN/PAUSE/RESUME. The Mac never exposes ports.
+# ONE service per trading machine, same code (render_mobile_relay/) — a
+# display + emergency-command relay. NO database, NO trading, NO backend.
+# Each Mac pushes its own snapshot every ~5s (scripts/mobile_relay.py via the
+# com.mems26.mobile_relay LaunchAgent, RENDER_MOBILE_URL selects the target
+# service) and polls /cmd/pending for FLATTEN/PAUSE/RESUME.
 #
-# Deploy (Michael, one time, ~3 clicks):
-#   Render dashboard → New → Blueprint → repo michaelbarg/mems26-web →
-#   Apply. When prompted, paste MOBILE_ACCESS_KEY and MOBILE_PUSH_KEY
-#   (the same values as in the Mac's .env — cowork will send them).
+# Existing services:
+#   mems26-mobile.onrender.com  ← מק-1 (created manually, LIVE — not managed
+#                                  by this blueprint; leave it alone)
+#   mems26-phone-mac2           ← מק-2 (THIS blueprint creates it)
 #
-# Link after deploy: https://mems26-phone.onrender.com/?key=<MOBILE_ACCESS_KEY>
+# Deploy mac2 service (Michael, one time):
+#   Render dashboard → New → Blueprint → repo michaelbarg/mems26-web → Apply.
+#   When prompted, paste MOBILE_ACCESS_KEY and MOBILE_PUSH_KEY — the SAME
+#   values as the Mac's .env (sent via Pushover).
 #
-# NOTE plan: free sleeps after idle (~50s cold start on open — annoying for
+# Link after deploy: https://mems26-phone-mac2.onrender.com/?key=<MOBILE_ACCESS_KEY>
+#
+# NOTE plan: free sleeps after idle (~50s cold start — annoying for
 # emergencies). Upgrade to starter in the dashboard for always-on.
+#
+# DR for מק-1: if mems26-mobile ever dies, duplicate the service block below
+# with name mems26-phone, deploy, and point mac-1's RENDER_MOBILE_URL at it.
 
 services:
   - type: web
-    name: mems26-phone
+    name: mems26-phone-mac2
     runtime: python
     rootDir: render_mobile_relay
     buildCommand: pip install -r requirements.txt

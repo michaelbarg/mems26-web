@@ -13,15 +13,27 @@
 2ב. **התראות-נפרדות (פסיקת-מייקל 13.08):** ב-.env של מק-2: `MACHINE_TAG=מק-2` +
    `PHONE_ALERTS_V1=1` + `PUSHOVER_USER_KEY`/`PUSHOVER_API_TOKEN`/`NTFY_TOPIC` (זהים למק-1,
    מ-.env שם — לא ב-git). שלח פוש-בדיקה ואמת שמייקל רואה `[מק-2]` בכותרת. הדבק פלט (Rule-5).
+2ג. **רנדר-נפרד למק-2 (פסיקת-מייקל 13.08 10:30):** אחרי שמייקל פורס את ה-blueprint
+   (`render.yaml` → שירות `mems26-phone-mac2`): ב-.env של מק-2:
+   `RENDER_MOBILE_URL=https://mems26-phone-mac2.onrender.com` + `MOBILE_ACCESS_KEY`/
+   `MOBILE_PUSH_KEY` (זהים למק-1) → טען את ה-LaunchAgent `com.mems26.mobile_relay`
+   (מ-`launchagents/`) → אמת: `curl -s https://mems26-phone-mac2.onrender.com/healthz`
+   מחזיר `has_snapshot:true, age_s<10`, והדף מציג תג `מק-2` בכותרת. הדבק פלט.
+   **אסור** להצביע על `mems26-mobile` (זה של מק-1) — כל מכונה והשירות שלה.
 3. **גשר Local-Only:** `CLOUD_URL=http://localhost:8000` · LaunchAgent bridge `KeepAlive/SuccessfulExit=false` + `V9_DISABLE_WATCHDOG=1`.
 4. **DLL:** `./scripts/build_monolithic_cpp.sh --deploy` → Sierra ACS_Source → Remote Build → reload study.
    Input-4 = `/Users/<mac2-user>/SierraChart_Data/v9_export/`; ודא אקספורטים חיים.
 5. **snapshot:** `scripts/mems26_snapshot.sh "mac2-go-live-0813"`.
 6. **LIVE:** `.env` `MEMS26_MODE=live` · `LIVE_TRADING_ARMED=1` · `SIERRA_LIVE_ACCOUNT=<חשבון מק-2>` · restart backend.
 7. **אימות (Rule-5, raw):** `/api/v9/status.mode=live` · flag_guard 170/170 · `sierra_state.position_qty` נקרא נכון · Sierra `is_sim=0` · `scripts/fire_drill.py`=GO.
-7ב. **DLL זהה (דרישת-מייקל 13.08 "זהה בדגלים וב-DLL"):** הדבק את שתי שורות-ה-shasum —
-   `shasum ~/SierraChart*/Data/MES_AI_DataExport*.dll` (הפרוס) מול `shasum` של ה-build מהריפו.
-   חייבות להיות זהות. שונות = עצור ופרוס מחדש.
+7ב. **DLL/סטאדי זהה (דרישת-מייקל 13.08 "זהה בדגלים וב-DLL"; 10:35: "אין לו סטאדי
+   מעודכן" — הסטאדי במק-2 ישן ⇒ פריסה היא **חובה לפני חימוש**, לא אימות בלבד):**
+   `git pull` → `./scripts/build_monolithic_cpp.sh --deploy` → הדבק את שתי שורות-ה-shasum
+   של **מקור-המונוליט**: `shasum ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp` מול
+   ה-build מהריפו — חייבות להיות זהות (מקור-זהה = סטאדי-זהה). אחר-כך בתוך Sierra:
+   Remote Build → reload study (אם אין לך גישת-UI — בקש ממייקל, זו פעולה במסך של מק-2),
+   ואמת אקספורטים חיים: `sierra_state.json` מתעדכן (גיל <10ש) וכל קבצי `v9_export`
+   מתקדמים. סטאדי ישן = op-codes/שדות לא-תואמים לבקנד החדש ⇒ אסור לחמש לפני.
 8. **דווח** שורה חתומה ב-`LIVE_CHANNEL.md` + חובות-הפיקוח השוטפות (רשומת cowork 13.08 09:50):
    flag_guard-PASS כל סשן · shasum אחרי כל deploy · דוח-סים/לייב חתום כל סוף-סשן.
    cw מריץ ביקורת-יומית 15:05 ומתריע למייקל על שתיקה/סטייה.
