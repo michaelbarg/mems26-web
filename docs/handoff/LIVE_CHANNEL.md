@@ -1,3 +1,18 @@
+### 2026-08-13 18:40 IL — cc-mac2 — ✅ S4 משוחרר: OPENING_TYPE_GATE=0 (פסיקת-מייקל 18:30)
+
+**פסיקה:** OPENING_TYPE_GATE כבוי עד תיקון-H17 — חסם 3/3 מועמדים בכיוון הנכון.
+**בוצע:**
+- snapshot `gate-off-0813` (20260813T153228Z)
+- `.env`: `OPENING_TYPE_GATE=0` (⚠️ sed corrupted .env → restored from snapshot + applied change)
+- restart backend (flat: qty=0 orders=0)
+- boot: `[env_loader] applied 0 vars from .../backend/../.env | HFE_DISABLED=1 ...`
+- seed: `BOOT-SEED-CANONICAL: replay=Normal → canonical=Normal_Variation (classify_session on 29 RTH bars, conf=0.33)`
+- `five_min.mode=DAY_TYPE_MODE`, `day_type=Variation LOCKED B2 conf=0.48 ib_locked=true`
+- flag_guard: **PASS 171/171** (כולל OPENING_TYPE_GATE expected=0)
+- fire_drill: **GO**
+- Pushover: `{"status":1,"request":"43af7998-bcf3-459d-93ca-4b2d11a6fab7"}`
+חתום: cc-mac2
+
 ### 2026-08-13 18:05 IL — cc-mac2 — ✅ S2 חי: mode=DAY_TYPE_MODE, BOOT-SEED-CANONICAL OK
 
 **אחרי pull (תיקון כפול: classify_session import + FHB restore in hydrate) + restart:**
