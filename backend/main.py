@@ -831,6 +831,28 @@ async def _startup():
                                 _old_boot, _boot_dt_str, len(_cls_rth_bars),
                                 float(_boot_result.get("confidence", 0)))
                             app.state.last_cls_result = _boot_result
+                            # 13.08 (Michael: "מק-2 בכלל לא דרוך במערכת-1"): the seed
+                            # updated only the in-memory machine — the S1 panel and
+                            # every DB reader still said "No classification for
+                            # today" after a restart. Persist the seeded state as a
+                            # row through the SAME writer the live path uses.
+                            try:
+                                from backend.v9.systems.day_type.state_persist import (
+                                    persist_state_row as _bs_persist,
+                                )
+                                _bs_state = getattr(day_type_machine, "_last_state", None)
+                                if _bs_state is not None:
+                                    _bs_status = _bs_persist(
+                                        app.state, _bs_state,
+                                        str(getattr(getattr(day_type_machine, "opening", None),
+                                                    "opening_type", None) or "UNKNOWN"),
+                                        _boot_result, _today,  # already ISO string
+                                    )
+                                    _logger.info("[DayType] boot-seed persisted: %s", _bs_status)
+                            except Exception as _bs_persist_err:
+                                _logger.warning(
+                                    "[DayType] boot-seed persist failed (non-fatal): %s",
+                                    _bs_persist_err)
                     except Exception as _bsc_err:
                         _logger.warning("[DayType] boot-seed-canonical failed (non-fatal): %s", _bsc_err)
             except Exception as _bre:
