@@ -4,144 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-11 07:49 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-12 21:15 ET
 events:
-  - date: 2026-08-11
-    time_et: "06:00"
-    name: "NFIB Business Optimism Index"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "08:15"
-    name: "ADP Employment Change Weekly"
-    severity: orange
-  - date: 2026-08-11
-    time_et: "08:55"
-    name: "Redbook YoY"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "09:20"
-    name: "NY Fed Bill Purchases 1 to 4 months"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "10:00"
-    name: "Existing Home Sales"
-    severity: red
-  - date: 2026-08-11
-    time_et: "10:00"
-    name: "Existing Home Sales MoM"
-    severity: orange
-  - date: 2026-08-11
-    time_et: "11:00"
-    name: "Total Household Debt"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "11:30"
-    name: "6-Week Bill Auction"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "13:00"
-    name: "3-Year Note Auction"
-    severity: yellow
-  - date: 2026-08-11
-    time_et: "16:30"
-    name: "API Crude Oil Stock Change"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "07:00"
-    name: "MBA Mortgage Refinance Index"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "07:00"
-    name: "MBA Mortgage Market Index"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "07:00"
-    name: "MBA Purchase Index"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "07:00"
-    name: "MBA Mortgage Applications"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "07:00"
-    name: "MBA 30-Year Mortgage Rate"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "CPI s.a"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "Inflation Rate YoY"
-    severity: red
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "Core Inflation Rate MoM"
-    severity: red
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "Core Inflation Rate YoY"
-    severity: red
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "Inflation Rate MoM"
-    severity: red
-  - date: 2026-08-12
-    time_et: "08:30"
-    name: "CPI"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Distillate Fuel Production Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Gasoline Production Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Gasoline Stocks Change"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Refinery Crude Runs Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Distillate Stocks Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Cushing Crude Oil Stocks Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Crude Oil Stocks Change"
-    severity: orange
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Heating Oil Stocks Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "10:30"
-    name: "EIA Crude Oil Imports Change"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "11:30"
-    name: "17-Week Bill Auction"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "12:00"
-    name: "WASDE Report"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "13:00"
-    name: "10-Year Note Auction"
-    severity: yellow
-  - date: 2026-08-12
-    time_et: "14:00"
-    name: "Monthly Budget Statement"
-    severity: orange
   - date: 2026-08-13
     time_et: "08:15"
     name: "Fed Hammack Speech"
@@ -306,3 +170,151 @@ events:
     time_et: "16:00"
     name: "Foreign Bond Investment"
     severity: yellow
+  - date: 2026-08-18
+    time_et: "08:15"
+    name: "ADP Employment Change Weekly"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "NY Fed Services Activity Index"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Housing Starts MoM"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Housing Starts"
+    severity: red
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Import Prices MoM"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Building Permits Prel"
+    severity: red
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Import Prices YoY"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Building Permits MoM Prel"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Export Prices MoM"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "08:30"
+    name: "Export Prices YoY"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "09:15"
+    name: "Industrial Production MoM"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "09:15"
+    name: "Manufacturing Production MoM"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "09:15"
+    name: "Manufacturing Production YoY"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "09:15"
+    name: "Capacity Utilization"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "09:15"
+    name: "Industrial Production YoY"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "10:00"
+    name: "Pending Home Sales MoM"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "10:00"
+    name: "Pending Home Sales YoY"
+    severity: orange
+  - date: 2026-08-18
+    time_et: "11:30"
+    name: "6-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-18
+    time_et: "16:30"
+    name: "API Crude Oil Stock Change"
+    severity: orange
+  - date: 2026-08-19
+    time_et: "07:00"
+    name: "MBA Purchase Index"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "07:00"
+    name: "MBA Mortgage Market Index"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "07:00"
+    name: "MBA Mortgage Refinance Index"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "07:00"
+    name: "MBA Mortgage Applications"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "07:00"
+    name: "MBA 30-Year Mortgage Rate"
+    severity: orange
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Gasoline Production Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Crude Oil Stocks Change"
+    severity: orange
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Cushing Crude Oil Stocks Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Distillate Stocks Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Refinery Crude Runs Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Distillate Fuel Production Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Crude Oil Imports Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Gasoline Stocks Change"
+    severity: orange
+  - date: 2026-08-19
+    time_et: "10:30"
+    name: "EIA Heating Oil Stocks Change"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "11:30"
+    name: "17-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "13:00"
+    name: "20-Year Bond Auction"
+    severity: yellow
+  - date: 2026-08-19
+    time_et: "14:00"
+    name: "FOMC Minutes"
+    severity: red
