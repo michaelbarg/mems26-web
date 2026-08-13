@@ -790,12 +790,26 @@ async def _startup():
                 if (_bos.environ.get("DAYTYPE_BOOT_SEED_CANONICAL_V1", "0").lower()
                         in ("1", "true", "yes") and len(_cls_rth_bars) >= 12):
                     try:
-                        from backend.v9.systems.day_type.daytype_classifier import classify_session as _boot_cls
+                        # ROOT-FIX 2026-08-13 (broken since c556a5bf 07-22, found live:
+                        # day_type stuck UNKNOWN after every restart → S2 mode never
+                        # reached DAY_TYPE_MODE on mac-2 → fhb_eligible=False → S2 dead):
+                        # classify_session lives in classifier_core (as context_radar +
+                        # daytype_classify_routes correctly import) — NOT in
+                        # daytype_classifier. The old import raised ImportError on every
+                        # boot and the except swallowed it as "non-fatal".
+                        from backend.v9.systems.day_type.classifier_core import classify_session as _boot_cls
+                        _bs_ibh, _bs_ibl = _ibh0, _ibl0
+                        if _bs_ibh is None or _bs_ibl is None:
+                            # Sierra IB not exported — same fallback as context_radar:
+                            # IB = first 12 RTH 5-min bars (09:30-10:30 ET).
+                            _ib_seg = _cls_rth_bars[:12]
+                            _bs_ibh = max(b["h"] for b in _ib_seg)
+                            _bs_ibl = min(b["l"] for b in _ib_seg)
                         _boot_result = _boot_cls(
                             bars=_cls_rth_bars,
-                            pd_high=_pd.get("pd_high"), pd_low=_pd.get("pd_low"),
-                            pd_close=_pd.get("pd_close"),
-                            ib_high=_ibh0, ib_low=_ibl0,
+                            ib_high=float(_bs_ibh), ib_low=float(_bs_ibl),
+                            open_price=_cls_rth_bars[0]["o"],
+                            pdh=_pd.get("pd_high"), pdl=_pd.get("pd_low"),
                         )
                         _boot_dt_str = _boot_result.get("day_type")
                         from backend.v9.systems.day_type.state_machine import DayType as _BDT

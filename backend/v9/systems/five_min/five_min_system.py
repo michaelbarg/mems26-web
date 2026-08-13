@@ -375,6 +375,34 @@ class FiveMinSystem(BaseV9TradingSystem):
             if session in (Session.CASH_OPEN, Session.FIRST_HOUR):
                 self.mode = FiveMinMode.FIRST_HOUR_TACTICAL
                 self.buffer_size = bars_count
+                # ROOT-FIX 2026-08-13 (mac-2 lost the whole first hour after a
+                # 17:00 IL emergency restart): the replay above fills _bar_buffer
+                # but left the FirstHourBuffer at zero — a mid-first-hour boot
+                # stayed ACCUMULATING/UNKNOWN → fhb_eligible=False until the
+                # 10:30 ET mode flip. Rebuild the FHB from the bars the session
+                # has ALREADY printed (same on_bar path, deterministic).
+                try:
+                    from datetime import datetime as _fhb_dt, time as _fhb_t
+                    from zoneinfo import ZoneInfo as _fhb_zi
+                    _fhb_et = _fhb_zi("America/New_York")
+                    _rth_seen = 0
+                    for _b in self._bar_buffer:
+                        try:
+                            _bts = _b.get("ts") or ""
+                            _bdt = _fhb_dt.fromisoformat(str(_bts).replace("Z", "+00:00"))
+                            _bet = _bdt.astimezone(_fhb_et)
+                            if (_bet.date() == _fhb_dt.now(_fhb_et).date()
+                                    and _bet.time() >= _fhb_t(9, 30)):
+                                _rth_seen += 1
+                        except Exception:
+                            continue
+                    for _ in range(min(_rth_seen, 13)):
+                        self._fhb.on_bar()
+                    if _rth_seen:
+                        logger.info("[FiveMin] FHB rebuilt from replay: %d RTH bars → state=%s",
+                                    _rth_seen, self._fhb.state.value)
+                except Exception as _fhb_err:
+                    logger.warning("[FiveMin] FHB rebuild failed (non-fatal): %s", _fhb_err)
                 if state:
                     self.opening_type = state.opening_type
                     self.choppiness_score = state.choppiness_score or 0
