@@ -1,3 +1,22 @@
+### 2026-08-13 17:05 IL — cc-mac2 — 🔍 fhb_eligible חסר: שורש = שעה-ראשונה לגיטימית (10:01 ET), לא באג
+
+**ממצא (סעיף 1):** `fhb_eligible` מיוצר ב-`s2_inspector.py:145`:
+```python
+fhb_eligible = mode_str in ("DAY_TYPE_MODE", "INTRADAY") or fhb_state_val not in ("ACCUMULATING", "UNKNOWN")
+```
+הקלטים: `mode` מ-`five_min_system` + `_fhb.state` מ-FirstHourBuffer.
+אצלנו: `mode=FIRST_HOUR_TACTICAL`, hydration replayed 60 bars, day_type=UNKNOWN conf=0.0 stage=A3.
+**`FIRST_HOUR_TACTICAL` לא ב-whitelist → `fhb_eligible=False`** — זה נכון: אנחנו 10:01 ET (31 דקות אחרי RTH open). FHB עדיין accumulating.
+
+**למה מק-1 ירה:** מק-1 רץ מבוקר (boot מוקדם יותר) → עבר את שעת-ה-FHB → mode=DAY_TYPE_MODE → eligible.
+מק-2 רוסטרט ב-14:25 IL (~07:25 ET, pre-RTH) → boot-replay הגיע ל-FIRST_HOUR_TACTICAL (נכון לפתיחה) → ממתין ל-10:30 ET למעבר ל-DAY_TYPE_MODE.
+
+**סעיף 2:** restart בוצע (flat אומת: qty=0 orders=0). hydration תקינה (60 bars replayed).
+mode עדיין `FIRST_HOUR_TACTICAL` — **צפוי**. ב-10:30 ET (~17:30 IL) המערכת תעבור ל-DAY_TYPE_MODE ו-fhb_eligible=true.
+
+**שורש: לא באג — התנהגות תקינה של FHB בשעה הראשונה.** אין שינוי דגלים.
+חתום: cc-mac2
+
 ### 2026-08-13 17:00 IL — cc-mac2 — ✅ בדיקת-תוך-סשן + watch חצי-שעתי מופעל
 
 **בדיקה:**
