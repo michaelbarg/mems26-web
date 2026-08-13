@@ -1145,6 +1145,13 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/systems/daytype_playbook.py · backend/v9/services/trade_context.py (get_live_dir_bias) · backend/v9/gateway/trading_gateway.py · tests/v9/regression/test_responsive_with_day_trend.py · config/RULED_FLAGS.yaml"
+  SCALE_IN_V1:
+    category: management
+    what: "Reinforce a WINNING trade with extra contracts — a post-entry management add-on that NEVER touches the entry path. Fires in bar_level_detector.on_bar (per live bar) when the parent is open + T1 banked + still with-trend (get_live_dir_bias) + price ran ≥ SCALE_IN_MIN_PROFIT_PTS (6) past entry + not-yet-scaled + parent+add ≤ SCALE_IN_MAX_TOTAL (8). Creates a linked CHILD add-on trade (+SCALE_IN_ADD_CONTRACTS, default 2) with its own stop at the PARENT ENTRY (breakeven) so the add-on can never turn the winner into a loss beyond entry. Idempotent (marks parent scaled_in first). Params: SCALE_IN_MIN_PROFIT_PTS, SCALE_IN_ADD_CONTRACTS, SCALE_IN_MAX_TOTAL. OFF → no-op (pure additive)."
+    why: "Michael ruling 2026-08-13 ('אם המערכת מזהה שהכניסה נכונה והכיוון ממשיך אפשר גם לחזק בעוד חוזים'). Additive-only per Michael's guardrail 'do not build components that break entry'. Pure decision module tested 9/9; enable after Sierra-sim child-PLACE drill + Rule-5."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/services/trade_manager/scale_in.py · backend/v9/services/trade_manager/bar_level_detector.py (_maybe_scale_in) · tests/v9/regression/test_scale_in.py · config/RULED_FLAGS.yaml"
   S2_DETECTION_LIVE_DAYTYPE_V1:
     category: s2
     what: "S2 detection (NT-skip, chart patterns 5a/5c, T2 fork) reads day_type from get_live_day_type() instead of the stale hydrated self.current_day_type. Fixes I-44/I-50 source split."

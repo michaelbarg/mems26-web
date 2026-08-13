@@ -604,6 +604,15 @@ class BarLevelDetector:
 
                 direction = trade.direction
 
+                # SCALE_IN_V1 (Michael 2026-08-13): reinforce a proven winner with
+                # extra contracts. ADDITIVE only — a post-entry management add-on that
+                # cannot block or alter any entry. Flag OFF → no-op; fail-safe.
+                if _is_demo_live:
+                    try:
+                        self._maybe_scale_in(trade, bar_high, bar_low)
+                    except Exception as _si_e:
+                        logger.warning("[ScaleIn] hook error (no add): %s", _si_e)
+
                 # FIX-16 (TARGET_REALISM_V1): per-bar realism re-check on the
                 # pending front target — runs for ALL open bars (pre-T1 too;
                 # trade 350's T1 sat 2 ticks beyond the day-high for an hour).
@@ -805,6 +814,75 @@ class BarLevelDetector:
 
         except Exception as e:
             logger.error("[BarLevelDetector] on_bar error: %s", e, exc_info=True)
+
+    def _maybe_scale_in(self, trade, bar_high: float, bar_low: float) -> None:
+        """SCALE_IN_V1 (Michael ruling 2026-08-13 "אם הכיוון ממשיך אפשר לחזק בעוד
+        חוזים"): reinforce a WINNING, with-trend, T1-banked trade with extra contracts
+        — a linked CHILD add-on trade with its own stop at the parent entry (BE). Purely
+        additive: never touches the entry path. Flag OFF → no-op. Any error → no add.
+        Idempotent: marks the parent `scaled_in` BEFORE placing so a retry can't double-add."""
+        import os as _si_os
+        if _si_os.getenv("SCALE_IN_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        if q.get("scaled_in"):
+            return
+        if trade.t1_hit_ts is None or trade.entry_price is None:
+            return
+        from backend.v9.services.trade_manager.scale_in import should_scale_in, ScaleInCfg
+        cfg = ScaleInCfg(
+            min_profit_pts=float(_si_os.getenv("SCALE_IN_MIN_PROFIT_PTS", "6") or 6),
+            add_contracts=int(_si_os.getenv("SCALE_IN_ADD_CONTRACTS", "2") or 2),
+            max_total_contracts=int(_si_os.getenv("SCALE_IN_MAX_TOTAL", "8") or 8),
+        )
+        dir_bias = None
+        try:
+            from backend.v9.services.trade_context import get_live_dir_bias
+            dir_bias = get_live_dir_bias()
+        except Exception:
+            pass
+        try:
+            from backend.v9.services.trade_manager.manager import trade_contract_count
+            n_open = int(trade_contract_count(trade))
+        except Exception:
+            n_open = 2
+        dec = should_scale_in(
+            direction=trade.direction, entry_price=float(trade.entry_price),
+            t1_hit=True, already_scaled=False, n_contracts_open=n_open,
+            bar_high=float(bar_high), bar_low=float(bar_low),
+            dir_bias=dir_bias, cfg=cfg,
+        )
+        if dec is None:
+            return
+        # mark parent FIRST (idempotent) — even if the PLACE below errors, we never re-add
+        q2 = dict(q); q2["scaled_in"] = True; q2["scale_in_child_pending"] = True
+        trade.quality = q2
+        try:
+            self._tm._db.commit()
+        except Exception:
+            pass
+        # child add-on: own bracket, stop = parent entry (BE), modest 1.5R first target
+        risk = abs(dec.entry - dec.stop) or 1.0
+        _t1 = (dec.entry + 1.5 * risk) if dec.direction == "LONG" else (dec.entry - 1.5 * risk)
+        child = {
+            "firing_system": getattr(trade, "firing_system", 2) or 2,
+            "direction": dec.direction, "entry_price": dec.entry, "stop": dec.stop,
+            "t1": round(_t1, 2), "t2": None, "t3": None, "contracts": dec.add_contracts,
+            "classification": "SCALE_IN",
+            "metadata": {"scale_in_parent": getattr(trade, "id", None), "reason": dec.reason},
+        }
+        _mode = getattr(trade, "mode", "live")
+        child_id = self._tm.accept_setup(child, _mode)
+        from backend.v9.services.sierra_command import command_from_setup
+        command_from_setup(
+            child, trade_id=str(child_id),
+            account=_si_os.environ.get("SIERRA_LIVE_ACCOUNT", "37138283"), mode=_mode,
+        )
+        logger.warning(
+            "[ScaleIn] +%dc %s parent=%s child=%s @%.2f stop@%.2f (BE) — %s",
+            dec.add_contracts, dec.direction, getattr(trade, "id", "?"),
+            child_id, dec.entry, dec.stop, dec.reason,
+        )
 
     def _parse_ts(self, ts_raw) -> Optional[datetime]:
         """Parse timestamp from bar data."""
