@@ -1,3 +1,32 @@
+### 2026-08-14 01:00 IL — cc-mac2 — ✅ עבודת-לילה: הוכחת-ירי + drill + פערים
+
+**§1 הוכחת-זיהוי (replay הטייפ של 13.08):**
+`decision_replay.py --date 2026-08-13` → 15 candidates:
+- **הלונג 16:55 (INITIATIVE_LONG):** לא נוצר — S2 היה מת (legacy table bug, תוקן `ad868148`). 0 שורות INITIATIVE בלוג. **מחר S2 חי מ-boot.**
+- **השורט 18:04 @7818 + 18:25 @7812:** S4 GB100/ZLR SHORT — **נוצרו**, נחסמו ב-`opening_type_gate` (כבוי מאז 18:30). **לא יחסמו מחר.**
+- **12 מועמדים נוספים (19:09-22:50):** S4, נחסמו `cold_start_guard` (restart 18:40 → buffer לא מלא). **לא רלוונטי מחר** (אין restart באמצע סשן).
+
+**§2 הוכחת-ביצוע (sim-drill):**
+- **PLACE:** `BUY 4 @7820 stop=7812 t1=7828` → `[SierraCmd] COMMAND QUEUED #1 (op=PLACE, fast_path=True)` → ACK: `{"status":"ORDER_SUBMITTED","ts":1786654388,"parent_id":7600,"target_id":7594,"stop_id":7595}` — **0 ORDER_FAILED**.
+- **SCALE_IN_V1=1** (flag_guard), child-PLACE building verified in code (+2 contracts, stop=BE parent, no entry touch).
+- **S6 (ניהול):** `SYSTEM6_SUPERVISOR=1`, `SYSTEM6_JOURNAL_AUTOLOOP_V1=1` — `bar_level_detector.on_bar` active in log. `v9_exit_decisions` table not yet created (will be on first real trade with S6 signals).
+- **FLATTEN_ACCOUNT** → `qty=0`. Switched back to `MEMS26_MODE=live`. arming_gate: **✅ ALL SYSTEMS ARMED**.
+
+**§3 טבלת-פערים מק-2:**
+
+| פער | מצב | דורש פסיקה? |
+|-----|------|-------------|
+| PG-over-ZT (מק-1→מק-2) | **חסום** — Postgres.app trust dialog not confirmed on mac-2 | לא — פעולה מקומית, מייקל יאשר |
+| `v9_exit_decisions` table | **לא קיים** — ייווצר בעסקה ראשונה עם S6 | לא |
+| S3/Footprint | **מושתק** (S3_MUTE) — 0 pushes בשתי המכונות | לא — פסיקה קבועה (CLAUDE.md) |
+| IB width/chartbook | **תוקן** 18:45 (RULED_FLAGS) — `ATR_DAILY_FIX_V1` לא ב-.env=OFF עדיין | בדיקה מחר |
+| MARGIN_AWARE_SIZING_V1 | **כבוי** (פסיקת-מייקל 19:40 `52fbd276`) | לא |
+| `sed` corrupts .env | **נצפה 2 פעמים** — sed -i '' deletes lines instead of replacing | cc ישתמש ב-python לעריכת .env מעתה |
+
+**§4 שער-הבוקר:** יורץ לפני 16:30 מחר.
+
+חתום: cc-mac2
+
 ### 2026-08-14 00:00 — cowork-dev — 🔴 חשבון-נפש 13.08 + ✅ מק-2 חמוש-לראשונה + משימת-לילה ל-cc (הוכחת-ירי/חיזוק/ניהול)
 
 **מייקל:** "מק-2 היה צריך לסחור היום כמו מק-1… לא זיהתה לונג ולא שורט… שבוע רע מאוד —
