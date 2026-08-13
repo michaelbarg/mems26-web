@@ -94,11 +94,25 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     last_bar_ts = None
     lag_seconds = None
     try:
+        # ROOT-FIX 2026-08-13 (mac-2: all 14 S2 patterns blocked on
+        # "five_min_bar_recency" while the feed was perfectly live): this read
+        # pointed at v9_bars_5min — the legacy/contaminated table replaced by
+        # v9_bars_5min_woodies (see docs/SOURCE_OF_TRUTH.md; the ATR×1.55
+        # incident). On mac-1 the stale table still had rows so the buffer
+        # fallback masked it; on a clean machine the table is EMPTY → lag
+        # unknown → S2 dead all session. Read the canonical live table, and
+        # keep the legacy one only as a secondary fallback.
         last_bar_ts, _, lag_seconds = latest_valid_db_ts(
-            "v9_bars_5min",
+            "v9_bars_5min_woodies",
             where="symbol = ?",
             params=("MES",),
         )
+        if lag_seconds is None:
+            last_bar_ts, _, lag_seconds = latest_valid_db_ts(
+                "v9_bars_5min",
+                where="symbol = ?",
+                params=("MES",),
+            )
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for freshness failed: %s", e)
 

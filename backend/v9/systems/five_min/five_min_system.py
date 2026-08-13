@@ -350,6 +350,24 @@ class FiveMinSystem(BaseV9TradingSystem):
                         .limit(60)
                         .all()
                     )
+                    # ROOT-FIX 2026-08-13 (mac-2 restart → S2 dead all session):
+                    # v9_bars_5min is the LEGACY table (superseded by
+                    # v9_bars_5min_woodies — see docs/SOURCE_OF_TRUTH.md). On a
+                    # clean machine it is empty, so the buffer came up EMPTY
+                    # after every restart: no CCI history, no recency → all 14
+                    # S2 patterns blocked. Fall back to the canonical live table.
+                    if not rows:
+                        from backend.v9.db.models.bars_woodies import V9Bar5MinWoodies as _W
+                        rows = (
+                            db.query(_W)
+                            .order_by(_W.ts.desc())
+                            .limit(60)
+                            .all()
+                        )
+                        if rows:
+                            logger.info(
+                                "[FiveMin] legacy v9_bars_5min empty → hydrated %d bars "
+                                "from v9_bars_5min_woodies (canonical)", len(rows))
                 finally:
                     db.close()
                 # Replay oldest-first into buffer (no persist)
