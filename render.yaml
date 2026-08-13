@@ -1,0 +1,32 @@
+# MEMS26 — Render Blueprint (Michael 2026-08-13: "אפליקציה נפרדת לפלאפון ברנדר")
+#
+# Deploys ONLY the standalone phone relay (render_mobile_relay/) — a display
+# + emergency-command service. NO database, NO trading logic, NO backend.
+# The trading Mac pushes a snapshot every ~5s (scripts/mobile_relay.py via
+# the com.mems26.mobile_relay LaunchAgent) and polls /cmd/pending for
+# FLATTEN/PAUSE/RESUME. The Mac never exposes ports.
+#
+# Deploy (Michael, one time, ~3 clicks):
+#   Render dashboard → New → Blueprint → repo michaelbarg/mems26-web →
+#   Apply. When prompted, paste MOBILE_ACCESS_KEY and MOBILE_PUSH_KEY
+#   (the same values as in the Mac's .env — cowork will send them).
+#
+# Link after deploy: https://mems26-phone.onrender.com/?key=<MOBILE_ACCESS_KEY>
+#
+# NOTE plan: free sleeps after idle (~50s cold start on open — annoying for
+# emergencies). Upgrade to starter in the dashboard for always-on.
+
+services:
+  - type: web
+    name: mems26-phone
+    runtime: python
+    rootDir: render_mobile_relay
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    autoDeploy: false  # trading repo pushes must NOT redeploy the phone app
+    envVars:
+      - key: MOBILE_ACCESS_KEY
+        sync: false
+      - key: MOBILE_PUSH_KEY
+        sync: false
