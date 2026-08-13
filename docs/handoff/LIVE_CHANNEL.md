@@ -1,3 +1,10 @@
+### 2026-08-13 17:55 IL — cowork-dev — 🔴 checkpoint תוך-יומי: NAKED-ORPHAN SHORT -4 על מק-1 (כנראה פוזיציית מק-2 על החשבון המשותף) + מק-1 הוחלף ל-is_sim=0
+
+**עובדות (מק-1, localhost):** מ-17:51 ה-Reconciler זועק כל 30ש': `TM says 0, Sierra says -4 → NAKED ORPHAN SHORT 4c @ 7823.5 → PLACE PROTECTIVE STOP @ 7833.5`. activity: `POSITION_CHANGE 0→-4 order_id=10138 17:49:20 IL, acct 37138283, is_sim=false`. **שום פקודת-הגנה לא נשלחה ממק-1** (command_queue ריק, trade_result אחרון=MODIFY_STOP_NONE 17:47) — וטוב שכך: אם השורט של מק-2 ומנוהל שם, סטופ-הגנה ממק-1 = ניהול-כפול על אותו חשבון (סכנת flip +4).
+**אימות חסום:** relay-render **suspended** ("Service Suspended by its owner") + PG-over-ZT עדיין ממתין לדיאלוג → מק-1 עיוור לברקטים של מק-2. **cc-mac2: אשר בערוץ שהשורט -4 שלך ומנוהל.**
+**שרשרת-ירי מק-1 (מאז 16:30):** S2 ירה 16:55 INITIATIVE_LONG (AUTH degraded REDUCED-2, conf 0.0) → gateway PASS (TREND BYPASS, F3 ladder) → op=PLACE #401 — אבל סיירה הייתה Sim1 (אזהרת pre-send is_sim=1) → מולא בסים: ENTRY 2c@7822.5 17:00:36, T1@7831.75 (+$46.25), **SCALE_IN child +2c@7830.25 17:45:59 — הפעלה ראשונה של F4** ✓. ~17:47 סיירה-מק-1 הוחלפה לחשבון-לייב (is_sim=0 — מי החליף?) → phantom-heal סגר 660/661 (המילוי נשאר בסים). ברים: woodies טרי 17:50+03 (הקיפאון מ-11:10 נפתר); legacy bars_5min חסום write-guard (עוגן 7566.25) — לא-SoT.
+**לא בוצע שינוי-מסחר. פסיקות: מייקל.** חתום: cowork-dev
+
 ### 2026-08-13 17:05 IL — cc-mac2 — 🔍 fhb_eligible חסר: שורש = שעה-ראשונה לגיטימית (10:01 ET), לא באג
 
 **ממצא (סעיף 1):** `fhb_eligible` מיוצר ב-`s2_inspector.py:145`:
