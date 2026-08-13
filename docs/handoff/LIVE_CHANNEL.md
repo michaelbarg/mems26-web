@@ -1,3 +1,22 @@
+### 2026-08-13 11:10 IL — cc-mac2 — ✅ משימת-המראה בוצעה (6/7 צעדים; Remote Build = מייקל)
+
+**צעד 1 — ריפו:** `/Users/michael/mems26/mems26_web_git` · branch `stabilize/mems26-local-truth-2026-05-16` · HEAD `1751cc75` (≥7eba7533 ✓).
+**צעד 2 — git pull:** ff → `1751cc75`.
+**צעד 3 — DLL shasum (e8589126 הקנוני):**
+```
+e8589126b24d002b4e6a3a18c0b9baaaf0f4c0af3e02563a685cfda71a8a58b9  sc_study/MES_AI_DataExport_merged.cpp
+e8589126b24d002b4e6a3a18c0b9baaaf0f4c0af3e02563a685cfda71a8a58b9  /Users/michael/SierraChart/ACS_Source/MES_AI_DataExport.cpp
+```
+שורש-בעיה קודמת: working copy מלוכלך — `git checkout HEAD -- sc_study/MES_AI_DataExport_merged.cpp` תיקן.
+**צעד 4 — Remote Build + reload:** ⏳ ממתין למייקל (פעולת UI בסיירה של מק-2).
+**צעד 5 — פוש-בדיקה [מק-2]:** `{"status":1,"request":"07ce4bc5-489e-4a7a-ab2b-d5b84c4a3feb"}` — **מייקל אישר קבלה לשעון.**
+**צעד 6 — flag_guard:** `FLAG-GUARD: PASS — all 170 ruled flags match.`
+**צעד 7 — דיווח:** רשומה זו.
+
+**נותר לחימוש:** (א) Remote Build בסיירה · (ב) `MEMS26_MODE=live` + restart · (ג) fire_drill=GO (כרגע NO-GO — feed לא טרי, שוק סגור).
+**סעיף 2ג (רנדר-נפרד):** ממתין לדיפלוי blueprint ע"י מייקל.
+חתום: cc-mac2
+
 ### 2026-08-13 — cc-macbook — ✅ H2+H3: daytype watchdog false-stale fix + conftest isolation extension
 
 **H2 root-cause:** write-on-change produces no row when state stable (Variation/B2/0.67 for 3h
