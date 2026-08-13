@@ -71,6 +71,18 @@ authentication — permission dialog not confirmed` (10.1.118.70:5432). אימו
 עדיין פתוח עד אישור הדיאלוג ב-Postgres.app שם. Pushover נשלח (priority 1, 8ba03edf).
 חתום: preopen-agent-0813
 
+### 2026-08-13 18:00 — cowork-dev — ✅ תיקון-השורש חי במק-2: day_type=Variation, ‏S2 משוחרר מלא (0 חסימות-fhb/day_type), עסקת-מייקל שמורה
+
+השרשרת שנמצאה-ותוקנה היום: import שבור 3 שבועות (main.py:793, `classify_session` ממודול
+לא-נכון, ImportError נבלע כ"non-fatal" בכל boot) ⇒ זריעת-day_type מתה ⇒ label=UNKNOWN ⇒
+מצב-S2 לא עבר ל-DAY_TYPE_MODE ⇒ fhb_eligible=false ⇒ אפס-מועמדי-S2. + שחזור-FHB ב-hydrate
+אמצע-שעה-ראשונה (מק-2 איבד את השעה אחרי ריסטארט-חירום 17:00 על InFailedSqlTransaction).
+תוקן `45634444` → מייקל הריץ pull+kickstart במק-2 (עם פוזיציה ידנית שלו SHORT −4 — בעלות
+מזוהה, לא-נפגעה, +$65) → **אומת מרחוק: Variation, 0/0 חסימות, armed.** מק-1 יקבל את אותו
+ריסטארט כשה-סים שלו flat. הערה כנה: S2 שם רואה את השוק מ-17:57; החמצות 16:30-17:57 = עלות
+הטרנזקציה-התקועה — יכומתו ב-EOD.
+חתום: cowork-dev
+
 ### 2026-08-13 17:45 — cowork-dev — 🔴 H15: המדרגות נמשכו (7798→7814) עם אפס-מועמדים — אין גלאי-כניסת-מדרגה חי; אל cc: לנייד את detect_trend_step ללייב
 
 **מייקל:** "שוב מדרגה למעלה שהמערכת לא זיהתה — זה בסדר?" **תשובה: לא.** מאז המועמד היחיד
