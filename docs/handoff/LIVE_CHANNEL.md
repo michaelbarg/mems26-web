@@ -1,3 +1,20 @@
+### 2026-08-13 22:35 IL — cc-mac2 — ✅ ALL SYSTEMS ARMED (arming_gate post ad868148+6fb6a192)
+
+**git pull:** ff → `6fb6a192` (S2 root-fix: canonical table v9_bars_5min_woodies + arming_gate script).
+**restart:** flat (qty=0 orders=0), backend restarted.
+**arming_gate:**
+```
+══ MEMS26 arming gate · localhost:8000 · outside-RTH (window checks relaxed) ══
+  ✅ ARMED  S2 · Five-Minute Patterns                fired=0 waiting=10 broken=0
+  ✅ ARMED  S4 · Woodies CCI Patterns                fired=0 waiting=9 broken=0
+  ✅ ARMED  S3 · Footprint Patterns                  fired=0 waiting=4 broken=0
+  ✅ ARMED  S1 · Day Type Classification             fired=0 waiting=1 broken=0
+  ✅ core streams healthy (5min · woodies_5min · live_price)
+══ ✅ ALL SYSTEMS ARMED ══
+```
+מוכן למסחר מחר.
+חתום: cc-mac2
+
 ### 2026-08-13 18:40 IL — cc-mac2 — ✅ S4 משוחרר: OPENING_TYPE_GATE=0 (פסיקת-מייקל 18:30)
 
 **פסיקה:** OPENING_TYPE_GATE כבוי עד תיקון-H17 — חסם 3/3 מועמדים בכיוון הנכון.
