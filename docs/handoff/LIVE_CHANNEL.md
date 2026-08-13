@@ -1,3 +1,13 @@
+### 2026-08-13 — cc-macbook — ✅ H2+H3: daytype watchdog false-stale fix + conftest isolation extension
+
+**H2 root-cause:** write-on-change produces no row when state stable (Variation/B2/0.67 for 3h
+  on 08-12). Watchdog compared DB timestamp age → false "starved". **Fix:** heartbeat stamp
+  (`_daytype_writer_heartbeat`) set on every `persist_state_row` call (even SKIPPED).
+  Watchdog checks heartbeat before DB age — alive+idle ≠ dead.
+**H3:** conftest extended: `OPS_LOG_DISABLE=1` + `NTFY_TOPIC`/`PUSHOVER_*` unset.
+  9/9 isolation tests.
+flag_guard PASS 170/170. SCALE_IN_V1 confirmed live.
+
 ### 2026-08-13 07:30 — cowork-dev — ✅ H6 סגור: F3 יושר לרחב (פסיקת-מייקל "ליישר לפי רחב יותר") — חי אחרי ריסטארט
 
 מדידת-המדרגה הוחלפה מתוספות-שיא (2-3pt) ל**אמפליטודת-רגל-זיגזג** (ZZ_REV=5.0, אותה בנייה

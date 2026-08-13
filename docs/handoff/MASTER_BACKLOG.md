@@ -62,8 +62,8 @@
 | # | משימה | בעלים | סטטוס |
 |---|---|---|---|
 | H1 | ✅ **חי 13.08 07:00** — phone_alert מת-בשקט על הפרת-אורפן (PHONE_ALERTS_V1 + שמות-env + urllib) → delegation ל-ntfy_notify + notify() לא-בורח + 3 טסטים + 169/169 | cw | ✅ סגור |
-| H2 | day_type writer — קצב מדרדר + נעצר 19:55 יומית (תבנית ותיקה, לא F2); watchdog מזייף "starved" כל היום | cc | 🔴 root-cause |
-| H3 | בידוד-טסטים חלקי: MagicMock דלף ל-OPS_LOG (00:39 12.08) — להרחיב conftest גם ל-ops_log/mobile-relay/phone_alert | cc | פתוח |
+| H2 | day_type writer — קצב מדרדר + נעצר 19:55 יומית (תבנית ותיקה, לא F2); watchdog מזייף "starved" כל היום | cc | ✅ סגור — heartbeat + watchdog fix (write-on-change idle ≠ dead) |
+| H3 | בידוד-טסטים חלקי: MagicMock דלף ל-OPS_LOG (00:39 12.08) — להרחיב conftest גם ל-ops_log/mobile-relay/phone_alert | cc | ✅ סגור (OPS_LOG_DISABLE + NTFY/Pushover unset) |
 | H4 | מדיניות multi-slot: GHOST #658 נשאר shadow_only כי slot-לייב-יחיד תפוס (עלות ~$39 צל) — החלטת-מוצר | מייקל | פסיקה |
 | H5 | שורת-עמלות ב-EOD (ברוטו 73.75 מול נטו 49.15) | cc | פתוח |
 | H6 | ✅ **חי 13.08 07:30** — יושר לפי פסיקת-מייקל ("ליישר לפי רחב יותר"): מדרגה=רגל-זיגזג (ZZ_REV=5) + רצפת-T1 מבנית ב-rr_min-האפקטיבי (מקור-יחיד); טייפ-אמת 08-11: מדיאן 11.62 (היה 2-3), RR≥1.0; 17+63 טסטים (7ee24e37) | cw | ✅ סגור |

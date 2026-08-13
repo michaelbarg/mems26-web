@@ -156,6 +156,28 @@ def check_daytype_staleness(app_state=None) -> Optional[str]:
 
         age_min = (datetime.now(timezone.utc) - last_ts).total_seconds() / 60
 
+        # H2 (2026-08-13): before crying stale, check the writer heartbeat.
+        # Write-on-change produces no row when state is unchanged — the DB
+        # timestamp goes stale but the writer is alive. If the heartbeat is
+        # recent (< threshold), the writer processed a bar recently and just
+        # had nothing new to write. This prevents the false "starved" that
+        # fired every 5 minutes on 08-12 (Variation/B2 stable for 3 hours).
+        if age_min > STALE_THRESHOLD_MIN:
+            _hb = None
+            try:
+                _real_app = app_state
+                if _real_app is None:
+                    from backend.main import app as _real_app_mod
+                    _real_app = _real_app_mod.state
+                _hb = getattr(_real_app, "_daytype_writer_heartbeat", None)
+            except Exception:
+                pass
+            if _hb is not None:
+                _hb_age_min = (time.time() - _hb) / 60.0
+                if _hb_age_min < STALE_THRESHOLD_MIN:
+                    # Writer is alive, just idle (state unchanged)
+                    return None
+
         if age_min > STALE_THRESHOLD_MIN:
             msg = _warn(
                 f"day_type_state stale: last entry {age_min:.0f}min ago "

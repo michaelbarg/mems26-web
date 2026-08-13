@@ -53,6 +53,12 @@ def persist_state_row(
     try:
         from backend.v9.db.safe_writer import safe_execute
 
+        # H2 heartbeat (2026-08-13): update a timestamp on EVERY call (even
+        # when write-on-change skips). The watchdog reads this to distinguish
+        # "writer alive but idle (state unchanged)" from "writer dead (no bars)".
+        import time as _hb_time
+        app_state._daytype_writer_heartbeat = _hb_time.time()
+
         cur_sig = compute_sig(state)
         if getattr(app_state, "_last_dts_sig", None) == cur_sig:
             return SKIPPED
