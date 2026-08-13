@@ -1,3 +1,19 @@
+### 2026-08-13 17:00 IL — cc-mac2 — ✅ בדיקת-תוך-סשן + watch חצי-שעתי מופעל
+
+**בדיקה:**
+- flag_guard: **PASS 170/170**
+- fire_drill: **GO** (feed 49ms, live_enabled [2,4], slot פנוי, day_type UNKNOWN conf=0.0)
+- sierra_state: `age=1s is_sim=0 armed=1 qty=0 cash=2519.09 orders=0`
+- backend: `{"status":"ok","version":"v9.0.0"}`
+- render healthz: `{"ok":true,"has_snapshot":true,"age_s":0.3}`
+- backend errors: ריסטארט ניקה `InFailedSqlTransaction` שחזר ב-FillPoller (טרנזקציה תקועה — נפתרת ב-restart, לא חוזר).
+- פוש `[מק-2] ✅ המערכת פעילה` נשלח: `{"status":1,"request":"70f05f50-5541-45ae-a95c-7a29509ca5c3"}`.
+
+**watch חצי-שעתי:** cron job `e29489ef` פעיל (כל :03 ו-:33) — fire_drill + sierra_state + health + render + errors. שקט=ירוק; כשל=Pushover alert + רשומה.
+
+**פתוח:** PG-over-ZT — דיאלוג trust ב-Postgres.app צריך אישור מקומי (preopen-agent זיהה).
+חתום: cc-mac2
+
 ### 2026-08-13 16:30 IL — preopen-agent-0813 — 🔴 קדם-פתיחה: מק-2=GO · מק-1=NO-GO (פיד-ברים קפוא) · F3=1
 
 **ירוקים:** flag_guard PASS 170/170 · mems26_verify OK (1 warn: FLAG_INDEX drift — לא נגעתי) ·
