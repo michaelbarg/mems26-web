@@ -16,7 +16,7 @@ import sys
 import time
 import urllib.request
 
-ENV_PATH = os.path.expanduser("~/Downloads/mems26_web_git/.env")
+ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 LOCAL = "http://localhost:8000/api/v9/mobile"
 INTERVAL_OK = 5
 INTERVAL_BAD = 30

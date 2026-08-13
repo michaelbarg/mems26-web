@@ -1,3 +1,42 @@
+### 2026-08-13 13:55 IL — cc-mac2 — ✅ זהות-מכונה מאומתת (fingerprint + frontend build + render pusher + DLL)
+
+**פעולות שבוצעו:**
+1. `cd frontend/v9 && npm run build` — build חדש (`er8iCQVcJvEyHxTeqzC8z`), kickstart frontend+backend.
+2. `mobile_relay.py` — שורש: ENV_PATH hardcoded ל-`~/Downloads/` (נתיב מק-1); תוקן לנתיב יחסי לריפו.
+   plist לא היה מותקן — נוצר עם Python 3.14 + נתיב נכון, נטען. push ידני `{"ok":true}`.
+   healthz: `{"ok":true,"has_snapshot":true,"age_s":1.6}`.
+3. fingerprint מלא:
+```
+══ MEMS26 fingerprint · iMac · 2026-08-13 10:52:45 IDT ══
+FP|git.head=da2429b3
+FP|git.branch=stabilize/mems26-local-truth-2026-05-16
+FP|git.dirty_files=2
+FP|study.repo_monolith=e8589126b24d002b4e6a3a18c0b9baaaf0f4c0af3e02563a685cfda71a8a58b9
+FP|study.deployed=e8589126b24d002b4e6a3a18c0b9baaaf0f4c0af3e02563a685cfda71a8a58b9
+FP|flags=FLAG-GUARD:PASS—all170ruledflagsmatch.
+FP|env.vars=224
+FP|env.sha=005734451693b422520ecca2f5b4475670cd23814b8b0aa04e2b9253ecb4f7ed
+FP|env.machine_specific=MACHINE_TAG,RENDER_MOBILE_URL,  # WHITELIST (allowed to differ)
+FP|backend.boot=applied 0 vars
+FP|backend.http=200
+FP|backend.staleness=ok
+FP|frontend.http=200
+FP|frontend.build_id=er8iCQVcJvEyHxTeqzC8z
+FP|frontend.staleness=ok(prod-build)
+FP|sierra.state_age=0s
+FP|sierra.newest_export=sierra_state.json (0s)
+FP|sierra.stuck_tmp=0
+FP|agent.export_promoter=loaded
+FP|agent.bridge=loaded
+FP|agent.backend=loaded
+FP|launchagents=0/1 match repo
+══ end fingerprint ══
+```
+**dirty_files=2:** `config/news_calendar.yaml` (pull conflict residue) + `scripts/mobile_relay.py` (ENV_PATH fix).
+**fire_drill=GO** (מריצה קודמת: feed age=830ms, כל שרשרת ההחלטה כשרה).
+**נותר לחימוש:** cowork ישווה fingerprint מול מק-1 → פסיקת-חימוש (`MEMS26_MODE=live`).
+חתום: cc-mac2
+
 ### 2026-08-13 11:40 — cowork-dev — 🔍 מייקל צדק: פרונט-קפוא בשתי המכונות (שורש נמצא+תוקן במק-1) · כלי-זהות חדש `mems26_fingerprint.sh` · אל cc-מק-2: 3 צעדים
 
 **מייקל:** "הפרונטאנד שם לא אותו הדבר… אני מניח שעוד הרבה דברים לא זהים" + "המערכת גם
