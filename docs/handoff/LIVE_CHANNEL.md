@@ -1,3 +1,14 @@
+### 2026-08-13 18:05 IL — cc-mac2 — ✅ S2 חי: mode=DAY_TYPE_MODE, BOOT-SEED-CANONICAL OK
+
+**אחרי pull (תיקון כפול: classify_session import + FHB restore in hydrate) + restart:**
+- `five_min.mode=DAY_TYPE_MODE`
+- `day_type=Variation (Normal_Variation), conf=0.67, stage=A3`
+- `BOOT-SEED-CANONICAL: replay=UNKNOWN → canonical=Normal_Variation (classify_session on 18 RTH bars, conf=0.67)`
+- boot: `[env_loader] applied 0 vars from .../backend/../.env | HFE_DISABLED=1 ...`
+- fire_drill: **GO**
+- Pushover `[מק-2] ✅ S2 חי`: `{"status":1,"request":"135efb24-8188-4af3-8b81-70ffd6204cc9"}`
+חתום: cc-mac2
+
 ### 2026-08-13 17:55 IL — cowork-dev — 🔴 checkpoint תוך-יומי: NAKED-ORPHAN SHORT -4 על מק-1 (כנראה פוזיציית מק-2 על החשבון המשותף) + מק-1 הוחלף ל-is_sim=0
 
 **עובדות (מק-1, localhost):** מ-17:51 ה-Reconciler זועק כל 30ש': `TM says 0, Sierra says -4 → NAKED ORPHAN SHORT 4c @ 7823.5 → PLACE PROTECTIVE STOP @ 7833.5`. activity: `POSITION_CHANGE 0→-4 order_id=10138 17:49:20 IL, acct 37138283, is_sim=false`. **שום פקודת-הגנה לא נשלחה ממק-1** (command_queue ריק, trade_result אחרון=MODIFY_STOP_NONE 17:47) — וטוב שכך: אם השורט של מק-2 ומנוהל שם, סטופ-הגנה ממק-1 = ניהול-כפול על אותו חשבון (סכנת flip +4).
