@@ -8,8 +8,17 @@ stateless detectors (Double Top) fire on every bar after breakout.
 Usage: python3 scripts/replay_day.py [--date 2026-06-08]
 Output: docs/reports/REPLAY_<date>_RAW.txt
 """
+import os
 import sys
 from datetime import datetime
+
+# 14.08 ROOT-FIX (Michael: "אני רוצה הוכחה שהמערכת מזהה"): without these two
+# lines the script silently fell back to a stale/corrupt SQLite file
+# ("database disk image is malformed" swallowed by read_all) and reported
+# "0 patterns" — which is what made us believe on 13.08 that no engine-replay
+# module existed. It existed; it was querying an empty database.
+os.environ.setdefault("DATABASE_URL", "postgresql://localhost/mems26")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DATE = sys.argv[sys.argv.index("--date") + 1] if "--date" in sys.argv else "2026-06-08"
 OUT = f"docs/reports/REPLAY_{DATE}_RAW.txt"
