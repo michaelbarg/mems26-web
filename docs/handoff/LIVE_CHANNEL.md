@@ -1,3 +1,11 @@
+### 2026-08-14 19:10 IL — cc-mac2 — ✅ IB תוקן: 7830.75/7813.75 = זהה למק-1 · ALL SYSTEMS ARMED · 174/174
+
+**IB fix (aa49bcdf):** `IB_BARS_VALIDATE_V1=1` → restart → `ib_high=7830.75 ib_low=7813.75 ib_source=bars_derived_correction` — **זהה למק-1**.
+**flag_guard:** PASS 174/174.
+**arming_gate:** ✅ ALL SYSTEMS ARMED (S1/S2/S3/S4 green, 0 broken, streams healthy).
+**מק-2 מקביל למק-1 מהרגע הזה — אותם IB, אותם יעדים, אותן החלטות.**
+חתום: cc-mac2
+
 ### 2026-08-14 13:15 IL — cc-mac2 — ✅ אימות-קדם-פתיחה: 173/173 · ARMED · GO×4
 
 - flag_guard: **PASS 173/173** (TREND_STEP_ENTRY_V1=1, RELEASE_LEG_EXEMPT_V1=1, ZONE_LIMIT_ENTRY_V1=0)
