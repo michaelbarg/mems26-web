@@ -1460,6 +1460,40 @@ def post_woodies_5min(
 
     if last_flat:
         _route_bar("woodies_5min", last_flat)
+        # ── FAILOVER 2026-08-14 (Michael: "לא יכול להיות שלא מתקבלים נתונים אם
+        # אני רואה אותם") — mac-2 ran a whole session with 11/12 streams fresh
+        # and ONLY the '5min' channel dead: its Sierra does not export 5min.json,
+        # so after F2 disabled the aggregator publisher there was NO publisher
+        # left. S2 and the day-type machine subscribe to '5min' → both blind
+        # while the screen looked alive.
+        # The woodies bar IS the canonical 5-min bar (docs/SOURCE_OF_TRUTH.md —
+        # v9_bars_5min_woodies is the live truth; the raw table is legacy). So
+        # when the raw '5min' publisher has been silent past the failover
+        # threshold, re-publish this same closed bar on the '5min' topic. No
+        # double-feed risk: it only fires while the raw channel is silent, and
+        # the router's dedup key (F2) drops any overlap.
+        try:
+            import time as _fo_time
+            _fo_gap = float(os.getenv("BAR5_FAILOVER_SECONDS", "120") or "120")
+            _fo_last = None
+            if _stream_health is not None:
+                _snap = _stream_health.get_all_streams() or {}
+                _rows = _snap.get("streams", _snap) if isinstance(_snap, dict) else []
+                if isinstance(_rows, list):
+                    for _r in _rows:
+                        if isinstance(_r, dict) and _r.get("name") == "5min":
+                            _fo_last = _r.get("last_push_ts")
+                            break
+            _now_ts = _fo_time.time()
+            if _fo_last is None or (_now_ts - float(_fo_last)) > _fo_gap:
+                _route_bar("5min", last_flat)
+                _record_push("5min")
+                logger.warning(
+                    "[bars/woodies_5min] '5min' channel silent %.0fs → FAILOVER: "
+                    "republished the canonical woodies bar on '5min' (S2/day-type fed)",
+                    (_now_ts - float(_fo_last)) if _fo_last else -1.0)
+        except Exception as _fo_err:
+            logger.warning("[bars/woodies_5min] 5min failover check errored: %s", _fo_err)
     return {"ok": True, "inserted": created, "type": "woodies_5min"}
 
 
