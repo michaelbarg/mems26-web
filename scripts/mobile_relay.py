@@ -160,6 +160,26 @@ def _in_active_window(env: dict) -> bool:
         return True
 
 
+def _push_idle_notice(push_key: str, render: str, env: dict) -> None:
+    """Tell the page it is idle BY DESIGN and when live data resumes."""
+    win = (env.get("RELAY_WINDOW_IL", "") or "").strip()
+    tag = (env.get("MACHINE_TAG", "") or "").strip()
+    body = json.dumps({
+        "relay_idle": True,
+        "relay_window_il": win,
+        "relay_days_il": (env.get("RELAY_DAYS_IL", "") or "").strip(),
+        "relay_note": (f"הממסר במנוחה מתוכננת (חסכון בתוכנית-החינם). "
+                       f"נתונים חיים בחלון {win} (שעון ישראל)."),
+        "machine": tag or None,
+    }).encode()
+    req = urllib.request.Request(
+        f"{render}/api/v9/mobile/snapshot", data=body, method="POST",
+        headers={"Content-Type": "application/json", "X-Push-Key": push_key})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        r.read()
+    print(f"[relay] idle notice pushed (window={win})", flush=True)
+
+
 def main() -> None:
     env = _env()
     access_key = env.get("MOBILE_ACCESS_KEY", "")
@@ -177,6 +197,16 @@ def main() -> None:
             if not idle_logged:
                 print("[relay] outside active window — idling (free-tier hours budget)", flush=True)
                 idle_logged = True
+            # 14.08 (Michael: "אם רנדר לא עובד מסיבות חכמות אני רוצה שזה יופיע
+            # באפליקציה עם הסבר מתי זה יעבוד"): push ONE heartbeat per idle
+            # cycle carrying the window, so the page can say "idle by design,
+            # data resumes at HH:MM" instead of a bare "stale" scare. One push
+            # every 10 min costs nothing against the free-tier budget.
+            try:
+                if int(time.time()) % 600 < 60:
+                    _push_idle_notice(push_key, render, env)
+            except Exception:
+                pass
             time.sleep(60)
             continue
         idle_logged = False

@@ -192,7 +192,22 @@ async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
   const age = d._relay_age_s;
-  document.getElementById('stale').style.display = (age==null || age>30)? 'block':'none';
+  // 14.08 (Michael): distinguish "idle by design" from "something is broken",
+  // and always say WHEN live data resumes.
+  const el = document.getElementById('stale');
+  if (d.relay_idle) {
+    el.style.background = '#2d2614'; el.style.borderColor = '#d29922'; el.style.color = '#d29922';
+    el.textContent = '⏸ ' + (d.relay_note || ('ממסר במנוחה — נתונים חיים בחלון ' + (d.relay_window_il || '')));
+    el.style.display = 'block';
+  } else if (age == null || age > 30) {
+    el.style.background = '#2d1214'; el.style.borderColor = '#f85149'; el.style.color = '#f85149';
+    el.textContent = '⚠ הנתונים מעופשים (' + (age==null? 'אין נתונים' : Math.round(age)+'ש') +
+                     ') — המק לא דוחף עדכונים' + (d.relay_window_il? ' · חלון-דחיפה '+d.relay_window_il : '');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+  if (d.relay_idle) return;  // no trading data in an idle notice
   document.getElementById('clock').textContent = (d.ts||'') + ' · ☁ Render' + (age!=null? ' · עדכון לפני '+Math.round(age)+'ש':'');
   if(d._relay==='empty'){ document.getElementById('health').textContent='ממתין ל-snapshot ראשון מהמק...'; return; }
   const s = d.sierra||{}; const q = s.position_qty||0;
