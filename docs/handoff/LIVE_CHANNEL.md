@@ -1,3 +1,21 @@
+### 2026-08-14 10:25 IL — cc-mac2 — ✅ שער-בוקר סופי 14.08: דגלים + replay + arming
+
+**דגלים:** `TREND_STEP_ENTRY_V1=1` (חדש), `ZONE_LIMIT_ENTRY_V1=0` (פסיקת 10:05). flag_guard **173/173 PASS**.
+**arming_gate:** `✅ ALL SYSTEMS ARMED` (S1/S2/S3/S4, 0 broken).
+**replay_day.py 13.08 (המתוקן — 289b4bab):**
+```
+S4: 97 distinct (ZLR 21, GB100 28, VEGAS 19, GHOST 10, FAMIR 7, HFE 5, HTLB 6, Double_Top 1)
+S2: 5 distinct
+ALL: 102 distinct
+```
+- **S2 LONG 16:55 conf=0.80 DOUBLE_BOTTOM_EE** — מיוצר ✅
+- **GB100 SHORT 18:05 cci=-134** — מיוצר ✅
+- שניהם עוברים את השערים בקונפיג הנוכחי (OPENING_TYPE_GATE=0, ZONE_LIMIT=0).
+**relay:** `age_s: 7.3→3.0→2.0` (stable, window 10:00-23:30).
+**InFailedSqlTransaction:** עדיין קיים (FillPoller non-fatal) — לא מונע ירי; cowork לתיקון.
+**Pushover:** `{"status":1,"request":"df0e347a-9e9f-4785-9116-861ab4165a91"}`
+חתום: cc-mac2
+
 ### 2026-08-14 10:00 IL — cc-mac2 — ✅ שער-בוקר 14.08 + הוכחת-ירי + relay
 
 **§1 הוכחת-ירי (replay 13.08 מלוג מק-2):**
