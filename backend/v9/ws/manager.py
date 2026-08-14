@@ -57,31 +57,88 @@ class EventBusWSManager:
             self._clients.discard(ws)
 
     async def _relay_loop(self):
-        """Poll Redis Streams and relay price.tick events to WS clients."""
-        stream_key = "mems26:events:price.tick"
+        """Relay price.tick events to WS clients.
 
-        # Get the latest entry ID to start from "now"
+        ROOT-FIX 2026-08-14 (Michael: "המערכת לא מצליחה לקבל נתונים בצורה שוטפת
+        והוא מתנתק או על stale — זה לא היה לנו"): this loop only ever read the
+        Upstash CLOUD Redis stream. That instance no longer resolves (DNS
+        failure), so every read returned None: the socket stayed OPEN while
+        zero ticks were sent, the store's lastUpdateMs went cold and the UI
+        showed stale → disconnected. Meanwhile the local feed was perfectly
+        healthy (sierra_state 0.5-2s, live_price.json ~250ms).
+        A local-only stack must not depend on a cloud hop for its own screen
+        (CLAUDE.md § Bridge Local-Only). Redis stays as the primary path when
+        it answers; otherwise we broadcast straight from the LOCAL price file,
+        which is the same truth the trading path reads.
+        """
+        stream_key = "mems26:events:price.tick"
         last_id = await self._get_latest_id(stream_key)
+        redis_ok = last_id is not None
+        if not redis_ok:
+            logger.warning("[WS:price] Redis unavailable — relaying from local "
+                           "live_price.json (screen stays live)")
+        last_file_ts = None
 
         while self._clients:
             try:
-                entries = await self._xrange(stream_key, last_id, count=50)
-                for entry_id, fields in entries:
-                    event_data = self._parse_entry(fields)
-                    if event_data:
-                        await self.broadcast({
-                            "type": "price.tick",
-                            "data": event_data,
-                            "ts": time.time(),
-                        })
-                    last_id = entry_id
+                sent = False
+                if redis_ok:
+                    entries = await self._xrange(stream_key, last_id, count=50)
+                    if entries is None:
+                        redis_ok = False
+                        logger.warning("[WS:price] Redis went silent — switching "
+                                       "to local live_price.json")
+                    else:
+                        for entry_id, fields in entries:
+                            event_data = self._parse_entry(fields)
+                            if event_data:
+                                await self.broadcast({
+                                    "type": "price.tick",
+                                    "data": event_data,
+                                    "ts": time.time(),
+                                })
+                                sent = True
+                            last_id = entry_id
 
-                await asyncio.sleep(0.1)  # 100ms poll
+                if not redis_ok:
+                    tick = self._local_price_tick()
+                    if tick and tick.get("ts_ms") != last_file_ts:
+                        last_file_ts = tick.get("ts_ms")
+                        await self.broadcast({
+                            "type": "price.tick", "data": tick, "ts": time.time(),
+                        })
+                        sent = True
+
+                await asyncio.sleep(0.1 if sent else 0.25)
             except asyncio.CancelledError:
                 break
             except Exception:
                 logger.exception("[WS:price] relay error")
                 await asyncio.sleep(1.0)
+
+    @staticmethod
+    def _local_price_tick():
+        """Read the local Sierra price export → price.tick payload (or None)."""
+        try:
+            path = os.path.join(
+                os.getenv("V9_EXPORT_DIR",
+                          os.path.expanduser("~/SierraChart_Data/v9_export")),
+                "live_price.json")
+            with open(path, "r") as fh:
+                d = json.load(fh)
+            price = d.get("last") or d.get("price") or d.get("last_price")
+            if price is None:
+                return None
+            ts = d.get("ts") or d.get("timestamp") or time.time()
+            return {
+                "price": float(price),
+                "bid": float(d["bid"]) if d.get("bid") not in (None, "") else None,
+                "ask": float(d["ask"]) if d.get("ask") not in (None, "") else None,
+                "last_size": d.get("last_size") or d.get("size"),
+                "ts_ms": int(float(ts) * 1000) if float(ts) < 1e12 else int(float(ts)),
+            }
+        except Exception:
+            return None
 
     async def _get_latest_id(self, stream_key: str) -> str:
         """Get the last entry ID from the stream."""
