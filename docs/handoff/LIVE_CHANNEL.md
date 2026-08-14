@@ -1,3 +1,11 @@
+### 2026-08-14 13:15 IL — cc-mac2 — ✅ אימות-קדם-פתיחה: 173/173 · ARMED · GO×4
+
+- flag_guard: **PASS 173/173** (TREND_STEP_ENTRY_V1=1, RELEASE_LEG_EXEMPT_V1=1, ZONE_LIMIT_ENTRY_V1=0)
+- arming_gate: **✅ ALL SYSTEMS ARMED** (S2 10w/0b · S4 9w/0b · S3 4w/0b · S1 1w/0b)
+- fire_drill: **GO — effective_contracts=4**
+- Pushover: `{"status":1,"request":"4994e86b-2b2e-4bf9-879f-144f052179b2"}`
+חתום: cc-mac2
+
 ### 2026-08-14 10:25 IL — cc-mac2 — ✅ שער-בוקר סופי 14.08: דגלים + replay + arming
 
 **דגלים:** `TREND_STEP_ENTRY_V1=1` (חדש), `ZONE_LIMIT_ENTRY_V1=0` (פסיקת 10:05). flag_guard **173/173 PASS**.
