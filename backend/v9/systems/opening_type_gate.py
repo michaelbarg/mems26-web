@@ -183,8 +183,33 @@ def _detect_from_bars(
 def _early_bias(
     bars: List[Dict], opening_print: float
 ) -> Tuple[str, str]:
-    """Before 6 bars: running bias from sign(last_close − opening_print)."""
-    last_close = bars[-1].get("c", bars[-1].get("close"))
+    """Before 6 bars: running bias from sign(last_close − opening_print).
+
+    H14 fix (Michael 13.08, after the gate blocked a +12pt winner): the bias
+    used to be read off whatever the last element was — including a bar still
+    FORMING. On 13.08 the opening bar spiked down to 7785 and then closed at
+    its high (7798.5); the gate had latched "DOWN" from the intrabar spike and
+    blocked the correct responsive LONG at 16:34 while the market ran +12pt.
+    Two corrections, both structural:
+      1. only CLOSED bars vote (the forming bar is dropped when we can tell);
+      2. a bar that closes in the top/bottom third of its own range flips the
+         bias to that side — a failed spike that closes at the high is an UP
+         signal, not a DOWN one.
+    Flag: OPENING_BIAS_BAR_CLOSE_REFRESH_V1 (default OFF → byte-identical to
+    the old behaviour until replayed and ruled).
+    """
+    import os as _b_os
+    closed = bars
+    if (_b_os.environ.get("OPENING_BIAS_BAR_CLOSE_REFRESH_V1", "0").lower()
+            in ("1", "true", "yes")) and len(bars) >= 2:
+        # drop a still-forming last bar when the caller passes one
+        if bars[-1].get("closed") is False or bars[-1].get("is_partial"):
+            closed = bars[:-1]
+
+    last = closed[-1] if closed else None
+    if last is None:
+        return "UNKNOWN", "NEUTRAL"
+    last_close = last.get("c", last.get("close"))
     if last_close is None:
         return "UNKNOWN", "NEUTRAL"
 
@@ -193,6 +218,23 @@ def _early_bias(
         return "UNKNOWN", "NEUTRAL"
 
     direction = "UP" if diff > 0 else "DOWN"
+
+    if _b_os.environ.get("OPENING_BIAS_BAR_CLOSE_REFRESH_V1", "0").lower() in ("1", "true", "yes"):
+        h = last.get("h", last.get("high"))
+        l = last.get("l", last.get("low"))
+        try:
+            rng = float(h) - float(l)
+            if rng > 0:
+                pos = (float(last_close) - float(l)) / rng   # 1.0 = closed at high
+                if pos >= 0.66 and direction == "DOWN":
+                    logger.info("[OpeningGate] H14: close in top third (%.2f) → bias DOWN→UP", pos)
+                    direction = "UP"
+                elif pos <= 0.34 and direction == "UP":
+                    logger.info("[OpeningGate] H14: close in bottom third (%.2f) → bias UP→DOWN", pos)
+                    direction = "DOWN"
+        except (TypeError, ValueError):
+            pass
+
     return "EARLY_BIAS", direction
 
 
