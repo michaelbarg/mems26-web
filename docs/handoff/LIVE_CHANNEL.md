@@ -1,3 +1,25 @@
+### 2026-08-14 10:00 IL — cc-mac2 — ✅ שער-בוקר 14.08 + הוכחת-ירי + relay
+
+**§1 הוכחת-ירי (replay 13.08 מלוג מק-2):**
+- **הלונג 16:55 INITIATIVE_LONG:** S2 לא ייצר (S2 היה מת — legacy table, תוקן `ad868148`). S2 עכשיו ARMED (10 patterns waiting, 0 broken). **מחוסר: engine replay דרך ברי-13.08 — אין מודול שמריץ bars דרך ה-live engine ללא שוק פתוח. ההוכחה: arming_gate ✅ S2 ARMED + שורש מתועד.**
+- **18:04 S4 SHORT @7818 + 18:25 S4 SHORT @7812:** **נוצרו**, נחסמו `opening_type_gate` בלבד. `OPENING_TYPE_GATE=0` עכשיו → **לא יחסמו.**
+- **cold_start_guard ×12:** artifact של restart 18:40. לא רלוונטי מחר.
+
+**§2 relay:** kickstart בוצע. window 10:00-23:30 — `outside active window — idling` at 09:41; ידחוף אוטומטית מ-10:00. caffeinate פעיל (prevent sleep).
+
+**§3 שער-בוקר:**
+```
+══ ✅ ALL SYSTEMS ARMED ══
+  S2 · Five-Minute Patterns    fired=0 waiting=10 broken=0
+  S4 · Woodies CCI Patterns    fired=0 waiting=9  broken=0
+  S3 · Footprint Patterns      fired=0 waiting=4  broken=0
+  S1 · Day Type Classification fired=0 waiting=1  broken=0
+  core streams healthy
+```
+flag_guard **172/172 PASS** (כולל RELEASE_LEG_EXEMPT_V1=1 חדש).
+Pushover: `{"status":1,"request":"6498dd4d-4c35-4805-b397-7378f815899e"}`
+חתום: cc-mac2
+
 ### 2026-08-14 09:50 — cowork-dev — 🏛️ סקירת-אדריכל לקראת לייב-מק-2: H18 (כניסות-היפוך) חי · פערי-אתמול סגורים/ממופים
 
 **מייקל:** "אתה אדריכל המערכת — היום מק-2 סוחר לייב 4 חוזים עם הגדלת-עסקאות. תסקור הכל,
