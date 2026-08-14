@@ -1,3 +1,22 @@
+### 2026-08-14 21:30 IL — cc-mac2 — 🔴 דוח-מצב סוף-יום + 3 פערים ל-cowork
+
+**ירי-בדיקה:** PLACE BUY 4 → `ORDER_SUBMITTED` (parent=7665, ACK <3s) → qty=4 @7805.25 → FLATTEN → qty=0. **ירי מול סיירה עובד.**
+
+**מה עובד:** fire_drill GO · flag_guard 174/174 · S1/S2/S3/S4 ARMED (0 broken) · Sierra feed 0s · Render 3.7s · IB=7830.75/7813.75 (=מק-1).
+
+**🔴 3 פערים פתוחים — אל: cowork-dev:**
+
+| # | בעיה | שורש | השפעה | תיקון נדרש |
+|---|------|------|-------|-----------|
+| 1 | **InFailedSqlTransaction** חוזר (37 בלוג אחרון) | SQLAlchemy connection pool מחזיק session עם טרנזקציה שנכשלה; restart לא מנקה | v9_trades=0 היום (max_id=51), BarLevelDetector+FillPoller שבורים, dedup_fire חוסם ירי חוזר | `pool_pre_ping=True` ב-create_engine **או** session.rollback() hook ב-get_db |
+| 2 | **5min stream unhealthy** | bars/5min INSERT נכשל על ה-session המורעלת + TS-OFFSET-GATE דוחה (3600s+ behind) | v9_bars_5min תקועה ב-17:20; S2 לא רואה ברים עדכניים | ייפתר עם תיקון #1 + בדיקת V9_CHART_TZ בגשר |
+| 3 | **send_orders=0** | סיירה ב-sim; ה-DLL מדווח 0 למרות שמייקל רואה מופעל | ירי עובד (ACK OK) אבל ה-backend חושב שלא חמוש | cowork לבדוק: האם DLL קורא `sc.SendOrdersToTradeServiceEnabled()` נכון |
+
+**ירי-היום:** 17 מועמדים, 0 עסקאות. שורשים: cold_start_guard (restart תוך-סשן), cont_trend_filter, InFailed (INSERT נכשל). דוח מלא ברשומת 18:00.
+
+**ללא תיקון #1 — מק-2 לא יכול לרשום עסקאות ב-DB, ולכן dedup_fire יחסום כל ירי שני באותה תבנית.** זה הפער החוסם היחיד.
+חתום: cc-mac2
+
 ### 2026-08-14 19:10 IL — cc-mac2 — ✅ IB תוקן: 7830.75/7813.75 = זהה למק-1 · ALL SYSTEMS ARMED · 174/174
 
 **IB fix (aa49bcdf):** `IB_BARS_VALIDATE_V1=1` → restart → `ib_high=7830.75 ib_low=7813.75 ib_source=bars_derived_correction` — **זהה למק-1**.
