@@ -879,7 +879,12 @@ async def _startup():
                 from backend.v9.systems.trend_step import detector as _tsd
                 if not _tsd.enabled():
                     return
-                _bts = str((event or {}).get("ts") or (event or {}).get("bar_ts") or "")
+                # BarEvent is an object on the router (not a dict) — read both.
+                if isinstance(event, dict):
+                    _bts = str(event.get("ts") or event.get("bar_ts") or "")
+                else:
+                    _bts = str(getattr(event, "ts", None)
+                               or getattr(event, "bar_ts", None) or "")
                 if _bts and _ts_last_bar["ts"] == _bts:
                     return  # one evaluation per closed bar
                 _ts_last_bar["ts"] = _bts
