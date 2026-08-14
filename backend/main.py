@@ -863,6 +863,47 @@ async def _startup():
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
 
+        # ── H15 TREND_STEP_ENTRY_V1 (Michael 13.08: "שוב מדרגה שהמערכת לא
+        # זיהתה — זה בסדר?" → no). Stair-stepping sessions produced ZERO
+        # candidates: S2/S4 look for their own shapes and LEG_RIDE only exempts
+        # existing signals. This subscriber runs the proven causal detector
+        # (backend/v9/systems/trend_step/detector.py — byte-faithful port of
+        # scripts/replay_trend_step_entry.py, replay 2026-07-15..08-12:
+        # NET +$2,378.75 / n=31 / 48% on 4 contracts) on each closed 5-min bar
+        # and routes any step through the NORMAL gateway chain (system 4) —
+        # every gate still applies. Flag default OFF; one candidate per bar.
+        _ts_last_bar = {"ts": None}
+
+        async def _trend_step_on_bar(event):
+            try:
+                from backend.v9.systems.trend_step import detector as _tsd
+                if not _tsd.enabled():
+                    return
+                _bts = str((event or {}).get("ts") or (event or {}).get("bar_ts") or "")
+                if _bts and _ts_last_bar["ts"] == _bts:
+                    return  # one evaluation per closed bar
+                _ts_last_bar["ts"] = _bts
+                _setup = _tsd.build_setup()
+                if not _setup:
+                    return
+                _gw = getattr(app.state, "trading_gateway", None)
+                if _gw is None:
+                    _logger.warning("[TrendStep] gateway not ready — candidate dropped")
+                    return
+                _res = _gw.route_setup(_setup, 4)
+                if _res.get("blocked_by"):
+                    _logger.warning("[TrendStep] gateway blocked: %s (%s)",
+                                    _res.get("blocked_by"), str(_res.get("reason"))[:90])
+                else:
+                    _logger.warning("[TrendStep] ROUTED: %s @%s → %s",
+                                    _setup["direction"], _setup["entry_price"],
+                                    _res.get("trade_id") or _res.get("shadow") or "ok")
+            except Exception as _ts_err:
+                _logger.warning("[TrendStep] on-bar errored (non-fatal): %s", _ts_err)
+
+        bar_router.subscribe("5min", _trend_step_on_bar)
+        _logger.info("[Main] TrendStep detector subscribed to 5min (flag-gated)")
+
         # Missed-trade detector (observability — should-have-fired)
         try:
             from backend.v9.systems.build_status.missed_trade_detector import missed_trade_detector
