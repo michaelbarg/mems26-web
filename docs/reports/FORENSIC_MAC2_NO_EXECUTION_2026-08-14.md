@@ -11,10 +11,17 @@
 ## 0. תשובה בשורה אחת
 
 מק-2 **כן** העביר היום לפחות **4 מועמדים דרך כל שרשרת-השערים**. הם מתו **אחרי** השערים
-ו**לפני** ה-INSERT — בתוך `_execute_shadow`, בחריגה (exception) ש**נבלעת** ב-
-`woodies_system.py:1268`. לכן: אין שורת `v9_trades`, אין רשומת-החלטה, ו-4 המועמדים
-החוזרים נחסמו `duplicate_fire` — כי הרישום ל-`_recent_fires` קורה **לפני** הביצוע.
-**`send_orders_to_trade_service=0` הוא לא הסיבה** — אף שער בבקאנד לא קורא אותו.
+ו**לפני** ה-INSERT — בתוך `_execute_shadow`, בחריגה ש**נבלעת** ב-`woodies_system.py:1268`.
+החריגה היא **`psycopg2.errors.InFailedSqlTransaction`**: ה-Session היחידה ארוכת-החיים
+(`main.py:1076 tm_db = SessionLocal()`) שמשותפת ל-TradeManager, ל-BarLevelDetector
+ול-FillPoller נכנסה למצב aborted, **ואף נתיב-שגיאה לא עושה `rollback()`** — ולכן היא
+נשארת שבורה לצמיתות. לכן: אין שורת `v9_trades`, אין רשומת-החלטה, ו-4 המועמדים החוזרים
+נחסמו `duplicate_fire` — כי הרישום ל-`_recent_fires` קורה **לפני** הביצוע.
+
+**`send_orders_to_trade_service=0` הוא לא הסיבה** — אף שער בבקאנד לא קורא אותו (§4).
+**`pool_pre_ping=True` כבר מוגדר ולא יעזור** — הבעיה היא טרנזקציה-שנפלה, לא חיבור-מת (§3.3).
+
+*(השורש אושר בבלתי-תלוי ע"י cc-mac2 מהלוג של מק-2 — 37 מופעים — בזמן כתיבת הדוח; §3.1.)*
 
 ---
 
@@ -179,7 +186,66 @@ _execute_shadow()                      trading_gateway.py:3226
 `SHADOW trade commit failed`. המסלול נקי אצלו. זו קבוצת-ביקורת מלאה: אותו קוד, אותה שרשרת,
 אותו בר — הבדל סביבתי במק-2.
 
-### 3.1 מה כן שולל, מה נשאר — **UNPROVEN: שורת-החריגה המדויקת**
+### 3.1 ✅ אישור עצמאי — החריגה זוהתה: `InFailedSqlTransaction` (UNPROVEN → **PROVEN**)
+
+בזמן כתיבת הדוח דחף cc-mac2 את `12f8402e` ("EOD 14.08"), ובו מדידה שנעשתה **על מק-2
+עצמו, בבלתי-תלוי** בניתוח שלמעלה:
+
+> `docs/handoff/LIVE_CHANNEL.md:11` — **InFailedSqlTransaction** חוזר (**37 מופעים בלוג
+> האחרון**) · שורש: "SQLAlchemy connection pool מחזיק session עם טרנזקציה שנכשלה" ·
+> השפעה: "**v9_trades=0 היום (max_id=51)**, BarLevelDetector+FillPoller שבורים,
+> **dedup_fire חוסם ירי חוזר**"
+
+**זה בדיוק אותו כשל, מזוהה משני כיוונים בלתי-תלויים** — הוא הגיע אליו מהלוג, אני הגעתי
+אליו מה-DB/API בלי גישה ללוג. שלוש התחזיות של §2.1 אומתו מילה במילה (`v9_trades=0`,
+`max_id=51`, `dedup_fire חוסם ירי חוזר`).
+
+**ולמה מדד ה-sequence עדיין עומד:** בטרנזקציה שנפלה, Postgres **דוחה כל פקודה נוספת בלי
+לבצע אותה** (`current transaction is aborted, commands ignored until end of transaction
+block`). לכן `INSERT ... RETURNING id` של `flush()` **לא הגיע לביצוע ו-`nextval` לא נצרך** —
+בדיוק `last_value=51=max(id)`. המדידה והחריגה מסתדרות במדויק.
+
+### 3.2 שרשרת-השורש המלאה (מוכחת מקצה לקצה)
+
+```
+main.py:1076   tm_db = SessionLocal()          ← Session אחת, ארוכת-חיים, לכל חיי התהליך
+main.py:1077   TradeManager(db=tm_db)          ← ה-Gateway כותב דרכה
+main.py:1078   BarLevelDetector(trade_manager=…)  ← אותה session
+main.py:1110   FillPoller(trade_manager=…, gateway=gw) ← אותה session
+        │
+        ▼  צרכן כלשהו (FillPoller / BarLevelDetector) נכשל על שאילתה
+   הטרנזקציה עוברת ל-aborted — ו**אף אחד לא עושה rollback**:
+        · trading_gateway.py:3257-3260  except commit_err → logger.warning  (בלי rollback)
+        · trading_gateway.py:3409-3412  אותו דפוס במסלול ה-demo
+        · backend/v9/services/fill_poller.py — **0 קריאות rollback בכל הקובץ**
+        · manager.py:213 — ה-rollback היחיד בכל TradeManager
+        ▼
+   כל flush() הבא ⇒ psycopg2.errors.InFailedSqlTransaction — **לצמיתות**
+        ▼
+   accept_setup זורק לפני self._db.add()  →  אין INSERT, ה-sequence קפוא
+        ▼
+   woodies_system.py:1268 בולע  →  אין שורה, אין רשומת-החלטה
+        ▼
+   הרישום מ-trading_gateway.py:2875 נשאר  →  הניסיון-החוזר = duplicate_fire
+```
+
+**כל מה שעבר דרך ה-session הזו מת יחד:** לכן גם פער #2 של cc-mac2
+(`v9_bars_5min` תקוע ב-17:20, "5min stream unhealthy") הוא **אותו שורש, לא באג נפרד**.
+
+### 3.3 ⚠️ תיקון להצעת-התיקון של cc-mac2
+
+> הצעתם: "`pool_pre_ping=True` ב-create_engine **או** `session.rollback()` hook ב-`get_db`"
+
+- **`pool_pre_ping=True` כבר מוגדר** — `backend/v9/db/session.py:62` (מנוע PG) ו-`:74`
+  (מנוע-הקריאה). **אין מה להוסיף, וזה גם לא היה עוזר**: `pool_pre_ping` מזהה *חיבור מת*
+  לפני שימוש חוזר; כאן החיבור **חי לגמרי** ורק הטרנזקציה שעליו aborted. שני מצבי-כשל שונים.
+- **hook ב-`get_db` לא נוגע בבעיה**: ה-session שנשברה היא `tm_db` מ-`main.py:1076` —
+  היא **לא** עוברת דרך `get_db` בכלל.
+
+התיקון הנכון הוא ב-§7 שורות 2א/2ב: `rollback()` בכל נתיב-שגיאה שנוגע ב-`tm_db`, ומגן
+בריאות-session ב-`accept_setup`.
+
+### 3.4 מה נשלל בדרך (נשמר לתיעוד — כדי שלא ייבדק שוב)
 
 | מועמד | סטטוס |
 |---|---|
@@ -190,12 +256,10 @@ _execute_shadow()                      trading_gateway.py:3226
 | `_db.commit()` (`:3258`) | **נשלל** — עטוף ב-try (`:3257-3260`), רק warning. |
 | `self._snapshot.capture` (`manager.py:370`) | **נשלל** — `TradeManager(db=tm_db)` (main.py:1077) בלי `snapshot_service` ⇒ `self._snapshot is None`. |
 | `resolve_pattern_id` (`:3251` / `:58`) | **נשלל** — שלוש קריאות `.get` ואופרטור `or`; אין מסלול-זריקה. |
-| **`extract_g1_entry_context`** (`:3231` → `trade_context.py:614`) | **נשאר מועמד** — הקריאות האחרות אליו (`:1054`, `:1252`) עטופות ב-try, ולכן לא מוכיחות שהוא בטוח. חשד מוגבר: הפורנזיקה של היום (commit `5642529e`) מצאה במק-2 **enum-repr** שנשמר במקום `.value` ו-`lock_state` תקוע ב-PENDING. |
-| `accept_setup` guards `:314-323` / `float(setup["stop"])` `:327` | **נשאר מועמד** (נמוך) |
-| `effective_contracts` (`manager.py:340` → `sierra_command.py:636`) | **נשאר מועמד** — החלק של המרג'ין עטוף (`:664`), אבל `_effective_contracts_raw` (`:543`) לא כולו. |
-| `V9Trade(...)` ctor (`manager.py:375`) | **נשאר מועמד** (נמוך) |
+| `extract_g1_entry_context` (`:3231`), `effective_contracts` (`manager.py:340`), `V9Trade(...)` ctor (`:375`), guards `:314-327` | **נשללו ב-§3.1** — החריגה היא `InFailedSqlTransaction` ב-`self._db.flush()`, לא באחד מאלה. |
 
-**החריגה המדויקת כבר רשומה על מק-2** בשני מקומות — צריך רק להסתכל (§6).
+**החריגה המדויקת כבר רשומה על מק-2** — 37 מופעים בלוג (§3.1). פקודות §6 עדיין שימושיות
+לאימות-אחרי-תיקון ולקביעת התאריך שבו זה התחיל.
 
 ---
 
@@ -325,10 +389,13 @@ grep -n "\[env_loader\]" /tmp/backend.err.log | tail -3
 
 | # | תיקון | קובץ:שורה | מי מריץ | אימות צפוי |
 |---|---|---|---|---|
-| **0** | **אבחון לפני תיקון** — פקודה 1 ב-§6 והדבקת הפלט הגולמי (חוק 5) | — | מייקל / cc-mac2 | שם-חריגה + הודעה |
-| **1** | **לתקן את השורש שפקודה 0 חושפת.** אין לנחש ואין לתקן מהזיכרון (CLAUDE.md § Pre-LIVE). | לפי הממצא | cc-mac2 | טסט-רגרסיה חדש (חובה לכל תיקון-באג) |
+| **1א** | **`rollback()` בכל נתיב-שגיאה שנוגע ב-`tm_db`** — זה השורש. להוסיף `self._trade_manager._db.rollback()` בתוך שני ה-`except` שבולעים היום commit כושל, כדי שכשל בודד לא ישבית את ה-session לצמיתות. | `trading_gateway.py:3259` (shadow), `:3411` (demo) | cc-mac2 | commit כושל מלאכותי ⇒ ה-fire **הבא** נכתב; `SHADOW trade TM id=` בלוג |
+| **1ב** | **אותו טיפול ב-FillPoller** — היום **0 קריאות `rollback` בכל הקובץ**, והוא חולק את אותה session עם ה-Gateway ⇒ שגיאה שלו מפילה את כתיבת-העסקאות. | `backend/v9/services/fill_poller.py` | cc-mac2 | 37→0 מופעי `InFailedSqlTransaction` בלוג |
+| **1ג** | **מגן בריאות-session ב-`accept_setup`**: לפני `self._db.add()` — אם `self._db.get_transaction()` שבורה, `rollback()` ואז להמשיך (fail-forward, לא fail-silent). | `manager.py:~405` | cc-mac2 | טסט-רגרסיה: session ב-aborted ⇒ `accept_setup` עדיין כותב |
+| **1ד** | ⛔ **לא לממש** את `pool_pre_ping` כתיקון — **כבר קיים** (`session.py:62`, `:74`) ומטפל בבעיה אחרת (§3.3). גם hook ב-`get_db` לא רלוונטי — `tm_db` לא עוברת דרכו. | — | — | — |
 | **2** | **לסגור את ה-silent-failure:** להחליף את הבליעה ב-`woodies_system.py:1268` ב-`logger.error` + `exc_info=True`, ולרשום החלטת-gateway עם `blocked_by="execution_error"` כדי שהפאנל "למה לא ירה" יראה את זה. אותו טיפול ב-`five_min_system.py:2273` ו-`footprint_system.py:472`. | `woodies_system.py:1268`, `five_min_system.py:2273`, `footprint_system.py:472` | cc-mac2 | כשל-ביצוע מלאכותי מופיע ב-`/api/v9/gateway/decisions` עם `execution_error` |
 | **3** | **לתקן את הרעלת-חלון-ה-dedup (I-60, קפיצה שנייה):** להעביר את `_recent_fires.append` מ-`:2875` ל**אחרי** ש-`_execute_shadow` החזיר בהצלחה (אחרי `:2886`), או לבצע rollback לרישום אם הביצוע נכשל. **ניסיון-חוזר תקין לא יכול להיחסם ע"י ירי שמעולם לא נרשם.** | `trading_gateway.py:2871-2879` | cc-mac2 | טסט: `_execute_shadow` שזורק ⇒ המועמד הבא **לא** מקבל `duplicate_fire` |
+| **3ב** | **פער #2 של cc-mac2 (5min stream) הוא אותו שורש** — `v9_bars_5min` תקוע ב-17:20 כי ה-INSERT רץ על אותה session מורעלת. לסגור אותו כפריט-בן של 1א-1ג, לא כחקירה נפרדת. | — | cc-mac2 | הזרם חוזר לבריא אחרי תיקון 1 בלי נגיעה ב-TZ |
 | **4** | **ריצת-אימות סוף-יום למחרת** — לא `fire_drill` ולא `debug_gateway_fire`, אלא שוואה של יום-מסחר מלא | — | cowork-dev | `MAX(v9_trades_id_seq)` במק-2 **זז**; `shadow_active_count > 0`; `decisions.today.shadow_only > 0` |
 | **5** | **מדד-פערים קבוע לפרוטוקול-הבוקר**: `mac2.shadow_active_count` ו-`v9_trades_id_seq` מול מק-1. אם ה-sequence לא זז ביום שבו היו gate-passes — התראה. | `scripts/mems26_verify.sh` | cc-mac2 | הרצה יומית ירוקה |
 
@@ -374,5 +441,19 @@ backend/v9/api/v9/context_radar.py:294:  "sendorders": st.get("send_orders_to_tr
 
 ---
 
+```
+$ git show 12f8402e  (cc-mac2, מדידה בלתי-תלויה על מק-2 מהלוג)
+LIVE_CHANNEL.md:11  InFailedSqlTransaction חוזר (37 בלוג אחרון) …
+                    v9_trades=0 היום (max_id=51) … dedup_fire חוסם ירי חוזר
+$ grep -n "pool_pre_ping" backend/v9/db/session.py
+62:        pool_pre_ping=True,      ← מנוע PG — כבר קיים
+74:    pool_pre_ping=True,          ← מנוע-קריאה — כבר קיים
+$ grep -rn "rollback" backend/v9/services/fill_poller.py → (אין ולו אחת)
+$ grep -rn "rollback" backend/v9/services/trade_manager/manager.py → manager.py:213 (יחיד)
+```
+
+---
+
 **חתום:** cowork-dev · 2026-08-14 · read-only forensic, שום שינוי בשום מכונה.
-מה שמוכח מסומן כמוכח; שורת-החריגה המדויקת מסומנת **UNPROVEN** ונסגרת בפקודה 1 של §6.
+כל הטענות בדוח מוכחות במדידה. שורת-החריגה, שהייתה UNPROVEN בגרסה הראשונה, נסגרה ב-§3.1
+באישור בלתי-תלוי מהלוג של מק-2 (`InFailedSqlTransaction`, 37 מופעים).
