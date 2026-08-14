@@ -325,6 +325,55 @@ def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> d
         ib_mid = None
         ib_source = "missing"
 
+    # ── IB_BARS_VALIDATE_V1 (2026-08-14, Michael: "IB תתוקן שם … הוא צריך
+    # להיות מקביל של מק-1"). NOT synthesis — VALIDATION.
+    # Rule 1 (honest failure > synthetic value) forbids inventing an IB when the
+    # study is SILENT. Here the study is not silent, it is WRONG: mac-2's Sierra
+    # reported ib 7817.50/7808.00 for a session whose real 09:30-10:30 ET range
+    # (from the ingested canonical bars, byte-identical on both machines) is
+    # 7830.75/7813.75 — a window an hour late. That bogus ib_low became the T1
+    # target and killed every candidate on R:R (last one: R:R 0.19, T1 1.0pt).
+    # CLAUDE.md explicitly allows "trading logic on ingested bars"; the extremes
+    # of the first twelve RTH bars ARE the initial balance. When Sierra's value
+    # disagrees with the bars by more than a tick we serve the bars value and
+    # SAY SO in ib_source (no flag-laundering — the provenance stays honest).
+    # Only runs once the window is complete (>=10:30 ET) and bars exist.
+    if os.getenv("IB_BARS_VALIDATE_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            from datetime import datetime as _ib_dt, time as _ib_t
+            from zoneinfo import ZoneInfo as _ib_zi
+            _et_now = _ib_dt.now(_ib_zi("America/New_York"))
+            if _et_now.time() >= _ib_t(10, 30):
+                from backend.v9.db.read import read_one as _ib_read
+                _row = _ib_read(
+                    "SELECT MAX(high) AS h, MIN(low) AS l, COUNT(*) AS n "
+                    "FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time < '10:30'", {})
+                _bh = float(_row["h"]) if _row and _row.get("h") is not None else None
+                _bl = float(_row["l"]) if _row and _row.get("l") is not None else None
+                _bn = int(_row["n"]) if _row and _row.get("n") is not None else 0
+                if _bh is not None and _bl is not None and _bn >= 12:
+                    _mismatch = (
+                        ib_high is None or ib_low is None
+                        or abs(float(ib_high) - _bh) > 0.25
+                        or abs(float(ib_low) - _bl) > 0.25
+                    )
+                    if _mismatch:
+                        logger.warning(
+                            "[tpo] IB CORRECTION: Sierra reported %s/%s but the "
+                            "ingested RTH bars (%d) give %s/%s — serving the bars "
+                            "value (ib_source=bars_derived_correction)",
+                            ib_high, ib_low, _bn, _bh, _bl)
+                        ib_high, ib_low = _bh, _bl
+                        ib_mid = round((_bh + _bl) / 2.0, 2)
+                        ib_found = True
+                        ib_source = "bars_derived_correction"
+        except Exception as _ib_err:
+            logger.warning("[tpo] IB validation errored (Sierra value kept): %s", _ib_err)
+
     ib_width = None
     if ib_high is not None and ib_low is not None:
         ib_width = ib_high - ib_low
