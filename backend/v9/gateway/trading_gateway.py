@@ -1904,7 +1904,28 @@ class TradingGateway:
                     "ORDER BY ts LIMIT 1", {})
                 _rg_sess_open = float(_rg_open_row[0]["open"]) if _rg_open_row else None
                 _rg_last = _rg_bars[-1].close if _rg_bars else None
-                if _rg.trend_bypass(_rg_sess_open, _rg_last, direction):
+                # RELEASE_LEG_EXEMPT_V1 (2026-08-14) — REVERSAL ENTRIES.
+                # Implements Michael's standing ruling (08-11): "רק אם המגמה
+                # נשברת ניתן לבצע עסקה נגדית" — when the trend breaks, the
+                # counter entry is allowed. The trend-bypass above measures
+                # displacement from the SESSION OPEN, so on a day that opened up
+                # and then reversed, the (correct) SHORT is scored "counter-move"
+                # and the rotation model holds it — 13.08: this gate held the
+                # 16:34 LONG (+12pt) and the 18:05/19:14/19:15 reversal SHORTs,
+                # 4 of 10 candidates. A live LEG (canonical LSMA/CCI structure,
+                # the same detector LEG_RIDE_V1 already trusts for chase/location/
+                # lsma gates) IS the proof that the trend broke and a new leg is
+                # running. With-leg ⇒ exempt; against-leg ⇒ every gate stays.
+                _rg_leg_exempt = (
+                    os.getenv("RELEASE_LEG_EXEMPT_V1", "0").lower() in ("1", "true", "yes")
+                    and _live_leg(direction)
+                )
+                if _rg_leg_exempt:
+                    logger.warning(
+                        "[Gateway] release-gate LEG EXEMPT: %s agrees with the live "
+                        "leg — trend broke, reversal entry allowed (ruling 08-11)",
+                        direction)
+                elif _rg.trend_bypass(_rg_sess_open, _rg_last, direction):
                     logger.warning(
                         "[Gateway] release-gate TREND BYPASS: %s with-move, "
                         "session displaced (open %s → %s)",
