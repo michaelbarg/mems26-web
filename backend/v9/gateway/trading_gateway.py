@@ -3258,6 +3258,14 @@ class TradingGateway:
                 self._trade_manager._db.commit()
             except Exception as commit_err:
                 logger.warning("[Gateway] SHADOW trade commit failed: %s", commit_err)
+                # ROOT-FIX 2026-08-15: a failed commit leaves the SHARED session
+                # aborted; without this rollback every later trade INSERT dies
+                # silently (mac-2: 0 trades for 28 days).
+                try:
+                    from backend.v9.db.session_guard import ensure_clean
+                    ensure_clean(self._trade_manager._db, where="gateway.shadow_commit")
+                except Exception:
+                    pass
             logger.info(
                 "[Gateway] SHADOW trade TM id=%d: %s %s system=%d",
                 trade_id, tm_setup["direction"], setup.get("classification", ""), system_id,
@@ -3410,6 +3418,11 @@ class TradingGateway:
                 self._trade_manager._db.commit()
             except Exception as commit_err:
                 logger.warning("[Gateway] DEMO trade commit failed: %s", commit_err)
+                try:
+                    from backend.v9.db.session_guard import ensure_clean
+                    ensure_clean(self._trade_manager._db, where="gateway.commit")
+                except Exception:
+                    pass
 
             # Write Sierra command with the seeded targets
             demo_setup = dict(setup)
@@ -3587,6 +3600,11 @@ class TradingGateway:
                 self._trade_manager._db.commit()
             except Exception as commit_err:
                 logger.warning("[Gateway] LIVE trade commit failed: %s", commit_err)
+                try:
+                    from backend.v9.db.session_guard import ensure_clean
+                    ensure_clean(self._trade_manager._db, where="gateway.commit")
+                except Exception:
+                    pass
 
             # Write Sierra command — LIVE account
             live_setup = dict(setup)

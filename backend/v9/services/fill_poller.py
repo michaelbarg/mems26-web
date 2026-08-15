@@ -158,6 +158,18 @@ class FillPoller:
                 break
             except Exception as e:
                 logger.warning("[FillPoller] poll error (continuing): %s", e)
+                # ROOT-FIX 2026-08-15: "continuing" was a lie whenever the error
+                # aborted the shared transaction — this loop owns the same
+                # Session as TradeManager (main.py:1076), so a swallowed failure
+                # here poisoned every later trade INSERT. mac-2 wrote zero
+                # trades for 28 days behind exactly this. Clean up before the
+                # next cycle so the poison can never outlive one iteration.
+                try:
+                    from backend.v9.db.session_guard import ensure_clean
+                    ensure_clean(getattr(self._tm, "_db", None),
+                                 where="FillPoller.run")
+                except Exception:
+                    pass
         logger.info("[FillPoller] stopped")
 
     def stop(self) -> None:

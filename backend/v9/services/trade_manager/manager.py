@@ -314,6 +314,18 @@ class TradeManager:
         if mode not in ("shadow", "demo", "live"):
             raise ValueError(f"Invalid mode: {mode}")
 
+        # ROOT-FIX 2026-08-15 (mac-2 wrote ZERO trades for 28 days): this
+        # session is shared with BarLevelDetector + FillPoller (main.py:1076).
+        # Once any of them aborted the transaction without rolling back, every
+        # later statement raised InFailedSqlTransaction — the fire passed all
+        # gates, then died here, swallowed upstream. A trade write must never
+        # inherit someone else's poisoned transaction.
+        try:
+            from backend.v9.db.session_guard import ensure_clean
+            ensure_clean(self._db, where="accept_setup")
+        except Exception:
+            pass
+
         firing_system = setup["firing_system"]
         if firing_system not in (1, 2, 3, 4):
             raise ValueError(f"Invalid firing_system: {firing_system}")
