@@ -724,6 +724,45 @@ class BarLevelDetector:
                             logger.warning(
                                 "[BarLevelDetector] S6 MAE SCRATCH: trade %d — %s",
                                 trade.id, _scratch_reason)
+                            # ROOT-FIX 2026-08-14 (Michael, live: "the system
+                            # reported the trade closed but the order never
+                            # reached Sierra"). This path closed the BOOKS and
+                            # never sent an exit — on 08-14 trade #682 was
+                            # marked CLOSED/$0 at 20:00 while Sierra still held
+                            # SHORT 4 @7799.25 for 62 minutes, the LIVE slot was
+                            # freed (so the engine could stack another fire on
+                            # top), and the loss was reported as $0 so the daily
+                            # risk counter under-counted.
+                            # TARGET_APPROACH_REALIZE 34 lines above already
+                            # does this correctly: FLATTEN first, then close the
+                            # books. Same order here — and if the command cannot
+                            # be written we do NOT close the books (an unclosed
+                            # book with a live position is recoverable; a closed
+                            # book with a live position is a ghost).
+                            try:
+                                from backend.v9.services.sierra_command import (
+                                    write_trade_command as _mae_write,
+                                )
+                                _mae_write(
+                                    action="FLATTEN_ACCOUNT",
+                                    context={"source": "mae_scratch",
+                                             "trade_id": str(trade.id),
+                                             "reason": _scratch_reason})
+                            except Exception as _mae_cmd_err:
+                                logger.critical(
+                                    "[BarLevelDetector] MAE SCRATCH: FLATTEN command "
+                                    "FAILED for trade %d (%s) — books NOT closed, "
+                                    "position stays owned", trade.id, _mae_cmd_err)
+                                try:
+                                    from backend.v9.services.phone_alert import push as _mae_push
+                                    _mae_push("mae_scratch_flatten_failed",
+                                              "\U0001f534 MEMS26: SCRATCH לא בוצע",
+                                              f"trade {trade.id}: פקודת-הסגירה נכשלה — "
+                                              f"הפוזיציה עדיין פתוחה בסיירה",
+                                              priority=1)
+                                except Exception:
+                                    pass
+                                continue  # do NOT close the books
                             self._tm.close_trade(trade.id, reason="MAE_SCRATCH")
                             if self._gateway:
                                 try:
