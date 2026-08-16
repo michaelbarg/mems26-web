@@ -952,7 +952,42 @@ def get_opening_dir_fusion(oe_bars):
             return None
 
         open_price = _f(_bg(b6[0], "o", "open"))
-        opening_vol = sum(_f(_bg(b, "v", "volume")) or 0.0 for b in b6)
+
+        # T7 ROOT-FIX 2026-08-15 — the gate had passed 0/8 times, ever.
+        # MEASURED, not theorised: 08-14 the fusion computed opening_vol=2,212
+        # against median=114,590 and logged "auction/low-conviction"; the
+        # canonical table says that morning's first six RTH bars traded 89,246.
+        # The 40× gap is a UNIT MISMATCH, not a quiet market: the bars handed to
+        # S2 are `current_bar` snapshots (bars.py routing override — deliberate,
+        # it carries live study values), so each one holds the volume accrued in
+        # the first seconds of its 5-minute window. Comparing a partial-bar sum
+        # to a full-bar median can only ever say "too quiet", which is why the
+        # gate silently dropped 8/8 opening candidates (08-13 DRIVE LONG ×5,
+        # 08-14 ORR LONG + DRIVE SHORT ×2 — the 08-14 pair alone was +$227.50).
+        # Both sides of the comparison must come from the same measure, so the
+        # opening volume is read from the canonical CLOSED bars — the same table
+        # and the same first-6 window the median is built from. Fewer than six
+        # closed bars → None (honest unknown, Rule 1: never a partial sum
+        # dressed up as a full one).
+        _ov = read_scalar(
+            "SELECT sum(volume) FROM ("
+            "  SELECT volume, row_number() OVER (ORDER BY ts) rn "
+            "  FROM v9_bars_5min_woodies WHERE symbol='MES' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::date = "
+            "      (now() AT TIME ZONE 'America/New_York')::date "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+            "  AND ts <= now() - interval '5 minutes' "
+            ") x WHERE rn <= 6", {})
+        _n_closed = read_scalar(
+            "SELECT count(*) FROM v9_bars_5min_woodies WHERE symbol='MES' "
+            "AND (ts AT TIME ZONE 'America/New_York')::date = "
+            "    (now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "AND ts <= now() - interval '5 minutes'", {})
+        if not _n_closed or int(_n_closed) < 6:
+            return None
+        opening_vol = _f(_ov)
         med = read_scalar(
             "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY ov) FROM ("
             "  SELECT d, sum(volume) ov FROM ("

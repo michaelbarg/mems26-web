@@ -110,3 +110,44 @@ class TestWiring:
         import backend.main as m
         src = inspect.getsource(m)
         assert "_ts_last_bar" in src
+
+
+class TestClosedBarsOnly:
+    """T6 — the detector must never see the bar that is still forming.
+
+    `ts` is the bar's OPEN time, so the row inside the current 5-minute bucket
+    is rewritten by the DLL on every tick. Feeding it in moved the live entry
+    5.25pt away from the replay's — the difference between the replayed
+    +$2,378.75 and the −$696.25 the slip sweep measured.
+    """
+
+    def test_query_excludes_the_forming_bar(self, monkeypatch):
+        seen = {}
+
+        def _fake_read_all(sql, params):
+            seen["sql"] = sql
+            return []
+
+        import backend.v9.db.read as _read
+        monkeypatch.setattr(_read, "read_all", _fake_read_all)
+        from backend.v9.systems.trend_step import detector as d
+        d.live_bars()
+        sql = " ".join(seen["sql"].split())
+        assert "ts <= now() - interval '5 minutes'" in sql, (
+            "live_bars must exclude the in-progress bar")
+
+    def test_it_still_returns_the_closed_bars(self, monkeypatch):
+        """The boundary must not eat a legitimately closed bar."""
+        from datetime import datetime, timedelta, timezone
+
+        base = datetime(2026, 8, 14, 14, 0, tzinfo=timezone.utc)
+        rows = [{"ts": base + timedelta(minutes=5 * i), "open": 7800.0 + i,
+                 "high": 7802.0 + i, "low": 7799.0 + i, "close": 7801.0 + i,
+                 "volume": 500, "lsma_value": 7800.0 + i} for i in range(8)]
+
+        import backend.v9.db.read as _read
+        monkeypatch.setattr(_read, "read_all", lambda sql, params: rows)
+        from backend.v9.systems.trend_step import detector as d
+        bars = d.live_bars()
+        assert len(bars) == 8
+        assert bars[-1]["c"] == 7808.0

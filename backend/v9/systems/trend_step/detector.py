@@ -218,7 +218,21 @@ def detect_trend_step(bars: List[Dict], i: Optional[int] = None,
 
 
 def live_bars(limit: int = 60) -> List[Dict]:
-    """Today's RTH 5-min bars from the CANONICAL table (SOURCE_OF_TRUTH)."""
+    """Today's CLOSED RTH 5-min bars from the CANONICAL table (SOURCE_OF_TRUTH).
+
+    T6 ROOT-FIX 2026-08-15 — the detector must see exactly what the replay saw.
+    `ts` is the bar's OPEN time, so the row whose ts is inside the current
+    5-minute bucket is the bar still being FORMED: the DLL rewrites its
+    high/low/close on every tick. Feeding it to the detector meant the pause
+    extreme and the entry trigger were computed from a partial bar — live
+    entries came in 5.25pt below the replay's, which is the whole difference
+    between the replayed +$2,378.75 and the −$696.25 the slip sweep measured.
+
+    `ts <= now() - 5min` keeps every bar whose window has fully elapsed and
+    drops the one in progress. It is a boundary condition, not a filter on
+    freshness: at T+5:00 exactly, the bar that opened at T is closed and
+    included.
+    """
     from backend.v9.db.read import read_all
     rows = read_all(
         "SELECT ts, open, high, low, close, volume, lsma_value "
@@ -226,6 +240,7 @@ def live_bars(limit: int = 60) -> List[Dict]:
         "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
         "(now() AT TIME ZONE 'America/New_York')::date "
         "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+        "AND ts <= now() - interval '5 minutes' "
         "ORDER BY ts", {})
     out: List[Dict] = []
     for r in rows or []:

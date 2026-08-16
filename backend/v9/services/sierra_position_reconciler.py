@@ -865,10 +865,24 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                 if str(v).isdigit()
             )
         if not _is_system_position:
+            # Honest wording (Rule 1). With tm_qty==0 the books hold nothing, so
+            # the system CANNOT prove whose position this is: "Michael opened it
+            # by hand" and "the system's own exit never executed" look identical
+            # from here. Claiming either with confidence is a synthesis. What is
+            # certain is the actionable part — nothing is managing it — and that
+            # the system will not touch it (12:20 ownership ruling). When the
+            # order map still holds today's history the ambiguity is named
+            # explicitly instead of being resolved by guess.
+            _had_history = bool(_omap) if _fp is not None else False
             _manual_msg = (
-                f"MANUAL POSITION: Sierra {sierra_qty}c but no system orders in "
-                f"order_map → likely Michael's manual trade. Not orphan."
+                f"POSITION NOT IN BOOKS: Sierra {sierra_qty}c, no open system "
+                f"trade → the system is NOT managing it and will not touch it."
             )
+            if _had_history:
+                _manual_msg += (
+                    " (ambiguous: manual trade, or a system exit that never "
+                    "executed — check the fills journal.)"
+                )
             msg += f" \u2139\ufe0f {_manual_msg}"
             # MANUAL_POSITION_GUARD_V1 (Michael ruling 07-25 "התראה-בלבד"):
             # alert-only naked-stop watch on the MANUAL position. Never touches

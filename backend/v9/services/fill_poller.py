@@ -152,6 +152,7 @@ class FillPoller:
                 self._check_fills()
                 self._check_activity_exits()
                 self._sync_position_truth()
+                self._verify_pending_exits()
                 self._maybe_reconcile()
                 self._check_rejections()
             except asyncio.CancelledError:
@@ -174,6 +175,19 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _verify_pending_exits(self) -> None:
+        """T4 runtime host: confirm (or escalate) exits whose books are held open.
+
+        Runs inside the same ≤2s cycle that already reads Sierra's state, so a
+        normal exit confirms within one tick of the DLL writing sierra_state.
+        Fail-quiet — a verifier error must never break the fill loop.
+        """
+        try:
+            from backend.v9.services.exit_verifier import verify_pending
+            verify_pending()
+        except Exception as err:
+            logger.warning("[FillPoller] exit-verify error (continuing): %s", err)
 
     async def _drain_command_queue_safe(self) -> None:
         """K1b (2026-08-08): runtime host for the P0-1 command-queue drainer.

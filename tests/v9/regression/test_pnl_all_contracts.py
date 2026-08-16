@@ -91,3 +91,32 @@ class TestAllContractsCounted:
                    exit_price=7795.0)
         pnl = _call(tm, t)
         assert pnl == pytest.approx(-100.0)
+
+
+class TestPartialTargetWinnersBookEveryLeg:
+    """Regression for a bug my own T3 fix introduced and the L7 suite caught:
+    forcing the LAST leg to the exit fill overwrote a contract that had banked
+    its target. A 2-contract T1+T2 winner booked $20 instead of $60.
+
+    The old code's `c3 = exit_p` was unconditional only because `[:n]` threw
+    that leg away for n < 3. The rule it encoded is "a contract that did not
+    reach its target exits at the fill" — per leg, not per position.
+    """
+
+    def test_two_contract_t1_t2_winner_books_both_targets(self, tm):
+        t = _trade(direction="LONG", entry=7500.0, stop=7496.0,
+                   t1=7504.0, t2=7508.0, t3=7512.0, t4=None,
+                   contracts=2, t1_hit=1, t2_hit=1,
+                   exit_reason="T2_HIT", exit_price=None)
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx(60.0), (
+            f"got {pnl}: c1@T1 (+4pt=$20) + c2@T2 (+8pt=$40) = $60")
+
+    def test_a_contract_that_missed_its_target_still_exits_at_the_fill(self, tm):
+        t = _trade(direction="LONG", entry=7500.0, stop=7496.0,
+                   t1=7504.0, t2=7508.0, t3=7512.0, t4=None,
+                   contracts=3, t1_hit=1, t2_hit=None,
+                   exit_reason="MANUAL", exit_price=7502.0)
+        pnl = _call(tm, t)
+        # c1@T1 (+4=$20), c2 and c3 at the 7502 fill (+2=$10 each) = $40
+        assert pnl == pytest.approx(40.0), pnl

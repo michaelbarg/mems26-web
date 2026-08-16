@@ -98,7 +98,9 @@ class TestBooksNeverCloseWithoutTheCommand:
         from backend.v9.services.trade_manager import bar_level_detector as bld
         src = inspect.getsource(bld)
         i = src.index("S6 MAE SCRATCH: trade")
-        j = src.index('close_trade(trade.id, reason="MAE_SCRATCH")', i)
+        # T4: the close moved into the verifier callback — the region now ends
+        # at the handoff, not at an inline close_trade.
+        j = src.index('_mae_ev.register(', i)
         blk = src[i:j]
         assert "continue" in blk and "FLATTEN command" in blk
 
@@ -107,6 +109,6 @@ class TestBooksNeverCloseWithoutTheCommand:
         from backend.v9.services.trade_manager import bar_level_detector as bld
         src = inspect.getsource(bld)
         i = src.index("S6 TARGET APPROACH REALIZE")
-        j = src.index('close_trade(trade.id, reason="TARGET_APPROACH_REALIZE")', i)
+        j = src.index('_tar_ev.register(', i)
         blk = src[i:j]
         assert "continue" in blk and "FLATTEN command" in blk

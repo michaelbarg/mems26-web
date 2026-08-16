@@ -29,12 +29,26 @@ class BarLevelDetector:
       2. Check T1 → T2 → T3 sequentially
     """
 
+
     def __init__(self, trade_manager: TradeManager, gateway=None):
         self._tm = trade_manager
         self._gateway = gateway
         self._bars_processed = 0
         self._last_bar_ts_processed: str = ""  # dedup across 5min + woodies_5min
         self._eod_flatten_requested: set = set()  # trade ids already sent an EOD CANCEL
+
+    def _trade_still_open(self, trade_id: int) -> bool:
+        """T4 helper: is this trade still active in the books?
+
+        Used by the exit verifier so a close that arrives from another correct
+        path (POSITION_TRUTH_SYNC 'SIERRA_FLAT', a Sierra stop fill, a manual
+        close) retires the pending instead of being closed a second time.
+        """
+        try:
+            return any(int(getattr(t, "id", -1)) == int(trade_id)
+                       for t in self._tm.get_active_trades())
+        except Exception:
+            return True  # unknown -> keep verifying (safe side)
 
     def set_gateway(self, gateway) -> None:
         """Inject gateway for demo slot release on trade close."""
@@ -723,7 +737,19 @@ class BarLevelDetector:
                                 except Exception:
                                     pass
                                 continue
-                            self._tm.close_trade(trade.id, reason="TARGET_APPROACH_REALIZE")
+                            # T4 (Michael 08-14): a written command is not an
+                            # exit. Defer the close until sierra_state proves
+                            # flat; verify_pending() runs it from the poller.
+                            def _tar_close(_tid=trade.id):
+                                self._tm.close_trade(_tid, reason="TARGET_APPROACH_REALIZE")
+                            from backend.v9.services import exit_verifier as _tar_ev
+                            if not _tar_ev.register(trade.id,
+                                                    source="target_approach_realize",
+                                                    reason=_tar_reason,
+                                                    on_confirmed=_tar_close,
+                                                    still_open=lambda _t=trade.id:
+                                                        self._trade_still_open(_t)):
+                                _tar_close()
                     except Exception as _tar_err:
                         logger.warning("[BarLevelDetector] target-approach error: %s", _tar_err)
 
@@ -785,23 +811,40 @@ class BarLevelDetector:
                                 except Exception:
                                     pass
                                 continue  # do NOT close the books
-                            self._tm.close_trade(trade.id, reason="MAE_SCRATCH")
-                            if self._gateway:
+
+                            # T4 (Michael 08-14, trade #682): books close only
+                            # once sierra_state proves flat. Everything that
+                            # used to run inline after close_trade moves into
+                            # the callback so the LIVE slot, the gateway and
+                            # the ops-log all stay consistent with reality.
+                            def _mae_close(_tid=trade.id, _dir=direction,
+                                           _mode=getattr(trade, "mode", "demo"),
+                                           _why=_scratch_reason):
+                                self._tm.close_trade(_tid, reason="MAE_SCRATCH")
+                                if self._gateway:
+                                    try:
+                                        self._gateway.on_trade_close({
+                                            "trade_id": _tid,
+                                            "mode": _mode,
+                                            "pnl_usd": 0.0,
+                                            "outcome": "SCRATCH",
+                                            "direction": _dir,
+                                        })
+                                    except Exception:
+                                        pass
                                 try:
-                                    self._gateway.on_trade_close({
-                                        "trade_id": trade.id,
-                                        "mode": getattr(trade, "mode", "demo"),
-                                        "pnl_usd": 0.0,
-                                        "outcome": "SCRATCH",
-                                        "direction": direction,
-                                    })
+                                    from scripts.ops_log import log_event
+                                    log_event("mae_scratch", "WARNING", _why)
                                 except Exception:
                                     pass
-                            try:
-                                from scripts.ops_log import log_event
-                                log_event("mae_scratch", "WARNING", _scratch_reason)
-                            except Exception:
-                                pass
+
+                            from backend.v9.services import exit_verifier as _mae_ev
+                            if not _mae_ev.register(trade.id, source="mae_scratch",
+                                                    reason=_scratch_reason,
+                                                    on_confirmed=_mae_close,
+                                                    still_open=lambda _t=trade.id:
+                                                        self._trade_still_open(_t)):
+                                _mae_close()
                             continue  # trade scratched — skip further checks
                     except Exception as _mae_err:
                         logger.debug("[BarLevelDetector] MAE scratch error (fail-safe): %s", _mae_err)

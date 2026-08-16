@@ -44,11 +44,33 @@ def test_manual_position_info_not_orphan(monkeypatch, tmp_path):
         f"Manual position should be ok=True (not orphan), got: {msg}. "
         "If reverted → RED: reconciler screams NAKED ORPHAN on Michael's manual trades"
     )
-    assert "MANUAL POSITION" in msg
+    assert "POSITION NOT IN BOOKS" in msg
+
+
+def _make_tm_with_open(trade_id):
+    """A TradeManager whose books still hold `trade_id` (genuine orphan case)."""
+    import types
+    tm = MagicMock()
+    tm.get_active_trades.return_value = [types.SimpleNamespace(id=trade_id)]
+    return tm
 
 
 def test_system_position_is_orphan(monkeypatch, tmp_path):
-    """Sierra=-5 + TM=0 + order_map has entries → real orphan, ok=False."""
+    """Sierra=-5 + TM=0 + order_map points at an OPEN trade → real orphan.
+
+    T5 (2026-08-15) narrowed ownership from "the map has ANY entry" to "the map
+    points at a trade that is still open". The old global test was what produced
+    113 false NAKED-ORPHAN alarms on 14.08: the map is a historical
+    order_id→trade_id index, so from the system's first trade of the day onward
+    every manual position of Michael's was claimed as system-owned.
+
+    A closed trade id in the map therefore no longer proves ownership — this
+    fixture now supplies an OPEN one, which is what a genuine orphan looks like.
+    (The case "the map points at a CLOSED trade and Sierra still holds" is the
+    #682 ghost; T4 prevents it at the source by refusing to close the books
+    until Sierra proves flat, and the reconciler now names it as ambiguous
+    rather than guessing an owner.)
+    """
     monkeypatch.setenv("RECONCILER_OWNERSHIP_AWARE_V1", "1")
 
     import json
@@ -64,6 +86,7 @@ def test_system_position_is_orphan(monkeypatch, tmp_path):
     # Mock fill_poller WITH orders in map → system placed this
     mock_fp = MagicMock()
     mock_fp._order_map = {12345: 479}
+    mock_fp._tm = _make_tm_with_open(479)
 
     with patch("backend.v9.services.phone_alert.push"):
         ok, msg = spr.reconcile_position(_make_tm(), fill_poller=mock_fp)

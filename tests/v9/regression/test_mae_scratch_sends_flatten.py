@@ -22,11 +22,16 @@ from backend.v9.services.trade_manager import bar_level_detector as bld
 
 
 def _scratch_block() -> str:
-    """The MAE_SCRATCH region: from the log line to the book close."""
+    """The MAE_SCRATCH region: from the log line to the book-close handoff.
+
+    T4 (2026-08-15) moved the close itself into a callback the exit verifier
+    runs once Sierra proves flat, so the region now ends at that handoff rather
+    than at an inline close_trade.
+    """
     src = inspect.getsource(bld)
     i = src.index("S6 MAE SCRATCH: trade")
-    j = src.index('close_trade(trade.id, reason="MAE_SCRATCH")', i)
-    return src[i: j + 60]
+    j = src.index('_mae_ev.register(', i)
+    return src[i: j + 400]
 
 
 class TestFlattenIsSent:
@@ -39,17 +44,24 @@ class TestFlattenIsSent:
     def test_flatten_precedes_book_close(self):
         blk = _scratch_block()
         i_flat = blk.index("_mae_write")
-        i_close = blk.index('close_trade(trade.id, reason="MAE_SCRATCH")')
+        i_close = blk.index("_mae_ev.register(")
         assert i_flat < i_close, "the exit must be sent BEFORE the books are closed"
 
     def test_books_not_closed_when_command_fails(self):
-        """The failure branch must `continue` — never fall through to
-        close_trade — otherwise we recreate the ghost."""
+        """The failure branch must `continue` — never reach the close handoff —
+        otherwise we recreate the ghost."""
         blk = _scratch_block()
         i_err = blk.index("FLATTEN command")
-        i_close = blk.index('close_trade(trade.id, reason="MAE_SCRATCH")')
+        i_close = blk.index("_mae_ev.register(")
         tail = blk[i_err:i_close]
         assert "continue" in tail, "a failed FLATTEN must skip the book close"
+
+    def test_the_close_waits_for_sierra(self):
+        """T4: even a SUCCESSFUL write must not close the books by itself —
+        that is exactly what booked #682 as CLOSED/$0 over a live position."""
+        src = inspect.getsource(bld)
+        assert 'self._tm.close_trade(trade.id, reason="MAE_SCRATCH")' not in src
+        assert "_mae_ev.register(" in src
 
     def test_failure_raises_a_phone_alert(self):
         blk = _scratch_block()

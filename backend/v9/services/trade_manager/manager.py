@@ -1665,11 +1665,15 @@ class TradeManager:
             contract_exits = _legs(exit_p)
         else:
             exit_p = trade.exit_price or trade.entry_price
+            # Every contract whose own target was NOT hit exits at the fill —
+            # that is exactly what _legs() does. (An earlier version of this fix
+            # also forced the LAST leg to the fill, imitating the old code's
+            # unconditional `c3 = exit_p`. That was a misreading: in the old
+            # 3-leg list the forced leg was always the THIRD one, and `[:n]`
+            # truncated it away for 2-contract trades. Forcing it on the last
+            # leg of a 2-contract trade overwrote a contract that really did
+            # bank T2 — a T1+T2 winner booked $20 instead of $60.)
             contract_exits = _legs(exit_p)
-            # legacy behaviour: the last leg always exits at the fill, never at
-            # a target it did not reach.
-            if contract_exits:
-                contract_exits[-1] = exit_p
 
         total_pnl = 0.0
         for exit_price in contract_exits:
