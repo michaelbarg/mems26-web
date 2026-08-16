@@ -644,6 +644,9 @@ def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:
 # Phantom-heal: consecutive checks where TM is in-position but Sierra is
 # definitively flat (qty=0, working=0). Reset on any other outcome.
 _phantom_flat_streak = 0
+# T5b alert throttle: last (tm_qty, sierra_qty, src) and when it was announced
+_last_div_state = None
+_last_div_ts = 0.0
 
 
 def _sierra_position_qty() -> Optional[int]:
@@ -800,6 +803,21 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
            f"Sierra says {sierra_qty} (src={src}). Records \u2260 reality!"
            + (f" [phantom-heal streak {_phantom_flat_streak}/{_need}]" if _heal_on else ""))
 
+    # T5b (Michael 15.08: "\u05d0\u05ea\u05d4 \u05de\u05e7\u05e4\u05d9\u05e5 \u05dc\u05d9 \u05de\u05dc\u05d0 \u05d4\u05ea\u05e8\u05d0\u05d5\u05ea \u05d3\u05e4\u05d5\u05e7\u05d5\u05ea"). The reconciler
+    # runs every 30s, so a single unchanged condition produced a WARNING every
+    # 30s all evening. Alert on STATE CHANGE, then at most once every 10 min
+    # while the same state persists; unchanged repeats drop to debug. Nothing
+    # is suppressed \u2014 a NEW or CHANGED divergence is still immediate.
+    global _last_div_state, _last_div_ts
+    _div_state = (tm_qty, sierra_qty, src)
+    _div_now = _time_mod.time()
+    _div_changed = (_div_state != _last_div_state)
+    _div_due = (_div_now - _last_div_ts) > 600.0
+    _div_loud = _div_changed or _div_due
+    if _div_loud:
+        _last_div_state = _div_state
+        _last_div_ts = _div_now
+
     # RECONCILER_OWNERSHIP_AWARE_V1 (Michael ruling 07-24, Phase 7.1):
     # Mixed account — Michael trades manually alongside the system. A Sierra
     # position with TM=0 could be Michael's manual trade, not an orphan.
@@ -822,8 +840,30 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
             except Exception:
                 pass  # fail-safe
         if _fp is not None:
+            # T5 ROOT-FIX (2026-08-15). This was `len(_order_map) > 0` — a
+            # GLOBAL test. The order map is a HISTORICAL order_id→trade_id
+            # index, so the moment the system placed its first trade of the day
+            # every later MANUAL position of Michael's was classified
+            # "system-owned" → NAKED-ORPHAN. Measured 14.08: 113 false alarms,
+            # and a DIVERGENCE warning every 30s while he scaled out by hand.
+            # The correct test is per-position: the system owns a position only
+            # if it currently HOLDS one. tm_qty==0 (this branch's precondition)
+            # means the books hold nothing, so whatever Sierra shows is not ours
+            # — unless the map still points at an OPEN trade.
             _omap = getattr(_fp, "_order_map", {})
-            _is_system_position = len(_omap) > 0
+            _open_ids = set()
+            try:
+                _tm_ref = getattr(_fp, "_tm", None) or getattr(_fp, "trade_manager", None)
+                for _t in (getattr(_tm_ref, "get_active_trades", lambda: [])() or []):
+                    _tid = getattr(_t, "id", None)
+                    if _tid is not None:
+                        _open_ids.add(int(_tid))
+            except Exception:
+                _open_ids = set()
+            _is_system_position = any(
+                int(v) in _open_ids for v in (_omap or {}).values()
+                if str(v).isdigit()
+            )
         if not _is_system_position:
             _manual_msg = (
                 f"MANUAL POSITION: Sierra {sierra_qty}c but no system orders in "
@@ -867,9 +907,14 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                     except Exception as _mp_err:
                         msg += f" 🛡️ AUTOPROTECT[ERROR:{type(_mp_err).__name__}]"
                         logger.warning("[Reconciler] manual autoprotect failed: %s", _mp_err)
-                logger.critical("[Reconciler] SYS-3 %s", msg)
-            else:
+                if _div_loud:
+                    logger.critical("[Reconciler] SYS-3 %s", msg)
+                else:
+                    logger.debug("[Reconciler] SYS-3 (repeat) %s", msg)
+            elif _div_loud:
                 logger.info("[Reconciler] SYS-3 %s", msg)
+            else:
+                logger.debug("[Reconciler] SYS-3 (repeat) %s", msg)
             return True, msg  # ok=True — not a divergence, just manual
 
     # P3 (orphan): Sierra holds a position the backend does not track (TM=0,
@@ -893,12 +938,19 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
             else:
                 msg += (" \U0001f534 NAKED ORPHAN \u2014 avg_price unavailable; FLATTEN_ACCOUNT "
                         "immediately (cannot compute a protective stop).")
-    logger.warning("[Reconciler] SYS-3 %s", msg)
+    if _div_loud:
+        logger.warning("[Reconciler] SYS-3 %s", msg)
+    else:
+        logger.debug("[Reconciler] SYS-3 (repeat, unchanged) %s", msg)
     # IDEA-2 (Michael 07-13): records≠reality is exactly what he must know about
     # when away from the screen. Rate-limited inside push(); never raises.
-    try:
-        from backend.v9.services.phone_alert import push as _phone_push
-        _phone_push("reconciler_divergence", "\U0001f534 MEMS26: DIVERGENCE", msg, priority=1)
-    except Exception:
-        pass
+    # T5 (Michael 08-15 "אתה מקפיץ לי מלא התראות דפוקות"): only push when the
+    # divergence is NEW/CHANGED or the 10-minute reminder is due. An unchanged
+    # divergence repeating every 30s must not become 120 pushes an hour.
+    if _div_loud:
+        try:
+            from backend.v9.services.phone_alert import push as _phone_push
+            _phone_push("reconciler_divergence", "\U0001f534 MEMS26: DIVERGENCE", msg, priority=1)
+        except Exception:
+            pass
     return False, msg
