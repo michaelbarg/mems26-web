@@ -120,12 +120,10 @@ def compute_v2_sizing(
     import os as _fc_os
     # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract sizing, PRECEDENCE over _3.
     # FIXED_CONTRACTS_4 (Michael 2026-07-15): 4-contract sizing, TOP precedence.
-    if _fc_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes") and contracts > 0:
-        contracts = 4
-    elif _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
-        contracts = 2
-    elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
-        contracts = 3
+    from backend.v9.services.contract_size import ruled_contracts as _ruled
+    _n = _ruled()
+    if _n is not None and contracts > 0:
+        contracts = _n
 
     # SIZE_CAP_CUT_V1 (Michael ruling 2026-07-09): "עם שיקול דעת — לא חייב תמיד
     # 3 חוזים". A structural stop WIDER than the group ATR-cap cuts size even

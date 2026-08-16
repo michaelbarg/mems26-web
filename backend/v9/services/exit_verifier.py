@@ -54,6 +54,15 @@ def _max_attempts() -> int:
     return int(os.getenv("EXIT_VERIFY_MAX_ATTEMPTS", "2"))
 
 
+def _unknown_max_s() -> float:
+    """How long we tolerate 'Sierra state unknown' before shouting about it.
+
+    Waiting silently forever is not the safe side — it just moves the failure
+    somewhere nobody looks.
+    """
+    return float(os.getenv("EXIT_VERIFY_UNKNOWN_MAX_S", "300"))
+
+
 @dataclass
 class PendingExit:
     trade_id: int
@@ -198,7 +207,22 @@ def verify_pending(now: Optional[float] = None) -> int:
 
         if qty is None:
             # Stale/absent state file — we do NOT know. Never guess flat.
-            if elapsed > _timeout_s() * 2:
+            # But "wait forever, quietly" is its own failure: the books stay
+            # open, the LIVE slot stays occupied, and nobody is told. Bound it:
+            # after EXIT_VERIFY_UNKNOWN_MAX_S of no fresh state, say so loudly
+            # once and stop tracking. The books still stay open (an open book
+            # over a possibly-live position is the recoverable side).
+            if elapsed > _unknown_max_s():
+                del _pending[tid]
+                logger.critical("[ExitVerify] trade %d: no fresh sierra_state for "
+                                "%.0fs — exit UNVERIFIABLE. Books stay OPEN; "
+                                "check Sierra manually.", tid, elapsed)
+                _push("exit_unverifiable",
+                      "\U0001f534 MEMS26: אי-אפשר לאמת מימוש",
+                      f"trade {tid} ({p.source}): אין קריאת-מצב טרייה מסיירה "
+                      f"{elapsed:.0f} שניות — לא ידוע אם הפוזיציה נסגרה. "
+                      f"הספרים נשארו פתוחים. לבדוק ידנית בסיירה.")
+            elif elapsed > _timeout_s() * 2:
                 logger.warning("[ExitVerify] trade %d: no fresh sierra_state for "
                                "%.0fs — cannot verify exit", tid, elapsed)
             continue

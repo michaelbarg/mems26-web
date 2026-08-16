@@ -78,14 +78,11 @@ class BarLevelDetector:
             from backend.v9.systems.system6_supervisor import scan_active_trade
 
             # expected contract count — mirror the sizing choke-point precedence
-            if _s6_os.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
-                _exp = 4  # Michael 2026-07-15
-            elif _s6_os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
-                _exp = 2
-            elif _s6_os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
-                _exp = 3
-            else:
-                _exp = None
+            # One resolver (2026-08-16) — a stale ladder here made System 6
+            # raise a false "contracts != expected" on every scan of a
+            # correctly-sized trade.
+            from backend.v9.services.contract_size import ruled_contracts as _ruled
+            _exp = _ruled()
 
             # current Chicago-time minute drives the EOD-flatten invariant (14:15 CT)
             _now_ct = None
@@ -127,9 +124,35 @@ class BarLevelDetector:
             _mismatch = bool(getattr(_rv, "mismatch", False)) if _rv is not None else False
             _verdict_str = getattr(_rv, "verdict", None) if _rv is not None else None
 
+            # 2026-08-16 — was `atr=0.0` with a TODO. That zero is not neutral:
+            # diagnose_trade falls back to floor=1.0 / cap=25.0, and on 08-14's
+            # real RTH ATR of 3.78 the correct band is 1.89 / 5.66. So
+            # `stop_too_wide` could effectively never fire (25pt), and
+            # `stop_too_tight` + `t1_too_close` — Michael's own "a T1 this close
+            # to entry is worth nothing" rule — were filtered against a floor
+            # 47% too low. The /s6/diagnose endpoint already computed a real ATR,
+            # so the panel and the live loop were diagnosing the same trade
+            # differently. Same 14-bar TR average, read from the canonical table.
+            _atr_live = 0.0
+            try:
+                from backend.v9.db.read import read_all as _s6_read
+                _ab = _s6_read(
+                    "SELECT high, low, close FROM v9_bars_5min_woodies "
+                    "WHERE symbol='MES' ORDER BY ts DESC LIMIT 14", {}) or []
+                _ab = list(reversed(_ab))
+                _trs, _prev = [], None
+                for _b in _ab:
+                    _h, _l, _c = float(_b["high"]), float(_b["low"]), float(_b["close"])
+                    _trs.append(_h - _l if _prev is None
+                                else max(_h - _l, abs(_h - _prev), abs(_l - _prev)))
+                    _prev = _c
+                _atr_live = (sum(_trs) / len(_trs)) if _trs else 0.0
+            except Exception:
+                _atr_live = 0.0   # honest zero → the documented safe fallback
+
             scan_active_trade(
                 trade=_t,
-                atr=0.0,  # TODO wire a real ATR; 0 → diagnose_trade safe floor=1.0 / cap=25pt
+                atr=_atr_live,
                 t1_hit=getattr(trade, "t1_hit_ts", None) is not None,
                 expected_contracts=_exp,
                 now_ct_min=_now_ct,

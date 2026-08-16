@@ -2880,8 +2880,39 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             double t3_price = parse_float("\"t3\"");
                             double t4_price = parse_float("\"t4\"");
 
+                            // ── LADDER (Michael ruling 2026-08-16) ───────────
+                            // "t0 - חוזה אחד · t1 - 2 חוזים · t2 - 2 חוזים · t3 - חוזה 1"
+                            //
+                            // ACSIL's s_SCNewOrder exposes OCOGroup1..5 only, so
+                            // "N separate brackets" stops working above 5. It does
+                            // NOT require one lot per group: a group may carry more
+                            // than one contract behind a shared stop/target. That is
+                            // what makes 5 and 6 representable inside the four groups
+                            // this study already builds.
+                            //
+                            // The rule that MUST hold, at every size: the group
+                            // quantities SUM EXACTLY TO OrderQuantity. Before this
+                            // change each group was hard-coded to 1 (sum = 4), so a
+                            // 5- or 6-contract order would have entered with 1 or 2
+                            // contracts carrying NO stop and NO target — invisible,
+                            // because the position looks bracketed. That is the
+                            // naked-orphan class that cost real money on 07-10,
+                            // 07-14, 07-17, 07-20 and 07-23.
+                            int lq[4] = {0, 0, 0, 0};
+                            if (contracts >= 6)      { lq[0]=1; lq[1]=2; lq[2]=2; lq[3]=1; }  // ruling
+                            else if (contracts == 5) { lq[0]=1; lq[1]=2; lq[2]=1; lq[3]=1; }  // same shape, one lighter
+                            else if (contracts == 4) { lq[0]=1; lq[1]=1; lq[2]=1; lq[3]=1; }
+                            else if (contracts == 3) { lq[0]=1; lq[1]=1; lq[2]=1; }
+                            else if (contracts == 2) { lq[0]=1; lq[1]=1; }
+                            else                     { lq[0]=1; }
+                            // Above 6 we cannot honour the ruling's shape inside four
+                            // groups without leaving a contract unprotected, so clamp
+                            // the ORDER itself rather than the protection.
+                            if (contracts > 6) contracts = 6;
+                            int lq_sum = lq[0] + lq[1] + lq[2] + lq[3];
+
                             s_SCNewOrder o;
-                            o.OrderQuantity = contracts;
+                            o.OrderQuantity = lq_sum;   // never more than we protect
                             o.OrderType     = SCT_ORDERTYPE_MARKET;
                             o.TimeInForce   = SCT_TIF_DAY;
 
@@ -2891,7 +2922,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 o.TradeAccount = acct_buf;
 
                             // Group 1: C1 = 1 contract
-                            o.OCOGroup1Quantity        = 1;
+                            o.OCOGroup1Quantity        = lq[0];
                             o.Target1Price             = static_cast<float>(t1_price);
                             o.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
                             o.Stop1Price               = static_cast<float>(stop_price);
@@ -2899,9 +2930,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
                             // Group 2: C2 = 1 contract (runner 1)
                             // If t2 <= 0: stop-only (no target). Rule 1: honest, no synthetic.
-                            if (contracts >= 2)
+                            if (lq[1] > 0)
                             {
-                                o.OCOGroup2Quantity      = 1;
+                                o.OCOGroup2Quantity      = lq[1];
                                 o.Stop2Price             = static_cast<float>(stop_price);
                                 o.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
                                 if (t2_price > 0)
@@ -2912,9 +2943,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
 
                             // Group 3: C3 = 1 contract (runner 2)
-                            if (contracts >= 3)
+                            if (lq[2] > 0)
                             {
-                                o.OCOGroup3Quantity      = 1;
+                                o.OCOGroup3Quantity      = lq[2];
                                 o.Stop3Price             = static_cast<float>(stop_price);
                                 o.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
                                 if (t3_price > 0)
@@ -2928,9 +2959,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             // DLL-hardening (07-21): ALWAYS build Group 4 with a stop when
                             // contracts>=4. Target only if t4>0 (same as Groups 2-3).
                             // Safety: C4 is NEVER naked — even if backend sends t4=None.
-                            if (contracts >= 4)
+                            if (lq[3] > 0)
                             {
-                                o.OCOGroup4Quantity      = 1;
+                                o.OCOGroup4Quantity      = lq[3];
                                 o.Stop4Price             = static_cast<float>(stop_price);
                                 o.AttachedOrderStop4Type = SCT_ORDERTYPE_STOP;
                                 if (t4_price > 0)

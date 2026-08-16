@@ -2,17 +2,17 @@
 
 | Field | Value |
 |-------|-------|
-| Mode | demo |
+| Mode | shadow |
 | Direction | LONG |
-| System | S<MagicMock name='mock.query().filter().first().firing_system' id='140253923320592'> |
-| Entry | 7500.0 @ <MagicMock name='mock.query().filter().first().entry_ts' id='140253922574832'> |
-| Exit | 7492.0 @ 2026-07-06 15:30:00+00:00 |
-| Stop | 7493.0 |
-| PnL | $-120.0 (-1.14R) |
+| System | S1 |
+| Entry | 5245.0 @ 2026-08-16 19:10:10.090070 |
+| Exit | 5240.0 @ 2026-08-16 19:10:10.091339+00:00 |
+| Stop | 5240.0 |
+| PnL | $-100.0 (-1.0R) |
 | Exit Reason | STOP_HIT |
 
 ## Day Type
-- At entry: **<MagicMock name='mock.query().filter().first().day_type_at_entry' id='140253922514304'>**
+- At entry: **UNKNOWN**
 - EOD truth: **UNKNOWN**
 - Mismatch: NO
 
@@ -22,15 +22,16 @@
 - Range position: ?
 
 ## S7 Score (computed, flag OFF)
-- Score: 30/100
+- Score: 15/100
 - Sizing: ?
   - base: 30
   - day_align: 0
   - leg: 0
   - location: 0
   - opening_conf: 0
+  - cvd_directionality: 0.137
   - delta: 0
-  - noon_penalty: 0
+  - noon_penalty: -15
   - late_zlr: 0
   - s2_s4_confluence: 0
 
@@ -38,4 +39,4 @@
 **NORMAL_NOISE**: Acceptable loss — no structural issue detected
 
 ---
-*Generated: 2026-08-16T15:18:47.728766+00:00 | POST_MORTEM_V1*
+*Generated: 2026-08-16T19:10:10.098630+00:00 | POST_MORTEM_V1*

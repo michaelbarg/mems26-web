@@ -1348,7 +1348,6 @@ class FiveMinSystem(BaseV9TradingSystem):
                         # OPENING_DIR_FUSION_V1: compute the volume-confirmed direction once
                         # the first 30 min are in (bar 6); cache UP/DOWN/None for the gate.
                         if _fusion_on and not getattr(self, "_oe_fusion_done", False) and len(self._oe_bars) >= 6:
-                            self._oe_fusion_done = True
                             try:
                                 from backend.v9.services.trade_context import get_opening_dir_fusion
                                 self._oe_fusion = get_opening_dir_fusion(self._oe_bars)
@@ -1356,6 +1355,24 @@ class FiveMinSystem(BaseV9TradingSystem):
                             except Exception as _fx:
                                 self._oe_fusion = None
                                 logger.warning("[FiveMin] opening-dir-fusion failed (non-fatal): %s", _fx)
+                            # T7b (2026-08-16) — do NOT latch a transient None.
+                            # The fusion now reads its volume from the CANONICAL
+                            # closed bars, so at the moment the 6th live bar
+                            # arrives the 6th row may not be closed in the table
+                            # yet, and the honest answer is None = "not ready".
+                            # `_oe_fusion_done = True` used to be set BEFORE the
+                            # call, so that transient None became the answer for
+                            # the whole day and the gate dropped every opening
+                            # candidate. Latch only on a definitive UP/DOWN, or
+                            # once the window has moved on (8 bars = 40 min, well
+                            # past the 30-min measurement) so a genuinely quiet
+                            # open still settles to None and stops re-querying.
+                            if self._oe_fusion is not None or len(self._oe_bars) >= 8:
+                                self._oe_fusion_done = True
+                            else:
+                                logger.info(
+                                    "[FiveMin] OPENING_DIR_FUSION not ready yet "
+                                    "(closed bars still catching up) — will retry next bar")
                         if 2 <= len(self._oe_bars) <= _oe_win and _anti_phantom_ok:
                             _trig = evaluate_opening_entry(
                                 self._oe_bars, self._oe_fired,

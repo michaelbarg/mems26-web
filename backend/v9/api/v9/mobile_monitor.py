@@ -274,7 +274,8 @@ async def mobile_data(request: Request):
     # דגלי-קריטיים + halt
     out["trading_paused"] = _is_paused()
     out["halt_cap"] = os.getenv("RISK_DAILY_LOSS_CAP", "400")
-    out["contracts_cfg"] = 4 if os.getenv("FIXED_CONTRACTS_4", "0") == "1" else 3
+    from backend.v9.services.contract_size import ruled_contracts as _ruled
+    out["contracts_cfg"] = _ruled() or 3   # the phone must not show a size the account does not hold
     # התראות אחרונות (לא-פתורות בלבד, 3 שורות)
     try:
         al = Path(os.path.expanduser("~/Downloads/mems26_web_git/docs/reports/ALERTS_LIVE.md"))

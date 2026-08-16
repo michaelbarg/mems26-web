@@ -618,9 +618,10 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
     if (setup.get("metadata") or {}).get("fixed_contracts_exempt"):
         return _contracts
     import os as _fc3_os
-    _fc4_on = _fc3_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes")  # Michael 07-15, top precedence
-    _fc2_on = _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
-    _fc3_on = _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes")
+    # 2026-08-16: the 4/2/3 ladder that used to live here (and in seven other
+    # files) is now one resolver — see backend/v9/services/contract_size.py for
+    # why duplicating it is a trading hazard and not a style issue.
+    from backend.v9.services.contract_size import ruled_contracts as _ruled
 
     # SIZE_CAP_OVER_FIXED_V1 (default OFF — Michael sign-off required to enable;
     # trading-risk-surface change per Pre-LIVE Discipline).
@@ -639,7 +640,9 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
     # the floor-1 default). When OFF the result is byte-identical to the historic
     # force-2 / force-3 behavior below.
     if _fc3_os.environ.get("SIZE_CAP_OVER_FIXED_V1", "0").lower() in ("1", "true", "yes"):
-        _fixed = 4 if _fc4_on else (2 if _fc2_on else (3 if _fc3_on else _contracts))
+        from backend.v9.services.contract_size import ruled_contracts as _ruled
+        _rc = _ruled()
+        _fixed = _rc if _rc is not None else _contracts
         # None-aware read (NOT the truthy or-chain above, which masks an explicit
         # 0) so a real SKIP is distinguishable from a missing field.
         _raw = setup.get("contracts")
@@ -660,12 +663,9 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
             _cut = {"full": _fixed, "half": 2, "quarter": 1}.get(str(_raw).strip().lower(), _fixed)
         return min(_fixed, _cut)  # cap can only REDUCE below fixed, never increase
 
-    if _fc4_on and _contracts > 0:
-        _contracts = 4  # Michael 2026-07-15
-    elif _fc2_on and _contracts > 0:
-        _contracts = 2
-    elif _fc3_on and _contracts > 0:
-        _contracts = 3
+    _rc_force = _ruled()
+    if _rc_force is not None and _contracts > 0:
+        _contracts = _rc_force
     return _contracts
 
 

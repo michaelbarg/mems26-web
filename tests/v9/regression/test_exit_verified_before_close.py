@@ -124,6 +124,7 @@ class TestTheActualIncident:
 class TestHonestUnknown:
     def test_stale_state_never_counts_as_flat(self, monkeypatch):
         """Rule 1: a missing sierra_state is None, never a synthesized zero."""
+        _silence_push(monkeypatch)
         closed = []
         ev.register(682, source="mae_scratch", reason="MAE",
                     on_confirmed=lambda: closed.append(682))
@@ -132,7 +133,23 @@ class TestHonestUnknown:
         for i in range(1, 20):
             ev.verify_pending(now=t0 + i * 30)
         assert closed == [], "unknown must never be read as flat"
-        assert ev.is_pending(682)
+
+    def test_unknown_is_bounded_and_loud(self, monkeypatch):
+        """Waiting silently forever is not the safe side — it just moves the
+        failure somewhere nobody looks. After EXIT_VERIFY_UNKNOWN_MAX_S the
+        books still stay open, but Michael is told."""
+        monkeypatch.setenv("EXIT_VERIFY_UNKNOWN_MAX_S", "300")
+        sent = _silence_push(monkeypatch)
+        closed = []
+        ev.register(682, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: closed.append(682))
+        _qty(monkeypatch, None)
+        t0 = ev._pending[682].registered_ts
+        ev.verify_pending(now=t0 + 120)
+        assert ev.is_pending(682) and not sent, "must not shout too early"
+        ev.verify_pending(now=t0 + 400)
+        assert [e for e, _t, _b in sent] == ["exit_unverifiable"]
+        assert closed == [], "an unverifiable exit never closes the books"
 
 
 class TestRollback:
