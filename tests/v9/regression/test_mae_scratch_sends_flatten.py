@@ -32,12 +32,13 @@ def _scratch_block() -> str:
 class TestFlattenIsSent:
     def test_flatten_command_is_written(self):
         blk = _scratch_block()
-        assert "FLATTEN_ACCOUNT" in blk, "MAE_SCRATCH must send an exit to Sierra"
+        assert "write_flatten_account" in blk or "_mae_write" in blk, \
+            "MAE_SCRATCH must send an exit to Sierra"
         assert "mae_scratch" in blk
 
     def test_flatten_precedes_book_close(self):
         blk = _scratch_block()
-        i_flat = blk.index("FLATTEN_ACCOUNT")
+        i_flat = blk.index("_mae_write")
         i_close = blk.index('close_trade(trade.id, reason="MAE_SCRATCH")')
         assert i_flat < i_close, "the exit must be sent BEFORE the books are closed"
 
@@ -61,7 +62,7 @@ class TestParityWithTargetApproach:
     def test_both_realize_paths_send_flatten(self):
         """The two S6 exit paths must behave identically w.r.t. the broker."""
         src = inspect.getsource(bld)
-        assert src.count("FLATTEN_ACCOUNT") >= 2, (
+        assert src.count("write_flatten_account") >= 2, (
             "both TARGET_APPROACH_REALIZE and MAE_SCRATCH must write FLATTEN")
 
     def test_neither_path_uses_op_exit(self):

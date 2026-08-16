@@ -142,9 +142,11 @@ class TestFlatten:
         assert "MANUAL_FLATTEN_V1" in d["error"]
 
     def test_flatten_calls_sierra_command(self, client, monkeypatch):
-        """Flatten with flag ON → calls write_trade_command(FLATTEN_ACCOUNT)."""
+        """Flatten with flag ON → calls write_flatten_account (T1 2026-08-15:
+        the old write_trade_command shape raised TypeError — the phone button
+        never sent anything)."""
         monkeypatch.setenv("MANUAL_FLATTEN_V1", "1")
-        with patch("backend.v9.services.sierra_command.write_trade_command") as mock_cmd:
+        with patch("backend.v9.services.sierra_command.write_flatten_account") as mock_cmd:
             r = client.post("/api/v9/mobile/flatten", json={"confirm": "FLATTEN"})
             assert r.status_code == 200
             d = r.json()
@@ -152,8 +154,7 @@ class TestFlatten:
             assert "FLATTEN_ACCOUNT" in d["msg"]
             mock_cmd.assert_called_once()
             args = mock_cmd.call_args
-            assert args[1]["action"] == "FLATTEN_ACCOUNT"
-            assert args[1]["context"]["source"] == "mobile_manual"
+            assert args[1]["source"] == "mobile_manual"
 
     def test_flatten_with_access_key(self, client, monkeypatch):
         """Access key gate applies to flatten."""
