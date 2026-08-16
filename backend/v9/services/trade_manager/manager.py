@@ -73,10 +73,16 @@ def trade_contract_count(trade) -> int:
         n = int(q.get("contracts") or 0)
     except (TypeError, ValueError):
         n = 0
-    if n in (1, 2, 3, 4):
+    # T3/T8 (2026-08-15): the whitelist stopped at 4, so a 6-contract trade
+    # (Michael's 15.08 ruling) fell through to the env branches and booked 4 or
+    # 3 legs — the same class of silent under-count that hid 25% of every
+    # 4-contract P&L. Any positive persisted count is the truth.
+    if n >= 1:
         return n
+    if os.environ.get("FIXED_CONTRACTS_6", "0").lower() in ("1", "true", "yes"):
+        return 6  # Michael 2026-08-15, top precedence
     if os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
-        return 4  # Michael 2026-07-15, top precedence
+        return 4  # Michael 2026-07-15
     if os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
         return 2
     if os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
@@ -1629,30 +1635,41 @@ class TradeManager:
                     trade.pnl_r = round(total_pnl / (hits * risk_per_contract), 2)
             return
 
+        # T3 ROOT-FIX (2026-08-15): these branches always built exactly THREE
+        # legs, then `[:n_contracts]` truncated — so a 4-contract trade booked
+        # only 3 legs and lost 25% of its P&L (102 closed trades affected;
+        # #682's real loss was $83.75, booked $75.00). RISK_HALT therefore
+        # tripped late. At Michael's new 6-contract size the same bug would
+        # hide 50%. Build exactly n_contracts legs: contract i takes its own
+        # target when that target was hit, otherwise the actual exit fill.
+        t4 = self._valid_target(getattr(trade, "t4", None))
+        _targets = [t1, t2, t3, t4]
+        _hits = [trade.t1_hit_ts, trade.t2_hit_ts, trade.t3_hit_ts,
+                 getattr(trade, "t4_hit_ts", None)]
+
+        def _legs(fallback: float) -> List[float]:
+            out: List[float] = []
+            for i in range(n_contracts):
+                tgt = _targets[i] if i < len(_targets) else None
+                hit = _hits[i] if i < len(_hits) else None
+                out.append(tgt if (hit is not None and tgt is not None) else fallback)
+            return out
+
         if trade.exit_reason == "STOP_HIT" and stop is not None:
             # Use actual Sierra fill price (trade.exit_price) for the stop exit,
             # not the intended stop level. Slippage makes them differ.
             actual_stop = self._valid_target(trade.exit_price) or stop
-            contract_exits = [
-                t1 if trade.t1_hit_ts and t1 is not None else actual_stop,
-                t2 if trade.t2_hit_ts and t2 is not None else actual_stop,
-                t3 if trade.t3_hit_ts and t3 is not None else actual_stop,
-            ]
+            contract_exits = _legs(actual_stop)
         elif trade.exit_reason == "T3_HIT":
             exit_p = self._valid_target(trade.exit_price) or trade.entry_price
-            c1 = t1 if trade.t1_hit_ts and t1 is not None else exit_p
-            c2 = t2 if trade.t2_hit_ts and t2 is not None else exit_p
-            c3 = t3 if (trade.t3_hit_ts and t3 is not None) else exit_p
-            contract_exits = [c1, c2, c3]
+            contract_exits = _legs(exit_p)
         else:
             exit_p = trade.exit_price or trade.entry_price
-            c1 = t1 if trade.t1_hit_ts and t1 is not None else exit_p
-            c2 = t2 if trade.t2_hit_ts and t2 is not None else exit_p
-            c3 = exit_p
-            contract_exits = [c1, c2, c3]
-
-        # L7: only the legs that actually exist on this trade.
-        contract_exits = contract_exits[:n_contracts]
+            contract_exits = _legs(exit_p)
+            # legacy behaviour: the last leg always exits at the fill, never at
+            # a target it did not reach.
+            if contract_exits:
+                contract_exits[-1] = exit_p
 
         total_pnl = 0.0
         for exit_price in contract_exits:
