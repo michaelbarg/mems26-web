@@ -14,6 +14,7 @@ the real Sierra position.
 
 import logging
 import os
+import time as _time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -235,14 +236,50 @@ class TradeManager:
             sid = q.get(key)
             if sid is not None:
                 stop_ids.append(int(sid))
+        # T2 IDEMPOTENCY (2026-08-15). This emitter sent the command but never
+        # wrote the new stop back to the trade, so System 6's `stop_not_at_be`
+        # invariant kept seeing the OLD stop and re-fired on every bar:
+        # 393 identical MODIFY_STOP commands for trade 657 in one session, and
+        # 110 command files expired in the queue without ever being sent — a
+        # clogged wire that can swallow the FLATTEN queued behind it.
+        # Two guards: an in-memory recent-emit window (survives a DB failure)
+        # and the DB write-back (survives a restart).
+        _dedup_key = (int(trade.id), round(float(new_stop), 2))
+        _now = _time.time()
+        _recent = getattr(self, "_recent_stop_emits", None)
+        if _recent is None:
+            _recent = self._recent_stop_emits = {}
+        for _k, _ts in list(_recent.items()):
+            if _now - _ts > 300.0:
+                _recent.pop(_k, None)
+        if _now - _recent.get(_dedup_key, 0.0) < 60.0:
+            logger.debug("[TradeManager] MODIFY_STOP suppressed (identical within 60s): "
+                         "trade %s stop %.2f", trade.id, new_stop)
+            return
         try:
             from backend.v9.services.sierra_command import write_modify_stop
             write_modify_stop(
                 trade_id=str(trade.id), order_id=oid, new_stop=new_stop,
                 stop_ids=stop_ids or None,
             )
+            _recent[_dedup_key] = _now
         except Exception as e:
             logger.warning("[TradeManager] Sierra MODIFY_STOP failed: %s", e)
+            return
+        # Write-back: the books must reflect the stop we just asked for, or the
+        # invariant re-fires forever. A DB failure here is rolled back so the
+        # shared session is not left ABORTED (that poisoning is what silently
+        # killed every later write on mac-2).
+        try:
+            trade.stop = float(new_stop)
+            self._db.commit()
+        except Exception as _wb_err:
+            try:
+                self._db.rollback()
+            except Exception:
+                pass
+            logger.warning("[TradeManager] MODIFY_STOP write-back failed (rolled back): %s",
+                           _wb_err)
 
     def _emit_modify_target(self, trade, new_target: float, target_order_id: Optional[int] = None) -> None:
         """Emit a MODIFY_TARGET command to Sierra (DEMO + LIVE).
