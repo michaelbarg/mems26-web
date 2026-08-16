@@ -694,14 +694,38 @@ class BarLevelDetector:
                             logger.warning(
                                 "[BarLevelDetector] S6 TARGET APPROACH REALIZE: trade %d — %s",
                                 trade.id, _tar_reason)
-                            from backend.v9.services.sierra_command import write_trade_command
-                            write_trade_command(
-                                action="FLATTEN_ACCOUNT",
-                                context={"source": "target_approach_realize",
-                                         "trade_id": str(trade.id), "reason": _tar_reason})
+                            # ROOT-FIX 2026-08-15 (same defect as MAE_SCRATCH):
+                            # this call passed trade_id inside `context` while
+                            # write_trade_command requires it as a keyword →
+                            # TypeError, swallowed by the logger.debug below, so
+                            # TARGET_APPROACH_REALIZE has NEVER executed once
+                            # (proof: it announced twice on trade 670, 21 min
+                            # apart — impossible if the first had closed it).
+                            # Books close only after the command is written; a
+                            # failed write leaves the trade open and shouts.
+                            from backend.v9.services.sierra_command import write_flatten_account
+                            try:
+                                write_flatten_account(
+                                    trade_id=str(trade.id),
+                                    source="target_approach_realize",
+                                    reason=_tar_reason)
+                            except Exception as _tar_cmd_err:
+                                logger.critical(
+                                    "[BarLevelDetector] TARGET-APPROACH: FLATTEN command "
+                                    "FAILED for trade %d (%s) — books NOT closed",
+                                    trade.id, _tar_cmd_err)
+                                try:
+                                    from backend.v9.services.phone_alert import push as _tar_push
+                                    _tar_push("target_realize_flatten_failed",
+                                              "\U0001f534 MEMS26: מימוש לא בוצע",
+                                              f"trade {trade.id}: פקודת-הסגירה נכשלה — "
+                                              f"הפוזיציה עדיין פתוחה בסיירה", priority=1)
+                                except Exception:
+                                    pass
+                                continue
                             self._tm.close_trade(trade.id, reason="TARGET_APPROACH_REALIZE")
                     except Exception as _tar_err:
-                        logger.debug("[BarLevelDetector] target-approach error (fail-safe): %s", _tar_err)
+                        logger.warning("[BarLevelDetector] target-approach error: %s", _tar_err)
 
                 # S6 MAE scratch (DEV_PLAN 02.08 §P3.1): adverse excursion ≥
                 # per-pattern threshold before T1 → FLATTEN. Flag-gated
@@ -741,13 +765,11 @@ class BarLevelDetector:
                             # book with a live position is a ghost).
                             try:
                                 from backend.v9.services.sierra_command import (
-                                    write_trade_command as _mae_write,
+                                    write_flatten_account as _mae_write,
                                 )
-                                _mae_write(
-                                    action="FLATTEN_ACCOUNT",
-                                    context={"source": "mae_scratch",
-                                             "trade_id": str(trade.id),
-                                             "reason": _scratch_reason})
+                                _mae_write(trade_id=str(trade.id),
+                                           source="mae_scratch",
+                                           reason=_scratch_reason)
                             except Exception as _mae_cmd_err:
                                 logger.critical(
                                     "[BarLevelDetector] MAE SCRATCH: FLATTEN command "

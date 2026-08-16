@@ -324,9 +324,12 @@ async def mobile_flatten(request: Request):
     if os.getenv("MANUAL_FLATTEN_V1", "0").lower() not in ("1", "true", "yes"):
         return {"ok": False, "error": "MANUAL_FLATTEN_V1 כבוי במכונה זו"}
     try:
-        from backend.v9.services.sierra_command import write_trade_command
-        write_trade_command(action="FLATTEN_ACCOUNT",
-                            context={"source": "mobile_manual", "by": "michael"})
+        # ROOT-FIX 2026-08-15: this called write_trade_command WITHOUT the
+        # required `trade_id` keyword → TypeError → the phone emergency
+        # FLATTEN button never sent anything. It reported {"ok": true} only
+        # because the exception message was returned by the caller's except.
+        from backend.v9.services.sierra_command import write_flatten_account
+        write_flatten_account(source="mobile_manual", reason="michael pressed FLATTEN")
         return {"ok": True, "msg": "FLATTEN_ACCOUNT נשלח לסיירה"}
     except Exception as e:
         return {"ok": False, "error": str(e)[:80]}

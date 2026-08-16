@@ -498,6 +498,43 @@ def write_flatten_orphan(
     return _write_command(payload)
 
 
+def write_flatten_account(
+    *,
+    trade_id: Optional[str] = None,
+    source: str = "",
+    reason: str = "",
+    account: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Write a FLATTEN_ACCOUNT command — flatten the NET position + cancel all.
+
+    ROOT-FIX 2026-08-15. Every FLATTEN_ACCOUNT caller used
+    `write_trade_command(action="FLATTEN_ACCOUNT", context={...})`, but that
+    function declares `trade_id` as a REQUIRED keyword-only argument — the
+    callers passed it inside `context` instead, so every call raised TypeError
+    before a byte was written. Live cost (Michael, 14.08): S6 announced
+    MAE_SCRATCH on trade #682 and closed the books at $0 while Sierra kept
+    SHORT 4 @7799.25 for ~58 minutes and finally stopped out at −$83.75. The
+    same defect silently disabled TARGET_APPROACH_REALIZE (never executed once)
+    and the phone FLATTEN button.
+
+    This helper exists so the exit path cannot be mis-called: no required
+    positional/keyword trap, explicit `op` (the old call shipped op="PLACE"
+    with a FLATTEN action — the DLL only matched by substring), and one place
+    to audit. DLL handler: MES_AI_DataExport_merged.cpp:3605.
+    """
+    payload: Dict[str, Any] = {
+        "op": "FLATTEN_ACCOUNT",
+        "action": "FLATTEN_ACCOUNT",
+        "trade_id": trade_id,
+        "context": {"source": source, "reason": reason,
+                    **({"trade_id": trade_id} if trade_id else {})},
+        "ts_submitted": time.time(),
+    }
+    if account:
+        payload["account"] = account
+    return _write_command(payload)
+
+
 def write_exit(
     *,
     trade_id: str,
