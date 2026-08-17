@@ -1,3 +1,24 @@
+### [2026-08-17 09:15 IL] cc-macbook · CC_TASKS_2026-08-17 complete: S6 wiring + week replay
+
+**Task B1 — System 6 invariant wiring (DONE):**
+Wired all 5 missing inputs to invariants 9-13 in `_system6_scan`. All ALERT-only — no
+execution behavior changes. `bars_since_entry`, `progress_pts`, `counter_signal_pre_t1`,
+`runner_reversal`, `cvd_reversal`, `sierra_targets` now computed from DB + in-memory PLACE
+cache. 51 existing tests pass. Report: `docs/reports/SYSTEM6_DEV_2026-08-17.md`.
+
+Note: `SYSTEM6_REVERSAL_TIGHTEN_V1=1` was ON on dead code (G2). Now that `cvd_reversal` is
+wired, invariant 12 CAN fire — but its AUTO action (MODIFY_STOP to BE) is redundant with
+invariant #3, so net new execution is ~zero.
+
+**Task A — Week replay simulation (DONE):**
+Script: `scripts/week_replay.py`. Report: `docs/reports/WEEK_REPLAY_2026-08-17.md`.
+5 days (Aug 10-14), 3 slippage levels, one-trade-at-a-time. Actual total: -$56.
+Sim total: -$122 (0-slip) / -$187 (1-tick) / -$252 (2-tick).
+Key finding: Aug 14 (Trend_DD) accounts for most of the damage — a daily loss cap of
+-$150 would have saved $338 on that day alone.
+
+---
+
 ### [2026-08-16 21:30 IL] cowork-dev · מערכות 6-9 · פערים חדשים · פסיקה: מחר 4, ו-5 אחרי הוכחת-סים
 
 **פסיקת-מייקל 21:25:** *"מחר 4, ו-5 אחרי הוכחת-סים"* — הדרך הבטוחה. מה שנשאר

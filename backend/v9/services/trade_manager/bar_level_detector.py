@@ -150,6 +150,112 @@ class BarLevelDetector:
             except Exception:
                 _atr_live = 0.0   # honest zero → the documented safe fallback
 
+            # ── B1 (2026-08-17): wire rescue-tier inputs for invariants 9-13 ──
+            # All ALERT-only — supplying data so dormant invariants can fire
+            # and generate evidence. No execution behavior changes.
+            _s6_bars_since = None
+            _s6_progress = None
+            _s6_counter_pre_t1 = False
+            _s6_runner_rev = False
+            _s6_cvd_rev = False
+
+            _s6_entry_ts = getattr(trade, "entry_ts", None)
+            _s6_t1_hit = getattr(trade, "t1_hit_ts", None) is not None
+            _s6_dir = str(getattr(trade, "direction", "")).upper()
+            _s6_ep = getattr(trade, "entry_price", None)
+
+            try:
+                if _s6_entry_ts and _s6_ep:
+                    # inv-10: bars_since_entry — completed bars after entry
+                    _cnt = _s6_read(
+                        "SELECT COUNT(*) as cnt FROM v9_bars_5min_woodies "
+                        "WHERE ts > :ets AND symbol = 'MES'",
+                        {"ets": str(_s6_entry_ts)})
+                    if _cnt:
+                        _s6_bars_since = int(_cnt[0]["cnt"])
+
+                    # inv-10: progress_pts — favorable move (last close vs entry)
+                    _lc_row = _s6_read(
+                        "SELECT close FROM v9_bars_5min_woodies "
+                        "WHERE symbol = 'MES' ORDER BY ts DESC LIMIT 1", {})
+                    if _lc_row:
+                        _lc = float(_lc_row[0]["close"])
+                        _s6_progress = ((_lc - float(_s6_ep)) if _s6_dir == "LONG"
+                                        else (float(_s6_ep) - _lc))
+            except Exception:
+                pass
+
+            # inv-9: counter_signal_pre_t1 — opposite S2 fire since entry
+            try:
+                if _s6_entry_ts and not _s6_t1_hit:
+                    _opp_dir = "SHORT" if _s6_dir == "LONG" else "LONG"
+                    _opp = _s6_read(
+                        "SELECT direction FROM v9_five_min_setups "
+                        "WHERE created_at > :ets "
+                        "ORDER BY created_at DESC LIMIT 5",
+                        {"ets": str(_s6_entry_ts)})
+                    if _opp:
+                        _s6_counter_pre_t1 = any(
+                            str(r.get("direction", "")).upper() == _opp_dir
+                            for r in _opp)
+            except Exception:
+                pass
+
+            # inv-11: runner_reversal — ≥2 consecutive adverse closes after T1
+            try:
+                if _s6_t1_hit:
+                    _rc = _s6_read(
+                        "SELECT close FROM v9_bars_5min_woodies "
+                        "WHERE symbol = 'MES' ORDER BY ts DESC LIMIT 4", {})
+                    _closes = [float(r["close"]) for r in _rc][::-1]
+                    if len(_closes) >= 3:
+                        _adv = 0
+                        for _ci in range(1, len(_closes)):
+                            if ((_s6_dir == "LONG" and _closes[_ci] < _closes[_ci - 1])
+                                    or (_s6_dir == "SHORT" and _closes[_ci] > _closes[_ci - 1])):
+                                _adv += 1
+                            else:
+                                _adv = 0
+                        _s6_runner_rev = _adv >= 2
+            except Exception:
+                pass
+
+            # inv-12: cvd_reversal — CVD flip + ≥2 adverse closes after T1
+            try:
+                if _s6_t1_hit:
+                    _cvd_rows = _s6_read(
+                        "SELECT cumulative FROM v9_bars_cumulative_delta "
+                        "ORDER BY ts::timestamptz DESC LIMIT 6", {})
+                    _cvd_vals = [float(r["cumulative"]) for r in _cvd_rows
+                                 if r.get("cumulative") is not None][::-1]
+                    if len(_cvd_vals) >= 3:
+                        _slope = _cvd_vals[-1] - _cvd_vals[-3]
+                        _against = ((_s6_dir == "LONG" and _slope < 0)
+                                    or (_s6_dir == "SHORT" and _slope > 0))
+                        _s6_cvd_rev = _against and _s6_runner_rev
+            except Exception:
+                pass
+
+            # inv-13: sierra_targets — from in-memory PLACE cache (honest None
+            # on restart per Rule 1; persistent tracking is B3/DLL territory)
+            try:
+                _s6_tid = getattr(trade, "id", None)
+                if _s6_tid:
+                    from backend.v9.services.sierra_command import get_last_place_command
+                    _place = get_last_place_command(_s6_tid)
+                    if _place:
+                        _st = {}
+                        if _place.get("target_price") is not None:
+                            _st["t1"] = float(_place["target_price"])
+                        _ctx = _place.get("context") or {}
+                        for _tk in ("t2", "t3", "t4"):
+                            if _ctx.get(_tk) is not None:
+                                _st[_tk] = float(_ctx[_tk])
+                        if _st:
+                            _t["sierra_targets"] = _st
+            except Exception:
+                pass
+
             scan_active_trade(
                 trade=_t,
                 atr=_atr_live,
@@ -159,6 +265,12 @@ class BarLevelDetector:
                 reconcile_verdict=_verdict_str,
                 reconcile_mismatch=_mismatch,
                 executor=_exec,
+                # B1 rescue-tier inputs (2026-08-17)
+                counter_signal_pre_t1=_s6_counter_pre_t1,
+                bars_since_entry=_s6_bars_since,
+                progress_pts=_s6_progress,
+                runner_reversal=_s6_runner_rev,
+                cvd_reversal=_s6_cvd_rev,
             )
         except Exception as _s6_err:  # never let supervision break trade management
             logger.warning("[BarLevelDetector] System6 scan error (fail-safe skip): %s", _s6_err)
