@@ -135,6 +135,17 @@ def stage_d():
     except Exception as _e:
         check("wire_guard רץ", False, str(_e))
 
+    # לוג-המשימות — מקור-אמת אחד, שנכשל אם הוא מתיישן.
+    # אותה צורה כמו flag_guard: לא מזכיר, נכשל.
+    try:
+        _tl = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "task_log_guard.py")],
+                             capture_output=True, text=True, timeout=30)
+        _l = (_tl.stdout.strip().splitlines() or [""])[0]
+        check("לוג-המשימות עדכני ומובנה", _tl.returncode == 0,
+              _l if _tl.returncode == 0 else _tl.stdout.strip()[-300:])
+    except Exception as _e:
+        check("task_log_guard רץ", False, str(_e))
+
     print("— שלב D · מצב חי —")
     h = api("/api/v9/health")
     check("backend health", bool(h and h.get("status") == "ok"))
