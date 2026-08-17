@@ -25,6 +25,40 @@ echo "Source: $SRCDIR"
 # never received them — so REGENERATING would silently delete all of it and the
 # next Remote Build would ship a DLL months out of date.
 # Refuse to overwrite a monolith that is newer than every modular source.
+# 2026-08-17 — the mtime test above is NOT sufficient, proved the hard way.
+# The 5/6-contract OCO ladder was hand-written into the monolith, then an INDEX
+# GENERATOR touched the modular sources; their mtime jumped past the monolith's,
+# the guard concluded "the modular sources are newer, regeneration is safe", and
+# `--deploy` silently rebuilt the monolith and DELETED the ladder. The deployed
+# file then verified byte-identical to the repo file — both were wrong together,
+# so a shasum check could not see it either.
+# mtime is metadata; content is truth. If the monolith contains a marker that the
+# modular sources do not, it holds hand-edits and must never be regenerated,
+# whatever the timestamps say.
+MONOLITH_ONLY_MARKERS=("lq_sum" "OCOGroup4Quantity" "AccountBalance")
+if [ -f "$OUTFILE" ]; then
+    for _m in "${MONOLITH_ONLY_MARKERS[@]}"; do
+        if grep -qF "$_m" "$OUTFILE" 2>/dev/null; then
+            _in_modular=0
+            for f in "$SRCDIR"/v9_types.h "$SRCDIR"/v9_exports.h \
+                     "$SRCDIR"/v9_woodies_export.h "$SRCDIR"/MES_AI_DataExport.cpp; do
+                [ -f "$f" ] || continue
+                grep -qF "$_m" "$f" 2>/dev/null && _in_modular=1
+            done
+            if [ "$_in_modular" -eq 0 ]; then
+                echo "CONTENT GUARD: '$_m' exists in the monolith but in NO modular source."
+                echo "The monolith holds hand-edits. Regeneration would delete them."
+                if [ "${1:-}" = "--force-regen" ]; then
+                    echo "--force-regen given → proceeding anyway (edits WILL be lost)."
+                else
+                    SKIP_REGEN=1
+                fi
+                break
+            fi
+        fi
+    done
+fi
+
 if [ -f "$OUTFILE" ]; then
     newest_src=""
     for f in "$SRCDIR"/v9_types.h "$SRCDIR"/v9_exports.h \

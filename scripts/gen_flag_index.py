@@ -55,8 +55,22 @@ TRUTHY = {"1", "true", "yes", "on"}
 # Env vars that are infra / secrets / ops / data-pipeline — intentionally OUT of
 # scope for the behavior-flag index. Add new infra vars here so they don't show
 # up as "undocumented" drift.
+#: Names whose VALUE must never be printed into this file. FLAG_INDEX.md is
+#: git-tracked, so a value rendered here is a value published to the repo —
+#: MOBILE_ACCESS_KEY (the phone's key to the trading system) was sitting in
+#: plaintext at line 358 until 2026-08-17.
+SECRET_NAME_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL",
+                     "APIKEY", "API_KEY", "WEBHOOK")
+
+
+def is_secret(name: str) -> bool:
+    return any(h in name.upper() for h in SECRET_NAME_HINTS)
+
+
 INFRA_EXCLUDE = {
     "NAME", "EXPORT",  # regex false-positives
+    "MOBILE_ACCESS_KEY", "PUSHOVER_API_TOKEN", "PUSHOVER_USER_KEY",
+    "NTFY_TOPIC", "MEMS26_API_KEY",
     "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "BRIDGE_TOKEN",
     "DATABASE_URL", "CLOUD_URL", "REDIS_URL", "SOT_API_BASE", "CORS_ORIGINS",
     "SLACK_WEBHOOK_URL", "SLACK_UAT_WEBHOOK", "GSHEETS_TRADE_LOG_URL",
@@ -173,8 +187,38 @@ def parse_env(path: Path) -> dict:
     return env
 
 
-def is_truthy(val: str) -> bool:
-    return val.strip().strip("\"'").lower() in TRUTHY
+#: Values that are neither "0" nor a boolean-true token, yet DO switch a
+#: behavior on. `SYSTEM6_AUTOCORRECT=protective` is the live example: the
+#: supervisor accepts it explicitly (system6_supervisor.py:296) and it has
+#: applied 393 stop-to-BE corrections — while this index rendered it 🔴 OFF.
+#: An agent trusting that would "restore" it and write to a live position.
+NON_BOOLEAN_ON = {
+    "SYSTEM6_AUTOCORRECT": {"protective", "1", "true", "yes", "on"},
+}
+
+
+def is_truthy(val: str, name: str = "") -> bool:
+    v = (val or "").strip().strip("\"'").lower()
+    allowed = NON_BOOLEAN_ON.get(name)
+    if allowed is not None:
+        return v in allowed
+    return v in TRUTHY
+
+
+def _looks_like_param(val) -> bool:
+    """A set, non-boolean, non-empty value = a tuned parameter."""
+    if val is None:
+        return False
+    v = str(val).strip().strip("\"'")
+    if v == "" or v.lower() in ("0", "false", "no", "off"):
+        return False
+    if v.lower() in TRUTHY:
+        return False
+    try:
+        float(v)
+        return True
+    except ValueError:
+        return bool(v)
 
 
 def esc(text: str) -> str:
@@ -231,7 +275,7 @@ def main() -> int:
             counts["param"] += 1
         else:
             if env_val is not None:
-                on = is_truthy(env_val)
+                on = is_truthy(env_val, name)
             else:
                 on = bool(c.get("default_truthy"))
             inert = False
@@ -239,7 +283,7 @@ def main() -> int:
             if on and iw:
                 deps = re.findall(r"([A-Z][A-Z0-9_]+)=1", iw)
                 inert = bool(deps) and all(
-                    env.get(dep) is not None and is_truthy(env.get(dep)) for dep in deps
+                    env.get(dep) is not None and is_truthy(env.get(dep), dep) for dep in deps
                 )
             if on and inert:
                 state = "🟡 ON·inert"
@@ -248,6 +292,13 @@ def main() -> int:
             elif on:
                 state = "✅ ON"
                 counts["on"] += 1
+            elif _looks_like_param(env_val):
+                # A tunable that happens not to be "1" is not a disabled flag.
+                # 13 live parameters (RR_MIN_ROTATION=0.65, T1_BANK_R=1.5,
+                # STOP_FLOOR_ROTATION_ATR=0.8 …) were rendered 🔴 OFF, which
+                # reads as "this behavior is not running".
+                state = "🔢 param"
+                counts["param"] += 1
             else:
                 state = "🔴 OFF"
                 counts["off"] += 1
@@ -261,7 +312,10 @@ def main() -> int:
 
         # current value display
         if env_val is not None:
-            cur = f"`{env_val}` (.env)"
+            # NEVER print a secret's value: this file is git-tracked, so a
+            # value rendered here is a value published to the repo.
+            cur = ("`***masked***` (.env)" if is_secret(name)
+                   else f"`{env_val}` (.env)")
         elif name in code:
             cur = "unset → " + (c.get("default_display") or "OFF")
         else:
