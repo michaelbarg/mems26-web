@@ -22,7 +22,7 @@
 | `bar_integrity_check.py` | ▶ entry/test | 101 | 2026-07-29 | Bar-stream integrity check — the silent thief under everything (2026-07-29). |
 | `bridge_monitor.py` | ▶ entry/test | 144 | 2026-05-29 | Bridge Data Monitor — snapshots every 15 min, logs to file. |
 | `build_monolithic.py` | ▶ entry/test | 122 | 2026-06-24 | build_monolithic.py — cross-platform monolith generator for Sierra Chart remote build. |
-| `build_monolithic_cpp.sh` | — | 159 | 2026-07-28 | build_monolithic_cpp.sh — Generate monolith DLL for Sierra Chart remote build |
+| `build_monolithic_cpp.sh` | — | 193 | 2026-08-17 | build_monolithic_cpp.sh — Generate monolith DLL for Sierra Chart remote build |
 | `check_bars_ts_types.py` | ▶ entry/test | 67 | 2026-07-28 | D-0717-B diagnostic — print the ACTUAL ts column types + sample rows for |
 | `check_env.sh` | — | 167 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
 | `check_status.sh` | — | 178 | 2026-05-16 | MEMS26 Status Check — run anytime to see system health |
@@ -47,7 +47,7 @@
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | 2026-05-24 | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
 | `gate_profit_audit.py` | ▶ entry/test | 166 | 2026-08-14 | gate_profit_audit — did a gate block a WINNER? (Michael 14.08) |
 | `gen_daily_report.py` | ▶ entry/test | 127 | 2026-08-13 | gen_daily_report — דוח-יומי אוטומטי (Michael 2026-07-16, "דוח יומי שגם יופיע בכיס"). |
-| `gen_flag_index.py` | ▶ entry/test | 388 | 2026-07-14 | gen_flag_index.py — generate docs/FLAG_INDEX.md, the canonical index of every |
+| `gen_flag_index.py` | ▶ entry/test | 442 | 2026-08-17 | gen_flag_index.py — generate docs/FLAG_INDEX.md, the canonical index of every |
 | `gen_index.py` | ▶ entry/test | 362 | 2026-06-04 | Generate a living index of the MEMS26 codebase. |
 | `gen_pattern_visual.py` | ▶ entry/test | 199 | 2026-07-02 | -*- coding: utf-8 -*- |
 | `gen_task_board.py` | ▶ entry/test | 35 | 2026-07-12 | gen_task_board — writes the static fallback frontend/v9/public/task_board.json |

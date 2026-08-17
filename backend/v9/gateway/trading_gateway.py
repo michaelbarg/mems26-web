@@ -3143,6 +3143,26 @@ class TradingGateway:
         outcome = trade.get("outcome", "WIN" if pnl >= 0 else "STOP")
         direction = trade.get("direction", "")
 
+        # PHONE (Michael 2026-08-17: "אני רוצה רק לדעת אם היה ירי ואם נסגר עסקה").
+        # The close notification used to live in ONE caller — FillPoller, which
+        # only runs on a Sierra fill. A trade closed by System 6 (MAE_SCRATCH,
+        # TARGET_APPROACH_REALIZE) or by POSITION_TRUTH_SYNC reached the gateway
+        # here and sent nothing, so exactly the event he asked for was the one
+        # that went missing. Every close path passes through this method, so
+        # this is the one place it belongs. Deduped per trade, and never allowed
+        # to touch the trading path.
+        if mode in ("live", "demo"):
+            try:
+                if not hasattr(self, "_close_notified"):
+                    self._close_notified = set()
+                if trade_id not in self._close_notified:
+                    self._close_notified.add(trade_id)
+                    from backend.v9.services.ntfy_notify import on_close as _oc
+                    _oc(trade_id, outcome, float(pnl or 0.0),
+                        trade.get("reason") or trade.get("exit_reason") or outcome)
+            except Exception:
+                pass
+
         # ζ.A4: cooldown tracking
         self.cooldown.on_trade_close(outcome)
         # ζ.B2: SSV tracking — 07-15 fix: REAL outcomes only. Shadow noise fed the

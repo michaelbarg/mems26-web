@@ -83,6 +83,9 @@ class TestTheActualIncident:
     def test_it_retries_the_flatten_before_giving_up(self, monkeypatch):
         emitted = []
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(p.attempt) or True)
+        # the position IS ours here — the "do not flatten someone else's
+        # position" guard is exercised separately below
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
         _silence_push(monkeypatch)
         ev.register(682, source="mae_scratch", reason="MAE", on_confirmed=lambda: None)
         _qty(monkeypatch, -4)
@@ -94,6 +97,7 @@ class TestTheActualIncident:
 
     def test_it_shouts_when_the_exit_never_executes(self, monkeypatch):
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: True)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
         sent = _silence_push(monkeypatch)
         closed = []
         ev.register(682, source="mae_scratch", reason="MAE",
@@ -214,3 +218,82 @@ class TestAnotherPathClosedItFirst:
         d = BarLevelDetector(_TM())
         assert d._trade_still_open(682) is True
         assert d._trade_still_open(999) is False
+
+
+class TestMichaelsManualPositionIsNeverTouched:
+    """08-17, 04:40 IL: Michael held 8 manual contracts (LONG @7810.50, stop
+    7807.75) on the LIVE account while the system was armed to trade.
+
+    Two ways my T4 verifier would have hurt him:
+      1. It confirmed on `position_qty == 0` — the ACCOUNT being flat. With his
+         8 contracts sitting there the account can never be flat, so a perfectly
+         good system exit would never confirm, the books would stay open, and
+         the LIVE slot would be held for the rest of the day.
+      2. On timeout it re-sent FLATTEN_ACCOUNT — which is ACCOUNT-WIDE. That
+         second command would have closed HIS position. Direct violation of the
+         12:20 ownership ruling.
+
+    So: verify by MOVEMENT, and never fire an account-wide command at contracts
+    we cannot prove are ours.
+    """
+
+    def test_exit_confirms_while_he_holds_his_own(self, monkeypatch):
+        closed = []
+        ev.register(700, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: closed.append(700),
+                    contracts=4, qty_before=12)   # his 8 + our 4
+        _qty(monkeypatch, 8)                       # our 4 left; his 8 remain
+        ev.verify_pending()
+        assert closed == [700], (
+            "the exit did happen — 12 → 8 is exactly our 4 contracts leaving")
+
+    def test_a_partial_move_is_not_an_exit(self, monkeypatch):
+        closed = []
+        _silence_push(monkeypatch)
+        ev.register(700, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: closed.append(700),
+                    contracts=4, qty_before=12)
+        _qty(monkeypatch, 10)                      # only 2 of 4 left
+        ev.verify_pending()
+        assert closed == []
+
+    def test_flat_still_confirms(self, monkeypatch):
+        closed = []
+        ev.register(700, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: closed.append(700),
+                    contracts=4, qty_before=4)
+        _qty(monkeypatch, 0)
+        ev.verify_pending()
+        assert closed == [700]
+
+    def test_no_second_flatten_at_a_position_we_do_not_own(self, monkeypatch):
+        emitted, sent = [], _silence_push(monkeypatch)
+        monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(1) or True)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: True)
+        closed = []
+        ev.register(700, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: closed.append(700),
+                    contracts=4, qty_before=12)
+        _qty(monkeypatch, 12)                      # nothing left
+        t0 = ev._pending[700].registered_ts
+        ev.verify_pending(now=t0 + 60)
+        assert emitted == [], "must never fire an account-wide FLATTEN at his position"
+        assert [e for e, _t, _b in sent] == ["exit_needs_manual"]
+        assert closed == []
+
+    def test_it_still_retries_when_the_position_is_ours(self, monkeypatch):
+        emitted = []
+        _silence_push(monkeypatch)
+        monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(p.attempt) or True)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
+        ev.register(700, source="mae_scratch", reason="MAE",
+                    on_confirmed=lambda: None, contracts=4, qty_before=4)
+        _qty(monkeypatch, 4)
+        t0 = ev._pending[700].registered_ts
+        ev.verify_pending(now=t0 + 60)
+        assert emitted == [2], "a position that IS ours must still be retried"
+
+    def test_unknown_ownership_is_treated_as_foreign(self):
+        """Never flatten blind."""
+        assert ev._account_holds_foreign_position(0) is False
+        assert ev._account_holds_foreign_position(None) is False

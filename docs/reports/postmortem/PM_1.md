@@ -5,8 +5,8 @@
 | Mode | shadow |
 | Direction | LONG |
 | System | S1 |
-| Entry | 5245.0 @ 2026-08-16 19:10:10.090070 |
-| Exit | 5240.0 @ 2026-08-16 19:10:10.091339+00:00 |
+| Entry | 5245.0 @ 2026-08-17 01:59:41.492776 |
+| Exit | 5240.0 @ 2026-08-17 01:59:41.494090+00:00 |
 | Stop | 5240.0 |
 | PnL | $-100.0 (-1.0R) |
 | Exit Reason | STOP_HIT |
@@ -22,16 +22,16 @@
 - Range position: ?
 
 ## S7 Score (computed, flag OFF)
-- Score: 15/100
+- Score: 30/100
 - Sizing: ?
   - base: 30
   - day_align: 0
   - leg: 0
   - location: 0
   - opening_conf: 0
-  - cvd_directionality: 0.137
+  - cvd_directionality: 0.232
   - delta: 0
-  - noon_penalty: -15
+  - noon_penalty: 0
   - late_zlr: 0
   - s2_s4_confluence: 0
 
@@ -39,4 +39,4 @@
 **NORMAL_NOISE**: Acceptable loss — no structural issue detected
 
 ---
-*Generated: 2026-08-16T19:10:10.098630+00:00 | POST_MORTEM_V1*
+*Generated: 2026-08-17T01:59:41.503258+00:00 | POST_MORTEM_V1*

@@ -766,9 +766,12 @@ class BarLevelDetector:
                             def _tar_close(_tid=trade.id):
                                 self._tm.close_trade(_tid, reason="TARGET_APPROACH_REALIZE")
                             from backend.v9.services import exit_verifier as _tar_ev
+                            from backend.v9.services.trade_manager.manager import (
+                                trade_contract_count as _tar_n)
                             if not _tar_ev.register(trade.id,
                                                     source="target_approach_realize",
                                                     reason=_tar_reason,
+                                                    contracts=_tar_n(trade),
                                                     on_confirmed=_tar_close,
                                                     still_open=lambda _t=trade.id:
                                                         self._trade_still_open(_t)):
@@ -862,8 +865,11 @@ class BarLevelDetector:
                                     pass
 
                             from backend.v9.services import exit_verifier as _mae_ev
+                            from backend.v9.services.trade_manager.manager import (
+                                trade_contract_count as _mae_n)
                             if not _mae_ev.register(trade.id, source="mae_scratch",
                                                     reason=_scratch_reason,
+                                                    contracts=_mae_n(trade),
                                                     on_confirmed=_mae_close,
                                                     still_open=lambda _t=trade.id:
                                                         self._trade_still_open(_t)):

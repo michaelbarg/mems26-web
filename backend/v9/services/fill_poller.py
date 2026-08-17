@@ -121,14 +121,9 @@ class FillPoller:
                 "direction": getattr(trade, "direction", "") if trade else "",
             })
             logger.info("[FillPoller] notified gateway: trade %s closed (%s)", trade_id, outcome)
-            # K7a: push notification on trade close (live/demo only)
-            if _close_mode in ("live", "demo"):
-                try:
-                    from backend.v9.services.ntfy_notify import on_close
-                    on_close(trade_id, outcome, _close_pnl,
-                             getattr(trade, "exit_reason", outcome) if trade else outcome)
-                except Exception:
-                    pass
+            # The push now lives in Gateway.on_trade_close — the single point
+            # every close path goes through (2026-08-17). Sending it here too
+            # would double-notify the fills that arrive via Sierra.
         except Exception as e:
             logger.warning("[FillPoller] gateway notify failed (non-fatal): %s", e)
 

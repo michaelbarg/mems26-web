@@ -29,13 +29,20 @@ logger = logging.getLogger(__name__)
 _last_sent: Dict[str, float] = {}
 _RATE_S = 300.0
 
-
 def enabled() -> bool:
     return os.getenv("PHONE_ALERTS_V1", "0").lower() in ("1", "true", "yes")
 
 
 def _send_pushover(title: str, msg: str, priority: int) -> bool:
-    tok, usr = os.getenv("PUSHOVER_TOKEN", ""), os.getenv("PUSHOVER_USER", "")
+    """Legacy urllib transport — kept only as a last resort.
+
+    It read PUSHOVER_TOKEN / PUSHOVER_USER, names that have never existed in
+    `.env` (the real ones are PUSHOVER_API_TOKEN / PUSHOVER_USER_KEY), so this
+    path returned False forever and the failure looked like "no credentials".
+    Accept both spellings so a fallback is a fallback and not a dead end.
+    """
+    tok = os.getenv("PUSHOVER_API_TOKEN", "") or os.getenv("PUSHOVER_TOKEN", "")
+    usr = os.getenv("PUSHOVER_USER_KEY", "") or os.getenv("PUSHOVER_USER", "")
     if not (tok and usr):
         return False
     data = urllib.parse.urlencode({

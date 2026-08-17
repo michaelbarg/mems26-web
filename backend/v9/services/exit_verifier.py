@@ -74,6 +74,7 @@ class PendingExit:
     attempt: int = 1
     last_emit_ts: float = 0.0
     qty_before: Optional[int] = None
+    contracts: Optional[int] = None
     notes: List[str] = field(default_factory=list)
 
 
@@ -97,6 +98,7 @@ def clear() -> None:
 def register(trade_id: int, *, source: str, reason: str,
              on_confirmed: Callable[[], None],
              still_open: Optional[Callable[[], bool]] = None,
+             contracts: Optional[int] = None,
              qty_before: Optional[int] = None) -> bool:
     """Record that a FLATTEN was emitted for `trade_id`; close only when proven.
 
@@ -111,10 +113,19 @@ def register(trade_id: int, *, source: str, reason: str,
         # Already waiting — do not stack a second pending or reset its clock.
         _pending[tid].notes.append(f"duplicate register from {source} at {now:.0f}")
         return True
+    # Snapshot what the ACCOUNT held at the moment the exit was emitted. The
+    # account is not the trade: Michael trades this account by hand alongside
+    # the system (8 manual contracts were open on the morning of 08-17). If we
+    # waited for account-flat we would never confirm a real exit while he holds
+    # anything, and the retry would fire a second FLATTEN_ACCOUNT — which is
+    # ACCOUNT-WIDE and would close HIS position. That is a direct violation of
+    # the 12:20 ownership ruling. So: verify by MOVEMENT, not by absolute flat.
+    if qty_before is None:
+        qty_before = _sierra_qty()
     _pending[tid] = PendingExit(
         trade_id=tid, source=source, reason=reason,
         on_confirmed=on_confirmed, registered_ts=now, last_emit_ts=now,
-        still_open=still_open, qty_before=qty_before,
+        still_open=still_open, qty_before=qty_before, contracts=contracts,
     )
     logger.info("[ExitVerify] trade %d exit PENDING (%s) — books stay open until "
                 "Sierra proves flat", tid, source)
@@ -133,6 +144,55 @@ def _sierra_qty() -> Optional[int]:
         return _sierra_state_qty()
     except Exception:
         return None
+
+
+def _exit_happened(p: PendingExit, qty: Optional[int]) -> bool:
+    """Did THIS trade's position actually leave the account?
+
+    Flat is the clearest proof and always counts. But when Michael is holding
+    his own contracts, the account can never reach zero, so we also accept the
+    account having moved toward flat by at least this trade's size — which is
+    exactly what a successful exit looks like from here.
+
+    `None` (stale/absent state) is never an exit.
+    """
+    if qty is None:
+        return False
+    if qty == 0:
+        return True
+    before, n = p.qty_before, p.contracts
+    if before is None or not n:
+        return False          # cannot measure movement → demand flat
+    moved = abs(int(before)) - abs(int(qty))
+    return moved >= int(n)
+
+
+def _account_holds_foreign_position(qty: Optional[int]) -> bool:
+    """Is there a position here the system does not own?
+
+    FLATTEN_ACCOUNT is account-wide. Re-sending it while Michael holds his own
+    contracts would close his position too. When we cannot prove the remaining
+    contracts are ours, we escalate to him instead of acting.
+    """
+    if not qty:
+        return False
+    try:
+        from backend.v9.services.sierra_position_reconciler import _sierra_state_orders
+        _ = _sierra_state_orders()   # presence only; ownership lives below
+    except Exception:
+        pass
+    try:
+        import backend.main as _m
+        _fp = getattr(getattr(_m, "app", None), "state", None)
+        _fp = getattr(_fp, "fill_poller", None)
+        _omap = getattr(_fp, "_order_map", {}) or {}
+        _tm = getattr(_fp, "_tm", None)
+        _open = {int(getattr(t, "id", -1))
+                 for t in (getattr(_tm, "get_active_trades", lambda: [])() or [])}
+        owns = any(int(v) in _open for v in _omap.values() if str(v).isdigit())
+        return not owns
+    except Exception:
+        return True   # unknown ownership → treat as foreign (never flatten blind)
 
 
 def _reemit_flatten(p: PendingExit) -> bool:
@@ -189,8 +249,8 @@ def verify_pending(now: Optional[float] = None) -> int:
                 pass  # unknown → keep verifying (safe side)
 
         # ── reality check ────────────────────────────────────────────────────
-        if qty == 0:
-            # Sierra is flat → the exit happened. Close the books now.
+        if _exit_happened(p, qty):
+            # Sierra proved the position left. Close the books now.
             del _pending[tid]
             try:
                 p.on_confirmed()
@@ -229,6 +289,21 @@ def verify_pending(now: Optional[float] = None) -> int:
 
         # ── still holding → escalate on timeout ──────────────────────────────
         if (now - p.last_emit_ts) < _timeout_s():
+            continue
+
+        if _account_holds_foreign_position(qty):
+            # Do not fire an account-wide FLATTEN at a position we cannot prove
+            # is ours. Tell Michael and stop tracking; books stay open.
+            del _pending[tid]
+            logger.critical("[ExitVerify] trade %d not confirmed, and the account "
+                            "holds %s contracts the system does not own — NOT "
+                            "re-sending an account-wide FLATTEN. Books stay OPEN.",
+                            tid, qty)
+            _push("exit_needs_manual",
+                  "\U0001f534 MEMS26: מימוש לא אומת — נדרשת פעולה ידנית",
+                  f"trade {tid} ({p.source}): החשבון מחזיק {qty} חוזים שאינם של "
+                  f"המערכת (פוזיציה ידנית), ולכן לא נשלח FLATTEN נוסף — הוא היה "
+                  f"סוגר גם אותה. הספרים נשארו פתוחים. לבדוק בסיירה.")
             continue
 
         if p.attempt < _max_attempts():
