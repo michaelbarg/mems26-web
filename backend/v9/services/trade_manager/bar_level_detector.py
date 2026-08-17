@@ -974,11 +974,36 @@ class BarLevelDetector:
             dir_bias = get_live_dir_bias()
         except Exception:
             pass
+        # ── two blockers found 2026-08-17, both fixed by asking SIERRA ──────
+        # (1) The reinforcement was decided against the BOOKS. On 13.08 the
+        #     reconciler logged "TM says 4 contracts, Sierra says 1" at the
+        #     moment child 662 was placed — 0 divergences in the 5.5 minutes
+        #     before, 18 in the ten minutes after. We were adding contracts on
+        #     top of a position the broker may no longer have held.
+        # (2) `max_total_contracts` compared the PARENT's size (2 or 4) against
+        #     the cap, so a CHAIN 660 -> 661 -> 662 never hit it: every link saw
+        #     "2 + 2 <= 8". A replay reached 20 contracts. Michael's 8-contract
+        #     ceiling was written down and never enforced.
+        # Both close with the same fact: the account's real net position. It is
+        # also the honest denominator for the cap, because margin is charged on
+        # the account, not on our books.
+        _acct = None
         try:
-            from backend.v9.services.trade_manager.manager import trade_contract_count
-            n_open = int(trade_contract_count(trade))
+            from backend.v9.services.sierra_position_reconciler import _sierra_state_qty
+            _acct = _sierra_state_qty()
         except Exception:
-            n_open = 2
+            _acct = None
+        if _acct is None:
+            logger.warning("[ScaleIn] no fresh Sierra position — not reinforcing "
+                           "(unknown is never a reason to add contracts)")
+            return
+        _want_long = (trade.direction or "").upper() == "LONG"
+        if (_want_long and _acct <= 0) or ((not _want_long) and _acct >= 0):
+            logger.warning("[ScaleIn] Sierra holds %s but the trade is %s — the "
+                           "position to reinforce is not there. Not reinforcing.",
+                           _acct, trade.direction)
+            return
+        n_open = abs(int(_acct))
         dec = should_scale_in(
             direction=trade.direction, entry_price=float(trade.entry_price),
             t1_hit=True, already_scaled=False, n_contracts_open=n_open,

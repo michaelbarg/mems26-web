@@ -35,9 +35,9 @@
 | `entry_guard.py` | ✅ 3 | 133 | 2026-08-12 | PRE_SEND_ENTRY_GUARD_V1 — refuse a LIVE entry the account state guarantees to kill. |
 | `eod_archive_scheduler.py` | ✅ 2 | 236 | 2026-05-23 | P31 Phase 1 — End-of-day archive scheduler. |
 | `eod_archiver.py` | ✅ 3 | 199 | 2026-05-23 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
-| `exit_verifier.py` | ✅ 2 | 334 | 2026-08-16 | T4 — books close only after Sierra proves the exit actually happened. |
+| `exit_verifier.py` | ✅ 2 | 345 | 2026-08-17 | T4 — books close only after Sierra proves the exit actually happened. |
 | `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
-| `fill_poller.py` | ✅ 6 | 1202 | 2026-08-16 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
+| `fill_poller.py` | ✅ 6 | 1202 | 2026-08-17 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |
 | `historical_replay.py` | ✅ 3 | 109 | 2026-06-03 | HistoricalReplay — warm system buffers from existing DB rows. |
@@ -49,11 +49,11 @@
 | `market_context.py` | ✅ 5 | 229 | 2026-08-03 | System 0 — Market Context unifier (Michael 2026-07-24, cowork 07-29). |
 | `news_blackout.py` | ✅ 3 | 131 | 2026-07-13 | news_blackout — IDEA-1: NO_TRADE window around red economic events (Michael 07-13). |
 | `ntfy_notify.py` | ✅ 4 | 197 | 2026-08-13 | Push notifications via ntfy.sh for trading events (P1.6 + K7a). |
-| `phone_alert.py` | ✅ 7 | 112 | 2026-08-13 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
+| `phone_alert.py` | ✅ 7 | 112 | 2026-08-17 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 1 | 248 | 2026-07-27 | Item-20 — Sierra truth reconcile + naked-stop detector. |
 | `sierra_command.py` | ✅ 20 | 858 | 2026-08-16 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `sierra_ledger.py` | ✅ 2 | 311 | 2026-07-08 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
-| `sierra_position_reconciler.py` | ✅ 7 | 970 | 2026-08-16 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
+| `sierra_position_reconciler.py` | ✅ 8 | 970 | 2026-08-16 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |
 | `trade_context.py` | ✅ 17 | 1021 | 2026-08-16 | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
 | `trade_excursion.py` | ✅ 4 | 160 | 2026-05-23 | Trade price excursion from v9_bars_5min (Hi/Lo during trade, MFE/MAE, T1 proximity). |

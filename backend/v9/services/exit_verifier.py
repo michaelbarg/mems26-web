@@ -163,6 +163,17 @@ def _exit_happened(p: PendingExit, qty: Optional[int]) -> bool:
     before, n = p.qty_before, p.contracts
     if before is None or not n:
         return False          # cannot measure movement → demand flat
+
+    # ATTRIBUTION (2026-08-17). Movement alone says "something left"; it does
+    # not say WHOSE. With a scale-in child open alongside its parent, the
+    # parent's 4 contracts leaving is enough movement to satisfy the child's 2
+    # — and the child's books would close over a position still in the market.
+    # That is the #682 ghost again, one level down. When more than one exit is
+    # in flight the account delta is ambiguous by construction, so we fall back
+    # to the one unambiguous proof: flat.
+    if len(_pending) > 1:
+        return False
+
     moved = abs(int(before)) - abs(int(qty))
     return moved >= int(n)
 

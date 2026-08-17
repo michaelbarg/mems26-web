@@ -297,3 +297,51 @@ class TestMichaelsManualPositionIsNeverTouched:
         """Never flatten blind."""
         assert ev._account_holds_foreign_position(0) is False
         assert ev._account_holds_foreign_position(None) is False
+
+
+class TestScaleInChildIsNotConfusedWithItsParent:
+    """A reinforcement child and its parent are open at the same time. The
+    parent's 4 contracts leaving is enough MOVEMENT to satisfy the child's 2 —
+    and the child's books would close over a position still in the market.
+    That is #682 again, one level down.
+
+    Movement says "something left"; it never says whose. With two exits in
+    flight the account delta is ambiguous by construction, so the only proof
+    that remains is flat.
+    """
+
+    def test_parent_exit_does_not_confirm_the_child(self, monkeypatch):
+        closed = []
+        ev.register(800, source="mae_scratch", reason="parent",
+                    on_confirmed=lambda: closed.append("parent"), contracts=4,
+                    qty_before=6)
+        ev.register(801, source="mae_scratch", reason="child",
+                    on_confirmed=lambda: closed.append("child"), contracts=2,
+                    qty_before=6)
+        _qty(monkeypatch, 2)          # the parent's 4 left; the child's 2 remain
+        ev.verify_pending()
+        assert closed == [], (
+            "one account delta cannot confirm two different trades")
+
+    def test_flat_confirms_both(self, monkeypatch):
+        closed = []
+        ev.register(800, source="mae_scratch", reason="parent",
+                    on_confirmed=lambda: closed.append("parent"), contracts=4,
+                    qty_before=6)
+        ev.register(801, source="mae_scratch", reason="child",
+                    on_confirmed=lambda: closed.append("child"), contracts=2,
+                    qty_before=6)
+        _qty(monkeypatch, 0)
+        ev.verify_pending()
+        assert sorted(closed) == ["child", "parent"]
+
+    def test_a_lone_exit_still_uses_movement(self, monkeypatch):
+        """The manual-position case must keep working — it is the whole reason
+        movement-verification exists."""
+        closed = []
+        ev.register(800, source="mae_scratch", reason="solo",
+                    on_confirmed=lambda: closed.append(800), contracts=4,
+                    qty_before=12)
+        _qty(monkeypatch, 8)
+        ev.verify_pending()
+        assert closed == [800]
