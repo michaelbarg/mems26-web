@@ -122,6 +122,19 @@ def stage_c():
 
 
 def stage_d():
+    # wire_guard — האם כל אתר-קריאה של פקודה/יציאה/התראה בכלל ניתן-לקריאה.
+    # זה הבודק שהיה תופס את #682 (TypeError לפני שנכתב בייט) — ו-6 טסטים
+    # ירוקים לא תפסו, כי הם בדקו מחרוזות ולא הריצו כלום.
+    try:
+        _wg = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "wire_guard.py")],
+                             capture_output=True, text=True, timeout=60)
+        _line = (_wg.stdout.strip().splitlines() or [""])[0]
+        check("wire_guard — כל אתרי-הקריאה ניתנים-לקריאה",
+              _wg.returncode == 0,
+              _line if _wg.returncode == 0 else _wg.stdout.strip()[-300:])
+    except Exception as _e:
+        check("wire_guard רץ", False, str(_e))
+
     print("— שלב D · מצב חי —")
     h = api("/api/v9/health")
     check("backend health", bool(h and h.get("status") == "ok"))
