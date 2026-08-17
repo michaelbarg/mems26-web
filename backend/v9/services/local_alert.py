@@ -34,8 +34,28 @@ _RATE_S_DEFAULT = 120.0
 _SOUND = "/System/Library/Sounds/Sosumi.aiff"
 
 
+def _under_test() -> bool:
+    """True while pytest is running.
+
+    2026-08-17 — this is why Michael got modal windows on his screen this
+    morning reading "t / m1": those are TEST fixture strings. The test suite is
+    run with `env -i` (a clean environment, deliberately, so tests cannot be
+    poisoned by .env), which means LOCAL_ALERTS_V1 is unset — and this module
+    defaults ON. So every test that exercised an alert path opened a real
+    osascript dialog and played a real sound on the trading Mac.
+
+    The default-ON is correct and stays: it exists because on 07-27 twelve
+    CRITICAL naked-stop alerts died silently while Michael was blind for 41
+    minutes on 10 naked contracts. What was missing is that a TEST is not a
+    trading session.
+    """
+    return bool(os.getenv("PYTEST_CURRENT_TEST")) or "pytest" in os.getenv("_", "")
+
+
 def enabled() -> bool:
     """Default ON (safety net). Set LOCAL_ALERTS_V1=0 to silence."""
+    if _under_test():
+        return False
     return os.getenv("LOCAL_ALERTS_V1", "1").lower() not in ("0", "false", "no")
 
 

@@ -740,6 +740,40 @@ class BarLevelDetector:
                             # apart — impossible if the first had closed it).
                             # Books close only after the command is written; a
                             # failed write leaves the trade open and shouts.
+                            # 🔴 2026-08-17 — FLATTEN_ACCOUNT is ACCOUNT-WIDE.
+                            # The DLL handler closes the NET position on the
+                            # symbol and cancels every working order. Michael
+                            # trades this account by hand alongside the system
+                            # (5 contracts open right now, with a stop). A
+                            # scratch of OUR trade would have taken HIS position
+                            # out and cancelled its stop. Scratching is an
+                            # optimisation; the trade is already protected by
+                            # its own attached bracket, so skipping it costs a
+                            # little edge — flattening his position costs money
+                            # and breaks the 12:20 ownership ruling.
+                            from backend.v9.services.trade_manager.manager import (
+                                trade_contract_count as _tar_n)
+                            from backend.v9.services.sierra_command import (
+                                account_has_foreign_contracts as _foreign)
+                            _fc = _foreign(_tar_n(trade))
+                            if _fc is not False:
+                                logger.critical(
+                                    "[TARGET-APPROACH] SKIPPED for trade %d — the account "
+                                    "holds contracts this trade does not own "
+                                    "(foreign=%s); an account-wide FLATTEN would "
+                                    "close them and cancel their stop. The trade "
+                                    "keeps its own bracket.", trade.id, _fc)
+                                try:
+                                    from backend.v9.services.phone_alert import push as _fp
+                                    _fp("target_realize_skipped_foreign",
+                                        "\u26a0\ufe0f MEMS26: מימוש-S6 דולג",
+                                        f"trade {{trade.id}}: יש בחשבון חוזים שאינם "
+                                        f"של המערכת, ו-FLATTEN היה סוגר גם אותם. "
+                                        f"העסקה נשארת עם הברקט שלה.")
+                                except Exception:
+                                    pass
+                                continue
+
                             from backend.v9.services.sierra_command import write_flatten_account
                             try:
                                 write_flatten_account(
@@ -815,6 +849,40 @@ class BarLevelDetector:
                             # be written we do NOT close the books (an unclosed
                             # book with a live position is recoverable; a closed
                             # book with a live position is a ghost).
+                            # 🔴 2026-08-17 — FLATTEN_ACCOUNT is ACCOUNT-WIDE.
+                            # The DLL handler closes the NET position on the
+                            # symbol and cancels every working order. Michael
+                            # trades this account by hand alongside the system
+                            # (5 contracts open right now, with a stop). A
+                            # scratch of OUR trade would have taken HIS position
+                            # out and cancelled its stop. Scratching is an
+                            # optimisation; the trade is already protected by
+                            # its own attached bracket, so skipping it costs a
+                            # little edge — flattening his position costs money
+                            # and breaks the 12:20 ownership ruling.
+                            from backend.v9.services.trade_manager.manager import (
+                                trade_contract_count as _mae_n)
+                            from backend.v9.services.sierra_command import (
+                                account_has_foreign_contracts as _foreign)
+                            _fc = _foreign(_mae_n(trade))
+                            if _fc is not False:
+                                logger.critical(
+                                    "[MAE-SCRATCH] SKIPPED for trade %d — the account "
+                                    "holds contracts this trade does not own "
+                                    "(foreign=%s); an account-wide FLATTEN would "
+                                    "close them and cancel their stop. The trade "
+                                    "keeps its own bracket.", trade.id, _fc)
+                                try:
+                                    from backend.v9.services.phone_alert import push as _fp
+                                    _fp("mae_scratch_skipped_foreign",
+                                        "\u26a0\ufe0f MEMS26: מימוש-S6 דולג",
+                                        f"trade {{trade.id}}: יש בחשבון חוזים שאינם "
+                                        f"של המערכת, ו-FLATTEN היה סוגר גם אותם. "
+                                        f"העסקה נשארת עם הברקט שלה.")
+                                except Exception:
+                                    pass
+                                continue
+
                             try:
                                 from backend.v9.services.sierra_command import (
                                     write_flatten_account as _mae_write,

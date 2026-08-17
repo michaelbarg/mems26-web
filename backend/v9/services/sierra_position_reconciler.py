@@ -189,8 +189,18 @@ def _manual_position_guard(sierra_qty: int) -> Optional[str]:
                 f"for {_naked_for}s — place a stop in Sierra NOW (alert-only, "
                 f"system will not touch your position)")
         try:
+            # Found by scripts/wire_guard.py, 2026-08-17. This was
+            # `_mg_push("MANUAL NAKED", _txt)` — two positional arguments against
+            # `push(key, title, msg, priority)`, so `msg` was missing and every
+            # call raised TypeError into the bare `except` below. The alert has
+            # NEVER reached the phone.
+            # This is the alarm that exists because a naked manual position cost
+            # Michael more than half the account on 07-27, and he is holding a
+            # manual position today. Same class as #682: the code looked right,
+            # the failure was swallowed, and nobody was told.
             from backend.v9.services.phone_alert import push as _mg_push
-            _mg_push("MANUAL NAKED", _txt)
+            _mg_push("manual_naked", "\U0001f534 MEMS26: פוזיציה ידנית ללא סטופ",
+                     _txt, priority=1)
         except Exception:
             pass  # phone unavailable — the CRITICAL log still fires
         return _txt

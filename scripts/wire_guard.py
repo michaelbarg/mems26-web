@@ -105,6 +105,22 @@ def _check_call(call: ast.Call, fname: str, path: Path) -> Optional[str]:
     return None
 
 
+def _alias_map(tree: ast.AST) -> Dict[str, str]:
+    """local name -> guarded name, for `from ... import write_x as _y`.
+
+    Found by adversarial review 2026-08-17: the checker missed aliased imports,
+    and the #682 call site is now written `write_flatten_account as _mae_write`
+    — so the one site this tool exists for was being skipped.
+    """
+    out: Dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            for a in node.names:
+                if a.name in _SIGS and a.asname:
+                    out[a.asname] = a.name
+    return out
+
+
 def scan() -> Tuple[List[str], int]:
     findings: List[str] = []
     checked = 0
@@ -116,12 +132,14 @@ def scan() -> Tuple[List[str], int]:
                 tree = ast.parse(path.read_text(encoding="utf-8"))
             except SyntaxError:
                 continue
+            aliases = _alias_map(tree)
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call):
                     continue
                 f = node.func
                 name = (f.id if isinstance(f, ast.Name)
                         else f.attr if isinstance(f, ast.Attribute) else None)
+                name = aliases.get(name, name)
                 if name not in _SIGS:
                     continue
                 checked += 1

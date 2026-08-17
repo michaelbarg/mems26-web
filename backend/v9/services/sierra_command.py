@@ -498,6 +498,41 @@ def write_flatten_orphan(
     return _write_command(payload)
 
 
+def account_has_foreign_contracts(trade_contracts: Optional[int]) -> Optional[bool]:
+    """Would FLATTEN_ACCOUNT hit contracts this trade does not own?
+
+    `FLATTEN_ACCOUNT` maps to the DLL's account-wide flatten — it closes the NET
+    position on the symbol and cancels every working order
+    (`MES_AI_DataExport_merged.cpp:3631`, "always acts on the account/symbol
+    position", deliberately not gated on `order_armed` because it is the orphan
+    kill-switch). It is the right tool for "get me out of everything". It is the
+    WRONG tool for "scratch this one trade" whenever Michael is also holding
+    contracts by hand — which he does routinely on this account.
+
+    The test is deliberately arithmetic and needs no order map: if the account
+    holds MORE contracts than this trade has, the surplus belongs to someone
+    else, and flattening would take it out and cancel its stop. An earlier
+    version of this check asked the order-map whether the system "owned" the
+    position; that inverted in practice, because the trade being exited is
+    itself still open and so always answered "yes, ours" — it failed open in
+    exactly the case it was written for.
+
+    Returns True (foreign contracts present), False (none), or None when Sierra
+    cannot be read — and None must be treated as True by callers, because
+    flattening blind is how you close a position you cannot see.
+    """
+    try:
+        from backend.v9.services.sierra_position_reconciler import _sierra_state_qty
+        qty = _sierra_state_qty()
+    except Exception:
+        return None
+    if qty is None:
+        return None
+    if not trade_contracts:
+        return bool(qty)          # size unknown → any position is a risk
+    return abs(int(qty)) > abs(int(trade_contracts))
+
+
 def write_flatten_account(
     *,
     trade_id: Optional[str] = None,

@@ -178,32 +178,28 @@ def _exit_happened(p: PendingExit, qty: Optional[int]) -> bool:
     return moved >= int(n)
 
 
-def _account_holds_foreign_position(qty: Optional[int]) -> bool:
-    """Is there a position here the system does not own?
+def _account_holds_foreign_position(qty: Optional[int],
+                                    contracts: Optional[int] = None) -> bool:
+    """Is there more in the account than this trade owns?
 
-    FLATTEN_ACCOUNT is account-wide. Re-sending it while Michael holds his own
-    contracts would close his position too. When we cannot prove the remaining
-    contracts are ours, we escalate to him instead of acting.
+    FLATTEN_ACCOUNT is account-wide, so re-sending it while Michael holds his
+    own contracts would close his position too.
+
+    The first version of this asked the order-map whether the system "owned"
+    the position. An adversarial review on 2026-08-17 showed it inverts: the
+    trade being exited is itself still open, so the map always answered "ours",
+    and the guard failed open in exactly the case it was written for. Counting
+    contracts cannot invert — it is the same arithmetic
+    `sierra_command.account_has_foreign_contracts` uses, kept in one place.
     """
     if not qty:
         return False
     try:
-        from backend.v9.services.sierra_position_reconciler import _sierra_state_orders
-        _ = _sierra_state_orders()   # presence only; ownership lives below
+        from backend.v9.services.sierra_command import account_has_foreign_contracts
+        r = account_has_foreign_contracts(contracts)
     except Exception:
-        pass
-    try:
-        import backend.main as _m
-        _fp = getattr(getattr(_m, "app", None), "state", None)
-        _fp = getattr(_fp, "fill_poller", None)
-        _omap = getattr(_fp, "_order_map", {}) or {}
-        _tm = getattr(_fp, "_tm", None)
-        _open = {int(getattr(t, "id", -1))
-                 for t in (getattr(_tm, "get_active_trades", lambda: [])() or [])}
-        owns = any(int(v) in _open for v in _omap.values() if str(v).isdigit())
-        return not owns
-    except Exception:
-        return True   # unknown ownership → treat as foreign (never flatten blind)
+        return True          # unknown → never flatten blind
+    return True if r is None else bool(r)
 
 
 def _reemit_flatten(p: PendingExit) -> bool:
@@ -302,7 +298,7 @@ def verify_pending(now: Optional[float] = None) -> int:
         if (now - p.last_emit_ts) < _timeout_s():
             continue
 
-        if _account_holds_foreign_position(qty):
+        if _account_holds_foreign_position(qty, p.contracts):
             # Do not fire an account-wide FLATTEN at a position we cannot prove
             # is ours. Tell Michael and stop tracking; books stay open.
             del _pending[tid]

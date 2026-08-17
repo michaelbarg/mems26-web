@@ -85,7 +85,7 @@ class TestTheActualIncident:
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(p.attempt) or True)
         # the position IS ours here — the "do not flatten someone else's
         # position" guard is exercised separately below
-        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q, c=None: False)
         _silence_push(monkeypatch)
         ev.register(682, source="mae_scratch", reason="MAE", on_confirmed=lambda: None)
         _qty(monkeypatch, -4)
@@ -97,7 +97,7 @@ class TestTheActualIncident:
 
     def test_it_shouts_when_the_exit_never_executes(self, monkeypatch):
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: True)
-        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q, c=None: False)
         sent = _silence_push(monkeypatch)
         closed = []
         ev.register(682, source="mae_scratch", reason="MAE",
@@ -269,7 +269,7 @@ class TestMichaelsManualPositionIsNeverTouched:
     def test_no_second_flatten_at_a_position_we_do_not_own(self, monkeypatch):
         emitted, sent = [], _silence_push(monkeypatch)
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(1) or True)
-        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: True)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q, c=None: True)
         closed = []
         ev.register(700, source="mae_scratch", reason="MAE",
                     on_confirmed=lambda: closed.append(700),
@@ -285,7 +285,7 @@ class TestMichaelsManualPositionIsNeverTouched:
         emitted = []
         _silence_push(monkeypatch)
         monkeypatch.setattr(ev, "_reemit_flatten", lambda p: emitted.append(p.attempt) or True)
-        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q: False)
+        monkeypatch.setattr(ev, "_account_holds_foreign_position", lambda q, c=None: False)
         ev.register(700, source="mae_scratch", reason="MAE",
                     on_confirmed=lambda: None, contracts=4, qty_before=4)
         _qty(monkeypatch, 4)

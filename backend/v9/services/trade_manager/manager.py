@@ -79,15 +79,11 @@ def trade_contract_count(trade) -> int:
     # 4-contract P&L. Any positive persisted count is the truth.
     if n >= 1:
         return n
-    if os.environ.get("FIXED_CONTRACTS_6", "0").lower() in ("1", "true", "yes"):
-        return 6  # Michael 2026-08-15, top precedence
-    if os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
-        return 4  # Michael 2026-07-15
-    if os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
-        return 2
-    if os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
-        return 3
-    return 3
+    # One resolver (2026-08-17) — this ladder was missing FIXED_CONTRACTS_5
+    # entirely, so a 5-contract trade with no persisted count would have booked
+    # 3 legs. Same class as the [:3] truncation, one level up.
+    from backend.v9.services.contract_size import ruled_contracts as _ruled
+    return _ruled() or 3
 
 
 def _zlr_mgmt_enabled() -> bool:
