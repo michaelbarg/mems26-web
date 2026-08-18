@@ -103,11 +103,27 @@ CATEGORY_ORDER = [
     ("misc", "Misc"),
 ]
 
+# 2026-08-18 — these missed FIVE flags that are demonstrably live, and one of
+# them was dangerous: FLAG_INDEX told readers that RECONCILER_OWNERSHIP_AWARE_V1
+# was "not referenced in code (dead or renamed?)". An agent trusting that would
+# delete it — and every manual position of Michael's would go back to being
+# classified a NAKED ORPHAN, the class behind 07-10/14/17/20/23.
+#
+# Two independent causes, both fixed here:
+#   a. the scan ran LINE BY LINE, so a getenv() call wrapped across two lines
+#      was invisible (reconciler:828, playbook:197, news_blackout).
+#   b. flags read through a helper — _env_int("RISK_MAX_TRADES_DAY", 5) — were
+#      never matched at all, because the pattern only knew getenv/environ.get.
 ENV_RE = re.compile(
-    r'(?:\b\w+\.)?(?:getenv|environ\.get)\(\s*["\']([A-Z][A-Z0-9_]+)["\']\s*(?:,\s*([^)\n]*?))?\)'
+    r'(?:\b\w+\.)?(?:getenv|environ\.get)\(\s*["\']([A-Z][A-Z0-9_]+)["\']\s*(?:,\s*([^)]*?))?\)',
+    re.S,
 )
+#: helper wrappers around os.getenv used across the codebase
 FLAG_RE = re.compile(
-    r'\b_?flag\(\s*["\']([A-Z][A-Z0-9_]+)["\']\s*(?:,\s*([^)\n]*?))?\)'
+    r'\b_?(?:flag|env_int|env_float|env_bool|env_str|env_flag|getenv_int|'
+    r'getenv_float|getenv_bool)\(\s*["\']([A-Z][A-Z0-9_]+)["\']\s*'
+    r'(?:,\s*([^)]*?))?\)',
+    re.S,
 )
 
 
@@ -163,11 +179,14 @@ def scan_code() -> dict:
                 text = path.read_text(encoding="utf-8", errors="ignore")
             except OSError:
                 continue
-            for i, line in enumerate(text.splitlines(), 1):
-                for m in ENV_RE.finditer(line):
-                    record(m.group(1), m.group(2), "env", _rel(path), i)
-                for m in FLAG_RE.finditer(line):
-                    record(m.group(1), m.group(2), "flag", _rel(path), i)
+            # whole-file scan (not per line) so a call split across lines is
+            # still seen; the line number comes from the match offset.
+            def _lineno(off: int) -> int:
+                return text.count("\n", 0, off) + 1
+            for m in ENV_RE.finditer(text):
+                record(m.group(1), m.group(2), "env", _rel(path), _lineno(m.start()))
+            for m in FLAG_RE.finditer(text):
+                record(m.group(1), m.group(2), "flag", _rel(path), _lineno(m.start()))
     return found
 
 
