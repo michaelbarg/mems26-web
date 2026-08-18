@@ -167,6 +167,12 @@ def test_join_long_mirror_and_7pt_stop_cap(monkeypatch):
 
 # ── sizing chokepoint: FIXED_CONTRACTS_4 exemption is scoped ────────────────
 def test_effective_contracts_exemption_scoped(monkeypatch):
+    # 2026-08-18: neutralise EVERY fixed-size flag. These tests set the one
+    # they are about and left the rest to the ambient .env — which now
+    # carries FIXED_CONTRACTS_5=1, a HIGHER precedence, so the assertion
+    # measured the live ruling instead of the precedence it is testing.
+    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+        monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     exempt = {"contracts": 2, "metadata": {"fixed_contracts_exempt": 1}}
     assert effective_contracts(exempt) == 2          # confluence ships exactly 2

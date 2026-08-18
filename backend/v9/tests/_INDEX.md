@@ -80,7 +80,7 @@
 | `test_replay_clock_mode.py` | ▶ entry/test | 118 | 2026-05-16 | Prompt 26a — Replay Clock Mode. |
 | `test_runner_targets_v1.py` | ▶ entry/test | 94 | 2026-06-12 | RUNNER_TARGETS_V1 regression tests. |
 | `test_s6_invariant10_target_reconcile.py` | ▶ entry/test | 76 | 2026-08-06 | S6 Invariant-10: target command reconciliation (FIX #633). |
-| `test_size_cap_over_fixed.py` | ▶ entry/test | 138 | 2026-07-14 | SIZE_CAP_OVER_FIXED_V1 — a SIZE_CAP_CUT_V1 downward cut must survive the |
+| `test_size_cap_over_fixed.py` | ▶ entry/test | 144 | 2026-07-14 | SIZE_CAP_OVER_FIXED_V1 — a SIZE_CAP_CUT_V1 downward cut must survive the |
 | `test_state_machine_v9.py` | ▶ entry/test | 145 | 2026-05-23 | V9 enhancement tests for DayTypeStateMachine. |
 | `test_stop_table_v1.py` | ▶ entry/test | 285 | 2026-07-14 | STOP_TABLE_V1 regression — per-pattern × day_type stop cap table. |
 | `test_stop_window_completed_bar.py` | ▶ entry/test | 264 | 2026-07-14 | FIX-2 · STOP_WINDOW_COMPLETED_V1 — the S2 structural-stop window must read the |

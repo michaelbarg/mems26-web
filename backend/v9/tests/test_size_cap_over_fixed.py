@@ -25,7 +25,13 @@ from backend.v9.services.sierra_command import effective_contracts  # noqa: E402
 
 # Flags this module toggles — snapshot + restore so nothing leaks between cases
 # or into sibling test modules (test_l7_two_contract_symmetry, test_size_cap_cut).
-_FLAGS = ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "SIZE_CAP_OVER_FIXED_V1")
+# 2026-08-18: this list has to hold EVERY fixed-size flag, not the two this
+# module happens to set. It listed _2 and _3 only, so once the live .env carried
+# FIXED_CONTRACTS_5=1 the ambient flag survived the "isolated" environment and
+# outranked the _3 the test had just set — five of eight cases failed on a
+# correct system. An isolation fixture that isolates a subset isolates nothing.
+_FLAGS = ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
+          "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "SIZE_CAP_OVER_FIXED_V1")
 
 
 def _ec(setup, **env):

@@ -130,22 +130,32 @@ def cap_contracts(requested: int) -> Tuple[int, str]:
     return allowed, (f"reduced {requested}→{allowed}: ${usable:.2f} usable "
                      f"at ${per:.2f} per contract")
 
-# The DLL attaches a bracket PER CONTRACT, but only has slots 1..4
-# (Stop1Price..Stop4Price / OCOGroup1..4Quantity). A 5th contract would be sent
-# with NO stop and NO target — a naked contract inside a position that looks
-# protected. Michael found this shape on 2026-07-28: "העסקה היא על 6 חוזים והסטופ
-# והמימוש על חוזה 1 … אם אני פותח עסקה הוא צריך להגן על כל החוזים".
-# Today FIXED_CONTRACTS_4 caps at 4 so the slots are never exceeded, but the
-# account can now carry 7 — so the cap must live in code, not in a flag that
-# might change.
+# Never send more contracts than the deployed study can PROTECT.
+#
+# The old premise was "one bracket per contract, four slots, therefore four
+# contracts". Michael found the failure shape on 2026-07-28: "העסקה היא על 6
+# חוזים והסטופ והמימוש על חוזה 1 … אם אני פותח עסקה הוא צריך להגן על כל החוזים".
+#
+# That premise is no longer the code (2026-08-18, after the ladder shipped in
+# `sc_study/MES_AI_DataExport_merged.cpp` and was compiled into the loaded DLL).
+# A group is not limited to one contract: it may carry several behind a shared
+# stop and target. Four groups therefore protect up to six contracts in the
+# shape Michael ruled on 08-16 — t0=1 · t1=2 · t2=2 · t3=1. The binding limit
+# is what the LADDER covers, not how many slots exist, so this cap now reads
+# the same table the backend and the DLL both use. One source; if they ever
+# disagree, the trade is sized for a protection that is not there.
+from backend.v9.services.contract_size import MAX_PROTECTED_CONTRACTS
+
+#: kept as an alias — the number of OCO groups the study builds. It is NOT the
+#: contract cap and must not be used as one.
 DLL_BRACKET_SLOTS = 4
 
 
 def cap_to_bracketable(requested: int) -> Tuple[int, str]:
     """Never send more contracts than the DLL can protect."""
-    if requested <= DLL_BRACKET_SLOTS:
-        return requested, "within bracket slots"
-    return DLL_BRACKET_SLOTS, (
-        f"reduced {requested}→{DLL_BRACKET_SLOTS}: the DLL attaches one bracket "
-        f"per contract and has {DLL_BRACKET_SLOTS} slots — extra contracts would "
-        f"be naked")
+    if requested <= MAX_PROTECTED_CONTRACTS:
+        return requested, "covered by the ladder"
+    return MAX_PROTECTED_CONTRACTS, (
+        f"reduced {requested}→{MAX_PROTECTED_CONTRACTS}: the study's ladder "
+        f"covers at most {MAX_PROTECTED_CONTRACTS} contracts inside four OCO "
+        f"groups — anything above would be naked")

@@ -6,4 +6,4 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 0 | 2026-08-14 |  |
-| `detector.py` | ✅ 1 | 296 | 2026-08-16 | trend_step.detector — H15 TREND_STEP_ENTRY_V1 (live port, 2026-08-14). |
+| `detector.py` | ✅ 1 | 353 | 2026-08-18 | trend_step.detector — H15 TREND_STEP_ENTRY_V1 (live port, 2026-08-14). |

@@ -14,6 +14,12 @@ SETUP = {"direction": "LONG", "entry_price": 7600.0, "stop": 7591.0,
 
 
 def test_fc4_top_precedence(monkeypatch):
+    # 2026-08-18: neutralise EVERY fixed-size flag. These tests set the one
+    # they are about and left the rest to the ambient .env — which now
+    # carries FIXED_CONTRACTS_5=1, a HIGHER precedence, so the assertion
+    # measured the live ruling instead of the precedence it is testing.
+    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+        monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("FIXED_CONTRACTS_3", "1")   # must lose to _4
     monkeypatch.delenv("FIXED_CONTRACTS_2", raising=False)

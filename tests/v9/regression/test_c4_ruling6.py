@@ -18,6 +18,11 @@ import pytest
 
 @pytest.fixture()
 def _env(monkeypatch, tmp_path):
+    # 2026-08-18: pin every fixed-size flag, not only the one this suite sets.
+    # The ambient .env now carries FIXED_CONTRACTS_5=1 at a higher precedence,
+    # so a fixture that sets _4 and leaves _5 alone tests the live ruling.
+    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+        monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("T0_TARGET_PTS", "4.0")
     monkeypatch.setenv("C4_RULING6_V1", "1")

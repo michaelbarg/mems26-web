@@ -42,6 +42,24 @@ if [ -f "$DEP" ] && [ -f "$MONO" ]; then
   if [ "$dh" = "$mh" ]; then ok "deployed DLL == committed monolith"
   else wn "deployed DLL ≠ committed monolith (rebuild+redeploy pending, or merged.cpp stale — run build_monolithic_cpp.sh then diff)"; fi
 else wn "cannot compare (missing deployed or monolith file)"; fi
+
+# T-02 (2026-08-18): the check above compares SOURCE to SOURCE. It said
+# "deployed DLL == committed monolith" every day for 20 days while the BINARY
+# Sierra actually loads was from 28.07 — the 5/6-contract ladder was in the
+# .cpp and not in the .dll, and nothing here noticed. A source file that is
+# newer than the compiled binary means the running study predates the code.
+DLL="$HOME/SierraChart/Data/MES_AI_DataExport_64.dll"
+if [ -f "$DLL" ] && [ -f "$DEP" ]; then
+  dll_m=$(stat -f %m "$DLL"); cpp_m=$(stat -f %m "$DEP")
+  dll_when=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$DLL")
+  if [ "$dll_m" -ge "$cpp_m" ]; then
+    ok "compiled DLL is newer than its source ($dll_when)"
+  else
+    age_d=$(( (cpp_m - dll_m) / 86400 ))
+    er "compiled DLL PREDATES its source by ${age_d}d — Sierra is running $dll_when. Remote Build + reload study, or the newest .cpp changes are NOT live"
+  fi
+else wn "cannot age-check the DLL (missing $DLL)"; fi
+
 if [ -d "$REPO/.git" ]; then
   dirty=$(git -C "$REPO" status --short sc_study/ 2>/dev/null)
   [ -z "$dirty" ] && ok "sc_study/ clean in git" || wn "sc_study/ has uncommitted changes (deployed may lag repo):

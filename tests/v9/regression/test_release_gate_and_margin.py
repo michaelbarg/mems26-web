@@ -189,8 +189,14 @@ def test_bracket_slot_cap():
     """Michael 07-28: 'העסקה היא על 6 חוזים והסטופ והמימוש על חוזה 1'. The DLL
     attaches one bracket per contract and has four slots; a fifth contract would
     ride naked inside a position that looks protected."""
+    # UPDATED 2026-08-18: the cap is what the ladder PROTECTS, not how many OCO
+    # groups exist. A group can carry more than one contract behind a shared
+    # stop, so four groups cover six contracts (Michael's 08-16 ladder). Seven
+    # is still refused — that one really would be naked.
     assert ms.cap_to_bracketable(4)[0] == 4
-    assert ms.cap_to_bracketable(7)[0] == 4
+    assert ms.cap_to_bracketable(5)[0] == 5
+    assert ms.cap_to_bracketable(6)[0] == 6
+    assert ms.cap_to_bracketable(7)[0] == 6
     assert "naked" in ms.cap_to_bracketable(7)[1]
 
 
@@ -199,8 +205,16 @@ def test_bracket_cap_is_unconditional(monkeypatch, tmp_path):
     safety defect, not a sizing policy."""
     import backend.v9.services.sierra_command as sc
     monkeypatch.delenv("MARGIN_AWARE_SIZING_V1", raising=False)
-    monkeypatch.setenv("FIXED_CONTRACTS_4", "0")
-    assert sc.effective_contracts({"contracts": 7}) == 4
+    # every fixed-size flag, not just _4 — the ambient .env carries _5 since
+    # 2026-08-18, and clearing a subset leaves the test measuring the ruling
+    # instead of the cap it is about.
+    for _f in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
+               "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+        monkeypatch.setenv(_f, "0")
+    # 6, not 4, since 2026-08-18 — the ladder protects six inside four groups.
+    # What the test is really asserting is unchanged: the cap holds with margin
+    # sizing OFF, because an unprotected contract is a safety defect.
+    assert sc.effective_contracts({"contracts": 7}) == 6
 
 
 def test_dbl_max_sentinel_does_not_authorise_anything(tmp_path, monkeypatch):

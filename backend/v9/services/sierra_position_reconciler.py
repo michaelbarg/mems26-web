@@ -148,6 +148,89 @@ def _has_protective_stop(qty: int, orders: Optional[list],
     return False
 
 
+#: PROTECTED_QTY_GUARD_V1 state — consecutive checks the shortfall has held.
+_prot_short_streak: int = 0
+_prot_last_alert: float = 0.0
+
+
+def _unprotected_contracts(sierra_qty: Optional[int]) -> Optional[str]:
+    """Is EVERY contract behind a stop, or only the first few?
+
+    The existing guard asks "is there A protective stop?" and answers yes/no.
+    That question cannot see the failure Michael found on 2026-07-28 — "העסקה
+    היא על 6 חוזים והסטופ והמימוש על חוזה 1" — because with a partial bracket
+    there IS a stop, so the boolean says protected while the rest of the
+    position is naked.
+
+    This counts instead. The study builds four OCO groups whose quantities sum
+    to the order quantity (the 08-16 ladder: 1/2/2/1 at six). If the working
+    stops cover fewer contracts than the position holds, the difference is
+    entering with no stop at all. That gap is the whole risk of moving above
+    four, and until a live fire proves the compiled ladder, it is the only
+    thing standing between a wrong ladder and an unprotected contract.
+
+    Alert-only, and deliberately reluctant:
+      * unknown (no state, no typed orders) → None. Never an alarm from
+        absence of evidence (Rule 1) — the held-bracket class makes a real
+        bracket temporarily invisible to GetOrderByIndex.
+      * must hold for PROTECTED_QTY_STREAK consecutive checks (~60s at the
+        30s cadence) so a bracket still being attached is not an alarm.
+      * never touches an order or a position.
+    """
+    global _prot_short_streak, _prot_last_alert
+    if not _mg_os_env("PROTECTED_QTY_GUARD_V1"):
+        return None
+    if not sierra_qty:
+        _prot_short_streak = 0
+        return None
+    orders = _sierra_state_orders()
+    if not orders:
+        _prot_short_streak = 0
+        return None            # unknown, not unprotected
+    held = abs(int(sierra_qty))
+    covered, saw_typed = 0, False
+    try:
+        for o in orders:
+            typ, bs = o.get("type"), int(o.get("bs", 0))
+            if typ is None:
+                continue
+            saw_typed = True
+            if int(typ) in (2, 3) and (
+                    (sierra_qty > 0 and bs == 2) or (sierra_qty < 0 and bs == 1)):
+                covered += abs(int(o.get("qty", 0) or 0))
+    except (TypeError, ValueError):
+        _prot_short_streak = 0
+        return None
+    if not saw_typed:
+        _prot_short_streak = 0
+        return None            # typeless feed — the qty is not trustworthy
+    if covered >= held:
+        _prot_short_streak = 0
+        return None
+    _prot_short_streak += 1
+    try:
+        need = int(os.getenv("PROTECTED_QTY_STREAK", "2"))
+    except (TypeError, ValueError):
+        need = 2
+    if _prot_short_streak < need:
+        return None
+    naked = held - covered
+    text = (f"\U0001f6a8 UNPROTECTED CONTRACTS: position {held}c, stops cover "
+            f"{covered}c → {naked}c with NO stop "
+            f"(streak {_prot_short_streak})")
+    now = _time_mod.time()
+    if (now - _prot_last_alert) > 300.0:
+        _prot_last_alert = now
+        logger.critical("[Reconciler] %s", text)
+        try:
+            from backend.v9.services.phone_alert import push as _pp
+            _pp("unprotected_qty", "\U0001f6a8 MEMS26: contracts with no stop",
+                text, priority=1)
+        except Exception:
+            pass
+    return text
+
+
 def _mg_os_env(name: str) -> bool:
     """Truthy env read for the manual-guard family (module-local, no imports at call site)."""
     import os as _e
@@ -732,6 +815,10 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
     global _phantom_flat_streak
     if tm_qty == sierra_qty:
         _phantom_flat_streak = 0
+        _short = _unprotected_contracts(sierra_qty)
+        if _short:
+            return True, (f"MATCH: TM={tm_qty} Sierra={sierra_qty} (src={src}) "
+                          f"{_short}")
         return True, f"MATCH: TM={tm_qty} Sierra={sierra_qty} (src={src})"
 
     # ── PHANTOM-HEAL (Michael 07-13, PHANTOM_HEAL_V1) ──────────────────────

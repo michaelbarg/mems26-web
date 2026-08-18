@@ -15,4 +15,4 @@
 | `shadow_executor.py` | ⚠️ orphan? | 22 | 2026-05-13 | ShadowExecutor — persists trade record only, no Sierra order. |
 | `suffering_side_veto.py` | ✅ 1 | 63 | 2026-05-14 | ζ.B2 — Suffering Side Veto (D-049 LOCKED). |
 | `trade_management.py` | ⚠️ orphan? | 124 | 2026-05-14 | ζ.C2 + ζ.C4-C7 — Trade Management "Don't Give Back" Rules. |
-| `trading_gateway.py` | ✅ 14 | 3764 | 2026-08-17 | TradingGateway — 3-mode trade routing per 3-Mode Spec V3 section 8. |
+| `trading_gateway.py` | ✅ 14 | 3798 | 2026-08-18 | TradingGateway — 3-mode trade routing per 3-Mode Spec V3 section 8. |
