@@ -8,7 +8,7 @@
 | `ChartV5b.tsx` | ✅ 1 | 1105 | 2026-08-04 | Avoid browser "Failed to fetch" when backend is busy (Woodies/bar handlers). |
 | `CumulativeDeltaPane.tsx` | ⚠️ orphan? | 136 | 2026-05-23 | Cumulative Delta pane — renders below the price chart. |
 | `CvdChartPane.tsx` | ✅ 1 | 277 | 2026-05-23 | CVD shelf green — distinct from price candles (#16a34a). |
-| `LiveTradeOverlay.tsx` | ✅ 1 | 126 | 2026-07-11 | gone |
+| `LiveTradeOverlay.tsx` | ✅ 1 | 129 | 2026-07-11 | gone |
 | `SierraLevelsOverlay.tsx` | ✅ 1 | 224 | 2026-05-20 | Full-width SVG rules + axis badges (multi-pane LW chart). |
 | `TpoContinuityOverlay.tsx` | ✅ 1 | 245 | 2026-06-09 | TPO continuity stepped lines — shows how POC/VAH/VAL evolved over the session. |
 | `cvdMapping.ts` | ✅ 2 | 187 | 2026-06-04 | Unix epoch seconds (added by backend when Sierra DLL omits it). |

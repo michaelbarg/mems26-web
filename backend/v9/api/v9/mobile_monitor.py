@@ -141,14 +141,23 @@ async def mobile_data(request: Request):
             _mul = 1.0 if _is_long else -1.0
             _risk = abs(_entry - _stop) if _entry and _stop else 1.0
             _risk_usd = _risk * 5.0
-            _contract_specs = [
-                ("C1", r.get("t1"), r.get("t1_hit")),
-                ("C2", r.get("t2"), r.get("t2_hit")),
-                ("C3", r.get("t3"), r.get("t3_hit")),
-            ]
+            # 2026-08-18: three specs sliced to _n could never describe more than
+            # three contracts, and the t0 this very query already SELECTs (line
+            # ~109) was never used — so on a 5-contract position the phone showed
+            # three legs, and the first one was measured against T1 while that
+            # contract really exits at T0. Built from the same ladder the DLL
+            # brackets with, so the phone, the desktop and the broker agree.
+            from backend.v9.services.contract_size import target_index_for_contract
             _n = max(r.get("contracts") or 0, 1)
+            _lvl = [r.get("t0"), r.get("t1"), r.get("t2"), r.get("t3")]
+            _lvl_hit = [False, r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")]
+            _contract_specs = []
+            for _i in range(_n):
+                _leg = target_index_for_contract(_i, _n)
+                _contract_specs.append(
+                    ("C%d" % (_i + 1), _lvl[_leg], _lvl_hit[_leg]))
             _contracts = []
-            for _cid, _tgt, _hit in _contract_specs[:_n]:
+            for _cid, _tgt, _hit in _contract_specs:
                 _tv = float(_tgt) if _tgt else 0
                 if _hit:
                     _status = "HIT_TARGET"

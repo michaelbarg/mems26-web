@@ -867,9 +867,30 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                             from backend.v9.gateway.trading_gateway import get_gateway
                             _gw = get_gateway()
                             if _gw and hasattr(_gw, "on_trade_close"):
-                                _gw.on_trade_close(int(tid))
+                                # 2026-08-18: this passed a bare int. The
+                                # signature is on_trade_close(trade: dict), so
+                                # every call raised AttributeError on the first
+                                # trade.get(), was swallowed by the except
+                                # below at DEBUG level, and TWO things silently
+                                # did not happen: the slot was not released and
+                                # the "trade closed" push was never sent. This
+                                # is the phantom-heal / manual-cancel path — the
+                                # one that closes a trade when Sierra went flat
+                                # without the books knowing, which is exactly
+                                # when Michael needs to be told.
+                                _gw.on_trade_close({
+                                    "trade_id": int(tid),
+                                    "outcome": "CANCELLED" if _cancel_detect else "CLOSED",
+                                    "pnl": 0.0,
+                                    "reason": ("manual_cancel" if _cancel_detect
+                                               else "phantom_heal"),
+                                    "mode": (getattr(t, "mode", None) or "live"),
+                                })
                         except Exception as _gwe:
-                            logger.debug("[Reconciler] slot release signal: %s", _gwe)
+                            # was DEBUG — a swallowed wiring error here is
+                            # indistinguishable from "nothing happened".
+                            logger.warning("[Reconciler] slot release / close "
+                                           "notify FAILED for %s: %s", tid, _gwe)
             except Exception as _he:
                 logger.warning("[Reconciler] phantom-heal/cancel close error: %s", _he)
             _phantom_flat_streak = 0

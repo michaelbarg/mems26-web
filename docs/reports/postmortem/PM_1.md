@@ -5,8 +5,8 @@
 | Mode | shadow |
 | Direction | LONG |
 | System | S1 |
-| Entry | 5245.0 @ 2026-08-18 08:03:28.402611 |
-| Exit | 5240.0 @ 2026-08-18 08:03:28.547502+00:00 |
+| Entry | 5245.0 @ 2026-08-18 08:51:44.756674 |
+| Exit | 5240.0 @ 2026-08-18 08:51:44.758695+00:00 |
 | Stop | 5240.0 |
 | PnL | $-125.0 (-1.0R) |
 | Exit Reason | STOP_HIT |
@@ -40,4 +40,4 @@
 **NORMAL_NOISE**: Acceptable loss — no structural issue detected
 
 ---
-*Generated: 2026-08-18T08:03:28.798344+00:00 | POST_MORTEM_V1*
+*Generated: 2026-08-18T08:51:44.797399+00:00 | POST_MORTEM_V1*

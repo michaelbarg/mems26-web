@@ -102,7 +102,7 @@
 | `run_stage.sh` | — | 84 | 2026-05-16 | MEMS26 Stage Runner — safe automation for prompt stages |
 | `s4_full_audit.py` | ▶ entry/test | 1306 | 2026-08-12 | SYSTEM-4 (Woodies CCI) FULL AUDIT — every trading day we have. |
 | `s6_eod_report.py` | ▶ entry/test | 136 | 2026-07-08 | System-6 EOD report — ביקורת סטופ-חכם/מימוש-חכם על עסקאות היום (מייקל 2026-07-08). |
-| `sim_drill_5_contracts.py` | ▶ entry/test | 172 | — | SIM drill: does the compiled ladder actually protect all five contracts? |
+| `sim_drill_5_contracts.py` | ▶ entry/test | 172 | 2026-08-18 | SIM drill: does the compiled ladder actually protect all five contracts? |
 | `sim_matrix.py` | ▶ entry/test | 261 | 2026-07-17 | N9 — day-type × pattern SIMULATION MATRIX (Michael 2026-07-16: "הדמיה לכל סוג-יום"). |
 | `sim_matrix_e2e.py` | ▶ entry/test | 250 | 2026-07-17 | N9-hot — Sierra-sim FILL layer for the day-type × pattern matrix (2026-07-17). |
 | `sim_woodies_replay.py` | ▶ entry/test | 79 | 2026-06-18 |  |
@@ -150,4 +150,4 @@
 | `verify_t17_e2e_4contract_sim.py` | ▶ entry/test | 361 | 2026-07-28 | Read-only sim harness for T17 — 4-contract E2E ladder (Michael 07-19/07-20). |
 | `week_replay.py` | ▶ entry/test | 531 | 2026-08-17 | Week Replay: per-day simulation of Aug 11-14 with today's code. |
 | `weekly_report.py` | ▶ entry/test | 166 | 2026-07-13 | weekly_report — IDEA-3: the Friday-evening weekly report (Michael 07-13). |
-| `wire_guard.py` | ▶ entry/test | 185 | 2026-08-17 | wire_guard — prove every command/exit/alert call site can actually be called. |
+| `wire_guard.py` | ▶ entry/test | 208 | 2026-08-17 | wire_guard — prove every command/exit/alert call site can actually be called. |

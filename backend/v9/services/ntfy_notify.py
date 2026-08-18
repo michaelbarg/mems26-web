@@ -119,20 +119,38 @@ def _pushover(title: str, message: str, priority: str, tags: str) -> None:
     if not (user and token):
         return
     prio = {"urgent": "1", "high": "1", "default": "0", "low": "-1"}.get(priority, "0")
-    try:
-        cmd = ["/usr/bin/curl", "-s", "-m", "6",
-               "--form-string", f"token={token}",
-               "--form-string", f"user={user}",
-               "--form-string", f"title={title}",
-               "--form-string", f"message={message}",
-               "--form-string", f"priority={prio}",
-               "https://api.pushover.net/1/messages.json"]
-        r = subprocess.run(cmd, capture_output=True, timeout=8)
-        if r.returncode != 0 or b'"status":1' not in r.stdout:
-            logger.warning("pushover send failed rc=%s: %s",
-                           r.returncode, (r.stdout or r.stderr).decode()[:200])
-    except Exception:
-        logger.warning("pushover send failed: %s", traceback.format_exc())
+    cmd = ["/usr/bin/curl", "-s", "-m", "6",
+           "--form-string", f"token={token}",
+           "--form-string", f"user={user}",
+           "--form-string", f"title={title}",
+           "--form-string", f"message={message}",
+           "--form-string", f"priority={prio}",
+           "https://api.pushover.net/1/messages.json"]
+    # RETRY (2026-08-18). Michael: "there are no alerts on the watch, and there
+    # used to be." The transport was not misconfigured — the sends LEFT and
+    # DIED: `rc=6` (DNS did not resolve) and `rc=28` (6s timeout) in the log.
+    # One attempt, no retry, and the notification is gone forever. A transient
+    # DNS blip or a loaded machine is not a reason for Michael to never learn
+    # that a trade fired or closed. Three attempts over ~7s, still bounded, and
+    # still on a daemon thread that cannot touch the trading path.
+    _last = ""
+    for _attempt in range(3):
+        try:
+            r = subprocess.run(cmd, capture_output=True, timeout=8)
+            if r.returncode == 0 and b'"status":1' in r.stdout:
+                if _attempt:
+                    logger.warning("pushover delivered on attempt %d", _attempt + 1)
+                return
+            _last = "rc=%s %s" % (r.returncode,
+                                  (r.stdout or r.stderr).decode()[:120])
+        except Exception as e:
+            _last = "exception: %s" % e
+        if _attempt < 2:
+            time.sleep(1.5 * (_attempt + 1))
+    # Exhausted. Say so loudly — a silent notification failure is the same
+    # blindness that let the 08-12 orphan run unseen.
+    logger.error("pushover send FAILED after 3 attempts (%s) — title=%r. "
+                 "Michael did NOT receive this.", _last, title)
 
 
 def on_fire(trade_id: int, direction: str, pattern: str, mode: str,

@@ -37,7 +37,7 @@
 | `killzone_routes.py` | ✅ 1 | 12 | 2026-05-12 | API: /api/v9/killzone/* — System 6 Killzone. |
 | `live_ledger_routes.py` | ✅ 1 | 139 | 2026-07-09 | LIVE ledger endpoint (journal L8) — what Sierra ACTUALLY executed. |
 | `markers.py` | ✅ 1 | 84 | 2026-05-10 | V9 API: System markers CRUD. |
-| `mobile_monitor.py` | ✅ 2 | 733 | 2026-08-16 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
+| `mobile_monitor.py` | ✅ 2 | 742 | 2026-08-16 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
 | `open_type_routes.py` | ✅ 1 | 128 | 2026-07-28 | Open Type endpoint — /api/v9/open_type/current |
 | `pre_fire_routes.py` | ✅ 1 | 15 | 2026-05-16 | API route: POST /api/v9/pre_fire/validate — D-063 pre-fire validation. |
 | `price_routes.py` | ✅ 3 | 175 | 2026-07-17 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |
@@ -51,7 +51,7 @@
 | `tpo_routes.py` | ✅ 6 | 557 | 2026-08-14 | API: /api/v9/tpo/* — System 5 TPO Profile. |
 | `trade_commands.py` | ✅ 2 | 346 | 2026-08-06 | V9 API: Trade command/result endpoints for DLL communication. |
 | `trade_review_routes.py` | ✅ 1 | 55 | 2026-06-15 | V9 API: trade review marks (read/write to v9_trades.quality.review). |
-| `trades.py` | ✅ 2 | 674 | 2026-08-18 | V9 API: Trades + management log CRUD. |
+| `trades.py` | ✅ 2 | 700 | 2026-08-18 | V9 API: Trades + management log CRUD. |
 | `websocket.py` | ✅ 1 | 268 | 2026-05-18 | V9 WebSocket endpoints for real-time Dashboard feeds. |
 | `woodies_chart_routes.py` | ✅ 1 | 412 | 2026-07-19 | GET /api/v9/woodies/chart — Sierra woodies_5min.json for Cockpit CCI panel (P30.10). |
 | `ws_manager.py` | ✅ 5 | 138 | 2026-05-19 | V9 WebSocket connection manager with Redis pub/sub. |

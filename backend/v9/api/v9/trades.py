@@ -294,8 +294,6 @@ def exit_trade(
     }
 
 
-@router.get("/active")
-
 def _contracts_of(trade) -> int:
     """This trade's contract count, from the one resolver."""
     try:
@@ -325,6 +323,14 @@ def _find_scale_in_child(db, parent_id: int, active_states):
         pass
     return None
 
+
+# NOTE (2026-08-18): this decorator must stay glued to get_active_trade. It was
+# separated from it by two helpers inserted above, so FastAPI registered
+# /active against `_contracts_of` — the route answered 422 "field required:
+# trade", the dashboard's fetch returned null, and every surface fell through
+# to "No Active Trade": no position badge, no target rows, no percentages.
+# tests/v9/regression/test_active_trade_route.py now issues a real request.
+@router.get("/active")
 def get_active_trade(db: Session = Depends(get_db)):
     """Return the current active trade with C1/C2/C3 contract details.
 
@@ -414,14 +420,34 @@ def get_active_trade(db: Session = Depends(get_db)):
     # L7 (2026-07-08): build only the contract rows this trade actually has —
     # a 2-contract trade showed a phantom C3 row ("1/3 hit") and its stop-out
     # P&L summed 3 legs.
+    #
+    # 2026-08-18: and only THREE rows could ever be built, because the list was
+    # written as C1/C2/C3 → t1/t2/t3 and then sliced. Above four contracts the
+    # slice is a no-op, so a 5-contract trade rendered three bars under the
+    # heading "0/5 hit", the first bar measured against T1 when that contract
+    # actually exits at T0, and the P&L summed three legs out of five. The rows
+    # now come from the SAME ladder the DLL brackets with
+    # (contract_size.target_index_for_contract), so the screen and the broker
+    # cannot describe the position differently.
     from backend.v9.services.trade_manager.manager import trade_contract_count
+    from backend.v9.services.contract_size import target_index_for_contract
     n_contracts = trade_contract_count(trade)
-    contracts = [
-        _contract("C1", trade.t1, trade.t1_hit_ts),
-        _contract("C2", trade.t2, trade.t2_hit_ts,
-                  smart_be=(trade.t1_hit_ts is not None and trade.t2_hit_ts is None)),
-        _contract("C3", trade.t3, trade.t3_hit_ts),
-    ][:n_contracts]
+    _q = trade.quality if isinstance(trade.quality, dict) else {}
+    _t0 = _q.get("t0")
+    try:
+        _t0 = float(_t0) if _t0 is not None else None
+    except (TypeError, ValueError):
+        _t0 = None
+    # index 0..3 → the price that leg exits at. T0 stays None when the trade was
+    # not built with one (Rule 1) rather than silently borrowing T1's price.
+    _targets = [_t0, trade.t1, trade.t2, trade.t3]
+    _hits = [None, trade.t1_hit_ts, trade.t2_hit_ts, trade.t3_hit_ts]
+    contracts = []
+    for _i in range(max(0, int(n_contracts))):
+        _leg = target_index_for_contract(_i, n_contracts)
+        contracts.append(_contract(
+            "C%d" % (_i + 1), _targets[_leg], _hits[_leg],
+            smart_be=(trade.t1_hit_ts is not None and _hits[_leg] is None)))
 
     hits = sum(1 for c in contracts if c["status"] == "HIT_TARGET")
     total_pnl = sum(c["pnl"] for c in contracts)
@@ -441,7 +467,7 @@ def get_active_trade(db: Session = Depends(get_db)):
         "hits": hits,
         "total_pnl": round(total_pnl, 2),
         "total_r": round(total_r, 2),
-        "summary": f"{hits}/{n_contracts} hit",
+        "summary": f"{hits}/{len(contracts)} hit",
         # The size actually in the market, parent + reinforcement. `contracts`
         # above is this trade's own legs; when a scale-in child is open the
         # POSITION is bigger, and that is the number Michael is watching.

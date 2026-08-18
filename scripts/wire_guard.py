@@ -51,6 +51,13 @@ GUARDED = {
     ],
     "backend.v9.services.phone_alert": ["push"],
     "backend.v9.services.ntfy_notify": ["on_fire", "on_close", "notify"],
+    # 2026-08-18: added after the reconciler called on_trade_close(int) against
+    # a def on_trade_close(trade: dict). Every call raised on the first
+    # trade.get(), the except swallowed it at DEBUG, and two things silently did
+    # not happen — the slot was not released and the close push was never sent.
+    # The guard exists for exactly this shape, so the notifier's own callers
+    # have to be inside it.
+    "backend.v9.gateway.trading_gateway": ["TradingGateway.on_trade_close"],
 }
 
 # name → (module, signature)
@@ -66,12 +73,28 @@ def _load_signatures() -> List[str]:
             problems.append(f"cannot import {mod_name}: {e}")
             continue
         for fn in fns:
-            f = getattr(mod, fn, None)
+            # "Class.method" as well as a module-level function, so a guarded
+            # signature can live on a class (2026-08-18).
+            f, _short = mod, fn
+            for part in fn.split("."):
+                f = getattr(f, part, None)
+                if f is None:
+                    break
+                _short = part
             if f is None:
                 problems.append(f"{mod_name}.{fn} does not exist")
                 continue
+            fn = _short
             try:
-                _SIGS[fn] = (mod_name, inspect.signature(f))
+                _sig = inspect.signature(f)
+                # Call sites reach a method through an instance (`gw.close(x)`),
+                # so `self` is already bound and must not be counted against
+                # them — otherwise every correct call reads as "missing a
+                # required argument".
+                _params = list(_sig.parameters.values())
+                if _params and _params[0].name in ("self", "cls"):
+                    _sig = _sig.replace(parameters=_params[1:])
+                _SIGS[fn] = (mod_name, _sig)
             except (TypeError, ValueError) as e:     # pragma: no cover
                 problems.append(f"cannot read signature of {fn}: {e}")
     return problems

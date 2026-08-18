@@ -120,7 +120,10 @@ export function LiveTradeOverlay({ candleSeries }: Props) {
       </span>
       <span style={{ color: '#e5e5e5' }}>{trade.pattern_id || trade.trigger || ''}</span>
       <span style={{ color: pnl >= 0 ? '#56d364' : '#f85149' }}>{pnl >= 0 ? '+' : ''}${pnl.toFixed(0)}</span>
-      <span style={{ color: '#8b949e' }}>{trade.contracts?.length ?? 0}c · {modeLabel}</span>
+      {/* the size in the MARKET, not the number of leg rows: a scale-in child
+          adds contracts without adding legs, so counting rows under-reported
+          the position on the chart (2026-08-18). */}
+      <span style={{ color: '#8b949e' }}>{trade.position_contracts ?? trade.contracts?.length ?? 0}c · {modeLabel}</span>
     </div>
   );
 }
