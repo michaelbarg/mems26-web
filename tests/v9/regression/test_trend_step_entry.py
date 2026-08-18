@@ -77,16 +77,24 @@ class TestDetector:
 
 
 class TestSetupShape:
-    def test_setup_leaves_ladder_to_gateway(self, monkeypatch):
-        """stop/targets stay None — F3/H6 step ladder owns them (single source)."""
+    def test_setup_carries_its_own_leg_ladder(self, monkeypatch):
+        """SUPERSEDED 2026-08-18. This used to assert stop/targets stay None so
+        F3's session-median ladder owned them. That handoff is exactly what made
+        the replayed result unreachable: F3 sized the stop at ~7.0pt against a
+        model measured on 2.5-3.0pt, so T1 R:R was 0.32. The ladder the evidence
+        was built on now travels with the setup, and the gateway's arbitration
+        leaves it alone."""
         monkeypatch.setenv("TREND_STEP_ENTRY_V1", "1")
         monkeypatch.setattr(tsd, "live_bars", lambda limit=60: _stair_down())
         s = tsd.build_setup()
         assert s is not None
         assert s["classification"] == "TREND_STEP"
         assert s["firing_system"] == 4
-        assert s["stop"] is None and s["t1"] is None
+        assert s["stop"] is not None and s["t1"] is not None
+        assert s["stop_source"] == "TREND_STEP_LEG"
         assert s["metadata"]["trend_step"] is True
+        risk = abs(s["entry_price"] - s["stop"])
+        assert 2.5 <= risk <= 9.0, "the model clamps risk to [2.5, 9.0]"
 
     def test_build_setup_never_raises(self, monkeypatch):
         monkeypatch.setenv("TREND_STEP_ENTRY_V1", "1")

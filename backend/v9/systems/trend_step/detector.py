@@ -32,11 +32,26 @@ P: Dict[str, Any] = dict(
     PAUSE_MIN=1, PAUSE_MAX=3, RETR_MIN=0.20, RETR_MAX=0.55,
     LSMA_SLOPE_MIN=0.15, REQUIRE_LSMA_SIDE=0, VOL_RATIO_MAX=1.10,
     REQUIRE_EXHAUST=0, CUTOFF="15:00",
+    # ── price model — byte-faithful to replay_trend_step_entry.py §7 ──────────
+    # The replayed edge was measured with a LEG-relative stop (pause extreme +
+    # 10% of the impulse, clamped 2.5-9.0pt). Live, the setup shipped stop=None
+    # and F3's session-median ladder sized it at ~7.0pt — 2.3x the model — so
+    # T1 R:R fell to 0.32 and the replayed result was unreachable by
+    # construction. The model now travels with the setup.
+    STOP_BUF_FRAC=0.10, STOP_MIN=2.5, STOP_MAX=9.0,
+    T1_FRAC=0.45, T2_FRAC=0.80, T3_FRAC=1.30,
 )
 
 
 def enabled() -> bool:
     return os.getenv("TREND_STEP_ENTRY_V1", "0").lower() in ("1", "true", "yes")
+
+
+def _stair_or_session() -> bool:
+    """TREND_STEP_STAIR_OR_V1 — a verified staircase substitutes for the
+    session-extreme requirement (they are alternative proofs of the same
+    structure, not two independent filters)."""
+    return os.getenv("TREND_STEP_STAIR_OR_V1", "0").lower() in ("1", "true", "yes")
 
 
 def _p() -> Dict[str, Any]:
@@ -143,15 +158,23 @@ def detect_trend_step(bars: List[Dict], i: Optional[int] = None,
         if ext_i - org_i > p["IMP_BARS_MAX"] or ext_i <= org_i:
             continue
 
-        if p["REQUIRE_STAIR"] and k >= 3:
+        stair = None
+        if k >= 3:
             prev_ext_p, prev_org_p = piv[k - 2][1], piv[k - 3][1]
             stair = ((ext_p < prev_ext_p and org_p < prev_org_p) if direction == "SHORT"
                      else (ext_p > prev_ext_p and org_p > prev_org_p))
-            if not stair:
-                continue
+        if p["REQUIRE_STAIR"] and not stair:
+            continue
 
-        # the step must be pushing the SESSION extreme (anti-rotation)
-        if p["SESSION_EXT_TOL"] >= 0:
+        # The step must be pushing the SESSION extreme (anti-rotation) — OR, with
+        # TREND_STEP_STAIR_OR_V1, be a VERIFIED staircase (lower low AND lower
+        # high vs the previous swing pair). Michael 13.08: "שוב יש מדרגה למעלה
+        # שהמערכת לא זיהתה". The session-extreme test alone caught 12 of the 27
+        # staircases on the archive: a second and third step of a real staircase
+        # sits BEHIND the session extreme by construction, so the cleanest
+        # continuations were exactly the ones being dropped. The stair test is
+        # not a loosening — it is the same structure, proven independently.
+        if p["SESSION_EXT_TOL"] >= 0 and not (_stair_or_session() and stair):
             if direction == "SHORT":
                 sess = min(bars[j]["l"] for j in range(0, i + 1))
                 if ext_p > sess + p["SESSION_EXT_TOL"]:
@@ -202,14 +225,38 @@ def detect_trend_step(bars: List[Dict], i: Optional[int] = None,
                 if not (bars[i]["l"] >= prev["l"] and bars[i]["c"] >= prev["c"]):
                     continue
 
+        entry = bars[i]["c"]
+        buf = max(2 * TICK, p["STOP_BUF_FRAC"] * imp)
+        risk = (pause_ext + buf - entry) if direction == "SHORT" else (entry - (pause_ext - buf))
+        if risk <= 0:
+            continue
+        risk = min(max(risk, p["STOP_MIN"]), p["STOP_MAX"])
+        sign = -1.0 if direction == "SHORT" else 1.0
+        _q = lambda x: round(round(x * 4) / 4, 2)
+        stop = _q(entry - sign * risk)
+        tg = [_q(entry + sign * f * imp)
+              for f in (p["T1_FRAC"], p["T2_FRAC"], p["T3_FRAC"])]
+        for k in range(1, 3):                      # strictly increasing ladder
+            if sign * (tg[k] - tg[k - 1]) < 0.5:
+                tg[k] = _q(tg[k - 1] + sign * 0.5)
+
         return {
             "direction": direction,
-            "entry_price": bars[i]["c"],
+            "entry_price": entry,
+            "stop": stop,
+            "risk_pts": round(risk, 2),
+            "t1": tg[0], "t2": tg[1], "t3": tg[2],
             "impulse_pts": round(imp, 2),
             "pause_bars": pause_bars,
             "retracement": round(retr, 3),
             "step_extreme": ext_p,
             "pause_extreme": pause_ext,
+            # A staircase is ONE event, not one per bar. Without an identity the
+            # caller can only dedup on bar_ts, so the same step re-entered on
+            # every later bar it still qualified on — 4 entries on one staircase
+            # on 14.08, -$555. The origin + extreme of the impulse pin the step;
+            # its pause can grow without making it a different step.
+            "step_id": f"{direction}:{ext_p}:{bars[org_i].get('hhmm', org_i)}",
             "lsma_slope": round(slope, 3),
             "reason": (f"stair {direction}: impulse {imp:.1f}pt in {ext_i - org_i} bars, "
                        f"pause {pause_bars} bars, retrace {retr:.0%}, LSMA slope {slope:+.2f}"),
@@ -280,8 +327,13 @@ def build_setup() -> Optional[Dict]:
             "pattern": "TREND_STEP",
             "confidence": 0.75,
             "entry_price": d["entry_price"],
-            "stop": None,   # gateway step-scaled ladder (F3/H6) owns stop+targets
-            "t1": None, "t2": None, "t3": None,
+            # LEG-relative ladder, exactly as the §9 replay measured it. F3's
+            # session-median ladder must NOT overwrite this (see gateway
+            # arbitration): its ~7pt stop against a 2.5-3.0pt model turned a
+            # T1 R:R of ~1.5 into 0.32.
+            "stop": d["stop"],
+            "t1": d["t1"], "t2": d["t2"], "t3": d["t3"],
+            "stop_source": "TREND_STEP_LEG",
             "metadata": {
                 "pattern": "TREND_STEP",
                 "trend_step": True,
@@ -289,6 +341,11 @@ def build_setup() -> Optional[Dict]:
                 "pause_bars": d["pause_bars"],
                 "retracement": d["retracement"],
                 "reason": d["reason"],
+                "risk_pts": d.get("risk_pts"),
+                "stop_source": "TREND_STEP_LEG",
+                # stable identity of the staircase — the caller dedups on this
+                # so one step produces one entry, not one per surviving bar
+                "step_id": d.get("step_id"),
             },
         }
     except Exception as e:

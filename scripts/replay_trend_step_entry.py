@@ -68,6 +68,7 @@ SINCE, UNTIL = "2026-07-15", "2026-08-12"
 P = dict(
     ZZ_REV=5.0,           # pt — swing-reversal threshold that defines a "step"
     REQUIRE_STAIR=0,      # step must extend a staircase (lower low + lower high)
+    STAIR_OR_SESSION=0,   # 1 = a VERIFIED staircase substitutes for the session extreme
     SESSION_EXT_TOL=0.0,  # pt; step extreme must be within this of the session
                           # extreme (0 = the step MADE the session extreme).
                           # <0 disables the filter. This is the anti-rotation gate.
@@ -230,7 +231,7 @@ def detect_trend_step(bars: List[Dict], i: int, p: Dict[str, Any]) -> Optional[D
         # ── 1c. the step must be pushing the SESSION extreme, not rotating
         #        inside the range. This is the inverse of `extreme_chase_guard`:
         #        on a stair-step day, proximity to the session extreme IS the setup.
-        if p["SESSION_EXT_TOL"] >= 0:
+        if p["SESSION_EXT_TOL"] >= 0 and not (p.get("STAIR_OR_SESSION") and stair):
             if direction == "SHORT":
                 sess = min(bars[j]["l"] for j in range(0, i + 1))
                 if ext_p > sess + p["SESSION_EXT_TOL"]:

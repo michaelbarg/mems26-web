@@ -1943,7 +1943,10 @@ class FiveMinSystem(BaseV9TradingSystem):
                             sizing = "reject"
                         else:
                             _c = v2_sizing_result.contracts
-                            sizing = "full" if _c >= 3 else ("half" if _c >= 2 else ("reject" if _c == 0 else "half"))
+                            # same enum squeeze as S4 — see woodies_system.
+                            # _c == 1 used to ship 2 contracts.
+                            sizing = "reject" if _c == 0 else (
+                                "full" if _c >= 3 else "half")
                             logger.info("[FiveMin] V2 sizing: %s contracts=%d mode=%s risk=%.1fpt",
                                         family, _c, v2_sizing_result.mode, v2_sizing_result.risk_points)
                 except Exception as e:

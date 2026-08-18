@@ -744,8 +744,22 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 self._last_v2_sizing = None
                             else:
                                 _c = _v2s.contracts
-                                sizing = "full" if _c >= 3 else ("half" if _c >= 2 else ("reject" if _c == 0 else "half"))
+                                # 2026-08-18 (Michael: "עסקאות מערכת 4 היו על 2 שהיו צריכות להיות
+                                # מינימום על 3 או 4"). The size was being squeezed
+                                # through a three-value enum, and it lost twice:
+                                #   _c == 3 -> "full" -> ships 4  (over-sized)
+                                #   _c == 1 -> "half" -> ships 2  (SILENTLY DOUBLED —
+                                #     7 of 16 fires on 17.08, including live 693)
+                                # and 3 simply had no representation, which is why
+                                # "minimum 3" was not merely unused but impossible.
+                                # The numeric count now travels alongside the enum;
+                                # effective_contracts reads `contracts` before
+                                # `metadata.sizing`, so the number wins and the enum
+                                # stays only for the older readers.
+                                sizing = "reject" if _c == 0 else (
+                                    "full" if _c >= 3 else "half")
                                 self._last_v2_sizing = _v2s
+                                self._last_v2_contracts = int(_c)
                                 logger.info("[Woodies] V2 sizing: %s contracts=%d mode=%s risk=%.1fpt",
                                             signal, _c, _v2s.mode, _v2s.risk_points)
                     except Exception as _e:
@@ -1216,6 +1230,11 @@ class WoodiesSystem(BaseV9TradingSystem):
                     _gw_t1 = fire_setup["t1_price"] if fire_setup else (best.targets or [0])[0]
                     _gw_t2 = fire_setup.get("t2_price") if fire_setup else None
                     _gw_meta = {"pattern": best.pattern_id, "sizing": sizing}
+                    # the number, not the bucket — see the note at the V2 sizing
+                    # call site. `contracts` takes precedence downstream.
+                    _gw_n = getattr(self, "_last_v2_contracts", None)
+                    if _gw_n:
+                        _gw_meta["sizing_contracts"] = int(_gw_n)
                     # Item-11 Phase 3: pass risk-cap block reason to gateway
                     # so it surfaces as explicit blocked_by (no silent veto)
                     if _s4_risk_cap_block:

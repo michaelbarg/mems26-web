@@ -5,8 +5,8 @@
 | Mode | shadow |
 | Direction | LONG |
 | System | S1 |
-| Entry | 5245.0 @ 2026-08-18 06:31:31.136166 |
-| Exit | 5240.0 @ 2026-08-18 06:31:31.139138+00:00 |
+| Entry | 5245.0 @ 2026-08-18 07:38:52.468740 |
+| Exit | 5240.0 @ 2026-08-18 07:38:52.471536+00:00 |
 | Stop | 5240.0 |
 | PnL | $-100.0 (-1.0R) |
 | Exit Reason | STOP_HIT |
@@ -19,7 +19,7 @@
 ## Excursion
 - MAE: None pts
 - MFE: None pts
-- Range position: ?
+- Range position: -137.889
 
 ## S7 Score (computed, flag OFF)
 - Score: 30/100
@@ -27,6 +27,7 @@
   - base: 30
   - day_align: 0
   - leg: 0
+  - loc_pos: -137.89
   - location: 0
   - opening_conf: 0
   - cvd_directionality: 0.281
@@ -39,4 +40,4 @@
 **NORMAL_NOISE**: Acceptable loss — no structural issue detected
 
 ---
-*Generated: 2026-08-18T06:31:31.155066+00:00 | POST_MORTEM_V1*
+*Generated: 2026-08-18T07:38:52.528822+00:00 | POST_MORTEM_V1*

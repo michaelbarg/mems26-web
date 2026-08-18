@@ -1774,3 +1774,19 @@ flags:
     what: "Minimum R:R ratio that cannot be rescued by any spec multiplier or rotation relief (default 0.3). Gated by STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1"
     why: "Case #655: R:R 0.19 was rescued by RR_BREAKOUT_MM spec multiplier — this floor sits in the gateway AFTER the rescue and is un-bypassable"
     status: param
+
+  TREND_STEP_ENTRY_V1:
+    category: s4
+    group: TREND_STEP
+    what: "גלאי המשך-מדרגות קוזאלי — מייצר מועמד אחרי אימפולס 8-45pt, פאוזה 1-3 ברים, ריטרייס 20-55%, LSMA מסכים."
+    why: "פסיקת-מייקל 13.08 ('שוב יש מדרגה שהמערכת לא זיהתה'). מפיק מועמדים בלבד — כל שרשרת-השערים חלה."
+    status: live
+    ref: "scripts/replay_trend_step_entry.py §9; RULED_FLAGS 2026-08-14"
+
+  TREND_STEP_STAIR_OR_V1:
+    category: s4
+    group: TREND_STEP
+    what: "מדרגה-מאומתת (שפל+שיא נמוכים-יותר מזוג-הסוינג הקודם) מחליפה את הדרישה לקיצון-סשן."
+    why: "מדרגה שנייה/שלישית יושבת מאחורי קיצון-הסשן מעצם-הבנייה — 15 מ-27 גרמי-המדרגות נפלו על זה. רפליי: +$350.50, OOS +$115.75, 0 עסקאות אבדו."
+    status: live
+    ref: "RULED_FLAGS 2026-08-18; tests/v9/regression/test_trend_step_live_path.py"

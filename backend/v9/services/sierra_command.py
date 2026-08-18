@@ -633,7 +633,13 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
     override — the fixed count becomes a cap that can only REDUCE (min(fixed, cut)),
     never re-force back up to 3. See the inline comment for the ruling reference.
     """
-    _sz = setup.get("contracts") or setup.get("size") or (setup.get("metadata") or {}).get("sizing")
+    # the NUMBER before the bucket (2026-08-18) — the enum only knows
+    # full/half/reject, so a computed 3 arrived as "full" and a computed 1 as
+    # "half". Both sites that read sizing must prefer sizing_contracts, or the
+    # fix only half-applies and the two disagree about the same setup.
+    _sz = (setup.get("contracts") or setup.get("size")
+           or (setup.get("metadata") or {}).get("sizing_contracts")
+           or (setup.get("metadata") or {}).get("sizing"))
     try:
         _contracts = max(1, int(_sz))
     except (TypeError, ValueError):
@@ -683,6 +689,12 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
         _raw = setup.get("contracts")
         if _raw is None:
             _raw = setup.get("size")
+        if _raw is None:
+            # the NUMBER before the bucket (2026-08-18). The enum only knows
+            # full/half/reject, so a computed 3 arrived as "full" (-> 4) and a
+            # computed 1 arrived as "half" (-> 2, a silent doubling on 7 of 16
+            # fires on 17.08). Producers now ship sizing_contracts alongside.
+            _raw = (setup.get("metadata") or {}).get("sizing_contracts")
         if _raw is None:
             _raw = (setup.get("metadata") or {}).get("sizing")
         if _raw is None:

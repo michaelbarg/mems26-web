@@ -891,6 +891,20 @@ async def _startup():
                 _setup = _tsd.build_setup()
                 if not _setup:
                     return
+                # One entry per STAIRCASE (2026-08-18). Dedup on the bar alone
+                # only stops evaluating twice on the same bar; the same step
+                # still qualified on the next bar, and the next — 4 entries on
+                # one staircase on 14.08, -$555. The step identity is stable
+                # across the bars it survives.
+                _sid = (_setup.get("metadata") or {}).get("step_id")
+                if _sid and _sid in _ts_last_bar.setdefault("steps", set()):
+                    return
+                if _sid:
+                    _ts_last_bar["steps"].add(_sid)
+                    # keep the set from growing without bound across a session
+                    if len(_ts_last_bar["steps"]) > 200:
+                        _ts_last_bar["steps"].clear()
+                        _ts_last_bar["steps"].add(_sid)
                 _gw = getattr(app.state, "trading_gateway", None)
                 if _gw is None:
                     _logger.warning("[TrendStep] gateway not ready — candidate dropped")

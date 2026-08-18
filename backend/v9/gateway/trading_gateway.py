@@ -2397,6 +2397,10 @@ class TradingGateway:
             except Exception as _tz_err:
                 logger.warning("[Gateway] target zones errored (kept targets): %s", _tz_err)
 
+        # Setups that arrive with a stop from their OWN leg-relative model.
+        # F3 sizes from the session median and must not overwrite these.
+        _STEP_NATIVE_STOP_SOURCES = ("TREND_STEP_LEG",)
+
         # F3 (STEP_SCALED_LADDER_V1, default OFF): scale stop+targets to the
         # session's median step size. Three analyses converged: LEG_EXEMPTION_REPLAY
         # §R2, TREND_STEP_ENTRY §9, SYSTEM4_AUDIT D4. Problem: detector stop →
@@ -2427,16 +2431,46 @@ class TradingGateway:
                         min_rr=self._effective_rr_min(),
                     )
                     if _ssl is not None:
-                        setup["stop"] = _ssl["stop"]
-                        setup["t1"] = _ssl["t1"]
-                        setup["t2"] = _ssl["t2"]
-                        setup["t3"] = _ssl["t3"]
-                        result["step_ladder"] = _ssl
-                        logger.info(
-                            "[Gateway] F3 STEP_SCALED_LADDER: %s median=%.2f → "
-                            "stop=%.2f t1=%.2f t2=%.2f t3=%.2f",
-                            direction, _ssl["median_step"],
-                            _ssl["stop"], _ssl["t1"], _ssl["t2"], _ssl["t3"])
+                        # T-07 ARBITRATION (2026-08-18). Two writers size the same
+                        # stop and the loser left no trace: StopResolver ran first,
+                        # F3 overwrote it, and nothing said so — 0 of 15 stops on
+                        # 17.08 were the resolver's. Every override is now named,
+                        # with both numbers, so "who set the stop" is answerable
+                        # from the log instead of from re-reading the code.
+                        _prev_stop = setup.get("stop")
+                        _src = setup.get("stop_source") or "StopResolver"
+                        # A setup that arrives with its OWN leg-relative model
+                        # keeps it. TREND_STEP's edge was measured on a
+                        # pause-relative 2.5-3.0pt stop; F3's session-median gave
+                        # ~7.0pt, so T1 R:R was 0.32 and the replayed +$2,801
+                        # was unreachable by construction. F3 exists for setups
+                        # that arrive WITHOUT a stop (its original case).
+                        if _src in _STEP_NATIVE_STOP_SOURCES and _prev_stop is not None:
+                            logger.warning(
+                                "[Gateway] STOP ARBITRATION: %s KEPT stop=%.2f "
+                                "(F3 would have set %.2f, median=%.2f) — "
+                                "%s owns its ladder",
+                                _src, float(_prev_stop), _ssl["stop"],
+                                _ssl["median_step"], _src)
+                            result["step_ladder_skipped"] = {
+                                "reason": "native_ladder", "source": _src,
+                                "f3_stop": _ssl["stop"]}
+                        else:
+                            setup["stop"] = _ssl["stop"]
+                            setup["t1"] = _ssl["t1"]
+                            setup["t2"] = _ssl["t2"]
+                            setup["t3"] = _ssl["t3"]
+                            setup["stop_source"] = "STEP_SCALED_LADDER"
+                            result["step_ladder"] = _ssl
+                            logger.warning(
+                                "[Gateway] STOP ARBITRATION: STEP_SCALED_LADDER "
+                                "OVERRODE %s (%s → %.2f) median=%.2f "
+                                "t1=%.2f t2=%.2f t3=%.2f",
+                                _src,
+                                ("None" if _prev_stop is None
+                                 else "%.2f" % float(_prev_stop)),
+                                _ssl["stop"], _ssl["median_step"],
+                                _ssl["t1"], _ssl["t2"], _ssl["t3"])
             except Exception as _ssl_err:
                 logger.warning("[Gateway] step-scaled-ladder errored (fail-open): %s", _ssl_err)
 
