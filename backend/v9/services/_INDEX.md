@@ -44,16 +44,16 @@
 | `history_loader.py` | ✅ 2 | 525 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
 | `kill_switch.py` | ✅ 2 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `local_alert.py` | ✅ 1 | 117 | 2026-08-17 | local_alert — LOUD local alerts on the trading Mac (Michael 2026-07-27, after |
-| `margin_sizing.py` | ✅ 1 | 161 | 2026-07-28 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |
+| `margin_sizing.py` | ✅ 1 | 161 | 2026-08-18 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |
 | `market_clock.py` | ✅ 20 | 251 | 2026-05-16 | Market Clock — centralized time service with DST + 2026 NYSE holidays (D-068). |
 | `market_context.py` | ✅ 5 | 229 | 2026-08-03 | System 0 — Market Context unifier (Michael 2026-07-24, cowork 07-29). |
 | `news_blackout.py` | ✅ 3 | 131 | 2026-07-13 | news_blackout — IDEA-1: NO_TRADE window around red economic events (Michael 07-13). |
 | `ntfy_notify.py` | ✅ 5 | 197 | 2026-08-13 | Push notifications via ntfy.sh for trading events (P1.6 + K7a). |
 | `phone_alert.py` | ✅ 8 | 112 | 2026-08-17 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 1 | 248 | 2026-07-27 | Item-20 — Sierra truth reconcile + naked-stop detector. |
-| `sierra_command.py` | ✅ 21 | 905 | 2026-08-18 | Sierra command file writer for DEMO/LIVE execution paths. |
+| `sierra_command.py` | ✅ 22 | 905 | 2026-08-18 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `sierra_ledger.py` | ✅ 2 | 311 | 2026-07-08 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
-| `sierra_position_reconciler.py` | ✅ 9 | 1067 | 2026-08-17 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
+| `sierra_position_reconciler.py` | ✅ 9 | 1067 | 2026-08-18 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |
 | `trade_context.py` | ✅ 17 | 1021 | 2026-08-16 | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
 | `trade_excursion.py` | ✅ 4 | 160 | 2026-05-23 | Trade price excursion from v9_bars_5min (Hi/Lo during trade, MFE/MAE, T1 proximity). |
