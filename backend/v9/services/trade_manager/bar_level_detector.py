@@ -1211,6 +1211,20 @@ class BarLevelDetector:
         }
         _mode = getattr(trade, "mode", "live")
         child_id = self._tm.accept_setup(child, _mode)
+        # Write the link back onto the PARENT too (2026-08-18). Until now only
+        # the child knew who its parent was, so anything looking at the parent —
+        # the trade card, a post-mortem — could not tell that the position had
+        # grown. Also clears `scale_in_child_pending`, which was set and never
+        # cleared.
+        try:
+            _q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+            _q["scale_in_child_id"] = child_id
+            _q["scale_in_added"] = dec.add_contracts
+            _q.pop("scale_in_child_pending", None)
+            trade.quality = _q
+            self._tm._db.commit()
+        except Exception:
+            pass
         from backend.v9.services.sierra_command import command_from_setup
         command_from_setup(
             child, trade_id=str(child_id),

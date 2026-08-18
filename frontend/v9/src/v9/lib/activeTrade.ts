@@ -49,6 +49,18 @@ export interface ActiveTrade {
   total_pnl: number;
   total_r: number;
   summary: string; // "N/3 hit"
+  /** Contracts actually in the market = this trade's legs + any scale-in child.
+   *  `contracts` above is only this trade's own legs, so on a reinforced
+   *  position the two differ — that difference is what Michael was missing
+   *  on 17.08 (trades.py). */
+  position_contracts?: number;
+  /** Present while a reinforcement is open. `added` is the child's size. */
+  scale_in?: {
+    child_id: number;
+    added: number;
+    at: string | null;
+    child_entry?: number | null;
+  } | null;
   // extract_trade_display spread (trades.py:292)
   pattern_id?: string | null;
   trigger?: string | null;

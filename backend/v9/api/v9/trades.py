@@ -295,6 +295,36 @@ def exit_trade(
 
 
 @router.get("/active")
+
+def _contracts_of(trade) -> int:
+    """This trade's contract count, from the one resolver."""
+    try:
+        from backend.v9.services.trade_manager.manager import trade_contract_count
+        return int(trade_contract_count(trade))
+    except Exception:
+        return 0
+
+
+def _find_scale_in_child(db, parent_id: int, active_states):
+    """A still-open reinforcement whose parent is `parent_id`.
+
+    The link is written into the child's quality.metadata by the scale-in
+    call site; the parent is only marked `scaled_in`, so the child is the
+    side that carries the pointer.
+    """
+    try:
+        from backend.v9.db.models.trades import V9Trade as _T
+        for c in (db.query(_T)
+                  .filter(_T.state.in_(active_states), _T.id > parent_id)
+                  .order_by(_T.entry_ts.desc()).limit(10).all()):
+            q = c.quality if isinstance(c.quality, dict) else {}
+            m = q.get("metadata") if isinstance(q.get("metadata"), dict) else {}
+            if int(m.get("scale_in_parent") or q.get("scale_in_parent") or 0) == int(parent_id):
+                return c
+    except Exception:
+        pass
+    return None
+
 def get_active_trade(db: Session = Depends(get_db)):
     """Return the current active trade with C1/C2/C3 contract details.
 
@@ -319,6 +349,41 @@ def get_active_trade(db: Session = Depends(get_db)):
             break
     if not trade:
         return None
+
+    # SCALE-IN (Michael 2026-08-18: "בפרונט אנד זה לא סומן הגדלת חוזים").
+    # The reinforcement DID fire on 17.08 — [ScaleIn] 22:32:05 parent=699
+    # child=708 +2c. What he saw was not a missing badge: `entry_ts.desc()`
+    # picked the CHILD, so the winning parent vanished from the card and was
+    # replaced by a new smaller trade — entry moved 7776.25 -> 7769.75,
+    # "1/2 hit" became "0/2 hit", P&L went to $0. The trade looked lost.
+    # A reinforcement is an addition to the SAME position, so the card must
+    # keep showing the parent and say the position grew.
+    _scale_in = None
+    _meta = trade.quality if isinstance(trade.quality, dict) else {}
+    _parent_id = (_meta.get("metadata") or {}).get("scale_in_parent") \
+        if isinstance(_meta.get("metadata"), dict) else None
+    _parent_id = _parent_id or _meta.get("scale_in_parent")
+    if _parent_id:
+        _parent = (
+            db.query(V9Trade)
+            .filter(V9Trade.id == int(_parent_id),
+                    V9Trade.state.in_(_active_states))
+            .first()
+        )
+        if _parent is not None:
+            _scale_in = {"child_id": trade.id,
+                         "added": _contracts_of(trade),
+                         "at": trade.entry_ts.isoformat() if trade.entry_ts else None,
+                         "child_entry": trade.entry_price}
+            trade = _parent          # the card shows the position, not the add-on
+    else:
+        # parent side: find a still-open child pointing back at us
+        _child = _find_scale_in_child(db, trade.id, _active_states)
+        if _child is not None:
+            _scale_in = {"child_id": _child.id,
+                         "added": _contracts_of(_child),
+                         "at": _child.entry_ts.isoformat() if _child.entry_ts else None,
+                         "child_entry": _child.entry_price}
 
     entry = trade.entry_price or 0
     stop = trade.stop or 0
@@ -377,6 +442,14 @@ def get_active_trade(db: Session = Depends(get_db)):
         "total_pnl": round(total_pnl, 2),
         "total_r": round(total_r, 2),
         "summary": f"{hits}/{n_contracts} hit",
+        # The size actually in the market, parent + reinforcement. `contracts`
+        # above is this trade's own legs; when a scale-in child is open the
+        # POSITION is bigger, and that is the number Michael is watching.
+        # Counted from the same place the scale-in ceiling counts it, so the
+        # screen and the guard can never disagree.
+        "position_contracts": (_contracts_of(trade)
+                               + int((_scale_in or {}).get("added") or 0)),
+        "scale_in": _scale_in,
         **display,
         **systems_panel,
     }

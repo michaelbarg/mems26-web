@@ -115,6 +115,34 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
           <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textPrimary, fontFamily: 'ui-monospace' }}>
             {trade.entry_price.toFixed(2)}
           </span>
+          {/* Size actually in the market. Shown always, because "how many
+              contracts am I holding" was not on this card at all — and when a
+              reinforcement fired on 17.08 the card silently swapped to the
+              child instead of showing the position grow. */}
+          {trade.position_contracts != null && (
+            <span
+              style={{
+                fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 2,
+                color: COLORS.textPrimary, background: 'rgba(255,255,255,0.10)',
+                fontFamily: 'ui-monospace',
+              }}
+              title="חוזים בפוזיציה בפועל (כולל חיזוק)"
+            >
+              {trade.position_contracts}c
+            </span>
+          )}
+          {trade.scale_in && (
+            <span
+              style={{
+                fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 2,
+                color: COLORS.bull, background: 'rgba(38,166,154,0.18)',
+                fontFamily: 'ui-monospace',
+              }}
+              title={`חיזוק: +${trade.scale_in.added} חוזים (עסקה ${trade.scale_in.child_id})`}
+            >
+              ⬆ +{trade.scale_in.added}c
+            </span>
+          )}
           {elapsed && (
             <span
               style={{
