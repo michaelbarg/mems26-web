@@ -4,40 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-17 03:06 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-18 01:12 ET
 events:
-  - date: 2026-08-17
-    time_et: "08:30"
-    name: "NY Empire State Manufacturing Index"
-    severity: orange
-  - date: 2026-08-17
-    time_et: "10:00"
-    name: "NAHB Housing Market Index"
-    severity: orange
-  - date: 2026-08-17
-    time_et: "11:30"
-    name: "6-Month Bill Auction"
-    severity: yellow
-  - date: 2026-08-17
-    time_et: "11:30"
-    name: "3-Month Bill Auction"
-    severity: yellow
-  - date: 2026-08-17
-    time_et: "12:00"
-    name: "NOPA Crush Report"
-    severity: yellow
-  - date: 2026-08-17
-    time_et: "16:00"
-    name: "Overall Net Capital Flows"
-    severity: yellow
-  - date: 2026-08-17
-    time_et: "16:00"
-    name: "Net Long-term TIC Flows"
-    severity: orange
-  - date: 2026-08-17
-    time_et: "16:00"
-    name: "Foreign Bond Investment"
-    severity: yellow
   - date: 2026-08-18
     time_et: "08:15"
     name: "ADP Employment Change Weekly"
@@ -273,4 +241,16 @@ events:
   - date: 2026-08-21
     time_et: "13:00"
     name: "Baker Hughes Oil Rig Count"
+    severity: yellow
+  - date: 2026-08-24
+    time_et: "08:30"
+    name: "Chicago Fed National Activity Index"
+    severity: orange
+  - date: 2026-08-24
+    time_et: "11:30"
+    name: "6-Month Bill Auction"
+    severity: yellow
+  - date: 2026-08-24
+    time_et: "11:30"
+    name: "3-Month Bill Auction"
     severity: yellow
