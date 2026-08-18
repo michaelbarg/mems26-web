@@ -119,7 +119,13 @@ def _pushover(title: str, message: str, priority: str, tags: str) -> None:
     if not (user and token):
         return
     prio = {"urgent": "1", "high": "1", "default": "0", "low": "-1"}.get(priority, "0")
+    # A priority-1 Pushover message bypasses the user's quiet hours and is
+    # delivered with a sound; without an explicit sound the app can still fall
+    # back to a silent default, and a silent notification does not reach the
+    # Apple Watch when the phone is in hand.
+    _sound = "persistent" if prio == "1" else "pushover"
     cmd = ["/usr/bin/curl", "-s", "-m", "6",
+           "--form-string", f"sound={_sound}",
            "--form-string", f"token={token}",
            "--form-string", f"user={user}",
            "--form-string", f"title={title}",
@@ -160,7 +166,12 @@ def on_fire(trade_id: int, direction: str, pattern: str, mode: str,
     notify(
         f"{emoji} {direction} #{trade_id}",
         f"{pattern} @ {entry_price} ({mode})",
-        priority="high" if mode == "live" else "default",
+        # ALWAYS urgent for a live fire (2026-08-18). Michael: "I only want to
+        # know if there was a fire and if a trade closed." A Pushover priority
+        # of 0 is delivered quietly and respects quiet hours, so those arrived
+        # without a sound and never reached the watch — which is why he saw one
+        # notification out of several. A shadow fire stays quiet on purpose.
+        priority="urgent" if mode == "live" else "low",
         tags="fire," + mode,
     )
 
@@ -172,7 +183,11 @@ def on_fill(trade_id: int, kind: str, price: float) -> None:
     notify(
         f"{emoji} {kind} #{trade_id}",
         f"Fill @ {price}",
-        priority="high" if kind in ("T3", "STOP") else "default",
+        # Quiet (2026-08-18). Michael asked for two things only: a fire and a
+        # close. Five fill notifications per trade competing with them is how
+        # the two that matter get lost in the pile — and a STOP fill produces an
+        # on_close of its own anyway, so nothing is hidden by silencing these.
+        priority="low",
         tags="fill," + kind.lower(),
     )
 
@@ -183,7 +198,9 @@ def on_close(trade_id: int, outcome: str, pnl: float, reason: str) -> None:
     notify(
         f"{emoji} #{trade_id} {outcome}",
         f"${pnl:+.2f} — {reason}",
-        priority="high" if abs(pnl) > 50 else "default",
+        # every close, not only the ones over $50 — the size of the number is
+        # not what makes it worth telling him.
+        priority="urgent",
         tags="close," + outcome.lower(),
     )
 

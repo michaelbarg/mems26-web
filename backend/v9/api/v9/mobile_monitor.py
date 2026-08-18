@@ -175,7 +175,14 @@ async def mobile_data(request: Request):
                     _cdist = round((_tv - mid) if _is_long else (mid - _tv), 2)
                     _total = abs(_tv - _entry)
                     if _total > 0:
-                        _cpct = min(round(abs(mid - _entry) / _total * 100, 0), 100)
+                        # SIGNED (2026-08-18). This was abs(mid - entry), which
+                        # is positive no matter which way price went — a LONG
+                        # five points UNDERWATER displayed as "+40% toward the
+                        # target". The number has to tell Michael which side of
+                        # entry he is on, so it is the progress in the trade's
+                        # own direction and it goes negative when he is losing.
+                        _prog = _mul * (mid - _entry) / _total * 100.0
+                        _cpct = max(min(round(_prog, 0), 100), -100)
                 _contracts.append({
                     "id": _cid, "target": _tv, "status": _status,
                     "pnl": _cpnl, "r": _cr,
@@ -188,16 +195,21 @@ async def mobile_data(request: Request):
             r["hits"] = sum(1 for c in _contracts if c["status"] == "HIT_TARGET")
             r["summary"] = f"{r['hits']}/{len(_contracts)} hit"
 
-            # P1.5: per-target progress bars (kept for backwards compat)
+            # P1.5: per-target progress bars (kept for backwards compat).
+            # t0 included and the percentage SIGNED — same fix as the per-leg
+            # number above: abs() made a losing trade look like it was making
+            # progress toward its target.
             if mid and r.get("entry_price"):
                 entry = float(r["entry_price"])
                 r["progress"] = {}
-                for tgt in ("t1", "t2", "t3"):
+                for tgt in ("t0", "t1", "t2", "t3"):
                     tv = r.get(tgt)
                     if tv and float(tv) != 0:
                         total = abs(float(tv) - entry)
-                        current = abs(mid - entry) if total > 0 else 0
-                        pct = min(round(current / total * 100, 0), 100) if total > 0 else 0
+                        if total <= 0:
+                            continue
+                        pct = max(min(round(_mul * (mid - entry) / total * 100, 0),
+                                      100), -100)
                         r["progress"][tgt] = {"target": float(tv), "pct": pct}
 
             acts.append(r)

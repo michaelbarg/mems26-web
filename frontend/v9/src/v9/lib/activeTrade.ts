@@ -106,7 +106,11 @@ export function progressPct(target: number, entry: number, price: number, isLong
   const span = (target - entry) * mul;
   if (!(span > 0)) return null;
   const done = (price - entry) * mul;
-  return Math.max(0, Math.min(100, (done / span) * 100));
+  // SIGNED (2026-08-18). The floor used to be 0, so a trade going against you
+  // read "0%" — indistinguishable from a trade that had not moved at all. The
+  // percentage now goes negative, because where the price actually is relative
+  // to entry is the thing worth showing.
+  return Math.max(-100, Math.min(100, (done / span) * 100));
 }
 
 /** Stop parked at entry (Break-Even). Backend convention: |stop − entry| < 0.5
