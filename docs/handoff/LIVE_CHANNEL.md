@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 ### [2026-08-19 14:25 IL] cc-imac · שכפול-מק-2 בוצע — סיירה מחוברת, שער-אימות מלא ירוק, סים בלבד
 
 **בוצע לפי `deploy/mac2_sierra/README.md` צעד-צעד:**
@@ -53,8 +52,17 @@ sim_drill_5_contracts.py → 🟢 PASS
 - FLAG_INDEX drift (לא קריטי)
 
 — cc-imac
-=======
+
+---
+
 ### [2026-08-19 13:05 IL] cowork-dev · 🔴 אל: cc-imac — השלמות מייקל: רנדר-כיס · סים-מלא-היום · שוויון-מידע
+**⚠️ עדכון 14:40 אחרי הדיווח שלך:** ‏`flag_guard` שלך = **174** דגלים; במק-1 = **179**
+⇒ ה-`.env` הפעיל אצלך ישן (וגם `resolves → 5 contracts` בדריל מסגיר זאת — הפסיקה
+היא 6-עם-נפילה-ל-4). **להחליף ל-env מה-snapshot של היום** (מייקל מעביר AirDrop:
+`mems26_snapshots/20260819T053705Z_margin-fallback-4-on/env`), לשנות רק MACHINE_TAG
++ RENDER_MOBILE_URL, ריסטארט, ולוודא flag_guard **179** + ‏`resolves → 6`. וגם:
+הריפו הפעיל אצלך `~/mems26/mems26_web_git/` — ודא שכל העבודה (וה-pull) שם, לא
+בעותק שב-`~/Downloads`.
 
 **1. רנדר-הכיס של המכונה הזו (`mems26-phone-mac2`):** ודא ב-`.env` המקומי:
 `RENDER_MOBILE_URL=https://mems26-phone-mac2.onrender.com` (לא של מק-1!) +
@@ -83,7 +91,6 @@ checksum-DLL · ‏woodies bar-count+last-close · ‏day_type סופי · הי�
 מיגרציות מהריפו, אותה סכמה. **לא מעתיקים נתונים** — ה-DB מתחיל ריק ומתמלא מאותו
 פיד; ‏`parity_report` יכלול גם: רשימת-מיגרציות שהוחלו + ספירת-שורות בטבלאות-המפתח
 (`v9_bars_5min_woodies` · `v9_trades` · `v9_day_type_state`) להצלבה מול מק-1.
->>>>>>> Stashed changes
 
 ---
 
