@@ -1617,18 +1617,32 @@ class TradeManager:
         contract_exits: List[float] = []
 
         if trade.state == TradeState.PARTIAL.value and not trade.exit_reason:
+            # T-06 (2026-08-19, for Michael's 6-contract ladder 1/2/2/1): a
+            # banked level exits LADDER-qty contracts, not one. Counting each
+            # hit level once under-booked every multi-contract group (at six,
+            # a T0+T1 partial is THREE contracts out, not two). Weights come
+            # from the same table the DLL brackets with; n<=4 weights are all
+            # 1, so the old behavior is preserved exactly. The loop also
+            # covers the t3 level — at five/six a partial can have banked it
+            # while the runner still works.
+            from backend.v9.services.contract_size import ladder_for
+            weights = ladder_for(n_contracts)
             total_pnl = 0.0
-            hits = 0
-            for target, hit_ts in ((t1, trade.t1_hit_ts), (t2, trade.t2_hit_ts)):
+            exited = 0
+            for g_idx, (target, hit_ts) in enumerate(
+                    ((t1, trade.t1_hit_ts), (t2, trade.t2_hit_ts),
+                     (t3, trade.t3_hit_ts))):
                 if hit_ts is not None and target is not None:
-                    total_pnl += (target - trade.entry_price) * direction_mult * MES_POINT_VALUE
-                    hits += 1
+                    qty = weights[g_idx] if g_idx < len(weights) else 1
+                    total_pnl += ((target - trade.entry_price) * direction_mult
+                                  * MES_POINT_VALUE * qty)
+                    exited += qty
             trade.pnl_usd = round(total_pnl, 2)
             risk_stop = self._initial_stop(trade)
-            if risk_stop is not None and hits > 0:
+            if risk_stop is not None and exited > 0:
                 risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
                 if risk_per_contract > 0:
-                    trade.pnl_r = round(total_pnl / (hits * risk_per_contract), 2)
+                    trade.pnl_r = round(total_pnl / (exited * risk_per_contract), 2)
             return
 
         # T3 ROOT-FIX (2026-08-15): these branches always built exactly THREE
@@ -1644,10 +1658,17 @@ class TradeManager:
                  getattr(trade, "t4_hit_ts", None)]
 
         def _legs(fallback: float) -> List[float]:
+            # T-06 (2026-08-19): contract i books the target of its LADDER
+            # GROUP, not "target i". Under the ruled 1/2/2/1 six-ladder,
+            # contracts 4-5 (0-based) belong to groups 2-3 — the old direct
+            # indexing ran off _targets and silently booked them at the fill.
+            # For n<=4 the ladder is 1/1/1/1 and g == i: byte-identical.
+            from backend.v9.services.contract_size import target_index_for_contract
             out: List[float] = []
             for i in range(n_contracts):
-                tgt = _targets[i] if i < len(_targets) else None
-                hit = _hits[i] if i < len(_hits) else None
+                g = target_index_for_contract(i, n_contracts)
+                tgt = _targets[g] if g < len(_targets) else None
+                hit = _hits[g] if g < len(_hits) else None
                 out.append(tgt if (hit is not None and tgt is not None) else fallback)
             return out
 

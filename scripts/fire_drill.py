@@ -116,7 +116,19 @@ def stage_c():
     # Under SIZE_CAP_OVER_FIXED_V1=1 an explicit "1" is read as a size-CUT → min(fixed,1)=1
     # → false NO-GO. A real fire sends a size string; "full" → the ruled count.
     n = effective_contracts({"size": "full"})
-    check(f"effective_contracts == {_want} (לפי דגלי הפסיקה)", n == _want, f"got {n}")
+    # Michael 2026-08-19: "אם אין מספיק מרגין לסחור על 4 לא לשאול לבצע" — when
+    # the LIVE account cannot carry the ruled size, the resolver falls back to
+    # MARGIN_FALLBACK_CONTRACTS by ruling. That is correct behavior, not a
+    # broken chain; the drill must not NO-GO a system that is following the
+    # ruling. Accept either, and SAY which one is in effect right now.
+    try:
+        from backend.v9.services.margin_sizing import MARGIN_FALLBACK_CONTRACTS, enabled as _ms_on
+        _accept = {_want} | ({MARGIN_FALLBACK_CONTRACTS} if _ms_on() else set())
+    except Exception:
+        _accept = {_want}
+    _label = (f"effective_contracts == {_want} (לפי דגלי הפסיקה)" if n == _want
+              else f"effective_contracts == {n} (נפילת-מרג'ין מהפסיקה 08-19; הפסוק {_want})")
+    check(_label, n in _accept, f"got {n}")
     atr, _ = _atr_ticks_today()
     tol = 0.10 * atr * 0.25
     ok, why = entry_confirmed(direction="SHORT", bars=[{"o": 7500.0, "c": 7500.0 + tol * 0.7}],

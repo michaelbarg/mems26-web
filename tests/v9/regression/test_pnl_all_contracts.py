@@ -120,3 +120,54 @@ class TestPartialTargetWinnersBookEveryLeg:
         pnl = _call(tm, t)
         # c1@T1 (+4=$20), c2 and c3 at the 7502 fill (+2=$10 each) = $40
         assert pnl == pytest.approx(40.0), pnl
+
+
+class TestSixContractLadderMapping:
+    """T-06 (Michael's 08-16 ladder, live 08-19): under 1/2/2/1 a contract
+    books the target of its GROUP. Direct 'contract i takes target i' indexing
+    runs off the 4-slot target list at five/six contracts and silently books
+    the extra contracts at the fill.
+    """
+
+    def test_six_contract_full_winner_books_by_group(self, tm):
+        """SHORT 6 @7800, every level banked: 1×(+4) + 2×(+8) + 2×(+12) + 1×(+16)
+        = 60pt × $5 = $300. Naive indexing books $360 (runners at the fill)."""
+        t = _trade(contracts=6, t1_hit=1, t2_hit=1, t3_hit=1, t4_hit=1,
+                   exit_reason="MANUAL", exit_price=7784.0)
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx(300.0), (
+            f"got {pnl}: group booking is 1@t1+2@t2+2@t3+1@t4 = $300")
+
+    def test_six_contract_t1_banked_rest_stopped(self, tm):
+        """Only the t1 level (group of 1) banked; 5 contracts stop at 7805.
+        1×(+4pt) + 5×(−5pt) = −21pt × $5 = −$105."""
+        t = _trade(contracts=6, t1_hit=1, exit_reason="STOP_HIT",
+                   exit_price=7805.0)
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx(-105.0), pnl
+
+    def test_six_contract_partial_weights_groups(self, tm):
+        """PARTIAL with t1+t2 banked = THREE contracts out (1+2), not two:
+        (+4) + 2×(+8) = 20pt × $5 = $100. Unweighted counting gives $60."""
+        t = _trade(contracts=6, t1_hit=1, t2_hit=1,
+                   exit_reason=None, exit_price=None)
+        t.state = "PARTIAL"
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx(100.0), (
+            f"got {pnl}: a banked level exits ladder-qty contracts")
+
+    def test_five_contract_ladder_1_2_1_1(self, tm):
+        """SHORT 5 @7800 full winner under (1,2,1,1):
+        1×4 + 2×8 + 1×12 + 1×16 = 48pt × $5 = $240."""
+        t = _trade(contracts=5, t1_hit=1, t2_hit=1, t3_hit=1, t4_hit=1,
+                   exit_reason="MANUAL", exit_price=7784.0)
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx(240.0), pnl
+
+    def test_four_contract_mapping_unchanged(self, tm):
+        """n<=4 is 1/1/1/1 — group index == contract index, byte-identical to
+        the pre-T-06 behavior."""
+        t = _trade(contracts=4, t1_hit=1, t2_hit=1, t3_hit=1, t4_hit=1,
+                   exit_reason="MANUAL", exit_price=7784.0)
+        pnl = _call(tm, t)
+        assert pnl == pytest.approx((4 + 8 + 12 + 16) * 5.0), pnl

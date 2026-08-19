@@ -70,29 +70,61 @@ def _read_state() -> Optional[dict]:
         return None
 
 
-def margin_per_contract(state: dict) -> Optional[float]:
-    """Margin for ONE contract, derived from what the account currently holds.
+#: The size Michael ruled as the margin fallback (2026-08-19): "אם אין מספיק
+#: מרגין לסחור על 4 לא לשאול לבצע". Not "max affordable" — FOUR. 18.08 proved
+#: why 5 is skipped: a 5-lot needed $1,931.00 against $1,925.xx available and
+#: was rejected over ~$6. The fallback must leave headroom, not shave it.
+MARGIN_FALLBACK_CONTRACTS = 4
 
-    Uses the live requirement divided by the live position — the broker's own
-    arithmetic — rather than a hard-coded number that drifts with volatility.
-    With no open position there is nothing to divide, so fall back to
-    MES_MARGIN_PER_CONTRACT if the operator has set one, else None."""
+
+def margin_per_contract(state: dict) -> Optional[float]:
+    """Margin for ONE contract — the broker's own arithmetic where possible.
+
+    Two honest sources, combined conservatively with max():
+    - live: acct_margin_req / position_qty when a position is held. This is a
+      MAINTENANCE figure and under-states what OPENING a new contract costs
+      (live 08-19: $275.33/ct held vs $386.20/ct demanded at order entry 18.08).
+    - MES_MARGIN_PER_CONTRACT env: the operator-recorded OPENING requirement
+      from an actual broker rejection.
+    Taking the max means we are never fooled by the cheaper maintenance number
+    into sending an order the broker will reject. Neither available → None
+    (no guess, Rule 1)."""
+    live = None
     try:
         qty = abs(int(state.get("position_qty") or 0))
         req = float(state.get("acct_margin_req") or 0.0)
         if qty > 0 and req > 0:
-            return req / qty
+            live = req / qty
     except (TypeError, ValueError):
         pass
+    conf = None
     try:
         v = float(os.getenv("MES_MARGIN_PER_CONTRACT", "0"))
-        return v if v > 0 else None
+        conf = v if v > 0 else None
     except (TypeError, ValueError):
-        return None
+        pass
+    if live is not None and conf is not None:
+        return max(live, conf)
+    return live if live is not None else conf
 
 
 def cap_contracts(requested: int) -> Tuple[int, str]:
-    """Return (allowed, reason). Never raises, never increases `requested`."""
+    """Return (allowed, reason). Never raises, never increases `requested`.
+
+    Semantics per Michael's 2026-08-19 ruling (supersedes the 08-13 "1:1"
+    no-cut ruling, which itself anticipated exactly this: 'אם יחזרו דחיות-מרג'ין
+    אמיתיות — לחזור למייקל עם הנתון' — they returned on 18.08, the number was
+    reported, and he ruled): if the account cannot carry the ruled size, trade
+    **4** — not the max affordable, not 5, and never ask mid-session.
+
+    - affordable(requested)          → requested  (6 stays 6)
+    - not affordable, requested > 4  → 4          (the ruling; 5 is skipped)
+    - requested <= 4                 → unchanged  (08-13 "1:1" still governs
+      below the fallback: no silent shrink to 3/2/1/0. If even 4 cannot clear
+      margin the broker rejects it — same net outcome as any smaller guess,
+      without inventing a size Michael never ruled.)
+    - account data missing/stale     → unchanged  (no guess, Rule 1)
+    """
     if requested <= 0:
         return requested, "no size requested"
     if not enabled():
@@ -118,17 +150,16 @@ def cap_contracts(requested: int) -> Tuple[int, str]:
         buf = 50.0
 
     usable = avail - buf
-    if usable <= 0:
-        return 0, (f"no margin: available ${avail:.2f} minus ${buf:.0f} buffer "
-                   f"cannot carry one contract (${per:.2f})")
-
-    allowed = int(usable // per)
-    if allowed >= requested:
+    if usable >= requested * per:
         return requested, f"margin ok (${usable:.2f} covers {requested}×${per:.2f})"
-    if allowed <= 0:
-        return 0, (f"no margin: ${usable:.2f} usable, ${per:.2f} needed per contract")
-    return allowed, (f"reduced {requested}→{allowed}: ${usable:.2f} usable "
-                     f"at ${per:.2f} per contract")
+    if requested > MARGIN_FALLBACK_CONTRACTS:
+        return MARGIN_FALLBACK_CONTRACTS, (
+            f"MARGIN FALLBACK {requested}→{MARGIN_FALLBACK_CONTRACTS} (Michael "
+            f"2026-08-19): ${usable:.2f} usable cannot carry "
+            f"{requested}×${per:.2f}")
+    return requested, (f"below-fallback size kept 1:1 (Michael 2026-08-13): "
+                       f"${usable:.2f} usable vs {requested}×${per:.2f} — "
+                       f"broker adjudicates")
 
 # Never send more contracts than the deployed study can PROTECT.
 #
