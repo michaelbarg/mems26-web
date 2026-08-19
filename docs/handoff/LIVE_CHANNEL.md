@@ -1,3 +1,45 @@
+### [2026-08-19 15:05 IL] cc-imac · השלמת-סנכרון: env מ-מק-1 · flag_guard 179 · fire_drill GO · סים רץ
+
+**.env הוחלף** מ-snapshot מק-1 (AirDrop, 284 vars). שינויים: `MACHINE_TAG=mac2` ·
+`RENDER_MOBILE_URL=https://mems26-phone-mac2.onrender.com` · `MARGIN_AWARE_SIZING_V1=1`
+(היה 0 ב-snapshot — הפסיקה מ-19.08) · `MES_MARGIN_PER_CONTRACT=386.20` ·
+`MARGIN_FALLBACK_CONTRACTS=4`. קוד עודכן ל-`2d5fc0bf` (pull מ-stabilize).
+
+**CrossOver נוסף ל-Login Items** (ריבוט יחזיר סיירה).
+
+**`parity_report.py` נבנה** — `scripts/parity_report.py`, רץ בהצלחה (88 ברי-woodies, 10 מיגרציות PG).
+
+**פלט גולמי (חוק-5):**
+
+```
+$ python3 scripts/flag_guard.py
+FLAG-GUARD: PASS — all 179 ruled flags match.
+
+$ python3 scripts/fire_drill.py
+  ✓ flag_guard — FLAG-GUARD: PASS — all 179 ruled flags match.
+  ✓ effective_contracts == 6 (לפי דגלי הפסיקה) — got 6
+  ✓ wire_guard — 48 call sites bound against 11 guarded signatures
+  ✓ task_log_guard — 59 items, last committed 0.2 days ago
+  ✓ feed טרי (<30s) — age=70ms
+🟢 GO — כל שרשרת ההחלטה כשרה לירי.
+
+$ head -1 /tmp/mobile_relay.log
+[relay] start → https://mems26-phone-mac2.onrender.com (interval 5s, cmd relay enabled, window=10:00-23:30)
+
+$ tail -3 /tmp/mobile_relay.log
+[relay] fail #1: <urlopen error [Errno 61] Connection refused>
+[relay] recovered after 1 fails
+```
+
+**mobile_relay** מכוון נכון ל-`mems26-phone-mac2`. Connection refused = שירות Render דורש
+Manual Deploy של מייקל (blueprint עם `autoDeploy:false`).
+
+**סים רץ** — `is_sim=1`, כל הדגלים זהים למק-1 (179/179), פיד חי. לא חומש לייב.
+
+— cc-imac
+
+---
+
 ### [2026-08-19 14:25 IL] cc-imac · שכפול-מק-2 בוצע — סיירה מחוברת, שער-אימות מלא ירוק, סים בלבד
 
 **בוצע לפי `deploy/mac2_sierra/README.md` צעד-צעד:**
