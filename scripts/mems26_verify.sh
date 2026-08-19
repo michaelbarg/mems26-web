@@ -35,11 +35,16 @@ for la in com.mems26.backend com.mems26.bridge com.mems26.export_promoter; do
 done
 
 echo "── 3. DLL deployed ↔ repo monolith ──"
-DEP="$HOME/SierraChart/ACS_Source/MES_AI_DataExport.cpp"
+# Support both SierraChart/ (mac-1) and SierraChart2/ (mac-2/iMac)
+DEP=""
+for _d in "$HOME/SierraChart/ACS_Source/MES_AI_DataExport.cpp" \
+          "$HOME/SierraChart2/ACS_Source/MES_AI_DataExport.cpp"; do
+  [ -f "$_d" ] && DEP="$_d" && break
+done
 MONO="$REPO/sc_study/MES_AI_DataExport_merged.cpp"
-if [ -f "$DEP" ] && [ -f "$MONO" ]; then
+if [ -n "$DEP" ] && [ -f "$MONO" ]; then
   dh=$(shasum -a256 "$DEP"|awk '{print $1}'); mh=$(shasum -a256 "$MONO"|awk '{print $1}')
-  if [ "$dh" = "$mh" ]; then ok "deployed DLL == committed monolith"
+  if [ "$dh" = "$mh" ]; then ok "deployed DLL == committed monolith ($(basename $(dirname $(dirname "$DEP"))))"
   else wn "deployed DLL ≠ committed monolith (rebuild+redeploy pending, or merged.cpp stale — run build_monolithic_cpp.sh then diff)"; fi
 else wn "cannot compare (missing deployed or monolith file)"; fi
 
@@ -48,8 +53,12 @@ else wn "cannot compare (missing deployed or monolith file)"; fi
 # Sierra actually loads was from 28.07 — the 5/6-contract ladder was in the
 # .cpp and not in the .dll, and nothing here noticed. A source file that is
 # newer than the compiled binary means the running study predates the code.
-DLL="$HOME/SierraChart/Data/MES_AI_DataExport_64.dll"
-if [ -f "$DLL" ] && [ -f "$DEP" ]; then
+DLL=""
+for _d in "$HOME/SierraChart/Data/MES_AI_DataExport_64.dll" \
+          "$HOME/SierraChart2/Data/MES_AI_DataExport_64.dll"; do
+  [ -f "$_d" ] && DLL="$_d" && break
+done
+if [ -n "$DLL" ] && [ -n "$DEP" ]; then
   dll_m=$(stat -f %m "$DLL"); cpp_m=$(stat -f %m "$DEP")
   dll_when=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$DLL")
   if [ "$dll_m" -ge "$cpp_m" ]; then
@@ -58,7 +67,7 @@ if [ -f "$DLL" ] && [ -f "$DEP" ]; then
     age_d=$(( (cpp_m - dll_m) / 86400 ))
     er "compiled DLL PREDATES its source by ${age_d}d — Sierra is running $dll_when. Remote Build + reload study, or the newest .cpp changes are NOT live"
   fi
-else wn "cannot age-check the DLL (missing $DLL)"; fi
+else wn "cannot age-check the DLL (missing DLL or DEP)"; fi
 
 if [ -d "$REPO/.git" ]; then
   dirty=$(git -C "$REPO" status --short sc_study/ 2>/dev/null)

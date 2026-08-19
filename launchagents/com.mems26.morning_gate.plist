@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.morning_gate</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string><![CDATA[
+REPO="$HOME/mems26/mems26_web_git"
+LOG="/tmp/morning_gate.log"
+exec >> "$LOG" 2>&1
+echo "════ morning-gate $(date '+%Y-%m-%d %H:%M:%S %Z') ════"
+
+# skip weekends (Sat=6, Sun=0)
+DOW=$(date +%w)
+if [ "$DOW" = "0" ] || [ "$DOW" = "6" ]; then
+    echo "weekend — skipping"
+    exit 0
+fi
+
+cd "$REPO" || exit 1
+
+# git pull
+git pull origin stabilize/mems26-local-truth-2026-05-16 2>&1 || true
+
+# flag_guard
+FG=$(.venv/bin/python3 scripts/flag_guard.py 2>&1)
+FG_RC=$?
+echo "$FG" | tail -3
+
+# fire_drill
+FD=$(.venv/bin/python3 scripts/fire_drill.py 2>&1)
+FD_RC=$?
+echo "$FD" | tail -5
+
+if [ "$FG_RC" -ne 0 ] || [ "$FD_RC" -ne 0 ]; then
+    echo "🔴 GATE FAILED — writing to LIVE_CHANNEL"
+    MSG="### [$(date '+%Y-%m-%d %H:%M IL')] cc-imac · 🔴 morning-gate FAILED (auto)\n\nflag_guard rc=$FG_RC · fire_drill rc=$FD_RC\n\n---\n\n"
+    # prepend to LIVE_CHANNEL
+    CHAN="$REPO/../../../Downloads/mems26_web_git/docs/handoff/LIVE_CHANNEL.md"
+    if [ -f "$CHAN" ]; then
+        printf "%b" "$MSG" | cat - "$CHAN" > /tmp/lc_tmp && mv /tmp/lc_tmp "$CHAN"
+        cd "$(dirname "$CHAN")/../.." && git add docs/handoff/LIVE_CHANNEL.md && \
+        git commit -m "cc-imac: morning-gate FAILED (auto)" && \
+        git push github-mems26:michaelbarg/mems26-web.git stabilize/mems26-local-truth-2026-05-16 || true
+    fi
+    # push alert
+    .venv/bin/python3 -c "
+from scripts.flag_guard import parse_env
+import os, urllib.request, urllib.parse
+for k,v in parse_env('$REPO/.env').items(): os.environ.setdefault(k,v)
+token=os.getenv('PUSHOVER_API_TOKEN','')
+user=os.getenv('PUSHOVER_USER_KEY','')
+if token and user:
+    urllib.request.urlopen(urllib.request.Request('https://api.pushover.net/1/messages.json',
+        urllib.parse.urlencode({'token':token,'user':user,'title':'MEMS26 morning-gate FAILED (mac2)',
+        'message':'flag_guard=$FG_RC fire_drill=$FD_RC','priority':'1','sound':'persistent'}).encode()),timeout=10)
+" 2>/dev/null || true
+else
+    echo "✅ GATE PASSED"
+fi
+echo "════ done ════"
+]]></string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>15</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/morning_gate.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/morning_gate.log</string>
+</dict>
+</plist>

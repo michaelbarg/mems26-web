@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.parity</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string><![CDATA[
+REPO="$HOME/mems26/mems26_web_git"
+LOG="/tmp/parity.log"
+exec >> "$LOG" 2>&1
+echo "════ parity $(date '+%Y-%m-%d %H:%M:%S %Z') ════"
+
+DOW=$(date +%w)
+if [ "$DOW" = "0" ] || [ "$DOW" = "6" ]; then
+    echo "weekend — skipping"
+    exit 0
+fi
+
+cd "$REPO" || exit 1
+set -a; [ -f .env ] && source .env; set +a
+
+.venv/bin/python3 scripts/parity_report.py --json 2>&1
+
+# commit+push the report
+DLREPO="$HOME/Downloads/mems26_web_git"
+if [ -d "$DLREPO/.git" ]; then
+    # copy report to the push-capable repo
+    DATE=$(TZ=America/New_York date +%Y-%m-%d)
+    MACHINE="${MACHINE_TAG:-mac2}"
+    SRC="$REPO/docs/reports/PARITY_${MACHINE}_${DATE}.md"
+    mkdir -p "$DLREPO/docs/reports"
+    [ -f "$SRC" ] && cp "$SRC" "$DLREPO/docs/reports/"
+    cd "$DLREPO"
+    git add "docs/reports/PARITY_${MACHINE}_${DATE}.md" 2>/dev/null
+    git commit -m "cc-imac: parity report ${DATE} (auto)" 2>/dev/null
+    git push github-mems26:michaelbarg/mems26-web.git stabilize/mems26-local-truth-2026-05-16 2>/dev/null || true
+fi
+
+echo "════ done ════"
+]]></string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>23</integer>
+        <key>Minute</key>
+        <integer>5</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/parity.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/parity.log</string>
+</dict>
+</plist>

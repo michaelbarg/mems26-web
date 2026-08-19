@@ -1,3 +1,38 @@
+### [2026-08-19 15:50 IL] cc-imac · סבב-סיום: pmset אומת · verify נקי · 2 LaunchAgents חיים · parity_report בגיט
+
+**1. pmset:**
+```
+$ pmset -g sched
+(ריק — אין תזמוני-שינה)
+$ pmset -g | grep -w sleep
+ sleep                0 (sleep prevented by caffeinate, bluetoothd, Claude)
+```
+
+**2. verify fixes:**
+- `mems26_verify.sh` מזהה עכשיו גם `SierraChart2/` (מק-2) — `compiled DLL newer (2026-08-19 11:18)`
+- `gen_flag_index.py` → 334 דגלים, FLAG_INDEX מחודש
+
+**3. שני LaunchAgents חדשים:**
+```
+$ plutil -lint com.mems26.morning_gate.plist → OK
+$ plutil -lint com.mems26.parity.plist → OK
+$ launchctl list | grep -E "morning_gate|parity"
+-  0  com.mems26.morning_gate
+-  0  com.mems26.parity
+```
+- **morning-gate** (15:45 IL, ימי-מסחר): git pull → flag_guard → fire_drill; כשל → LIVE_CHANNEL + Pushover priority=1
+- **parity** (23:05 IL): parity_report.py → commit+push
+
+הרצה ידנית של שניהם — **GATE PASSED** · parity report 179 flags / 104 bars.
+
+**4. `scripts/parity_report.py` + `launchagents/` ב-git** — מק-1 יכול להריץ parity הערב.
+
+**סים רץ.** `is_sim=1`, 179 flags, effective_contracts=6, feed חי. לא חומש לייב.
+
+— cc-imac
+
+---
+
 ### [2026-08-19 15:05 IL] cc-imac · השלמת-סנכרון: env מ-מק-1 · flag_guard 179 · fire_drill GO · סים רץ
 
 **.env הוחלף** מ-snapshot מק-1 (AirDrop, 284 vars). שינויים: `MACHINE_TAG=mac2` ·
