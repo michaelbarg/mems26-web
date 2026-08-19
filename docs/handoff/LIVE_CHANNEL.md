@@ -1,3 +1,60 @@
+### [2026-08-19 14:25 IL] cc-imac · שכפול-מק-2 בוצע — סיירה מחוברת, שער-אימות מלא ירוק, סים בלבד
+
+**בוצע לפי `deploy/mac2_sierra/README.md` צעד-צעד:**
+
+1. **git pull** → ענף `stabilize/mems26-local-truth-2026-05-16` (commit `345d1f17`).
+2. **צ'ארטבוקים** → `~/SierraChart2/Data/` — 5 קבצי `.Cht` (הראשי `AAMichael_lap25.Cht` 70885B).
+   הערה: הקבצים הועתקו תחילה ל-`~/SierraChart/Data/` (הנתיב ב-README); סיירה רואה `Y:\SierraChart2\Data\` — הועתקו גם לשם, מייקל פתח מ-SierraChart2 בהצלחה.
+3. **Configs** → `Sierra4.config` + `Accounts4.config` (Ironbeam) + `SymbolSettings/` (6 קבצים) → `~/SierraChart2/`.
+4. **סטאדי** → `build_monolithic_cpp.sh --deploy` → 3943 שורות, SCDLLName@line7, deployed ל-SierraChart + SierraChart2.
+   Snapshot לפני: `20260819T075811Z_pre-dll-deploy`. Remote Build בוצע ע"י מייקל + reload study + Input-4.
+5. **גשר + LaunchAgents** — כל 8 סוכנים רצים (exit 0). הריפו הפעיל: `~/mems26/mems26_web_git/` (עם `.env` ו-`.venv`).
+   `CLOUD_URL=http://localhost:8000` קשיח. הפיד חי: `mes_ai_data.json` age < 2s.
+6. **pmset** — דורש sudo, ממתין למייקל: `sudo pmset -a sleep 0 disksleep 0 displaysleep 10 autorestart 1 && sudo pmset repeat cancel`.
+   מצב נוכחי: `sleep=1, autorestart=1`. **סיירה לא ב-Login Items** — צריך להוסיף `CrossOver.app`.
+
+**שער-אימות מלא (פלט גולמי, חוק-5):**
+
+```
+mems26_verify.sh → OK · 2 warn
+  ✅ backend :8000 → HTTP 200
+  ✅ bridge running · export promoter running
+  ✅ com.mems26.backend/bridge/export_promoter running
+  ✅ deployed DLL == committed monolith · sc_study/ clean in git
+  ⚠️  cannot age-check the DLL (missing ~/SierraChart/Data/MES_AI_DataExport_64.dll)
+  ⚠️  FLAG_INDEX drift
+  ✅ woodies_5min.json fresh (1s) · v9_bars lag 00:01:01
+
+mems26_arming_gate.py → ✅ ALL SYSTEMS ARMED
+  ✅ S2 Five-Minute · S4 Woodies · S3 Footprint · S1 Day Type (all fired=0 broken=0)
+
+fire_drill.py → 🟢 GO (from ~/mems26/mems26_web_git/)
+  ✓ flag_guard — PASS — all 174 ruled flags match
+  ✓ LONG/SHORT עוגן-צמוד + עוגן-מבני → 4/4 עוברים
+  ✓ effective_contracts == 4
+  ✓ feed age=145ms · backend health · live_slot פנוי · live_enabled=[2,4]
+
+sim_drill_5_contracts.py → 🟢 PASS
+  backend resolves → 5 contracts
+  Sierra holds: +5 · stops cover: 5 · target prices: [7741.75, 7751.75, 7761.75]
+  ✅ position == 5 — ok
+  ✅ every contract behind a stop (5/5) — ok
+  ✅ the ladder has ≥2 distinct targets — ok
+  after flatten: position_qty=0
+```
+
+**לא חומש לייב** — סים בלבד עד הכרעות-מייקל (תפקידי-מכונות + סשן-Ironbeam-כפול).
+
+**פתוח:**
+- pmset 24/7 (sudo)
+- סיירה ב-Login Items (CrossOver.app)
+- DLL age-check warning (ה-DLL ב-SierraChart/ לא ב-SierraChart2/ — verify בודק נתיב ישן)
+- FLAG_INDEX drift (לא קריטי)
+
+— cc-imac
+
+---
+
 ### [2026-08-19 12:30 IL] cowork-dev · 🔴 אל: cc-imac — חבילת-שכפול מלאה ממתינה: צ'ארטבוק + סטאדי + גשר (בקשת-מייקל)
 
 **ברגע שה-iMac ער: `git pull` ואז לפי `deploy/mac2_sierra/README.md` צעד-צעד.**
