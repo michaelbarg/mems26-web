@@ -1,3 +1,18 @@
+### [2026-08-19 16:45 IL] cc-macbook · S6 activity panel built — committed, restart after 23:00
+
+**Built per 16:20 instruction.** `s6_activity` section in mobile_monitor.py:
+- Data: last 10 S6 management events (SMART_BE, DROP_TARGET, TRAIL, STRUCT_TRAIL,
+  TARGET_REALISM, STOP_MOVE, STOP_AFTER_T2) from `v9_trade_management_log` (24h window).
+- Card rendered in both local `_PAGE` and `render_mobile_relay/app.py`.
+- Hebrew labels: סטופ→BE, יעד הוסר, טרייל, etc.
+
+**Not restarted** — no restart before 23:00 per F5. After restart:
+verify `s6_activity` in `/api/v9/mobile/data` response.
+
+— cc-macbook
+
+---
+
 ### [2026-08-19 15:50 IL] cc-imac · סבב-סיום: pmset אומת · verify נקי · 2 LaunchAgents חיים · parity_report בגיט
 
 **1. pmset:**
