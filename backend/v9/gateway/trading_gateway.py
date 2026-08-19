@@ -451,6 +451,12 @@ class TradingGateway:
     def _persist_decision(self, decision: dict) -> None:
         """P10 (2026-07-22): append one decision to the JSONL file."""
         try:
+            # 2026-08-19 audit: pytest suites import the REAL gateway and were
+            # writing synthetic decisions into the production JSONL (116 fake
+            # blocks polluted today's "why didn't it fire" panel before the
+            # open). Tests keep the in-memory deque; the file stays clean.
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                return
             self._rotate_decisions_if_new_day()
             with open(self._decisions_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(decision) + "\n")
@@ -709,6 +715,10 @@ class TradingGateway:
                 "outcome": _outcome,
                 "trade_id": result.get("live") or result.get("demo") or result.get("shadow"),
                 "confluence_tag": result.get("confluence_tag"),
+                # 2026-08-19 (F2): why the LIVE leg specifically did not fire,
+                # even when the shadow leg did (previously invisible).
+                "live_blocked_by": result.get("live_blocked_by"),
+                "live_block_reason": result.get("live_block_reason"),
             }
             self.decisions.append(_dec)
             self._persist_decision(_dec)
@@ -3040,12 +3050,26 @@ class TradingGateway:
             # LIVE: single slot + strict risk checks
             if self._is_live_enabled(system_id):
                 if self.live_slot is None and passes_strict_checks(setup, "live", self):
+                    self._last_live_abort = None
                     live_trade = self._execute_live(setup, system_id, cross_context)
                     if live_trade is not None:  # K1e: None = zero-size skip, slot stays free
                         self.live_slot = live_trade
                         result["live"] = live_trade["trade_id"]
+                    else:
+                        # 2026-08-19 audit (F2): the live-leg aborts were the
+                        # ONLY invisible blocks in the chain — they recorded
+                        # outcome="shadow_only" with blocked_by=null, exactly
+                        # the signature of a healthy shadow phase. Yesterday's
+                        # zero-trade forensics took hours because of this class.
+                        _ab = getattr(self, "_last_live_abort", None)
+                        result["live_blocked_by"] = (_ab or ("live_abort", None))[0]
+                        result["live_block_reason"] = (_ab or (None, "aborted without reason"))[1]
                 elif self.live_slot is not None:
                     logger.info("[Gateway] LIVE slot occupied, skipping system %d setup", system_id)
+                    result["live_blocked_by"] = "live_slot_occupied"
+                elif self.live_slot is None:
+                    # passes_strict_checks refused (its own logging is INFO-only)
+                    result["live_blocked_by"] = "strict_risk"
 
         return result
 
@@ -3634,6 +3658,8 @@ class TradingGateway:
             from backend.v9.services.sierra_command import effective_contracts as _eff_n
             _n_live = _eff_n(setup)
             if _n_live <= 0:
+                self._last_live_abort = ("margin_zero_size",
+                                         f"effective contracts={_n_live}")
                 logger.warning(
                     "[Gateway] LIVE fire SKIPPED — effective contracts <= 0 "
                     "(margin cap / SKIP): %s %s sys=%d — no trade row, no slot, "
@@ -3664,6 +3690,7 @@ class TradingGateway:
             for _w in _eg_warns:
                 logger.warning("[Gateway] LIVE pre-send warning: %s", _w)
             if not _eg_ok:
+                self._last_live_abort = ("pre_send_entry_guard", str(_eg_why))
                 logger.critical(
                     "[Gateway] LIVE fire BLOCKED pre-send: %s — %s %s sys=%d — "
                     "no trade row, no slot, no Sierra command",
@@ -3710,6 +3737,7 @@ class TradingGateway:
                 )
             except ValueError as _ve:
                 # K1e race-belt (see _execute_demo).
+                self._last_live_abort = ("place_refused", str(_ve))
                 logger.warning("[Gateway] LIVE PLACE refused post-accept (%s) — "
                                "cancelling trade %s", _ve, trade_id)
                 try:

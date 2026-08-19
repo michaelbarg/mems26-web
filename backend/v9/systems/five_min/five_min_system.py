@@ -230,6 +230,12 @@ class FiveMinSystem(BaseV9TradingSystem):
     def __init__(self):
         self._gateway = None  # injected post-init via set_gateway() (Prompt 14)
         self._footprint_system = None  # injected post-init via set_footprint_system() (P31-02b)
+        # 2026-08-19 audit (S2-F3): _bar_buffer was ONLY a class attribute, so
+        # every FiveMinSystem() shared one list — /api/v9/status hydrates a
+        # scratch instance per poll and appended stale DB bars into the SAME
+        # buffer the live instance detects on (unbounded leak + replay-bar
+        # injection). Instance-own the buffer.
+        self._bar_buffer: List[Dict] = []
         self.session_classifier = SessionClassifier()
         self.mode = FiveMinMode.WAITING_OPEN
         self.buffer_size = 0

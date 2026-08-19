@@ -441,8 +441,13 @@ class WoodiesSystem(BaseV9TradingSystem):
                 # (not the first new-bar push). If zlr_detected=True on a non-new-bar
                 # push AND we haven't already processed a DLL-ZLR for this bar_ts,
                 # treat this push AS a new bar for detection purposes only.
-                if wb.zlr_detected and getattr(self, '_last_dll_zlr_bar_ts', None) != bar_ts:
-                    self._last_dll_zlr_bar_ts = bar_ts
+                # 2026-08-19 audit fix: compare on the 5-min floor — the raw
+                # per-push ts is unique per UPDATE, so a stuck DLL zlr flag
+                # re-ran detection on EVERY push of the same bar (observed live
+                # 08:16-08:20 today: zlr=True spam every 2-3s).
+                _zlr_bar_floor = float(bar_ts) - (float(bar_ts) % 300)
+                if wb.zlr_detected and getattr(self, '_last_dll_zlr_bar_ts', None) != _zlr_bar_floor:
+                    self._last_dll_zlr_bar_ts = _zlr_bar_floor
                     logger.info("[Woodies] Mechanism-C fix: DLL zlr on non-new-bar push → running detection")
                     _is_new_bar = True  # fall through to full detection below
                 else:
@@ -1206,9 +1211,15 @@ class WoodiesSystem(BaseV9TradingSystem):
                 # Dedup: same bar_ts + same pattern+direction = already fired this bar.
                 # Sierra sends multiple UPDATE events per 5-min bar as it builds;
                 # without this gate, each UPDATE fires a new SHADOW trade.
+                # 2026-08-19 audit fix: compare on the 5-min FLOOR of bar_ts —
+                # Sierra's per-push timestamps differ within one bar (unique
+                # ms/fractional ts, the very reason _bar_ts_key floors to 300s),
+                # so the raw compare left a same-bar re-fire window (observed
+                # 18.08: ZLR blocked-pairs seconds apart at 21:55:04+21:55:07).
                 _fire_key = f"{best.pattern_id}_{best.direction or 'LONG'}"
                 _last_ts = self._last_fired_bar_ts.get(_fire_key, -1.0)
-                if float(bar_ts) <= _last_ts:
+                _bar_ts_floor = float(bar_ts) - (float(bar_ts) % 300)
+                if _bar_ts_floor <= _last_ts:
                     logger.debug(
                         "[Woodies] Skipping duplicate fire: %s bar_ts=%s already fired",
                         _fire_key, bar_ts,
@@ -1270,8 +1281,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 "[Woodies] Gateway blocked: %s", route_result.get("blocked_by")
                             )
                         elif route_result.get("shadow"):
-                            # Record bar_ts so duplicate UPDATE events on same bar are skipped.
-                            self._last_fired_bar_ts[_fire_key] = float(bar_ts)
+                            # Record the FLOORED bar_ts so any later push of the
+                            # same 5-min bar is deduped (2026-08-19 audit fix).
+                            self._last_fired_bar_ts[_fire_key] = (
+                                float(bar_ts) - (float(bar_ts) % 300))
                             # W-10: track open fire for time stop enforcement
                             shadow_id = str(route_result["shadow"])
                             self._open_fire_records[shadow_id] = {

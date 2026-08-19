@@ -802,6 +802,21 @@ def command_from_setup(
             f"PLACE refused for trade {trade_id}: effective contracts={_contracts} "
             "(margin cap / explicit SKIP) — the fire must be aborted, not sent")
 
+    # 2026-08-19 audit (S4-F6a): the same belt for the STOP. Every legitimate
+    # caller ships one (S4's A7 requires it; S2 always computes it; the drills
+    # send it) — reaching here without a stop means an upstream regression, and
+    # the alternative is an UNPROTECTED entry at the broker (the 07-27 class).
+    _stop_chk = setup.get("stop") or setup.get("stop_price")
+    try:
+        _stop_ok = float(_stop_chk) > 0
+    except (TypeError, ValueError):
+        _stop_ok = False
+    if not _stop_ok:
+        raise ValueError(
+            f"PLACE refused for trade {trade_id}: no stop_price "
+            f"(stop={_stop_chk!r}) — an entry without a stop must never reach "
+            "the broker; fix the upstream setup, do not bypass this guard")
+
     # Per-contract targets → the DLL PLACE handler (MES_AI_DataExport.cpp) builds
     # three 1-lot OCO groups and reads target_price for C1, context.t2 for C2,
     # context.t3 for C3. Default = the 1/1/1 ladder (C1→T1, C2→T2, C3→T3).
