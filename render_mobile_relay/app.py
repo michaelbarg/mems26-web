@@ -77,7 +77,14 @@ async def post_cmd(request: Request):
         raise HTTPException(status_code=400, detail="JSON body required")
 
     action = (body.get("action") or "").upper()
-    if action not in ("FLATTEN", "PAUSE", "RESUME"):
+    _ok = action in ("FLATTEN", "PAUSE", "RESUME")
+    # 2026-08-19 (Michael): phone gate-override — GATE_OFF:<gate> / GATE_ON:<gate>.
+    # The relay forwards to the backend, which enforces the whitelist; here we
+    # only sanity-check the shape.
+    if not _ok and (action.startswith("GATE_OFF:") or action.startswith("GATE_ON:")):
+        _g = action.split(":", 1)[1]
+        _ok = 0 < len(_g) <= 40 and _g.replace("_", "").isalnum()
+    if not _ok:
         raise HTTPException(status_code=400, detail=f"unknown action: {action}")
 
     _CMD["counter"] += 1
@@ -250,8 +257,11 @@ async function load(){
     : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
    if(!L.blocked_by && L.live_blocked_by) ge.innerHTML += '<div style="color:#f0883e;font-size:11px">⛔ הלייב לא-שוגר: <b>'+(GATE_HE[L.live_blocked_by]||L.live_blocked_by)+'</b>'+(L.live_block_reason?' — '+String(L.live_block_reason).replace(/</g,'&lt;').slice(0,70):'')+'</div>';
+   if(L.blocked_by && (d.gate_overridable||[]).includes(L.blocked_by)) ge.innerHTML += ' <button onclick="gateOv(\\''+L.blocked_by+'\\',false)" style="padding:3px 10px;border-radius:8px;border:1px solid #d29922;background:#2d2614;color:#d29922;font-size:11px;font-family:inherit">🔓 בטל חוסם זה (עד-ריסטארט)</button>';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט</span>'; document.getElementById('gmeta').textContent=''; }
+  const ov = d.gate_overrides||[];
+  if(ov.length) ge.innerHTML += '<div style="margin-top:5px;padding:4px 6px;border:1px solid #d29922;border-radius:8px;color:#d29922;font-size:11px">🔓 חוסמים מבוטלים (עד-ריסטארט): '+ov.map(o=>(o.label||o.gate)+' <span class="dim">'+o.ts+'</span> <button onclick="gateOv(\\''+o.gate+'\\',true)" style="padding:1px 8px;border-radius:6px;border:1px solid #3fb950;background:#0d2818;color:#3fb950;font-size:10.5px;font-family:inherit">החזר</button>').join(' · ')+'</div>';
   const ST_HE = {ready:['מוכן לירי','#3fb950'],armed:['חמוש','#3fb950'],fired:['ירה היום','#58a6ff'],
    building:['בהתהוות','#d29922'],blocked:['ממתין','#8b949e'],vetoed:['וטו','#f85149'],skip:['SKIP לסוג-היום','#f85149'],
    not_applicable:['לא-רלוונטי','#8b949e'],unknown:['?','#8b949e']};
@@ -261,7 +271,8 @@ async function load(){
    let line = '';
    if(p.last){
     const t = p.last.ts? new Date(p.last.ts).toTimeString().slice(0,5) : '';
-    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+'</div>'
+    const _ob = p.last.blocked_by && (d.gate_overridable||[]).includes(p.last.blocked_by)? ' <a href="#" onclick="gateOv(\\''+p.last.blocked_by+'\\',false);return false" style="color:#d29922">🔓 בטל</a>':'';
+    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+_ob+'</div>'
      : (p.last.outcome==='live'||p.last.outcome==='demo')? '<div class="green" style="font-size:10.5px">🔫 '+t+' ירה'+(p.last.trade_id?' #'+p.last.trade_id:'')+'</div>'
      : '<div class="dim" style="font-size:10.5px">👁 '+t+' עבר-שערים · צל</div>';
    } else if(p.reason && p.status!=='ready' && p.status!=='fired'){
@@ -319,6 +330,15 @@ async function load(){
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר לענן — '+e; }
 }
 load(); setInterval(load, 5000);
+async function gateOv(g,restore){
+ if(!confirm((restore?'להחזיר את החוסם ':'לבטל את החוסם ')+g+'?')) return;
+ if(!restore && !confirm('אישור סופי — ביטול עד-ריסטארט של '+g+'? עסקאות שהשער הזה היה עוצר יעברו.')) return;
+ const st=document.getElementById('cmdStatus'); st.textContent='שולח...';
+ try{const r=await fetch('/cmd'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:(restore?'GATE_ON:':'GATE_OFF:')+g})});
+  const d=await r.json(); st.textContent=d.ok?'✓ נשלח — המק יבצע תוך ~5ש':'✗ '+(d.error||'נכשל'); st.style.color=d.ok?'#3fb950':'#f85149';
+ }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
+ setTimeout(()=>{st.textContent='';st.style.color='';},8000);
+}
 let _paused=false;
 function updatePause(p){
  _paused=p; document.getElementById('pausedBanner').style.display=p?'block':'none';

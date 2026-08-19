@@ -247,6 +247,13 @@ async def mobile_data(request: Request):
         out["today"] = dict(day[0]) if day else {}
     except Exception as e:
         out["db_err"] = str(e)[:80]
+    # 2026-08-19: ביטולי-חוסמים פעילים + הרשימה הניתנת-לביטול (לכפתורי-הדף)
+    try:
+        from backend.v9.services.gate_overrides import active_overrides, overridable_gates
+        out["gate_overrides"] = active_overrides()
+        out["gate_overridable"] = overridable_gates()
+    except Exception:
+        pass
     # סוג-יום חי
     try:
         from backend.v9.services.trade_context import get_live_day_type
@@ -330,6 +337,35 @@ async def mobile_data(request: Request):
     except Exception:
         out["alerts"] = []
     return out
+
+
+# NOTE: this function sits ABOVE the /flatten pair on purpose, with its own
+# decorator immediately adjacent — never insert anything between a decorator
+# and its function (T-36, the 422 class).
+@router.post("/gate_override")
+async def mobile_gate_override(request: Request):
+    """2026-08-19 (מייקל: "מנגנון שיאפשר לי דרך האפליקציה לבטל חוסם").
+
+    body {"gate": <blocked_by name>, "restore": bool}. רק שערי-דעה מהרשימה
+    הלבנה; session-scoped (restart מחזיר הכל). מפתח-גישה חובה."""
+    if not _key_ok(request):
+        raise HTTPException(status_code=401, detail="mobile access key required")
+    try:
+        body = await request.json()
+    except Exception:
+        return {"ok": False, "error": "JSON body required"}
+    gate = str(body.get("gate") or "").strip()
+    from backend.v9.services.gate_overrides import (
+        set_override, clear_override, active_overrides)
+    if body.get("restore"):
+        ok = clear_override(gate)
+        return {"ok": ok, "overrides": active_overrides()}
+    res = set_override(gate)
+    if res is None:
+        return {"ok": False,
+                "error": f"'{gate}' אינו ניתן-לביטול (שער-בטיחות או לא-מוכר)",
+                "overrides": active_overrides()}
+    return {"ok": True, "disabled": res, "overrides": active_overrides()}
 
 
 @router.post("/flatten")
@@ -621,8 +657,11 @@ async function load(){
     : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
    if(!L.blocked_by && L.live_blocked_by) ge.innerHTML += '<div style="color:#f0883e;font-size:11px">⛔ הלייב לא-שוגר: <b>'+(GATE_HE[L.live_blocked_by]||L.live_blocked_by)+'</b>'+(L.live_block_reason?' — '+String(L.live_block_reason).replace(/</g,'&lt;').slice(0,70):'')+'</div>';
+   if(L.blocked_by && (d.gate_overridable||[]).includes(L.blocked_by)) ge.innerHTML += ' <button onclick="gateOv(\\''+L.blocked_by+'\\',false)" style="padding:3px 10px;border-radius:8px;border:1px solid #d29922;background:#2d2614;color:#d29922;font-size:11px;font-family:inherit">🔓 בטל חוסם זה (עד-ריסטארט)</button>';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט — ראה פאנל-תבניות</span>'; document.getElementById('gmeta').textContent=''; }
+  const ov = d.gate_overrides||[];
+  if(ov.length) ge.innerHTML += '<div style="margin-top:5px;padding:4px 6px;border:1px solid #d29922;border-radius:8px;color:#d29922;font-size:11px">🔓 חוסמים מבוטלים (עד-ריסטארט): '+ov.map(o=>(o.label||o.gate)+' <span class="dim">'+o.ts+'</span> <button onclick="gateOv(\\''+o.gate+'\\',true)" style="padding:1px 8px;border-radius:6px;border:1px solid #3fb950;background:#0d2818;color:#3fb950;font-size:10.5px;font-family:inherit">החזר</button>').join(' · ')+'</div>';
   const ST_HE = {ready:['מוכן לירי','#3fb950'],armed:['חמוש','#3fb950'],fired:['ירה היום','#58a6ff'],
    building:['בהתהוות','#d29922'],blocked:['ממתין','#8b949e'],vetoed:['וטו','#f85149'],skip:['SKIP לסוג-היום','#f85149'],
    not_applicable:['לא-רלוונטי','#8b949e'],unknown:['?','#8b949e']};
@@ -632,7 +671,8 @@ async function load(){
    let line = '';
    if(p.last){
     const t = p.last.ts? new Date(p.last.ts).toTimeString().slice(0,5) : '';
-    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+'</div>'
+    const _ob = p.last.blocked_by && (d.gate_overridable||[]).includes(p.last.blocked_by)? ' <a href="#" onclick="gateOv(\\''+p.last.blocked_by+'\\',false);return false" style="color:#d29922">🔓 בטל</a>':'';
+    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+_ob+'</div>'
      : (p.last.outcome==='live'||p.last.outcome==='demo')? '<div class="green" style="font-size:10.5px">🔫 '+t+' ירה'+(p.last.trade_id?' #'+p.last.trade_id:'')+'</div>'
      : '<div class="dim" style="font-size:10.5px">👁 '+t+' עבר-שערים · צל</div>';
    } else if(p.reason && p.status!=='ready' && p.status!=='fired'){
@@ -723,6 +763,13 @@ async function load(){
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר למערכת — '+e; }
 }
 load(); setInterval(load, 5000);
+async function gateOv(g,restore){
+ if(!confirm((restore?'להחזיר את החוסם ':'לבטל את החוסם ')+g+'?')) return;
+ if(!restore && !confirm('אישור סופי — ביטול עד-ריסטארט של '+g+'? עסקאות שהשער הזה היה עוצר יעברו.')) return;
+ try{const r=await fetch('/api/v9/mobile/gate_override'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gate:g,restore:restore})});
+  const d=await r.json(); if(!d.ok) alert('✗ '+(d.error||'נכשל')); load();
+ }catch(e){alert('✗ '+e);}
+}
 // Pause banner update
 function updatePause(paused){
  const b=document.getElementById('pauseBanner'); b.style.display=paused?'block':'none';

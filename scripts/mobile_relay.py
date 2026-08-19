@@ -115,6 +115,21 @@ def _execute_local(action, access_key):
             print(f"[relay] RESUME result: {resp}", flush=True)
             return resp.get("ok", False)
 
+        elif action.startswith("GATE_OFF:") or action.startswith("GATE_ON:"):
+            # 2026-08-19 (Michael): phone gate-override. Backend enforces the
+            # whitelist; session-scoped (restart reverts).
+            gate = action.split(":", 1)[1].lower()
+            data = json.dumps({"gate": gate,
+                               "restore": action.startswith("GATE_ON:")}).encode()
+            req = urllib.request.Request(
+                f"{LOCAL}/gate_override?key={access_key}",
+                data=data, method="POST",
+                headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                resp = json.loads(r.read().decode())
+            print(f"[relay] {action} result: {resp}", flush=True)
+            return resp.get("ok", False)
+
         else:
             print(f"[relay] unknown action: {action}", flush=True)
             return False
