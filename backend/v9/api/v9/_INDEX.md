@@ -37,7 +37,7 @@
 | `killzone_routes.py` | ✅ 1 | 12 | 2026-05-12 | API: /api/v9/killzone/* — System 6 Killzone. |
 | `live_ledger_routes.py` | ✅ 1 | 139 | 2026-07-09 | LIVE ledger endpoint (journal L8) — what Sierra ACTUALLY executed. |
 | `markers.py` | ✅ 1 | 84 | 2026-05-10 | V9 API: System markers CRUD. |
-| `mobile_monitor.py` | ✅ 2 | 754 | 2026-08-18 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
+| `mobile_monitor.py` | ✅ 2 | 862 | 2026-08-19 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
 | `open_type_routes.py` | ✅ 1 | 128 | 2026-07-28 | Open Type endpoint — /api/v9/open_type/current |
 | `pre_fire_routes.py` | ✅ 1 | 15 | 2026-05-16 | API route: POST /api/v9/pre_fire/validate — D-063 pre-fire validation. |
 | `price_routes.py` | ✅ 3 | 175 | 2026-07-17 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |

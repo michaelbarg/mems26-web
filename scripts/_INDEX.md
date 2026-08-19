@@ -41,9 +41,9 @@
 | `eod_anchor_trial_report.py` | ▶ entry/test | 161 | 2026-06-12 | EOD Anchor Trial Report — per-trade audit + S2 histogram + counterfactual. |
 | `eod_data_handoff.sh` | — | 69 | 2026-08-13 | eod_data_handoff.sh — daily data packet from the TRADING machine to git, |
 | `eod_review.py` | ▶ entry/test | 221 | 2026-07-22 | EOD review for ONE trading day (Michael 2026-07-22): today's trades, how |
-| `fire_drill.py` | ▶ entry/test | 231 | 2026-08-18 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
+| `fire_drill.py` | ▶ entry/test | 231 | 2026-08-19 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
 | `fire_readiness_real.py` | ▶ entry/test | 549 | 2026-07-19 | Stage E: replay real RTH setups through read-only, pure readiness gates. |
-| `flag_guard.py` | ✅ 17 | 87 | 2026-07-08 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
+| `flag_guard.py` | ✅ 18 | 87 | 2026-07-08 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | 2026-05-24 | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
 | `gate_profit_audit.py` | ▶ entry/test | 166 | 2026-08-14 | gate_profit_audit — did a gate block a WINNER? (Michael 14.08) |
 | `gen_daily_report.py` | ▶ entry/test | 127 | 2026-08-13 | gen_daily_report — דוח-יומי אוטומטי (Michael 2026-07-16, "דוח יומי שגם יופיע בכיס"). |
@@ -63,14 +63,15 @@
 | `mems26_snapshot.sh` | — | 66 | 2026-07-12 | mems26_snapshot.sh — snapshot every out-of-git surface BEFORE a change, for rollback. |
 | `mems26_startup_check.sh` | — | 105 | 2026-07-05 | ============================================================================ |
 | `mems26_update_check.sh` | — | 24 | 2026-07-12 | mems26_update_check.sh — רץ כל שעה (LaunchAgent com.mems26.update_check): |
-| `mems26_verify.sh` | — | 89 | 2026-08-18 | mems26_verify.sh — one-shot "is everything consistent + up to date?" check. |
+| `mems26_verify.sh` | — | 98 | 2026-08-19 | mems26_verify.sh — one-shot "is everything consistent + up to date?" check. |
 | `missed_trade_watch.py` | ▶ entry/test | 167 | 2026-07-17 | Missed-trade / quality watch — live session supervisor (Michael 2026-07-17: |
-| `mobile_relay.py` | ▶ entry/test | 230 | 2026-08-14 | MEMS26 mobile relay — pushes snapshot + polls emergency commands from Render. |
+| `mobile_relay.py` | ▶ entry/test | 245 | 2026-08-19 | MEMS26 mobile relay — pushes snapshot + polls emergency commands from Render. |
 | `morning_briefing.py` | ▶ entry/test | 135 | 2026-07-13 | בריפינג-בוקר — מה כל מערכת מחפשת היום + חשבון הסטופים (מייקל 2026-07-08). |
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
 | `opening_signal_edge.py` | ▶ entry/test | 153 | 2026-07-24 | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
-| `ops_log.py` | ✅ 18 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
+| `ops_log.py` | ✅ 19 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
+| `parity_report.py` | ▶ entry/test | 372 | 2026-08-19 | parity_report.py — EOD cross-machine parity check (cc-imac, 2026-08-19). |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |
 | `pattern_watch.py` | ▶ entry/test | 72 | 2026-07-17 | pattern_watch.py — poll build/pattern-status, log per-pattern blockers. |
 | `pkg0_redis_migrate.py` | ▶ entry/test | 78 | 2026-05-23 | Pkg 0 · Redis migration · chart_5min → five_min |

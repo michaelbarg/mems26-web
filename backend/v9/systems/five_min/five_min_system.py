@@ -175,6 +175,72 @@ def get_poc_return_tolerance(bars: _Opt[list] = None, lookback: int = _EXPANSION
     return _POC_RETURN_K * avg
 
 
+# ── S2_ADAPTIVE_THRESHOLDS_V1 (Michael 2026-08-19 ~19:15) ──
+# "לשלוח סוכן שיבצע התאמה לספים בהתאם לגודל הנר וסוג היום... אני רוצה פיתרון
+#  חכם שמותאם לסוג היום ולגודל הנרות — זה יחסי בסוף"
+# Audit finding (2026-08-19): INITIATIVE's b1_expansion floor (1.3×avg14)
+# demanded ~7.5pt while the day's real closed-bar ranges ran 1.5-4.5pt —
+# mathematically unreachable on grind days (open bars inflate the mean).
+# REACTIVE's b2 volume gate demanded ≤10% of b1 (a 90% drop — near-impossible).
+# Under the flag, both thresholds derive from the bars themselves:
+#   expansion: b1 range ≥ max(P80 of last-20 closed-bar ranges, 0.55×ATR14),
+#              ×0.85 on Trend*/Variation day types (None/UNKNOWN → ×1.0).
+#              P80 is outlier-robust where the mean is not — relative by
+#              construction, no fixed points anywhere.
+#   b2 drop:   b2_vol < b1_vol AND b2_vol ≤ 0.8×avg20 (the VSA-style relative
+#              variant already proven in the S2_VSA_VOLUME path).
+# Flag OFF (default, code-level) → byte-identical legacy behavior.
+_ADAPTIVE_EXP_LOOKBACK = 20    # closed bars in the P80 window
+_ADAPTIVE_EXP_PCTL = 0.80      # percentile of ranges (nearest-rank)
+_ADAPTIVE_ATR_K = 0.55         # ATR14 fraction floor
+_ADAPTIVE_TREND_MULT = 0.85    # multiplier on trend/variation day types
+_ADAPTIVE_B2_AVG_K = 0.8       # b2_vol ≤ this × rolling avg20
+
+
+def s2_adaptive_thresholds_on() -> bool:
+    """Call-time flag read (env changes take effect without reimport)."""
+    import os as _os
+    return _os.environ.get("S2_ADAPTIVE_THRESHOLDS_V1", "").lower() in ("1", "true", "yes")
+
+
+def adaptive_daytype_mult(day_type) -> float:
+    """×0.85 on directional day types (Trend_* / *Variation*); UNKNOWN/None → 1.0.
+
+    Covers both spellings live in this codebase: "Variation" (PKG5A list) and
+    "Normal_Variation" (7-type classifier / TREND_STOP_FLOOR).
+    """
+    if not day_type or not isinstance(day_type, str):
+        return 1.0
+    if day_type.startswith("Trend") or "Variation" in day_type:
+        return _ADAPTIVE_TREND_MULT
+    return 1.0
+
+
+def adaptive_expansion_floor(bars: _Opt[list], atr14: _Opt[float] = None,
+                             day_type: _Opt[str] = None) -> _Opt[float]:
+    """S2_ADAPTIVE_THRESHOLDS_V1 expansion floor (points), or None if no bars.
+
+    max(P80 of last-20 closed-bar ranges, 0.55×ATR14) × day-type multiplier.
+    ATR None (cold start, <14 bars) → the P80 term alone — no synthetic ATR
+    (Rule 1: honest failure > synthetic value).
+    """
+    if not bars:
+        return None
+    window = bars[-_ADAPTIVE_EXP_LOOKBACK:]
+    ranges = sorted(
+        (b.get("h", b.get("high", 0)) or 0) - (b.get("l", b.get("low", 0)) or 0)
+        for b in window
+    )
+    if not ranges:
+        return None
+    import math as _math
+    idx = max(0, min(len(ranges) - 1,
+                     _math.ceil(_ADAPTIVE_EXP_PCTL * len(ranges)) - 1))
+    p80 = ranges[idx]
+    atr_term = _ADAPTIVE_ATR_K * atr14 if atr14 else 0.0
+    return max(p80, atr_term) * adaptive_daytype_mult(day_type)
+
+
 def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
     """Build the S2→gateway setup dict from a resolved T1Setup.
 
@@ -761,6 +827,12 @@ class FiveMinSystem(BaseV9TradingSystem):
             elif _v == "UNION":         b2_drop = _vsa_pass or _rvol_pass or _strict_pass
             elif _v == "INTERSECTION":  b2_drop = _vsa_pass and _rvol_pass and _strict_pass
             else:                       b2_drop = _vsa_pass  # A_VSA — identical to pre-change
+        elif s2_adaptive_thresholds_on():
+            # S2_ADAPTIVE_THRESHOLDS_V1 (Michael 2026-08-19): the legacy gate
+            # (b2 ≤ 10% of b1 = a 90% drop) is near-impossible on real tape.
+            # VSA-style relative drop instead: quieter than b1 AND ≤0.8×avg20.
+            b2_drop = (b2_vol < b1_vol
+                       and b2_vol <= _ADAPTIVE_B2_AVG_K * _rolling_avg) if b1_vol > 0 else False
         else:
             b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
 
@@ -946,6 +1018,18 @@ class FiveMinSystem(BaseV9TradingSystem):
         if _vol_adaptive_i:
             _exp_min = min(_exp_min, _VOL_EXP_FLOOR_CAP_PT)
         b1_expansion = _exp_min <= b1_range <= _exp_max
+        if s2_adaptive_thresholds_on():
+            # S2_ADAPTIVE_THRESHOLDS_V1 (Michael 2026-08-19): relative expansion
+            # — b1 range ≥ max(P80 of last-20 closed ranges, 0.55×ATR14), ×0.85
+            # on Trend/Variation days (live label the system already carries;
+            # None/UNKNOWN → ×1.0). Replaces the 1.3×avg14 floor that demanded
+            # ~7.5pt on a 1.5-4.5pt day. P80 is outlier-robust; no upper cap —
+            # the floor tracks the tape by construction.
+            _adaptive_floor = adaptive_expansion_floor(
+                bars_5m, atr14=self._current_atr_5m,
+                day_type=self.current_day_type)
+            if _adaptive_floor is not None:
+                b1_expansion = b1_range >= _adaptive_floor
         b3_range = b3["h"] - b3["l"]
         b3_joining = b3_range > b1_range * (_VOL_JOIN_FACTOR if _vol_adaptive_i else 1.0)
 

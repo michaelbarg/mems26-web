@@ -277,6 +277,11 @@ flags:
     category: param
     group: "S2 vol-adaptive"
     what: "Volatility-regime boundary (points) for S2_VOL_ADAPTIVE: avg 14-bar range >= this => VOLATILE. Default constant _VOL_REGIME_PT = 8.0."
+  S2_ADAPTIVE_THRESHOLDS_V1:
+    category: s2
+    what: "Adaptive S2 thresholds (one flag): INITIATIVE expansion floor = max(P80 of last-20 closed-bar ranges, 0.55*ATR14), x0.85 on Trend*/Variation day types (UNKNOWN/None neutral, no upper cap); REACTIVE b2 volume-drop = VSA-style b2<b1 AND b2<=0.8*avg20 replacing the 10%-of-b1 gate (applies only when S2_VSA_VOLUME is off — the variant machinery keeps precedence)."
+    why: "Michael ruling 2026-08-19 ~19:15 ('התאמה לספים בהתאם לגודל הנר וסוג היום... זה יחסי בסוף') — the 1.3×avg14 floor is unreachable when open bars inflate the mean, and the 2.5× cap blocked the 22.5pt expansion bar; replay 19.08 real bars: old 2 passes vs adaptive 7."
+    ref: "config/RULED_FLAGS.yaml S2_ADAPTIVE_THRESHOLDS_V1 · tests/v9/regression/test_s2_adaptive_thresholds.py"
   S2_CHOPPINESS_GATE:
     category: s2
     group: "chop gate (1 of 2)"

@@ -39,19 +39,20 @@
 | `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
 | `fill_poller.py` | ✅ 6 | 1202 | 2026-08-17 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
+| `gate_overrides.py` | ✅ 1 | 93 | 2026-08-19 | Phone-triggered gate overrides — Michael 2026-08-19: |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |
 | `historical_replay.py` | ✅ 3 | 109 | 2026-06-03 | HistoricalReplay — warm system buffers from existing DB rows. |
 | `history_loader.py` | ✅ 2 | 525 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
 | `kill_switch.py` | ✅ 2 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `local_alert.py` | ✅ 1 | 117 | 2026-08-17 | local_alert — LOUD local alerts on the trading Mac (Michael 2026-07-27, after |
-| `margin_sizing.py` | ✅ 2 | 192 | 2026-08-18 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |
+| `margin_sizing.py` | ✅ 2 | 192 | 2026-08-19 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |
 | `market_clock.py` | ✅ 20 | 251 | 2026-05-16 | Market Clock — centralized time service with DST + 2026 NYSE holidays (D-068). |
 | `market_context.py` | ✅ 5 | 229 | 2026-08-03 | System 0 — Market Context unifier (Michael 2026-07-24, cowork 07-29). |
 | `news_blackout.py` | ✅ 3 | 131 | 2026-07-13 | news_blackout — IDEA-1: NO_TRADE window around red economic events (Michael 07-13). |
 | `ntfy_notify.py` | ✅ 5 | 232 | 2026-08-18 | Push notifications via ntfy.sh for trading events (P1.6 + K7a). |
 | `phone_alert.py` | ✅ 8 | 112 | 2026-08-17 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 1 | 248 | 2026-07-27 | Item-20 — Sierra truth reconcile + naked-stop detector. |
-| `sierra_command.py` | ✅ 22 | 905 | 2026-08-18 | Sierra command file writer for DEMO/LIVE execution paths. |
+| `sierra_command.py` | ✅ 22 | 920 | 2026-08-19 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `sierra_ledger.py` | ✅ 2 | 311 | 2026-07-08 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
 | `sierra_position_reconciler.py` | ✅ 9 | 1088 | 2026-08-18 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |

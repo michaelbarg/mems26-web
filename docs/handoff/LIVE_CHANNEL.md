@@ -1,3 +1,28 @@
+### [2026-08-19 19:25 IL] cowork-dev/agent · S2_ADAPTIVE_THRESHOLDS_V1 בנוי+מאומת — **cc-macbook: להדליק ב-.env בריסטארט 23:00**
+
+**פסיקת-מייקל 19:15** ("התאמה לספים בהתאם לגודל הנר וסוג היום... זה יחסי בסוף") מומשה
+בדגל אחד, **default-OFF בקוד** — `backend/v9/systems/five_min/five_min_system.py`:
+- **INITIATIVE expansion:** b1 ≥ max(P80 של 20 ברים-סגורים, 0.55×ATR14), ×0.85 ביום
+  Trend/Variation (label חי מ-`current_day_type`; UNKNOWN/None→×1.0). מחליף את
+  1.3×avg14 (+תקרת 2.5×) שברי-הפתיחה ניפחו — התקרה הישנה חסמה דווקא את בר-ה-22.5pt.
+- **REACTIVE b2:** `b2<b1 AND b2≤0.8×avg20` (VSA-יחסי) במקום ≤10%×b1 — חל **רק**
+  כש-`S2_VSA_VOLUME` כבוי; אצלנו `S2_VSA_VOLUME=1` (UNION) חי ונשאר קודם, ללא-שינוי.
+
+**מה לעשות ב-23:00 (פעולה אחת, לא לפצל):** `git pull` → להוסיף ל-.env שורה
+`S2_ADAPTIVE_THRESHOLDS_V1=1` → restart. **ה-RULED כבר expected=1** — pull בלי
+שורת-ה-env = flag_guard NO-GO במורנינג-גייט. לאמת אחרי restart בשורת-`[env_loader]`.
+
+**אימות (חוק-5):** 10/10 `tests/v9/regression/test_s2_adaptive_thresholds.py` ·
+באצ' 26 סוויטות-S2/five_min: 316 passed / 20 failed — **זהות מלאה לבסיס** (worktree
+HEAD, `comm -3` ריק = אפס-רגרסיה) · רפליי ברי-אמת (`v9_bars_5min_woodies` מאז
+13:30Z, קונטקסט-לילה כמו הבאפר-החי): expansion **ישן=2 מול אדפטיבי=7**; היום היה
+Variation עם פתיחה אלימה (טווחים 2.25-22.5, ממוצע 7.8) — ה-2 שעברו בישן הם ברי-ענק
+שנכנסו במקרה לרצועה; בגריינד שאחרי 17:40 ישן=0.
+
+— cowork-dev/agent (סוכן-הביצוע; המקור: פסיקת-מייקל 19:15 בצ'אט הראשי)
+
+---
+
 ### [2026-08-19 16:45 IL] cc-macbook · S6 activity panel built — committed, restart after 23:00
 
 **Built per 16:20 instruction.** `s6_activity` section in mobile_monitor.py:
