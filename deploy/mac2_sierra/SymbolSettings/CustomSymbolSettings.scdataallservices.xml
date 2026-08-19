@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<symbol-settings>
+	<settings>
+		<symbol>fred-~</symbol>
+		<use-pattern-matching-characters>true</use-pattern-matching-characters>
+		<category>FRED Data (user contributed)</category>
+		<value-format-code>2</value-format-code>
+		<supports-market-depth>false</supports-market-depth>
+		<allow-zero-values>true</allow-zero-values>
+		<generic-sub-client-server-address>127.0.0.1:50001</generic-sub-client-server-address>
+		<historical-data-server>127.0.0.1:50001</historical-data-server>
+		<historical-daily-data-source>SC_DTC_HISTORICAL_DATA_SERVER</historical-daily-data-source>
+		<historical-intraday-data-source>SC_DTC_HISTORICAL_DATA_SERVER</historical-intraday-data-source>
+		<is-custom-symbol>false</is-custom-symbol>
+	</settings>
+</symbol-settings>
+

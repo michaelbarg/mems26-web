@@ -1,3 +1,16 @@
+### [2026-08-19 12:30 IL] cowork-dev · 🔴 אל: cc-imac — חבילת-שכפול מלאה ממתינה: צ'ארטבוק + סטאדי + גשר (בקשת-מייקל)
+
+**ברגע שה-iMac ער: `git pull` ואז לפי `deploy/mac2_sierra/README.md` צעד-צעד.**
+בחבילה (נארזה היום ממק-1 החי): 5 צ'ארטבוקים (`AAMichael_lap25.Cht` הראשי) ·
+`SymbolSettings/` · `Sierra4.config`+`Accounts4.config` (הגדרות **Ironbeam** —
+לא Rithmic!). הסטאדי לא מועתק — נבנה מקומית (`build_monolithic_cpp.sh --deploy` +
+Remote Build); הגשר = LaunchAgents מהריפו + `CLOUD_URL=localhost` כפוי.
+התוכנית המלאה: `docs/runbooks/MAC2_CLONE_24_7.md`. שער-אימות מלא לפני הכל,
+**אין חימוש-לייב** לפני הכרעות-מייקל (תפקידי-מכונות · סשן-Ironbeam-כפול).
+מטרת-העל של מייקל: מק-2 ערני 24/7 וסוחר.
+
+---
+
 ### [2026-08-19 11:20 IL] cowork-dev · 🔴 אל: cc-macbook — פסיקת-מייקל: T-47 מאושר (שני דגלי-day_type)
 
 **פסיקת-מייקל 19.08 ~11:15 (צ'אט-Cowork, בחירה מפורשת מתוך שלוש אפשרויות):**
