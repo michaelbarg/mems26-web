@@ -3393,6 +3393,57 @@ class TradingGateway:
             t3 = round(entry + sgn * t3_max_r * risk, 2)
         return t1, t2, t3
 
+    @staticmethod
+    def _seed_runner_targets(setup: dict) -> tuple:
+        """T-06 (2026-08-19): seed missing t2/t3 WITHOUT inventing a
+        degenerate ladder.
+
+        The old inline seeding read only setup["stop"] — but S4/ZLR ships its
+        stop in metadata.stop_initial (StopResolver design), so the `or t1`
+        fallback made the step ZERO and t2 landed EXACTLY on t1. Seven live
+        trades since 07-21 (#442, #513, #595, #604, #620, #622, #693) carry
+        t1==t2: two exit levels at one price — no second scale-out, and when
+        t3 was also missing, t3=2*t2-t1 collapsed onto t1 too (the 07-09/10
+        triple-equal class). A duplicated level is a lie the bracket pays
+        for; missing stays missing (Rule 1). I-59 already ruled this shape:
+        "duplicate t2 becomes None".
+        """
+        t1 = setup.get("t1") or 0.0
+        t2 = setup.get("t2") or 0.0
+        t3 = setup.get("t3") or 0.0
+        if t1 > 0 and t2 > 0 and t3 <= 0:
+            # initial trail target: one structural step beyond t2
+            t3 = 2 * t2 - t1
+        if t1 > 0 and t2 <= 0:
+            stop = (setup.get("stop")
+                    or (setup.get("metadata") or {}).get("stop_initial") or 0.0)
+            step = abs(t1 - stop) if stop else 0.0
+            direction = (setup.get("direction") or "").upper()
+            if step > 0:
+                t2 = round(t1 + step, 2) if direction == "LONG" else round(t1 - step, 2)
+            else:
+                logger.warning(
+                    "[Gateway] T-06: cannot seed t2 — no stop in setup or "
+                    "metadata.stop_initial (t1=%.2f); leaving t2 empty rather "
+                    "than fabricating t2==t1", t1)
+        return t1, t2, t3
+
+    @staticmethod
+    def _target_degeneracy_guard(t1: float, t2: float, t3: float) -> tuple:
+        """No two ladder levels may be equal — the later one is dropped (0 =
+        absent, the state A7/I-59 already accept). Two OCO groups at one price
+        fill together: the 'ladder' becomes a lump exit and the runner never
+        exists. Applied AFTER the R-clamp, which can itself collapse t2 onto
+        t1 when t1 sits exactly on the cap."""
+        if t2 and t1 and abs(t2 - t1) < 1e-9:
+            logger.warning("[Gateway] T-06 degeneracy: t2==t1==%.2f → t2 dropped", t1)
+            t2 = 0.0
+        if t3 and ((t1 and abs(t3 - t1) < 1e-9) or (t2 and abs(t3 - t2) < 1e-9)):
+            logger.warning("[Gateway] T-06 degeneracy: t3=%.2f duplicates a "
+                           "lower level → t3 dropped", t3)
+            t3 = 0.0
+        return t1, t2, t3
+
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
         """DEMO: create a REAL TM trade (mode=demo) + write Sierra SIM command.
 
@@ -3403,18 +3454,9 @@ class TradingGateway:
         if self._trade_manager is not None:
             g1 = extract_g1_entry_context(cross_context)
 
-            # B: seed runner targets if t3 is missing (initial trail target)
-            t1 = setup.get("t1") or 0.0
-            t2 = setup.get("t2") or 0.0
-            t3 = setup.get("t3") or 0.0
-            if t1 > 0 and t2 > 0 and t3 <= 0:
-                # initial trail target: one structural step beyond t2
-                t3 = 2 * t2 - t1
-            # Ensure t2 has a value if t1 exists (same formula, one step)
-            if t1 > 0 and t2 <= 0:
-                direction = (setup.get("direction") or "").upper()
-                t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
-                    else t1 - abs(t1 - (setup.get("stop") or t1))
+            # B: seed runner targets if missing — T-06: shared helper that
+            # reads metadata.stop_initial too and never fabricates t2==t1.
+            t1, t2, t3 = self._seed_runner_targets(setup)
 
             # FIX #633 (2026-08-05): R-clamp seeded targets BEFORE both DB
             # persist and Sierra command. The setup_emitter's clamp only ran
@@ -3424,6 +3466,7 @@ class TradingGateway:
             _e = setup.get("entry_price") or 0.0
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
             t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
+            t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
 
             tm_setup = {
                 "firing_system": system_id,
@@ -3554,21 +3597,15 @@ class TradingGateway:
         if self._trade_manager is not None:
             g1 = extract_g1_entry_context(cross_context)
 
-            t1 = setup.get("t1") or 0.0
-            t2 = setup.get("t2") or 0.0
-            t3 = setup.get("t3") or 0.0
-            if t1 > 0 and t2 > 0 and t3 <= 0:
-                t3 = 2 * t2 - t1
-            if t1 > 0 and t2 <= 0:
-                direction = (setup.get("direction") or "").upper()
-                t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
-                    else t1 - abs(t1 - (setup.get("stop") or t1))
+            # T-06: shared seeding — reads metadata.stop_initial, never t2==t1.
+            t1, t2, t3 = self._seed_runner_targets(setup)
 
             # FIX #633: R-clamp before PLACE (same as _execute_demo)
             _d = (setup.get("direction") or "LONG").upper()
             _e = setup.get("entry_price") or 0.0
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
             t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
+            t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
 
             tm_setup = {
                 "firing_system": system_id,
