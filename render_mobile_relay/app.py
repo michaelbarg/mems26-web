@@ -179,6 +179,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="pats" style="font-size:11.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
 <div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
+<div class="card"><div class="dim">מערכת 6 — פעילות אחרונה</div><div id="s6act" style="font-size:12px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
 <div id="pausedBanner" style="display:none;background:#f85149;color:#fff;text-align:center;padding:10px;border-radius:12px;margin-bottom:10px;font-size:16px;font-weight:800">PAUSED — shadow only</div>
 <button id="pauseBtn" style="width:100%;padding:14px;margin:4px 0;border-radius:12px;border:2px solid #d29922;background:#2d2614;color:#d29922;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer">⏸ השהה מסחר (צל-בלבד)</button>
@@ -327,6 +328,16 @@ async function load(){
     (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
+  // S6 activity panel
+  const S6_HE = {SMART_BE:'סטופ→BE',DROP_TARGET:'יעד הוסר',TARGET_REALISM:'יעד תוקן',TRAIL:'טרייל',STRUCT_TRAIL:'טרייל-מבני',STOP_MOVE:'סטופ הוזז',STOP_AFTER_T2:'סטופ-T2'};
+  const s6 = d.s6_activity||[];
+  document.getElementById('s6act').innerHTML = s6.length? s6.map(e=>{
+   const act = S6_HE[e.action]||e.action;
+   const v = e.value||{};
+   let det = '';
+   if(v.from!=null&&v.to!=null) det = ' '+v.from+'→'+v.to;
+   return '<div class="row"><span>'+e.t+' #'+e.trade_id+' '+e.direction+'</span><span style="color:#58a6ff">'+act+det+'</span></div>';
+  }).join('') : '<span class="dim">אין פעילות S6 ב-24ש האחרונות</span>';
   document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
   document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+d.contracts_cfg+' · רענון-5ש · ☁';
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר לענן — '+e; }

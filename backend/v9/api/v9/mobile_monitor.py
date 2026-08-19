@@ -247,6 +247,23 @@ async def mobile_data(request: Request):
         out["today"] = dict(day[0]) if day else {}
     except Exception as e:
         out["db_err"] = str(e)[:80]
+    # 2026-08-19: S6 activity — last 10 management events (BE moves, trails,
+    # target drops, invariant-driven corrections) for the pocket panel.
+    try:
+        s6_rows = read_all("""
+            SELECT l.trade_id, l.action, l.value,
+                   to_char(l.ts AT TIME ZONE 'Asia/Jerusalem', 'HH24:MI') AS t,
+                   t.direction
+            FROM v9_trade_management_log l
+            JOIN v9_trades t ON t.id = l.trade_id
+            WHERE l.action IN ('SMART_BE', 'DROP_TARGET', 'TARGET_REALISM',
+                              'TRAIL', 'STRUCT_TRAIL', 'STOP_MOVE', 'STOP_AFTER_T2')
+              AND l.ts > now() - interval '24 hours'
+            ORDER BY l.ts DESC LIMIT 10
+        """, {})
+        out["s6_activity"] = [dict(r) for r in s6_rows] if s6_rows else []
+    except Exception:
+        out["s6_activity"] = []
     # 2026-08-19: ביטולי-חוסמים פעילים + הרשימה הניתנת-לביטול (לכפתורי-הדף)
     try:
         from backend.v9.services.gate_overrides import active_overrides, overridable_gates
@@ -598,6 +615,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="pats" style="font-size:11.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
 <div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
+<div class="card"><div class="dim">מערכת 6 — פעילות אחרונה</div><div id="s6act" style="font-size:12px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
 <div id="staleBanner" style="display:none;background:#d29922;color:#000;text-align:center;padding:8px;border-radius:12px;margin-bottom:10px;font-size:14px;font-weight:700">⚠ נתונים ישנים</div>
 <div id="pauseBanner" style="display:none;background:#f85149;color:#fff;text-align:center;padding:10px;border-radius:12px;margin-bottom:10px;font-size:16px;font-weight:800">PAUSED — fires routed to shadow only</div>
@@ -750,6 +768,17 @@ async function load(){
     (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
+  // S6 activity panel
+  const S6_HE = {SMART_BE:'סטופ→BE',DROP_TARGET:'יעד הוסר',TARGET_REALISM:'יעד תוקן',TRAIL:'טרייל',STRUCT_TRAIL:'טרייל-מבני',STOP_MOVE:'סטופ הוזז',STOP_AFTER_T2:'סטופ-T2'};
+  const s6 = d.s6_activity||[];
+  document.getElementById('s6act').innerHTML = s6.length? s6.map(e=>{
+   const act = S6_HE[e.action]||e.action;
+   const v = e.value||{};
+   let det = '';
+   if(v.from!=null&&v.to!=null) det = ' '+v.from+'→'+v.to;
+   else if(v.ts) det = '';
+   return '<div class="row"><span>'+e.t+' #'+e.trade_id+' '+e.direction+'</span><span style="color:#58a6ff">'+act+det+'</span></div>';
+  }).join('') : '<span class="dim">אין פעילות S6 ב-24ש האחרונות</span>';
   document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
   updatePause(!!d.trading_paused);
   // B3: stale-data indicator — compare ts_epoch to client clock
