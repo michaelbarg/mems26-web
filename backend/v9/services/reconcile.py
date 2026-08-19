@@ -45,6 +45,10 @@ _STOP_OK_STATUSES = {
 # A stop confirmation older than this (seconds) is treated as stale for an
 # open position → naked-stop suspect.
 _STOP_STALE_S = 900.0
+# 2026-08-19 (W3 false-alarm fix): a FLATTEN_ACCOUNT_OK younger than this is an
+# intentional close in progress (MAE-scratch / manual flatten) — suppress the
+# naked-stop alarm during the fill-propagation race.
+_FLATTEN_GRACE_S = 120.0
 
 
 @dataclass
@@ -128,6 +132,19 @@ def reconcile_positions(
         v.naked_stop_suspect = False
         return v
 
+    # 2026-08-19 (false-alarm fix): a fresh FLATTEN_ACCOUNT_OK means the position
+    # is being closed ON PURPOSE (MAE-scratch/manual flatten). During that race
+    # window (flatten ACKed, fill not yet propagated) a "naked stop" alarm is
+    # noise — it fired on every scratch on 08-19 (#741/#746, age 0.65-2.26s)
+    # while the FLATTEN command was already acknowledged by Sierra.
+    if (last_result_status == "FLATTEN_ACCOUNT_OK"
+            and last_result_age_s is not None
+            and float(last_result_age_s) <= _FLATTEN_GRACE_S):
+        v.verdict = IN_POSITION_OK
+        v.detail = (f"flatten in progress (FLATTEN_ACCOUNT_OK "
+                    f"{float(last_result_age_s):.1f}s ago) — naked-stop check suppressed")
+        return v
+
     # In position by agreement → naked-stop check
     stop_ok = (last_result_status in _STOP_OK_STATUSES)
     stop_stale = (last_result_age_s is not None and last_result_age_s > _STOP_STALE_S)
@@ -142,7 +159,18 @@ def reconcile_positions(
     return v
 
 
-def _read_last_result():
+def _read_last_result(min_ts=None):
+    """Read trade_result.json → (status, age_s).
+
+    `min_ts` (2026-08-19 W3 false-alarm root-fix): epoch of the CURRENT open
+    position's entry. An attached-OCO stop rests Sierra-side and produces NO
+    new ACKs, so on any quiet trade >15 min the blanket 900s discard turned the
+    file into (None, None) → NAKED_STOP_SUSPECT on every bar (08-19: #738/#744
+    alarmed for minutes with their brackets working). An ACK written at/after
+    this position's entry is still THIS position's truth, however old. The
+    07-15 "yesterday's stale artifact" protection is preserved: anything older
+    than the entry (or when min_ts is unknown) is discarded as before.
+    """
     try:
         import time
         if not RESULT_PATH.exists():
@@ -159,6 +187,10 @@ def _read_last_result():
         # Without this, a 9hr-old MODIFY_STOP_OK survives overnight and feeds
         # a false "confirmed stop" or a noisy NAKED_STOP on a stale ghost.
         if age is not None and age > _STOP_STALE_S:
+            # 120s slack: the entry ACK can be written a moment before the DB row.
+            if (min_ts is not None and ts is not None
+                    and float(ts) >= float(min_ts) - 120.0):
+                return status, age  # stale by clock, but within THIS position's lifetime
             logger.debug("[Reconcile] trade_result.json too old (%.0fs > %.0fs) — discarded",
                          age, _STOP_STALE_S)
             return None, None
@@ -200,7 +232,22 @@ def gather_and_reconcile(gateway=None) -> ReconcileVerdict:
             if pos is not None:
                 tm_in_position = bool(pos)
 
-    status, age = _read_last_result()
+    # 2026-08-19: bound last-result staleness by the open position's lifetime
+    # (see _read_last_result docstring). live/demo only — shadow rows are not
+    # a real position and must not extend the acceptance window.
+    _entry_epoch = None
+    try:
+        if db_open_ids:
+            _r = read_all(
+                "SELECT EXTRACT(EPOCH FROM MIN(entry_ts)) AS ep FROM v9_trades "
+                "WHERE state NOT IN ('CLOSED','closed') AND mode IN ('live','demo') "
+                "AND entry_ts IS NOT NULL", {})
+            if _r and _r[0].get("ep") is not None:
+                _entry_epoch = float(_r[0]["ep"])
+    except Exception:
+        _entry_epoch = None
+
+    status, age = _read_last_result(min_ts=_entry_epoch)
     # 2026-07-27: feed Sierra's OWN net position (hardest truth, ≤10s fresh) so
     # stale internal bookkeeping can never raise a naked-stop alarm on a flat
     # account. Unknown/stale → None → previous behaviour.

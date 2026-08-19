@@ -649,11 +649,18 @@ class BarLevelDetector:
         try:
             from backend.v9.services.reconcile import gather_and_reconcile
             v = gather_and_reconcile(gateway=gw)
-            if getattr(v, "mismatch", False) or getattr(v, "naked_stop_suspect", False):
+            # 2026-08-19 (false-alarm fix): require 2 CONSECUTIVE naked verdicts
+            # before CRITICAL + phone (same discipline as PROTECTED_QTY_GUARD_V1).
+            # A single-check naked verdict during a transient (scratch-flatten
+            # race, ACK rollover) alarmed Michael on protected trades all evening.
+            _naked = bool(getattr(v, "naked_stop_suspect", False))
+            self._naked_streak = (getattr(self, "_naked_streak", 0) + 1) if _naked else 0
+            _naked_confirmed = _naked and self._naked_streak >= 2
+            if getattr(v, "mismatch", False) or _naked_confirmed:
                 logger.critical("[Reconcile-live] %s — %s", v.verdict, getattr(v, "detail", ""))
                 # W3 (2026-07-25): immediate phone escalation — not just a log line.
                 # A naked stop is a live-risk event (position without protection).
-                if getattr(v, "naked_stop_suspect", False):
+                if _naked_confirmed:
                     try:
                         from backend.v9.services.phone_alert import push as _pp
                         _pp("naked_stop_reconcile",
@@ -662,6 +669,10 @@ class BarLevelDetector:
                             priority=1)
                     except Exception:
                         pass
+            elif _naked:
+                logger.warning("[Reconcile-live] NAKED_STOP_SUSPECT 1/2 — pending "
+                               "second consecutive check before alarm (%s)",
+                               getattr(v, "detail", ""))
             return v
         except Exception as _rc_err:  # never let reconcile break trade management
             logger.warning("[BarLevelDetector] reconcile-live error (fail-safe skip): %s", _rc_err)
