@@ -140,10 +140,20 @@ def compute_v2_sizing(
             _cut = 2
         else:
             _cut = contracts
+        # SIZE_CAP_FLOOR_CONTRACTS (Michael 2026-08-19: "במקום 1 עם אותה תקרה
+        # תעשה 2 או 3 חוזים"): the cut may reduce size but never below this floor.
+        try:
+            _floor = int(_fc_os.environ.get("SIZE_CAP_FLOOR_CONTRACTS", "2"))
+        except (TypeError, ValueError):
+            _floor = 2
+        _cut = max(_cut, _floor)
+        # Never exceed the original request (the floor lifts, never inflates)
+        _cut = min(_cut, contracts)
         if _cut < contracts:
             logger.info(
-                "[V2Sizing] SIZE_CAP_CUT: risk %.1fpt > cap %.1fpt → contracts %d→%d",
-                risk_pts, cap_risk_points, contracts, _cut)
+                "[V2Sizing] SIZE_CAP_CUT: risk %.1fpt > cap %.1fpt → contracts %d→%d"
+                " (floor=%d)",
+                risk_pts, cap_risk_points, contracts, _cut, _floor)
             contracts = _cut
 
     # ── T1 price ──

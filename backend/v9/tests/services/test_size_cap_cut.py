@@ -22,7 +22,8 @@ CFG = load_stop_anchors()
 
 
 def _size(entry, stop, cap_pts, **env):
-    for k in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "SIZE_CAP_CUT_V1"):
+    for k in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "SIZE_CAP_CUT_V1",
+              "SIZE_CAP_FLOOR_CONTRACTS"):
         os.environ.pop(k, None)
     os.environ.update(env)
     try:
@@ -34,7 +35,8 @@ def _size(entry, stop, cap_pts, **env):
             cap_risk_points=cap_pts)
         return r.contracts if r else None
     finally:
-        for k in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "SIZE_CAP_CUT_V1"):
+        for k in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "SIZE_CAP_CUT_V1",
+                  "SIZE_CAP_FLOOR_CONTRACTS"):
             os.environ.pop(k, None)
 
 
@@ -44,10 +46,11 @@ def test_cut_to_two_above_cap():
     assert c == 2, f"12.5pt > cap 9.45 must cut 3→2, got {c}"  # old code: 3
 
 
-# 2 — beyond 1.5×cap → 1 contract.
+# 2 — beyond 1.5×cap: was 1 before floor, now 2 (floor default).
+# Michael 2026-08-19: "במקום 1 עם אותה תקרה תעשה 2 או 3 חוזים".
 def test_cut_to_one_far_beyond_cap():
     c = _size(7500.0, 7485.0, 9.45, FIXED_CONTRACTS_3="1", SIZE_CAP_CUT_V1="1")
-    assert c == 1, c  # 15pt > 1.5×9.45=14.2
+    assert c == 2, f"floor=2 (default) prevents cut to 1, got {c}"  # 15pt > 1.5×9.45=14.2
 
 
 # 3 — inside the cap: fixed 3 untouched.
@@ -66,6 +69,40 @@ def test_flag_off_unchanged():
 def test_missing_cap_no_cut():
     c = _size(7500.0, 7487.5, None, FIXED_CONTRACTS_3="1", SIZE_CAP_CUT_V1="1")
     assert c == 3, c
+
+
+# ── SIZE_CAP_FLOOR_CONTRACTS (Michael 2026-08-19) ──
+
+# 6 — 15pt > 1.5×9.45 used to cut to 1; floor=2 lifts it to 2.
+def test_floor_lifts_one_to_two():
+    c = _size(7500.0, 7485.0, 9.45, FIXED_CONTRACTS_3="1", SIZE_CAP_CUT_V1="1",
+              SIZE_CAP_FLOOR_CONTRACTS="2")
+    assert c == 2, f"floor=2 must lift 1→2, got {c}"
+
+
+# 7 — floor=3: far-beyond-cap → 3 instead of 1.
+def test_floor_three():
+    c = _size(7500.0, 7485.0, 9.45, FIXED_CONTRACTS_3="1", SIZE_CAP_CUT_V1="1",
+              SIZE_CAP_FLOOR_CONTRACTS="3")
+    assert c == 3, f"floor=3 must keep 3, got {c}"
+
+
+# 8 — floor does NOT inflate below-floor original size.
+#     If requested is 2 (via FIXED_CONTRACTS_2), floor=2 must NOT push to 3.
+def test_floor_does_not_inflate():
+    c = _size(7500.0, 7485.0, 9.45, FIXED_CONTRACTS_2="1", SIZE_CAP_CUT_V1="1",
+              SIZE_CAP_FLOOR_CONTRACTS="3")
+    # Original request is 2; floor=3 would try to lift, but min(cut, contracts)
+    # prevents inflation. The cut-with-floor = max(1, 3) = 3, then
+    # min(3, 2) = 2. Original 2 contracts, untouched.
+    assert c == 2, f"floor must not inflate 2→3, got {c}"
+
+
+# 9 — inside-cap: floor is irrelevant, contracts stay at requested.
+def test_floor_irrelevant_inside_cap():
+    c = _size(7500.0, 7493.0, 9.45, FIXED_CONTRACTS_3="1", SIZE_CAP_CUT_V1="1",
+              SIZE_CAP_FLOOR_CONTRACTS="2")
+    assert c == 3, f"inside cap, floor is a no-op, got {c}"
 
 
 if __name__ == "__main__":
