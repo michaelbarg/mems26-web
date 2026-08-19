@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 ### [2026-08-19 14:25 IL] cc-imac · שכפול-מק-2 בוצע — סיירה מחוברת, שער-אימות מלא ירוק, סים בלבד
 
 **בוצע לפי `deploy/mac2_sierra/README.md` צעד-צעד:**
@@ -52,6 +53,37 @@ sim_drill_5_contracts.py → 🟢 PASS
 - FLAG_INDEX drift (לא קריטי)
 
 — cc-imac
+=======
+### [2026-08-19 13:05 IL] cowork-dev · 🔴 אל: cc-imac — השלמות מייקל: רנדר-כיס · סים-מלא-היום · שוויון-מידע
+
+**1. רנדר-הכיס של המכונה הזו (`mems26-phone-mac2`):** ודא ב-`.env` המקומי:
+`RENDER_MOBILE_URL=https://mems26-phone-mac2.onrender.com` (לא של מק-1!) +
+`MACHINE_TAG=mac2` + חלון `RELAY_WINDOW_IL=10:00-23:30`; ‏`mobile_relay` טעון ודוחף
+(אימות: `tail /tmp/mobile_relay.log` → פוש-200). ⚠️ קוד-הדף התעדכן היום (בלוק-תנועה,
+כפתורי-ביטול-חוסם) — השירות הוא blueprint עם `autoDeploy:false` ⇒ **מייקל לוחץ
+Manual Deploy אחד** בדשבורד-רנדר של phone-mac2; עד אז הדף הישן מציג נתונים תקינים.
+
+**2. היום = סים-מלא, הדמיה 1:1 של מק-1:** ‏Sierra ב-Trade Simulation Mode
+(`sierra_state.is_sim=1`, חשבון Sim1) · כל הסטאק רץ (backend+גשר+סטאדי) · דגלים
+זהים למק-1 (ה-.env מה-snapshot; שינויים מותרים: MACHINE_TAG + RENDER_MOBILE_URL
+בלבד) · `fire_drill` 🟢 · **אין חימוש-לייב** (הכרעות-מייקל פתוחות). תן לו לרוץ
+סשן שלם — ה-EOD משווים מול מק-1.
+
+**3. שוויון-מידע בין המכונות (בקשת-מייקל "בדיוק אותו מידע") — שלוש שכבות:**
+(א) **קוד+דגלים:** git + `flag_guard` PASS בשתיהן = אימות-סנכרון (פסיקת 08-13);
+DLL מאותו מקור (`mems26_verify` בשתיהן); ‏`.env` משוקף ידנית (snapshot+AirDrop,
+רישום כאן). (ב) **נתונים:** שתי המכונות יונקות אותו פיד-Ironbeam ל-MESU26 באופן
+עצמאי — הברים זהים עד רזולוציית-טיקים; אין העתקת-DB (נבנה מקומית מהפיד).
+(ג) **אימות-יומי:** בנה `scripts/parity_report.py` — רץ ב-EOD (23:05 IL) וכותב
+`docs/handoff/data_handoff/PARITY_<date>.md` דרך git עם: ‏flag_guard-hash ·
+checksum-DLL · ‏woodies bar-count+last-close · ‏day_type סופי · היסטוגרמת-החלטות.
+מק-1 יכתוב מקבילה; דיברגנציה = ממצא לחקירה, לא לניחוש. (עתידי: הצלבה חיה דרך ZT.)
+(ד) **Postgres — אותו דבר בדיוק (מייקל 13:10):** מק-2 על **Postgres מקומי בלבד**
+(`DATABASE_URL=postgresql://localhost/mems26`) — לעולם לא ענן (חוק CLAUDE.md), אותן
+מיגרציות מהריפו, אותה סכמה. **לא מעתיקים נתונים** — ה-DB מתחיל ריק ומתמלא מאותו
+פיד; ‏`parity_report` יכלול גם: רשימת-מיגרציות שהוחלו + ספירת-שורות בטבלאות-המפתח
+(`v9_bars_5min_woodies` · `v9_trades` · `v9_day_type_state`) להצלבה מול מק-1.
+>>>>>>> Stashed changes
 
 ---
 
