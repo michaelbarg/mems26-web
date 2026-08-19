@@ -187,7 +187,10 @@ trend_direction_gate:'כיוון-מגמה',reactive_location:'מיקום ריא�
 daytype_position_gate:'משפחה×סוג-יום',cont_trend_filter:'המשך-עם-מגמה',direction_context:'הקשר-כיוון',
 lsma_flat:'LSMA שטוח',news_blackout:'חלון-חדשות',day_direction_doctrine:'דוקטרינת-כיוון',
 entry_not_confirmed:'אין אישור-כניסה',t1_wrong_side:'T1 בצד שגוי',rr_entry_gate:'שער R:R',
-daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה'};
+daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה',
+cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים בצד-שגוי',rr_hard_floor:'רצפת R:R',awaiting_release:'ממתין לשחרור-אזור',extreme_chase_guard:'רדיפת-קיצון',
+drive_exhaustion_veto:'תשישות-דרייב',pattern_stop_cooldown:'צינון אחרי-סטופ',zone_limit_late_entry:'איחור לאזור',strict_risk:'בדיקת-סיכון-לייב',
+pre_send_entry_guard:'שומר קדם-שיגור (פוזיציה-עומדת)',margin_zero_size:'אין מרג׳ין',live_slot_occupied:'עסקה-חיה פתוחה',place_refused:'PLACE נדחה'};
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
@@ -246,6 +249,7 @@ async function load(){
    ge.innerHTML = L.blocked_by? '⛔ '+t+' '+(L.pattern||'?')+' '+(L.direction||'')+' נחסם — <b>'+(GATE_HE[L.blocked_by]||L.blocked_by)+'</b>'
     : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
+   if(!L.blocked_by && L.live_blocked_by) ge.innerHTML += '<div style="color:#f0883e;font-size:11px">⛔ הלייב לא-שוגר: <b>'+(GATE_HE[L.live_blocked_by]||L.live_blocked_by)+'</b>'+(L.live_block_reason?' — '+String(L.live_block_reason).replace(/</g,'&lt;').slice(0,70):'')+'</div>';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט</span>'; document.getElementById('gmeta').textContent=''; }
   const ST_HE = {ready:['מוכן לירי','#3fb950'],armed:['חמוש','#3fb950'],fired:['ירה היום','#58a6ff'],
@@ -269,11 +273,31 @@ async function load(){
   posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
   posEl.className = 'big ' + (q===0?'':'pulse');
   document.getElementById('posdet').textContent = q!==0? ('ממוצע '+s.avg_price+' · '+s.working_orders+' הוראות-הגנה') : ('עין-מצב '+(s._age_s??'?')+'ש');
+  // 2026-08-19 (Michael): the cloud page showed levels only — now the same
+  // per-contract bars + movement block the local page has.
   const a = d.active||[];
-  document.getElementById('active').innerHTML = a.length? a.map(t=>
-   `<div class="row"><span>#${t.id} ${t.direction} ×${t.contracts} ${t.pattern||''} @${t.entry_price} <span class="dim">${t.t_in}</span></span>`+
-   `<span class="${(t.upnl_usd||0)>=0?'green':'red'}">${t.upnl_usd!=null? (t.upnl_usd>=0?'+':'')+t.upnl_usd+'$':''}</span></div>`+
-   `<div class="dim">סטופ ${t.stop??'—'} · T0 ${t.t0??'—'} · T1 ${t.t1??'—'} · T2 ${t.t2??'—'} · T3 ${t.t3??'—'}</div>`).join('')
+  document.getElementById('active').innerHTML = a.length? a.map(t=>{
+   const legs=t.legs||[]; const SC={'OPEN':'#d29922','HIT_TARGET':'#3fb950','HIT_STOP':'#f85149'};
+   const SL={'OPEN':'פתוח','HIT_TARGET':'✓ מילוי','HIT_STOP':'✗ סטופ'};
+   const rows=legs.map(c=>{
+    let bar='';
+    if(c.status==='OPEN'&&c.pct!=null){const w=Math.min(Math.abs(c.pct),100);
+     bar=`<div style="background:#21262d;border-radius:3px;height:5px;margin:2px 0"><div style="background:${c.pct>=0?'#3fb950':'#f85149'};width:${w}%;height:100%;border-radius:3px"></div></div>`;}
+    return `<div style="border-bottom:1px solid #1c2330;padding:2px 0"><div class="row">`+
+     `<span class="dim" style="width:22px">${c.id}</span><span style="font-family:monospace;font-size:11px">${c.target?c.target.toFixed(2):'—'}</span>`+
+     `<span style="font-size:10px;color:${SC[c.status]||'#8b949e'}">${SL[c.status]||c.status}${c.be?' ⇄BE':''}</span>`+
+     `<span class="${c.pnl>=0?'green':'red'}" style="font-family:monospace;font-size:11px">${c.pnl>=0?'+':''}${c.pnl}$</span>`+
+     `<span style="font-size:10.5px" class="${(c.pct||0)>=0?'green':'red'}">${c.pct!=null?(c.pct>0?'+':'')+c.pct+'%':''}</span></div>${bar}</div>`;
+   }).join('');
+   const mv=t.move_pts!=null?`<div class="row" style="font-size:11.5px"><span class="dim">תזוזה</span><span class="${t.move_pts>=0?'green':'red'}">${t.move_pts>0?'+':''}${t.move_pts} נק׳${t.mae_pts!=null?' · הכי-נגד '+t.mae_pts:''}${t.mfe_pts!=null?' · הכי-בעד '+t.mfe_pts:''}</span></div>`:'';
+   const sp=t.stop_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">מהדרך לסטופ</span><span class="${t.stop_pct>=50?'red':'dim'}" style="font-weight:700">${Math.max(t.stop_pct,0)}%</span></div>`:'';
+   const nt=t.next_target_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">ליעד הבא ${t.next_target??''}</span><span class="${t.next_target_pct>=0?'green':'red'}" style="font-weight:700">${t.next_target_pct>0?'+':''}${t.next_target_pct}%</span></div>`:'';
+   const tp=t.total_pnl??t.upnl_usd;
+   return `<div class="row"><span>#${t.id} ${t.direction} ×${legs.length||t.contracts} ${t.pattern||''} @${t.entry_price} <span class="dim">${t.t_in}</span></span>`+
+    `<span class="${(tp||0)>=0?'green':'red'}" style="font-weight:800">${tp!=null?(tp>=0?'+':'')+tp+'$':''}</span></div>`+
+    `<div class="dim" style="font-size:11px">סטופ ${t.stop??'—'} · ${t.summary||''}</div>`+mv+sp+nt+
+    (rows?`<div style="margin-top:4px">${rows}</div>`:`<div class="dim">T0 ${t.t0??'—'} · T1 ${t.t1??'—'} · T2 ${t.t2??'—'} · T3 ${t.t3??'—'}</div>`);
+  }).join('<div style="height:8px"></div>')
    : '<span class="dim">אין עסקה פעילה</span>';
   const td = d.today||{}; const pnl = td.pnl??0;
   const de = document.getElementById('daypnl');

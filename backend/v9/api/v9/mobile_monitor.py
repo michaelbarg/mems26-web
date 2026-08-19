@@ -212,6 +212,30 @@ async def mobile_data(request: Request):
                                       100), -100)
                         r["progress"][tgt] = {"target": float(tv), "pct": pct}
 
+            # 2026-08-19 (Michael: "אחוז של כל הגעה ליעד או סטופ ותזוזה של
+            # עסקה"): one glance-block per trade — signed movement in points,
+            # % of the risk consumed toward the STOP, % of the way to the NEXT
+            # unhit target, and Sierra's own worst/best excursion.
+            if mid and _entry:
+                r["move_pts"] = round(_mul * (mid - _entry), 2)
+                if _stop and abs(_entry - _stop) > 0:
+                    _tw = _mul * (_entry - mid) / abs(_entry - _stop) * 100.0
+                    r["stop_pct"] = max(min(round(_tw, 0), 100), -100)
+                _next = next((float(_lvl[_g]) for _g in range(4)
+                              if _lvl[_g] and not _lvl_hit[_g]), None)
+                if _next and abs(_next - _entry) > 0:
+                    r["next_target"] = _next
+                    r["next_target_pct"] = max(min(round(
+                        _mul * (mid - _entry) / abs(_next - _entry) * 100, 0),
+                        100), -100)
+                _hi = sierra.get("high_during_pos")
+                _lo = sierra.get("low_during_pos")
+                if (isinstance(_hi, (int, float)) and isinstance(_lo, (int, float))
+                        and abs(_hi) < 1e15 and abs(_lo) < 1e15
+                        and (sierra.get("position_qty") or 0) != 0):
+                    r["mfe_pts"] = round((_hi - _entry) if _is_long else (_entry - _lo), 2)
+                    r["mae_pts"] = round((_entry - _lo) if _is_long else (_hi - _entry), 2)
+
             acts.append(r)
         out["active"] = acts
         day = read_all("""
@@ -554,7 +578,9 @@ trend_direction_gate:'כיוון-מגמה',reactive_location:'מיקום ריא�
 daytype_position_gate:'משפחה×סוג-יום',cont_trend_filter:'המשך-עם-מגמה',direction_context:'הקשר-כיוון',
 lsma_flat:'LSMA שטוח',news_blackout:'חלון-חדשות',day_direction_doctrine:'דוקטרינת-כיוון',
 entry_not_confirmed:'אין אישור-כניסה',t1_wrong_side:'T1 בצד שגוי',rr_entry_gate:'שער R:R',
-daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה',cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים בצד-שגוי',rr_hard_floor:'רצפת R:R'};
+daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה',cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים בצד-שגוי',rr_hard_floor:'רצפת R:R',
+awaiting_release:'ממתין לשחרור-אזור',extreme_chase_guard:'רדיפת-קיצון',drive_exhaustion_veto:'תשישות-דרייב',pattern_stop_cooldown:'צינון אחרי-סטופ',zone_limit_late_entry:'איחור לאזור',
+strict_risk:'בדיקת-סיכון-לייב',pre_send_entry_guard:'שומר קדם-שיגור (פוזיציה-עומדת)',margin_zero_size:'אין מרג׳ין',live_slot_occupied:'עסקה-חיה פתוחה',place_refused:'PLACE נדחה'};
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
@@ -594,6 +620,7 @@ async function load(){
    ge.innerHTML = L.blocked_by? '⛔ '+t+' '+(L.pattern||'?')+' '+(L.direction||'')+' נחסם — <b>'+(GATE_HE[L.blocked_by]||L.blocked_by)+'</b>'
     : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
+   if(!L.blocked_by && L.live_blocked_by) ge.innerHTML += '<div style="color:#f0883e;font-size:11px">⛔ הלייב לא-שוגר: <b>'+(GATE_HE[L.live_blocked_by]||L.live_blocked_by)+'</b>'+(L.live_block_reason?' — '+String(L.live_block_reason).replace(/</g,'&lt;').slice(0,70):'')+'</div>';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט — ראה פאנל-תבניות</span>'; document.getElementById('gmeta').textContent=''; }
   const ST_HE = {ready:['מוכן לירי','#3fb950'],armed:['חמוש','#3fb950'],fired:['ירה היום','#58a6ff'],
@@ -656,6 +683,9 @@ async function load(){
    `<div class="row"><span style="font-weight:700">#${t.id} ${t.direction} ×${legs.length||t.contracts} ${t.pattern_id_at_entry||t.pattern||''}</span>`+
    `<span class="${tPnl>=0?'green':'red'}" style="font-size:18px;font-weight:800">${tPnl>=0?'+':''}${tPnl.toFixed(0)}$ <span class="dim" style="font-size:11px">${tR.toFixed(1)}R</span></span></div>`+
    `<div class="dim">כניסה ${t.entry_price} · סטופ ${t.stop??'—'} ${vIcon('stop')} · ${t.t_in} · S${t.firing_system||'?'}</div>`+
+   (t.move_pts!=null?`<div class="row" style="font-size:11.5px;margin-top:3px"><span class="dim">תזוזה</span><span class="${t.move_pts>=0?'green':'red'}">${t.move_pts>0?'+':''}${t.move_pts} נק׳${t.mae_pts!=null?' · הכי-נגד '+t.mae_pts:''}${t.mfe_pts!=null?' · הכי-בעד '+t.mfe_pts:''}</span></div>`:'')+
+   (t.stop_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">מהדרך לסטופ</span><span class="${t.stop_pct>=50?'red':'dim'}" style="font-weight:700">${Math.max(t.stop_pct,0)}%</span></div>`:'')+
+   (t.next_target_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">ליעד הבא ${t.next_target??''}</span><span class="${t.next_target_pct>=0?'green':'red'}" style="font-weight:700">${t.next_target_pct>0?'+':''}${t.next_target_pct}%</span></div>`:'')+
    (legs.length?`<div style="margin-top:6px">${legs.map(legRow).join('')}</div>`:
    `<div style="font-size:11px;margin-top:4px">`+
    `<div class="row"><span>T1 ${t.t1??'—'} ${vIcon('t1')}</span><span>T2 ${t.t2??'—'} ${vIcon('t2')}</span><span>T3 ${t.t3??'—'} ${vIcon('t3')}</span></div></div>`)+
