@@ -198,6 +198,7 @@ daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת
 cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים בצד-שגוי',rr_hard_floor:'רצפת R:R',awaiting_release:'ממתין לשחרור-אזור',extreme_chase_guard:'רדיפת-קיצון',
 drive_exhaustion_veto:'תשישות-דרייב',pattern_stop_cooldown:'צינון אחרי-סטופ',zone_limit_late_entry:'איחור לאזור',strict_risk:'בדיקת-סיכון-לייב',
 pre_send_entry_guard:'שומר קדם-שיגור (פוזיציה-עומדת)',margin_zero_size:'אין מרג׳ין',live_slot_occupied:'עסקה-חיה פתוחה',place_refused:'PLACE נדחה'};
+const GATE_WHY={lsma_flat:'אין שיפוע-מגמה (LSMA שטוח) — כניסות-המשך חלשות; רגל-חיה עוקפת',extreme_chase_guard:'הכניסה רודפת קיצון-סשן טרי — סיכון-היפוך; רגל-חיה עוקפת',awaiting_release:'המחיר עוד באזור-הקיצון — מחכים לשחרור מבני (שפלים-עולים + נפח מתייבש)',daytype_playbook:'סוג-היום לא מרשה את משפחת-התבנית הזו',cont_trend_filter:'כניסת-המשך בלי מגמה מבוססת דיה',direction_context:'הכיוון מנוגד ל-bias של היום',rr_entry_gate:'סיכוי/סיכון לרוטציה מתחת 0.65',rr_hard_floor:'R:R מתחת לרצפה 0.3',pattern_stop_cooldown:'אותה תבנית נעצרה בסטופ ב-30 הדק׳ האחרונות',location_gate:'מיקום-הכניסה לא מתאים לסוג-היום (דלתון)',entry_not_confirmed:'אין בר-אישור בכיוון אחרי האיתות',cold_start_guard:'המערכת עלתה הרגע — ממתינה ל-3 ברים',eod_entry_cutoff:'45 דק׳ אחרונות — אין כניסות חדשות',daily_loss_halt:'הפסד-יומי ממומש מעל התקרה — נעצר יום',pre_send_entry_guard:'החשבון מחזיק פוזיציה שלא-בספרים — לא יורים מעליה',margin_zero_size:'אין מרג׳ין פנוי אפילו לחוזה אחד',live_slot_occupied:'עסקה חיה פתוחה — אחת בכל רגע',strict_risk:'בדיקת-סיכון-לייב (שעת-חיתוך/תקרות) עצרה'};
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
@@ -272,7 +273,8 @@ async function load(){
    if(p.last){
     const t = p.last.ts? new Date(p.last.ts).toTimeString().slice(0,5) : '';
     const _ob = p.last.blocked_by && (d.gate_overridable||[]).includes(p.last.blocked_by)? ' <a href="#" onclick="gateOv(\\''+p.last.blocked_by+'\\',false);return false" style="color:#d29922">🔓 בטל</a>':'';
-    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+_ob+'</div>'
+    const _why = p.last.blocked_by && GATE_WHY[p.last.blocked_by]? '<div class="dim" style="font-size:10px;padding-right:12px">↳ '+GATE_WHY[p.last.blocked_by]+'</div>':'';
+    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+_ob+'</div>'+_why
      : (p.last.outcome==='live'||p.last.outcome==='demo')? '<div class="green" style="font-size:10.5px">🔫 '+t+' ירה'+(p.last.trade_id?' #'+p.last.trade_id:'')+'</div>'
      : '<div class="dim" style="font-size:10.5px">👁 '+t+' עבר-שערים · צל</div>';
    } else if(p.reason && p.status!=='ready' && p.status!=='fired'){
