@@ -4,88 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-18 08:38 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-18 21:03 ET
 events:
-  - date: 2026-08-18
-    time_et: "08:15"
-    name: "ADP Employment Change Weekly"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "NY Fed Services Activity Index"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Housing Starts MoM"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Housing Starts"
-    severity: red
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Import Prices MoM"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Building Permits Prel"
-    severity: red
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Import Prices YoY"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Building Permits MoM Prel"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Export Prices MoM"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "08:30"
-    name: "Export Prices YoY"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "08:55"
-    name: "Redbook YoY"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "09:15"
-    name: "Industrial Production MoM"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "09:15"
-    name: "Manufacturing Production MoM"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "09:15"
-    name: "Manufacturing Production YoY"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "09:15"
-    name: "Capacity Utilization"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "09:15"
-    name: "Industrial Production YoY"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "10:00"
-    name: "Pending Home Sales MoM"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "10:00"
-    name: "Pending Home Sales YoY"
-    severity: orange
-  - date: 2026-08-18
-    time_et: "11:30"
-    name: "6-Week Bill Auction"
-    severity: yellow
-  - date: 2026-08-18
-    time_et: "16:30"
-    name: "API Crude Oil Stock Change"
-    severity: orange
   - date: 2026-08-19
     time_et: "07:00"
     name: "MBA Purchase Index"
@@ -254,3 +174,79 @@ events:
     time_et: "11:30"
     name: "3-Month Bill Auction"
     severity: yellow
+  - date: 2026-08-25
+    time_et: "08:00"
+    name: "Building Permits Final"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "08:00"
+    name: "Building Permits MoM Final"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "08:15"
+    name: "ADP Employment Change Weekly"
+    severity: orange
+  - date: 2026-08-25
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "House Price Index MoM"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "House Price Index"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "House Price Index YoY"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "S&P/Case-Shiller Home Price YoY"
+    severity: orange
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "S&P/Case-Shiller Home Price MoM"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "Richmond Fed Manufacturing Shipments Index"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "Richmond Fed Manufacturing Index"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "Richmond Fed Services Revenues Index"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "New Home Sales"
+    severity: orange
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "New Home Sales MoM"
+    severity: orange
+  - date: 2026-08-25
+    time_et: "10:00"
+    name: "CB Consumer Confidence"
+    severity: orange
+  - date: 2026-08-25
+    time_et: "11:30"
+    name: "6-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "13:00"
+    name: "Money Supply"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "13:00"
+    name: "2-Year Note Auction"
+    severity: yellow
+  - date: 2026-08-25
+    time_et: "16:30"
+    name: "API Crude Oil Stock Change"
+    severity: orange

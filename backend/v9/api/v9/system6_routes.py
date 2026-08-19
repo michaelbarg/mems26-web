@@ -17,15 +17,10 @@ router = APIRouter(prefix="/api/v9/system6", tags=["system6"])
 
 
 def _ct_resolve() -> int:
-    """Resolve expected contract count from flags (same precedence as trade_contract_count)."""
-    import os
-    if os.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
-        return 4
-    if os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
-        return 2
-    if os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
-        return 3
-    return 3
+    """Expected contract count — the ONE resolver (2026-08-19). This used to
+    inline a 4/2/3 ladder that returned 4 while the ruling was 5, then 6."""
+    from backend.v9.services.contract_size import ruled_contracts
+    return ruled_contracts() or 3
 
 
 def _atr(bars):
@@ -64,11 +59,8 @@ async def diagnose(request: Request):
     entry = float(tr["entry_price"]) if tr["entry_price"] is not None else None
     stop = float(tr["stop"]) if tr["stop"] is not None else None
     t1_hit = tr["t1_hit_ts"] is not None
-    import os as _ctos
-    _ct = (4 if _ctos.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes")
-           else 2 if _ctos.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
-           else 3 if _ctos.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes")
-           else 3)
+    from backend.v9.services.contract_size import ruled_contracts as _rc19
+    _ct = _rc19() or 3
     out["trade"] = {"id": tr["id"], "direction": direction, "entry": entry,
                     "stop": stop, "t1_hit": t1_hit, "contracts": _ct}
 

@@ -64,9 +64,12 @@ def test_without_flags_3pair_unchanged(monkeypatch, tmp_path):
     assert "t0" not in s
 
 
-def test_t1setup_schema_accepts_4_contracts():
+def test_t1setup_schema_accepts_the_ruled_size():
     """S-10 (07-15): le=3 in T1Setup swallowed every live 4c S2 fire silently.
-    The schema must accept sizing_contracts=4 (and still reject 5)."""
+    The cap has since moved with the ruling — 4 (07-15) → 6 (Michael 08-19,
+    same failure class: on 18.08 le=4 killed every S2 fire with a silent
+    'non-fatal' ValidationError while FIXED_CONTRACTS_5 was set). The schema
+    must accept the ruled size and reject one above the cap."""
     import pytest as _pt
     from datetime import datetime, timezone
     from backend.v9.systems.five_min.output_schema import T1Setup
@@ -76,7 +79,7 @@ def test_t1setup_schema_accepts_4_contracts():
         t1_price=7596.0, t2_price=7592.0, t3_price=7588.0,
         confidence=90, bar_index=10, fired_at=datetime.now(timezone.utc),
     )
-    s = T1Setup(**base, sizing_contracts=4)   # the 07-15 killer — must validate
-    assert s.sizing_contracts == 4
+    for n in (4, 5, 6):                       # every size up to the 08-19 cap
+        assert T1Setup(**base, sizing_contracts=n).sizing_contracts == n
     with _pt.raises(Exception):
-        T1Setup(**base, sizing_contracts=5)   # cap still enforced
+        T1Setup(**base, sizing_contracts=7)   # cap still enforced, one above

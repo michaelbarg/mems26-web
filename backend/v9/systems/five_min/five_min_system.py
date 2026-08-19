@@ -1512,8 +1512,10 @@ class FiveMinSystem(BaseV9TradingSystem):
                                         continue
                                     self._ef_fired.add(_ef_side)
                                     del self._ef_armed[_ef_side]
-                                    _ef_n = 3 if os.getenv("FIXED_CONTRACTS_3", "0") == "1" \
-                                        else (4 if os.getenv("FIXED_CONTRACTS_4", "0") == "1" else 1)
+                                    # ONE resolver (2026-08-19): was a 3/4/1 ladder
+                                    # that shipped 4 while the ruling was 6.
+                                    from backend.v9.services.contract_size import ruled_contracts as _rc19
+                                    _ef_n = _rc19() or 1
                                     _ef_setup = build_release_entry_setup(
                                         _ef_tg["direction"],
                                         float(_ef_rows[-1]["c"]),

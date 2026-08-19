@@ -46,7 +46,7 @@ class T1Setup(BaseModel):
 
     # Quality metadata (filled by Wave 2 wiring)
     quality_tier: Literal['HIGH', 'MEDIUM', 'LOW'] = 'MEDIUM'
-    sizing_contracts: int = Field(ge=0, le=4, default=2)
+    sizing_contracts: int = Field(ge=0, le=6, default=2)  # 2026-08-19: le 4→6. FIXED_CONTRACTS_6 ruled; the old le=4 silently killed every S2 fire with a ValidationError ("non-fatal") on 18.08 while FIXED_CONTRACTS_5 was set.
 
     # Provisional flag — True when Layer 3 cluster/empty-zone not yet integrated
     provisional: bool = True
