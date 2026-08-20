@@ -110,18 +110,40 @@ def check_live_entry(direction: Optional[str], contracts: int) -> Tuple[bool, st
         warns.append("Sierra is in SIM mode (is_sim=1) — a live-mode order routes to sim")
 
     if pos != 0:
-        return False, (
-            f"standing position {pos:+d} on the account at fire time (live slot was "
-            "free → not TM-managed). Sierra's recipe rejects opposite entries "
-            "(AllowOppositeEntryWithOpposingPositionOrOrders=0) and stacking onto a "
-            "foreign/manual position is the 07-24 class — blocked pre-send"
-        ), warns
+        # Michael ruling 2026-08-21: "אין יותר מסחר ידני" — the account belongs
+        # to the system exclusively. A position not in the books is NO LONGER
+        # "Michael's manual trade" — it is an orphan / missed fill / anomaly.
+        # Escalate via phone alert so it gets investigated.
+        _reason = (
+            f"UNMANAGED POSITION {pos:+d} on the account (live slot was free → not "
+            "TM-managed). No manual trading (ruling 2026-08-21) → this is an "
+            "anomaly (orphan/missed-fill). Investigate. Blocked pre-send"
+        )
+        try:
+            from backend.v9.services.phone_alert import push as _eg_push
+            _eg_push("entry_guard_unmanaged",
+                     "\U0001f534 MEMS26: פוזיציה לא-מנוהלת",
+                     f"pos={pos:+d} על החשבון, לא בספרים — אורפן/fill-שאבד. "
+                     f"ירי-לייב חסום. לחקור.",
+                     priority=1)
+        except Exception:
+            pass
+        return False, _reason, warns
 
     if working > 0:
-        return False, (
-            f"{working} working order(s) on a FLAT account — stray brackets/manual "
-            "orders present; a system entry over them mixes books — blocked pre-send"
-        ), warns
+        _reason = (
+            f"{working} working order(s) on a FLAT account — stray brackets present "
+            "(no manual trading per ruling 2026-08-21 → anomaly). Blocked pre-send"
+        )
+        try:
+            from backend.v9.services.phone_alert import push as _eg_push
+            _eg_push("entry_guard_stray_orders",
+                     "\U0001f534 MEMS26: הוראות-עבודה תקועות",
+                     f"{working} הוראות על חשבון שטוח — אורפן. ירי-לייב חסום.",
+                     priority=1)
+        except Exception:
+            pass
+        return False, _reason, warns
 
     # Flat + no working orders: the recipe cap can only bind via |0 + n| > 10.
     if contracts > MAX_POSITION_ALLOWED:
