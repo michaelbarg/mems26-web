@@ -1746,6 +1746,43 @@ class TradingGateway:
             except Exception as _lf_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] lsma-flat gate errored (fail-open): %s", _lf_err)
 
+        # --- A6 · DAYTYPE_ENTRY_BUDGET_V1 (Michael 2026-08-20): per-day-type
+        # entry cap from config/daytype_entry_budget.yaml. Counts today's NON-
+        # scale-in live entries and blocks when the budget is exhausted. Flag OFF
+        # → skipped (byte-identical). UNKNOWN/FORMING → unlimited. Fail-open.
+        if os.getenv("DAYTYPE_ENTRY_BUDGET_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.config_loader import _load_yaml as _eb_load
+                _eb_cfg = _eb_load("daytype_entry_budget.yaml") or {}
+                from backend.v9.services.trade_context import get_live_day_type as _eb_dt
+                _eb_daytype = _eb_dt() or "default"
+                _eb_section = _eb_cfg.get(_eb_daytype, _eb_cfg.get("default", {}))
+                _eb_max = int(_eb_section.get("max_entries", 999))
+                if _eb_max < 999:
+                    # Count today's live entries (excl scale-in children)
+                    _eb_n = 0
+                    try:
+                        from backend.v9.db.read import read_scalar as _eb_rs
+                        _eb_n = int(_eb_rs(
+                            "SELECT COUNT(*) FROM v9_trades "
+                            "WHERE mode IN ('live','demo') "
+                            "AND (entry_ts AT TIME ZONE 'America/New_York')::date = "
+                            "(now() AT TIME ZONE 'America/New_York')::date "
+                            "AND COALESCE(quality->>'classification','') != 'SCALE_IN'",
+                            {}) or 0)
+                    except Exception:
+                        _eb_n = 0
+                    if _eb_n >= _eb_max:
+                        result["blocked_by"] = "day_entry_budget"
+                        result["reason"] = (
+                            f"{_eb_daytype}: {_eb_n} entries today >= budget {_eb_max}")
+                        logger.info(
+                            "[Gateway] BLOCKED by day_entry_budget: %s entries %d >= %d",
+                            _eb_daytype, _eb_n, _eb_max)
+                        return result
+            except Exception as _eb_err:
+                logger.warning("[Gateway] entry-budget errored (fail-open): %s", _eb_err)
+
         # --- EXTREME_CHASE_GUARD_V1 (Michael ruling 2026-07-23, Phase 2):
         # Blocks entries that chase an extreme — SHORT too close to session low,
         # LONG too close to session high. Two checks:

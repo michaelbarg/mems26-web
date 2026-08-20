@@ -80,6 +80,7 @@ ruled:
   S2_REACTIVE_DAYTYPE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "כיול REACTIVE פר-סוג-יום: נפח/גיאומטריה/הקשר מ-YAML. 08-20: vsa=0 rvol=0 הרגו 8/8 גיאומטריות" }
   S2_INITIATIVE_JOIN_ATR_CAP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A2: b3_join cap at 0.55×ATR — 6/7 at two pivots failed on 7.00 vs 12.60. +$241.50/4c on 08-20" }
   LSMA_FLAT_ATR_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A4: lsma_flat threshold ATR-relative (0.04×ATR) — 0.25 too strict on low-ATR days. +$70.50 on 08-20" }
+  DAYTYPE_ENTRY_BUDGET_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A6: פלייבוק פר-סוג-יום — Variation=1 · Trend_Normal=∞ · Trend_DD=3 · Normal=2 · Neutral=3 · Nontrend=0" }
 
   # ── פסיקת-מייקל 2026-07-19: סף אין-כניסות-לייב-חדשות 14:30 → 15:30 ET (22:30 IL) ──
   # ראיה (ספר-הצללים 07-17): הסף הישן שלח 4 עסקאות ל-shadow — 3 שורטי-S4 מנצחים (+$148.75)

@@ -1,0 +1,53 @@
+# Per-day-type entry budget (Michael 2026-08-20, A6)
+# "הפלייבוק" — how many NEW live entries per day-type.
+#
+# Flag: DAYTYPE_ENTRY_BUDGET_V1 (default OFF).
+# The gateway reads the current live day-type and compares the session's
+# live entry count against `max_entries`. Exceeding → blocked_by=day_entry_budget.
+# UNKNOWN/FORMING → `default` section → unlimited (never block on missing label).
+#
+# max_entries: max NEW entries (not counting scale-in children)
+# trail_after_t1: whether RUNNER_TRAIL_V2 is active for this day type (informational)
+# notes: human annotation
+
+default:
+  max_entries: 999
+  trail_after_t1: true
+
+Variation:
+  max_entries: 1
+  trail_after_t1: true
+  notes: "single entry + structural trail — rotation day, hold the winner"
+
+Normal_Variation:
+  max_entries: 1
+  trail_after_t1: true
+
+Trend_Normal:
+  max_entries: 999
+  trail_after_t1: true
+  notes: "unlimited — ride the trend, every pullback is an entry"
+
+Trend_DD:
+  max_entries: 3
+  trail_after_t1: true
+  notes: "ladder — scale into the drive, max 3 entries"
+
+Normal:
+  max_entries: 2
+  trail_after_t1: true
+  notes: "selective — 2 high-quality entries, no churn"
+
+Neutral_Center:
+  max_entries: 3
+  trail_after_t1: false
+  notes: "ladder + 3 entries — both edges trade, targets clamped to IB"
+
+Neutral_Extreme:
+  max_entries: 3
+  trail_after_t1: false
+
+Nontrend:
+  max_entries: 0
+  trail_after_t1: false
+  notes: "no trades — range too small"
