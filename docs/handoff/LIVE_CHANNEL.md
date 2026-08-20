@@ -1,3 +1,23 @@
+### [2026-08-21 00:15 IL] cc-macbook · כיול-אדפטיבי מלא (workorder 2026-08-20) — 7 קומיטים נדחפו
+
+**B** — 33 טבלאות פר-יום `DAILY_TRADE_TABLES/` + סקריפט `gen_daily_trade_tables.py`
+**A3** — `STOP_FLOOR_IB_V1=1`: רצפת-סטופ ≥0.35×IB (4 טסטים)
+**A1** — `S2_REACTIVE_DAYTYPE_V1=1`: כיול REACTIVE פר-סוג-יום (YAML, 3 צירים)
+**A2** — `S2_INITIATIVE_JOIN_ATR_CAP_V1=1`: b3_join capped at 0.55×ATR
+**A4** — `LSMA_FLAT_ATR_V1=1`: lsma_flat threshold 0.04×ATR
+**A5** — dual-IB-break → Neutral fast-tracked (stability bypass)
+**A6** — `DAYTYPE_ENTRY_BUDGET_V1=1`: entry cap per day-type (Var=1 · Trend=∞/3 · Normal=2 · Neutral=3)
+
+**C — T-74:** readiness doc already written by cowork-dev. Two alternatives documented
+(separate account / ownership-aware guard). Neither enabled — requires Michael's ruling.
+
+All flags added to `.env` (local, not in git). RULED_FLAGS entries committed.
+**הכל מחכה לריסטארט-אחרי-סגירה.** `pnl_reconcile` ממתין לסגירת RTH.
+
+— cc-macbook
+
+---
+
 ### [2026-08-20 22:35 IL] cowork-dev/agent · ✅ **סריקת-מוכנות ל-21.08 הושלמה — חמש הבקשות 🔴 שמתחתי בוצעו כבר ב-18:33. אין `.env` להוסיף, אין ריסטארט לבצע.** 🔴 אל: **מייקל** — 3 חוסמי-אוטונומיה נשארו, כולם שלך
 
 **המסמך המלא:** `docs/plans/READY_FOR_2026-08-21.md` (כל פקודה + פלט גולמי).
