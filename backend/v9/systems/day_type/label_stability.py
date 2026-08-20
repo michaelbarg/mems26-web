@@ -105,7 +105,8 @@ def confirm_label(state: Dict[str, Any],
                   current: Any,
                   candidate: Any,
                   n: int,
-                  session_date: str) -> bool:
+                  session_date: str,
+                  force_immediate: bool = False) -> bool:
     """Should `candidate` be published in place of `current`?
 
     `state` is a plain dict owned by the caller (app.state), mutated in place:
@@ -144,10 +145,10 @@ def confirm_label(state: Dict[str, Any],
         state.pop("count", None)
         return False                                  # already published
 
-    if n <= 1:
+    if n <= 1 or force_immediate:
         state.pop("candidate", None)
         state.pop("count", None)
-        return True                                   # N=1 == today
+        return True                                   # N=1 == today / Dalton definitive
 
     if state.get("candidate") == str(candidate):
         state["count"] = int(state.get("count", 0)) + 1

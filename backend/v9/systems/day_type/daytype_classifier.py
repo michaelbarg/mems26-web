@@ -369,7 +369,10 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
 
         _reason = ("2-sided, close at an extreme (one side won late)" if _want == "Neutral_Extreme"
                    else "2-sided, close at center (balanced)")
-        return out(_want, "CLASSIFIED" if is_eod else "PROVISIONAL", _reason)
+        # A5 (Michael 2026-08-20, Dalton dual-IB-break): sides==2 is definitive —
+        # stability gate should fast-track, not delay 1h50m (08-20: 11:40→13:30).
+        return out(_want, "CLASSIFIED" if is_eod else "PROVISIONAL", _reason,
+                   dual_ib_break=True)
 
     # ── P1 (2026-07-29): Neutral round-trip reclass (NEUTRAL_ROUNDTRIP_V1) ──
     # sides==1 but expansion returned through the open AND close is mid-range

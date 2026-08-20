@@ -1694,6 +1694,29 @@ class TradingGateway:
                 from backend.v9.systems.direction_context_live import current as _lf_current
                 _lf_slope = (_lf_current() or {}).get("lsma_slope_ppb")
                 _lf_min = float(os.getenv("LSMA_FLAT_MIN_SLOPE_PTS", "0.25") or "0.25")
+                # A4 (2026-08-20): ATR-relative threshold — 0.25 pts/bar is correct
+                # on ATR 6.25 but too strict on low-ATR days where even genuine
+                # directional moves produce tiny absolute slopes.
+                if os.getenv("LSMA_FLAT_ATR_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _lf_atr_frac = float(os.getenv("LSMA_FLAT_ATR_FRAC", "0.04") or "0.04")
+                        _lf_atr = None
+                        try:
+                            from backend.v9.db.read import read_scalar as _lf_rs
+                            _raw = _lf_rs(
+                                "SELECT AVG(high - low) FROM ("
+                                "  SELECT high, low FROM v9_bars_5min_woodies"
+                                "  WHERE symbol='MES' ORDER BY ts DESC LIMIT 14"
+                                ") sub", {})
+                            _lf_atr = float(_raw) if _raw else None
+                        except Exception:
+                            pass
+                        if _lf_atr and _lf_atr > 0:
+                            _lf_min_atr = _lf_atr_frac * _lf_atr
+                            if _lf_min_atr < _lf_min:
+                                _lf_min = max(_lf_min_atr, 0.05)  # absolute floor
+                    except Exception:
+                        pass
                 _lf_scope = (os.getenv("LSMA_FLAT_SCOPE", "ALL") or "ALL").strip().upper()
                 _lf_applies = True
                 if _lf_scope == "CONT":

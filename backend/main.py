@@ -551,9 +551,13 @@ async def _startup():
                                         if not isinstance(_stab_st, dict):
                                             _stab_st = {}
                                             app.state._daytype_stability = _stab_st
+                                        # A5 (2026-08-20): Dalton dual-IB-break = definitive
+                                        # → bypass stability wait (08-20: 11:40→13:30 = 1h50m delay)
+                                        _force = bool(_cls_result.get("dual_ib_break"))
                                         _publish = _stab_confirm(
                                             _stab_st, _old_val, _new_dt.value,
-                                            _stab_n, now_et().date().isoformat())
+                                            _stab_n, now_et().date().isoformat(),
+                                            force_immediate=_force)
                                         if not _publish and _new_dt != state.day_type:
                                             _logger.warning(
                                                 "[S1-NEW-CLS] DAYTYPE_RECLASS_STABILITY held: %s → %s "
