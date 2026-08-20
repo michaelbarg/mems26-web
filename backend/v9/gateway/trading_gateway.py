@@ -132,6 +132,23 @@ def _live_leg(direction: str) -> bool:
         return False
 
 
+def _compass_or(fallback):
+    """F1 DIRECTION_COMPASS_V1 (Michael 2026-08-20) — the fused compass as the
+    ONE direction input every gate consumes, with the gate's existing value as
+    the fallback. Flag OFF, compass NEUTRAL, or ANY error ⇒ `fallback` is
+    returned unchanged ⇒ the gate behaves exactly as today (fail-open, never a
+    new block from a compass bug). Module-level, not a closure — same lesson as
+    `_opening_gate_exempt` above (a helper defined below its call site is a
+    latent NameError in a live gate)."""
+    try:
+        from backend.v9.services.direction_compass import compass_or as _co
+        return _co(fallback)
+    except Exception as _cmp_err:
+        logger.warning("[Gateway] direction-compass errored (fail-open to legacy): %s",
+                       _cmp_err)
+        return fallback
+
+
 def _daytype_conf_sufficient(conf, min_conf: float) -> bool:
     """Is the day-type label trustworthy enough for the playbook to VETO on it?
 
@@ -1438,6 +1455,13 @@ class TradingGateway:
                                     _sus = _leg_d3  # leg overrides dir_sustained
                             except Exception:
                                 pass  # fail-open: use dir_sustained
+                        # F1 DIRECTION_COMPASS_V1 (2026-08-20): the fused compass
+                        # is the single direction INPUT. dir_sustained lagged on
+                        # three documented days; the compass fuses leg+LSMA+value-
+                        # migration+CVD and can never oppose a live leg. NEUTRAL /
+                        # low-confidence ⇒ `_sus` keeps its legacy value above ⇒
+                        # byte-identical behaviour, no new blocking.
+                        _sus = _compass_or(_sus)
                         if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
                             # DISPLACEMENT CONSISTENCY (2026-07-31, third gate to
                             # get the audited primitive): dir_sustained LAGS —
@@ -1486,7 +1510,10 @@ class TradingGateway:
                                             _pat, _set_dir, _sus)
                                 return result
 
-                _dc_dir = _dc.get("dir")
+                # F1 DIRECTION_COMPASS_V1: same single INPUT here. The CVD+IB
+                # breakout read is one opinion among four; the compass fuses it
+                # with leg / LSMA / value-migration. NEUTRAL ⇒ legacy `_dc["dir"]`.
+                _dc_dir = _compass_or(_dc.get("dir"))
                 if _dc_dir in ("UP", "DOWN"):
                     if _set_dir != _dc_dir:
                         # NEUTRAL_RESPONSIVE_V1 (Michael ruling 2026-07-08, live):
@@ -1538,6 +1565,40 @@ class TradingGateway:
                             return result
             except Exception as _dc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
+
+        # --- F1 · DIRECTION_COMPASS_V1 — the with-day-direction rule, for EVERY
+        # pattern (Michael 2026-08-20; MAX_DAYS §3 direction-family = +$576.25,
+        # the most expensive recurring mistake of the live era):
+        #   OPENING_DRIVE without a day-direction  +$262.50 (0/2 live)
+        #   Variation-family shorts against drift  +$200.00
+        #   counter-day entries on trend days      +$113.75
+        # Michael's two binding rulings shape it exactly:
+        #   "מערכת שמפסידה לנו בתבנית אנחנו מתקנים ולא מבטלים" — no pattern is
+        #     disabled; OPENING_DRIVE and the Variation shorts keep firing, only
+        #     their AGAINST-direction subset stops.
+        #   "אתה לא מגביל שעות בשום אופן" — no hour/time is consulted anywhere;
+        #     the afternoon is governed by this direction rule alone.
+        # Deliberately stricter than direction_context above: it carries NO
+        # neutral-responsive/rotation exemption (that exemption is precisely what
+        # let the −$1,296 Variation shorts through), and it applies to REV and
+        # OPENING families too. Exempt: stairs (G2 structural coherence) and —
+        # structurally, via the clamp inside compute_compass — anything riding a
+        # live leg. NEUTRAL / low-confidence compass ⇒ no block at all.
+        # Flag OFF ⇒ byte-identical. Fail-open on any error.
+        try:
+            from backend.v9.services.direction_compass import (
+                direction_verdict as _cmp_verdict, flag_on as _cmp_on)
+            if _cmp_on():
+                _cmp_pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context))
+                _cmp_ok, _cmp_reason = _cmp_verdict(pattern=_cmp_pat, direction=direction)
+                if not _cmp_ok:
+                    result["blocked_by"] = "direction_compass"
+                    result["reason"] = _cmp_reason
+                    logger.info("[Gateway] BLOCKED by direction-compass: %s", _cmp_reason)
+                    return result
+                logger.debug("[Gateway] direction-compass PASS: %s", _cmp_reason)
+        except Exception as _cmp_err:  # fail-open — never block on a bug
+            logger.warning("[Gateway] direction-compass gate errored (fail-open): %s", _cmp_err)
 
         # --- MULTIDAY_VETO_V1 (D2, 2026-08-03): block trades against multi-day
         # value migration. SHORT blocked when 7-day migration = UP (selling into

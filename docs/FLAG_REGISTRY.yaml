@@ -1795,3 +1795,11 @@ flags:
     why: "מדרגה שנייה/שלישית יושבת מאחורי קיצון-הסשן מעצם-הבנייה — 15 מ-27 גרמי-המדרגות נפלו על זה. רפליי: +$350.50, OOS +$115.75, 0 עסקאות אבדו."
     status: live
     ref: "RULED_FLAGS 2026-08-18; tests/v9/regression/test_trend_step_live_path.py"
+
+  DIRECTION_COMPASS_V1:
+    category: gates
+    group: DIRECTION
+    what: "F1 — מצפן-כיוון ממוזג אחד (רגל 0.40 · LSMA 0.30 · נדידת-ערך 0.15 · CVD 0.15) שנעשה ה-INPUT היחיד של direction_context + cont_trend_filter, ובנוסף מפעיל כלל with-day-direction על כל התבניות (כולל OPENING ו-REV; מדרגות פטורות — G2). המצפן לעולם לא נגד רגל-חיה, ופוסק רק כשרגל-חיה מעגנת אותו."
+    why: "MAX_DAYS §3: משפחת-הכיוון = +$576.25 על 32 סשנים (OD בלי כיוון +$262.50 · שורטי-Variation נגד-הסחף +$200 · counter-day +$113.75); השורש = כל שער שאל מקור-כיוון אחר ומפגר (19.08: dll_trend BEARISH מול רגל-UP ביום +26 נק'). רפליי 85 עסקאות-לייב: 7 חסימות, 4 מפסידות נמנעו +$393.75, 2 מנצחות אבדו −$68.75, NET +$325.00. פסיקות-מייקל 20.08: תבנית-מפסידה מתקנים-לא-מבטלים · אין הגבלת-שעות."
+    status: ruled_pending_env
+    ref: "RULED_FLAGS 2026-08-20; docs/reports/MAX_DAYS_2026-08-20.md §3; scripts/f1_compass_replay.py; tests/v9/regression/test_direction_compass.py"
