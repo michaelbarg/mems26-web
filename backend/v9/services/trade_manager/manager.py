@@ -1005,6 +1005,149 @@ class TradeManager:
             trade.id, tgt_field, tgt_val, new_tgt, ceiling, direction)
         return True
 
+    # ---------------------------------------------------------------- F5
+    def _swing_bars_today(self):
+        """Today's CLOSED RTH 5-min woodies bars + the previous session's.
+
+        Returns (today_bars, prev_bars) or (None, None) on any gap — honest
+        failure (Rule 1); the caller falls back to the existing trail rather
+        than trailing off an invented level. Cached per bar-timestamp so a
+        session with two open trades costs one read, not two (the backend is
+        single-worker uvicorn — polling floors exist for this reason).
+        """
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT (ts AT TIME ZONE 'America/New_York') AS et, high, low, close "
+            "FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date >= "
+            "      ((now() AT TIME ZONE 'America/New_York')::date - 7) "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time <  '16:00' "
+            "ORDER BY ts ASC", {})
+        if not rows:
+            return None, None
+        by_day = {}
+        for r in rows:
+            if r.get("high") is None or r.get("low") is None or r.get("close") is None:
+                continue
+            by_day.setdefault(r["et"].date(), []).append(
+                {"h": float(r["high"]), "l": float(r["low"]), "c": float(r["close"])})
+        if not by_day:
+            return None, None
+        days = sorted(by_day)
+        today = by_day[days[-1]]
+        prev = by_day[days[-2]] if len(days) >= 2 else None
+        return today, prev
+
+    def apply_structural_swing_trail(self, trade: V9Trade) -> Optional[bool]:
+        """F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE_STUDY §5 R-A).
+
+        "Let the swing run": once the ladder has banked, the remaining runner's
+        stop trails behind the LAST CONFIRMED SWING low (LONG) / high (SHORT) on
+        CLOSED 5-min bars — never widening, floored at BE+1T. The runner leg is
+        placed WITHOUT a fixed target (sierra_command.command_from_setup), so the
+        trail is what finally takes it out; that pairing is the whole fix. A stop
+        trail alone can never hold a position past a resting limit order, which is
+        exactly why RUNNER_TRAIL_V1 could not have earned the $2,315 even if it
+        had been wired (it is not — see bar_level_detector).
+
+        Exit levers used: MODIFY_STOP only. op=EXIT stays untouched (CLAUDE.md).
+
+        Returns
+            True  — stop moved.
+            False — evaluated, structure does not tighten: HOLD. (Deliberate: not
+                    falling through to the dynamic trail is the point of F5.)
+            None  — could not evaluate (no bars / no ATR / no confirmed swing yet).
+                    Caller falls back to the previous trail so a runner is never
+                    left un-trailed by a data gap.
+        """
+        if os.environ.get("RUNNER_TRAIL_V2", "0").lower() not in ("1", "true", "yes"):
+            return None
+        if self._zlr_stop_locked(trade):
+            return False  # ZLR_MGMT_V1: stop is fixed (structural -> BE at T1)
+        if trade.entry_price is None or getattr(trade, "t1_hit_ts", None) is None:
+            return None  # runner-only: before T1 the banked legs still own the stop
+        direction = (trade.direction or "").upper()
+        if direction not in ("LONG", "SHORT"):
+            return None
+
+        from backend.v9.services.trade_manager.swing_trail import (
+            swing_rev_threshold, swing_trail_stop,
+        )
+        from backend.v9.systems.five_min.constants import MES_TICK_SIZE
+
+        cfg = {}
+        try:
+            from backend.v9.config_loader import load_stop_anchors
+            cfg = ((load_stop_anchors() or {}).get("runner_trail_v2") or {})
+        except Exception:
+            cfg = {}
+        offset_ticks = int(cfg.get("offset_ticks", 1))
+
+        try:
+            today, prev = self._swing_bars_today()
+        except Exception as e:
+            logger.warning("[TradeManager] F5 swing-trail: bar read failed (%s) "
+                           "— falling back to the existing trail", e)
+            return None
+        if not today or len(today) < 3:
+            logger.warning("[TradeManager] F5 swing-trail: only %d closed bars today "
+                           "(need >=3) — fallback (check the woodies feed)",
+                           len(today or []))
+            return None
+
+        rev = swing_rev_threshold(prev)
+        if rev is None:
+            _fb = cfg.get("rev_fallback_pts")
+            if _fb is None:
+                logger.warning("[TradeManager] F5 swing-trail: no prior-session ATR "
+                               "— fallback (Rule 1: no invented threshold)")
+                return None
+            rev = float(_fb)
+
+        anchor = swing_trail_stop(today, direction, rev=rev, offset_ticks=offset_ticks)
+        if anchor is None:
+            logger.info("[TradeManager] F5 swing-trail trade=%s: no confirmed swing yet "
+                        "(rev=%.2f) — HOLD, stop unchanged", trade.id, rev)
+            return None
+
+        entry = float(trade.entry_price)
+        tick = MES_TICK_SIZE
+        be_floor = entry + tick if direction == "LONG" else entry - tick
+        new_stop = max(anchor, be_floor) if direction == "LONG" else min(anchor, be_floor)
+        new_stop = round(new_stop, 2)
+
+        cur = float(trade.stop) if trade.stop is not None else None
+        if cur is not None:
+            tightens = new_stop > cur if direction == "LONG" else new_stop < cur
+            if not tightens:
+                logger.info(
+                    "[TradeManager] F5 swing-trail trade=%s: swing %.2f (rev=%.2f) does "
+                    "not tighten stop %.2f (%s) — HOLD (never widen)",
+                    trade.id, anchor, rev, cur, direction)
+                return False
+
+        trade.stop = new_stop
+        audit_entry = {
+            "event": "stop_move",
+            "from": cur,
+            "to": new_stop,
+            "reason": f"F5 swing trail (last confirmed swing {anchor:.2f}, rev={rev:.2f})",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "SWING_TRAIL", {
+            "from": cur, "to": new_stop, "swing": anchor, "rev": rev,
+            "be_floor": round(be_floor, 2), "source": "runner_trail_v2",
+        })
+        self._emit_modify_stop(trade, new_stop)
+        logger.warning(
+            "[TradeManager] F5 SWING_TRAIL: trade %s stop %s -> %.2f "
+            "(swing=%.2f rev=%.2f floor=%.2f %s)",
+            trade.id, cur, new_stop, anchor, rev, be_floor, direction)
+        return True
+
     def apply_trail_after_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> None:
         """Trailing stop after T1 hit (RUNNER_TRAIL_V1).
 

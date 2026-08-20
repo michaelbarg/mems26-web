@@ -897,6 +897,40 @@ def command_from_setup(
                 _c4_target = _c3_target  # the shifted C3 (was old T2)
             # unknown/missing day_type: stays None → stop-only (honest)
 
+    # ── F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE_STUDY §5 R-A) ──
+    # THE half of F5 that actually holds. A stop-trail cannot keep a position past
+    # a resting limit order, so as long as the last tranche carries a fixed OCO
+    # target it exits there and no trail matters. Measured on 2026-08-03: five of
+    # nine trades exited `T2_HIT` with t2 sitting 3.75-9.00pt from entry while the
+    # session ran 95.75pt (#588 entry 7563.50, t2 7572.50, out in 10 minutes).
+    # So: drop the RUNNER leg's target -> the DLL builds that OCO group STOP-ONLY
+    # (MES_AI_DataExport_merged.cpp:2933/2946/2962 attach a target only when
+    # tN_price > 0; the stop is unconditional, so the runner is never naked), and
+    # the structural swing trail is what takes it out. The banked legs are
+    # untouched: the 1/2/2/1 ladder ruling stands.
+    # This is not a new mechanism — C4_RULING6_V1 already leaves _c4_target None on
+    # Variation days ("stays None -> DLL builds stop-only; C4 trails with T3").
+    # NOT applied to ZLR (ZLR_MGMT_V1 owns its own allocation AND locks the stop
+    # from every trail — a stop-only ZLR runner would have no exit but EOD flatten).
+    if (os.getenv("RUNNER_TRAIL_V2", "0").strip().lower() in ("1", "true", "yes")
+            and not _is_zlr_setup(setup)):
+        try:
+            _min_c = int(os.getenv("RUNNER_TRAIL_V2_MIN_CONTRACTS", "3"))
+        except (TypeError, ValueError):
+            _min_c = 3
+        if _contracts >= max(2, _min_c):
+            if _contracts >= 4:
+                _runner_leg, _c4_target = "c4", None
+            elif _contracts == 3:
+                _runner_leg, _c3_target = "c3", None
+            else:
+                _runner_leg, _c2_target = "c2", None
+            setup["runner_stop_only"] = _runner_leg
+            logger.warning(
+                "[SierraCmd] F5 RUNNER_TRAIL_V2: trade %s runner leg %s placed "
+                "STOP-ONLY (no fixed target) — exit is the structural swing trail",
+                trade_id, _runner_leg)
+
     return write_trade_command(
         action=action,
         trade_id=trade_id,

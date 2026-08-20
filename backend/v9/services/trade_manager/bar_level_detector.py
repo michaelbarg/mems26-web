@@ -36,6 +36,8 @@ class BarLevelDetector:
         self._bars_processed = 0
         self._last_bar_ts_processed: str = ""  # dedup across 5min + woodies_5min
         self._eod_flatten_requested: set = set()  # trade ids already sent an EOD CANCEL
+        # F5: one-shot honesty log — RUNNER_TRAIL_V1 is shadowed by DYNAMIC_STRUCT_TRAIL
+        self._runner_trail_v1_shadow_warned: bool = False
 
     def _trade_still_open(self, trade_id: int) -> bool:
         """T4 helper: is this trade still active in the books?
@@ -785,9 +787,42 @@ class BarLevelDetector:
 
                 # Trail runner stop (before stop-check so trailed stop is used)
                 if trade.t1_hit_ts is not None and trade.state != "CLOSED":
+                    # F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE §5 R-A):
+                    # structural swing trail on the runner — takes precedence over
+                    # both older trails when ON. Returns None when it cannot
+                    # evaluate (feed gap / no confirmed swing yet) and ONLY then do
+                    # we fall through, so a runner is never left un-trailed by a
+                    # data gap; a deliberate "hold" (False) does NOT fall through —
+                    # holding is the entire point of F5.
+                    _f5 = None
+                    if _trail_os.getenv("RUNNER_TRAIL_V2", "0").lower() in ("1", "true", "yes"):
+                        try:
+                            _f5 = self._tm.apply_structural_swing_trail(trade)
+                        except Exception as _f5_err:
+                            logger.warning(
+                                "[BarLevelDetector] F5 swing-trail error (fail-safe "
+                                "fallback to legacy trail): %s", _f5_err)
+                            _f5 = None
                     # Dynamic structure-trail (DYNAMIC_STRUCT_TRAIL) — runs INSTEAD of
                     # the simple hwm trail when ON; falls back to hwm trail when OFF.
-                    if _trail_os.getenv("DYNAMIC_STRUCT_TRAIL", "0").lower() in ("1", "true", "yes"):
+                    if _f5 is not None:
+                        pass  # F5 owns the stop this bar (moved or deliberately held)
+                    elif _trail_os.getenv("DYNAMIC_STRUCT_TRAIL", "0").lower() in ("1", "true", "yes"):
+                        # AUDIT 2026-08-17 §L1 / verified 2026-08-20: with
+                        # DYNAMIC_STRUCT_TRAIL=1 the RUNNER_TRAIL_V1 `elif` below is
+                        # unreachable, so RUNNER_TRAIL_V1=1 is INERT. Proof from the
+                        # books: action='TRAIL' has 127 rows, all shadow, all
+                        # 2026-06-18..06-24 — zero on any live trade. Say it out loud
+                        # once per process instead of letting the flag index claim a
+                        # lever that does not exist (SYS-2: no silent failures).
+                        if (not self._runner_trail_v1_shadow_warned
+                                and _trail_os.getenv("RUNNER_TRAIL_V1", "0").lower()
+                                in ("1", "true", "yes")):
+                            self._runner_trail_v1_shadow_warned = True
+                            logger.warning(
+                                "[BarLevelDetector] RUNNER_TRAIL_V1=1 is INERT: "
+                                "DYNAMIC_STRUCT_TRAIL=1 takes the branch. The hwm-k*risk "
+                                "trail never runs. (F5/RUNNER_TRAIL_V2 is the live lever.)")
                         try:
                             bar_close = float(bar_data.get("close", bar_data.get("c", 0)))
                             self._tm.apply_dynamic_struct_trail(trade, bar_high, bar_low, bar_close)

@@ -107,8 +107,24 @@ flag_relative_t1:
   dist_wide_pts: 25      # ✅ wide-stop boundary (points)
 
 # ── Runner Trail (RUNNER_TRAIL_V1, default OFF) ──────────────────────
+# ⚠️ INERT in production: bar_level_detector takes the DYNAMIC_STRUCT_TRAIL
+# branch first (both flags =1), so this k_risk chandelier never runs. Verified
+# 2026-08-20 from the books: action='TRAIL' = 127 rows, all shadow, all 06-18..24.
 runner_trail:
   k_risk: 1.0             # trail = hwm − k×initial_risk (backtest: 1.0 optimal)
+
+# ── F5 Structural Swing Trail (RUNNER_TRAIL_V2, default OFF) ─────────
+# Michael 2026-08-20, ORACLE_STUDY_2026-08-20 §5 R-A (+$2,315 over 32 sessions).
+# The runner leg is placed WITHOUT a fixed target (stop-only OCO group) and its
+# stop trails behind the last CONFIRMED 5-min swing low (LONG) / high (SHORT).
+# Never widens; floored at BE+1T after T1; banked legs untouched (ladder stands).
+# The swing threshold itself is NOT tunable here on purpose — it is
+# clamp(1.0×ATR(prev session), 4.0, 12.0), the exact definition the $2,315 was
+# measured with (backend/v9/services/trade_manager/swing_trail.py).
+runner_trail_v2:
+  offset_ticks: 1          # stop sits 1 tick beyond the swing extreme
+  # rev_fallback_pts: 6.0  # ⚠️ leave COMMENTED: absent ⇒ no prior-session ATR is an
+                           # honest no-op (Rule 1), not an invented threshold.
 
 # ── Dynamic Structure-Trail (DYNAMIC_STRUCT_TRAIL, default OFF) ──────
 # Michael's rule: runners re-anchor on each NEW CONSOLIDATION (balance zone)

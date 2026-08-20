@@ -839,9 +839,11 @@ flags:
     why: "Anchor-trial (2026-06-12)."
   RUNNER_TRAIL_V1:
     category: sizing
-    what: "Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe)."
-    why: "Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever)."
-    ref: "memory: project_trend_gate_t1_widen"
+    group: EXIT_MGMT
+    what: "⚠️ INERT (=1 ב-.env אך לא רץ). טרייל-שנדלייר hwm−1×initial_risk אחרי T1. `bar_level_detector` בודק `if DYNAMIC_STRUCT_TRAIL ... elif RUNNER_TRAIL_V1`, ושניהם =1 ⇒ ה-elif בלתי-נגיש. מ-08-20 הדטקטור כותב WARNING חד-פעמי שאומר זאת במפורש."
+    why: "אומת 08-20 מהספרים: `action='TRAIL'` = 127 שורות, **כולן shadow, כולן 2026-06-18..06-24**, אפס על עסקת-לייב — הדגל לא רץ אף פעם בעידן-הלייב. (AUDIT STOP_AND_REALIZE_2026-08-17 §L1 זיהה את ה-elif; ORACLE §5 הוסיף שגם אילו רץ לא היה גובה את ה-$2,315, כי הדליפה היא ביציאת-יעד ולא ביציאת-סטופ.) המנוף החי הוא RUNNER_TRAIL_V2."
+    status: inert
+    ref: "docs/reports/STOP_AND_REALIZE_AUDIT_2026-08-17.md §L1; docs/reports/ORACLE_STUDY_2026-08-20.md; memory: project_trend_gate_t1_widen"
   DYNAMIC_STRUCT_TRAIL:
     category: sizing
     what: "Dynamic structure-trailing: after T1, detect consolidation zones (K bars, range ≤ R) → re-anchor stop beyond zone + advance target to nearer of {zone projection, key level}. Replaces simple hwm trail when ON."
@@ -1811,3 +1813,19 @@ flags:
     why: "MAX_DAYS §3: משפחת-הכיוון = +$576.25 על 32 סשנים (OD בלי כיוון +$262.50 · שורטי-Variation נגד-הסחף +$200 · counter-day +$113.75); השורש = כל שער שאל מקור-כיוון אחר ומפגר (19.08: dll_trend BEARISH מול רגל-UP ביום +26 נק'). רפליי 85 עסקאות-לייב: 7 חסימות, 4 מפסידות נמנעו +$393.75, 2 מנצחות אבדו −$68.75, NET +$325.00. פסיקות-מייקל 20.08: תבנית-מפסידה מתקנים-לא-מבטלים · אין הגבלת-שעות."
     status: ruled_pending_env
     ref: "RULED_FLAGS 2026-08-20; docs/reports/MAX_DAYS_2026-08-20.md §3; scripts/f1_compass_replay.py; tests/v9/regression/test_direction_compass.py"
+
+  RUNNER_TRAIL_V2:
+    category: sizing
+    group: EXIT_MGMT
+    what: "F5 — ניהול-יציאה מבני לרגל-הראנר. שני חצאים בדגל אחד: (א) רגל-הראנר נשלחת ללא יעד קבוע (קבוצת-OCO stop-only) ⇒ אין לימיט שמוציא אותה מוקדם; (ב) הסטופ שלה עוקב אחרי הסווינג-המאושר-האחרון על ברי-5-דק' סגורים — לעולם לא מתרחב, רצפה BE+1T אחרי T1, פיבוט מוכר רק אחרי ריטרייס rev=clamp(1×ATR-סשן-קודם,4,12). הרגליים הבנקאיות ו-1/2/2/1 ללא שינוי; ZLR מוחרג; יציאות MODIFY_STOP+OCO בלבד."
+    why: "ORACLE_STUDY_2026-08-20: אותן כניסות מוחזקות נכון = +$2,635 מול +$320 (+$2,315), וכל הפער הוא ניהול-יציאה. ביקורת-קדם גילתה ש-RUNNER_TRAIL_V1=1 מעולם לא רץ בלייב (elif מת מאחורי DYNAMIC_STRUCT_TRAIL; TRAIL=127 שורות, כולן shadow 06-18..06-24) ושגם אילו רץ לא היה עוזר — הדליפה היא ביציאת-יעד, וטרייל-סטופ אינו יכול להחזיק פוזיציה מעבר ללימיט רוחץ. רפליי: +$538.75 בגודל-שנסחר · +$963.75 ב-6 חוזים (הגודל הפסוק) · +$793.75 ב-4. עוגן: משחזר את +$1,139.00 של האורקל על 08-03 לסנט."
+    status: ruled_pending_env
+    ref: "RULED_FLAGS 2026-08-20; docs/reports/ORACLE_STUDY_2026-08-20.md §3/§5; scripts/replay_f5_runner_trail.py; tests/v9/regression/test_runner_trail_v2.py"
+
+  RUNNER_TRAIL_V2_MIN_CONTRACTS:
+    category: sizing
+    group: EXIT_MGMT
+    what: "כמה חוזים נדרשים כדי שרגל-הראנר תישלח stop-only (ברירת-מחדל בקוד 3). מתחת לזה הבראקט זהה-לבית."
+    why: "מתחת ל-3 חוזים רק רגל אחת בנקה לפני הראנר, כלומר שינוי-יחסי גדול מדי לעומת הסולם הפסוק. מדידה: min=2 נותן +$727.50 מול +$538.75 בגודל-שנסחר — חיובי, אך מחוץ לצורת-הסולם של פסיקת 08-16."
+    status: param
+    ref: "RULED_FLAGS 2026-08-20 (RUNNER_TRAIL_V2)"
