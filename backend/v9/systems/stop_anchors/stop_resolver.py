@@ -52,6 +52,7 @@ def resolve_stop(
     family: str = "CONT",
     offset_ticks: int = 6,
     day_type: Optional[str] = None,
+    ib_width: Optional[float] = None,
 ) -> StopResolverResult:
     """Walk the rung ladder and pick the first within the band.
 
@@ -84,6 +85,22 @@ def resolve_stop(
         except (TypeError, ValueError):
             _floor_mult = 0.8
     floor_pts = max(_floor_mult * atr_5m, 1.0)  # at least 1pt
+
+    # STOP_FLOOR_IB_V1 (Michael 2026-08-20, #756: 3.5pt stop on 24.75pt IB day,
+    # ran 27.5pt and returned $0): stop must be at least STOP_FLOOR_IB_FRAC × IB
+    # width. On wide-IB days the ATR floor alone is too small.
+    if (os.getenv("STOP_FLOOR_IB_V1", "0").lower() in ("1", "true", "yes")
+            and ib_width is not None and ib_width > 0):
+        try:
+            _ib_frac = float(os.getenv("STOP_FLOOR_IB_FRAC", "0.35"))
+        except (TypeError, ValueError):
+            _ib_frac = 0.35
+        _ib_floor = _ib_frac * ib_width
+        if _ib_floor > floor_pts:
+            logger.info("[StopResolver] IB floor %.2fpt (%.0f%% of IB %.2f) > ATR floor %.2fpt",
+                        _ib_floor, _ib_frac * 100, ib_width, floor_pts)
+            floor_pts = _ib_floor
+
     cap_mult = 1.5 if family == "REV" else 1.2
     cap_pts = min(cap_mult * atr_5m, 25.0)  # hard cap 25pt
 

@@ -2229,11 +2229,26 @@ class TradingGateway:
                                 _sr_dt = _sr_gldt()
                             except Exception:
                                 _sr_dt = None
+                            # A3 (2026-08-20, #756): IB-relative stop floor
+                            _sr_ibw = None
+                            try:
+                                from backend.v9.db.read import read_one as _sr_r1
+                                _ib_row = _sr_r1(
+                                    "SELECT ib_high, ib_low FROM v9_day_type_history "
+                                    "WHERE date = (now() AT TIME ZONE 'America/New_York')::date "
+                                    "LIMIT 1", {})
+                                if _ib_row and _ib_row.get("ib_high") and _ib_row.get("ib_low"):
+                                    _sr_ibw = float(_ib_row["ib_high"]) - float(_ib_row["ib_low"])
+                                    if _sr_ibw <= 0:
+                                        _sr_ibw = None
+                            except Exception:
+                                _sr_ibw = None
                             _sr_res = _sr_resolve(
                                 direction=_sr_dir, entry_price=_sr_entry,
                                 rungs=_sr_rungs[:5],
                                 rung_names=[f"r{i}" for i in range(len(_sr_rungs[:5]))],
-                                atr_5m=_sr_atr, family=_sr_fam, day_type=_sr_dt)
+                                atr_5m=_sr_atr, family=_sr_fam, day_type=_sr_dt,
+                                ib_width=_sr_ibw)
                             # STOP_TABLE_V1 (default OFF): make the ATR band cap
                             # pattern×day_type aware. Tighten-only — never widens
                             # risk beyond the generic cap. Flag OFF, or pattern×
