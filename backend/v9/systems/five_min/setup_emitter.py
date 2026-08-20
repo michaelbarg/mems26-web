@@ -116,12 +116,24 @@ def emit_t1_setup(
                 except Exception:
                     _lc_conf = None
             _lc_min = float(_lc_os.getenv("DAYTYPE_PLAYBOOK_MIN_CONF", "0.4") or 0.4)
-            if _lc_on and _lc_conf is not None and _lc_conf < _lc_min:
+            # ── T-47 / F6 · DAYTYPE_HONEST_PRELOCK_V1 (Michael 2026-08-19, re-confirmed
+            # 08-20): a PRE-IB-LOCK label is provisional and must not carry a full SKIP.
+            # Routed through the SAME AUTH_LOWCONF_REDUCED_V1 degrade as conf<0.4 — one
+            # notion of "untrustworthy label", not two. Default OFF → False → identical.
+            _lc_prov = False
+            if _lc_on:
+                try:
+                    from backend.v9.services.trade_context import daytype_is_provisional as _lc_prov_fn
+                    _lc_prov = bool(_lc_prov_fn())
+                except Exception:
+                    _lc_prov = False
+            if _lc_on and ((_lc_conf is not None and _lc_conf < _lc_min) or _lc_prov):
                 verdict, sizing = 'REDUCED', 2
                 logger.warning(
                     "[S2] AUTH_LOWCONF_REDUCED: Auth Table SKIP (%s × %s) degraded to "
-                    "REDUCED-2 — day-type conf %.2f < %.2f (label untrustworthy)",
+                    "REDUCED-2 — day-type conf %s < %.2f%s (label untrustworthy)",
                     pattern_name, _day_type, _lc_conf, _lc_min,
+                    " · PROVISIONAL pre-IB-lock" if _lc_prov else "",
                 )
             else:
                 logger.info(

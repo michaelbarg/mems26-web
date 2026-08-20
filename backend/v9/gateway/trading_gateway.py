@@ -174,6 +174,24 @@ def _daytype_conf_sufficient(conf, min_conf: float) -> bool:
         return True
 
 
+def _daytype_provisional() -> bool:
+    """Is the live day-type label PROVISIONAL (published before the IB locked)?
+
+    T-47 / F6 (`DAYTYPE_HONEST_PRELOCK_V1`, Michael 2026-08-19, re-confirmed
+    2026-08-20). Sibling of `_daytype_conf_sufficient` above and consumed at the
+    same decision point: a pre-IB-lock label is a working hypothesis, so a veto
+    built on it degrades to an advisory exactly as a conf<0.4 label does.
+
+    Default OFF → False. Fail-safe: any error → False (never degrade a gate on a
+    bug — the same direction `_daytype_conf_sufficient` fails).
+    """
+    try:
+        from backend.v9.services.trade_context import daytype_is_provisional
+        return bool(daytype_is_provisional())
+    except Exception:
+        return False
+
+
 import os as _os
 # Use the same DATABASE_URL as db/session.py — no more hardcoded path.
 # Tests can override via DATABASE_URL or db_path constructor arg.
@@ -1275,6 +1293,19 @@ class TradingGateway:
                                     "[Gateway] day-type playbook SKIP degraded to "
                                     "ADVISORY (conf %s < %s): %s",
                                     _pb_conf, _pb_min, _pb.reason)
+                            # ── T-47 / F6 · DAYTYPE_HONEST_PRELOCK_V1 (Michael 2026-08-19,
+                            # re-confirmed 08-20): a PRE-IB-LOCK label is provisional — the
+                            # Market Profile foundation it reasons from is not formed yet.
+                            # It may inform, it may not VETO. Degrade EXACTLY like conf<0.4
+                            # (same variable, same advisory downgrade) rather than inventing a
+                            # second notion of "untrustworthy label". Default OFF → False →
+                            # byte-identical.
+                            elif _daytype_provisional():
+                                _pb_conf_ok = False
+                                logger.warning(
+                                    "[Gateway] day-type playbook SKIP degraded to "
+                                    "ADVISORY (PROVISIONAL label — pre-IB-lock): %s",
+                                    _pb.reason)
                         except Exception:
                             _pb_conf_ok = True  # unknown ⇒ unchanged legacy behavior
                     if not _ow_ok and _pb_conf_ok:

@@ -11,4 +11,4 @@
 | `__init__.py` | ▶ entry/test | 0 | 2026-05-09 |  |
 | `env_loader.py` | ✅ 1 | 83 | 2026-06-24 | Minimal .env loader — load KEY=VALUE pairs into the process environment. |
 | `logging_setup.py` | ✅ 2 | 349 | 2026-08-20 | Root-logging configuration for the MEMS26 backend — the INFO layer (T-61). |
-| `main.py` | ✅ 5 | 1301 | 2026-08-20 | MEMS26 unified backend — serves V8-compatible routes + V9 API. |
+| `main.py` | ✅ 5 | 1372 | 2026-08-20 | MEMS26 unified backend — serves V8-compatible routes + V9 API. |

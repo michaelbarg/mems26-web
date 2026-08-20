@@ -517,6 +517,51 @@ def _antiflap_day_type(raw: Optional[str], now: float, hold_s: float, state: Dic
     return state["stable"]                                # not held long enough → keep stable
 
 
+def _live_day_type_machine() -> Any:
+    """The RUNNING app's day_type machine — backend.main's, never the dead wrapper.
+
+    P0 (07-22 17:40, Michael "למה אין זיהוי"): importing backend.v9.app gives a
+    DIFFERENT, EMPTY instance (the documented dead-wrapper trap, CLAUDE.md
+    §Codebase Index). Read the live process' app first via sys.modules (present in
+    production, absent in unit tests → fallback). Factored out so get_live_day_type()
+    and daytype_is_provisional() cannot drift onto two different machines.
+    """
+    import importlib as _il
+    import sys as _sys
+    _main_mod = _sys.modules.get("backend.main")
+    _live_app = getattr(_main_mod, "app", None) if _main_mod else None
+    _app_mod = _live_app if _live_app is not None else _il.import_module("backend.v9.app").app
+    return getattr(_app_mod.state, "day_type_machine", None)
+
+
+def daytype_is_provisional() -> bool:
+    """DAYTYPE_HONEST_PRELOCK_V1 (T-47 / F6 — Michael 2026-08-19, re-confirmed 08-20).
+
+    True while the published live label is PRE-IB-LOCK, i.e. provisional: the
+    Market Profile foundation it reasons from is not formed yet, so the label is a
+    working hypothesis and must never masquerade as settled.
+
+    This does NOT suppress the label (see get_live_day_type). It marks it, and the
+    gates that VETO on day type degrade that veto to advisory — reusing the
+    existing `conf < DAYTYPE_PLAYBOOK_MIN_CONF (0.4)` degrade path
+    (`trading_gateway._daytype_conf_sufficient`, `setup_emitter` AUTH_LOWCONF_REDUCED)
+    rather than inventing a second notion of "untrustworthy label".
+
+    Default OFF → always False → byte-identical.
+    Fail-safe: any error → False (a bug must never degrade a gate).
+    """
+    import os as _os
+    if _os.getenv("DAYTYPE_HONEST_PRELOCK_V1", "").lower() not in ("1", "true", "yes"):
+        return False
+    try:
+        _dtm = _live_day_type_machine()
+        if _dtm is None:
+            return False
+        return not bool(getattr(_dtm, "ib_locked", False))
+    except Exception:
+        return False
+
+
 def get_live_day_type() -> Optional[str]:
     """Read the LIVE promoted 7-type day_type from app.state.day_type_machine.
 
@@ -547,38 +592,30 @@ def get_live_day_type() -> Optional[str]:
     if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() not in ("1", "true", "yes"):
         return None
     try:
-        # P0 (07-22 17:40, Michael "למה אין זיהוי"): the RUNNING app is
-        # backend.main's (the real entrypoint) — importing backend.v9.app gives
-        # a DIFFERENT, EMPTY instance (the documented dead-wrapper trap,
-        # CLAUDE.md §Codebase Index). Read the live process' app first via
-        # sys.modules (present in production, absent in unit tests → fallback).
-        import importlib as _il
-        import sys as _sys
-        _main_mod = _sys.modules.get("backend.main")
-        _live_app = getattr(_main_mod, "app", None) if _main_mod else None
-        _app_mod = _live_app if _live_app is not None else _il.import_module("backend.v9.app").app
-        _dtm = getattr(_app_mod.state, "day_type_machine", None)
+        # The RUNNING app's machine (dead-wrapper trap — see _live_day_type_machine).
+        _dtm = _live_day_type_machine()
         _mapped = None
         if _dtm:
             _raw = getattr(_dtm, "day_type", None)
             _val = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
             if _val and _val not in ("UNKNOWN", "None", "INDETERMINATE", "FORMING"):
                 _mapped = {"Normal_Variation": "Variation"}.get(_val, _val)
-            # ── N1c (2026-07-17, docs/handoff/NIGHT_PROMPT_2026-07-17.md): before the
-            # IB locks (~60min/12 bars), `.day_type` can still hold the OLD base
-            # engine's own low-confidence read (e.g. "Trend_Normal" 0.35 seen live
-            # 07-15/07-16 at ~10:00 ET) — that value is NOT in the excluded-string
-            # list above, so it was passing through this function looking exactly
-            # like a canonical verdict. Neither engine has a trustworthy answer
-            # before IB lock (Market Profile foundation isn't formed yet), so this
-            # is honesty, not synthesis: report None ("forming/unknown") until the
-            # machine itself says the IB is locked. Default OFF → byte-identical
-            # when unset (screens keep seeing today's behavior until Michael
-            # signs off on the display change).
-            if (_mapped is not None
-                    and _os.getenv("DAYTYPE_HONEST_PRELOCK_V1", "").lower() in ("1", "true", "yes")
-                    and not getattr(_dtm, "ib_locked", False)):
-                _mapped = None
+            # ── N1c (2026-07-17): before the IB locks (~60min/12 bars), `.day_type`
+            # can still hold the OLD base engine's own low-confidence read (e.g.
+            # "Trend_Normal" 0.35 seen live 07-15/07-16 at ~10:00 ET) — that value is
+            # NOT in the excluded-string list above, so it passes through this
+            # function looking exactly like a canonical verdict.
+            #
+            # T-47 / F6 (Michael 2026-08-19, re-confirmed 08-20) REPLACES the original
+            # remedy, which returned None pre-lock. That was measured wrong TWICE on
+            # the same live day: on 2026-07-20 Michael turned `S2_DETECTION_LIVE_DAYTYPE_V1`
+            # off at 10:58 ET and `S4_HONEST_DAYTYPE_FALLBACK_V1` off at 10:10 ET, because
+            # a null label pre-lock made S2 skip every setup and S4 skip a classified
+            # down-day — a first-hour dead zone (both notes in config/RULED_FLAGS.yaml).
+            # Suppressing the label costs trades. The ruled remedy keeps publishing it
+            # and marks it PROVISIONAL via daytype_is_provisional(), so a pre-lock label
+            # can inform but cannot VETO — degraded by the consumers through the
+            # existing conf<0.4 path. Nothing to do here: the label flows unchanged.
         # ── anti-flap (DAYTYPE_ANTIFLAP_V1, Michael 2026-07-09): a live CHANGE must persist
         #    >= hold before it reaches the gates. Default OFF → returns the raw mapped value
         #    unchanged (byte-identical). The classify_replay engine is NOT touched. ──

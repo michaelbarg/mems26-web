@@ -162,9 +162,23 @@ flags:
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
   DAYTYPE_HONEST_PRELOCK_V1:
     category: s2
-    what: "get_live_day_type() reports None ('forming/unknown') before the IB locks, instead of whatever the OLD base state-machine's own low-confidence read happens to hold (e.g. Trend_Normal 0.35 seen live pre-lock 07-15/07-16)."
-    why: "OFF (default). N1c 2026-07-17: the old-engine's pre-lock value wasn't in the exclusion list, so it leaked through dashboard/pocket screens looking canonical. DAY_TYPE_MANUAL_OVERRIDE still takes precedence. Michael sign-off before enabling on live screens."
-    ref: "docs/handoff/NIGHT_PROMPT_2026-07-17.md N1(c); tests/v9/regression/test_daytype_honest_prelock.py"
+    group: "S1 day-type stability (T-47 / F6)"
+    what: "A pre-IB-lock day_type is published but marked PROVISIONAL: get_live_day_type() still returns the label (nothing is suppressed), and daytype_is_provisional() tells the gates that VETO on day type to degrade that veto to an advisory — through the SAME conf<DAYTYPE_PLAYBOOK_MIN_CONF (0.4) path that already exists (gateway _pb_conf_ok; S2 AUTH_LOWCONF_REDUCED SKIP->REDUCED-2), not a second mechanism."
+    why: "OFF (default) -> byte-identical. T-47/F6, Michael ruling 2026-08-19 re-confirmed 08-20 ('a pre-IB-lock label is marked non-final and does not flow to the gates as final'). REPLACES the original N1c remedy, which returned None pre-lock: that was measured wrong TWICE on 2026-07-20 — Michael turned S4_HONEST_DAYTYPE_FALLBACK_V1 off at 10:10 ET (null label made S4 skip a classified down-day, a first-hour dead zone) and S2_DETECTION_LIVE_DAYTYPE_V1 off at 10:58 ET (five_min_system treats None as never-passes -> every S2 setup skipped). Suppressing the label costs trades; marking it does not. Rationale is _daytype_conf_sufficient's: before IB lock the Market Profile foundation is not formed, so the label may inform but must not block. Supporting measurement: the exported IB differs from the bars' own IB by >2pt on 8/54 sessions."
+    standing_decision: true
+    ref: "config/RULED_FLAGS.yaml DAYTYPE_HONEST_PRELOCK_V1; docs/reports/DAILY_EXTREMES_PLAYBOOK_2026-08-20.md §3; tests/v9/regression/test_daytype_honest_prelock.py"
+  DAYTYPE_RECLASS_STABILITY_V1:
+    category: s1
+    group: "S1 day-type stability (T-47 / F6)"
+    what: "A day-type label CHANGE must repeat on N consecutive bars (DAYTYPE_RECLASS_CONFIRM_BARS, default 2) before the new-classifier promotion publishes it, and the mirrors (machine.day_type / _last_state.day_type) are re-pinned to the published label every bar so the two live sources cannot hold different labels. Never blocks a regime change — only makes it prove itself for one extra bar."
+    why: "OFF (default) -> the legacy `_new_dt != state.day_type` test is preserved verbatim, byte-identical. T-47/F6, Michael ruling 2026-08-19 re-confirmed 08-20 ('stop the conf-0 classification jumps'). Evidence: 44% disagreement vs the post-hoc classification and 46% between the two live sources on the same day; disagreeing days -$728.75 vs agreeing days +$1,048.75. Diagnosis: a PUBLICATION defect, not a classification defect — the classifier's own EOD verdict matches post-hoc 54/54, while the recorded v9_day_type_history row matches only 29/52. Two roots: (a) flip noise — 200 flips over 54 sessions, 28.5% of every non-final label survives exactly 1 bar, 49% of interior runs are pure A->B->A; (b) split write surfaces — the old engine's _stage_b6 writes only machine.day_type, the shadow reclassifier only state/_last_state, and the promotion test is blind to both. N=2 measured: removes 65/200 flips for a 1-bar median delay, and all 4 sessions whose final label changes are 1-bar closing blips. Matches the two existing rulings DAYTYPE_CONFIRM_BARS=2 (2026-07-01, same rule but wired only to the OLD engine) and DAYTYPE_ANTIFLAP_HOLD_S=600 (2026-07-09, applied only to the READ, never the WRITE)."
+    standing_decision: true
+    ref: "config/RULED_FLAGS.yaml DAYTYPE_RECLASS_STABILITY_V1; backend/v9/systems/day_type/label_stability.py; scripts/daytype_stability_study.py; scripts/replay_f6_daytype_stability.py; tests/v9/regression/test_daytype_reclass_stability.py"
+  DAYTYPE_RECLASS_CONFIRM_BARS:
+    category: param
+    group: "S1 day-type stability (T-47 / F6)"
+    what: "N for DAYTYPE_RECLASS_STABILITY_V1 — consecutive agreeing 5-min bars a label change must survive before it is published. unset => 2. A malformed or <1 value falls back to 2 (never silently disables the damping)."
+    why: "2 (param, inert while DAYTYPE_RECLASS_STABILITY_V1 is OFF). Chosen from the N-sweep in scripts/daytype_stability_study.py over 54 sessions: N=1 200 flips (today) / N=2 135 / N=3 115 / N=4 100 / N=5 96 / N=6 86, against a median delay of 0/1/2/3/4/5 bars. N=2 is the knee — 32% of the flips for one bar."
   S1_IB_SANITY_V1:
     category: s1
     what: "Sanity-check the Sierra-exported IB against the first-12-bars' own extremes once >=12 RTH bars exist; fall back to the bars-derived IB (+ tag ib_source) when inconsistent by >2 ticks/2pt."

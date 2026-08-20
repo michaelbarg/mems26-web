@@ -7,7 +7,7 @@
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 9 | 2026-05-11 | System 1: Day Type Engine — 13-stage state machine for day classification. |
 | `api.py` | ✅ 2 | 344 | 2026-07-15 | Day Type Engine API — GET state, GET history, POST process, GET current. |
-| `classifier_core.py` | ✅ 11 | 354 | 2026-08-03 | classifier_core — pure-function core of the 7-type day-type classifier. |
+| `classifier_core.py` | ✅ 12 | 354 | 2026-08-03 | classifier_core — pure-function core of the 7-type day-type classifier. |
 | `consumer.py` | ✅ 3 | 233 | 2026-08-20 | DayTypeConsumer — subscribes to day_type.classification events. |
 | `context_features.py` | ✅ 2 | 69 | 2026-06-24 | context_features.py — RELATIVE context/structure features for S1. |
 | `cvd_features.py` | ✅ 2 | 54 | 2026-06-24 | cvd_features.py — RELATIVE CVD signal for S1 day-type classification. |
@@ -19,6 +19,7 @@
 | `detector.py` | ✅ 7 | 575 | 2026-08-11 | Day Type Engine — helper / detection functions. |
 | `extensions.py` | ✅ 4 | 152 | 2026-05-15 | Extension Tracker — tracks IB extensions after 10:30 ET lock. |
 | `hydration.py` | ✅ 1 | 53 | 2026-05-29 | Day Type hydration stub (D-077). |
+| `label_stability.py` | ✅ 2 | 171 | — | Day-type label stability — T-47 / F6 (Michael ruling 2026-08-19, re-confirmed 2026-08-20). |
 | `models.py` | ✅ 4 | 33 | 2026-07-17 | Day Type Engine — SQLAlchemy model for persisting state. |
 | `neutral_classifier.py` | ✅ 2 | 59 | 2026-05-23 | neutral_classifier.py — NeuE vs NeuC classification per D-091.Q1. |
 | `open_type.py` | ⚠️ orphan? | 123 | 2026-05-15 | Open Type Classification — 4 types per Steidlmayer/Dalton (D-072). |

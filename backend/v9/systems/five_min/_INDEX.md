@@ -22,7 +22,7 @@
 | `five_min_system.py` | ✅ 14 | 2407 | 2026-08-19 | FiveMinSystem — 5-min Decision Maker with full D-077 lifecycle. |
 | `output_schema.py` | ✅ 5 | 53 | 2026-08-19 | T1Setup — canonical output per D-041. |
 | `quality_tier.py` | ✅ 2 | 113 | 2026-08-16 | Quality Tier V2 · Auth Table V1 (pattern x day_type x tier) -> contracts. |
-| `setup_emitter.py` | ✅ 4 | 222 | 2026-08-16 | setup_emitter — PATH A: full Layer 3 + validator + gateway composer. |
+| `setup_emitter.py` | ✅ 4 | 234 | 2026-08-16 | setup_emitter — PATH A: full Layer 3 + validator + gateway composer. |
 | `setup_wrapper.py` | ✅ 1 | 106 | 2026-05-16 | setup_wrapper — converts pattern detection output to T1Setup. |
 | `sr_proximity.py` | ✅ 2 | 87 | 2026-05-31 | sr_proximity — Reactive pattern S/R level proximity gate. |
 | `step_scaled_ladder.py` | ✅ 3 | 231 | 2026-08-13 | step_scaled_ladder — F3 STEP_SCALED_LADDER_V1 (2026-08-12, realigned 2026-08-13). |

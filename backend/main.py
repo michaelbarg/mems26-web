@@ -528,7 +528,44 @@ async def _startup():
                                                  _prev_str, _cls_status)
                             if _new_dt is not None and _cls_dt_str != "FORMING":
                                 _old_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
-                                if _new_dt != state.day_type:
+                                # ── T-47 / F6 · DAYTYPE_RECLASS_STABILITY_V1 (Michael 2026-08-19,
+                                # re-confirmed 08-20). Default OFF → `_publish` keeps the exact
+                                # legacy test below, byte-identical. When ON, a label CHANGE must
+                                # repeat on N consecutive bars (N=2, measured — see
+                                # backend/v9/systems/day_type/label_stability.py) before it is
+                                # published. A real regime change still passes, one bar later;
+                                # the 1-bar blips that made 49% of this label's interior runs
+                                # pure A→B→A reverts do not. ──
+                                _stab_on = _os.environ.get(
+                                    "DAYTYPE_RECLASS_STABILITY_V1", "0").lower() in ("1", "true", "yes")
+                                _publish = (_new_dt != state.day_type)
+                                if _stab_on:
+                                    try:
+                                        from backend.v9.systems.day_type.label_stability import (
+                                            confirm_bars as _stab_n_fn,
+                                            confirm_label as _stab_confirm,
+                                            pending_view as _stab_view,
+                                        )
+                                        _stab_n = _stab_n_fn()
+                                        _stab_st = getattr(app.state, "_daytype_stability", None)
+                                        if not isinstance(_stab_st, dict):
+                                            _stab_st = {}
+                                            app.state._daytype_stability = _stab_st
+                                        _publish = _stab_confirm(
+                                            _stab_st, _old_val, _new_dt.value,
+                                            _stab_n, now_et().date().isoformat())
+                                        if not _publish and _new_dt != state.day_type:
+                                            _logger.warning(
+                                                "[S1-NEW-CLS] DAYTYPE_RECLASS_STABILITY held: %s → %s "
+                                                "not published (pending %s/%d, %s)",
+                                                _old_val, _new_dt.value, _stab_view(_stab_st),
+                                                _stab_n, _cls_status)
+                                    except Exception as _stab_err:
+                                        # Fail-safe: damping is an optimisation, never a blocker.
+                                        _publish = (_new_dt != state.day_type)
+                                        _logger.warning(
+                                            "[S1-NEW-CLS] stability check errored (fail-open): %s", _stab_err)
+                                if _publish:
                                     state.day_type = _new_dt
                                     # Update ALL surfaces that read day_type:
                                     # 1) machine.day_type (read by /status, cockpit, build-status)
@@ -538,6 +575,40 @@ async def _startup():
                                         day_type_machine._last_state.day_type = _new_dt
                                     _logger.info("[S1-NEW-CLS] promoted: %s → %s (%s, %s)",
                                                  _old_val, _new_dt.value, _cls_dt_str, _cls_status)
+                                elif _stab_on:
+                                    # ── ONE-SOURCE re-sync (the mechanical root of the 46%
+                                    # two-live-source disagreement, T-47). The legacy engine's
+                                    # own `_stage_b6` rescore writes ONLY `machine.day_type`
+                                    # (state_machine.py:780) and the shadow reclassifier writes
+                                    # ONLY `state`/`_last_state` (main.py:647-649). The legacy
+                                    # test above (`_new_dt != state.day_type`) is blind to both,
+                                    # so `machine.day_type` — which get_live_day_type() reads and
+                                    # stamps as day_type_at_entry — can drift away from
+                                    # `_last_state.day_type`, which to_classification() reads and
+                                    # writes to v9_day_type_history. Same bar, same engine, two
+                                    # different published labels. Re-pin the mirrors to the
+                                    # canonical published value. Guarded on the Nonconviction
+                                    # sentinel, which main.py:526 puts on `machine.day_type`
+                                    # ALONE by design.
+                                    try:
+                                        _cur_m = getattr(day_type_machine, "day_type", None)
+                                        if str(_cur_m) != "Nonconviction" and _cur_m != state.day_type:
+                                            _logger.warning(
+                                                "[S1-NEW-CLS] ONE-SOURCE re-sync: machine.day_type %s → %s "
+                                                "(drifted from the published label)",
+                                                (_cur_m.value if hasattr(_cur_m, "value") else str(_cur_m)),
+                                                _old_val)
+                                            day_type_machine.day_type = state.day_type
+                                        _ls = getattr(day_type_machine, "_last_state", None)
+                                        if _ls is not None and getattr(_ls, "day_type", None) != state.day_type:
+                                            _logger.warning(
+                                                "[S1-NEW-CLS] ONE-SOURCE re-sync: _last_state.day_type %s → %s "
+                                                "(v9_day_type_history mirror drifted)",
+                                                getattr(_ls, "day_type", None), _old_val)
+                                            _ls.day_type = state.day_type
+                                    except Exception as _sync_err:
+                                        _logger.warning(
+                                            "[S1-NEW-CLS] one-source re-sync errored (fail-open): %s", _sync_err)
                                 # 07-15 decision 4/6: promote the canonical CONFIDENCE too —
                                 # the type came from the new brain while the persisted conf
                                 # stayed the legacy machine's (frozen 0.26 all of 07-14).

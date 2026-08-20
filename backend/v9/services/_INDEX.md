@@ -58,7 +58,7 @@
 | `sierra_pnl_reconcile.py` | ✅ 2 | 274 | 2026-08-20 | T-10 — fill `v9_trades.pnl_sierra` from the Sierra fills journal. |
 | `sierra_position_reconciler.py` | ✅ 9 | 1088 | 2026-08-18 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |
-| `trade_context.py` | ✅ 17 | 1021 | 2026-08-16 | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
+| `trade_context.py` | ✅ 18 | 1058 | 2026-08-16 | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
 | `trade_excursion.py` | ✅ 4 | 160 | 2026-05-23 | Trade price excursion from v9_bars_5min (Hi/Lo during trade, MFE/MAE, T1 proximity). |
 | `trade_legs.py` | ✅ 1 | 59 | 2026-05-23 | Entry / target / exit legs for journal and trades UI. |
 | `trail_engine.py` | ⚠️ orphan? | 830 | 2026-05-25 | TrailEngine — D-094 Pkg 3b Stream 3 · 4-layer trail management on 5-min bars. |
