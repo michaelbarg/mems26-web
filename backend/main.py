@@ -24,6 +24,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.env_loader import load_dotenv_file as _load_dotenv_file
 _load_dotenv_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, ".env"))
 
+# Configure the ROOT logger BEFORE the first `backend.v9` import — T-61 (Michael
+# 2026-08-20, fix F3). uvicorn's LOGGING_CONFIG never gives root a handler, and the
+# app's only basicConfig sits behind a LAZY import in status.py, so until somebody
+# opened the dashboard every record fell through to `logging.lastResort` — WARNING+
+# only, printed bare. On 2026-08-19 that made 22 shadow trades leave zero log lines.
+# Placed after env_loader so MEMS26_LOG_LEVEL is readable from .env, and before
+# backend.v9 so import-time records are captured too. Full diagnosis in the module.
+from backend.logging_setup import configure_logging as _configure_logging
+_configure_logging()
+
 from backend.v9.app import v9_router, init_event_dispatcher
 from backend.v9.api.journal_compat_routes import router as journal_compat_router
 from backend.v9.systems.day_type.prev_day import (
@@ -75,6 +85,19 @@ async def _startup():
     """Initialize EventDispatcher + BarIngestionService at unified app startup."""
     import logging
     _logger = logging.getLogger("mems26")
+
+    # T-61 boot probe. Re-assert the root config (cheap no-op; survives anything that
+    # re-ran dictConfig between import time and startup) and emit the ONE line that
+    # proves the INFO layer is alive in THIS pid. `scripts/fire_drill.py` goes NO-GO
+    # when this line is missing for the running pid — so 2026-08-19-style blindness
+    # (WARNING-only, no timestamps, `[ExitVerify]`/`SHADOW trade TM` invisible) can
+    # never again go unnoticed for a whole session.
+    try:
+        from backend.logging_setup import boot_probe as _boot_probe, configure_logging as _cfg_log
+        _cfg_log()
+        _boot_probe()
+    except Exception as _lg_err:  # logging must never block boot
+        _logger.warning("[Main] boot probe failed (non-fatal): %s", _lg_err)
 
     # Schema self-heal on boot (idempotent, checkfirst=True): a new ORM model added
     # by `git pull` gets its table created on restart, not only at install time.

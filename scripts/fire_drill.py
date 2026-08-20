@@ -136,6 +136,59 @@ def stage_c():
     check(f"בר-אישור: סגירה-נגד של 70% מהסובלנות ({tol:.2f} נק') עוברת", ok, why)
 
 
+def _backend_pids():
+    """PIDs של ה-uvicorn שמריץ את backend.main (יכולים להיות כמה בזמן ריסטארט)."""
+    try:
+        r = subprocess.run(["pgrep", "-f", "uvicorn backend.main:app"],
+                           capture_output=True, text=True, timeout=10)
+        return [int(p) for p in r.stdout.split() if p.strip().isdigit()]
+    except Exception:
+        return []
+
+
+def check_logging_layer():
+    """T-61 · שכבת-ה-INFO חיה בתהליך שרץ **עכשיו** — או NO-GO רועש.
+
+    נולד מ-19.08: אחרי ריסטארט-16:09 הלוג כתב רק WARNING+ בלי חותמת (חתימת
+    `logging.lastResort` — הקונפיג לא נטען), ולכן 22 עסקאות-צל ישבו בספרים מול
+    **0** שורות `SHADOW trade TM`, ו-`[ExitVerify]`/`OPENING_DIR_FUSION` (שניהם
+    INFO) היו בלתי-נראים. "0 שורות" באותו יום היה עיוורון, לא ממצא. הבדיקה הזו
+    היא מה שהופך את זה לבלתי-אפשרי-בשקט: שורת-הבוט חייבת להימצא בלוג **עם ה-PID
+    שרץ כרגע**.
+    """
+    from backend.logging_setup import BOOT_PROBE_PREFIX, DEFAULT_LOG_FILE, find_boot_probe
+
+    log_path = os.getenv("MEMS26_LOG_FILE", DEFAULT_LOG_FILE)
+    pids = _backend_pids()
+    if not pids:
+        check("T-61 שכבת-INFO בלוג", False,
+              "לא נמצא תהליך backend רץ (pgrep 'uvicorn backend.main:app')")
+        return
+
+    best = None
+    for pid in pids:
+        res = find_boot_probe(log_path, pid=pid)
+        if res.get("pid_match"):
+            best = res
+            break
+        best = best or res
+
+    if not best.get("found"):
+        check("T-61 שכבת-INFO בלוג", False,
+              best.get("reason") or f"אין שורת '{BOOT_PROBE_PREFIX}' ב-{log_path}")
+        return
+    if not best.get("pid_match"):
+        check("T-61 שכבת-INFO בלוג", False, best.get("reason") or "PID לא תואם")
+        return
+
+    # השורה קיימת — אבל גם לוודא שהרמה באמת INFO בפועל ולא רק בשורה הזו.
+    check(f"T-61 שכבת-INFO בלוג ({os.path.basename(log_path)})", True,
+          f"{best['line'][:110]} · {best['info_after']} שורות INFO אחריה")
+    _flowing = best["info_after"] > 0
+    check("T-61 רמת-INFO זורמת בפועל (לא רק שורת-הבוט)", _flowing,
+          "" if _flowing else "שורת-הבוט קיימת אבל אין אף INFO אחריה — הרמה הועלתה אחרי הבוט")
+
+
 def stage_d():
     # wire_guard — האם כל אתר-קריאה של פקודה/יציאה/התראה בכלל ניתן-לקריאה.
     # זה הבודק שהיה תופס את #682 (TypeError לפני שנכתב בייט) — ו-6 טסטים
@@ -164,6 +217,11 @@ def stage_d():
     print("— שלב D · מצב חי —")
     h = api("/api/v9/health")
     check("backend health", bool(h and h.get("status") == "ok"))
+    # T-61 — לפני כל בדיקה שנשענת על הלוג: האם הלוג בכלל רואה?
+    try:
+        check_logging_layer()
+    except Exception as _lg_e:
+        check("T-61 שכבת-INFO בלוג", False, f"{type(_lg_e).__name__}: {_lg_e}")
     p = api("/api/v9/live_price")
     check("feed טרי (<30s)", bool(p and p.get("age_ms", 1e9) < 30000),
           f"age={p.get('age_ms')}ms" if p else "no price")

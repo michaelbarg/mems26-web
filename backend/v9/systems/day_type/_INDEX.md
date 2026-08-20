@@ -8,7 +8,7 @@
 | `__init__.py` | ▶ entry/test | 9 | 2026-05-11 | System 1: Day Type Engine — 13-stage state machine for day classification. |
 | `api.py` | ✅ 2 | 344 | 2026-07-15 | Day Type Engine API — GET state, GET history, POST process, GET current. |
 | `classifier_core.py` | ✅ 10 | 354 | 2026-08-03 | classifier_core — pure-function core of the 7-type day-type classifier. |
-| `consumer.py` | ✅ 3 | 226 | 2026-05-29 | DayTypeConsumer — subscribes to day_type.classification events. |
+| `consumer.py` | ✅ 3 | 233 | 2026-05-29 | DayTypeConsumer — subscribes to day_type.classification events. |
 | `context_features.py` | ✅ 2 | 69 | 2026-06-24 | context_features.py — RELATIVE context/structure features for S1. |
 | `cvd_features.py` | ✅ 2 | 54 | 2026-06-24 | cvd_features.py — RELATIVE CVD signal for S1 day-type classification. |
 | `day_context_extras.py` | ✅ 2 | 144 | 2026-07-13 | day_context_extras — P2-9/10/11/12: the four Dalton context reads (Michael 07-13). |

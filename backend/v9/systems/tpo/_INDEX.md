@@ -13,4 +13,4 @@
 | `opening_classifier.py` | ✅ 1 | 49 | 2026-05-12 | TPO Opening Type Classifier. |
 | `profile_builder.py` | ✅ 1 | 187 | 2026-05-10 | TPO Profile Builder — Stages A-C of MEMS26_TPO_TREE_V2. |
 | `schemas.py` | ✅ 3 | 177 | 2026-05-16 | Pydantic schemas for TPO Profile system (System 5). |
-| `tpo_system.py` | ✅ 2 | 629 | 2026-07-23 | System 5 — TPO Profile Observer (STANDALONE). |
+| `tpo_system.py` | ✅ 3 | 629 | 2026-07-23 | System 5 — TPO Profile Observer (STANDALONE). |

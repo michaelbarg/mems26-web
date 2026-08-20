@@ -49,7 +49,7 @@
 | `test_extensions.py` | ▶ entry/test | 62 | 2026-05-15 | ExtensionTracker tests — 4 scenarios per IB extension tracking. |
 | `test_extremes_quality.py` | ▶ entry/test | 174 | 2026-08-06 | Tests for extremes_quality — excess/poor high/low detection. |
 | `test_f3_step_scaled_ladder.py` | ▶ entry/test | 179 | 2026-08-13 | F3 — STEP_SCALED_LADDER_V1 tests (2026-08-12, realigned 2026-08-13). |
-| `test_fill_on_closed.py` | ▶ entry/test | 95 | 2026-08-07 | Tests for P0-2: fill-based accounting on already-CLOSED trades. |
+| `test_fill_on_closed.py` | ▶ entry/test | 95 | 2026-08-20 | Tests for P0-2: fill-based accounting on already-CLOSED trades. |
 | `test_fix10_order_reject.py` | ▶ entry/test | 148 | 2026-07-10 | FIX-10 — async broker rejection must become REJECTED, not CLOSED/BE. |
 | `test_fix12_smart_be_fallback.py` | ▶ entry/test | 81 | 2026-07-10 | FIX-12 — structure wider than current stop must fall back to BE±1T, not silent no-op. |
 | `test_fix13_state_reconcile.py` | ▶ entry/test | 80 | 2026-07-10 | FIX-13 — the reconciler prefers the DLL's sierra_state.json when fresh. |

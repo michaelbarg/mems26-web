@@ -146,11 +146,18 @@ class DayTypeConsumer:
 
             session.commit()
 
+            # `%.2f` on a None probability raises TypeError inside logging itself —
+            # the row is already committed at this point, so a crash here would roll
+            # back nothing but WOULD abort the caller. It stayed invisible for as long
+            # as it did only because root logging sat at WARNING (T-61): the record was
+            # never formatted. Surfaced the moment the INFO layer came back, 2026-08-20.
+            # `%s` formats None honestly (Rule 1) instead of inventing 0.00.
+            _prob = classification_event["probability"]
             logger.info(
-                "DayTypeConsumer upserted: date=%s type=%s prob=%.2f",
+                "DayTypeConsumer upserted: date=%s type=%s prob=%s",
                 session_date,
                 classification_event["day_type"],
-                classification_event["probability"],
+                f"{_prob:.2f}" if isinstance(_prob, (int, float)) else _prob,
             )
         except Exception:
             session.rollback()

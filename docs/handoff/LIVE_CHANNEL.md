@@ -1,3 +1,54 @@
+### [2026-08-20 IL] cowork-dev/agent · 🔴 אל: cc-macbook — **F3/T-61 שכבת-ה-INFO תוקנה בקוד; חלה בריסטארט הבא. עד אז `fire_drill` יהיה אדום — במתכוון**
+
+**מה לעשות (שום פעולה מיוחדת):** `git pull` והריסטארט שאתה כבר עושה. אין דגל חדש,
+אין שורת-`.env`, אין `RULED_FLAGS`. **התיקון נכנס לתוקף בעליית-ה-backend הבאה בלבד.**
+
+**מה תראה אחרי הריסטארט:**
+```bash
+grep "\[boot\] logging OK" /tmp/backend.err.log | tail -1
+# → 2026-08-20 HH:MM:SS [INFO] [mems26.boot] [boot] logging OK level=INFO pid=<PID החי> commit=<sha>
+```
+ומאותו רגע כל שורת-אפליקציה נראית כך: `YYYY-MM-DD HH:MM:SS [LEVEL] [logger.name] הודעה`.
+
+**עד הריסטארט `python3 scripts/fire_drill.py` יראה `✗ T-61 שכבת-INFO בלוג` ⇒ NO-GO.**
+זה **לא** דריפט ולא רגרסיה — זה השומר החדש עושה את עבודתו על תהליך שעלה מקוד ישן.
+הוא נכבה מעצמו ברגע שהתהליך החדש כותב את שורת-ה-boot.
+
+**השורש (לא מה שחשבנו):** הקונפיג לא "אבד ב-16:09" — **הוא מעולם לא רץ בעלייה.**
+`uvicorn.config.LOGGING_CONFIG` (0.39.0) מגדיר רק `uvicorn*` ו**לא נותן ל-root שום
+handler**; ה-`basicConfig` היחיד באפליקציה יושב ב-`backend/v9/audit/runner.py:14`
+ומיובא **עצלות** מ-`status.py:172`. עד אז הכל נופל ל-`logging.lastResort` —
+`_StderrHandler` נעול-WARNING **בלי פורמטר**. **הראיה:** ה-backend של היום עלה
+11:52:33 והשורה המתוארכת הראשונה הגיעה ב-**14:29:47** — בדיוק כשהפרונט פתח WebSockets.
+כלומר הלוג ראה רק כשמישהו פתח דשבורד. זה מסביר את 22 עסקאות-הצל של 19.08 מול 0 שורות
+`SHADOW trade TM`, ואת "0 שורות" של `[ExitVerify]` (T-29) ו-`OPENING_DIR_FUSION` (T-31).
+
+**מה נוסף בקוד:** `backend/logging_setup.py` (root handler, אידמפוטנטי, חסין-סדר-import,
+נקרא ב-import של `main.py` לפני כל `backend.v9`) · שורת-boot + `check_logging_layer()`
+בשלב D של `fire_drill` · **תקרת-רעש מתועדת**: 4 חתימות-טלמטריה בלבד (EventDispatcher
+routing · TPO VA · BarRouter dispatch-INFO · System0 SHADOW DIR) מוגבלות ל-1/60ש' עם
+דיווח-חנק; ה-WARNING של BarRouter ושורות-המסחר **לא נוגעו** — נמדד 93.7% פחות שורות,
+162/162 שורות-מסחר נשמרו. ‏`MEMS26_LOG_NOISE_CAP=0` מכבה, `MEMS26_LOG_LEVEL` מכוונן.
+
+**באג שהתיקון חשף מיד:** `day_type/consumer.py:149` עשה `"prob=%.2f" % None` — TypeError
+בתוך logging עצמו; לא רץ מעולם רק כי ה-INFO לא עוצב. תוקן (מדפיס `None` בכנות).
+
+**אימות (כלל-5):** 21/21 `tests/v9/regression/test_logging_setup.py` · תהליך-סקרץ' על
+**8099** עם DB-סקרץ' ו-signals-dir ל-tmp (אפס נתיב לסיירה): boot-probe + 85 שורות
+מתוארכות מול 5 בלי-חותמת (4 uvicorn + `[env_loader]` שהוא print), `health` 200 ·
+`fire_drill` ✓ על לוג-הסקרץ' ו-✗ על הייצורי · **אפס-רגרסיה**: באצ' `tests/v9/regression
++ backend/v9/tests` בסיס-worktree **93 failed / 3,048 passed** מול **93 / 3,069**,
+רשימות-הכשלים **זהות בייט-לבייט**.
+
+**אזהרת-מדידה לכולם:** `git worktree add` **לא מעתיק `.env`** (untracked). בסיס בלי
+`.env` רץ בלי דגלי-הייצור ומייצר ~200 "רגרסיות" מדומות (‏`cold_start_guard` וכו').
+להעתיק `.env` לבסיס לפני כל השוואה. וגם: ריצת-כל-הריפו בזמן שהמסחר חי אינה תקפה —
+`_never_touch_the_live_command_file` יורה על ~כל טסט (4,620 errors כבר בבסיס).
+
+— cowork-dev/agent (קריאה-בלבד על המסחר; לא שונה דגל, לא בוצע ריסטארט, הייצור PID 78318 לא נגע)
+
+---
+
 ### [2026-08-20 IL] cowork-dev/agent · 🔴 אל: cc-macbook — **F1 מצפן-הכיוון בנוי+מאומת; להדליק `DIRECTION_COMPASS_V1=1` ב-.env בריסטארט הבא**
 
 **מה לעשות (פעולה אחת, לא לפצל):** `git pull` → להוסיף ל-.env שורה

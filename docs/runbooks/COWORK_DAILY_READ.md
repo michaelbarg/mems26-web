@@ -110,14 +110,38 @@ $PSQL $DB -P pager=off -c "SELECT count(*) n, (array_agg(close ORDER BY ts))[1] 
 
 **ד · לוגים — `backend.err.log`, לא `backend.log`** (§3.1):
 
+**ד0 · קודם כל: האם הלוג בכלל רואה?** (§3.9 — המלכודת שהרגה את כל 19.08).
+כל הפקודות שמתחת מניחות שורות עם **חותמת-זמן** ורמת-INFO. אם שכבת-ה-INFO לא
+נטענה, כולן יחזירו 0 — וזה **עיוורון, לא ממצא**. השער הזה חייב לעבור ראשון:
+
+```bash
+PID=$(pgrep -f "uvicorn backend.main:app" | head -1)
+grep "\[boot\] logging OK" /tmp/backend.err.log | tail -1     # חייב לכלול pid=$PID
+# → 2026-08-20 15:01:18 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=… commit=…
+```
+
+אין שורה כזו, או שה-pid בה **אינו** ה-pid שרץ ⇒ התהליך עלה בלי שכבת-INFO:
+לעצור, לא לדווח "0 שורות" על שום דבר. (`python3 scripts/fire_drill.py` נכשל
+NO-GO על בדיוק זה — `T-61 שכבת-INFO בלוג`.)
+
+**ד1 · ספירות — תחומות ליום, אחרת סופרים את כל ההיסטוריה.** פורמט-השורה מאז
+20.08 הוא `‏YYYY-MM-DD HH:MM:SS [LEVEL] [logger.name] הודעה`, כך ש-`grep "^$D"`
+תוחם ליום ו-`[logger.name]` אומר מאיזה קובץ זה בא:
+
 ```bash
 D="$DAY"        # ← לא date +%F: אחרי חצות IDT זה כבר המחר (§3.3)
 for k in ExitVerify exit_not_executed exit_needs_manual exit_unverifiable \
          OPENING_DIR_FUSION TREND_STEP SCALE_IN PROTECTED_QTY drive_exhaustion; do
-  printf "%-22s %s\n" "$k" "$(grep -c -- "$k" /tmp/backend.err.log)"
+  printf "%-22s today=%-6s all=%s\n" "$k" \
+    "$(grep "^$D" /tmp/backend.err.log | grep -c -- "$k")" \
+    "$(grep -c -- "$k" /tmp/backend.err.log)"
 done
 grep "^$D" /tmp/backend.err.log | grep -E "LIVE trade TM id|SHADOW trade TM|LIVE fire BLOCKED|ORPHAN|COMMAND QUEUED"
 ```
+
+**`today=0` אבל `all>0`?** או שהיום באמת שקט, או שהלוג נכתב בלי חותמות — לחזור
+ל-ד0. שורות **בלי** חותמת בכלל הן של uvicorn עצמו (יש לו פורמט משלו) ושל
+`[env_loader]` (‏`print` לפני שהלוגינג בכלל יכול לעלות) — אלו בלבד ותקינות.
 
 **ה · הצלבת-ברוקר** — הספרים כבר טעו (14.08: −$135 בספרים מול +$120 אצל הברוקר):
 
@@ -179,6 +203,17 @@ grep "^$DAY" /tmp/backend.err.log | grep -c "COMMAND QUEUED"
 
 **3.7 · `high_during_pos` / `low_during_pos` ב-`sierra_state` מכילים זבל-סנטינל**
 (±1.79e308) כשאין פוזיציה. לא לדווח אותם כמחירים.
+
+**3.9 · לוג בלי חותמות = `logging.lastResort` = עיוורון-מלא, ולא "שקט".**
+כל 19.08 (מריסטארט-16:09) נכתבו רק WARNING+ בלי חותמת/רמה. השורש: אף אחד לא
+הגדיר את ה-root logger — `uvicorn` מגדיר רק את הלוגרים שלו, וה-`basicConfig`
+היחיד באפליקציה יושב מאחורי **import עצל** ב-`status.py:172`, כלומר הקונפיג עלה
+רק כשמישהו פתח את הדשבורד. עד אז Python נופל ל-`logging.lastResort` —
+`_StderrHandler` נעול על WARNING **בלי פורמטר**. התוצאה: 22 עסקאות-צל בספרים מול
+**0** שורות `SHADOW trade TM`, ו-`[ExitVerify]`/`OPENING_DIR_FUSION` (שניהם INFO)
+בלתי-נראים. תוקן 20.08 (F3/T-61) ב-`backend/logging_setup.py`, שנקרא ב-import של
+`backend/main.py` לפני כל `backend.v9`. **הזיהוי בשטח:** שורה בלוג שלא מתחילה
+ב-`YYYY-MM-DD`. **השער:** ד0 למעלה + `fire_drill`.
 
 **3.8 · `task_log_guard` דורש את מזהה-ה-T המילולי ב-STATUS_BOARD.** פריט ✅
 שמכוסה ברשומה שכותרתה "T-36..T-40" **ייכשל** — הטווח לא מתרחב. לכתוב

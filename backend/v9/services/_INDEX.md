@@ -28,9 +28,9 @@
 | `bar_aggregator_5min.py` | ✅ 3 | 230 | 2026-08-12 | 5-min Bar Aggregator — builds OHLCV bars from incoming ticks. |
 | `bar_ingestion.py` | ✅ 4 | 147 | 2026-06-04 | BarIngestionService — persists incoming 5-min bars to DB. |
 | `bar_integrity.py` | ✅ 3 | 65 | 2026-05-17 | Bar integrity validator — Python mirror of frontend looksOk(). |
-| `bar_router.py` | ✅ 3 | 127 | 2026-05-29 | BarRouter — central distributor for bar events. |
+| `bar_router.py` | ✅ 4 | 127 | 2026-05-29 | BarRouter — central distributor for bar events. |
 | `contract_size.py` | ✅ 12 | 103 | 2026-08-16 | The one place that answers "how many contracts did Michael rule for?". |
-| `daily_pnl.py` | ✅ 1 | 204 | 2026-07-28 | Daily P&L table from Sierra's OWN per-day Trade Activity Logs. |
+| `daily_pnl.py` | ✅ 1 | 204 | 2026-08-20 | Daily P&L table from Sierra's OWN per-day Trade Activity Logs. |
 | `daytype_watchdog.py` | ✅ 2 | 228 | 2026-08-13 | Day-type writer watchdog — detects AND heals a stale v9_day_type_state. |
 | `direction_compass.py` | ✅ 2 | 410 | 2026-08-20 | direction_compass — F1: the ONE fused direction reading (Michael 2026-08-20). |
 | `entry_guard.py` | ✅ 3 | 133 | 2026-08-12 | PRE_SEND_ENTRY_GUARD_V1 — refuse a LIVE entry the account state guarantees to kill. |
@@ -38,7 +38,7 @@
 | `eod_archiver.py` | ✅ 3 | 199 | 2026-05-23 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
 | `exit_verifier.py` | ✅ 2 | 341 | 2026-08-17 | T4 — books close only after Sierra proves the exit actually happened. |
 | `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
-| `fill_poller.py` | ✅ 6 | 1216 | 2026-08-17 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
+| `fill_poller.py` | ✅ 6 | 1216 | 2026-08-20 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `gate_overrides.py` | ✅ 1 | 93 | 2026-08-19 | Phone-triggered gate overrides — Michael 2026-08-19: |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |
@@ -54,8 +54,8 @@
 | `phone_alert.py` | ✅ 9 | 112 | 2026-08-17 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 2 | 295 | 2026-08-19 | Item-20 — Sierra truth reconcile + naked-stop detector. |
 | `sierra_command.py` | ✅ 22 | 920 | 2026-08-19 | Sierra command file writer for DEMO/LIVE execution paths. |
-| `sierra_ledger.py` | ✅ 2 | 329 | 2026-07-08 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
-| `sierra_pnl_reconcile.py` | ✅ 2 | 274 | — | T-10 — fill `v9_trades.pnl_sierra` from the Sierra fills journal. |
+| `sierra_ledger.py` | ✅ 2 | 329 | 2026-08-20 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
+| `sierra_pnl_reconcile.py` | ✅ 2 | 274 | 2026-08-20 | T-10 — fill `v9_trades.pnl_sierra` from the Sierra fills journal. |
 | `sierra_position_reconciler.py` | ✅ 9 | 1088 | 2026-08-18 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |
 | `trade_context.py` | ✅ 17 | 1021 | 2026-08-16 | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
