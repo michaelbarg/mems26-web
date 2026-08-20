@@ -42,7 +42,7 @@
 | `eod_data_handoff.sh` | — | 69 | 2026-08-13 | eod_data_handoff.sh — daily data packet from the TRADING machine to git, |
 | `eod_review.py` | ▶ entry/test | 221 | 2026-07-22 | EOD review for ONE trading day (Michael 2026-07-22): today's trades, how |
 | `f1_compass_replay.py` | ▶ entry/test | 205 | 2026-08-20 | F1 replay — would DIRECTION_COMPASS_V1 have prevented the +$576 direction family? |
-| `fire_drill.py` | ▶ entry/test | 289 | 2026-08-19 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
+| `fire_drill.py` | ▶ entry/test | 289 | 2026-08-20 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
 | `fire_readiness_real.py` | ▶ entry/test | 549 | 2026-07-19 | Stage E: replay real RTH setups through read-only, pure readiness gates. |
 | `flag_guard.py` | ✅ 18 | 87 | 2026-07-08 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | 2026-05-24 | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
@@ -71,6 +71,7 @@
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
 | `opening_signal_edge.py` | ▶ entry/test | 153 | 2026-07-24 | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
 | `ops_log.py` | ✅ 19 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
+| `oracle_study.py` | ▶ entry/test | 767 | — | oracle_study.py — bar-by-bar "ORACLE vs FEASIBLE vs SYSTEM" study of every live-era |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
 | `parity_report.py` | ▶ entry/test | 372 | 2026-08-19 | parity_report.py — EOD cross-machine parity check (cc-imac, 2026-08-19). |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |
@@ -92,6 +93,7 @@
 | `replay_excess_counter.py` | ▶ entry/test | 583 | 2026-08-09 | K5 — EXCESS_COUNTER_ENTRY_V1 replay on historical bars (2026-08-09). |
 | `replay_extremes_aware.py` | ▶ entry/test | 259 | 2026-08-06 | Replay EXTREMES_AWARE_REALIZE_V1 on historical trades. |
 | `replay_f3_step_ladder.py` | ▶ entry/test | 136 | 2026-08-12 | F3 replay: step-scaled ladder impact on 15 days of trades. |
+| `replay_f4_stair_struct_exempt.py` | ▶ entry/test | 330 | — | F4 / G2 replay — every setup A1 ever killed, re-routed through the REAL gateway. |
 | `replay_g1g2_opening_entry.py` | ▶ entry/test | 237 | 2026-08-12 | G1+G2 replay: opening entry triggers on 7 sessions (08-03..08-12). |
 | `replay_hlst.py` | ▶ entry/test | 343 | 2026-08-09 | Replay Higher-Low Second Test (HLST) detector on historical 5-min RTH bars. |
 | `replay_opening_windows.py` | ▶ entry/test | 286 | 2026-08-06 | Replay opening windows + drive location filter on historical sessions. |

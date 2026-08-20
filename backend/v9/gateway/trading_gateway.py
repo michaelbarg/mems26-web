@@ -55,6 +55,13 @@ def _sierra_route_account() -> str:
     return _ra_os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13")
 
 
+# Setups that arrive carrying a stop AND a ladder from their OWN measured,
+# leg-relative model. Two gateway stages consult this: F3 (STEP_SCALED_LADDER,
+# which must not resize a native stop) and F4/G2 (the structural wrong-side
+# exemption below). Module-level so both stages read ONE definition.
+_STEP_NATIVE_STOP_SOURCES = ("TREND_STEP_LEG",)
+
+
 def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
     """Resolve pattern_id_at_entry: prefer the firing setup's classification.
 
@@ -822,6 +829,16 @@ class TradingGateway:
         _confluence_fixed = (
             str(setup.get("classification") or "").strip().upper()
             == "CONFLUENCE_RI_ZLR"
+        )
+
+        # F4 / G2 (Michael 2026-08-20): does this setup carry the TREND_STEP
+        # leg model? Read ONCE here, from the producer's own field, before any
+        # gateway stage can rewrite `stop_source` (F3 does, further down). Used
+        # only by the structural wrong-side exemption below — no other gate
+        # consults it, so nothing else changes shape.
+        _step_native_ladder = (
+            str(setup.get("stop_source") or "").strip().upper()
+            in _STEP_NATIVE_STOP_SOURCES
         )
 
         # T5: Kill-switch — instant halt of ALL firing
@@ -2310,16 +2327,77 @@ class TradingGateway:
                         pattern_family=_pf(_st_pat),
                     )
                     _structural_t2t3_applied = False
-                    if _st is not None:
-                        # A1 (STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1, default OFF):
-                        # when ALL structural objectives land on the wrong side of
-                        # entry, the market structure offers NO target in the trade
-                        # direction — hard block, not clamp-and-continue.
-                        # Case #655 (2026-08-10): c1/c2/c3 all below LONG entry,
-                        # R-fallback rescued the trade, −$63.75.
-                        if (_st.get("all_wrong_side")
-                                and os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
+                    # A1 (STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1, default OFF):
+                    # when ALL structural objectives land on the wrong side of
+                    # entry, the market structure offers NO target in the trade
+                    # direction — hard block, not clamp-and-continue.
+                    # Case #655 (2026-08-10): c1/c2/c3 all below LONG entry,
+                    # R-fallback rescued the trade, −$63.75.
+                    if (_st is not None and _st.get("all_wrong_side")
+                            and os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
+                            in ("1", "true", "yes")):
+                        # F4 / G2 — TREND_STEP structural exemption
+                        # (TREND_STEP_STRUCT_EXEMPT_V1, default OFF; Michael
+                        # 2026-08-20). A1's premise is "structure offers no
+                        # objective in the trade direction". That premise does
+                        # not apply to a staircase: a stair entry happens AT the
+                        # session extreme BY CONSTRUCTION, so every structural
+                        # level (IB edges, POC, VAH/VAL) necessarily sits behind
+                        # it — A1 therefore kills EVERY stair-long at a high, for
+                        # a reason that is a property of the pattern rather than
+                        # of the location. And it need not borrow structure's
+                        # objectives: it arrives with its own measured ladder
+                        # (stop = pause extreme + 10% of the impulse; targets =
+                        # 0.45/0.80/1.30 × impulse), which is exactly what
+                        # `stop_source == TREND_STEP_LEG` marks.
+                        # Retro-audit (RETRO_BACKTEST_2026-08-20 §G2) over every
+                        # session since A1 went live on 08-11: the gate produced
+                        # exactly TWO verdicts — 08-19 10:50 ET TREND_STEP LONG
+                        # @7747.0 (KILLER; MFE +17.75pt, replay banks +$150) and
+                        # 08-14 11:50 ET ZLR SHORT @7800.75 (SAVER, ~−$93
+                        # avoided). Exempting ONLY stairs keeps the save.
+                        # n=2 — thin, one-directional evidence, hence: one flag,
+                        # default OFF in code, and a WARNING on every firing so
+                        # the live count is measurable from day one.
+                        # Scope: this exemption lives INSIDE the all-wrong-side
+                        # branch, which today always ends in `return result`.
+                        # Every other path through this stage — including a stair
+                        # whose structural targets are NOT all wrong-side — is
+                        # byte-identical to before.
+                        if (_step_native_ladder
+                                and os.getenv("TREND_STEP_STRUCT_EXEMPT_V1", "0").lower()
                                 in ("1", "true", "yes")):
+                            logger.warning(
+                                "[Gateway] TREND_STEP_STRUCT_EXEMPT: A1 "
+                                "structural_targets_wrong_side SKIPPED for %s %s "
+                                "entry=%s — leg ladder kept (stop=%s t1=%s t2=%s "
+                                "t3=%s); structure offered c1=%s c2=%s c3=%s on "
+                                "the wrong side (day_type=%s, stop_source=%s)",
+                                setup.get("classification"), direction,
+                                setup.get("entry_price"), setup.get("stop"),
+                                setup.get("t1"), setup.get("t2"), setup.get("t3"),
+                                _st.get("t1_price"), _st.get("t2_price"),
+                                _st.get("t3_price"), _st.get("day_type"),
+                                setup.get("stop_source"),
+                            )
+                            result["trend_step_struct_exempt"] = {
+                                "entry": setup.get("entry_price"),
+                                "direction": direction,
+                                "day_type": _st.get("day_type"),
+                                "stop_source": setup.get("stop_source"),
+                                "structural_c1": _st.get("t1_price"),
+                                "structural_c2": _st.get("t2_price"),
+                                "structural_c3": _st.get("t3_price"),
+                            }
+                            # Structure had nothing to offer in this direction —
+                            # its "targets" here are pure R-fallbacks, not
+                            # levels. Overwriting the measured leg ladder with
+                            # them would defeat the exemption's own premise (and
+                            # would invert the ladder: the 1R/2R fallbacks sit
+                            # INSIDE the kept structural t1). Drop the structural
+                            # result and let the leg model stand.
+                            _st = None
+                        else:
                             result["blocked_by"] = "structural_targets_wrong_side"
                             result["reason"] = (
                                 f"ALL structural targets on wrong side of {direction} "
@@ -2331,6 +2409,7 @@ class TradingGateway:
                                 "[Gateway] BLOCKED structural_targets_wrong_side: %s",
                                 result["reason"])
                             return result
+                    if _st is not None:
                         _old_t1 = setup.get("t1")
                         _old_t2 = setup.get("t2")
                         # P0-1 (Michael ruling 07-21 T1=entry-structure-end; cursor
@@ -2468,9 +2547,10 @@ class TradingGateway:
             except Exception as _tz_err:
                 logger.warning("[Gateway] target zones errored (kept targets): %s", _tz_err)
 
-        # Setups that arrive with a stop from their OWN leg-relative model.
-        # F3 sizes from the session median and must not overwrite these.
-        _STEP_NATIVE_STOP_SOURCES = ("TREND_STEP_LEG",)
+        # Setups that arrive with a stop from their OWN leg-relative model:
+        # module-level `_STEP_NATIVE_STOP_SOURCES` (shared with the F4/G2
+        # structural exemption above). F3 sizes from the session median and
+        # must not overwrite these.
 
         # F3 (STEP_SCALED_LADDER_V1, default OFF): scale stop+targets to the
         # session's median step size. Three analyses converged: LEG_EXEMPTION_REPLAY

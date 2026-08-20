@@ -1796,6 +1796,14 @@ flags:
     status: live
     ref: "RULED_FLAGS 2026-08-18; tests/v9/regression/test_trend_step_live_path.py"
 
+  TREND_STEP_STRUCT_EXEMPT_V1:
+    category: s4
+    group: TREND_STEP
+    what: "F4/G2 — סטאפ הנושא את מודל-הרגל של TREND_STEP (stop_source=TREND_STEP_LEG) פטור מווטו A1 structural_targets_wrong_side, ושומר את הסולם-הנמדד שלו במקום יעדי-ה-R-fallback. חי אך ורק בתוך ענף all_wrong_side (הענף שהיום תמיד מסתיים בחסימה); כל שאר המסלולים זהים-בייט. כל הפעלה כותבת WARNING ‏[Gateway] TREND_STEP_STRUCT_EXEMPT + result.trend_step_struct_exempt."
+    why: "כניסת-מדרגה קורית על קיצון-הסשן מעצם-הבנייה ⇒ כל רמה מבנית יושבת מאחוריה בהכרח, ו-A1 הורג כל מדרגה-לונג בשיא — תכונה של התבנית, לא של המיקום. §G2 של RETRO_BACKTEST_2026-08-20: מאז 08-11 היו לשער שני ורדיקטים בלבד — מדרגת 08-19 @7747.0 (KILLER, ‏+$150 ברפליי) מול ZLR של 08-14 (SAVER, ‏~−$93); פטור-למדרגות-בלבד שומר על ה-SAVER. n=2 — ראיה דקה, ולכן דגל-יחיד ברירת-מחדל OFF + WARNING מדיד + הפיכות."
+    status: ruled_pending_env
+    ref: "RULED_FLAGS 2026-08-20; docs/reports/RETRO_BACKTEST_2026-08-20.md §G2; docs/reports/MAX_DAYS_2026-08-20.md §3/§6; tests/v9/regression/test_trend_step_struct_exempt.py"
+
   DIRECTION_COMPASS_V1:
     category: gates
     group: DIRECTION

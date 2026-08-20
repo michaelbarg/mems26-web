@@ -37,14 +37,14 @@
 | `eod_archive_scheduler.py` | ✅ 2 | 236 | 2026-05-23 | P31 Phase 1 — End-of-day archive scheduler. |
 | `eod_archiver.py` | ✅ 3 | 199 | 2026-05-23 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
 | `exit_verifier.py` | ✅ 2 | 341 | 2026-08-17 | T4 — books close only after Sierra proves the exit actually happened. |
-| `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
+| `feed_watchdog.py` | ✅ 2 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
 | `fill_poller.py` | ✅ 6 | 1216 | 2026-08-20 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `gate_overrides.py` | ✅ 1 | 93 | 2026-08-19 | Phone-triggered gate overrides — Michael 2026-08-19: |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |
 | `historical_replay.py` | ✅ 3 | 109 | 2026-06-03 | HistoricalReplay — warm system buffers from existing DB rows. |
 | `history_loader.py` | ✅ 2 | 525 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
-| `kill_switch.py` | ✅ 2 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
+| `kill_switch.py` | ✅ 3 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `local_alert.py` | ✅ 1 | 117 | 2026-08-17 | local_alert — LOUD local alerts on the trading Mac (Michael 2026-07-27, after |
 | `margin_sizing.py` | ✅ 2 | 192 | 2026-08-19 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |
 | `market_clock.py` | ✅ 20 | 251 | 2026-05-16 | Market Clock — centralized time service with DST + 2026 NYSE holidays (D-068). |
