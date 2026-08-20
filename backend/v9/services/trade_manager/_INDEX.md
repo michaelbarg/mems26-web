@@ -9,10 +9,10 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 18 | 2026-05-10 | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
-| `bar_level_detector.py` | ✅ 7 | 1320 | 2026-08-19 | BarLevelDetector — glue between BarRouter and W11 TradeManager. |
+| `bar_level_detector.py` | ✅ 7 | 1320 | 2026-08-20 | BarLevelDetector — glue between BarRouter and W11 TradeManager. |
 | `consolidation.py` | ✅ 1 | 155 | 2026-06-25 | Consolidation detector — pure function for dynamic structure-trailing. |
 | `events.py` | ✅ 3 | 85 | 2026-05-22 | Trade event emitter — publishes lifecycle events to Redis pub/sub and WS. |
 | `manager.py` | ✅ 19 | 2050 | 2026-08-20 | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
 | `scale_in.py` | ✅ 1 | 90 | 2026-08-13 | SCALE_IN_V1 (Michael ruling 2026-08-13: "אם הכיוון ממשיך אפשר לחזק בעוד חוזים"). |
 | `state_machine.py` | ✅ 5 | 63 | 2026-05-10 | Trade state machine — explicit transitions, invalid ones raise. |
-| `swing_trail.py` | ✅ 2 | 170 | — | swing_trail — F5 structural swing trail for the runner leg (RUNNER_TRAIL_V2). |
+| `swing_trail.py` | ✅ 2 | 170 | 2026-08-20 | swing_trail — F5 structural swing trail for the runner leg (RUNNER_TRAIL_V2). |

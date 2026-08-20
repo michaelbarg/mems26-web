@@ -53,7 +53,7 @@
 | `ntfy_notify.py` | ✅ 5 | 232 | 2026-08-18 | Push notifications via ntfy.sh for trading events (P1.6 + K7a). |
 | `phone_alert.py` | ✅ 9 | 112 | 2026-08-17 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 2 | 295 | 2026-08-19 | Item-20 — Sierra truth reconcile + naked-stop detector. |
-| `sierra_command.py` | ✅ 22 | 954 | 2026-08-19 | Sierra command file writer for DEMO/LIVE execution paths. |
+| `sierra_command.py` | ✅ 22 | 954 | 2026-08-20 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `sierra_ledger.py` | ✅ 2 | 329 | 2026-08-20 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
 | `sierra_pnl_reconcile.py` | ✅ 2 | 274 | 2026-08-20 | T-10 — fill `v9_trades.pnl_sierra` from the Sierra fills journal. |
 | `sierra_position_reconciler.py` | ✅ 9 | 1088 | 2026-08-18 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |

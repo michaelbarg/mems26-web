@@ -30,6 +30,7 @@
 | `close_stale_shadow.py` | ▶ entry/test | 116 | 2026-07-28 | Close SHADOW trades left open from a previous session. |
 | `credentials_self_test.sh` | — | 85 | 2026-05-10 | scripts/credentials_self_test.sh — verifies CC can access all needed credentials |
 | `d1_exit_proof.sh` | — | 108 | 2026-07-11 | D1-EXIT Proof Script — runs on SIM after Michael's Sierra reload. |
+| `daily_extremes_playbook.py` | ▶ entry/test | 864 | — | daily_extremes_playbook.py — per-session "extremes & day-type playbook" study. |
 | `data_integrity_audit.sh` | — | 167 | 2026-05-10 | scripts/data_integrity_audit.sh |
 | `db_backup.sh` | — | 31 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
 | `db_init.sh` | — | 42 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
@@ -71,7 +72,7 @@
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
 | `opening_signal_edge.py` | ▶ entry/test | 153 | 2026-07-24 | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
 | `ops_log.py` | ✅ 19 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
-| `oracle_study.py` | ▶ entry/test | 767 | — | oracle_study.py — bar-by-bar "ORACLE vs FEASIBLE vs SYSTEM" study of every live-era |
+| `oracle_study.py` | ▶ entry/test | 767 | 2026-08-20 | oracle_study.py — bar-by-bar "ORACLE vs FEASIBLE vs SYSTEM" study of every live-era |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
 | `parity_report.py` | ▶ entry/test | 372 | 2026-08-19 | parity_report.py — EOD cross-machine parity check (cc-imac, 2026-08-19). |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |
@@ -93,7 +94,8 @@
 | `replay_excess_counter.py` | ▶ entry/test | 583 | 2026-08-09 | K5 — EXCESS_COUNTER_ENTRY_V1 replay on historical bars (2026-08-09). |
 | `replay_extremes_aware.py` | ▶ entry/test | 259 | 2026-08-06 | Replay EXTREMES_AWARE_REALIZE_V1 on historical trades. |
 | `replay_f3_step_ladder.py` | ▶ entry/test | 136 | 2026-08-12 | F3 replay: step-scaled ladder impact on 15 days of trades. |
-| `replay_f4_stair_struct_exempt.py` | ▶ entry/test | 330 | — | F4 / G2 replay — every setup A1 ever killed, re-routed through the REAL gateway. |
+| `replay_f4_stair_struct_exempt.py` | ▶ entry/test | 330 | 2026-08-20 | F4 / G2 replay — every setup A1 ever killed, re-routed through the REAL gateway. |
+| `replay_f5_runner_trail.py` | ▶ entry/test | 351 | 2026-08-20 | replay_f5_runner_trail.py — what RUNNER_TRAIL_V2 (F5) would have produced. |
 | `replay_g1g2_opening_entry.py` | ▶ entry/test | 237 | 2026-08-12 | G1+G2 replay: opening entry triggers on 7 sessions (08-03..08-12). |
 | `replay_hlst.py` | ▶ entry/test | 343 | 2026-08-09 | Replay Higher-Low Second Test (HLST) detector on historical 5-min RTH bars. |
 | `replay_opening_windows.py` | ▶ entry/test | 286 | 2026-08-06 | Replay opening windows + drive location filter on historical sessions. |
