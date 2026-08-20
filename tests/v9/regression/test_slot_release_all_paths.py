@@ -29,10 +29,11 @@ class _FakeTM:
         self.stop_hits = []
         self.target_hits = []
 
-    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
+    # **_kw absorbs the poller's T-62 per-leg fill_qty/order_id
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None, **_kw):
         self.stop_hits.append(trade_id)
 
-    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None):
+    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None, **_kw):
         self.target_hits.append((trade_id, kind))
 
     def get_active_trades(self):

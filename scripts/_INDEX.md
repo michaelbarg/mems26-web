@@ -41,7 +41,7 @@
 | `eod_anchor_trial_report.py` | ▶ entry/test | 161 | 2026-06-12 | EOD Anchor Trial Report — per-trade audit + S2 histogram + counterfactual. |
 | `eod_data_handoff.sh` | — | 69 | 2026-08-13 | eod_data_handoff.sh — daily data packet from the TRADING machine to git, |
 | `eod_review.py` | ▶ entry/test | 221 | 2026-07-22 | EOD review for ONE trading day (Michael 2026-07-22): today's trades, how |
-| `f1_compass_replay.py` | ▶ entry/test | 194 | — | F1 replay — would DIRECTION_COMPASS_V1 have prevented the +$576 direction family? |
+| `f1_compass_replay.py` | ▶ entry/test | 205 | 2026-08-20 | F1 replay — would DIRECTION_COMPASS_V1 have prevented the +$576 direction family? |
 | `fire_drill.py` | ▶ entry/test | 231 | 2026-08-19 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
 | `fire_readiness_real.py` | ▶ entry/test | 549 | 2026-07-19 | Stage E: replay real RTH setups through read-only, pure readiness gates. |
 | `flag_guard.py` | ✅ 18 | 87 | 2026-07-08 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
@@ -77,6 +77,7 @@
 | `pattern_watch.py` | ▶ entry/test | 72 | 2026-07-17 | pattern_watch.py — poll build/pattern-status, log per-pattern blockers. |
 | `pkg0_redis_migrate.py` | ▶ entry/test | 78 | 2026-05-23 | Pkg 0 · Redis migration · chart_5min → five_min |
 | `place_test_demo_order.py` | ▶ entry/test | 29 | 2026-07-02 | Pipeline 5 — place ONE test DEMO entry to Sierra Sim. MICHAEL runs this (he holds the |
+| `pnl_reconcile.py` | ▶ entry/test | 139 | — | T-10 / T-62 — books vs broker, per trade, from the Sierra fills journal. |
 | `post-commit-hook.sh` | — | 105 | 2026-05-16 | ═══════════════════════════════════════════════════════════════ |
 | `post_restart_verify.sh` | — | 110 | 2026-07-17 | post_restart_verify.sh — liveness gate after every restart/kickstart. |
 | `pre-commit-hook.sh` | — | 77 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |

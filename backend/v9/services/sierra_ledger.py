@@ -76,11 +76,29 @@ def parse_fills(lines: list[str]) -> list[dict]:
     return out
 
 
+#: Every per-contract child order-id key an ENTRY line can carry. The ladder has
+#: FOUR OCO groups at every ruled size (contract_size.LADDER — 1/2/2/1 at six),
+#: so c1..c4 is the complete set; c5/c6 are listed only so a future DLL that
+#: exports them cannot silently fall out of the chain.
+_CHAIN_ID_KEYS = tuple(
+    f"c{i}_{side}_id" for i in range(1, 7) for side in ("target", "stop")
+)
+
+
 def _entry_chain_ids(fill: dict) -> set:
-    """The per-contract child order-ids that belong to an ENTRY's bracket."""
+    """The per-contract child order-ids that belong to an ENTRY's bracket.
+
+    T-62 (2026-08-20): this stopped at c3 while the DLL has exported c4 since
+    the 4-contract ruling, so the FOURTH contract's target/stop ids were never
+    in the chain. On #749 that dropped the last stop fill (1 @ 7732.50) out of
+    the trade entirely — the ledger reported realized_pnl **+26.25** instead of
+    the true **+1.25**, and the orphaned fill was re-attributed to whatever
+    chain happened to still be open. A ground-truth ledger that silently loses
+    a contract cannot be used to check the books, which is what T-10 needs it
+    for.
+    """
     ids = set()
-    for k in ("c1_target_id", "c1_stop_id", "c2_target_id", "c2_stop_id",
-              "c3_target_id", "c3_stop_id"):
+    for k in _CHAIN_ID_KEYS:
         v = fill.get(k)
         if v is not None:
             ids.add(v)

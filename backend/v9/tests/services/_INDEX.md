@@ -9,7 +9,7 @@
 | `test_entry_confirm_tolerance.py` | ▶ entry/test | 67 | 2026-07-08 | Entry-confirm tolerance (Michael ruling 2026-07-08) — counter-close within |
 | `test_entry_guard_pre_send.py` | ▶ entry/test | 224 | 2026-08-12 | F1 (2026-08-12) — ORDER_FAILED:-1 root-fix regression. |
 | `test_fill_order_map.py` | ▶ entry/test | 197 | 2026-07-08 | L2-residual / N3 tests (2026-07-08) — order-id map + no-silent-emit-drops. |
-| `test_l7_two_contract_symmetry.py` | ▶ entry/test | 184 | 2026-07-08 | L7 — 2-contract symmetry tests (2026-07-08). |
+| `test_l7_two_contract_symmetry.py` | ▶ entry/test | 188 | 2026-07-08 | L7 — 2-contract symmetry tests (2026-07-08). |
 | `test_orphan_chain_guard.py` | ▶ entry/test | 91 | 2026-07-08 | SYS-3 — the 2026-07-08 orphan chain (trade 308/310) must never repeat. |
 | `test_runner_t2_ordering.py` | ▶ entry/test | 80 | 2026-07-09 | RUNNER_T2 ordering — with band-floored risk the S4 ladder is monotonic |
 | `test_sierra_ledger.py` | ▶ entry/test | 124 | 2026-07-08 | Sierra-sourced ledger tests (journal L8) — the 7 spec cases. |

@@ -22,10 +22,11 @@ class _MockTM:
     def on_fill(self, trade_id, price):
         self.calls.append(("on_fill", trade_id, price))
 
-    def on_target_hit(self, trade_id, target, fill_ts=None, fill_price=None):
+    # **_kw absorbs the poller's T-62 per-leg fill_qty/order_id
+    def on_target_hit(self, trade_id, target, fill_ts=None, fill_price=None, **_kw):
         self.calls.append(("on_target_hit", trade_id, target))
 
-    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None, **_kw):
         self.calls.append(("on_stop_hit", trade_id))
 
 

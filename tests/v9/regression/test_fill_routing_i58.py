@@ -34,10 +34,11 @@ class _FakeTM:
     def on_fill(self, trade_id, price):
         self.fills.append((trade_id, price))
 
-    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None):
+    # **_kw absorbs the poller's T-62 per-leg fill_qty/order_id
+    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None, **_kw):
         self.target_hits.append((trade_id, kind))
 
-    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None, **_kw):
         self.stop_hits.append(trade_id)
 
     def set_sierra_order_ids(self, trade_id, ids):

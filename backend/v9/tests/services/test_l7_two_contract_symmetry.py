@@ -115,7 +115,11 @@ def test_fill_poller_frees_slot_on_t2_close():
                             direction="LONG", pnl_usd=60.0)
 
     class TM:
-        def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None):
+        # **_kw: the poller also passes fill_qty/order_id (T-62 per-leg fills).
+        # A stub that pins the signature turns an interface addition into a
+        # swallowed TypeError inside _process_fill's catch-all.
+        def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None,
+                          **_kw):
             if kind == "T2":
                 trade.state = "CLOSED"  # what the L7 manager now does for 2c
 

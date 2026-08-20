@@ -77,20 +77,70 @@ def parse_day_log(text: str) -> Dict[str, Any]:
 
 
 def _system_pnl_by_day() -> Dict[str, Dict[str, Any]]:
-    """Our own books. NOTE: `pnl_usd` is COMPUTED by us — `pnl_sierra` is NULL on
-    every live row, i.e. no trade has ever been reconciled against a Sierra fill.
-    Exposed for comparison ONLY; it is not evidence."""
+    """Our own books, per day, next to Sierra's per-fill truth.
+
+    `pnl_usd` is COMPUTED by us — it is the claim. `pnl_sierra` is reconstructed
+    from the fills journal by `sierra_pnl_reconcile` (T-10), so `books_vs_sierra`
+    below is the first per-day statement of how far our arithmetic drifted from
+    what the broker actually filled. NULL `pnl_sierra` = that day's trades could
+    not be reconciled (no correlatable fills), never "no difference".
+    """
     try:
         from backend.v9.db.read import read_all
         rows = read_all(
             "SELECT to_char(COALESCE(exit_ts, updated_at) AT TIME ZONE 'UTC', "
-            "'YYYY-MM-DD') AS day, COALESCE(SUM(pnl_usd), 0) AS pnl, COUNT(*) AS n "
+            "'YYYY-MM-DD') AS day, COALESCE(SUM(pnl_usd), 0) AS pnl, COUNT(*) AS n, "
+            "SUM(pnl_sierra) AS pnl_sierra, "
+            "COUNT(pnl_sierra) AS n_reconciled "
             "FROM v9_trades WHERE state = 'CLOSED' AND mode = 'live' GROUP BY 1", {})
-        return {r["day"]: {"pnl": round(float(r["pnl"] or 0), 2), "trades": int(r["n"])}
-                for r in rows}
+        out: Dict[str, Dict[str, Any]] = {}
+        for r in rows:
+            ps = r.get("pnl_sierra")
+            out[r["day"]] = {
+                "pnl": round(float(r["pnl"] or 0), 2),
+                "trades": int(r["n"]),
+                "pnl_sierra": None if ps is None else round(float(ps), 2),
+                "reconciled": int(r.get("n_reconciled") or 0),
+            }
+        return out
     except Exception as e:
         logger.warning("[DailyPnl] system-pnl query failed: %s", e)
         return {}
+
+
+def books_vs_sierra(mode: str = "live", tol: float = 0.01) -> Dict[str, Any]:
+    """The one call an EOD / daily report makes to hear the books-vs-broker alarm.
+
+    Startup-safe and read-only: a missing journal, a missing DB or an unreachable
+    import degrades to `{"ok": None, ...}` — "not checked" — and NEVER to
+    `{"ok": True}`, which would be a green light nobody earned (Rule 1).
+    """
+    try:
+        from backend.v9.db.read import read_all
+        from backend.v9.services.sierra_pnl_reconcile import (
+            divergence_summary, load_journal,
+        )
+        fills = load_journal()
+        if not fills:
+            return {"ok": None, "reason": "fills journal empty or missing"}
+        rows = read_all(
+            "SELECT id, mode, exit_reason, pnl_usd, pnl_sierra, quality "
+            "FROM v9_trades WHERE state = 'CLOSED'"
+            + (" AND mode = :mode" if mode else ""),
+            {"mode": mode} if mode else {})
+        if not rows:
+            # read.py falls back to a stale SQLite file when DATABASE_URL is
+            # unset/unreachable — and that file has no pnl_sierra column, so the
+            # query returns nothing. Saying "ok" here would be the exact lie
+            # this check exists to catch.
+            return {"ok": None, "reason": "no CLOSED rows readable — wrong or "
+                                          "unreachable DATABASE_URL?"}
+        out = divergence_summary(rows, fills=fills, tol=tol)
+        out["rows_read"] = len(rows)
+        return out
+    except Exception as e:
+        logger.warning("[DailyPnl] books-vs-sierra check failed: %s", e)
+        return {"ok": None, "reason": f"check failed: {e}"}
 
 
 def daily_pnl_table(days_limit: int = 30, account: str = "") -> Dict[str, Any]:
@@ -132,6 +182,10 @@ def daily_pnl_table(days_limit: int = 30, account: str = "") -> Dict[str, Any]:
             "cumulative": cum,
             "books_claim": s["pnl"] if s else None,
             "books_trades": s["trades"] if s else None,
+            # T-10: what Sierra's own fills say the same trades made, and how
+            # many of them could be reconciled at all.
+            "books_sierra": s.get("pnl_sierra") if s else None,
+            "books_reconciled": s.get("reconciled") if s else None,
             # books claim system trades on a day Sierra's live account never
             # opened a position → those rows are not live trades.
             "books_unbacked": bool(s and not d["entries"]),
@@ -140,9 +194,10 @@ def daily_pnl_table(days_limit: int = 30, account: str = "") -> Dict[str, Any]:
     out = {
         "ok": True, "rows": rows, "account": acct,
         "source": "Sierra per-day TradeActivityLog files",
+        "books_vs_sierra": books_vs_sierra(),
         "note": ("סכום היום מסיירה — כולל עסקאות ידניות וגם של המערכת (אין תיוג-בעלים "
-                 "בלוג). 'הספרים' = החישוב שלנו, לא אומת מול סיירה (pnl_sierra ריק "
-                 "בכל השורות)."),
+                 "בלוג). 'הספרים' = החישוב שלנו; `books_sierra` הוא אותן עסקאות לפי "
+                 "המילויים בפועל (T-10). פער בין השניים = הספרים משקרים, לא השוק."),
     }
     if unreadable:
         out["unreadable_days"] = unreadable

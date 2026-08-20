@@ -90,7 +90,19 @@ def test_fill_poller_processes_target_fill():
     poller.register_order(1003, 60)
     poller._process_fill({"kind": "T1", "ts": 1719300200, "order_id": 1003, "price": 7460.0})
     mock_tm.on_target_hit.assert_called_once_with(60, "T1", fill_ts=pytest.approx(
-        datetime.fromtimestamp(1719300200, tz=timezone.utc), abs=1), fill_price=7460.0)
+        datetime.fromtimestamp(1719300200, tz=timezone.utc), abs=1),
+        fill_price=7460.0, fill_qty=None, order_id=1003)
+
+
+def test_fill_poller_forwards_the_per_leg_quantity():
+    """T-62: `contracts` from the DLL must reach the manager — without it a
+    ladder's legs cannot be booked at their own prices (#749 = $52.50 error)."""
+    mock_tm = MagicMock()
+    poller = FillPoller(trade_manager=mock_tm)
+    poller.register_order(1004, 61)
+    poller._process_fill({"kind": "T1", "ts": 1719300300, "order_id": 1004,
+                          "price": 7460.0, "contracts": 2})
+    assert mock_tm.on_target_hit.call_args.kwargs["fill_qty"] == 2
 
 
 # ── Phase C: bar_level_detector mode-gate ────────────────────────────────

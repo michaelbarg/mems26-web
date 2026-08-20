@@ -518,6 +518,8 @@ class TradeManager:
         target: str,
         fill_ts: Optional[datetime] = None,
         fill_price: Optional[float] = None,
+        fill_qty: Optional[int] = None,
+        order_id: Optional[int] = None,
     ) -> None:
         """Record a target hit (T1, T2, T3).
 
@@ -529,6 +531,8 @@ class TradeManager:
         fill_price: the ACTUAL Sierra fill price from trade_fills.json.
         When provided, updates the target level to the real fill so PnL
         reflects actual execution, not the intended target level.
+        fill_qty / order_id: T-62 — the contracts this leg took out and the
+        Sierra order that filled it, so the leg is booked at its OWN price.
         """
         if target not in ("T1", "T2", "T3", "T4"):
             raise ValueError(f"Invalid target: {target}")
@@ -565,7 +569,14 @@ class TradeManager:
                 trade.t3 = fill_price
             elif target == "T4":
                 trade.t4 = fill_price
-            # T0 has no persistent price field (scalp — PnL already in quality)
+            # T-62 (2026-08-20): T0 has no t*/t*_hit_ts column of its own, so
+            # before the fill ledger the T0 scale-out was INVISIBLE to
+            # _calculate_pnl and its contract was booked at the trade's exit
+            # fill instead. On #749 that alone cost $41.25 (a +3.25pt scalp
+            # booked as a -5.00pt stop). Every leg — T0 included — is now
+            # recorded with its own price.
+            self._record_exit_fill(trade, target, fill_price, qty=fill_qty,
+                                   order_id=order_id, ts=hit_ts)
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
@@ -1339,6 +1350,8 @@ class TradeManager:
         trade_id: int,
         fill_ts: Optional[datetime] = None,
         fill_price: Optional[float] = None,
+        fill_qty: Optional[int] = None,
+        order_id: Optional[int] = None,
     ) -> None:
         """Close trade on stop hit.
 
@@ -1346,11 +1359,23 @@ class TradeManager:
         When provided, exit_price = the real fill (may differ from trade.stop
         due to slippage). When None (legacy/BarLevelDetector), falls back to
         trade.stop. P&L must reflect the real fill, not the intended level.
+        fill_qty / order_id: T-62 — a LADDER stops out in pieces, at different
+        prices (#749: 1@7734.75 then 1@7732.50). Only a per-leg quantity keeps
+        the second fill from re-pricing the first.
         """
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
 
         hit_ts = fill_ts or _market_now_utc()  # Prompt 26b: market time
+
+        # T-62: record this stop leg at its own price BEFORE the close, but only
+        # when Sierra told us how many contracts it took (`fill_qty`). Without a
+        # quantity the honest reading is still "everything left goes at this
+        # fill", which is exactly the fallback _calculate_pnl already applies —
+        # inventing a per-leg quantity here would be a Rule-1 synthesis.
+        if fill_price is not None and fill_qty:
+            self._record_exit_fill(trade, "STOP", fill_price, qty=fill_qty,
+                                   order_id=order_id, ts=hit_ts)
 
         # Capture cross-system snapshot at stop hit (per spec Section 2.2)
         self._append_snapshot(trade, "stop_hit")
@@ -1590,14 +1615,126 @@ class TradeManager:
             return None
         return p if p > 0 else None
 
+    #: T-62: which `t1..t4` COLUMN a logical target label persists into. T0 has
+    #: no column of its own — that hole is half of #749's error.
+    _TARGET_COLUMN = {"T1": 0, "T2": 1, "T3": 2, "T4": 3}
+
+    @staticmethod
+    def _ladder_group_for(trade, kind: str) -> Optional[int]:
+        """Which LADDER group (0-based, `contract_size.LADDER`) a leg belongs to.
+
+        The DB has t1..t4 columns, but the ruled ladder can open with a T0
+        scalp — and then every logical label sits one group further along than
+        its column: T0 owns group 0 and no column, logical T1 lives in `t1` but
+        is ladder group 1. Conflating the two indexes double-books a leg.
+        None = not a target group at all (STOP / FLATTEN).
+        """
+        k = str(kind).upper()
+        if k == "T0":
+            return 0
+        col = TradeManager._TARGET_COLUMN.get(k)
+        if col is None:
+            return None
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        has_t0 = bool(q.get("t0_target_pts") or q.get("has_t0"))
+        return min(col + 1, 3) if has_t0 else col
+
+    @staticmethod
+    def _exit_fill_ledger(trade) -> List[dict]:
+        """T-62: the per-leg exit fills Sierra actually reported for this trade.
+
+        Empty for every trade managed WITHOUT Sierra fill prices (shadow twins,
+        the bar-level detector, and all history) — and when it is empty the P&L
+        math below is byte-identical to the pre-T-62 code.
+        """
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        fills = q.get("exit_fills")
+        if not isinstance(fills, list):
+            return []
+        return [f for f in fills if isinstance(f, dict)]
+
+    def _record_exit_fill(self, trade, kind: str, price: Optional[float],
+                          qty: Optional[int] = None,
+                          order_id: Optional[int] = None,
+                          column: Optional[int] = None,
+                          ts: Optional[datetime] = None) -> None:
+        """T-62 ROOT-FIX (2026-08-20): remember EVERY exit fill with its OWN
+        price and quantity. A scalar `exit_price` cannot describe a ladder.
+
+        #749 — the first live TREND_STEP ladder (LONG 4 @ 7737.5) — was booked
+        `pnl_usd = -51.25` while its four Sierra fills sum to **+$1.25**:
+        T1 1@7740.75 · T3 1@7742.25 · STOP 1@7734.75 · STOP 1@7732.50.
+        A $52.50 error on ONE trade, from two independent holes:
+
+          * **-$41.25 — the T0 scale-out had nowhere to live.** With
+            BE_AFTER_REAL_T1_V1 + 4 contracts + a T0 target the DLL's "T1" is
+            remapped to "T0"; `on_target_hit` stores a fill price only for
+            T1..T4 and the T0 branch sets no `*_hit_ts`. So the contract that
+            really banked +3.25 pt was invisible and got booked at the stop.
+            Proof in `v9_trade_management_log`: `T0_HIT {"ts": ...}` — no price.
+          * **-$11.25 — two stop fills, one `exit_price` column.** The ladder
+            stopped out in two pieces at two prices; the first (7734.75) closed
+            the trade, the second (7732.50) arrived on an already-CLOSED trade
+            and re-booked EVERY leg through `update_closed_trade_pnl`. Proof:
+            `PNL_CORRECTION {"old_pnl": -17.5, "new_pnl": -51.25}`.
+
+        Dedup key is (kind, order_id, price, ts): the fills file is re-read on
+        every mtime bump, and double-counting a leg is the mirror-image lie.
+        """
+        if price is None:
+            return
+        try:
+            px = float(price)
+        except (TypeError, ValueError):
+            return
+        try:
+            n = int(qty) if qty is not None else None
+        except (TypeError, ValueError):
+            n = None
+        if n is None or n <= 0:
+            # No quantity from Sierra → use the ladder weight of this leg's
+            # group (the same table the DLL brackets with), never a blind 1:
+            # at six the T1 and T2 groups hold TWO contracts each.
+            from backend.v9.services.contract_size import ladder_for
+            g = self._ladder_group_for(trade, kind)
+            w = ladder_for(trade_contract_count(trade))
+            n = (w[g] if g is not None and g < len(w) else 0) or 1
+        if column is None:
+            # The COLUMN this leg's target persists into — that is what
+            # _calculate_pnl must skip so a fill is not booked twice (once from
+            # the ledger, once from its `*_hit_ts`). A stop owns no column.
+            column = self._TARGET_COLUMN.get(str(kind).upper())
+        ts_key = ts.isoformat() if hasattr(ts, "isoformat") else (
+            str(ts) if ts is not None else None)
+
+        q = dict(trade.quality) if isinstance(getattr(trade, "quality", None), dict) else {}
+        fills = [f for f in (q.get("exit_fills") or []) if isinstance(f, dict)]
+        key = (str(kind).upper(), order_id, round(px, 4), ts_key)
+        for f in fills:
+            if (str(f.get("kind", "")).upper(), f.get("order_id"),
+                    round(float(f.get("price") or 0), 4), f.get("ts")) == key:
+                return  # same fill re-read — never book a leg twice
+        fills.append({"kind": str(kind).upper(), "price": px, "qty": n,
+                      "order_id": order_id, "column": column, "ts": ts_key})
+        q["exit_fills"] = fills
+        trade.quality = q
+        logger.info(
+            "[TradeManager] T-62 exit-fill #%s %s %dc @ %.2f (order=%s col=%s) "
+            "— ledger now %d leg(s)", getattr(trade, "id", "?"), kind, n, px,
+            order_id, column, len(fills))
+
     def _calculate_pnl(self, trade: V9Trade) -> None:
         """Calculate PnL per-contract. MES = $5/point.
 
-        Per-contract PnL: each contract (c1, c2, c3) exits at its own
-        target level. We sum the individual contract PnLs.
+        Every contract belongs to one LADDER GROUP (`contract_size.LADDER`), and
+        a group leaves the market exactly once — at its own Sierra fill when we
+        have one (T-62), else at its target when that target was hit, else at
+        the trade's exit fill.
 
-        For stop exits: all contracts exit at stop.
-        For target exits: c1@T1, c2@T2, c3@T3 (whatever was hit).
+        T-62 (2026-08-20): the fill ledger is consulted FIRST. When it is empty
+        — every shadow trade, every bar-level-detector exit, all history — this
+        function is byte-identical to the pre-T-62 code, which is why the whole
+        P&L suite stays green.
         """
         if trade.entry_price is None:
             return
@@ -1606,6 +1743,7 @@ class TradeManager:
         t1 = self._valid_target(trade.t1)
         t2 = self._valid_target(trade.t2)
         t3 = self._valid_target(trade.t3)
+        t4 = self._valid_target(getattr(trade, "t4", None))
         stop = self._valid_target(trade.stop)
 
         # L7 (2026-07-08): the trade's REAL contract count — a 2-contract trade
@@ -1613,108 +1751,114 @@ class TradeManager:
         # real loss; R used a 3-contract denominator).
         n_contracts = trade_contract_count(trade)
 
-        # Determine per-contract exit prices based on what was hit
-        contract_exits: List[float] = []
+        # T-06 (2026-08-19, Michael's 6-contract ladder 1/2/2/1): a banked level
+        # exits LADDER-qty contracts, not one. At n<=4 every weight is 1, so the
+        # pre-T-06 behavior is preserved exactly. Any size above the protected
+        # ladder spills onto the last group — the same place
+        # `target_index_for_contract` sends it.
+        from backend.v9.services.contract_size import ladder_for
+        weights = list(ladder_for(n_contracts))
+        _spill = n_contracts - sum(weights)
+        if _spill > 0:
+            weights[-1] += _spill
 
-        if trade.state == TradeState.PARTIAL.value and not trade.exit_reason:
-            # T-06 (2026-08-19, for Michael's 6-contract ladder 1/2/2/1): a
-            # banked level exits LADDER-qty contracts, not one. Counting each
-            # hit level once under-booked every multi-contract group (at six,
-            # a T0+T1 partial is THREE contracts out, not two). Weights come
-            # from the same table the DLL brackets with; n<=4 weights are all
-            # 1, so the old behavior is preserved exactly. The loop also
-            # covers the t3 level — at five/six a partial can have banked it
-            # while the runner still works.
-            from backend.v9.services.contract_size import ladder_for
-            weights = ladder_for(n_contracts)
-            total_pnl = 0.0
-            exited = 0
-            for g_idx, (target, hit_ts) in enumerate(
-                    ((t1, trade.t1_hit_ts), (t2, trade.t2_hit_ts),
-                     (t3, trade.t3_hit_ts))):
-                if hit_ts is not None and target is not None:
-                    qty = weights[g_idx] if g_idx < len(weights) else 1
-                    total_pnl += ((target - trade.entry_price) * direction_mult
-                                  * MES_POINT_VALUE * qty)
-                    exited += qty
-            trade.pnl_usd = round(total_pnl, 2)
-            risk_stop = self._initial_stop(trade)
-            if risk_stop is not None and exited > 0:
-                risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
-                if risk_per_contract > 0:
-                    trade.pnl_r = round(total_pnl / (exited * risk_per_contract), 2)
-            return
-
-        # T3 ROOT-FIX (2026-08-15): these branches always built exactly THREE
-        # legs, then `[:n_contracts]` truncated — so a 4-contract trade booked
-        # only 3 legs and lost 25% of its P&L (102 closed trades affected;
-        # #682's real loss was $83.75, booked $75.00). RISK_HALT therefore
-        # tripped late. At Michael's new 6-contract size the same bug would
-        # hide 50%. Build exactly n_contracts legs: contract i takes its own
-        # target when that target was hit, otherwise the actual exit fill.
-        t4 = self._valid_target(getattr(trade, "t4", None))
         _targets = [t1, t2, t3, t4]
         _hits = [trade.t1_hit_ts, trade.t2_hit_ts, trade.t3_hit_ts,
                  getattr(trade, "t4_hit_ts", None)]
 
-        def _legs(fallback: float) -> List[float]:
-            # T-06 (2026-08-19): contract i books the target of its LADDER
-            # GROUP, not "target i". Under the ruled 1/2/2/1 six-ladder,
-            # contracts 4-5 (0-based) belong to groups 2-3 — the old direct
-            # indexing ran off _targets and silently booked them at the fill.
-            # For n<=4 the ladder is 1/1/1/1 and g == i: byte-identical.
-            from backend.v9.services.contract_size import target_index_for_contract
-            out: List[float] = []
-            for i in range(n_contracts):
-                g = target_index_for_contract(i, n_contracts)
-                tgt = _targets[g] if g < len(_targets) else None
-                hit = _hits[g] if g < len(_hits) else None
-                out.append(tgt if (hit is not None and tgt is not None) else fallback)
-            return out
+        # Realized-only while the trade is still working: a PARTIAL books what
+        # is banked and nothing else (unchanged semantics).
+        realized_only = (trade.state == TradeState.PARTIAL.value
+                         and not trade.exit_reason)
 
-        if trade.exit_reason == "STOP_HIT" and stop is not None:
-            # Use actual Sierra fill price (trade.exit_price) for the stop exit,
-            # not the intended stop level. Slippage makes them differ.
-            actual_stop = self._valid_target(trade.exit_price) or stop
-            contract_exits = _legs(actual_stop)
-        elif trade.exit_reason == "T3_HIT":
-            exit_p = self._valid_target(trade.exit_price) or trade.entry_price
-            contract_exits = _legs(exit_p)
-        else:
-            exit_p = trade.exit_price or trade.entry_price
-            # Every contract whose own target was NOT hit exits at the fill —
-            # that is exactly what _legs() does. (An earlier version of this fix
-            # also forced the LAST leg to the fill, imitating the old code's
-            # unconditional `c3 = exit_p`. That was a misreading: in the old
-            # 3-leg list the forced leg was always the THIRD one, and `[:n]`
-            # truncated it away for 2-contract trades. Forcing it on the last
-            # leg of a 2-contract trade overwrote a contract that really did
-            # bank T2 — a T1+T2 winner booked $20 instead of $60.)
-            contract_exits = _legs(exit_p)
+        # ---- build the legs: (price, qty) -----------------------------------
+        legs: List[tuple] = []
+        consumed_columns = set()
+        for f in self._exit_fill_ledger(trade):
+            px = self._valid_target(f.get("price"))
+            if px is None:
+                continue
+            try:
+                q_i = int(f.get("qty") or 0)
+            except (TypeError, ValueError):
+                q_i = 0
+            if q_i <= 0:
+                continue
+            legs.append((px, q_i))
+            col = f.get("column")
+            if isinstance(col, int):
+                # This leg's target already contributed its price; the
+                # *_hit_ts loop below must not book the same contracts again.
+                consumed_columns.add(col)
+
+        # T3 ROOT-FIX (2026-08-15): build exactly n_contracts legs. The old code
+        # always built THREE and then `[:n_contracts]` truncated, so a
+        # 4-contract trade lost 25% of its P&L (102 closed trades affected;
+        # #682's real loss was $83.75, booked $75.00) and RISK_HALT tripped late.
+        for g_idx in range(len(weights)):
+            if g_idx in consumed_columns:
+                continue  # this level already left the market at a real fill
+            tgt = _targets[g_idx] if g_idx < len(_targets) else None
+            hit = _hits[g_idx] if g_idx < len(_hits) else None
+            if hit is not None and tgt is not None and weights[g_idx] > 0:
+                legs.append((tgt, weights[g_idx]))
+
+        covered = sum(q for _, q in legs)
+        if covered > n_contracts:
+            # Never silent (CLAUDE.md): Sierra filled more contracts than the
+            # books think the trade had. Book the truth, scream about the drift.
+            logger.warning(
+                "[TradeManager] T-62 #%s: exit legs cover %dc but the trade is "
+                "booked as %dc — contract-count drift, P&L follows the FILLS",
+                getattr(trade, "id", "?"), covered, n_contracts)
+
+        if not realized_only and covered < n_contracts:
+            # Whatever is still unaccounted for left at the trade's exit fill.
+            if trade.exit_reason == "STOP_HIT" and stop is not None:
+                # Actual Sierra fill, not the intended stop level (slippage).
+                fallback = self._valid_target(trade.exit_price) or stop
+            elif trade.exit_reason == "T3_HIT":
+                fallback = self._valid_target(trade.exit_price) or trade.entry_price
+            else:
+                fallback = trade.exit_price or trade.entry_price
+            legs.append((fallback, n_contracts - covered))
+            covered = n_contracts
 
         total_pnl = 0.0
-        for exit_price in contract_exits:
+        for exit_price, qty in legs:
             points = (exit_price - trade.entry_price) * direction_mult
-            total_pnl += points * MES_POINT_VALUE
+            total_pnl += points * MES_POINT_VALUE * qty
 
         trade.pnl_usd = round(total_pnl, 2)
 
-        # pnl_r = PnL / (n contracts × initial risk per contract)
+        # pnl_r = PnL / (contracts at risk × initial risk per contract). A still
+        # working trade divides by what has actually left (unchanged).
         risk_stop = self._initial_stop(trade)
-        if risk_stop is not None and trade.entry_price is not None:
+        denom_units = covered if realized_only else n_contracts
+        if risk_stop is not None and denom_units > 0:
             risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
             if risk_per_contract > 0:
-                total_risk = n_contracts * risk_per_contract
-                trade.pnl_r = round(total_pnl / total_risk, 2)
+                trade.pnl_r = round(total_pnl / (denom_units * risk_per_contract), 2)
 
     def update_closed_trade_pnl(self, trade_id: int, exit_price: float,
-                                exit_reason: Optional[str] = None) -> bool:
+                                exit_reason: Optional[str] = None,
+                                fill_qty: Optional[int] = None,
+                                order_id: Optional[int] = None,
+                                kind: str = "STOP") -> bool:
         """P0-2 (#640): accept a fill on an already-CLOSED trade.
 
         Only updates P&L and outcome — no state transition. This handles
         the case where the FillPoller receives a Sierra fill event after
         the bar-level detector already closed the trade (CLOSED→CLOSED
         would raise InvalidTransition).
+
+        T-62 (2026-08-20): a LADDER's later legs arrive here too, and this was
+        the second half of #749's $52.50 error. Overwriting `exit_price` re-priced
+        EVERY leg that had no target of its own — the management log recorded
+        `PNL_CORRECTION {"old_pnl": -17.5, "new_pnl": -51.25}` when the fourth
+        contract's stop (7732.50) retroactively re-booked the second contract's
+        stop (7734.75). With `fill_qty` the late fill is now added as its OWN
+        leg and `exit_price` only ever prices contracts nothing else claimed.
 
         Returns True if the update changed P&L.
         """
@@ -1724,6 +1868,10 @@ class TradeManager:
                 return False  # not our case — use normal close path
 
             old_pnl = trade.pnl_usd
+            if fill_qty:
+                self._record_exit_fill(trade, kind, exit_price, qty=fill_qty,
+                                       order_id=order_id,
+                                       ts=getattr(trade, "exit_ts", None))
             trade.exit_price = exit_price
             if exit_reason:
                 trade.exit_reason = exit_reason

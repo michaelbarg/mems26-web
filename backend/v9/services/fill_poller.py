@@ -1022,6 +1022,15 @@ class FillPoller:
         price = fill.get("price")
         ts_epoch = fill.get("ts")
         fill_ts = datetime.fromtimestamp(ts_epoch, tz=timezone.utc) if ts_epoch else None
+        # T-62 (2026-08-20): the DLL already tells us how many contracts each
+        # leg took ("contracts": 1 per OCO group on a ladder). Passing it on is
+        # what lets the manager book every leg at its OWN price instead of
+        # collapsing a ladder into one `exit_price` — #749 was booked -$51.25
+        # against +$1.25 of real fills for exactly this reason.
+        try:
+            fill_qty = int(fill.get("contracts")) if fill.get("contracts") else None
+        except (TypeError, ValueError):
+            fill_qty = None
 
         # Find the trade_id from the order map
         trade_id = self._order_map.get(order_id)
@@ -1078,7 +1087,9 @@ class FillPoller:
             if _existing and getattr(_existing, "state", "") == "CLOSED" and kind in ("STOP", "T1", "T2", "T3", "T4"):
                 _fill_px = float(price) if price is not None else None
                 if _fill_px is not None:
-                    self._tm.update_closed_trade_pnl(trade_id, _fill_px, exit_reason=f"{kind}_FILL")
+                    self._tm.update_closed_trade_pnl(
+                        trade_id, _fill_px, exit_reason=f"{kind}_FILL",
+                        fill_qty=fill_qty, order_id=order_id, kind=kind)
                     logger.warning("[FillPoller] P0-2: fill %s on CLOSED trade %s → P&L updated @ %s",
                                    kind, trade_id, _fill_px)
                     self._notify_gateway_close(trade_id, kind)
@@ -1125,7 +1136,9 @@ class FillPoller:
             elif kind in ("T1", "T2", "T3", "T4"):
                 # Pass Sierra fill price so PnL uses real execution, not intended level
                 _fill_px = float(price) if price is not None else None
-                self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts, fill_price=_fill_px)
+                self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts,
+                                       fill_price=_fill_px, fill_qty=fill_qty,
+                                       order_id=order_id)
                 logger.info("[FillPoller] %s fill: trade %s @ %s", kind, trade_id, price)
                 if kind in ("T3", "T4"):
                     # All contracts out → full close: free slot + count outcome (I-57)
@@ -1144,7 +1157,8 @@ class FillPoller:
             elif kind == "STOP":
                 # Pass Sierra fill price so exit_price = real fill (may differ from trade.stop due to slippage)
                 _fill_px = float(price) if price is not None else None
-                self._tm.on_stop_hit(trade_id, fill_ts=fill_ts, fill_price=_fill_px)
+                self._tm.on_stop_hit(trade_id, fill_ts=fill_ts, fill_price=_fill_px,
+                                     fill_qty=fill_qty, order_id=order_id)
                 logger.info("[FillPoller] STOP fill: trade %s @ %s", trade_id, price)
                 # Full close via Sierra stop → free slot + count the stop (I-57:
                 # this path previously bypassed on_trade_close → stuck demo slot

@@ -87,6 +87,9 @@ def test_fill_poller_routes_closed_to_update():
     fp._process_fill(fill)
 
     # Should have called update_closed_trade_pnl
+    # T-62: the per-leg quantity + order id ride along so a ladder's later
+    # fills become their OWN legs instead of re-pricing the whole trade.
     fp._tm.update_closed_trade_pnl.assert_called_once_with(
-        640, 7744.25, exit_reason="STOP_FILL"
+        640, 7744.25, exit_reason="STOP_FILL",
+        fill_qty=None, order_id=5001, kind="STOP",
     )
