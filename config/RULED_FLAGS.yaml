@@ -78,6 +78,7 @@ ruled:
   SIZE_CAP_FLOOR_CONTRACTS: {expected: "2", ruled_by: "מייקל", date: "2026-08-19", note: "\"במקום 1 עם אותה תקרה תעשה 2 או 3\" — חיתוך-תקרה לעולם לא מוריד מתחת לרצפה" }
   STOP_FLOOR_IB_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "#756: סטופ 3.5 נק' על IB 24.75 נק' — רצפת-סטופ ≥0.35×IB. רץ 27.5 והוחזר ב-$0" }
   S2_REACTIVE_DAYTYPE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "כיול REACTIVE פר-סוג-יום: נפח/גיאומטריה/הקשר מ-YAML. 08-20: vsa=0 rvol=0 הרגו 8/8 גיאומטריות" }
+  S2_INITIATIVE_JOIN_ATR_CAP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A2: b3_join cap at 0.55×ATR — 6/7 at two pivots failed on 7.00 vs 12.60. +$241.50/4c on 08-20" }
 
   # ── פסיקת-מייקל 2026-07-19: סף אין-כניסות-לייב-חדשות 14:30 → 15:30 ET (22:30 IL) ──
   # ראיה (ספר-הצללים 07-17): הסף הישן שלח 4 עסקאות ל-shadow — 3 שורטי-S4 מנצחים (+$148.75)

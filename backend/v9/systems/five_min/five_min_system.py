@@ -1070,7 +1070,17 @@ class FiveMinSystem(BaseV9TradingSystem):
             if _adaptive_floor is not None:
                 b1_expansion = b1_range >= _adaptive_floor
         b3_range = b3["h"] - b3["l"]
-        b3_joining = b3_range > b1_range * (_VOL_JOIN_FACTOR if _vol_adaptive_i else 1.0)
+        _join_req = b1_range * (_VOL_JOIN_FACTOR if _vol_adaptive_i else 1.0)
+        # S2_INITIATIVE_JOIN_ATR_CAP_V1 (Michael 2026-08-20, A2): cap the joining
+        # requirement at 0.55×ATR so an explosive b1 (12.60pt) doesn't demand an
+        # impossible b3 (10.08pt). 6/7 at two pivot points failed on 7.00 vs 12.60.
+        if _os.environ.get("S2_INITIATIVE_JOIN_ATR_CAP_V1", "").lower() in ("1", "true", "yes"):
+            _join_atr_cap = 0.55 * (_atr or 5.0)
+            if _join_req > _join_atr_cap:
+                logger.debug("[S2-JOIN-CAP] b3_join req %.2f capped to %.2f (ATR=%.2f)",
+                             _join_req, _join_atr_cap, _atr or 0)
+                _join_req = _join_atr_cap
+        b3_joining = b3_range > _join_req
 
         # Initiative LONG
         b1_bull = b1["c"] > b1["o"]
