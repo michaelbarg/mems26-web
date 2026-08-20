@@ -1,0 +1,112 @@
+# S2 REACTIVE per-day-type calibration (Michael 2026-08-20)
+# "איך המערכת תדע לבצע התאמות בהתאם לסוג היום, הנרות והנפחים"
+#
+# Flag: S2_REACTIVE_DAYTYPE_V1 (default OFF).
+# When ON, these coefficients replace the hardcoded thresholds in _detect_reactive.
+#
+# Three axes per day-type:
+#   volume:
+#     b2_avg_k:   b2_vol <= this × rolling_avg20 (lower = stricter)
+#     b2_vs_b1:   b2_vol must be < this × b1_vol (1.0 = any drop)
+#   geometry:
+#     confirm_tol_atr: b4 close vs b3 high/low tolerance as fraction of ATR
+#                      (0.0 = must exceed; 0.15 = within 15% of ATR is ok)
+#     b2_range_max_atr: max b2 range as fraction of ATR (contraction bar)
+#   context:
+#     ease_mult: multiplier on the expansion floor (< 1 = easier to qualify)
+#
+# Derivation per day-type (from DAILY_TRADE_TABLES + TODAY_TRADER_TABLE_2026-08-20):
+#
+# Neutral / Normal: volume dries up on rotation → strict volume gate kills
+#   every REACTIVE. b2_avg_k raised to 1.2 (pass if merely below-average).
+#   Edge-fades are the PRIMARY pattern → ease_mult 0.8.
+#
+# Variation: mixed — continuation REACTIVEs work, fades are riskier.
+#   b2_avg_k at 0.9 (moderate). Default ease.
+#
+# Trend_Normal: strong directional flow. REACTIVE = continuation entry with
+#   high conviction → keep strict volume + geometry.
+#
+# Trend_DD: extreme directional day. REACTIVEs against the drive are dangerous;
+#   with the drive they work but need strong volume confirmation.
+#   b2_avg_k 0.7 (strict). confirm_tol tight.
+
+default:
+  volume:
+    b2_avg_k: 0.8
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.0
+    b2_range_max_atr: 1.0
+  context:
+    ease_mult: 1.0
+
+Neutral_Center:
+  volume:
+    b2_avg_k: 1.2
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.15
+    b2_range_max_atr: 1.2
+  context:
+    ease_mult: 0.80
+
+Neutral_Extreme:
+  volume:
+    b2_avg_k: 1.2
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.15
+    b2_range_max_atr: 1.2
+  context:
+    ease_mult: 0.80
+
+Normal:
+  volume:
+    b2_avg_k: 1.0
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.10
+    b2_range_max_atr: 1.0
+  context:
+    ease_mult: 0.85
+
+Variation:
+  volume:
+    b2_avg_k: 0.9
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.05
+    b2_range_max_atr: 1.0
+  context:
+    ease_mult: 1.0
+
+Normal_Variation:
+  volume:
+    b2_avg_k: 0.9
+    b2_vs_b1: 1.0
+  geometry:
+    confirm_tol_atr: 0.05
+    b2_range_max_atr: 1.0
+  context:
+    ease_mult: 1.0
+
+Trend_Normal:
+  volume:
+    b2_avg_k: 0.7
+    b2_vs_b1: 0.9
+  geometry:
+    confirm_tol_atr: 0.0
+    b2_range_max_atr: 0.8
+  context:
+    ease_mult: 1.0
+
+Trend_DD:
+  volume:
+    b2_avg_k: 0.6
+    b2_vs_b1: 0.8
+  geometry:
+    confirm_tol_atr: 0.0
+    b2_range_max_atr: 0.7
+  context:
+    ease_mult: 1.1

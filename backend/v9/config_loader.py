@@ -320,6 +320,36 @@ def reset_s2_firing_cache() -> None:
     _s2_firing_cache = None
     _s2_firing_loaded = False
 
+# ── S2 Reactive per-day-type calibration (config/s2_reactive_calibration.yaml) ──
+
+_s2_reactive_cal_cache: Optional[Dict] = None
+_s2_reactive_cal_loaded = False
+
+_S2_REACTIVE_DEFAULT = {
+    "volume": {"b2_avg_k": 0.8, "b2_vs_b1": 1.0},
+    "geometry": {"confirm_tol_atr": 0.0, "b2_range_max_atr": 1.0},
+    "context": {"ease_mult": 1.0},
+}
+
+
+def load_s2_reactive_calibration(day_type: Optional[str] = None) -> Dict:
+    """Load per-day-type REACTIVE thresholds. Returns the matching section or default."""
+    global _s2_reactive_cal_cache, _s2_reactive_cal_loaded
+    if not _s2_reactive_cal_loaded:
+        _s2_reactive_cal_loaded = True
+        _s2_reactive_cal_cache = _load_yaml("s2_reactive_calibration.yaml")
+    data = _s2_reactive_cal_cache or {}
+    if day_type and day_type in data:
+        return data[day_type]
+    return data.get("default", _S2_REACTIVE_DEFAULT)
+
+
+def reset_s2_reactive_calibration_cache() -> None:
+    global _s2_reactive_cal_cache, _s2_reactive_cal_loaded
+    _s2_reactive_cal_cache = None
+    _s2_reactive_cal_loaded = False
+
+
 # ── Stop Anchors V2 (config/stop_anchors.yaml) ───────────────────────
 
 def load_stop_anchors() -> Optional[Dict[str, Any]]:

@@ -828,11 +828,24 @@ class FiveMinSystem(BaseV9TradingSystem):
             elif _v == "INTERSECTION":  b2_drop = _vsa_pass and _rvol_pass and _strict_pass
             else:                       b2_drop = _vsa_pass  # A_VSA — identical to pre-change
         elif s2_adaptive_thresholds_on():
-            # S2_ADAPTIVE_THRESHOLDS_V1 (Michael 2026-08-19): the legacy gate
-            # (b2 ≤ 10% of b1 = a 90% drop) is near-impossible on real tape.
-            # VSA-style relative drop instead: quieter than b1 AND ≤0.8×avg20.
-            b2_drop = (b2_vol < b1_vol
-                       and b2_vol <= _ADAPTIVE_B2_AVG_K * _rolling_avg) if b1_vol > 0 else False
+            # S2_ADAPTIVE_THRESHOLDS_V1 (Michael 2026-08-19): VSA-style relative drop.
+            # S2_REACTIVE_DAYTYPE_V1 (Michael 2026-08-20): per-day-type coefficients
+            # from config/s2_reactive_calibration.yaml.
+            _b2k = _ADAPTIVE_B2_AVG_K
+            _b2_vs_b1_k = 1.0
+            if _os.environ.get("S2_REACTIVE_DAYTYPE_V1", "").lower() in ("1", "true", "yes"):
+                try:
+                    from backend.v9.config_loader import load_s2_reactive_calibration as _lrc
+                    from backend.v9.services.trade_context import get_live_day_type as _gldt2
+                    _rdt = _gldt2()
+                    _rcal = _lrc(_rdt)
+                    _vol_cal = _rcal.get("volume", {})
+                    _b2k = float(_vol_cal.get("b2_avg_k", _ADAPTIVE_B2_AVG_K))
+                    _b2_vs_b1_k = float(_vol_cal.get("b2_vs_b1", 1.0))
+                except Exception:
+                    pass
+            b2_drop = (b2_vol < b1_vol * _b2_vs_b1_k
+                       and b2_vol <= _b2k * _rolling_avg) if b1_vol > 0 else False
         else:
             b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
 
@@ -846,7 +859,20 @@ class FiveMinSystem(BaseV9TradingSystem):
         b4_confirm = b4["c"] > b4["o"]
         # Entry signal per Master Summary Sheet 2; volatile regime relaxes to 75% of b3 range
         _vol_adaptive = vol_adaptive_active(bars_5m)
-        b4_close_above_b3_high = b4["c"] > reactive_confirm_threshold(b3["h"], b3["l"], "LONG", _vol_adaptive)
+        _confirm_thr = reactive_confirm_threshold(b3["h"], b3["l"], "LONG", _vol_adaptive)
+        b4_close_above_b3_high = b4["c"] > _confirm_thr
+        # S2_REACTIVE_DAYTYPE_V1: ATR-relative geometry tolerance per day-type
+        if (not b4_close_above_b3_high
+                and _os.environ.get("S2_REACTIVE_DAYTYPE_V1", "").lower() in ("1", "true", "yes")):
+            try:
+                if '_rcal' not in dir():
+                    from backend.v9.config_loader import load_s2_reactive_calibration as _lrc
+                    from backend.v9.services.trade_context import get_live_day_type as _gldt2
+                    _rcal = _lrc(_gldt2())
+                _tol = float(_rcal.get("geometry", {}).get("confirm_tol_atr", 0)) * _atr
+                b4_close_above_b3_high = b4["c"] >= (_confirm_thr - _tol)
+            except Exception:
+                pass
         cot_above_amt = (not _require_cot_amt) or (cur_cot > cur_amt)
         poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
@@ -912,7 +938,20 @@ class FiveMinSystem(BaseV9TradingSystem):
         b3_sellers = b3["c"] < b3["o"]
         b4_confirm_s = b4["c"] < b4["o"]
         # Entry signal per Master Summary Sheet 2; volatile regime relaxes to 75% of b3 range
-        b4_close_below_b3_low = b4["c"] < reactive_confirm_threshold(b3["h"], b3["l"], "SHORT", _vol_adaptive)
+        _confirm_thr_s = reactive_confirm_threshold(b3["h"], b3["l"], "SHORT", _vol_adaptive)
+        b4_close_below_b3_low = b4["c"] < _confirm_thr_s
+        # S2_REACTIVE_DAYTYPE_V1: ATR-relative geometry tolerance (SHORT mirror)
+        if (not b4_close_below_b3_low
+                and _os.environ.get("S2_REACTIVE_DAYTYPE_V1", "").lower() in ("1", "true", "yes")):
+            try:
+                if '_rcal' not in dir():
+                    from backend.v9.config_loader import load_s2_reactive_calibration as _lrc
+                    from backend.v9.services.trade_context import get_live_day_type as _gldt2
+                    _rcal = _lrc(_gldt2())
+                _tol = float(_rcal.get("geometry", {}).get("confirm_tol_atr", 0)) * _atr
+                b4_close_below_b3_low = b4["c"] <= (_confirm_thr_s + _tol)
+            except Exception:
+                pass
         cot_below_amt = (not _require_cot_amt) or (cur_cot < cur_amt)
         poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
