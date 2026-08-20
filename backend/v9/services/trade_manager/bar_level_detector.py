@@ -1025,18 +1025,16 @@ class BarLevelDetector:
                             _fc = _foreign(_mae_n(trade))
                             if _fc is not False:
                                 logger.critical(
-                                    "[MAE-SCRATCH] SKIPPED for trade %d — the account "
-                                    "holds contracts this trade does not own "
-                                    "(foreign=%s); an account-wide FLATTEN would "
-                                    "close them and cancel their stop. The trade "
-                                    "keeps its own bracket.", trade.id, _fc)
+                                    "[MAE-SCRATCH] SKIPPED for trade %d — UNMANAGED "
+                                    "contracts on the account (foreign=%s). No manual "
+                                    "trading (ruling 2026-08-21) → anomaly. Investigate. "
+                                    "The trade keeps its own bracket.", trade.id, _fc)
                                 try:
                                     from backend.v9.services.phone_alert import push as _fp
                                     _fp("mae_scratch_skipped_foreign",
-                                        "\u26a0\ufe0f MEMS26: מימוש-S6 דולג",
-                                        f"trade {{trade.id}}: יש בחשבון חוזים שאינם "
-                                        f"של המערכת, ו-FLATTEN היה סוגר גם אותם. "
-                                        f"העסקה נשארת עם הברקט שלה.")
+                                        "\U0001f534 MEMS26: SCRATCH דולג — חוזים-זרים",
+                                        f"trade {trade.id}: חוזים לא-מנוהלים בחשבון "
+                                        f"(אורפן/fill-שאבד). FLATTEN דולג. לחקור.")
                                 except Exception:
                                     pass
                                 continue
