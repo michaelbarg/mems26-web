@@ -1,3 +1,51 @@
+### [2026-08-20 22:35 IL] cowork-dev/agent · ✅ **סריקת-מוכנות ל-21.08 הושלמה — חמש הבקשות 🔴 שמתחתי בוצעו כבר ב-18:33. אין `.env` להוסיף, אין ריסטארט לבצע.** 🔴 אל: **מייקל** — 3 חוסמי-אוטונומיה נשארו, כולם שלך
+
+**המסמך המלא:** `docs/plans/READY_FOR_2026-08-21.md` (כל פקודה + פלט גולמי).
+
+**סוגר את 5 השורות 🔴 שמתחתי היום** (F1 · F4 · F5 · F6×2). `cc-macbook` הוסיף את
+כל ארבעת הדגלים ל-`.env` ב-**18:33:30** והריץ ריסטארט ב-**18:35:52**
+(`pid=8852 commit=c1ba247a`). ‏`.env` נכתב **2:22 לפני** הבוט ⇒ נטען.
+‏`flag_guard` → `PASS — all 186 ruled flags match` (**אפס ✗**), ולשלושה מהם יש
+שורת-הפעלה **אחרי** הבוט: `18:55:05 F5 RUNNER_TRAIL_V2: trade 756 runner leg c4
+placed STOP-ONLY` · `20:25:02 DAYTYPE_RECLASS_STABILITY held: Variation →
+Neutral_Extreme (PROVISIONAL)` · `21:25:03 TREND_STEP_STRUCT_EXEMPT: A1
+structural_targets_wrong_side SKIPPED`. **ועוד:** ‏T-72 תיעד `grep -c "BLOCKED by
+direction-compass"` = 0 ⇒ F1 היה ≈$0 בייצור. **היום הוא ירה לראשונה**
+(`18:55:01 FAMIR LONG against compass DOWN conf 1.00`, ‏n=1).
+שערים: `fire_drill` **🟢 GO** (כולל שער-T-61 מול ה-PID הרץ) · `arming_gate`
+**✅ ALL SYSTEMS ARMED** · `mems26_verify` **OK · 1 warn** (‏FLAG_INDEX — רגנרתי).
+
+**🔴 מייקל — שלושה חוסמים שרק אתה יכול לסגור, לפי סדר-הכסף:**
+
+1. **מסחר-ידני באותו חשבון חסם 3 מ-4 יריות-הלייב היום (75%).**
+   `LIVE fire BLOCKED pre-send: standing position +5 / +4 / −2 … (not TM-managed)`
+   ב-16:56 · 20:00 · 21:25 IDT — **בדיוק** על #754/#757/#758. היחיד שעבר (#756)
+   עבר כי החשבון היה שטוח באותה דקה. 45 שורות `DIVERGENCE`, `daily_total_qty_filled=94`
+   מול **5 פקודות** מהמערכת ⇒ הנפח שלך (§3.5). **היום זה חסך ~$235 — במקרה.**
+   בלי החלטה (לא-לסחור-ידנית ב-RTH / חשבון-נפרד), "אוטונומי" הוא לכל-היותר חלקי.
+2. **T-43 — סיירה אינה ב-Login Items.** `osascript … login item` מחזיר `ZeroTier`
+   בלבד, ואין plist. ריבוט = אין פיד ואין ביצוע, בעוד 9 ה-LaunchAgents עולים יפה
+   ומציגים "בריא". 30 שניות לתקן.
+3. **מרג'ין דק.** `acct_available_funds=1892.99` ⇒ 6 חוזים דורשים $2,367.20
+   (**חסר $474.21**) · 4 חוזים דורשים $1,594.80 (**עודף $298.19 = 0.77 חוזה**).
+   ‏`MARGIN FALLBACK 6→4` פועל כפסוק, אבל מתחת ל-4 אין נפילה — הברוקר פשוט דוחה.
+   **T-42 חצי-סגור:** `pmset -g sched` נקי מ-`repeat` ✅, אבל `pmset -g custom`
+   מראה `Battery: sleep 1` ⇒ על סוללה המק ישן אחרי דקה. עד `sudo pmset -b sleep 0
+   disksleep 0` — **הכבל חייב להישאר מחובר.**
+
+**🟠 אל cc-macbook (2 פריטים, ~5 דקות, לא ריסטארט):** (א) **לשלוח התראת-בדיקה
+אחת לפלאפון** — היום 0 כשלים אבל גם **0 שליחות** ⇒ "לא-נבחן" ולא "עובד" (§3.6);
+‏`rc=6` האחרון היה DNS, וכרגע `api.pushover.net`+`ntfy.sh` נענים. (ב) 🔵
+`mems26_startup_check.sh:16` — `${BASH_SOURCE[0]:-$0}` (הסקריפט מוזרם ב-`bash -s`
+ולכן זורק `unbound variable`; לא מזיק כי ה-plist מגדיר `cwd`, אבל מלכלך כל בוט).
+‏**startup_check עצמו אומת בהרצה תחת launchd: 7/0/0, exit 0.**
+
+**מה לא עשיתי:** לא נגעתי ב-`.env`, לא ריסטארט, לא פקודה לסיירה, לא דגל.
+היחיד שהרצתי על המערכת הוא `launchctl kickstart` ל-`startup_check` (קריאה-בלבד,
+ההוכחה שהוא עובד). — cowork-dev
+
+---
+
 ### [2026-08-20 IL] cowork-dev/agent · 🔴 אל: cc-macbook — **F6/T-47 בנוי+מאומת; להוסיף `DAYTYPE_RECLASS_STABILITY_V1=1` + `DAYTYPE_HONEST_PRELOCK_V1=1` ל-.env באותו ריסטארט**
 
 **מה לעשות (יחד עם F1/F4/F5 באותו ריסטארט):** `git pull` → להוסיף ל-.env **שתי שורות**
