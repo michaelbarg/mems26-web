@@ -4,76 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-19 09:09 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-20 04:52 ET
 events:
-  - date: 2026-08-19
-    time_et: "07:00"
-    name: "MBA Purchase Index"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "07:00"
-    name: "MBA Mortgage Market Index"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "07:00"
-    name: "MBA Mortgage Refinance Index"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "07:00"
-    name: "MBA Mortgage Applications"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "07:00"
-    name: "MBA 30-Year Mortgage Rate"
-    severity: orange
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Gasoline Production Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Crude Oil Stocks Change"
-    severity: orange
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Cushing Crude Oil Stocks Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Distillate Stocks Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Refinery Crude Runs Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Distillate Fuel Production Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Crude Oil Imports Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Gasoline Stocks Change"
-    severity: orange
-  - date: 2026-08-19
-    time_et: "10:30"
-    name: "EIA Heating Oil Stocks Change"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "11:30"
-    name: "17-Week Bill Auction"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "13:00"
-    name: "20-Year Bond Auction"
-    severity: yellow
-  - date: 2026-08-19
-    time_et: "14:00"
-    name: "FOMC Minutes"
-    severity: red
   - date: 2026-08-20
     time_et: "08:30"
     name: "Continuing Jobless Claims"
@@ -249,4 +181,148 @@ events:
   - date: 2026-08-25
     time_et: "16:30"
     name: "API Crude Oil Stock Change"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "07:00"
+    name: "MBA Mortgage Refinance Index"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "07:00"
+    name: "MBA Mortgage Market Index"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "07:00"
+    name: "MBA Purchase Index"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "07:00"
+    name: "MBA Mortgage Applications"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "07:00"
+    name: "MBA 30-Year Mortgage Rate"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Personal Spending MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Durable Goods Orders ex Defense MoM"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Corporate Profits QoQ Prel"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "PCE Prices QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Real Consumer Spending QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Personal Income MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "PCE Price Index MoM"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Durable Goods Orders Ex Transp MoM"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "GDP Sales QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Core PCE Prices QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Durable Goods Orders MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "GDP Price Index QoQ 2nd Est"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Core PCE Price Index YoY"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "PCE Price Index YoY"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Core PCE Price Index MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Non Defense Goods Orders Ex Air"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "GDP Growth Rate QoQ 2nd Est"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Real Personal Spending MoM"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Crude Oil Stocks Change"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Gasoline Production Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Distillate Fuel Production Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Refinery Crude Runs Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Gasoline Stocks Change"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Cushing Crude Oil Stocks Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Distillate Stocks Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Heating Oil Stocks Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Crude Oil Imports Change"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "11:30"
+    name: "17-Week Bill Auction"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "13:00"
+    name: "2-Year FRN Auction"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "13:00"
+    name: "5-Year Note Auction"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "20:00"
+    name: "Jackson Hole Symposium"
     severity: orange
