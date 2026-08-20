@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-20 04:52 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-20 11:35 ET
 events:
   - date: 2026-08-20
     time_et: "08:30"
@@ -16,20 +16,12 @@ events:
     severity: yellow
   - date: 2026-08-20
     time_et: "08:30"
-    name: "Initial Jobless Claims"
-    severity: orange
-  - date: 2026-08-20
-    time_et: "08:30"
     name: "Philly Fed Business Conditions"
     severity: yellow
   - date: 2026-08-20
     time_et: "08:30"
     name: "Philly Fed Prices Paid"
     severity: yellow
-  - date: 2026-08-20
-    time_et: "08:30"
-    name: "Philadelphia Fed Manufacturing Index"
-    severity: orange
   - date: 2026-08-20
     time_et: "08:30"
     name: "Philly Fed CAPEX Index"
@@ -43,6 +35,14 @@ events:
     name: "Philly Fed Employment"
     severity: yellow
   - date: 2026-08-20
+    time_et: "08:30"
+    name: "Initial Jobless Claims"
+    severity: orange
+  - date: 2026-08-20
+    time_et: "08:30"
+    name: "Philadelphia Fed Manufacturing Index"
+    severity: orange
+  - date: 2026-08-20
     time_et: "10:00"
     name: "CB Leading Index MoM"
     severity: yellow
@@ -52,11 +52,11 @@ events:
     severity: yellow
   - date: 2026-08-20
     time_et: "11:30"
-    name: "8-Week Bill Auction"
+    name: "4-Week Bill Auction"
     severity: yellow
   - date: 2026-08-20
     time_et: "11:30"
-    name: "4-Week Bill Auction"
+    name: "8-Week Bill Auction"
     severity: yellow
   - date: 2026-08-20
     time_et: "12:00"
@@ -115,6 +115,10 @@ events:
     name: "Building Permits MoM Final"
     severity: yellow
   - date: 2026-08-25
+    time_et: "08:00"
+    name: "Fed Barkin Speech"
+    severity: orange
+  - date: 2026-08-25
     time_et: "08:15"
     name: "ADP Employment Change Weekly"
     severity: orange
@@ -136,12 +140,12 @@ events:
     severity: yellow
   - date: 2026-08-25
     time_et: "09:00"
-    name: "S&P/Case-Shiller Home Price YoY"
-    severity: orange
-  - date: 2026-08-25
-    time_et: "09:00"
     name: "S&P/Case-Shiller Home Price MoM"
     severity: yellow
+  - date: 2026-08-25
+    time_et: "09:00"
+    name: "S&P/Case-Shiller Home Price YoY"
+    severity: orange
   - date: 2026-08-25
     time_et: "10:00"
     name: "Richmond Fed Manufacturing Shipments Index"
@@ -179,6 +183,10 @@ events:
     name: "2-Year Note Auction"
     severity: yellow
   - date: 2026-08-25
+    time_et: "16:00"
+    name: "Fed Barkin Speech"
+    severity: orange
+  - date: 2026-08-25
     time_et: "16:30"
     name: "API Crude Oil Stock Change"
     severity: orange
@@ -204,16 +212,8 @@ events:
     severity: orange
   - date: 2026-08-26
     time_et: "08:30"
-    name: "Personal Spending MoM"
-    severity: red
-  - date: 2026-08-26
-    time_et: "08:30"
     name: "Durable Goods Orders ex Defense MoM"
     severity: yellow
-  - date: 2026-08-26
-    time_et: "08:30"
-    name: "Corporate Profits QoQ Prel"
-    severity: orange
   - date: 2026-08-26
     time_et: "08:30"
     name: "PCE Prices QoQ 2nd Est"
@@ -224,8 +224,28 @@ events:
     severity: yellow
   - date: 2026-08-26
     time_et: "08:30"
-    name: "Personal Income MoM"
-    severity: red
+    name: "GDP Sales QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Core PCE Prices QoQ 2nd Est"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Core PCE Price Index YoY"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Non Defense Goods Orders Ex Air"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Real Personal Spending MoM"
+    severity: yellow
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Corporate Profits QoQ Prel"
+    severity: orange
   - date: 2026-08-26
     time_et: "08:30"
     name: "PCE Price Index MoM"
@@ -236,48 +256,32 @@ events:
     severity: orange
   - date: 2026-08-26
     time_et: "08:30"
-    name: "GDP Sales QoQ 2nd Est"
-    severity: yellow
-  - date: 2026-08-26
-    time_et: "08:30"
-    name: "Core PCE Prices QoQ 2nd Est"
-    severity: yellow
-  - date: 2026-08-26
-    time_et: "08:30"
-    name: "Durable Goods Orders MoM"
-    severity: red
-  - date: 2026-08-26
-    time_et: "08:30"
     name: "GDP Price Index QoQ 2nd Est"
     severity: orange
-  - date: 2026-08-26
-    time_et: "08:30"
-    name: "Core PCE Price Index YoY"
-    severity: yellow
   - date: 2026-08-26
     time_et: "08:30"
     name: "PCE Price Index YoY"
     severity: orange
   - date: 2026-08-26
     time_et: "08:30"
+    name: "Personal Spending MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Personal Income MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
+    name: "Durable Goods Orders MoM"
+    severity: red
+  - date: 2026-08-26
+    time_et: "08:30"
     name: "Core PCE Price Index MoM"
     severity: red
   - date: 2026-08-26
     time_et: "08:30"
-    name: "Non Defense Goods Orders Ex Air"
-    severity: yellow
-  - date: 2026-08-26
-    time_et: "08:30"
     name: "GDP Growth Rate QoQ 2nd Est"
     severity: red
-  - date: 2026-08-26
-    time_et: "08:30"
-    name: "Real Personal Spending MoM"
-    severity: yellow
-  - date: 2026-08-26
-    time_et: "10:30"
-    name: "EIA Crude Oil Stocks Change"
-    severity: orange
   - date: 2026-08-26
     time_et: "10:30"
     name: "EIA Gasoline Production Change"
@@ -290,10 +294,6 @@ events:
     time_et: "10:30"
     name: "EIA Refinery Crude Runs Change"
     severity: yellow
-  - date: 2026-08-26
-    time_et: "10:30"
-    name: "EIA Gasoline Stocks Change"
-    severity: orange
   - date: 2026-08-26
     time_et: "10:30"
     name: "EIA Cushing Crude Oil Stocks Change"
@@ -311,9 +311,21 @@ events:
     name: "EIA Crude Oil Imports Change"
     severity: yellow
   - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Crude Oil Stocks Change"
+    severity: orange
+  - date: 2026-08-26
+    time_et: "10:30"
+    name: "EIA Gasoline Stocks Change"
+    severity: orange
+  - date: 2026-08-26
     time_et: "11:30"
     name: "17-Week Bill Auction"
     severity: yellow
+  - date: 2026-08-26
+    time_et: "11:45"
+    name: "Fed Barkin Speech"
+    severity: orange
   - date: 2026-08-26
     time_et: "13:00"
     name: "2-Year FRN Auction"
