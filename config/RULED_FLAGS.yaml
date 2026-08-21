@@ -83,7 +83,7 @@ ruled:
   S2_REACTIVE_DAYTYPE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "כיול REACTIVE פר-סוג-יום: נפח/גיאומטריה/הקשר מ-YAML. 08-20: vsa=0 rvol=0 הרגו 8/8 גיאומטריות" }
   S2_INITIATIVE_JOIN_ATR_CAP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A2: b3_join cap at 0.55×ATR — 6/7 at two pivots failed on 7.00 vs 12.60. +$241.50/4c on 08-20" }
   LSMA_FLAT_ATR_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A4: lsma_flat threshold ATR-relative (0.04×ATR) — 0.25 too strict on low-ATR days. +$70.50 on 08-20" }
-  DAYTYPE_ENTRY_BUDGET_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-20", note: "A6: פלייבוק פר-סוג-יום — Variation=1 · Trend_Normal=∞ · Trend_DD=3 · Normal=2 · Neutral=3 · Nontrend=0" }
+  DAYTYPE_ENTRY_BUDGET_V1: {expected: "0", ruled_by: "מייקל", date: "2026-08-21", note: "כובה חי ב-19:12 ('כרגע זה ריאציה, המערכת תדע לזהות'). הסיבה: ב-21.08 התווית התהפכה מ-Normal(0.67) ל-Variation בביטחון **0.0**, ותקציב Variation=1 ⇒ 29 מתוך 32 מועמדים נחסמו day_entry_budget — כולל DOUBLE_BOTTOM_EE_LONG ו-TREND_STEP LONG ב-15:50Z ו-INITIATIVE_SHORT ב-16:10Z. תקציב שנשען על תווית בביטחון-אפס הוא המחמיר מכל השערים, ובלי ייצוב-תווית אמין הוא מזיק יותר ממועיל. ההיגיון המקורי (מחקר MAX_DAYS: Variation=כניסה-אחת-מוחזקת +$3,395) יוחזר רק אחרי שהתווית תהיה יציבה ומדידה. גם ENTRY_BUDGET_SKIP_LOSERS_V1 לא הספיק: #762 נסגרה ב-pnl_r=-1.03 ואמורה הייתה לא-לספור — לבדוק את השאילתה." }
   TARGET_MIN_SPACING_V1: {expected: "shadow", ruled_by: "מייקל", date: "2026-08-21", note: "#756: t1/t2/t3 clustered 0.5pt apart on 3.5pt risk. min_gap=max(k×ATR,m×risk). Shadow until ruling." }
 
   # ── פסיקת-מייקל 2026-07-19: סף אין-כניסות-לייב-חדשות 14:30 → 15:30 ET (22:30 IL) ──
