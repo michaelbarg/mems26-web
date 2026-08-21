@@ -81,6 +81,7 @@ def reconcile_positions(
     last_result_status: Optional[str] = None,
     last_result_age_s: Optional[float] = None,
     sierra_position_qty: Optional[int] = None,
+    ack_within_position: bool = False,
 ) -> ReconcileVerdict:
     """Pure three-way reconcile. Returns a verdict; never raises.
 
@@ -162,7 +163,14 @@ def reconcile_positions(
     # returns (None, None) for anything older than the position (or older than
     # 15 min when the entry time is unknown) — and `not stop_ok` catches that.
     stop_ok = (last_result_status in _STOP_OK_STATUSES)
-    if not stop_ok:
+    # The age test still applies to an ACK whose provenance we do NOT know
+    # (direct callers / tests). `gather_and_reconcile` passes
+    # ack_within_position=True when `_read_last_result` proved the ACK belongs
+    # to this position, and only then is age irrelevant.
+    stop_stale = (not ack_within_position
+                  and last_result_age_s is not None
+                  and last_result_age_s > _STOP_STALE_S)
+    if (not stop_ok) or stop_stale:
         v.verdict, v.naked_stop_suspect = NAKED_STOP_SUSPECT, True
         v.detail = (f"in position but stop not confirmed "
                     f"(last_result={last_result_status!r}, age={last_result_age_s}s)")
@@ -275,6 +283,10 @@ def gather_and_reconcile(gateway=None) -> ReconcileVerdict:
         slot_occupied=slot_occupied, db_open_ids=db_open_ids,
         tm_in_position=tm_in_position, last_result_status=status,
         last_result_age_s=age, sierra_position_qty=_sq,
+        # `_read_last_result` already discarded anything that predates this
+        # position, so a status it returned IS this position's own ACK — its
+        # clock age must not re-raise the naked-stop alarm (2026-08-21).
+        ack_within_position=(status is not None and _entry_epoch is not None),
     )
     # No-silent-failures: if a source errored, we must NOT report a confident
     # AGREED_FLAT — a hidden position could be exactly in the unread source.
