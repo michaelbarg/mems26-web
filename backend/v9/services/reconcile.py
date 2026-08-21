@@ -146,9 +146,23 @@ def reconcile_positions(
         return v
 
     # In position by agreement → naked-stop check
+    #
+    # 2026-08-21 (Michael, live: "מקבל התראה שיש נייקד סטופ וזה לא נכון"):
+    # the age test below used to ALSO run here, and it silently undid the
+    # 08-19 fix. `_read_last_result` already guarantees that any status it
+    # returns either (a) is younger than _STOP_STALE_S, or (b) was written
+    # at/after THIS position's entry — i.e. it is this position's own truth,
+    # however old. Re-testing the age here therefore re-raised the alarm on
+    # exactly the case the fix was written for: an attached OCO stop resting
+    # Sierra-side emits no new ACKs, so a quiet trade older than 15 minutes
+    # alarmed on every single bar. Today that produced **14,524** CRITICAL
+    # lines while Sierra showed 3 working stops covering the position — the
+    # kind of noise that teaches Michael to ignore a real alarm.
+    # The staleness guard is not lost: it lives in `_read_last_result`, which
+    # returns (None, None) for anything older than the position (or older than
+    # 15 min when the entry time is unknown) — and `not stop_ok` catches that.
     stop_ok = (last_result_status in _STOP_OK_STATUSES)
-    stop_stale = (last_result_age_s is not None and last_result_age_s > _STOP_STALE_S)
-    if (not stop_ok) or stop_stale:
+    if not stop_ok:
         v.verdict, v.naked_stop_suspect = NAKED_STOP_SUSPECT, True
         v.detail = (f"in position but stop not confirmed "
                     f"(last_result={last_result_status!r}, age={last_result_age_s}s)")
