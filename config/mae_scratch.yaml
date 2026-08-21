@@ -23,3 +23,47 @@ pattern_thresholds:
   GB100: 10.0          # winners MAE 1.0pt
   INITIATIVE_SHORT: 10.0
   INITIATIVE_LONG: 16.0  # small sample (n=6), conservative
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ATR-relative thresholds — flag S6_MAE_SCRATCH_ATR_V1 (Michael 2026-08-21)
+# ─────────────────────────────────────────────────────────────────────────────
+# Evidence (#756, 20.08, the only live trade of the day): TREND_STEP SHORT
+# 7696.75 with a 3.5pt stop was scratched at MAE 1.8pt — the SAME entry then ran
+# 27.5pt in our favour. On a day whose ATR14 at that bar was 8.07pt, 1.8pt is
+# noise, not structural failure. The protection itself stays (it is historically
+# net-positive) — only the yardstick becomes relative.
+#
+# DERIVATION of k (not guessed): median ATR14 (5-min, RTH 08:00-15:05 CT) over
+# the 32 live-era sessions 29.06-20.08 = 5.98pt (median of per-day medians 5.982;
+# median of all 2,170 bar values 5.964; p25=3.94 p50=5.98 p75=7.25). Rounded to
+# ATR_MEDIAN = 6.0. Each k below is exactly `fixed_threshold / 6.0`, so on a
+# median-ATR day the ATR path reproduces today's fixed points to <0.01pt.
+#   default 8.0/6 = 1.3333 · ZLR 6.0/6 = 1.0 · GB100 10.0/6 = 1.6667
+#   INITIATIVE_SHORT 10.0/6 = 1.6667 · INITIATIVE_LONG 16.0/6 = 2.6667
+# responsive_multiplier (1.5) applies to k exactly as it applies to the points.
+#
+# floor_pts DERIVATION: MAE_CALIBRATION_2026-08-02 measured winners' median MAE
+# at 3.2pt. A threshold at or below that scratches the median WINNER. 4.0 =
+# 1.25 x 3.2 — the tightest value that still sits above the winners' median on a
+# dead-ATR day (the quietest live-era session, 03.07, had a day-median ATR14 of
+# 2.82 -> raw default threshold 3.76pt, i.e. the floor binds exactly there).
+atr_relative:
+  atr_bars: 14           # same 14-bar TR average as bar_level_detector / s6 diagnose
+  atr_median_pts: 6.0    # the live-era median the k values are normalised on
+  floor_pts: 4.0         # never scratch tighter than this, whatever the ATR
+  default_k: 1.3333      # 8.0 / 6.0
+  pattern_k:
+    ZLR: 1.0             # 6.0 / 6.0
+    GB100: 1.6667        # 10.0 / 6.0
+    INITIATIVE_SHORT: 1.6667
+    INITIATIVE_LONG: 2.6667  # 16.0 / 6.0
+
+  # Scratch<->stop gap under the ATR path.
+  #   "clamp" = legacy behaviour: squeeze the threshold down to (stop_dist - gap).
+  #   "skip"  = if the structural threshold does not fit under the stop with the
+  #             required gap, do NOT scratch at all — the stop IS the protection.
+  # "skip" is the ruled behaviour (Michael 21.08, commit 8ad1334f: "יציאה חכמה —
+  # סקרטץ' רק על שבירת-מבנה, לא ביטול-עסקאות"). #756 is the proof: the clamp,
+  # not the YAML, produced the 1.5pt threshold (stop 3.5 - gap 2.0 = 1.5), so an
+  # ATR-relative threshold alone would have changed nothing there.
+  stop_gap_mode: skip

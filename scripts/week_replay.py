@@ -23,11 +23,23 @@ What is NOT replicated (declared limitations):
   - Any signal that did NOT fire (we can't see what today's S2/S4 would detect
     differently — the detection code depends on live state)
 
+2026-08-21 extension (S6_MAE_SCRATCH_ATR_V1 verification, workorder §D):
+  - the S6 MAE-scratch is now MODELLED inside the bar loop (it was missing, so
+    the old baseline was not the live config): pre-T1, threshold from
+    config/mae_scratch.yaml, P2-9 scratch<->stop gap, FLATTEN at the detecting
+    bar's close + slippage. `--mae off|fixed|atr|compare` selects the variant.
+  - `--dates all-live` replays every live-era session instead of 5 hardcoded days.
+  - commissions ($1.50/contract round-turn) are included in the net figures.
+  - `--out` writes the report where the caller asks.
+
 Usage: python3 scripts/week_replay.py
+       python3 scripts/week_replay.py --dates all-live --mae compare --out <path>
 """
 
 import sys
 import os
+import argparse
+import statistics
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 
@@ -47,6 +59,106 @@ T0_TARGET_PTS = 3.0
 PTS_PER_DOLLAR = 5.0    # MES: $5 per point per contract
 TICK_SIZE = 0.25
 SLIPPAGE_LEVELS = [0, 1, 2]  # in ticks
+COMMISSION_RT = 1.50    # $/contract round-turn (same constant as the other replays)
+
+# ── S6 MAE scratch (2026-08-21) ──────────────────────────────────────────────
+# Loaded from the SAME yaml the live engine reads, so the replay cannot drift
+# from production thresholds.
+SCRATCH_STOP_GAP_PTS = 2.0   # P2-9, matches mae_scratch.SCRATCH_STOP_GAP_PTS
+
+
+def _load_mae_cfg() -> Dict:
+    import yaml
+    p = os.path.join(os.path.dirname(__file__), "..", "config", "mae_scratch.yaml")
+    with open(os.path.normpath(p)) as f:
+        return yaml.safe_load(f) or {}
+
+
+MAE_CFG = _load_mae_cfg()
+
+
+def _norm_pattern(p: str) -> str:
+    p = (p or "").upper().strip()
+    for suf in ("_LONG", "_SHORT"):
+        if p.endswith(suf):
+            return p[:-len(suf)]
+    return p
+
+
+def fixed_threshold(pattern: str) -> float:
+    """Mirror of mae_scratch.get_threshold()."""
+    default = float(MAE_CFG.get("default_threshold_pts", 8.0))
+    mult = float(MAE_CFG.get("responsive_multiplier", 1.5))
+    responsive = set(MAE_CFG.get("responsive_patterns", []))
+    overrides = MAE_CFG.get("pattern_thresholds", {}) or {}
+    norm = _norm_pattern(pattern)
+    t = overrides.get(norm) or overrides.get(pattern)
+    if t is not None:
+        return float(t)
+    if norm in responsive or pattern in responsive:
+        return default * mult
+    return default
+
+
+def atr_threshold(pattern: str, atr: float) -> float:
+    """Mirror of mae_scratch.get_threshold_atr()."""
+    rel = MAE_CFG.get("atr_relative", {}) or {}
+    floor = float(rel.get("floor_pts", 4.0))
+    default_k = float(rel.get("default_k", 1.3333))
+    mult = float(MAE_CFG.get("responsive_multiplier", 1.5))
+    responsive = set(MAE_CFG.get("responsive_patterns", []))
+    ks = rel.get("pattern_k", {}) or {}
+    norm = _norm_pattern(pattern)
+    k = ks.get(norm)
+    if k is None:
+        k = ks.get(pattern)
+    if k is None:
+        k = default_k
+        if norm in responsive or pattern in responsive:
+            k = default_k * mult
+    return max(float(k) * float(atr), floor)
+
+
+def scratch_threshold(mode: str, pattern: str, atr: float,
+                      stop_distance: Optional[float]) -> Optional[float]:
+    """Effective scratch threshold, or None when the scratch cannot fire.
+
+    mode="fixed" → today's live behaviour (fixed points + P2-9 clamp).
+    mode="atr"   → S6_MAE_SCRATCH_ATR_V1 (max(k*ATR, floor) + skip-on-no-room).
+    """
+    if mode == "off":
+        return None
+    if mode == "atr" and atr and atr > 0:
+        thr = atr_threshold(pattern, atr)
+        gap_mode = str(((MAE_CFG.get("atr_relative", {}) or {})
+                        .get("stop_gap_mode", "skip"))).lower()
+        if stop_distance is not None:
+            room = stop_distance - SCRATCH_STOP_GAP_PTS
+            if thr > room:
+                if gap_mode == "skip":
+                    return None
+                if room > 0:
+                    thr = room
+        return thr
+    # fixed path (also the ATR path's honest fallback when ATR is unavailable)
+    thr = fixed_threshold(pattern)
+    if stop_distance is not None:
+        room = stop_distance - SCRATCH_STOP_GAP_PTS
+        if room > 0 and thr > room:
+            thr = room
+    return thr
+
+
+def atr_series(bars: List[Dict], n: int = 14) -> List[float]:
+    """ATR14 per bar index (same 14-bar TR average as the live engine).
+    Index i = ATR over bars[max(0,i-13)..i]. 0.0 until n bars exist."""
+    trs, prev, out = [], None, []
+    for b in bars:
+        h, l, c = float(b["high"]), float(b["low"]), float(b["close"])
+        trs.append(h - l if prev is None else max(h - l, abs(h - prev), abs(l - prev)))
+        prev = c
+        out.append(sum(trs[-n:]) / n if len(trs) >= n else 0.0)
+    return out
 
 # RTH window (CT)
 RTH_START = "08:30"
@@ -128,10 +240,17 @@ def compute_t0(entry: float, direction: str) -> float:
 
 
 def simulate_trade(signal: Dict, bars_after_entry: List[Dict],
-                   slippage_ticks: int) -> Dict:
+                   slippage_ticks: int, mae_mode: str = "off",
+                   atr_after_entry: Optional[List[float]] = None) -> Dict:
     """Simulate a single trade bar-by-bar with given slippage.
 
     Returns: {outcome, pnl_usd, exit_bar_idx, exit_reason, per_contract_detail}
+
+    mae_mode: "off" | "fixed" | "atr" — models the S6 MAE scratch. The live
+    detector evaluates the scratch BEFORE the stop on the same bar
+    (bar_level_detector.py: the MAE block sits above "1. Stop check FIRST"),
+    so the replay does the same. FLATTEN is filled at the detecting bar's
+    close, worsened by slippage.
     """
     direction = signal["direction"].upper()
     entry = float(signal["entry_price"])
@@ -164,9 +283,38 @@ def simulate_trade(signal: Dict, bars_after_entry: List[Dict],
     exit_reason = None
     exit_bar_idx = None
 
+    pattern = (signal.get("pattern_id_at_entry") or "")
+    stop_distance = abs(entry - stop)
+    scratched = False
+    scratch_thr_used = None
+    scratch_mae = None
+
     for bar_idx, bar in enumerate(bars_after_entry):
         h = float(bar["high"])
         l = float(bar["low"])
+
+        # 0. S6 MAE scratch — pre-T1 only, evaluated before the stop (live order)
+        if mae_mode != "off" and not hit.get("T1", False) and not scratched:
+            _atr = (atr_after_entry[bar_idx]
+                    if atr_after_entry and bar_idx < len(atr_after_entry) else 0.0)
+            thr = scratch_threshold(mae_mode, pattern, _atr, stop_distance)
+            if thr is not None:
+                mae = (entry - l) if direction == "LONG" else (h - entry)
+                if mae >= thr:
+                    remaining = CONTRACTS - contracts_out
+                    close_px = float(bar["close"])
+                    fill = close_px - slip if direction == "LONG" else close_px + slip
+                    pts = (fill - entry) if direction == "LONG" else (entry - fill)
+                    pnl_pts += pts * remaining
+                    detail.append(f"MAE_SCRATCH @{fill:.2f} x{remaining} "
+                                  f"(mae {mae:.2f} >= thr {thr:.2f}) = {pts*remaining:.2f}pts")
+                    contracts_out = CONTRACTS
+                    exit_reason = "MAE_SCRATCH"
+                    exit_bar_idx = bar_idx
+                    scratched = True
+                    scratch_thr_used = round(thr, 2)
+                    scratch_mae = round(mae, 2)
+                    break
 
         # 1. Stop check FIRST (adverse fill priority)
         stop_hit = False
@@ -233,16 +381,21 @@ def simulate_trade(signal: Dict, bars_after_entry: List[Dict],
         exit_bar_idx = len(bars_after_entry) - 1 if bars_after_entry else 0
 
     pnl_usd = pnl_pts * PTS_PER_DOLLAR
+    net_usd = pnl_usd - CONTRACTS * COMMISSION_RT
     outcome = "WIN" if pnl_usd > 0 else ("BE" if pnl_usd == 0 else "LOSS")
 
     return {
         "outcome": outcome,
         "pnl_usd": round(pnl_usd, 2),
+        "net_usd": round(net_usd, 2),
         "pnl_pts": round(pnl_pts, 2),
         "exit_reason": exit_reason,
         "exit_bar_idx": exit_bar_idx,
         "detail": detail,
         "contracts_out": contracts_out,
+        "scratched": scratched,
+        "scratch_thr": scratch_thr_used,
+        "scratch_mae": scratch_mae,
     }
 
 
@@ -259,12 +412,13 @@ def deduplicate_signals(signals: List[Dict]) -> List[Dict]:
     return deduped
 
 
-def replay_day(conn, date_str: str) -> Dict:
+def replay_day(conn, date_str: str, mae_mode: str = "off") -> Dict:
     """Replay one trading day. Returns the full analysis."""
     bars = get_bars(conn, date_str)
     all_signals = get_signals(conn, date_str)
     actual_trades = get_actual_trades(conn, date_str)
     day_type = get_day_type(conn, date_str)
+    atrs = atr_series(bars)
 
     # Deduplicate signals (shadow + live often fire at same time)
     signals = deduplicate_signals(all_signals)
@@ -300,7 +454,8 @@ def replay_day(conn, date_str: str) -> Dict:
             if not bars_after:
                 continue
 
-            result = simulate_trade(sig, bars_after, slip)
+            result = simulate_trade(sig, bars_after, slip, mae_mode,
+                                    atrs[entry_bar_idx + 1:])
             result["signal_id"] = sig["id"]
             result["direction"] = sig["direction"]
             result["entry_price"] = sig["entry_price"]
@@ -320,7 +475,9 @@ def replay_day(conn, date_str: str) -> Dict:
         results[slip] = {
             "trades": trades,
             "net_pnl": round(net_pnl, 2),
+            "net_after_comm": round(sum(t["net_usd"] for t in trades), 2),
             "n_trades": len(trades),
+            "n_scratched": sum(1 for t in trades if t.get("scratched")),
             "wins": sum(1 for t in trades if t["outcome"] == "WIN"),
             "losses": sum(1 for t in trades if t["outcome"] == "LOSS"),
         }
@@ -328,7 +485,9 @@ def replay_day(conn, date_str: str) -> Dict:
     return {
         "date": date_str,
         "day_type": day_type,
+        "mae_mode": mae_mode,
         "n_bars": len(bars),
+        "median_atr": round(statistics.median([a for a in atrs if a > 0]), 2) if any(a > 0 for a in atrs) else 0.0,
         "n_signals_total": len(all_signals),
         "n_signals_deduped": len(signals),
         "actual_trades": actual_trades,
@@ -500,25 +659,177 @@ def generate_report(days: List[Dict]) -> str:
     return "\n".join(lines)
 
 
+def get_live_dates(conn) -> List[str]:
+    """Every live-era session (a day on which live/demo trades were booked)."""
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT (entry_ts AT TIME ZONE 'America/Chicago')::date AS d
+            FROM v9_trades
+            WHERE state = 'CLOSED' AND mode IN ('live', 'demo') AND entry_ts IS NOT NULL
+            ORDER BY 1
+        """)
+        return [str(r["d"]) for r in cur.fetchall()]
+
+
+def generate_compare_report(pairs: List[Tuple[Dict, Dict]], dates: List[str]) -> str:
+    """A/B report: MAE scratch FIXED (flag OFF) vs ATR-relative (flag ON)."""
+    L = []
+    L.append("# REPLAY — S6_MAE_SCRATCH_ATR_V1 (ATR-relative MAE scratch)")
+    L.append("")
+    L.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M')} · "
+             f"`scripts/week_replay.py --dates all-live --mae compare`")
+    L.append(f"**Sessions:** {len(dates)} live-era days ({dates[0]} … {dates[-1]})")
+    L.append(f"**Parameters:** {CONTRACTS} contracts, ladder {LADDER}, T0={T0_TARGET_PTS}pt, "
+             f"$5/pt/contract, commission ${COMMISSION_RT:.2f}/contract round-turn "
+             f"(= ${CONTRACTS*COMMISSION_RT:.2f}/trade), slippage 0 / 1 / 2 ticks")
+    L.append("")
+    L.append("**A = flag OFF** (fixed points from `config/mae_scratch.yaml` + the P2-9 "
+             "scratch↔stop clamp) — today's live behaviour.  ")
+    L.append("**B = flag ON** (`max(k × ATR14, floor)`, k normalised on the live-era "
+             "median ATR14 of 6.0pt, and the P2-9 clamp becomes a *skip*).")
+    L.append("")
+
+    L.append("## Per-day delta (net of commission)")
+    L.append("")
+    for slip in SLIPPAGE_LEVELS:
+        L.append(f"### Slippage {slip} tick(s)")
+        L.append("")
+        L.append("| Day | Type | ATR14 med | A: OFF $ | B: ON $ | Δ $ | scratches A→B |")
+        L.append("|-----|------|-----------|----------|---------|-----|----------------|")
+        deltas = []
+        for a, b in pairs:
+            ra, rb = a["results"][slip], b["results"][slip]
+            d = rb["net_after_comm"] - ra["net_after_comm"]
+            deltas.append(d)
+            mark = "" if abs(d) < 0.01 else (" 🟢" if d > 0 else " 🔴")
+            L.append(f"| {a['date']} | {a['day_type']} | {a['median_atr']:.2f} "
+                     f"| ${ra['net_after_comm']:+.0f} | ${rb['net_after_comm']:+.0f} "
+                     f"| **${d:+.0f}**{mark} | {ra['n_scratched']}→{rb['n_scratched']} |")
+        tot_a = sum(a["results"][slip]["net_after_comm"] for a, _ in pairs)
+        tot_b = sum(b["results"][slip]["net_after_comm"] for _, b in pairs)
+        L.append(f"| **TOTAL** | | | **${tot_a:+.0f}** | **${tot_b:+.0f}** "
+                 f"| **${tot_b-tot_a:+.0f}** | "
+                 f"{sum(a['results'][slip]['n_scratched'] for a,_ in pairs)}→"
+                 f"{sum(b['results'][slip]['n_scratched'] for _,b in pairs)} |")
+        L.append("")
+        nz = [d for d in deltas if abs(d) >= 0.01]
+        L.append(f"- **median day Δ** = ${statistics.median(deltas):+.2f} "
+                 f"(all {len(deltas)} days) · "
+                 f"${statistics.median(nz):+.2f} (the {len(nz)} days that changed)")
+        L.append(f"- days better: {sum(1 for d in deltas if d > 0.01)} · "
+                 f"worse: {sum(1 for d in deltas if d < -0.01)} · "
+                 f"unchanged: {sum(1 for d in deltas if abs(d) <= 0.01)}")
+        if nz:
+            L.append(f"- worst single day: ${min(deltas):+.2f} · best: ${max(deltas):+.2f}")
+        L.append("")
+
+    # Which scratches changed
+    L.append("## Which scratches change, and what each was worth")
+    L.append("")
+    L.append("| Day | signal | pattern | dir | A (flag OFF) | B (flag ON) | Δ $ (0-slip) |")
+    L.append("|-----|--------|---------|-----|--------------|-------------|--------------|")
+    n_changed = 0
+    for a, b in pairs:
+        ta = {t["signal_id"]: t for t in a["results"][0]["trades"]}
+        tb = {t["signal_id"]: t for t in b["results"][0]["trades"]}
+        for sid in sorted(set(ta) | set(tb)):
+            xa, xb = ta.get(sid), tb.get(sid)
+            sa = xa.get("scratched") if xa else None
+            sb = xb.get("scratched") if xb else None
+            if bool(sa) == bool(sb) and xa and xb and abs(xa["net_usd"] - xb["net_usd"]) < 0.01:
+                continue
+            n_changed += 1
+            def desc(x):
+                if x is None:
+                    return "not taken"
+                if x.get("scratched"):
+                    return (f"SCRATCH @thr {x['scratch_thr']:.2f} "
+                            f"(mae {x['scratch_mae']:.2f}) ${x['net_usd']:+.0f}")
+                return f"{x['exit_reason']} ${x['net_usd']:+.0f}"
+            pat = (xa or xb).get("pattern") or "?"
+            dr = (xa or xb).get("direction") or "?"
+            d = ((xb["net_usd"] if xb else 0.0) - (xa["net_usd"] if xa else 0.0))
+            L.append(f"| {a['date']} | #{sid} | {pat} | {dr} | {desc(xa)} | {desc(xb)} "
+                     f"| **${d:+.0f}** |")
+    if n_changed == 0:
+        L.append("| — | — | — | — | no trade changed | | |")
+    L.append("")
+
+    L.append("## Declared limitations (unchanged from the base component)")
+    L.append("")
+    L.append("- Signal stream = historical `v9_trades` (what S2/S4 actually fired then); "
+             "gateway gates are NOT re-evaluated.")
+    L.append("- Stop/targets are the ORIGINAL levels from the DB; smart-BE, trails and "
+             "SCALE_IN are not replayed.")
+    L.append("- Bar-close-only fill rule (the entry bar itself is skipped).")
+    L.append("- The scratch FLATTEN is filled at the detecting bar's **close** + slippage. "
+             "Live books a scratch as `pnl_usd=0.0` by convention "
+             "(`bar_level_detector` `on_trade_close`), which is a bookkeeping artefact, "
+             "not a real fill — the replay is the more honest of the two.")
+    L.append("- `t1_hit` in the replay means T1 proper (not the T0 fast-take), matching "
+             "`trade.t1_hit_ts` in the live path.")
+    L.append("- Both arms A and B run through the identical code path with the identical "
+             "signal stream — only the threshold function differs, so the Δ is clean even "
+             "where the absolute level is approximate.")
+    L.append("")
+    return "\n".join(L)
+
+
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dates", default=",".join(REPLAY_DATES),
+                    help="comma-separated YYYY-MM-DD, or 'all-live'")
+    ap.add_argument("--mae", default="off", choices=["off", "fixed", "atr", "compare"],
+                    help="model the S6 MAE scratch: off / fixed (flag OFF) / "
+                         "atr (flag ON) / compare (A-B report)")
+    ap.add_argument("--out", default=None, help="report path")
+    args = ap.parse_args()
+
     print("Connecting to DB...")
     conn = connect()
     print("Connected.\n")
 
-    days = []
-    for date_str in REPLAY_DATES:
-        print(f"Replaying {date_str}...")
-        day = replay_day(conn, date_str)
-        days.append(day)
-        r0 = day["results"][0]
-        actual_pnl = sum((t["pnl_usd"] or 0) for t in day["actual_trades"])
-        print(f"  {day['day_type']} | {day['n_signals_deduped']} signals | "
-              f"sim: {r0['n_trades']} trades, ${r0['net_pnl']:+.0f} | "
-              f"actual: ${actual_pnl:+.0f}")
+    if args.dates == "all-live":
+        dates = get_live_dates(conn)
+    else:
+        dates = [d.strip() for d in args.dates.split(",") if d.strip()]
+    print(f"{len(dates)} session(s) to replay.\n")
 
-    report = generate_report(days)
-    out_path = os.path.join(os.path.dirname(__file__), "..",
-                            "docs", "reports", "WEEK_REPLAY_2026-08-17.md")
+    if args.mae == "compare":
+        pairs = []
+        for date_str in dates:
+            a = replay_day(conn, date_str, "fixed")
+            b = replay_day(conn, date_str, "atr")
+            if a["n_bars"] == 0:
+                print(f"  {date_str}: no bars — skipped")
+                continue
+            pairs.append((a, b))
+            d0 = b["results"][0]["net_after_comm"] - a["results"][0]["net_after_comm"]
+            print(f"  {date_str} {a['day_type']:16s} ATR={a['median_atr']:5.2f} "
+                  f"OFF=${a['results'][0]['net_after_comm']:+8.0f} "
+                  f"ON=${b['results'][0]['net_after_comm']:+8.0f} "
+                  f"delta=${d0:+7.0f}  scratch {a['results'][0]['n_scratched']}->"
+                  f"{b['results'][0]['n_scratched']}")
+        report = generate_compare_report(pairs, [p[0]["date"] for p in pairs])
+        out_path = args.out or os.path.join(
+            os.path.dirname(__file__), "..", "docs", "reports",
+            f"REPLAY_S6_MAE_SCRATCH_ATR_{datetime.now().strftime('%Y-%m-%d')}.md")
+    else:
+        days = []
+        for date_str in dates:
+            print(f"Replaying {date_str}...")
+            day = replay_day(conn, date_str, args.mae)
+            days.append(day)
+            r0 = day["results"][0]
+            actual_pnl = sum((t["pnl_usd"] or 0) for t in day["actual_trades"])
+            print(f"  {day['day_type']} | {day['n_signals_deduped']} signals | "
+                  f"sim: {r0['n_trades']} trades, ${r0['net_pnl']:+.0f} | "
+                  f"actual: ${actual_pnl:+.0f}")
+        report = generate_report(days)
+        out_path = args.out or os.path.join(
+            os.path.dirname(__file__), "..", "docs", "reports",
+            "WEEK_REPLAY_2026-08-17.md")
+
     out_path = os.path.normpath(out_path)
     with open(out_path, "w") as f:
         f.write(report)

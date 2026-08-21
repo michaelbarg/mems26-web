@@ -976,7 +976,8 @@ class BarLevelDetector:
                 # S6_MAE_SCRATCH_V1 (OFF). Never op=EXIT. Fail-safe.
                 if _is_demo_live:
                     try:
-                        from backend.v9.systems.mae_scratch import should_scratch
+                        from backend.v9.systems.mae_scratch import (
+                            should_scratch, current_atr14 as _mae_atr)
                         _q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
                         _pat = _q.get("pattern_name", _q.get("setup_type", ""))
                         _scratch, _scratch_reason = should_scratch(
@@ -987,6 +988,11 @@ class BarLevelDetector:
                             bar_high=bar_high,
                             t1_hit=trade.t1_hit_ts is not None,
                             stop_price=float(trade.stop) if trade.stop else None,
+                            # S6_MAE_SCRATCH_ATR_V1: same 14-bar TR average the
+                            # System-6 scan uses. Returns 0.0 without touching
+                            # the DB when the ATR flag is OFF, and should_scratch
+                            # then ignores it entirely (fixed-threshold path).
+                            atr=_mae_atr(),
                         )
                         if _scratch:
                             logger.warning(

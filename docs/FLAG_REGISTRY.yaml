@@ -615,6 +615,13 @@ flags:
     why: "OFF (default). EDGE_FADE needs this to find opportunities — the classifier labels most days NV which was excluded from FADE_DAY_TYPES."
     status: awaiting_backtest
     ref: "backend/v9/systems/edge_fade.py:FADE_DAY_TYPES_EXTENDED"
+  S6_MAE_SCRATCH_ATR_V1:
+    category: risk
+    group: "system 6"
+    what: "Makes the S6 MAE-scratch threshold ATR-relative: max(k × ATR14, floor_pts) instead of a fixed point value, with k per-pattern in config/mae_scratch.yaml (atr_relative.pattern_k) normalised on the live-era median ATR14 of 6.0pt, and floor_pts=4.0 (1.25× the winners' median MAE). It also turns the P2-9 scratch↔stop clamp into a SKIP: when the structural threshold cannot fit under the stop with the 2pt gap, no scratch is issued — the stop is the protection. ATR unavailable (0.0) falls back to the fixed path (Rule 1 honest zero)."
+    why: "ON (Michael 2026-08-21). #756 (20.08) was scratched at 1.8pt MAE on a bar whose ATR14 was 8.07 — the 1.5pt threshold came from the clamp (stop 3.5 − gap 2.0), not the yaml. Replay over all 32 live-era sessions, commissions + 3 slippage levels: +$4,398.75 total, median day $0.00 (unhurt), +$22.50 median over the 20 days that changed, 12 better / 8 worse. Flag OFF is byte-identical."
+    status: live
+    ref: "backend/v9/systems/mae_scratch.py · config/mae_scratch.yaml (atr_relative) · docs/reports/REPLAY_S6_MAE_SCRATCH_ATR_2026-08-21.md"
   S6_MAE_SCRATCH_V1:
     category: risk
     group: "system 6"

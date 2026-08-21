@@ -14,6 +14,13 @@ Responsive patterns get threshold × 1.5 per Kaminski&Lo (early exit hurts
 mean-reversion).
 
 NEVER calls op=EXIT (forbidden). Uses FLATTEN only (the allowed mechanism).
+
+Flag 2: S6_MAE_SCRATCH_ATR_V1 (default OFF, Michael 2026-08-21) — makes the
+threshold ATR-relative: max(k x ATR14, floor), k per-pattern in the same yaml,
+normalised on the live-era median ATR14 (6.0pt) so a median-ATR day reproduces
+the fixed points exactly. It also turns the P2-9 scratch<->stop clamp into a
+skip. Evidence: #756 (20.08) scratched at 1.8pt MAE on an 8.07pt-ATR bar and
+then ran 27.5pt our way. When this flag is OFF, nothing here changes.
 """
 from __future__ import annotations
 
@@ -31,6 +38,15 @@ _loaded = False
 
 def _flag_on() -> bool:
     return os.getenv("S6_MAE_SCRATCH_V1", "0").lower() in ("1", "true", "yes")
+
+
+def _atr_flag_on() -> bool:
+    """S6_MAE_SCRATCH_ATR_V1 — ATR-relative thresholds (Michael 2026-08-21).
+
+    Default OFF in code. When OFF every code path below is bypassed and
+    should_scratch() behaves byte-identically to the pre-2026-08-21 version.
+    """
+    return os.getenv("S6_MAE_SCRATCH_ATR_V1", "0").lower() in ("1", "true", "yes")
 
 
 def _cfg():
@@ -82,6 +98,87 @@ def get_threshold(pattern_name: str) -> float:
     return default
 
 
+def get_threshold_atr(pattern_name: str, atr: float) -> float:
+    """ATR-relative MAE threshold: max(k x ATR14, floor).
+
+    k is per-pattern in the SAME yaml (`atr_relative.pattern_k`), normalised on
+    the live-era median ATR14 of 6.0pt so that on a median-ATR day this returns
+    the historic fixed points (ZLR 6 / GB100 10 / default 8 ...) to <0.01pt.
+    Responsive patterns get the same x1.5 they get on the fixed path.
+
+    `floor` (4.0pt = 1.25 x the winners' median MAE of 3.2pt) is what stops a
+    dead-ATR day from producing an absurdly tight threshold.
+    """
+    cfg = _cfg()
+    rel = cfg.get("atr_relative", {}) or {}
+    floor = float(rel.get("floor_pts", 4.0))
+    default_k = float(rel.get("default_k", 1.3333))
+    multiplier = float(cfg.get("responsive_multiplier", 1.5))
+    responsive = set(cfg.get("responsive_patterns", []))
+    ks = rel.get("pattern_k", {}) or {}
+
+    norm = _normalize_pattern(pattern_name)
+
+    k = ks.get(norm)
+    if k is None:
+        k = ks.get(pattern_name)
+    if k is None:
+        k = default_k
+        if norm in responsive or pattern_name in responsive:
+            k = default_k * multiplier
+
+    return max(float(k) * float(atr), floor)
+
+
+_ATR_TTL_SEC = 30.0
+_atr_cache: Tuple[float, float] = (0.0, 0.0)   # (value, monotonic_ts)
+
+
+def current_atr14() -> float:
+    """14-bar TR average from the canonical bar table — the SAME computation
+    bar_level_detector already runs for System 6 (`v9_bars_5min_woodies`).
+
+    Returns 0.0 (the documented honest-zero fallback, Rule 1) when the table is
+    unreachable or short; callers treat 0.0 as "no ATR" and fall back to the
+    fixed thresholds. Short TTL cache so the per-bar x per-trade loop does not
+    hammer the DB. Returns 0.0 immediately when the ATR flag is OFF (no DB read
+    at all on the OFF path).
+    """
+    if not _atr_flag_on():
+        return 0.0
+    global _atr_cache
+    import time as _time
+    now = _time.monotonic()
+    val, ts = _atr_cache
+    if ts and (now - ts) < _ATR_TTL_SEC:
+        return val
+    atr = 0.0
+    try:
+        from backend.v9.db.read import read_all as _read
+        n = int((_cfg().get("atr_relative", {}) or {}).get("atr_bars", 14))
+        rows = _read(
+            "SELECT high, low, close FROM v9_bars_5min_woodies "
+            f"WHERE symbol='MES' ORDER BY ts DESC LIMIT {n}", {}) or []
+        rows = list(reversed(rows))
+        trs, prev = [], None
+        for b in rows:
+            h, l, c = float(b["high"]), float(b["low"]), float(b["close"])
+            trs.append(h - l if prev is None
+                       else max(h - l, abs(h - prev), abs(l - prev)))
+            prev = c
+        atr = (sum(trs) / len(trs)) if trs else 0.0
+    except Exception as err:      # honest zero, never break trade management
+        logger.debug("[MAE_SCRATCH] ATR read failed (fixed-threshold fallback): %s", err)
+        atr = 0.0
+    _atr_cache = (atr, now)
+    return atr
+
+
+def reset_atr_cache():
+    global _atr_cache
+    _atr_cache = (0.0, 0.0)
+
+
 def compute_mae(
     entry_price: float,
     direction: str,
@@ -114,6 +211,7 @@ def should_scratch(
     bar_high: float,
     t1_hit: bool = False,
     stop_price: Optional[float] = None,
+    atr: Optional[float] = None,
 ) -> Tuple[bool, str]:
     """Determine if a trade should be scratched based on MAE.
 
@@ -135,20 +233,61 @@ def should_scratch(
         return (False, "")  # post-T1 → BE handles it
 
     mae = compute_mae(entry_price, direction, bar_low, bar_high)
-    threshold = get_threshold(pattern_name)
 
-    # P2-9: enforce minimum gap between scratch and stop
-    if stop_price is not None:
-        stop_distance = abs(entry_price - stop_price)
-        max_scratch = stop_distance - SCRATCH_STOP_GAP_PTS
-        if max_scratch > 0 and threshold > max_scratch:
-            threshold = max_scratch
-            logger.debug("[MAE_SCRATCH] gap-enforced threshold: %.1f (stop=%.1f, gap=%.1f)",
-                         threshold, stop_distance, SCRATCH_STOP_GAP_PTS)
+    # ── S6_MAE_SCRATCH_ATR_V1 (Michael 2026-08-21) — ATR-relative yardstick ──
+    # Live evidence #756 (20.08): a 1.8pt adverse excursion scratched a
+    # TREND_STEP that then ran 27.5pt our way, on a bar whose ATR14 was 8.07pt.
+    # The 1.5pt threshold came from the P2-9 clamp (stop 3.5 - gap 2.0), not
+    # from the YAML — so under this flag the clamp becomes a SKIP: when the
+    # structural threshold cannot fit under the stop with the required gap, the
+    # stop is already the protection and we do not scratch.
+    # Flag OFF (default) → not one line below runs; behaviour is byte-identical.
+    atr_path = False
+    if _atr_flag_on():
+        _atr = atr if atr is not None else current_atr14()
+        try:
+            _atr = float(_atr)
+        except (TypeError, ValueError):
+            _atr = 0.0
+        if _atr > 0:
+            atr_path = True
+            threshold = get_threshold_atr(pattern_name, _atr)
+            if stop_price is not None:
+                stop_distance = abs(entry_price - stop_price)
+                room = stop_distance - SCRATCH_STOP_GAP_PTS
+                mode = str(((_cfg().get("atr_relative", {}) or {})
+                            .get("stop_gap_mode", "skip"))).lower()
+                if threshold > room:
+                    if mode == "skip":
+                        logger.debug(
+                            "[MAE_SCRATCH] no scratch for %s — ATR threshold %.2f "
+                            "does not fit under a %.2fpt stop (gap %.1f); the stop "
+                            "is the protection", pattern_name, threshold,
+                            stop_distance, SCRATCH_STOP_GAP_PTS)
+                        return (False, "")
+                    if room > 0:
+                        threshold = room
+        else:
+            # honest zero (Rule 1): no ATR → fall back to the fixed thresholds
+            logger.debug("[MAE_SCRATCH] ATR unavailable — fixed-threshold fallback")
+
+    if not atr_path:
+        threshold = get_threshold(pattern_name)
+
+        # P2-9: enforce minimum gap between scratch and stop
+        if stop_price is not None:
+            stop_distance = abs(entry_price - stop_price)
+            max_scratch = stop_distance - SCRATCH_STOP_GAP_PTS
+            if max_scratch > 0 and threshold > max_scratch:
+                threshold = max_scratch
+                logger.debug("[MAE_SCRATCH] gap-enforced threshold: %.1f (stop=%.1f, gap=%.1f)",
+                             threshold, stop_distance, SCRATCH_STOP_GAP_PTS)
 
     if mae >= threshold:
         reason = (f"MAE scratch: {mae:.1f}pt >= {threshold:.1f}pt threshold "
                   f"for {pattern_name} (pre-T1)")
+        if atr_path:
+            reason += f" [ATR-relative, ATR14={_atr:.2f}]"
         return (True, reason)
 
     return (False, "")
