@@ -6,5 +6,5 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `confluence.py` | ⚠️ orphan? | 83 | 2026-05-29 | Confluence count — Tree V3.3 §Q6 (max 4). |
-| `first_hour_matrix.py` | ✅ 1 | 64 | 2026-05-29 | First Hour Matrix — Tree V3.3 §Stage C. |
+| `first_hour_matrix.py` | ✅ 1 | 64 | — | First Hour Matrix — Tree V3.3 §Stage C. |
 | `q0_dispatcher.py` | ⚠️ orphan? | 66 | 2026-05-29 | Q0 Dispatcher — Pre/Post-Lock branching per Tree V3.3. |

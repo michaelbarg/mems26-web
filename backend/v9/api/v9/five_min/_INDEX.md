@@ -6,4 +6,4 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 0 | 2026-05-12 |  |
-| `routes.py` | ✅ 1 | 71 | 2026-05-18 | 5-min System API endpoints. |
+| `routes.py` | ✅ 1 | 71 | — | 5-min System API endpoints. |

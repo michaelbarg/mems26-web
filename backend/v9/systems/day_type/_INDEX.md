@@ -16,22 +16,22 @@
 | `daytype_classifier.py` | ✅ 4 | 519 | 2026-08-21 | daytype_classifier.py — RELATIVE day-type classifier (S1, reads the dynamic table). |
 | `dd_features.py` | ✅ 2 | 144 | 2026-07-29 | dd_features.py — detect a Double-Distribution Trend day FROM THE BARS (S1). |
 | `decision_matrix.py` | ✅ 4 | 151 | 2026-05-31 | DecisionMatrix — single source of truth for day type probabilities. |
-| `detector.py` | ✅ 7 | 575 | 2026-08-11 | Day Type Engine — helper / detection functions. |
-| `extensions.py` | ✅ 4 | 152 | 2026-05-15 | Extension Tracker — tracks IB extensions after 10:30 ET lock. |
-| `hydration.py` | ✅ 1 | 53 | 2026-05-29 | Day Type hydration stub (D-077). |
+| `detector.py` | ✅ 7 | 575 | — | Day Type Engine — helper / detection functions. |
+| `extensions.py` | ✅ 4 | 152 | — | Extension Tracker — tracks IB extensions after 10:30 ET lock. |
+| `hydration.py` | ✅ 1 | 53 | — | Day Type hydration stub (D-077). |
 | `label_stability.py` | ✅ 2 | 172 | 2026-08-21 | Day-type label stability — T-47 / F6 (Michael ruling 2026-08-19, re-confirmed 2026-08-20). |
 | `models.py` | ✅ 4 | 33 | 2026-07-17 | Day Type Engine — SQLAlchemy model for persisting state. |
 | `neutral_classifier.py` | ✅ 2 | 59 | 2026-05-23 | neutral_classifier.py — NeuE vs NeuC classification per D-091.Q1. |
-| `open_type.py` | ⚠️ orphan? | 123 | 2026-05-15 | Open Type Classification — 4 types per Steidlmayer/Dalton (D-072). |
-| `opening_detector.py` | ✅ 1 | 74 | 2026-05-15 | Opening Detector — 5 sub-types per Mind Over Markets pp.63-74 + Zohar Figure 4-6. |
-| `opening_detector_v2.py` | ✅ 7 | 204 | 2026-07-29 | opening_detector_v2.py — MEASURED 5-type opening detector (S1, fixes over-DRIVE). |
-| `prev_day.py` | ✅ 3 | 127 | 2026-06-03 | Previous trading day context for S1 Day Type (P30 Wave 1a). |
-| `relative_features.py` | ✅ 2 | 337 | 2026-08-07 | relative_features.py — RELATIVE day-type input features (S1). |
-| `schemas.py` | ✅ 15 | 228 | 2026-05-31 | Pydantic schemas for Day Type Engine. |
-| `shadow_reclass.py` | ✅ 1 | 146 | 2026-06-02 | D-S1DYN: IB-relative dynamic day-type reclassification — SHADOW LOG ONLY. |
-| `state_machine.py` | ✅ 7 | 1196 | 2026-08-11 | Day Type Engine — 13-stage state machine (A1 -> C3). |
-| `state_persist.py` | ✅ 2 | 120 | 2026-08-13 | v9_day_type_state persist — extracted from backend/main.py (K2, 2026-08-08). |
-| `targets_table.py` | ✅ 7 | 214 | 2026-06-04 | Targets per Day Type — Constitution V3 Part 1 Layer 4 + EXIT_V6 + D-091.Q1. |
-| `triggers.py` | ✅ 3 | 104 | 2026-05-15 | Trigger Dispatcher — routes 6 trigger types to handler callbacks. |
-| `value_migration.py` | ✅ 2 | 104 | 2026-07-12 | value_migration — P1-6: value-migration classification feature (Michael 2026-07-12). |
-| `zohar_rules.py` | ✅ 4 | 171 | 2026-05-23 | Zohar Rules Engine — 6 evaluation rules for day-type refinement. |
+| `open_type.py` | ⚠️ orphan? | 123 | — | Open Type Classification — 4 types per Steidlmayer/Dalton (D-072). |
+| `opening_detector.py` | ✅ 1 | 74 | — | Opening Detector — 5 sub-types per Mind Over Markets pp.63-74 + Zohar Figure 4-6. |
+| `opening_detector_v2.py` | ✅ 7 | 204 | — | opening_detector_v2.py — MEASURED 5-type opening detector (S1, fixes over-DRIVE). |
+| `prev_day.py` | ✅ 3 | 127 | — | Previous trading day context for S1 Day Type (P30 Wave 1a). |
+| `relative_features.py` | ✅ 2 | 337 | — | relative_features.py — RELATIVE day-type input features (S1). |
+| `schemas.py` | ✅ 15 | 228 | — | Pydantic schemas for Day Type Engine. |
+| `shadow_reclass.py` | ✅ 1 | 146 | — | D-S1DYN: IB-relative dynamic day-type reclassification — SHADOW LOG ONLY. |
+| `state_machine.py` | ✅ 7 | 1196 | — | Day Type Engine — 13-stage state machine (A1 -> C3). |
+| `state_persist.py` | ✅ 2 | 120 | — | v9_day_type_state persist — extracted from backend/main.py (K2, 2026-08-08). |
+| `targets_table.py` | ✅ 7 | 214 | — | Targets per Day Type — Constitution V3 Part 1 Layer 4 + EXIT_V6 + D-091.Q1. |
+| `triggers.py` | ✅ 3 | 104 | — | Trigger Dispatcher — routes 6 trigger types to handler callbacks. |
+| `value_migration.py` | ✅ 2 | 104 | — | value_migration — P1-6: value-migration classification feature (Michael 2026-07-12). |
+| `zohar_rules.py` | ✅ 4 | 171 | — | Zohar Rules Engine — 6 evaluation rules for day-type refinement. |

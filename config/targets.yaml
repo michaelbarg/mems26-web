@@ -115,3 +115,29 @@ pattern_t1_points:
     Variation: 6.0
   HTLB:
     Variation: 10.0
+
+# ── TARGET_MIN_SPACING_V1 — minimum spacing between ladder legs ──
+# Michael ruling 2026-08-21 ~11:30 IL ("לבנות ולהפעיל בשדואו ולבדוק איך זה פותר"),
+# on live #756: SHORT 7696.75 with a 7691.50 / 7691.00 / 7690.50 ladder — three
+# exits 0.5pt apart. Relative by construction (Michael's standing principle —
+# no fixed points):  min_gap = max(k_atr × ATR14, m_risk × risk).
+#
+# DERIVATION of k/m (scripts/_probe_spacing_dist.py over the 302 live-era trades
+# since 2026-07-07, 564 real ladder steps):
+#   gap / ATR14 :  p25 = 0.363   median = 0.905
+#   gap / risk  :  p25 = 0.491   median = 1.130
+# Both floors are set BELOW the bottom quartile of real ladder steps, so the
+# rule is a tail-catcher by construction and cannot re-design a normal ladder.
+#   k_atr  = 0.25 — and it lands on an existing ruled anchor: structural_targets
+#            already floors T1 at 0.5×ATR from entry ("kills tiny T1s", trades
+#            277/278). A STEP between two legs is held to half of that minimum
+#            meaningful move.
+#   m_risk = 0.33 — a leg that shifts the trade's R profile by less than a third
+#            of an R is not a second exit, it is the same exit twice.
+target_spacing:
+  k_atr: 0.25
+  m_risk: 0.33
+  atr_bars: 14
+  # The only prices a PUSHed leg may land on besides real structure: clean R
+  # multiples off the real stop distance. Nothing else is ever synthesised.
+  r_multiples: [1.0, 1.5, 2.0, 2.5, 3.0, 4.0]

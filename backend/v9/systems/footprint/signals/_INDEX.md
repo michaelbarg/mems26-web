@@ -6,7 +6,7 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 11 | 2026-05-14 |  |
-| `absorption.py` | ✅ 1 | 97 | 2026-05-14 | Absorption signal detector — Constitution V3 Layer 1 T3. |
-| `exhaustion.py` | ✅ 1 | 105 | 2026-05-14 | Exhaustion signal detector — Constitution V3 Layer 1 T3. |
+| `absorption.py` | ✅ 1 | 97 | — | Absorption signal detector — Constitution V3 Layer 1 T3. |
+| `exhaustion.py` | ✅ 1 | 105 | — | Exhaustion signal detector — Constitution V3 Layer 1 T3. |
 | `stacked_imbalance.py` | ✅ 1 | 140 | 2026-06-01 | Stacked Imbalance signal detector — Constitution V3 Layer 1 T3. |
 | `sweep_return.py` | ✅ 1 | 91 | 2026-05-14 | Sweep-Return signal detector — Constitution V3 Layer 1 T3. |

@@ -65,7 +65,7 @@
 | `test_i62_full_target_guard.py` | ▶ entry/test | 59 | 2026-07-10 | I-62 FULL — bar-price inference must never drive T-hits on demo/live trades. |
 | `test_incident_333_fixpack.py` | ▶ entry/test | 227 | 2026-07-09 | Anti-tautological tests for incident 333 fixpack (2026-07-09). |
 | `test_killzone.py` | ▶ entry/test | 57 | 2026-05-12 | Tests for KillzoneSystem. |
-| `test_mae_scratch.py` | ▶ entry/test | 236 | 2026-08-02 | S6_MAE_SCRATCH_V1 — MAE-based scratch tests (2026-08-02). |
+| `test_mae_scratch.py` | ▶ entry/test | 236 | 2026-08-21 | S6_MAE_SCRATCH_V1 — MAE-based scratch tests (2026-08-02). |
 | `test_market_context.py` | ▶ entry/test | 104 | 2026-07-29 | P4/A — MARKET_CONTEXT_V1: System 0 context unifier (2026-07-29). |
 | `test_mobile_emergency.py` | ▶ entry/test | 119 | 2026-08-05 | Mobile emergency tests — PAUSE/RESUME/FLATTEN via mobile + gateway pause gate. |
 | `test_neutral_hysteresis.py` | ▶ entry/test | 49 | 2026-08-07 | Tests for P2-8: Neutral sub-type hysteresis. |

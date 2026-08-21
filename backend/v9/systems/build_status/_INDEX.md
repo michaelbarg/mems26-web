@@ -12,7 +12,7 @@
 | `day_type_inspector.py` | ✅ 1 | 344 | 2026-06-03 | Day Type inspector — produces a single entity for S1 Day Type system. |
 | `footprint_inspector.py` | ✅ 1 | 107 | 2026-06-01 | Footprint (S3) inspector — per-detector block reason for Build Status. |
 | `missed_trade_detector.py` | ✅ 2 | 189 | 2026-06-05 | Should-Have-Fired detector — observability only, no trading logic changes. |
-| `row_helpers.py` | ✅ 3 | 386 | 2026-06-03 | Shared helpers for inspector rows (live / required / freshness). |
+| `row_helpers.py` | ✅ 3 | 386 | — | Shared helpers for inspector rows (live / required / freshness). |
 | `s2_inspector.py` | ✅ 1 | 532 | 2026-08-13 | S2 Five-Minute inspector — produces 10 pattern status objects. |
 | `s2_pattern_probe.py` | ✅ 1 | 935 | 2026-06-08 | S2 Pattern Detection Probe — per-pattern geometry sub-conditions. |
 | `types.py` | ✅ 8 | 196 | 2026-06-10 | Pydantic schemas for /api/v9/build/pattern-status response. |

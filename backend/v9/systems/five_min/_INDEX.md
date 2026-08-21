@@ -10,8 +10,8 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 10 | 2026-05-12 | System 2: 5-min Decision Maker (Cyan #06b6d4). |
-| `adaptive_stop.py` | ✅ 3 | 299 | 2026-07-20 | adaptive_stop.py — Adaptive Stop Engine per D-091 (with 2026-05-23 bug corrections). |
+| `__init__.py` | ▶ entry/test | 10 | — | System 2: 5-min Decision Maker (Cyan #06b6d4). |
+| `adaptive_stop.py` | ✅ 3 | 299 | — | adaptive_stop.py — Adaptive Stop Engine per D-091 (with 2026-05-23 bug corrections). |
 | `atr_caps.py` | ✅ 2 | 148 | 2026-05-24 | ATR caps · pattern family resolution · time_stops · trail overrides. |
 | `auth_table_v1.py` | ✅ 2 | 163 | 2026-08-11 | S2 Auth Table V1 · pattern x day_type x tier -> contracts lookup. |
 | `choppiness.py` | ✅ 3 | 74 | 2026-06-08 | Rolling Choppiness scorer — Tree V3.3 §Q4. |

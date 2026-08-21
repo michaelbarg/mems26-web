@@ -2545,6 +2545,22 @@ class TradingGateway:
                             _st.get("t2_price"), _st.get("t3_price"),
                             _old_t1, _old_t2,
                         )
+                        # TARGET_MIN_SPACING_V1: remember the structural
+                        # objectives as REAL levels a later spacing PUSH may
+                        # land on. #756's C2=7682.75 / C3=7679.00 were real —
+                        # TP-1 then clamped all three onto the IB edge and the
+                        # ladder-dedup faked 2-tick steps out of the survivor.
+                        try:
+                            _sm = setup.get("metadata")
+                            if not isinstance(_sm, dict):
+                                _sm = {}
+                                setup["metadata"] = _sm
+                            _sm.setdefault("spacing_levels", []).extend(
+                                [("struct_c1", _st.get("t1_price")),
+                                 ("struct_c2", _st.get("t2_price")),
+                                 ("struct_c3", _st.get("t3_price"))])
+                        except Exception:
+                            pass
                 except Exception as _st_err:
                     logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
@@ -3554,6 +3570,16 @@ class TradingGateway:
             entry = setup.get("entry_price")
             # G1: extract queryable columns from the SAME cross_context snapshot
             g1 = extract_g1_entry_context(cross_context)
+            # TARGET_MIN_SPACING_V1: measure shadow fires too — they are ~5x the
+            # live count per day, cost nothing (no Sierra order exists on this
+            # path at all), and the return value is discarded here so even
+            # `apply` cannot alter a shadow row's ladder.
+            self._target_spacing_shadow(
+                setup, (setup.get("direction") or "LONG").upper(),
+                setup.get("entry_price") or 0.0,
+                setup.get("stop") or (setup.get("metadata") or {}).get("stop_initial") or 0.0,
+                setup.get("t1") or 0.0, setup.get("t2") or 0.0,
+                setup.get("t3") or 0.0, cross_context)
             tm_setup = {
                 "firing_system": system_id,
                 "direction": setup.get("direction", "LONG"),
@@ -3715,6 +3741,96 @@ class TradingGateway:
             t3 = 0.0
         return t1, t2, t3
 
+    def _target_spacing_shadow(self, setup: dict, direction: str,
+                               entry: float, stop: float,
+                               t1: float, t2: float, t3: float,
+                               cross_context: dict) -> tuple:
+        """TARGET_MIN_SPACING_V1 (Michael 2026-08-21) — the FINAL word on the
+        ladder, evaluated on exactly what Sierra is about to receive.
+
+        Runs immediately after `_target_degeneracy_guard`, which only drops
+        EXACT ties. #756 proved that is not enough: TP-1's IB clamp collapsed
+        three structural objectives onto ONE price (7691.50), the gateway's
+        ladder-dedup then nudged 2 ticks at a time to un-equalise them, and the
+        degeneracy guard — seeing 7691.50 / 7691.00 / 7690.50 — found no tie to
+        drop. Three exits 0.5pt apart is not a ladder.
+
+        DEFAULT AND SHADOW: with the flag unset this returns the ladder
+        unchanged and does nothing else — byte-identical. In "shadow" (which is
+        also what a bare `=1` resolves to) it computes the corrected ladder,
+        logs it, and records it on the trade via metadata → quality
+        ["target_spacing_shadow"], but the live orders are untouched. Only the
+        literal `TARGET_MIN_SPACING_V1=apply` — a separate ruling — changes the
+        order prices.
+
+        Fail-open in every branch: a bug in a measurement must never cost a
+        fire.
+        """
+        try:
+            from backend.v9.systems import target_spacing as _tsp
+        except Exception:
+            return t1, t2, t3
+        try:
+            mode = _tsp.flag_mode()
+            if mode == _tsp.MODE_OFF:
+                return t1, t2, t3
+
+            _tpo = (cross_context.get("tpo_system")
+                    if isinstance(cross_context, dict) else None) or {}
+            _meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+            _risk = abs(float(entry) - float(stop)) if (entry and stop) else 0.0
+
+            # Levels a producer already computed for THIS fire — real objectives,
+            # not inventions. `spacing_levels` is stashed by the structural /
+            # clamp stages upstream; the native ladder is whatever survived.
+            _producer = list(_meta.get("spacing_levels") or [])
+            for _nm, _v in (("setup_t1", setup.get("t1")),
+                            ("setup_t2", setup.get("t2")),
+                            ("setup_t3", setup.get("t3")),
+                            ("t1_pre_realism", setup.get("t1_pre_realism"))):
+                _producer.append((_nm, _v))
+
+            _cands = _tsp.build_candidates(
+                entry=float(entry), risk=_risk, tpo_ctx=_tpo,
+                producer_levels=_producer)
+            _rec = _tsp.enforce_spacing(
+                direction=direction, entry=float(entry),
+                t1=t1, t2=t2, t3=t3, risk=_risk,
+                atr14=_tsp.current_atr14(), candidates=_cands)
+            _rec["mode"] = mode
+
+            if _rec.get("changed"):
+                logger.warning("[TargetSpacing] %s would-be: %s",
+                               mode.upper(), _tsp.format_shadow(_rec))
+            else:
+                logger.info("[TargetSpacing] %s no-change: %s",
+                            mode.upper(), _tsp.format_shadow(_rec))
+
+            # Record on the trade regardless of branch — "no violation" is
+            # evidence too (§3.6: absence of a log line is not a finding).
+            try:
+                _m = setup.get("metadata")
+                if not isinstance(_m, dict):
+                    _m = {}
+                    setup["metadata"] = _m
+                _m["target_spacing_shadow"] = _rec
+            except Exception:
+                pass
+
+            if mode == _tsp.MODE_APPLY and _rec.get("changed"):
+                _a = _rec.get("after") or {}
+                _n1 = _a.get("t1") or 0.0
+                _n2 = _a.get("t2") or 0.0
+                _n3 = _a.get("t3") or 0.0
+                logger.warning(
+                    "[TargetSpacing] APPLY: ladder %.2f/%.2f/%.2f → %.2f/%.2f/%.2f",
+                    t1 or 0.0, t2 or 0.0, t3 or 0.0, _n1, _n2, _n3)
+                return _n1, _n2, _n3
+            return t1, t2, t3
+        except Exception as _tsp_err:
+            logger.warning("[TargetSpacing] errored (ladder untouched): %s", _tsp_err)
+            return t1, t2, t3
+
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
         """DEMO: create a REAL TM trade (mode=demo) + write Sierra SIM command.
 
@@ -3738,6 +3854,9 @@ class TradingGateway:
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
             t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
             t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
+            # TARGET_MIN_SPACING_V1 (default OFF; "shadow" = observe-only)
+            t1, t2, t3 = self._target_spacing_shadow(
+                setup, _d, _e, _s, t1, t2, t3, cross_context)
 
             tm_setup = {
                 "firing_system": system_id,
@@ -3877,6 +3996,9 @@ class TradingGateway:
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
             t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
             t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
+            # TARGET_MIN_SPACING_V1 (default OFF; "shadow" = observe-only)
+            t1, t2, t3 = self._target_spacing_shadow(
+                setup, _d, _e, _s, t1, t2, t3, cross_context)
 
             tm_setup = {
                 "firing_system": system_id,

@@ -6,8 +6,8 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 5 | 2026-05-24 | Five-min chart pattern detectors (Pkg 5a/5b/5c). |
-| `double_bt.py` | ✅ 4 | 295 | 2026-06-05 | double_bt — Double Bottom Eve&Eve (LONG) + Double Top Adam&Adam (SHORT) per D-091 §7+§8. |
+| `double_bt.py` | ✅ 4 | 295 | — | double_bt — Double Bottom Eve&Eve (LONG) + Double Top Adam&Adam (SHORT) per D-091 §7+§8. |
 | `flags.py` | ✅ 4 | 259 | 2026-06-09 | flags — Bull Flag (LONG) + Bear Flag (SHORT) continuation detectors per D-091 §9+§10. |
 | `head_shoulders.py` | ✅ 4 | 277 | 2026-05-31 | head_shoulders — Inverse H&S (LONG) + H&S Top (SHORT) detectors per D-091 §5+§6. |
 | `higher_low_second_test.py` | ✅ 4 | 291 | 2026-07-25 | higher_low_second_test — W6 (2026-07-25): "ירידה בפעם השנייה → רכישה בחלק הגבוה". |
-| `pullback_retest.py` | ✅ 5 | 260 | 2026-08-11 | pullback_retest — RE_PULLBACK_ENTRY_V1 (C2, 2026-08-11). |
+| `pullback_retest.py` | ✅ 5 | 260 | — | pullback_retest — RE_PULLBACK_ENTRY_V1 (C2, 2026-08-11). |

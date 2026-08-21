@@ -405,6 +405,14 @@ class TradeManager:
         if _n_contracts >= 4 and _t0p > 0:
             quality["t0_target_pts"] = _t0p
             quality["has_t0"] = True
+        # TARGET_MIN_SPACING_V1 (Michael 2026-08-21): the would-be ladder the
+        # spacing rule computed for this fire, lifted to a top-level quality key
+        # so a replay can read it without digging through metadata. SHADOW mode
+        # writes it on every fire — including "no violation", which is evidence
+        # too (COWORK_DAILY_READ §3.6).
+        _ts_shadow = setup.get("target_spacing_shadow") or meta.get("target_spacing_shadow")
+        if _ts_shadow:
+            quality["target_spacing_shadow"] = _ts_shadow
 
         registry_ctx = setup.get("cross_context")
         systems_at_entry = registry_ctx if isinstance(registry_ctx, dict) else {}

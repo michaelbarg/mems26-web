@@ -37,7 +37,7 @@
 | `extremes_quality.py` | ✅ 7 | 241 | 2026-08-06 | Excess / Poor-High / Poor-Low detection (Dalton gap analysis, Step 1). |
 | `leg_state.py` | ✅ 6 | 122 | 2026-07-31 | LEG_RIDE_V1 — intraday LEG detection (Michael's ruling, 2026-07-31 21:45). |
 | `location_gate.py` | ✅ 2 | 227 | 2026-07-23 | location_gate — DAYTYPE_LOCATION_GATE v2 (Michael 2026-07-22, default OFF). |
-| `mae_scratch.py` | ✅ 2 | 293 | 2026-08-07 | S6 MAE Scratch — adverse-excursion-based early exit (DEV_PLAN 02.08 §P3.1). |
+| `mae_scratch.py` | ✅ 2 | 293 | 2026-08-21 | S6 MAE Scratch — adverse-excursion-based early exit (DEV_PLAN 02.08 §P3.1). |
 | `multiday_profile.py` | ✅ 4 | 189 | 2026-08-02 | MULTIDAY_CONTEXT_V1 — 7-day TPO context computed from canonical bars. |
 | `opening_entry.py` | ✅ 4 | 430 | 2026-08-12 | Opening-type ENTRY triggers (Dalton) — REVISED per the 31-session historical |
 | `opening_playbook_engine.py` | ✅ 1 | 96 | 2026-07-29 | Opening Playbook Engine — P1 (2026-07-29). |
@@ -52,6 +52,7 @@
 | `system6_supervisor.py` | ✅ 4 | 356 | 2026-08-06 | System 6 — Active-Trade Supervisor (Michael 2026-07-05). |
 | `system7_score.py` | ✅ 6 | 232 | 2026-08-11 | System-7: confluence-scoring judgment layer (Michael 2026-08-03, "אפשר להתחיל"). |
 | `target_approach_realize.py` | ✅ 4 | 250 | 2026-08-06 | S6_TARGET_APPROACH_REALIZE_V1 — discretionary realization near target. |
+| `target_spacing.py` | ✅ 2 | 397 | — | target_spacing — TARGET_MIN_SPACING_V1: a ladder leg must be a leg. |
 | `target_structure_clamp.py` | ✅ 3 | 101 | 2026-07-09 | TP-1 — targets live inside the day structure (Michael ruling 2026-07-08). |
 | `target_zones.py` | ✅ 1 | 112 | 2026-07-03 | Item-22 — TARGET_ZONES_V1: level-confluence target zones beyond T1. |
 | `trend_direction_gate.py` | ✅ 1 | 80 | 2026-06-18 | Trend Direction Gate — blocks counter-trend fires for targeted patterns. |
