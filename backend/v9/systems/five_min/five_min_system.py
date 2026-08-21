@@ -1075,10 +1075,16 @@ class FiveMinSystem(BaseV9TradingSystem):
         # requirement at 0.55×ATR so an explosive b1 (12.60pt) doesn't demand an
         # impossible b3 (10.08pt). 6/7 at two pivot points failed on 7.00 vs 12.60.
         if _os.environ.get("S2_INITIATIVE_JOIN_ATR_CAP_V1", "").lower() in ("1", "true", "yes"):
-            _join_atr_cap = 0.55 * (_atr or 5.0)
+            # 2026-08-21 P0 HOTFIX: this read `_atr`, a LOCAL of _detect_reactive
+            # (:818) — NameError on EVERY bar, which crashed process_bar and took
+            # the whole of S2 down with it (19/19 bars today; the chart-pattern
+            # detectors at :1755, incl. DOUBLE_BOTTOM, were never reached — a
+            # 22.25pt setup missed). Use the instance attribute, like :1068/:1755.
+            _atr_i = self._current_atr_5m
+            _join_atr_cap = 0.55 * (_atr_i or 5.0)
             if _join_req > _join_atr_cap:
                 logger.debug("[S2-JOIN-CAP] b3_join req %.2f capped to %.2f (ATR=%.2f)",
-                             _join_req, _join_atr_cap, _atr or 0)
+                             _join_req, _join_atr_cap, _atr_i or 0)
                 _join_req = _join_atr_cap
         b3_joining = b3_range > _join_req
 
