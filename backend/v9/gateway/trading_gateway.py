@@ -1759,19 +1759,59 @@ class TradingGateway:
                 _eb_section = _eb_cfg.get(_eb_daytype, _eb_cfg.get("default", {}))
                 _eb_max = int(_eb_section.get("max_entries", 999))
                 if _eb_max < 999:
-                    # Count today's live entries (excl scale-in children)
+                    # Count today's live entries (excl scale-in children).
+                    #
+                    # 2026-08-21 HOTFIX (Michael, live, "זה דופק מסחר"): the
+                    # budget was first-come-first-served over EVERY entry, so
+                    # two mediocre trades consumed a Normal day's whole quota
+                    # and then blocked a DOUBLE_BOTTOM worth 22.25pt. Today's
+                    # #762 was a SHORT 1.75pt above the session low — it sold
+                    # the very first trough of that double bottom, closed −$80,
+                    # and still counted against the day.
+                    # Two corrections, both conservative and both measurable:
+                    #  (1) a trade that ended at or below −1R does NOT consume
+                    #      budget — the budget exists to stop over-trading a
+                    #      thesis, not to punish a small stop-out;
+                    #  (2) a candidate whose confidence clearly beats the day's
+                    #      average admitted confidence gets ONE extra slot
+                    #      (quality-ranked, capped at +1) instead of being
+                    #      refused on arrival order alone.
+                    # Both are flag-gated so they can be reverted in one line.
                     _eb_n = 0
+                    _eb_excl_losers = os.getenv(
+                        "ENTRY_BUDGET_SKIP_LOSERS_V1", "1").lower() in ("1", "true", "yes")
                     try:
                         from backend.v9.db.read import read_scalar as _eb_rs
-                        _eb_n = int(_eb_rs(
+                        _eb_sql = (
                             "SELECT COUNT(*) FROM v9_trades "
                             "WHERE mode IN ('live','demo') "
                             "AND (entry_ts AT TIME ZONE 'America/New_York')::date = "
                             "(now() AT TIME ZONE 'America/New_York')::date "
-                            "AND COALESCE(quality->>'classification','') != 'SCALE_IN'",
-                            {}) or 0)
+                            "AND COALESCE(quality->>'classification','') != 'SCALE_IN'")
+                        if _eb_excl_losers:
+                            # closed at <= -1R does not spend the quota; open
+                            # trades and winners still count.
+                            _eb_sql += (
+                                " AND NOT (state = 'CLOSED' AND COALESCE(pnl_r, 0) <= -1.0)")
+                        _eb_n = int(_eb_rs(_eb_sql, {}) or 0)
                     except Exception:
                         _eb_n = 0
+                    # (2) quality override: one extra slot for a clearly better setup
+                    if (_eb_n >= _eb_max
+                            and os.getenv("ENTRY_BUDGET_QUALITY_V1", "1").lower()
+                            in ("1", "true", "yes")):
+                        try:
+                            _eb_conf = float(setup.get("confidence") or 0)
+                            _eb_min = float(os.getenv("ENTRY_BUDGET_QUALITY_MIN_CONF", "0.75"))
+                            if _eb_conf >= _eb_min and _eb_n < (_eb_max + 1):
+                                logger.warning(
+                                    "[Gateway] entry-budget QUALITY OVERRIDE: %s conf=%.2f "
+                                    ">= %.2f — one extra slot (%d/%d)",
+                                    setup.get("classification", "?"), _eb_conf,
+                                    _eb_min, _eb_n, _eb_max)
+                                _eb_n = -1  # allow through this once
+                        except Exception:
+                            pass
                     if _eb_n >= _eb_max:
                         result["blocked_by"] = "day_entry_budget"
                         result["reason"] = (
