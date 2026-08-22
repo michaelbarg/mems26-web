@@ -300,6 +300,12 @@ def classify_session(
             pass  # fail-open
 
     result = classify(feat, plan, is_eod=is_eod)
+    # Propagate structural features for binary classifier event detection
+    result["accepted_break"] = feat.get("accepted_break")
+    result["accepted_break_ref"] = feat.get("accepted_break_ref")
+    result["failed_break"] = feat.get("failed_break")
+    result["dd_second_dist"] = feat.get("dd_second_dist")
+    result["returned_through_open"] = feat.get("returned_through_open")
     result["ib_source"] = ib_source
     result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
     result["ib_low_used"] = ib_low        # (== Sierra unless the S1_IB_SANITY_V1 fallback replaced it)

@@ -1,4 +1,5 @@
-# Dalton Context Simulation — 08-10..08-21 (10 sessions, 6 contracts)
+# Dalton Context Simulation V2 — 08-10..08-21 (10 sessions, 6 contracts)
+## V2 update: Dalton built on binary classifier (acceptance + value migration + non-return)
 
 **Ruling:** Michael 23.08 — "לפני התיקונים — להריץ סימולציה"
 **Script:** `scripts/replay_dalton_context.py`
@@ -83,14 +84,31 @@ before declaring DISCOVERY.
 - **No TREND_STEP shadow:** not modeled in L1 (would reduce its losses).
 - **L1 is a naive trigger-only sim**, not the actual Monday bundle with all gates.
 
+## V2 Results (Dalton on binary classifier)
+
+After rebuilding DaltonState to require all three elements for DISCOVERY:
+
+| Layer | V1 (IB break) | V2 (acceptance) | Change |
+|-------|---------------|-----------------|--------|
+| L2-DALTON | -$868.50 | **-$478.50** | +45% |
+| Convergence | 30% (3/10) | **90% (9/10)** | +60pp |
+
+**V2 is still net negative.** The Dalton filter improved from -$868 to -$478 — it
+correctly keeps most Variation days in BALANCE (not DISCOVERY), which avoids
+the worst false-continuation trades. But the remaining losses come from:
+- Balance-long-at-low trades that still lose (the edge detection isn't tight enough)
+- Discovery entries on the one Trend day (08-17) that the classifier misses
+
 ## Conclusion
 
-1. **Dalton filter is valuable** — cuts losses 82% vs raw triggers.
-2. **But the state machine definition is wrong** — 30% convergence.
-3. **The fix:** replace IB-break → DISCOVERY with acceptance-based transitions.
-   This is exactly what `S1_STRUCTURAL_BINARY_V1` (map §B) does.
-4. **The Dalton layer should be built ON TOP of the binary classifier**, not separately.
-   The classifier already computes acceptance, sides, value migration — exactly the
-   inputs the Dalton state machine needs.
+1. **The three-element acceptance fix works** — convergence 30% → 90%.
+2. **L2 is still negative** (-$478.50 over 10 sessions). This is an honest result.
+3. **The filter is valuable** — cuts L1 losses by 90% (-$4,707 → -$478.50).
+4. **But it's not sufficient alone** to be profitable. The underlying trigger quality
+   (causal swing detection) needs improvement — the Dalton layer correctly filters
+   BAD locations, but the triggers at GOOD locations still have only ~40% win rate.
+5. **Next step:** The Dalton layer should be combined with the existing S2 detectors
+   (REACTIVE/INITIATIVE/DBT) which have better entry mechanics, not with raw swing
+   triggers. The value of Dalton is in SELECTION (where to look), not ENTRY (how to enter).
 
 *Generated 2026-08-24 by cc-macbook. Script: `scripts/replay_dalton_context.py`*

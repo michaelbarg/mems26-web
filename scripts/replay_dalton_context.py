@@ -77,7 +77,13 @@ LIVE_S1_FLAGS = {
 # ─────────────────────────────────────────── Dalton state machine
 
 class DaltonState:
-    """Per-bar Dalton context (event-driven, no confidence)."""
+    """Per-bar Dalton context — DISCOVERY requires all three elements:
+    1. Acceptance (≥2 closes beyond reference)
+    2. Value migration (developing VA shifts)
+    3. Non-return (price stays outside)
+
+    Without all three → BALANCE (including Variation days that broke one side).
+    """
 
     def __init__(self):
         self.market_state = "UNKNOWN"     # BALANCE / DISCOVERY / UNKNOWN
@@ -88,15 +94,23 @@ class DaltonState:
         self.ib_width = 0
         self.session_high = None
         self.session_low = None
-        self.broke_up = False
-        self.broke_down = False
         self.vah = None
         self.val = None
         self.transitions = []
         self._bar_count = 0
+        # Acceptance tracking (from classify_session features)
+        self._prev_accepted_break = None
+        self._prev_failed_break = False
+        self._prev_value_migration = None
+        self._prev_sides = 0
+        self._accepted_dir = None
+        self._accepted_bars_count = 0  # bars since acceptance
 
-    def on_bar(self, bar, bar_idx, vah=None, val=None):
-        """Process one bar, return (state, location, event_or_None)."""
+    def on_bar(self, bar, bar_idx, vah=None, val=None, cls_result=None):
+        """Process one bar with classify_session result.
+
+        cls_result: output of classify_session(is_eod=False) for bars[:bar_idx+1]
+        """
         h = bar["h"]
         l = bar["l"]
         c = bar["c"]
@@ -127,52 +141,70 @@ class DaltonState:
         if self.val is None and val is not None:
             self.val = val
 
-        # Event detection
+        # Extract structural features from classify_session result
+        measured = (cls_result or {}).get("measured", {})
+        cur_accepted = (cls_result or {}).get("accepted_break")
+        cur_failed = bool((cls_result or {}).get("failed_break"))
+        cur_migration = measured.get("value_migration")
+        cur_sides = measured.get("sides", 0) or 0
+
         event = None
         prev_state = self.market_state
 
-        # Break above IB
-        if not self.broke_up and c > self.ib_high:
-            self.broke_up = True
-            if not self.broke_down:
+        # DISCOVERY requires ALL THREE elements (the fix for 30% convergence):
+        # 1. Acceptance: accepted_break transitioned from None to UP/DOWN
+        # 2. Value migration: developing VA shifted in the break direction
+        # 3. Non-return: price hasn't returned inside (no failed_break)
+
+        # Detect acceptance event
+        if cur_accepted and cur_accepted != self._prev_accepted_break:
+            self._accepted_dir = cur_accepted
+            self._accepted_bars_count = 0
+            # Check if all three conditions met
+            migration_confirms = (cur_migration in ("UP", "DOWN")
+                                  and cur_migration == cur_accepted)
+            if migration_confirms and not cur_failed:
                 self.market_state = "DISCOVERY"
-                self.discovery_dir = "UP"
-                event = "break_up"
+                self.discovery_dir = cur_accepted
+                event = f"discovery_{cur_accepted.lower()}"
             else:
-                # Second side → BALANCE (Neutral)
+                # Acceptance without migration/non-return → still BALANCE
+                # (this is a Variation day, not true Discovery)
+                event = f"acceptance_{cur_accepted.lower()}_no_discovery"
+
+        # Track bars since acceptance for non-return check
+        if self._accepted_dir:
+            self._accepted_bars_count += 1
+            # Delayed discovery: migration confirmed after acceptance
+            if (self.market_state == "BALANCE" and self._accepted_bars_count >= 3
+                    and cur_migration == self._accepted_dir and not cur_failed):
+                self.market_state = "DISCOVERY"
+                self.discovery_dir = self._accepted_dir
+                event = f"delayed_discovery_{self._accepted_dir.lower()}"
+
+        # Failed break → revert to BALANCE
+        if cur_failed and not self._prev_failed_break and self.market_state == "DISCOVERY":
+            self.market_state = "BALANCE"
+            self.discovery_dir = None
+            self._accepted_dir = None
+            event = "failed_break_revert"
+
+        # Second side → BALANCE (Neutral/two-sided day)
+        if cur_sides == 2 and self._prev_sides < 2:
+            if self.market_state == "DISCOVERY":
                 self.market_state = "BALANCE"
                 self.discovery_dir = None
                 event = "dual_break"
 
-        # Break below IB
-        if not self.broke_down and c < self.ib_low:
-            self.broke_down = True
-            if not self.broke_up:
-                self.market_state = "DISCOVERY"
-                self.discovery_dir = "DOWN"
-                event = "break_down"
-            else:
-                self.market_state = "BALANCE"
-                self.discovery_dir = None
-                event = "dual_break"
-
-        # Range expansion check (> 1.5× IB → DISCOVERY if was BALANCE)
-        if (self.market_state == "BALANCE" and self.ib_width > 0
-                and (self.session_high - self.session_low) > 1.5 * self.ib_width
-                and event is None):
-            # Determine direction from which side expanded more
-            up_ext = self.session_high - self.ib_high
-            dn_ext = self.ib_low - self.session_low
-            if up_ext > dn_ext and up_ext > 0.5 * self.ib_width:
-                self.market_state = "DISCOVERY"
-                self.discovery_dir = "UP"
-                event = "range_expansion_up"
-            elif dn_ext > up_ext and dn_ext > 0.5 * self.ib_width:
-                self.market_state = "DISCOVERY"
-                self.discovery_dir = "DOWN"
-                event = "range_expansion_down"
+        # Update previous state
+        self._prev_accepted_break = cur_accepted
+        self._prev_failed_break = cur_failed
+        self._prev_value_migration = cur_migration
+        self._prev_sides = cur_sides
 
         if event and self.market_state != prev_state:
+            self.transitions.append((bar_idx, event, self.market_state))
+        elif event:
             self.transitions.append((bar_idx, event, self.market_state))
 
         return self._result(bar, event, vah, val)
@@ -341,9 +373,26 @@ def replay_day(bars, day_date, contracts, book_trades=None):
                 "target_pts": thr * 1.0,
             })
 
-    # Run Dalton state machine bar-by-bar
+    # Run Dalton state machine bar-by-bar WITH classify_session per bar
+    ibh = max(b["h"] for b in bars[:IB_BARS])
+    ibl = min(b["l"] for b in bars[:IB_BARS])
+    dalton_ctx_at_bar = {}  # bar_idx → dalton context
     for i in range(n):
-        ctx = dalton.on_bar(bars[i], i)
+        cls_r = None
+        if i >= IB_BARS:
+            try:
+                from backend.v9.systems.day_type.classifier_core import classify_session
+                cls_r = classify_session(
+                    bars=[{"o": b["o"], "h": b["h"], "l": b["l"], "c": b["c"],
+                           "v": b.get("v", 0)} for b in bars[:i+1]],
+                    ib_high=ibh, ib_low=ibl,
+                    open_price=bars[0]["o"],
+                    is_eod=False,
+                )
+            except Exception:
+                pass
+        ctx = dalton.on_bar(bars[i], i, cls_result=cls_r)
+        dalton_ctx_at_bar[i] = ctx
         if ctx["event"]:
             dalton_log.append({
                 "bar": i, "event": ctx["event"],
@@ -386,12 +435,9 @@ def replay_day(bars, day_date, contracts, book_trades=None):
         i = trig["i"]
         if i >= n - 2:
             continue
-        # Get Dalton context at trigger bar
-        d_ctx = dalton.on_bar(bars[i], i)  # re-evaluate (idempotent reads)
-        # Actually re-run the state machine to get context at bar i
-        d_state_at_i = DaltonState()
-        for j in range(i + 1):
-            d_ctx_j = d_state_at_i.on_bar(bars[j], j)
+        # Get Dalton context at trigger bar (pre-computed with classify_session)
+        d_ctx_j = dalton_ctx_at_bar.get(i, {"state": "UNKNOWN", "ib_locked": False,
+                                             "location": "UNKNOWN", "discovery_dir": None})
         take, reason_d = dalton_trade_filter(trig["direction"], d_ctx_j)
         if not take:
             continue

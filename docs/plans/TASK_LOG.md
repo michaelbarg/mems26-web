@@ -12,7 +12,7 @@
 
 **מקרא:** 🔴 חוסם · 🟠 פער-נכונות · 🟡 ממתין-לפסיקה · 🔵 חוב · ✅ נסגר
 **עודכן:** 2026-08-24 (cc-macbook, CC_START_HERE_2026-08-23 + CC_WORKORDER_2026-08-24_MONDAY) —
-✅ **שלב 1 — סימולציית-דלתון:** `scripts/replay_dalton_context.py` + `docs/reports/SIM_DALTON_CONTEXT_WEEK.md`. 10 סשנים, 4 שכבות. **דלתון מצמצם הפסדים 82%** (L1:-$4,707→L2:-$868.50) אך עדיין שלילי. **התכנסות 30%** — ההגדרה שגויה (IB-break≠DISCOVERY, צריך acceptance). המסווג הבינארי (B) הוא הפתרון הנכון.
+✅ **שלב 1 — סימולציית-דלתון V2:** דלתון מעל המסווג הבינארי (CC_NEXT_2026-08-23B). **התכנסות 30%→90%** אחרי תיקון (acceptance+migration+non-return). **L2 עדיין שלילי** (-$478.50) אך חותך 90% מהפסדי-L1. הסיבה: הטריגרים (סווינגים גולמיים) חלשים; דלתון טוב לבחירה, לא לכניסה — צריך שילוב עם S2 detectors.
 ✅ **Gap #1:** CVD no-op — `str(datetime)` רווח מול `T` ב-varchar. תוקן ל-`.isoformat()`. שער-ה-CVD מעולם לא רץ בייצור.
 ✅ **Gap #5:** WARNING noise 96% — שלוש שורות stale הורדו ל-INFO (woodies/tpo/cvd routes).
 ✅ **Gap #7:** אזעקת-קיפאון — קוראת heartbeat במקום טבלה (26 false alarms/יום).
