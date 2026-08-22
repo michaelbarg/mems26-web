@@ -16,10 +16,14 @@ _STATE_STALE_WARN: Dict[str, float] = {"last": 0.0}
 
 
 def _warn_if_state_stale(ts: Any, max_age_s: float = 600.0) -> None:
-    """SYS-2 (Michael 2026-07-09): v9_day_type_state must never freeze silently. On 07-09 the
-    writer died at 16:25 (split-brain: gates rode the flapping in-memory machine while this table
-    stayed frozen). If the last write is older than max_age_s, emit a rate-limited WARNING
-    (≤ once / 5 min) so a dead writer surfaces immediately instead of feeding a stale value."""
+    """SYS-2 (Michael 2026-07-09): v9_day_type_state must never freeze silently.
+
+    Gap #7 fix: the writer sets app.state._daytype_writer_heartbeat on EVERY
+    call (even when write-on-change skips), but this function was reading
+    max(ts) from the TABLE — which stays frozen when the state is stable
+    (write-on-change working correctly).  Result: 26 false alarms on 08-22.
+    Now checks the heartbeat first; falls back to table ts only if no heartbeat.
+    """
     try:
         import logging as _lg
         import datetime as _dtm
@@ -28,6 +32,19 @@ def _warn_if_state_stale(ts: Any, max_age_s: float = 600.0) -> None:
         _now = _time.time()
         if _now - _STATE_STALE_WARN.get("last", 0.0) < 300:
             return
+
+        # Gap #7: prefer the writer heartbeat over the table timestamp
+        _hb_age = None
+        try:
+            from backend.main import app as _app
+            _hb = getattr(_app.state, "_daytype_writer_heartbeat", None)
+            if _hb is not None:
+                _hb_age = _now - float(_hb)
+                if _hb_age <= max_age_s:
+                    return  # writer is alive, just idle (write-on-change)
+        except Exception:
+            pass  # no app context → fall through to table check
+
         # ts is stored naive-UTC (writer: datetime.now(utc).isoformat(), main.py)
         _t = ts if isinstance(ts, _dtm.datetime) else _dtm.datetime.fromisoformat(str(ts))
         _age = _now - _t.replace(tzinfo=_dtm.timezone.utc).timestamp()

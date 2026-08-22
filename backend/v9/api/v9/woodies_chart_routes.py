@@ -245,7 +245,10 @@ def _load_sierra_woodies(export_path: Path, max_age_s: float) -> Optional[Dict[s
             data = json.load(f)
         payload = _parse_sierra_payload(data, age_s)
         if stale:
-            logger.warning(
+            # Gap #5: demoted from WARNING to INFO — these fire on every
+            # frontend poll (383/828 WARNINGs on 08-22) and drown out the
+            # one real operational alert of the day.
+            logger.info(
                 "[Woodies chart] stale export age=%.1fs > %.1fs (serving bars for display)",
                 age_s,
                 max_age_s,

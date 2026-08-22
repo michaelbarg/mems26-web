@@ -744,10 +744,25 @@ class FiveMinSystem(BaseV9TradingSystem):
             if len(bar_timestamps) < 2:
                 return None
             first_ts, last_ts = bar_timestamps[0], bar_timestamps[-1]
+            # Gap #1 fix: str(datetime) uses space separator but the
+            # varchar column stores ISO with 'T'.  The lexicographic
+            # comparison ' ' < 'T' means ts <= :t1 NEVER matched —
+            # the CVD gate was a complete no-op in production (0/76
+            # windows on 08-21).  Use .isoformat() to match the stored
+            # format.  NOTE: this ENABLES a gate that never ran; the
+            # gate itself is fail-open (returns None → caller proceeds).
+            def _iso(ts):
+                if hasattr(ts, 'isoformat'):
+                    return ts.isoformat()
+                s = str(ts)
+                # str(datetime) uses space; replace with T
+                if len(s) > 10 and s[10] == ' ':
+                    return s[:10] + 'T' + s[11:]
+                return s
             rows = read_all(
                 "SELECT cumulative FROM v9_bars_cumulative_delta "
                 "WHERE ts >= :t0 AND ts <= :t1 ORDER BY ts ASC",
-                {"t0": str(first_ts), "t1": str(last_ts)},
+                {"t0": _iso(first_ts), "t1": _iso(last_ts)},
             )
             cums = [float(r["cumulative"]) for r in rows
                     if r.get("cumulative") is not None]

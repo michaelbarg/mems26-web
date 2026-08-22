@@ -11,9 +11,13 @@
 | `docs/plans/ROADMAP_TO_LIVE.html` | מבט-על |
 
 **מקרא:** 🔴 חוסם · 🟠 פער-נכונות · 🟡 ממתין-לפסיקה · 🔵 חוב · ✅ נסגר
-**עודכן:** 2026-08-24 (cc-macbook, פקודת-עבודה CC_WORKORDER_2026-08-24_MONDAY) —
+**עודכן:** 2026-08-24 (cc-macbook, CC_START_HERE_2026-08-23 + CC_WORKORDER_2026-08-24_MONDAY) —
+✅ **שלב 1 — סימולציית-דלתון:** `scripts/replay_dalton_context.py` + `docs/reports/SIM_DALTON_CONTEXT_WEEK.md`. 10 סשנים, 4 שכבות. **דלתון מצמצם הפסדים 82%** (L1:-$4,707→L2:-$868.50) אך עדיין שלילי. **התכנסות 30%** — ההגדרה שגויה (IB-break≠DISCOVERY, צריך acceptance). המסווג הבינארי (B) הוא הפתרון הנכון.
+✅ **Gap #1:** CVD no-op — `str(datetime)` רווח מול `T` ב-varchar. תוקן ל-`.isoformat()`. שער-ה-CVD מעולם לא רץ בייצור.
+✅ **Gap #5:** WARNING noise 96% — שלוש שורות stale הורדו ל-INFO (woodies/tpo/cvd routes).
+✅ **Gap #7:** אזעקת-קיפאון — קוראת heartbeat במקום טבלה (26 false alarms/יום).
 ✅ **פסיקת-TREND_STEP 23.08:** `TREND_STEP_ENTRY_V1=shadow` (מבטל הדלקת 14.08; IS +$4,354 / OOS −$2,011). גלאי ממשיך לרוץ בצל+שרשרת-שערים מלאה (F4 נשמר). RULED_FLAGS.yaml עודכן. הצעת-תיקון ב-`docs/reports/TREND_STEP_FIX_PROPOSAL.md`.
-✅ **A1:** CVD חלון-קצר → None+warning (מסיר ארטיפקט $585). `five_min_system.py:730-740`.
+✅ **A1:** CVD חלון-קצר → None+warning + **Gap #1 fix** (`.isoformat()` format). `five_min_system.py:730-770`.
 ✅ **A3:** `_isolate_gateway_decisions` fixture בראש-conftest (8% פיקציה בפיד).
 ✅ **A4:** HLST הוסרה מהשרשרת (מדכאת DOUBLE_BOTTOM; −$4,574). RE_PULLBACK 14 תאים ל-YAML+split+assert. הצעד הבא: אין.
 ✅ **A5:** הידרציית stability+conf מ-DB אחרי boot-replay. cold_start_guard נגזר מ-buffer-size אחרי ריסטארט.

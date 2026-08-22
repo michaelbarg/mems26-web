@@ -469,7 +469,8 @@ def _load_sierra_tpo(path: Path = SIERRA_TPO_PATH, max_age_s: float = SIERRA_TPO
     age_s = time.time() - path.stat().st_mtime
     stale = age_s > max_age_s
     if stale:
-        logger.warning(
+        # Gap #5: demoted to INFO — fires on every frontend poll (229/828)
+        logger.info(
             "[tpo] Sierra tpo.json stale age=%.1fs > %.1fs — serving anyway (no TPOSystem fallback)",
             age_s,
             max_age_s,

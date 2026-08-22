@@ -248,7 +248,8 @@ async def cumulative_delta_current(history: int = 0, limit: int = DEFAULT_HISTOR
 
         stale = age_s > MAX_AGE_S
         if stale:
-            logger.warning("[CVD] cumulative_delta.json stale: age=%.1fs > %.1fs — serving anyway", age_s, MAX_AGE_S)
+            # Gap #5: demoted to INFO — fires on every frontend poll (184/828)
+            logger.info("[CVD] cumulative_delta.json stale: age=%.1fs > %.1fs — serving anyway", age_s, MAX_AGE_S)
 
         with open(EXPORT_PATH, "r") as f:
             data = json.load(f)

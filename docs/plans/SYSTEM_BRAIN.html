@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<title>המוח של MEMS26 — איך מתקבלת החלטה</title>
+<style>
+:root{--ok:#3fb950;--weak:#d29922;--bad:#f85149;--dim:#8b949e;--bg:#0b0e14;--card:#151a23;--line:#2a3140}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#e6edf3;font-family:-apple-system,'Segoe UI',sans-serif;padding:24px;line-height:1.55}
+h1{font-size:22px;margin:0 0 4px;color:#79c0ff}
+.sub{color:var(--dim);font-size:14px;margin-bottom:18px}
+.legend{display:flex;gap:16px;font-size:13px;margin-bottom:22px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:6px}
+.layer{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.layer h2{font-size:16px;margin:0 0 2px}
+.layer .what{color:var(--dim);font-size:13px;margin-bottom:10px}
+.node{border-right:3px solid var(--line);padding:6px 10px 6px 0;margin:6px 0}
+.node.ok{border-color:var(--ok)} .node.weak{border-color:var(--weak)} .node.bad{border-color:var(--bad)}
+.node .n{font-weight:600;font-size:14px}
+.node .d{font-size:13px;color:#c9d1d9}
+.node .p{font-size:12.5px;margin-top:3px}
+.node.ok .p{color:var(--ok)} .node.weak .p{color:var(--weak)} .node.bad .p{color:var(--bad)}
+.arrow{text-align:center;color:var(--line);font-size:20px;margin:-4px 0}
+.miss{background:#2d1214;border:2px solid var(--bad);border-radius:12px;padding:16px;margin:18px 0}
+.miss h2{color:var(--bad);margin:0 0 6px;font-size:17px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right}
+th{color:var(--dim);font-weight:600}
+code{background:#21262d;padding:1px 5px;border-radius:4px;font-size:12px}
+</style></head><body>
+
+<h1>המוח של MEMS26 — הדרך מבר-מחיר עד כסף</h1>
+<div class="sub">כל שלב שהמערכת עוברת, מה הוא מחליט, ומה שבור בו. עודכן 23.08.2026</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--ok)"></span>עובד</span>
+  <span><span class="dot" style="background:var(--weak)"></span>עובד חלקית / מכויל לא נכון</span>
+  <span><span class="dot" style="background:var(--bad)"></span>שבור או חסר</span>
+</div>
+
+<div class="layer"><h2>1 · נתונים — מה המערכת רואה</h2>
+<div class="what">סיירה שולחת ברים כל 5 דקות → הגשר → מסד-הנתונים. זה הבסיס להכל.</div>
+<div class="node ok"><div class="n">ברי-מחיר 5 דקות</div><div class="d">פתיחה/שיא/שפל/סגירה/נפח + אינדיקטורים</div><div class="p">✓ זורם, פער פחות מדקה</div></div>
+<div class="node ok"><div class="n">אזור-הערך (VAH / POC / VAL)</div><div class="d">איפה נסחר רוב הנפח — המפה של דלתון</div><div class="p">✓ קיים ומיוצא</div></div>
+<div class="node bad"><div class="n">דלתא מצטברת (קונים מול מוכרים)</div><div class="d">מי לוחץ — הקונים או המוכרים</div><div class="p">✗ קיים בנתונים אבל <b>מעולם לא הגיע להחלטה</b> — השאילתה שבורה (0 שורות ב-76/76 חלונות)</div></div>
+<div class="node bad"><div class="n">זמנים כטקסט ב-11 טבלאות</div><div class="d">התאמת בר לבר בין מקורות</div><div class="p">✗ 32.8% מהשורות לא על רשת-5-הדקות · שלוש הגדרות סותרות ל"יום"</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>2 · הקשר — איזה יום זה (מערכת 1)</h2>
+<div class="what">לפי דלתון: השעה הראשונה (IB) קובעת מסגרת, ומשם היום מתגבש לסוג.</div>
+<div class="node weak"><div class="n">מעקב IB + קריטריונים מבניים</div><div class="d">איזה צד נפרץ, כמה, לאן הערך נדד</div><div class="p">⚠ הקריטריונים נכונים — אבל נבדקים כל בר מחדש במקום כאירועים</div></div>
+<div class="node bad"><div class="n">אחוזי-ביטחון בתווית</div><div class="d">"Variation 0.33"</div><div class="p">✗ מנוגד לפסיקה: יום הוא סוג או לא. האחוז מחלחל ל-5 נקודות-החלטה</div></div>
+<div class="node bad"><div class="n">ריסטארט מוחק את הזיכרון</div><div class="d">התייצבות התווית</div><div class="p">✗ ב-21.08 ריסטארט הפך את התווית — ומשם 17 חסימות</div></div>
+<div class="node bad"><div class="n">איזון מול גילוי-מחיר</div><div class="d">האם השוק מסתובב בערך או מחפש מקום חדש</div><div class="p">✗ <b>לא קיים בכלל</b> — וזה המצב הבסיסי ביותר בדלתון</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>3 · זיהוי — מערכת 2 (5 דקות) ומערכת 4 (Woodies)</h2>
+<div class="what">כל תבנית בודקת תנאים על הברים האחרונים. אם כולם מתקיימים — נולד מועמד.</div>
+<div class="two"><div>
+<div class="node ok"><div class="n">רצפה כפולה</div><div class="p">✓ הגלאי תקין — נחסם, לא נכשל</div></div>
+<div class="node bad"><div class="n">תקרה כפולה</div><div class="p">✗ 0 ירי ב-34 סשנים — מבחן-הפסגה חולק סף שגוי</div></div>
+<div class="node weak"><div class="n">ראש-כתפיים</div><div class="p">⚠ דורש 3 שיאים, מוצא 2 — ובזרם שווה 0$</div></div>
+</div><div>
+<div class="node weak"><div class="n">ריאקטיב / איניציאטיב</div><div class="p">⚠ עובדים; כל הרפיה שנבדקה מפסידה כסף</div></div>
+<div class="node bad"><div class="n">ספיגה (דלתא בקצה)</div><div class="p">✗ הפרימיטיב שאתה קורא בגרף — <b>לא קיים בקוד</b></div></div>
+<div class="node bad"><div class="n">HLST</div><div class="p">✗ מתה בשגיאה — <b>ומדכאת את הרצפה-הכפולה באותו בר</b></div></div>
+</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>4 · הרשאה — טבלת תבנית × סוג-יום</h2>
+<div class="what">האם התבנית הזו מורשית ביום מהסוג הזה, ובאיזה גודל.</div>
+<div class="node bad"><div class="n">חוסר 14 תאים בטבלה</div><div class="p">✗ שגיאה נבלעת ⇒ תבניות מתות בשקט</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>5 · שערים — כ-25 בדיקות בטור</h2>
+<div class="what">כל שער יכול לחסום. זה החלק הגדול ביותר של המערכת — <b>וכולו שולל, אף אחד לא בוחר</b>.</div>
+<div class="node ok"><div class="n">בטיחות: מתג-חירום · שעון-מסחר · פיד · תקרת-הפסד · מרג'ין · סטופ קיים</div><div class="p">✓ נכונים, לא לגעת</div></div>
+<div class="node weak"><div class="n">שערי-דעה: פלייבוק · מיקום · המשך-מגמה · LSMA · רדיפת-קיצון · שחרור-אזור</div><div class="p">⚠ ארבעה מהם חוסכים כסף. אבל רפליי בלי שערים בכלל נתן רק +$771 ⇒ <b>הכסף אינו בפתיחתם</b></div></div>
+<div class="node ok"><div class="n">מצפן-כיוון</div><div class="p">✓ נבנה 19.08, ירה חסימה ראשונה 21.08</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>6 · גודל וסטופ</h2>
+<div class="node ok"><div class="n">גודל פסוק 6 · נפילת-מרג'ין ל-4</div><div class="p">✓ פועל</div></div>
+<div class="node ok"><div class="n">סטופ מבני (עוגן על מבנה, ATR לא מזיז)</div><div class="p">✓ נכון עקרונית</div></div>
+<div class="node weak"><div class="n">יעדים</div><div class="p">⚠ מבניים — אבל בלי מרווח-מינימלי (3 יעדים בתוך נקודה ב-#756)</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>7 · שיגור לסיירה</h2>
+<div class="node ok"><div class="n">סולם 1/2/2/1 · OCO פר-קבוצה · סטופ לכל חוזה</div><div class="p">✓ אומת בסים</div></div>
+<div class="node bad"><div class="n">אין פקודת "הזז יעד"</div><div class="p">✗ מערכת 6 רואה יעד פגום ולא יכולה לתקן</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>8 · ניהול חי — מערכת 6</h2>
+<div class="node ok"><div class="n">סטופ ל-BE אחרי יעד ראשון</div><div class="p">✓ עובד</div></div>
+<div class="node weak"><div class="n">גירוד על MAE</div><div class="p">⚠ הפך יחסי-ATR 21.08 — עדיין סף ולא שבירת-מבנה</div></div>
+<div class="node bad"><div class="n">התאמה לשינוי סוג-היום</div><div class="p">✗ העסקה לא יודעת שהיום השתנה תחתיה</div></div>
+<div class="node weak"><div class="n">הגדלה</div><div class="p">⚠ 2/2 הפסידו — נכנסה בקיצון; הסטופ הממוצע לא חושב</div></div>
+</div>
+<div class="arrow">▼</div>
+
+<div class="layer"><h2>9 · יציאה ורישום</h2>
+<div class="node ok"><div class="n">יעד · סטופ · FLATTEN</div><div class="p">✓ עובדים</div></div>
+<div class="node bad"><div class="n">רישום מילויים חלקי</div><div class="p">✗ הספרים שיקרו ב-$96 · 4 מ-7 עסקאות סטו</div></div>
+</div>
+
+<div class="miss"><h2>⬛ השכבה שחסרה — וזו הנקודה</h2>
+<p>כל מה שלמעלה הוא <b>מנגנון שולל</b>: תבנית יורה איפה שנפל, ואז 25 שערים מסננים.
+<b>אין שום מקום שאומר: "המחיר בקצה התחתון, היום מאוזן ⇒ זו עסקת-הלונג של היום".</b></p>
+<p>אתה קורא את הגרף הפוך: קודם <b>איפה</b> (ערך/קצה) ו<b>איזה משטר</b> (איזון/גילוי) —
+ורק אז מחפש תבנית שתאשר. המערכת עושה את זה בסדר הפוך, ולכן היא מפוזרת:
+30 עסקאות בשבוע ב-53% במקום 2-3 ממוקדות ביום.</p>
+<table><tr><th>מה שאתה עושה</th><th>מה שהמערכת עושה</th></tr>
+<tr><td>קובע מצב: איזון או גילוי</td><td>לא מודדת את זה בכלל</td></tr>
+<tr><td>מסתכל איפה המחיר מול הערך</td><td>משתמשת בערך רק כדי <b>לחסום</b></td></tr>
+<tr><td>מחפש קונים/מוכרים נכנסים</td><td>מודדת רק <b>ירידת</b> נפח</td></tr>
+<tr><td>בוחר תזה, ואז תבנית שתאשר</td><td>מקבלת תבנית, ואז מסננת</td></tr></table>
+</div>
+
+<div class="layer"><h2>סדר התיקון</h2>
+<div class="node bad"><div class="n">1 · נתונים</div><div class="d">זמנים, דלתא, רישום מילויים</div><div class="p">בלי זה כל כיול נשען על חול</div></div>
+<div class="node bad"><div class="n">2 · שכבת-הקשר</div><div class="d">איזון/גילוי + מיקום + סוג-יום דינמי ⇒ בחירת תזה</div><div class="p">בסימולציה עכשיו</div></div>
+<div class="node weak"><div class="n">3 · תבניות כמאשרות</div><div class="d">שחרור רצפה-כפולה, תיקון תקרה-כפולה, ספיגה</div><div class="p">חלקן ליום שני</div></div>
+<div class="node weak"><div class="n">4 · ניהול לפי משטר</div><div class="d">באיזון רוטציה, בגילוי החזקה והגדלה</div><div class="p">אחרי 2</div></div>
+</div>
+
+</body></html>
