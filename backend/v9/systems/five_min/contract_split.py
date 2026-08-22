@@ -27,6 +27,9 @@ _SPLIT_MAP: Dict[str, Tuple[float, float, float]] = {
     # Flag family (50/50 · no T3 · continuation)
     "BULL_FLAG_LONG":         (0.50, 0.50, 0.00),
     "BEAR_FLAG_SHORT":        (0.50, 0.50, 0.00),
+    # A4: RE_PULLBACK — IB edge pullback (flag OFF; prevents ValueError on lookup)
+    "RE_PULLBACK_LONG":       (0.25, 0.50, 0.25),
+    "RE_PULLBACK_SHORT":      (0.25, 0.50, 0.25),
 }
 
 # Import-time invariant: every entry sums to 1.0 ± 0.001

@@ -38,7 +38,7 @@ DEFAULT_JOURNAL = Path(os.getenv(
     os.path.expanduser("~/SierraChart_Data/v9_export/trade_fills_journal.jsonl"),
 ))
 
-EXIT_KINDS = ("T0", "T1", "T2", "T3", "T4", "STOP", "FLATTEN")
+EXIT_KINDS = ("T0", "T1", "T2", "T3", "T4", "STOP", "FLATTEN", "BE")
 
 #: Every per-contract child order-id key the backend persists on a trade.
 #: Four OCO groups cover every ruled size (contract_size.LADDER, 1/2/2/1 at six);
@@ -213,8 +213,10 @@ def divergence_summary(rows: Iterable[Any], fills: Optional[List[dict]] = None,
     inc = [x for x in f if x["status"] == "incomplete"]
     matched = [x for x in f if x["status"] == "MATCH"]
     worst = max(div, key=lambda x: abs(x["delta"] or 0), default=None)
+    # A6: incomplete trades are a reconciliation FAILURE (not a skip).
+    # 08-21: 4/7 trades had missing exit fills → phantom-heal → blocked entries.
     return {
-        "ok": (not div) if f else None,
+        "ok": (not div and not inc) if f else None,
         "checked": len(f),
         "matched": len(matched),
         "divergent": len(div),

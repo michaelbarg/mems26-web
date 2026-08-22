@@ -11,7 +11,20 @@
 | `docs/plans/ROADMAP_TO_LIVE.html` | מבט-על |
 
 **מקרא:** 🔴 חוסם · 🟠 פער-נכונות · 🟡 ממתין-לפסיקה · 🔵 חוב · ✅ נסגר
-**עודכן:** 2026-08-23 (cowork, קריאה-בלבד) — **🔴 T-96 נפתח: ‎`S2_CVD_DETECTION_V1`‎ הוא
+**עודכן:** 2026-08-24 (cc-macbook, פקודת-עבודה CC_WORKORDER_2026-08-24_MONDAY) —
+✅ **פסיקת-TREND_STEP 23.08:** `TREND_STEP_ENTRY_V1=shadow` (מבטל הדלקת 14.08; IS +$4,354 / OOS −$2,011). גלאי ממשיך לרוץ בצל+שרשרת-שערים מלאה (F4 נשמר). RULED_FLAGS.yaml עודכן. הצעת-תיקון ב-`docs/reports/TREND_STEP_FIX_PROPOSAL.md`.
+✅ **A1:** CVD חלון-קצר → None+warning (מסיר ארטיפקט $585). `five_min_system.py:730-740`.
+✅ **A3:** `_isolate_gateway_decisions` fixture בראש-conftest (8% פיקציה בפיד).
+✅ **A4:** HLST הוסרה מהשרשרת (מדכאת DOUBLE_BOTTOM; −$4,574). RE_PULLBACK 14 תאים ל-YAML+split+assert. הצעד הבא: אין.
+✅ **A5:** הידרציית stability+conf מ-DB אחרי boot-replay. cold_start_guard נגזר מ-buffer-size אחרי ריסטארט.
+🟠 **A6:** core: BE ב-EXIT_KINDS + incomplete→fail. שאר (ספר-ברוקר כמקור-אמת) = שבוע.
+✅ **A7:** backend.err.log+gateway_decisions ב-EOD archiver (גיבוי לרוטציה שפספסה 08-21).
+✅ **C2:** שדה-absorption (net_delta, entry_bar_delta, opposing) על כל סטאפ-S2. הקשר, לא כניסה.
+✅ **D4:** mfe_track (stop/t1/t2/t3) על חסימות awaiting_release/daytype_playbook ב-JSONL.
+✅ **B:** `structural_binary_v1.py` — מסווג אירועי-מעבר בצל. 7 אירועים: ib_lock, acceptance, dual_ib_break, failed_break, dd_neck, round_trip, eod. הצעד הבא: 10 סשנים של השוואה.
+✅ **C1:** `S2_DELTA_DBL_V1=shadow` — גלאי דלתא-כפולה, זרם נפרד (לא בסלוט). +$2,254/34.
+**flag_guard: PASS (195/195). fire_drill: 1 כשל = feed-freshness (סופ"ש).**
+קודם: 2026-08-23 (cowork, קריאה-בלבד) — **🔴 T-96 נפתח: ‎`S2_CVD_DETECTION_V1`‎ הוא
 no-op מוחלט בייצור** (חסמי-השאילתה ‎`str(datetime)`‎ עם רווח מול עמודת-‎`varchar`‎ עם ‎`T`‎ ⇒
 ‎rows==0 ב-76/76 חלונות‎ של 08-21; ‎A1‎ של יום-שני **לא** מתקן את זה) · **🟡 T-95 נפתח:
 רפליי-שבוע אחרי-התיקונים** — 17–21.08: ‎16‎ עסקאות רווחיות מ-‎30‎ (‎53.3%‎, ‎+$176.23 @6c‎)

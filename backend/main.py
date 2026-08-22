@@ -493,6 +493,37 @@ async def _startup():
                             _cls_dt_str = _cls_result.get("day_type", "")
                             _cls_status = _cls_result.get("status", "")
 
+                            # ── B: S1_STRUCTURAL_BINARY_V1 shadow comparison ──
+                            # Runs the event-driven binary classifier in parallel
+                            # and logs the comparison (old vs new label + events).
+                            try:
+                                from backend.v9.systems.day_type.structural_binary_v1 import (
+                                    enabled as _sb_enabled, get_classifier as _sb_get,
+                                )
+                                if _sb_enabled():
+                                    _sb = _sb_get()
+                                    _sb_today = now_et().date().isoformat()
+                                    if _sb._session_date != _sb_today:
+                                        _sb.reset(_sb_today)
+                                    _sb_out = _sb.on_bar(_cls_result, len(_cls_rth_bars))
+                                    if _sb_out.get("event"):
+                                        _logger.warning(
+                                            "[S1-BINARY] EVENT=%s: %s→%s (old=%s) "
+                                            "transitions=%d bar=%d",
+                                            _sb_out["event"],
+                                            _sb_out.get("label"),
+                                            _sb_out.get("candidate"),
+                                            _cls_dt_str,
+                                            _sb_out["transitions_today"],
+                                            _sb_out["bar_count"])
+                                    elif _sb_out.get("held") and _cls_dt_str != _sb_out.get("label"):
+                                        _logger.info(
+                                            "[S1-BINARY] HELD %s (old would flip to %s) bar=%d",
+                                            _sb_out["label"], _cls_dt_str,
+                                            _sb_out["bar_count"])
+                            except Exception as _sb_err:
+                                _logger.debug("[S1-BINARY] shadow error (non-fatal): %s", _sb_err)
+
                             # Map 7-type string → DayType enum (Normal_Variation→Variation; rest direct)
                             _DT_MAP = {
                                 "Trend_Normal": _DT.Trend_Normal,
@@ -958,6 +989,47 @@ async def _startup():
 
         _boot_replay_day_type_session()
 
+        # ── A5: Hydrate stability state + conf smoother from DB after boot-replay ──
+        # Without this, a mid-session restart erases _daytype_stability (N=2
+        # confirmation counter) and _s1_conf_smooth, causing the label to
+        # flip on the first bar post-restart (08-21: Normal→Variation at 18:27:54
+        # because restart, not market).
+        try:
+            import os as _h5_os
+            if _h5_os.environ.get("DAYTYPE_RECLASS_STABILITY_V1", "0").lower() in ("1", "true", "yes"):
+                from backend.v9.db.read import read_all as _h5_ra
+                _h5_today = now_et().date().isoformat()
+                _h5_rows = _h5_ra(
+                    "SELECT day_type, confidence FROM v9_day_type_state "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
+                    "ORDER BY ts DESC LIMIT 5",
+                    {"d": _h5_today},
+                )
+                if _h5_rows:
+                    _h5_last_dt = _h5_rows[0].get("day_type")
+                    _h5_last_conf = _h5_rows[0].get("confidence")
+                    # Hydrate stability state: if the last label has been stable
+                    # (consecutive same labels), mark as confirmed
+                    _h5_stab = {"date": _h5_today}
+                    if len(_h5_rows) >= 2 and _h5_rows[1].get("day_type") != _h5_last_dt:
+                        # Label just changed — set pending with count=1
+                        _h5_stab["candidate"] = str(_h5_last_dt)
+                        _h5_stab["count"] = 1
+                    # else: stable (no pending candidate)
+                    app.state._daytype_stability = _h5_stab
+                    # Hydrate confidence smoother
+                    if _h5_last_conf is not None:
+                        app.state._s1_conf_smooth = {
+                            "date": _h5_today,
+                            "conf": float(_h5_last_conf),
+                        }
+                    _logger.info(
+                        "[A5] Hydrated stability state from DB: last_dt=%s "
+                        "conf=%s stability=%s (restart-resilient)",
+                        _h5_last_dt, _h5_last_conf, _h5_stab)
+        except Exception as _h5_err:
+            _logger.warning("[A5] Stability hydration failed (non-fatal): %s", _h5_err)
+
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
 
@@ -1007,6 +1079,11 @@ async def _startup():
                 if _gw is None:
                     _logger.warning("[TrendStep] gateway not ready — candidate dropped")
                     return
+                # Michael ruling 2026-08-23: TREND_STEP → shadow (cancels
+                # 14.08 ignition; IS +$4,354 / OOS −$2,011).  Full gate
+                # chain still runs (F4 struct-exempt preserved in shadow).
+                if _tsd.shadow_only():
+                    _setup.setdefault("metadata", {})["shadow_only"] = True
                 _res = _gw.route_setup(_setup, 4)
                 if _res.get("blocked_by"):
                     _logger.warning("[TrendStep] gateway blocked: %s (%s)",
@@ -1020,6 +1097,59 @@ async def _startup():
 
         bar_router.subscribe("5min", _trend_step_on_bar)
         _logger.info("[Main] TrendStep detector subscribed to 5min (flag-gated)")
+
+        # ── C1: S2_DELTA_DBL_V1 — delta divergence double bottom/top ──
+        # Separate stream (not in slot competition): +$2,254/34 sessions.
+        # Conditioned on day_type ∈ {Normal, Trend_Normal, Trend_DD}.
+        async def _delta_dbl_on_bar(event):
+            try:
+                from backend.v9.systems.five_min.patterns.delta_dbl import (
+                    enabled as _dd_enabled, detect_delta_dbl,
+                )
+                if not _dd_enabled():
+                    return
+                _gw = getattr(app.state, "trading_gateway", None)
+                if _gw is None:
+                    return
+                _fms = getattr(app.state, "five_min_system", None)
+                if _fms is None:
+                    return
+                _buf = getattr(_fms, "_bar_buffer", [])
+                if len(_buf) < 8:
+                    return
+                # Get current day type
+                _dt_str = None
+                try:
+                    from backend.v9.services.trade_context import get_live_day_type
+                    _dt_str = get_live_day_type()
+                except Exception:
+                    pass
+                # Get delta data
+                _cvd = _fms._compute_setup_cvd(_buf, window=len(_buf))
+                _deltas = None
+                if _cvd:
+                    # Build per-bar deltas aligned to buffer
+                    _cums = _cvd.get("cumulatives", [])
+                    if len(_cums) >= len(_buf):
+                        _deltas = [0.0] + [_cums[i] - _cums[i-1] for i in range(1, len(_cums))]
+                    elif _cvd.get("perbar_deltas"):
+                        _deltas = [0.0] + _cvd["perbar_deltas"]
+                _atr = getattr(_fms, "_current_atr_5m", None)
+                _setup = detect_delta_dbl(_buf, _dt_str, _atr, _deltas)
+                if _setup:
+                    _res = _gw.route_setup(_setup, 2)
+                    if _res.get("blocked_by"):
+                        _logger.info("[DeltaDBL] blocked: %s (%s)",
+                                     _res.get("blocked_by"), str(_res.get("reason"))[:60])
+                    else:
+                        _logger.warning("[DeltaDBL] ROUTED: %s @%s → %s",
+                                        _setup["direction"], _setup["entry_price"],
+                                        _res.get("trade_id") or _res.get("shadow") or "ok")
+            except Exception as _dd_err:
+                _logger.debug("[DeltaDBL] on-bar errored (non-fatal): %s", _dd_err)
+
+        bar_router.subscribe("5min", _delta_dbl_on_bar)
+        _logger.info("[Main] DeltaDBL detector subscribed to 5min (flag-gated)")
 
         # Missed-trade detector (observability — should-have-fired)
         try:

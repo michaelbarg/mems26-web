@@ -104,6 +104,26 @@ def archive_today(target_date: Optional[str] = None) -> Dict[str, Any]:
         except Exception as e:
             logger.warning("[eod_archiver] copy %s -> %s failed: %s", src, dest, e)
             skipped.append(fname)
+    # A7: archive gateway_decisions.jsonl alongside the Sierra exports
+    # (backup for the in-process rotation that missed 08-21 because the
+    # backend was restarted after midnight UTC → mday >= today → no rotation)
+    _DECISIONS_LIVE = EXPORT_DIR / "gateway_decisions.jsonl"
+    if _DECISIONS_LIVE.exists():
+        try:
+            shutil.copy2(_DECISIONS_LIVE, dest / f"gateway_decisions.{date_str}.jsonl")
+            archived.append(f"gateway_decisions.{date_str}.jsonl")
+        except Exception as e:
+            logger.warning("[eod_archiver] decisions copy failed: %s", e)
+
+    # A7: archive backend.err.log before it gets overwritten by next restart
+    _BACKEND_ERR_LOG = Path(os.getenv("BACKEND_ERR_LOG", "/tmp/backend.err.log"))
+    if _BACKEND_ERR_LOG.exists():
+        try:
+            shutil.copy2(_BACKEND_ERR_LOG, dest / f"backend.err.{date_str}.log")
+            archived.append(f"backend.err.{date_str}.log")
+        except Exception as e:
+            logger.warning("[eod_archiver] backend.err.log copy failed: %s", e)
+
     logger.info(
         "[eod_archiver] %s — archived=%d skipped=%d at %s",
         date_str, len(archived), len(skipped), dest,

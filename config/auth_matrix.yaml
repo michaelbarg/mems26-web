@@ -95,3 +95,23 @@ cells:
     Neutral_Center:  { verdict: SKIP,    high: 0, medium: 0, low: 0 }
     Normal:          { verdict: REDUCED, high: 2, medium: 1, low: 0 }
     Nontrend:        { verdict: SKIP,    high: 0, medium: 0, low: 0 }
+
+  # A4: RE_PULLBACK — pullback to broken IB edge (flag OFF; prevents KeyError
+  # when YAML replaces the hardcoded table that already had these cells).
+  RE_PULLBACK_LONG:
+    Trend_Normal:    { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Trend_DD:        { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Neutral_Extreme: { verdict: REDUCED, high: 2, medium: 2, low: 0 }
+    Variation:       { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Neutral_Center:  { verdict: SKIP,    high: 0, medium: 0, low: 0 }
+    Normal:          { verdict: REDUCED, high: 2, medium: 1, low: 0 }
+    Nontrend:        { verdict: SKIP,    high: 0, medium: 0, low: 0 }
+
+  RE_PULLBACK_SHORT:
+    Trend_Normal:    { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Trend_DD:        { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Neutral_Extreme: { verdict: REDUCED, high: 2, medium: 2, low: 0 }
+    Variation:       { verdict: FULL,    high: 3, medium: 2, low: 2 }
+    Neutral_Center:  { verdict: SKIP,    high: 0, medium: 0, low: 0 }
+    Normal:          { verdict: REDUCED, high: 2, medium: 1, low: 0 }
+    Nontrend:        { verdict: SKIP,    high: 0, medium: 0, low: 0 }

@@ -44,7 +44,14 @@ P: Dict[str, Any] = dict(
 
 
 def enabled() -> bool:
-    return os.getenv("TREND_STEP_ENTRY_V1", "0").lower() in ("1", "true", "yes")
+    return os.getenv("TREND_STEP_ENTRY_V1", "0").lower() in ("1", "true", "yes", "shadow")
+
+
+def shadow_only() -> bool:
+    """Shadow mode: detect + log + route through full gate chain, but never
+    take a live/demo slot.  Michael ruling 2026-08-23: TREND_STEP to shadow
+    (cancels 14.08 ignition). IS +$4,354 / OOS −$2,011; since ignition −$198."""
+    return os.getenv("TREND_STEP_ENTRY_V1", "0").lower() == "shadow"
 
 
 def _stair_or_session() -> bool:

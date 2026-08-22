@@ -762,6 +762,16 @@ class TradingGateway:
                 "live_blocked_by": result.get("live_blocked_by"),
                 "live_block_reason": result.get("live_block_reason"),
             }
+            # D4: MFE-after-block tracking for awaiting_release/playbook blocks.
+            # Records stop+targets so a post-session script can compute MFE from
+            # bars and decide whether to open the gate.
+            if bb in ("awaiting_release", "daytype_playbook"):
+                _dec["mfe_track"] = {
+                    "stop": setup.get("stop"),
+                    "t1": setup.get("t1"),
+                    "t2": setup.get("t2"),
+                    "t3": setup.get("t3"),
+                }
             self.decisions.append(_dec)
             self._persist_decision(_dec)
         except Exception:
@@ -892,6 +902,11 @@ class TradingGateway:
                             if isinstance(cross_context, dict) else None) or {}
                 _cs_bars = int(_cs_tpo.get("bars_processed_today") or 0)
                 _cs_buf = int(_cs_5min.get("buffer_size") or 0)
+                # A5: after restart, TPO counter resets to 0 even though
+                # bars exist in DB. Fall back to DB count when TPO says 0
+                # but the buffer has data (restart scenario).
+                if _cs_bars == 0 and _cs_buf >= _cs_min_bars:
+                    _cs_bars = _cs_buf  # buffer was hydrated from DB
                 if _cs_bars < _cs_min_bars:
                     result["blocked_by"] = "cold_start_guard"
                     result["reason"] = (

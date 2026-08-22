@@ -88,3 +88,18 @@ def _ensure_event_loop():
         asyncio.set_event_loop(loop)
     yield
     # Don't close — let subsequent tests reuse it
+
+
+@pytest.fixture(autouse=True)
+def _isolate_gateway_decisions(tmp_path, monkeypatch):
+    """A3: Redirect gateway_decisions.jsonl to tmp_path for EVERY test.
+
+    Without this, 8% of the decision feed is test-fixture phantom data
+    (same class as backend/v9/tests/conftest.py — extended to root).
+    Sets MEMS26_TEST_MODE=1 so any code path can bail out of production
+    side effects.
+    """
+    decisions_file = str(tmp_path / "gateway_decisions.jsonl")
+    monkeypatch.setenv("GATEWAY_DECISIONS_PATH", decisions_file)
+    monkeypatch.setenv("MEMS26_TEST_MODE", "1")
+    monkeypatch.delenv("GATEWAY_DECISIONS_HYDRATE", raising=False)

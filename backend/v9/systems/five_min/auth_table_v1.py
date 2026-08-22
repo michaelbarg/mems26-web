@@ -124,7 +124,7 @@ def _try_load_yaml_auth() -> Dict[Tuple[str, str], Tuple[QualityVerdict, int, in
     try:
         from backend.v9.config_loader import load_auth_matrix
         loaded = load_auth_matrix()
-        if loaded is not None and len(loaded) >= 70:
+        if loaded is not None and len(loaded) >= 84:
             logger.info("[Pkg8/auth_table_v1] loaded %d cells from auth_matrix.yaml", len(loaded))
             return loaded
     except Exception as e:
@@ -133,11 +133,15 @@ def _try_load_yaml_auth() -> Dict[Tuple[str, str], Tuple[QualityVerdict, int, in
 
 AUTH_TABLE: Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]] = _try_load_yaml_auth()
 
-assert len(AUTH_TABLE) >= 70  # 70 (YAML from before C2) or 84 (hardcoded incl. RE_PULLBACK)
+assert len(AUTH_TABLE) >= 84  # 12 patterns × 7 day_types (YAML + hardcoded both have RE_PULLBACK)
 assert len(_AUTH_TABLE_V1) == 84
 _pattern_names = set(get_args(PatternName))
 assert {k[0] for k in _AUTH_TABLE_V1} == _pattern_names
 assert {k[1] for k in _AUTH_TABLE_V1} == set(DAY_TYPES)
+# A4: assert the LOADED table (YAML or fallback) covers ALL PatternNames
+assert {k[0] for k in AUTH_TABLE} >= _pattern_names, (
+    f"AUTH_TABLE missing patterns: {_pattern_names - {k[0] for k in AUTH_TABLE}}"
+)
 assert max(max(v[1], v[2], v[3]) for v in _AUTH_TABLE_V1.values()) == 3
 for (p, d), (verdict, h, m, l) in _AUTH_TABLE_V1.items():
     if verdict == 'SKIP':

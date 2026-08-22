@@ -751,7 +751,14 @@ class FiveMinSystem(BaseV9TradingSystem):
             )
             cums = [float(r["cumulative"]) for r in rows
                     if r.get("cumulative") is not None]
-            if len(cums) < 2:
+            if len(cums) < window:
+                # A1 (map §S2-6): CVD ran on 2-3 rows 55.4% of the time,
+                # producing an artifact worth $585.  Rule 1: honest failure
+                # when the window isn't fully covered.
+                if cums:
+                    logger.warning(
+                        "[S2-CVD] insufficient coverage: %d/%d rows — "
+                        "returning None (Rule 1)", len(cums), window)
                 return None
             perbar = [cums[i] - cums[i - 1] for i in range(1, len(cums))]
             return {
@@ -1729,16 +1736,10 @@ class FiveMinSystem(BaseV9TradingSystem):
         if not direction:
             direction, conf, info = self._detect_initiative(_det_buf)
 
-        # HLST — Higher-Low Second Test (W6, pullback pattern, flag-gated OFF)
-        # Detects push→L1→recovery→L2>L1→rejection-bar. RTH/DAY_TYPE_MODE only.
-        if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
-            from backend.v9.systems.five_min.patterns.higher_low_second_test import (
-                detect_higher_low_second_test_long,
-                detect_higher_low_second_test_short,
-            )
-            direction, conf, info = detect_higher_low_second_test_long(_det_buf)
-            if not direction:
-                direction, conf, info = detect_higher_low_second_test_short(_det_buf)
+        # A4 (map §S2-5/S2-7): HLST removed from the detection chain.
+        # It ran BEFORE DOUBLE_BOTTOM (first-match-wins) and would suppress it.
+        # Replay: HLST −$4,574.  The detector module is preserved for future
+        # research but no longer competes for the slot.
 
         # Pkg 5a · chart patterns (Stage 3 + day-type gated · D-091 §5+§6)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
@@ -2433,6 +2434,24 @@ class FiveMinSystem(BaseV9TradingSystem):
                         logger.info("[FiveMin] ANTI-PHANTOM: %s %s suppressed (replay/hydration bar)", pattern_name, direction)
                     else:
                         gateway_setup = build_s2_gateway_setup(t1_setup, info)
+                        # C2: absorption context field (P1a) — available to all
+                        # detectors for quality assessment.  As ENTRY = −$2,871;
+                        # as context-only field = $0 but enables future filters.
+                        try:
+                            _abs_cvd = self._compute_setup_cvd(_det_buf, window=4)
+                            if _abs_cvd is not None:
+                                _abs_pb = _abs_cvd.get("perbar_deltas", [])
+                                _abs_net = _abs_cvd.get("net_delta", 0)
+                                # Absorption = delta opposing the direction
+                                # (sellers in an up-move, buyers in a down-move)
+                                _is_long = direction == "LONG"
+                                gateway_setup.setdefault("metadata", {})["absorption"] = {
+                                    "net_delta": round(_abs_net, 1),
+                                    "entry_bar_delta": round(_abs_pb[-1], 1) if _abs_pb else None,
+                                    "opposing": (_abs_net < 0) if _is_long else (_abs_net > 0),
+                                }
+                        except Exception:
+                            pass  # never block a setup on context
                         try:
                             self._gateway.route_setup(gateway_setup, 2)
                             logger.info("[FiveMin] Auto-routed: %s %s → gateway (SHADOW records; DEMO/LIVE if gates pass)", pattern_name, direction)
