@@ -123,7 +123,12 @@ def main():
             out[d] = sorted(c, key=lambda x: x["i"])
         return out
 
-    def run(stream, c=6, slots=1, slip=1):
+    # additive (2026-08-23): keep the per-trade rows so a caller can build a
+    # per-DAY / per-TRADE table without re-running the engine. Pure capture —
+    # no arm, threshold or stream is changed by it.
+    TRADE_LOG = {}
+
+    def run(stream, c=6, slots=1, slip=1, log_as=None):
         pd = {}
         kusd = collections.Counter()
         n = 0
@@ -133,6 +138,12 @@ def main():
             n += len(t)
             for x in t:
                 kusd[x["kind"]] += x["usd"]
+            if log_as:
+                TRADE_LOG.setdefault(log_as, {})[str(d)] = [
+                    {k: v for k, v in x.items()
+                     if k in ("kind", "dir", "usd", "entry", "stop", "exit",
+                              "reason", "i", "pts", "risk", "mfe",
+                              "t_in", "t_out")} for x in t]
         return pd, n, {k: round(v, 2) for k, v in kusd.items()}
 
     ARMS = collections.OrderedDict([
@@ -174,7 +185,9 @@ def main():
     for nm, kw in ARMS.items():
         slots = kw.pop("slots", 1)
         st = build(**kw)
-        pd6, n6, ku = run(st, 6, slots=slots)
+        pd6, n6, ku = run(st, 6, slots=slots,
+                          log_as=(nm if nm.split()[0] in
+                                  ("BASE", "X1", "X4", "D4") else None))
         if base_pd is None:
             base_pd = pd6
         delta = {d: round(pd6[d] - base_pd[d], 2) for d in pd6}
@@ -234,6 +247,7 @@ def main():
               f"OOS=${r['OOS']:>9.2f} win={r['win']:>5.1f}% med/d=${r['median_day']:>7.2f} "
               f"Jul=${r['jul']:>8.2f} Aug=${r['aug']:>8.2f}")
 
+    out["trade_log"] = TRADE_LOG
     with open("/tmp/gpf_oos.json", "w") as f:
         json.dump(out, f, default=str)
     print("\n[out] /tmp/gpf_oos.json")
