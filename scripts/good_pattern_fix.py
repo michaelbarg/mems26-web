@@ -131,7 +131,10 @@ class S2Shim:
             return None
         t0, t1 = keys[0], keys[-1]
         cums = [v for k, v in self._cvd_sorted if t0 <= k <= t1]
-        if len(cums) < 2:
+        # Mirror production A1 (`five_min_system.py::_compute_setup_cvd`):
+        # partial CVD coverage is honest-unavailable, never a shorter window
+        # masquerading as the requested four bars.
+        if len(cums) < window:
             return None
         perbar = [cums[i] - cums[i - 1] for i in range(1, len(cums))]
         return {"net_delta": cums[-1] - cums[0], "perbar_deltas": perbar,
