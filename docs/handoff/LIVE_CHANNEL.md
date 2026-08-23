@@ -1,3 +1,8 @@
+### [2026-08-23 21:24 IL] cc-macbook · ✅ CC_RULING_CVD_SHADOW + CC_RULING_DT_AA
+**CVD:** `S2_CVD_DETECTION_V1=shadow` — delta_read פרשנות (SUPPORTING/OPPOSING/ABSORPTION/MISSING) על כל מועמד S2. לוג בלבד, לא חוסם. RULED_FLAGS.
+**DT_AA:** `DOUBLE_TOP_ADAM_FIX_V1=1` — סבילות Adam 2-טיקים (נפרדת מ-Eve) + SEARCH_WINDOW 32. +$582. אין רגרסיה ל-DOUBLE_BOTTOM.
+**ריסטארט:** PID 71390 commit=`b52c7bb5` · **🟢 GO** · flag_guard 199/199.
+
 ### [2026-08-23 21:10 IL] cc-macbook · ✅ CC_FINISH_TONIGHT §1-6 — P3+T-10+restart
 **בוצע:** P3 `SCALE_IN_P3_V1=1` (1.5×ATR/≥1.5R/avg-stop/edge-ban, +$27/day) · T-10 `EOD_CLOSE_T10_V1=1` (FLATTEN@15:50ET, +$3.28/day) · pnl_reconcile (92 checked: 43 MATCH, 21 DIVERGENT, 28 incomplete, net error $18.75) · CVD gate עובד (65.3% coverage אחרי ts migration; =1 in .env, ממתין לפסיקה).
 **ריסטארט:** PID 68545 commit=`d818c8b9` · boot logging OK · **🟢 GO — feed 558ms**.
