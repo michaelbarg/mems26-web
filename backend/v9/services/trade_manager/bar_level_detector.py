@@ -1193,10 +1193,16 @@ class BarLevelDetector:
         if trade.t1_hit_ts is None or trade.entry_price is None:
             return
         from backend.v9.services.trade_manager.scale_in import should_scale_in, ScaleInCfg
+        _p3_on = _si_os.getenv("SCALE_IN_P3_V1", "0").lower() in ("1", "true", "yes")
         cfg = ScaleInCfg(
             min_profit_pts=float(_si_os.getenv("SCALE_IN_MIN_PROFIT_PTS", "6") or 6),
             add_contracts=int(_si_os.getenv("SCALE_IN_ADD_CONTRACTS", "2") or 2),
             max_total_contracts=int(_si_os.getenv("SCALE_IN_MAX_TOTAL", "8") or 8),
+            # P3: computed spacing — only when flag ON; OFF = byte-identical to today
+            atr_spacing_mult=1.5 if _p3_on else 0.0,
+            min_rr_spacing=1.5 if _p3_on else 0.0,
+            avg_stop=_p3_on,
+            edge_ban=_p3_on,
         )
         dir_bias = None
         try:
