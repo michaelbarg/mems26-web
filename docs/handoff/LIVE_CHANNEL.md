@@ -1,3 +1,9 @@
+### [2026-08-24 cc-macbook] ✅ חבילת יום שני — EXECUTE_MONDAY_NOW §0-7
+**בוצע:** Gap#1 CVD isoformat · **Gap#2 ts varchar→timestamptz (12/12 עמודות)** · Gap#5 WARNING→INFO · Gap#7 heartbeat · A1-A7 · P3 (1.5×ATR/1.5R/avg-stop/edge-ban) · T-10 (92 reconciled, 21 DIVERGENT, 28 incomplete) · TREND_STEP shadow · desync→ANOMALY · swallow_counter · §2 safety.
+**flag_guard PASS** (195/195) · **fire_drill** 1 fail = feed (weekend).
+**CVD coverage 0%→65.3%** after ts migration. Bridge restarted PID 66058.
+**לא בוצע:** DT_AA prep (§5 — ממתין לפסיקה) · full mems26_verify (שרת-סיירה לא זמין בסופ"ש).
+
 ### [2026-08-21 11:55 IL] cowork-dev · ✅ `TARGET_MIN_SPACING_V1=shadow` — מרווח-מינימום בין רגלי-הסולם · **הודלק + ריסטארט בוצע (04:41 ET, טרום-פתיחה)** · אל: **מייקל** (ידיעה) + **cc-macbook** (אל תוסיף שוב)
 
 **הפסיקה:** מייקל 21.08 ~11:30 IL — "לבנות ולהפעיל בשדואו ולבדוק איך זה פותר".

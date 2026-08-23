@@ -992,14 +992,17 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
             # order map still holds today's history the ambiguity is named
             # explicitly instead of being resolved by guess.
             _had_history = bool(_omap) if _fp is not None else False
+            # Michael ruling 2026-08-24: "אין יותר מסחר ידני" — a position
+            # not in books is ALWAYS an anomaly (missed exit, orphan, desync).
             _manual_msg = (
-                f"POSITION NOT IN BOOKS: Sierra {sierra_qty}c, no open system "
-                f"trade → the system is NOT managing it and will not touch it."
+                f"🔴 DESYNC: Sierra {sierra_qty}c, no open system trade "
+                f"→ ANOMALY (no manual trading per ruling 08-24). "
+                f"Likely: system exit never executed."
             )
             if _had_history:
                 _manual_msg += (
-                    " (ambiguous: manual trade, or a system exit that never "
-                    "executed — check the fills journal.)"
+                    " Order history exists — check fills journal for the "
+                    "exit that didn't execute."
                 )
             msg += f" \u2139\ufe0f {_manual_msg}"
             # MANUAL_POSITION_GUARD_V1 (Michael ruling 07-25 "התראה-בלבד"):
