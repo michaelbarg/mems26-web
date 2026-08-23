@@ -16,6 +16,9 @@
 ✅ **ביקורת-הטיה + זיהוי-קיצון (CC_NEXT_2026-08-23D):** `extreme_detection_audit.py` — **הטיית-שרידות קיימת** (המערכת מכסה 16% מהזדמנויות-הברים), אך **הכיוון שמרני** (מתת-הערכה, לא מהפרזה). 5 הגדרות-קיצון: כולן 83-88% reversal אך $ שלילי — **הבעיה היא תזמון-כניסה, לא זיהוי**. REACTIVE+דלתון הוא הצירוף הנכון (אישור-כניסה + מיקום). דלתא-ספיגה (D) כמסנן-איכות דורש תיקון CVD. דוח: `EXTREME_DETECTION_AND_BIAS_AUDIT.md`.
 ✅ **דלתון V2 מעל גלאים (CC_NEXT_2026-08-23C):** `replay_dalton_over_detectors.py` — **L2 חיובי: +$5,973/34 סשנים** (OOS +$2,235). 18/34 ימים חיוביים, 1.6 עסקאות/יום. INITIATIVE_LONG: -$2,310→+$2,253 (+$4,563). דוח: `SIM_DALTON_OVER_DETECTORS.md`.
 ✅ **Gap #1:** CVD no-op — `str(datetime)` רווח מול `T` ב-varchar. תוקן ל-`.isoformat()`. שער-ה-CVD מעולם לא רץ בייצור.
+🔴 **Gap #2:** ts varchar migration — סקריפט מוכן (`scripts/migrate_ts_varchar_to_timestamptz.py`), **חסום ע"י כותבים חיים**. דורש: עצירת bridge → migrate → restart. **יום שני לפני RTH.**
+✅ **P3 הגדלה-מחושבת:** `scale_in.py` — spacing 1.5×ATR · ≥1.5R · avg-stop · edge-ban (31/49 מתו). `bar_level_detector.py` עודכן עם ATR/risk/session-extremes.
+✅ **T-10 close:** pnl_sierra נכתב ל-66/130 עסקאות (43 MATCH, 21 DIVERGENT, 28 incomplete). BE ב-EXIT_KINDS + incomplete=fail.
 ✅ **Gap #5:** WARNING noise 96% — שלוש שורות stale הורדו ל-INFO (woodies/tpo/cvd routes).
 ✅ **Gap #7:** אזעקת-קיפאון — קוראת heartbeat במקום טבלה (26 false alarms/יום).
 ✅ **פסיקת-TREND_STEP 23.08:** `TREND_STEP_ENTRY_V1=shadow` (מבטל הדלקת 14.08; IS +$4,354 / OOS −$2,011). גלאי ממשיך לרוץ בצל+שרשרת-שערים מלאה (F4 נשמר). RULED_FLAGS.yaml עודכן. הצעת-תיקון ב-`docs/reports/TREND_STEP_FIX_PROPOSAL.md`.

@@ -1234,11 +1234,42 @@ class BarLevelDetector:
                            _acct, trade.direction)
             return
         n_open = abs(int(_acct))
+        # P3: gather ATR, initial risk, session extremes for computed spacing
+        _p3_atr = _p3_risk = _p3_sh = _p3_sl = _p3_stop = None
+        try:
+            _p3_stop = float(trade.stop_price) if trade.stop_price else None
+            _p3_risk = abs(float(trade.entry_price) - _p3_stop) if _p3_stop else None
+        except (TypeError, ValueError):
+            pass
+        try:
+            from backend.v9.db.read import read_all as _p3_read
+            _p3_rows = _p3_read(
+                "SELECT high, low FROM v9_bars_5min_woodies "
+                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                "(now() AT TIME ZONE 'America/New_York')::date "
+                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                "ORDER BY ts", {})
+            if _p3_rows:
+                _p3_sh = max(float(r["high"]) for r in _p3_rows)
+                _p3_sl = min(float(r["low"]) for r in _p3_rows)
+                if len(_p3_rows) >= 15:
+                    import statistics as _p3_stats
+                    _trs = []
+                    for _ri in range(max(1, len(_p3_rows)-14), len(_p3_rows)):
+                        _b, _p = _p3_rows[_ri], _p3_rows[_ri-1]
+                        _trs.append(max(float(_b["high"])-float(_b["low"]),
+                                        abs(float(_b["high"])-float(_p["low"]))))
+                    _p3_atr = _p3_stats.fmean(_trs) if _trs else None
+        except Exception:
+            pass
         dec = should_scale_in(
             direction=trade.direction, entry_price=float(trade.entry_price),
             t1_hit=True, already_scaled=False, n_contracts_open=n_open,
             bar_high=float(bar_high), bar_low=float(bar_low),
             dir_bias=dir_bias, cfg=cfg,
+            atr=_p3_atr, initial_risk_pts=_p3_risk,
+            session_high=_p3_sh, session_low=_p3_sl,
+            stop_price=_p3_stop,
         )
         if dec is None:
             return

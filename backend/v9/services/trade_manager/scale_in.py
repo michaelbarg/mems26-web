@@ -23,6 +23,11 @@ class ScaleInCfg:
     max_total_contracts: int = 8     # never let parent+add exceed this
     require_with_trend: bool = True  # only reinforce WITH the day trend
     add_stop_at_entry: bool = True   # add-on stop = parent entry (BE) — bounded downside
+    # ── P3 (CC_NEXT_2026-08-23B §4): computed spacing + avg stop + edge ban ──
+    atr_spacing_mult: float = 1.5    # min spacing = 1.5×ATR (not 0.5)
+    min_rr_spacing: float = 1.5      # min spacing = 1.5× initial risk (R)
+    avg_stop: bool = True            # stop = structural average across entries
+    edge_ban: bool = True            # don't add at session extreme (31/49 died)
 
 
 @dataclass
@@ -45,18 +50,25 @@ def should_scale_in(
     bar_low: float,
     dir_bias: Optional[str],
     cfg: Optional[ScaleInCfg] = None,
+    # P3 additions
+    atr: Optional[float] = None,
+    initial_risk_pts: Optional[float] = None,
+    session_high: Optional[float] = None,
+    session_low: Optional[float] = None,
+    stop_price: Optional[float] = None,
 ) -> Optional[ScaleInDecision]:
     """Return a ScaleInDecision to reinforce the trade, or None to do nothing.
 
     Fires only when ALL hold:
-      • t1_hit — the entry proved itself (banked T1); we never add before proof.
-      • not already_scaled — once per parent.
-      • n_contracts_open > 0 — there is a live position to reinforce.
-      • with-trend — dir_bias agrees with the trade direction (when known + required).
-      • price continued ≥ min_profit_pts past entry (the move has legs).
-      • parent + add-on ≤ max_total_contracts.
-    The add-on stop sits at the parent entry (breakeven) → its worst case is giving back
-    only its own paper gain; the parent's banked T1 already cushions the trade.
+      - t1_hit — the entry proved itself (banked T1); we never add before proof.
+      - not already_scaled — once per parent.
+      - n_contracts_open > 0 — there is a live position to reinforce.
+      - with-trend — dir_bias agrees with the trade direction (when known + required).
+      - price continued ≥ min_profit_pts past entry (the move has legs).
+      - parent + add-on ≤ max_total_contracts.
+      - P3: spacing ≥ 1.5×ATR from parent entry.
+      - P3: spacing ≥ 1.5R from parent entry.
+      - P3: NOT at session extreme (edge-ban: 31/49 add-ons at extreme died).
     """
     cfg = cfg or ScaleInCfg()
     d = (direction or "").upper()
@@ -77,14 +89,48 @@ def should_scale_in(
     fav = (float(bar_high) - e) if d == "LONG" else (e - float(bar_low))
     if fav < cfg.min_profit_pts:
         return None
+
     add_entry = float(bar_high) if d == "LONG" else float(bar_low)
-    add_stop = e if cfg.add_stop_at_entry else (
-        add_entry - cfg.min_profit_pts if d == "LONG" else add_entry + cfg.min_profit_pts)
+    spacing = abs(add_entry - e)
+
+    # ── P3: ATR-based minimum spacing (1.5×ATR, not 0.5) ──
+    if atr is not None and atr > 0 and cfg.atr_spacing_mult > 0:
+        min_atr_spacing = cfg.atr_spacing_mult * atr
+        if spacing < min_atr_spacing:
+            return None
+
+    # ── P3: R-based minimum spacing (≥1.5R) ──
+    if initial_risk_pts is not None and initial_risk_pts > 0 and cfg.min_rr_spacing > 0:
+        min_r_spacing = cfg.min_rr_spacing * initial_risk_pts
+        if spacing < min_r_spacing:
+            return None
+
+    # ── P3: Edge-ban (don't add at session extreme: 31/49 died) ──
+    if cfg.edge_ban and session_high is not None and session_low is not None:
+        edge_margin = max(1.0, (session_high - session_low) * 0.05)
+        at_high = add_entry >= session_high - edge_margin
+        at_low = add_entry <= session_low + edge_margin
+        if (d == "LONG" and at_high) or (d == "SHORT" and at_low):
+            return None  # adding at the extreme = chasing, 63% loss rate
+
+    # ── P3: Averaged structural stop ──
+    if cfg.avg_stop and stop_price is not None:
+        # Average the parent's structural stop with the add-on's BE stop
+        parent_stop = float(stop_price)
+        be_stop = e  # parent entry = breakeven for add-on
+        add_stop = round((parent_stop + be_stop) / 2, 2)
+    elif cfg.add_stop_at_entry:
+        add_stop = e
+    else:
+        add_stop = (add_entry - cfg.min_profit_pts if d == "LONG"
+                    else add_entry + cfg.min_profit_pts)
+
     return ScaleInDecision(
         add_contracts=cfg.add_contracts,
         direction=d,
         entry=round(add_entry, 2),
         stop=round(add_stop, 2),
-        reason=(f"reinforce {d}: T1 banked + {fav:.1f}pt past entry + with-trend "
-                f"({dir_bias}) → +{cfg.add_contracts}c, stop@parent-entry {e:.2f}"),
+        reason=(f"P3 reinforce {d}: T1 banked + {fav:.1f}pt (spacing {spacing:.1f}pt "
+                f"≥ 1.5×ATR) + with-trend ({dir_bias}) → +{cfg.add_contracts}c, "
+                f"avg-stop {add_stop:.2f}"),
     )
