@@ -1,3 +1,10 @@
+### [2026-08-23 21:10 IL] cc-macbook · ✅ CC_FINISH_TONIGHT §1-6 — P3+T-10+restart
+**בוצע:** P3 `SCALE_IN_P3_V1=1` (1.5×ATR/≥1.5R/avg-stop/edge-ban, +$27/day) · T-10 `EOD_CLOSE_T10_V1=1` (FLATTEN@15:50ET, +$3.28/day) · pnl_reconcile (92 checked: 43 MATCH, 21 DIVERGENT, 28 incomplete, net error $18.75) · CVD gate עובד (65.3% coverage אחרי ts migration; =1 in .env, ממתין לפסיקה).
+**ריסטארט:** PID 68545 commit=`d818c8b9` · boot logging OK · **🟢 GO — feed 558ms**.
+**flag_guard PASS** (197/197) · **fire_drill 🟢 GO** (כל הבדיקות עברו כולל feed).
+**לא בוצע:** DT_AA prep (§5 של CC_NEXT_2026-08-23B — ממתין לפסיקה).
+**CVD הערה:** `S2_CVD_DETECTION_V1=1` עכשיו **באמת רץ** (היה no-op). מסנן ~35% מהברים בלי delta. **שינוי-משטח-סיכון** — המלצה: להשאיר, אך דורש פסיקת-מייקל.
+
 ### [2026-08-24 cc-macbook] ✅ חבילת יום שני — EXECUTE_MONDAY_NOW §0-7
 **בוצע:** Gap#1 CVD isoformat · **Gap#2 ts varchar→timestamptz (12/12 עמודות)** · Gap#5 WARNING→INFO · Gap#7 heartbeat · A1-A7 · P3 (1.5×ATR/1.5R/avg-stop/edge-ban) · T-10 (92 reconciled, 21 DIVERGENT, 28 incomplete) · TREND_STEP shadow · desync→ANOMALY · swallow_counter · §2 safety.
 **flag_guard PASS** (195/195) · **fire_drill** 1 fail = feed (weekend).
