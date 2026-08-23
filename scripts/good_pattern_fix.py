@@ -39,6 +39,7 @@ import json
 import os
 import statistics
 import sys
+from zoneinfo import ZoneInfo
 
 import psycopg2
 
@@ -81,7 +82,7 @@ SLIP = 1
 SIZES = (4, 6)
 WINDOW = ESR.LIVE_DET_WINDOW      # 19 = live _det_buf
 WOODIES_BUF = 50                  # woodies_system.max_buffer
-ET_UTC = dt.timedelta(hours=4)
+ET_TZ = ZoneInfo("America/New_York")
 S4_DEDUP = 30
 DEDUP = {"DOUBLE_TOP_AA": 30, "DOUBLE_BOTTOM_EE": 30, "INVERSE_HNS": 30,
          "HNS_TOP": 30, "BULL_FLAG": 20, "BEAR_FLAG": 20}   # A2, five_min:323
@@ -139,8 +140,42 @@ class S2Shim:
 
 def _mk_bar(b):
     d = dict(o=b["o"], h=b["h"], l=b["l"], c=b["c"], v=b["v"])
-    d["ts"] = (b["t"] + ET_UTC).isoformat() + "+00:00"
+    # `load_bars` returns naive ET wall-clock.  Keep one comparable canonical
+    # type for detector bars and migrated CVD rows: aware UTC datetimes.
+    t = b["t"]
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=ET_TZ)
+    d["ts"] = t.astimezone(dt.timezone.utc)
     return d
+
+
+def load_cvd(cur):
+    """Load migrated timestamptz CVD rows keyed by ET trading date.
+
+    Gap #2 converted `v9_bars_cumulative_delta.ts` from text to timestamptz on
+    2026-08-24.  The former `left(ts, 10)` query now fails, and comparing mixed
+    textual offsets is not chronological.  Return aware UTC datetime keys so
+    `S2Shim._compute_setup_cvd` performs an actual time-range comparison.
+    """
+    cur.execute(
+        """
+        select ts, cumulative
+        from v9_bars_cumulative_delta
+        where (ts at time zone 'America/New_York')::date between %s and %s
+        order by ts
+        """,
+        (D0, D1),
+    )
+    out = collections.defaultdict(list)
+    for ts, value in cur.fetchall():
+        if value is None:
+            continue
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=dt.timezone.utc)
+        ts_utc = ts.astimezone(dt.timezone.utc)
+        day = str(ts_utc.astimezone(ET_TZ).date())
+        out[day].append((ts_utc, float(value)))
+    return out
 
 
 # ============================================== live-faithful mirror of S2
@@ -608,15 +643,8 @@ def main():
             lsma=(float(lraw) if lraw is not None else None),
             hhmm=et.strftime("%H:%M")))
 
-    cur.execute("select ts, cumulative from v9_bars_cumulative_delta "
-                "where left(ts,10) between %s and %s order by ts", (D0, D1))
-    cvd_by_day = collections.defaultdict(list)
-    ncvd = 0
-    for k, val in cur.fetchall():
-        if val is None:
-            continue
-        cvd_by_day[k[:10]].append((k, float(val)))
-        ncvd += 1
+    cvd_by_day = load_cvd(cur)
+    ncvd = sum(len(rows) for rows in cvd_by_day.values())
     print(f"[cvd] rows={ncvd} days={len(cvd_by_day)} (S2_CVD_DETECTION_V1 source)")
 
     thr = {d: ORA.thr_for(days, d) for d in ds}

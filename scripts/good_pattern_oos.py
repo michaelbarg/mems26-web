@@ -77,12 +77,7 @@ def main():
             lsma=(float(lraw) if lraw is not None else None),
             hhmm=et.strftime("%H:%M")))
 
-    cur.execute("select ts, cumulative from v9_bars_cumulative_delta "
-                "where left(ts,10) between %s and %s order by ts", (M.D0, M.D1))
-    cvd = collections.defaultdict(list)
-    for k, val in cur.fetchall():
-        if val is not None:
-            cvd[k[:10]].append((k, float(val)))
+    cvd = M.load_cvd(cur)
 
     thr = {d: M.ORA.thr_for(days, d) for d in ds}
     print("[labels] causal classifier ...")
