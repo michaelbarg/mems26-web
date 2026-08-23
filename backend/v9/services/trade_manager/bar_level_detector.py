@@ -531,6 +531,43 @@ class BarLevelDetector:
         except Exception as _s0_err:
             logger.debug("[System0] shadow log error (fail-safe): %s", _s0_err)
 
+    def _eod_close_t10(self, active) -> None:
+        """T-10: close open positions 10 min before RTH close (+$3.28/day measured).
+
+        EOD_CLOSE_T10_V1 (default OFF). Uses FLATTEN_ACCOUNT (not op=EXIT which
+        is broken). Fires at 15:50 ET (10 min before 16:00 close).
+        """
+        import os as _t10_os
+        if _t10_os.getenv("EOD_CLOSE_T10_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        try:
+            from zoneinfo import ZoneInfo
+            et_now = datetime.now(ZoneInfo("America/New_York"))
+            et_time = et_now.time()
+            # 15:50 ET = 10 min before RTH close
+            from datetime import time as _t
+            if et_time < _t(15, 50) or et_time >= _t(16, 0):
+                return
+            # Only flatten if there are active demo/live trades
+            live_active = [t for t in (active or [])
+                          if getattr(t, "mode", "shadow") in ("demo", "live")]
+            if not live_active:
+                return
+            from backend.v9.services.sierra_command import write_flatten_account
+            for trade in live_active:
+                if trade.id in self._eod_flatten_requested:
+                    continue
+                write_flatten_account(
+                    trade_id=str(trade.id),
+                    source="eod_close_t10",
+                    reason=f"T-10: 10 min before RTH close ({et_time.strftime('%H:%M')} ET)")
+                self._eod_flatten_requested.add(trade.id)
+                logger.warning(
+                    "[T-10] EOD CLOSE at %s ET: FLATTEN for %s trade %d",
+                    et_time.strftime("%H:%M"), getattr(trade, "mode", "?"), trade.id)
+        except Exception as _t10_err:
+            logger.warning("[T-10] EOD close error (fail-safe): %s", _t10_err)
+
     def _eod_flatten(self, active) -> None:
         """Auto-flatten open demo/live positions at RTH close (Michael 2026-07-07).
 
@@ -709,6 +746,9 @@ class BarLevelDetector:
             self._bars_processed += 1
             active = self._tm.get_active_trades()
 
+            # T-10: EOD close 10 min before RTH close (flag-gated, default OFF).
+            # +$3.28/day measured. FLATTEN only (op=EXIT broken).
+            self._eod_close_t10(active)
             # Trend runner flatten at 15:45 ET (flag-gated C4_TREND_FLATTEN_V1, OFF).
             self._trend_runner_flatten(active)
             # EOD auto-flatten at RTH close (flag-gated EOD_FLATTEN_V1, default OFF).
