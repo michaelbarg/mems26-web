@@ -87,6 +87,8 @@ ruled:
   TARGET_MIN_SPACING_V1: {expected: "shadow", ruled_by: "מייקל", date: "2026-08-21", note: "#756: t1/t2/t3 clustered 0.5pt apart on 3.5pt risk. min_gap=max(k×ATR,m×risk). Shadow until ruling." }
   SCALE_IN_P3_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-24", note: "P3 הגדלה-מחושבת: 1.5×ATR spacing (לא 0.5 — −$299 מול +$683), ≥1.5R ליעד הבא, סטופ-מבני ממוצע (win 45%→55%), איסור-קצה (31/49 מתו). +$27/יום נמדד." }
   EOD_CLOSE_T10_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-24", note: "T-10: סגירת פוזיציות 10 דק' לפני RTH close (15:50 ET). +$3.28/יום נמדד. FLATTEN בלבד (op=EXIT שבור). מנטרל חשיפת-לילה." }
+  S2_CVD_DETECTION_V1: {expected: "shadow", ruled_by: "מייקל", date: "2026-08-23", note: "פסיקת 21:30 ('אני צריך שתפעיל על שדואו, ואני צריך שניתן לו פרשנות'). Shadow: computes+logs delta_read (SUPPORTING/OPPOSING/ABSORPTION/MISSING), never blocks. Was no-op (0/76 windows), now 65.3% coverage after ts migration. החלטה אחרי ≥5 סשנים על מספרים." }
+  DOUBLE_TOP_ADAM_FIX_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-23", note: "פסיקת 21:20 ('מאשר — צריך לסחור אותו יותר'). סבילות-Adam נפרדת (2 טיקים) + חוצץ-32. 1 סטאפ ב-34 סשנים → צפוי ~7-10 מועמדים. +$582 נמדד (סבילות+חוצץ כזוג בלבד). אין רגרסיה ל-DOUBLE_BOTTOM_EE: get_trough_tolerance נשאר ללא שינוי." }
 
   # ── פסיקת-מייקל 2026-07-19: סף אין-כניסות-לייב-חדשות 14:30 → 15:30 ET (22:30 IL) ──
   # ראיה (ספר-הצללים 07-17): הסף הישן שלח 4 עסקאות ל-shadow — 3 שורטי-S4 מנצחים (+$148.75)

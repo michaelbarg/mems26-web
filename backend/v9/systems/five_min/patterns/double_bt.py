@@ -28,7 +28,11 @@ logger = logging.getLogger(__name__)
 
 # ── Module constants · SHADOW-calibratable ──
 MIN_BARS_REQUIRED = 10
-SEARCH_WINDOW = 30
+# DOUBLE_TOP_ADAM_FIX_V1: buffer-32 (was 30). The 2-bar increase allows
+# detection of patterns that form near the edge of the old window.
+# Measured: +$582 with fix (separate Adam tol + buffer-32).
+import os as _sw_os
+SEARCH_WINDOW = 32 if _sw_os.environ.get("DOUBLE_TOP_ADAM_FIX_V1", "0").lower() in ("1", "true", "yes") else 30
 PIVOT_LOOKBACK = 2
 TROUGH_SYM_PCT = 0.03
 TROUGH_MIN_WIDTH_BARS = 3
@@ -39,6 +43,11 @@ TICK_SIZE = 0.25
 # S2 ATR-relative trough tolerance (E2E 2/2 · shadow only)
 from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
 _TROUGH_TOL_ATR_K = 0.75  # prior: 0.75×ATR5m
+# DOUBLE_TOP_ADAM_FIX_V1 (Michael 23.08 "מאשר — צריך לסחור אותו יותר"):
+# Adam peaks are SHARP (≤2 bars), so they need a tighter tolerance than Eve
+# troughs. 0.75×ATR = ~4.15pt is appropriate for a wide Eve trough but kills
+# Adam — a sharp peak is at most 2 ticks wide. Separate tolerance for peaks.
+_PEAK_TOL_ADAM_TICKS = 2  # 2 ticks = 0.50pt — the sharp-peak criterion
 
 
 def get_trough_tolerance(atr_5m=None) -> float:
@@ -46,6 +55,23 @@ def get_trough_tolerance(atr_5m=None) -> float:
     if S2_ATR_RELATIVE and atr_5m is not None:
         return _TROUGH_TOL_ATR_K * atr_5m
     return TICK_SIZE * 2  # original: 2 ticks = 0.50pt
+
+
+def _get_peak_tolerance(atr_5m=None) -> float:
+    """Peak width tolerance for Adam variant — separate from trough.
+
+    DOUBLE_TOP_ADAM_FIX_V1: Adam peaks are sharp by definition (≤2 bars).
+    Using the same ATR-relative tolerance as Eve troughs (0.75×ATR ≈ 4.15pt)
+    made the width check trivially true for ANY peak (median peak = 11 bars),
+    so only the ≤2 bar count check filtered — and 0.75×ATR tolerance meant
+    the width count inflated: 7/74 candidates survived. With 2-tick tolerance
+    the width count is honest and the ≤2 check meaningful.
+    """
+    import os as _dt_os
+    if _dt_os.environ.get("DOUBLE_TOP_ADAM_FIX_V1", "0").lower() in ("1", "true", "yes"):
+        return TICK_SIZE * _PEAK_TOL_ADAM_TICKS
+    # Fallback: same as trough (legacy behavior)
+    return get_trough_tolerance(atr_5m)
 
 Direction = Literal["LONG", "SHORT"]
 
@@ -114,7 +140,7 @@ def _trough_width_bars(bars: List[Dict], pivot_idx: int, pivot_low: float,
 def _peak_width_bars(bars: List[Dict], pivot_idx: int, pivot_high: float,
                      atr_5m: float = None) -> int:
     """Count consecutive bars at similar high around pivot (Adam = narrower)."""
-    tolerance = get_trough_tolerance(atr_5m)
+    tolerance = _get_peak_tolerance(atr_5m)
     width = 1
     for j in range(pivot_idx - 1, -1, -1):
         if abs(bars[j]["h"] - pivot_high) <= tolerance:

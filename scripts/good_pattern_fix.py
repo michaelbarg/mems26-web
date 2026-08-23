@@ -140,6 +140,11 @@ class S2Shim:
         return {"net_delta": cums[-1] - cums[0], "perbar_deltas": perbar,
                 "cumulatives": cums}
 
+    def _cvd_delta_read(self, cvd_data, direction, bars_window):
+        """Delegate the current production interpretation layer to the live class."""
+        return FMS.FiveMinSystem._cvd_delta_read(
+            cvd_data, direction, bars_window)
+
 
 def _mk_bar(b):
     d = dict(o=b["o"], h=b["h"], l=b["l"], c=b["c"], v=b["v"])

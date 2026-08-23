@@ -784,6 +784,54 @@ class FiveMinSystem(BaseV9TradingSystem):
         except Exception:
             return None
 
+    @staticmethod
+    def _cvd_delta_read(cvd_data: Optional[Dict], direction: str,
+                        bars_window: List[Dict]) -> Dict:
+        """Michael ruling 23.08: interpretive CVD reading per setup.
+
+        Returns {reading, slope, entry_bar_delta, divergence, numbers}.
+        reading ∈ {SUPPORTING, OPPOSING, ABSORPTION, MISSING}.
+        """
+        if cvd_data is None:
+            return {"reading": "MISSING", "reason": "no CVD data in window"}
+        pb = cvd_data.get("perbar_deltas", [])
+        cums = cvd_data.get("cumulatives", [])
+        net = cvd_data.get("net_delta", 0)
+        entry_d = pb[-1] if pb else 0
+        is_long = direction == "LONG"
+        slope_with = (net > 0) if is_long else (net < 0)
+        noise_threshold = 50  # delta units
+        # Absorption: price makes new extreme but CVD doesn't
+        absorption = False
+        if len(cums) >= 3 and bars_window:
+            prices = [b.get("h", 0) for b in bars_window] if is_long else [b.get("l", 0) for b in bars_window]
+            price_new_ext = (bars_window[-1].get("h", 0) >= max(prices[:-1]) if is_long
+                            else bars_window[-1].get("l", 0) <= min(prices[:-1]))
+            cvd_ext_fn = max if is_long else min
+            cvd_new_ext = (cums[-1] >= cvd_ext_fn(cums[:-1]) if is_long
+                          else cums[-1] <= cvd_ext_fn(cums[:-1]))
+            if price_new_ext and not cvd_new_ext:
+                absorption = True
+        if absorption:
+            reading = "ABSORPTION"
+            reason = f"price extreme but CVD diverges (net={net:.0f})"
+        elif abs(net) < noise_threshold:
+            reading = "SUPPORTING" if slope_with else "MISSING"
+            reason = f"net delta {net:.0f} below noise threshold"
+        elif slope_with:
+            reading = "SUPPORTING"
+            reason = f"CVD slope WITH {direction} (net={net:.0f})"
+        else:
+            reading = "OPPOSING"
+            reason = f"CVD slope AGAINST {direction} (net={net:.0f})"
+        return {
+            "reading": reading,
+            "slope_net": round(net, 1),
+            "entry_bar_delta": round(entry_d, 1),
+            "absorption": absorption,
+            "reason": reason,
+        }
+
     # ── Pattern detectors (Constitution V3 Layer 1 T1) ──
 
     def _detect_reactive(self, bars_5m: List[Dict]) -> tuple:
@@ -931,17 +979,20 @@ class FiveMinSystem(BaseV9TradingSystem):
             # absorption: perbar_delta(B4) > 0 (buyers at entry bar) OR bullish
             # divergence (price made lower low B1→B3 but CVD made higher low).
             import os as _cvd_os
-            if _cvd_os.environ.get("S2_CVD_DETECTION_V1", "").lower() in ("1", "true", "yes"):
+            _cvd_mode = _cvd_os.environ.get("S2_CVD_DETECTION_V1", "").lower()
+            if _cvd_mode in ("1", "true", "yes", "shadow"):
                 _cvd = self._compute_setup_cvd(bars_5m, window=4)
+                _dr = self._cvd_delta_read(_cvd, "LONG", bars_5m[-4:])
+                logger.info("[S2-CVD] REACTIVE LONG delta_read=%s: %s",
+                            _dr["reading"], _dr["reason"])
                 if _cvd is not None:
                     _pb = _cvd["perbar_deltas"]
                     _entry_bar_buying = _pb[-1] > 0 if _pb else False
-                    # Divergence: price LL (B3 low < B1 low) but CVD HL
                     _cums = _cvd["cumulatives"]
                     _price_ll = b3["l"] < b1["l"] if len(_cums) >= 3 else False
-                    _cvd_hl = _cums[-2] > _cums[0] if len(_cums) >= 3 else False  # CVD at B3 > CVD at B1
+                    _cvd_hl = _cums[-2] > _cums[0] if len(_cums) >= 3 else False
                     _divergence = _price_ll and _cvd_hl
-                    if not (_entry_bar_buying or _divergence):
+                    if not (_entry_bar_buying or _divergence) and _cvd_mode != "shadow":
                         logger.info("[S2-CVD] REACTIVE LONG rejected: no absorption (entry_delta=%.0f, div=%s)",
                                     _pb[-1] if _pb else 0, _divergence)
                         return (None, 0, {})  # fall through to INITIATIVE
@@ -997,18 +1048,21 @@ class FiveMinSystem(BaseV9TradingSystem):
             # distribution: perbar_delta(B4) < 0 (selling at entry bar) OR bearish
             # divergence (price HH B1→B3 but CVD LH), and/or net selling slope.
             import os as _cvd_os2
-            if _cvd_os2.environ.get("S2_CVD_DETECTION_V1", "").lower() in ("1", "true", "yes"):
+            _cvd_mode2 = _cvd_os2.environ.get("S2_CVD_DETECTION_V1", "").lower()
+            if _cvd_mode2 in ("1", "true", "yes", "shadow"):
                 _cvd = self._compute_setup_cvd(bars_5m, window=4)
+                _dr_s = self._cvd_delta_read(_cvd, "SHORT", bars_5m[-4:])
+                logger.info("[S2-CVD] REACTIVE SHORT delta_read=%s: %s",
+                            _dr_s["reading"], _dr_s["reason"])
                 if _cvd is not None:
                     _pb_s = _cvd["perbar_deltas"]
                     _entry_bar_selling = _pb_s[-1] < 0 if _pb_s else False
                     _net_selling = _cvd["net_delta"] < 0
-                    # Divergence: price HH (B3 high > B1 high) but CVD LH
                     _cums_s = _cvd["cumulatives"]
                     _price_hh = b3["h"] > b1["h"] if len(_cums_s) >= 3 else False
                     _cvd_lh = _cums_s[-2] < _cums_s[0] if len(_cums_s) >= 3 else False
                     _divergence_s = _price_hh and _cvd_lh
-                    if not (_entry_bar_selling or _net_selling or _divergence_s):
+                    if not (_entry_bar_selling or _net_selling or _divergence_s) and _cvd_mode2 != "shadow":
                         logger.info("[S2-CVD] REACTIVE SHORT rejected: no distribution (entry_delta=+%.0f, net=+%.0f, div=%s)",
                                     _pb_s[-1] if _pb_s else 0, _cvd["net_delta"], _divergence_s)
                         return (None, 0, {})  # fall through to INITIATIVE
@@ -1139,9 +1193,13 @@ class FiveMinSystem(BaseV9TradingSystem):
             # S2_CVD_DETECTION_V1: INITIATIVE LONG = with-flow → net buying
             # over the breakout window (cvd[B4] - cvd[B1] > 0).
             import os as _cvd_os3
-            if _cvd_os3.environ.get("S2_CVD_DETECTION_V1", "").lower() in ("1", "true", "yes"):
+            _cvd_mode3 = _cvd_os3.environ.get("S2_CVD_DETECTION_V1", "").lower()
+            if _cvd_mode3 in ("1", "true", "yes", "shadow"):
                 _cvd_i = self._compute_setup_cvd(bars_5m, window=4)
-                if _cvd_i is not None and _cvd_i["net_delta"] < 0:
+                _dr_il = self._cvd_delta_read(_cvd_i, "LONG", bars_5m[-4:])
+                logger.info("[S2-CVD] INITIATIVE LONG delta_read=%s: %s",
+                            _dr_il["reading"], _dr_il["reason"])
+                if _cvd_i is not None and _cvd_i["net_delta"] < 0 and _cvd_mode3 != "shadow":
                     logger.info("[S2-CVD] INITIATIVE LONG rejected: net_delta=%.0f (selling against breakout)", _cvd_i["net_delta"])
                     return (None, 0, {})
             # cc-1: structural anchor = min low of b1..b3 for LONG
@@ -1164,9 +1222,13 @@ class FiveMinSystem(BaseV9TradingSystem):
             # S2_CVD_DETECTION_V1: INITIATIVE SHORT = with-flow → net selling
             # over the breakdown window (cvd[B4] - cvd[B1] < 0).
             import os as _cvd_os4
-            if _cvd_os4.environ.get("S2_CVD_DETECTION_V1", "").lower() in ("1", "true", "yes"):
+            _cvd_mode4 = _cvd_os4.environ.get("S2_CVD_DETECTION_V1", "").lower()
+            if _cvd_mode4 in ("1", "true", "yes", "shadow"):
                 _cvd_i = self._compute_setup_cvd(bars_5m, window=4)
-                if _cvd_i is not None and _cvd_i["net_delta"] > 0:
+                _dr_is = self._cvd_delta_read(_cvd_i, "SHORT", bars_5m[-4:])
+                logger.info("[S2-CVD] INITIATIVE SHORT delta_read=%s: %s",
+                            _dr_is["reading"], _dr_is["reason"])
+                if _cvd_i is not None and _cvd_i["net_delta"] > 0 and _cvd_mode4 != "shadow":
                     logger.info("[S2-CVD] INITIATIVE SHORT rejected: net_delta=+%.0f (buying against breakdown)", _cvd_i["net_delta"])
                     return (None, 0, {})
             # cc-1: structural anchor = max high of b1..b3 for SHORT
