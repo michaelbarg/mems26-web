@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-23 14:10 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-24 08:24 ET
 events:
   - date: 2026-08-24
     time_et: "08:30"
@@ -18,6 +18,10 @@ events:
     time_et: "11:30"
     name: "3-Month Bill Auction"
     severity: yellow
+  - date: 2026-08-24
+    time_et: "14:00"
+    name: "Treasury Secretary Bessent Speech"
+    severity: orange
   - date: 2026-08-25
     time_et: "08:00"
     name: "Building Permits Final"

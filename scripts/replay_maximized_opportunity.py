@@ -157,17 +157,19 @@ def load_data(cur):
 
     cur.execute(
         """
-        select (ts at time zone 'America/New_York') as et, poc, vah, val
+        select (ts at time zone 'America/New_York') as level_et,
+               (created_at at time zone 'America/New_York') as available_et,
+               poc, vah, val
         from v9_tpo_history
         where (ts at time zone 'America/New_York')::date between %s and %s
-        order by ts
+        order by created_at
         """,
         (GPF.D0, GPF.D1),
     )
     tpo = collections.defaultdict(list)
-    for et, poc, vah, val in cur.fetchall():
-        tpo[et.date()].append(
-            (et,
+    for level_et, available_et, poc, vah, val in cur.fetchall():
+        tpo[level_et.date()].append(
+            (level_et, available_et,
              float(poc) if poc is not None else None,
              float(vah) if vah is not None else None,
              float(val) if val is not None else None)
@@ -258,10 +260,13 @@ def causal_context(days, day, bars):
 
 def tpo_levels_at(day, when, snapshots, previous_levels):
     rows = snapshots.get(day, [])
-    times = [r[0] for r in rows]
+    # `v9_tpo_history.ts` is the level's nominal market timestamp, but the row
+    # was often inserted ~3h later. A historical decision may consume a level
+    # only after `created_at`; selecting by `ts` alone is lookahead.
+    times = [r[1] for r in rows]
     pos = bisect_right(times, when) - 1
     if pos >= 0:
-        _, _, vah, val = rows[pos]
+        _, _, _, vah, val = rows[pos]
         if vah is not None and val is not None:
             return vah, val, "developing_tpo"
     return (*previous_levels, "prior_value")
@@ -528,15 +533,16 @@ def summarize(per_day, trades, dates):
     }
 
 
-def run_arm(days, dates, streams, thresholds, *, ranked=False, slots=1, slip=1):
+def run_arm(days, dates, streams, thresholds, *, ranked=False, slots=1,
+            slip=1, contracts=6):
     per_day, trades = {}, []
     for day in dates:
         if ranked:
             day_trades = sim_ranked(days[day], streams[day], thresholds[day],
-                                    contracts=6, slip=slip, slots=slots)
+                                    contracts=contracts, slip=slip, slots=slots)
         else:
             day_trades = GPF.sim_stream(days[day], streams[day], thresholds[day],
-                                        contracts=6, slip=slip, slots=slots)
+                                        contracts=contracts, slip=slip, slots=slots)
         per_day[day] = round(sum(t["usd"] for t in day_trades), 2)
         trades.extend(day_trades)
     return summarize(per_day, trades, dates)
@@ -611,9 +617,14 @@ def main():
         "MAX_2SLOT": run_arm(days, dates, max_context, thresholds, ranked=True, slots=2),
     }
     sensitivity = {}
-    for slip in (0, 1, 2):
-        sensitivity[f"MAX_CONTEXT_s{slip}"] = run_arm(
-            days, dates, max_context, thresholds, ranked=True, slip=slip)
+    for contracts in (4, 6):
+        for slip in (0, 1, 2):
+            sensitivity[f"MAX_CONTEXT_c{contracts}_s{slip}"] = run_arm(
+                days, dates, max_context, thresholds, ranked=True,
+                slip=slip, contracts=contracts)
+            sensitivity[f"MAX_2SLOT_c{contracts}_s{slip}"] = run_arm(
+                days, dates, max_context, thresholds, ranked=True, slots=2,
+                slip=slip, contracts=contracts)
 
     total_opp = sum(len(v) for v in opportunities.values())
     all_current = [c for day in dates for c in current[day]]

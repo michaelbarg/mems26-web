@@ -152,7 +152,8 @@ def compare_to_db(truth_bars, date_str):
     try:
         from backend.v9.db.read import read_all
         db_rows = read_all(
-            "SELECT ts, high, low, close FROM v9_bars_5min_woodies "
+            "SELECT (ts AT TIME ZONE 'America/New_York') AS ts, "
+            "high, low, close FROM v9_bars_5min_woodies "
             "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d ORDER BY ts",
             {"d": date_str},
         )
@@ -162,6 +163,10 @@ def compare_to_db(truth_bars, date_str):
     # Build DB lookup by ts (minute-precision)
     db_by_ts = {}
     for r in db_rows:
+        # The database connection uses Asia/Jerusalem. Selecting raw
+        # timestamptz and calling strftime() compared IL wall-clock to the
+        # truth bar's ET wall-clock, yielding a false 0-4% match. The query
+        # above aliases an explicit ET timestamp so minute keys are comparable.
         ts = r["ts"]
         if hasattr(ts, "strftime"):
             key = ts.strftime("%H:%M")
