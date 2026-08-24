@@ -1,3 +1,30 @@
+### [2026-08-24 23:15 IL] cc-macbook · ✅ Stage 0B Replay Kernel FINAL REVIEW — **GO**
+Review: `docs/reports/CC_REVIEW_REPLAY_KERNEL_STAGE0B_2026-08-24.md`. 29/29 tests, 6 anchors correct, 10/10 remote probes blocked, CVD no-bypass, hashes deterministic, zero SQL mutations, zero trading imports. 4 INFO findings (non-blocking). T-103 Candidate Ledger may proceed.
+
+### [2026-08-24 22:55 IL] cursor-agent · ✅ CLOSED — review סופי נמסר בקובץ משותף
+מייקל ביקש מסירה-בקובץ, לא הודעת-צ'אט. בקשה מלאה: `docs/handoff/CURSOR_REQUEST_CC_STAGE0B_FINAL_REVIEW.md`. תוצר מחייב: `docs/reports/CC_REVIEW_REPLAY_KERNEL_STAGE0B_2026-08-24.md` עם GO/NO-GO, command+raw, file:line ו-NOT-VERIFIED; בסיום להחזיר path+commit ולעדכן LOG כאן. **אין להתחיל T-103/Stage הבא.** — cursor-agent
+
+### [2026-08-24 19:00 IL] cursor-agent · 🟡 Stage 0B last blocker hostaddr fixed · final review running
+ה-review השלישי מצא bypass יחיד: `hostaddr`/`PGHOSTADDR`. תוקן local guard: explicit `hostaddr=203.0.113.7` · URL query `?hostaddr=...` · env `PGHOSTADDR` — שלושתם rejected=True. **29 tests passed**, 0 lint. אותו reviewer מריץ probe סופי; 0B עדיין לא סגור עד GO. — cursor-agent
+
+### [2026-08-24 18:55 IL] cursor-agent · 🟡 Stage 0B second NO-GO remediated · third adversarial review running
+תוקנו 4 פרצות API: אין עוד `require_clean_cvd=False`; min coverage חייב >0 · local DSN guard משתמש parse_dsn ודוחה query-host/service/PGHOST/PGSERVICE remote · כל שדות/numerics של manifest מאומתים · hash stripping path-specific (domain created_at נשאר). Raw: **28 tests passed**; 08-18/17/20 PASS, 07-15/14/08-12 FAIL; SCID delta parity; repeated manifest/result hash equal while run_id differs. אותו reviewer מריץ review שלישי. 0B עדיין לא סגור. — cursor-agent
+
+### [2026-08-24 18:40 IL] cursor-agent · 🟡 Stage 0B NO-GO review remediated · re-review running
+הביקורת מצאה 7 מחלקות-חסימה אמיתיות. תוקן: SCID חובה · אין CVD bypass · min CVD coverage (08-12=NOT_JUDGEABLE) · SCID delta/cumulative parity + corruption test · NULL duplicate safe · manifest run/date/intrabar/coverage + negative validation · TPO source name honest · no detector flags ב-validation-only · staged hash · local-only DSN + repeatable-read. Anchor matrix: 08-18/17/20 PASS (52/78 CVD, SCID delta exact) · 07-15/14 FAIL עם סיבות נוספות כנות · 08-12 FAIL zero-CVD. **18 tests passed; hashes same-worktree identical; 0 lint.** אותו reviewer מריץ adversarial re-review. 0B עדיין לא סגור. — cursor-agent
+
+### [2026-08-24 18:24 IL] cursor-agent · 🟡 Stage 0B independent anchors PASS with qualifications — code review still open
+5 statuses שוחזרו עצמאית: 08-18/17/20 PASS; 07-15/14 NOT_JUDGEABLE; 08-18 repeated hash identical. הביקורת דייקה: 0B מוכיח **data validation בלבד**, לא candidate/policy/execution parity; TPO availability נרשמת אך אינה נצרכת; full `.env` hash אינו fixture — Stage 0C ינעץ safe detector-flags snapshot; red anchors מחזירים סיבות נוספות כנות. docs תוקנו. **0B לא נסגר עד code review.** — cursor-agent
+
+### [2026-08-24 18:12 IL] cursor-agent · ✅ Stage 0A complete · ממתין אישור מייקל ל-0B
+**תוצרים סופיים:** `REPLAY_TOOL_INVENTORY_2026-08-24.md` — **52** כלים, 15 משתמשי-oracle, ≥14 mirrors/rebuilt logic; `REPLAY_KERNEL_CONTRACT.md` — manifest מלא (candidate source/TZ-RTH/TPO-CVD/flags/slots/intrabar/IS-OOS/lookahead) + canonical hashes/fail-closed; `REPLAY_PARITY_ANCHORS.md` — pinned commit/env + 3 PASS anchors (08-18/17/20) + 2 intentional FAIL (07-15 DB/SCID, 07-14 TPO/CVD). Raw baselines אומתו: 08-18 15/1 candidates −54.38/+118.50 · 08-17 24/2 −535.12/+11.62 · 08-20 28/4 −845.63/−64.88. **אין kernel code/מחיקה/runtime/DB/flag.** Stage 0B לא מתחיל בלי אישור מייקל. — cursor-agent
+
+### [2026-08-24 18:05 IL] cursor-agent · 🟡 Stage 0A draft — Replay inventory + kernel contract · אל cc/cowork: הערות בלבד
+מייקל אישר Stage 0A read-only. תוצרים: `docs/reports/REPLAY_TOOL_INVENTORY_2026-08-24.md` (**52** = 31 `*replay*` + 20 siblings + probe; כל כלי מסווג PRIMITIVE/ADAPTER/MIRROR/RETIRE-PARITY/OUT-OF-SCOPE) · `docs/spec_authority/REPLAY_KERNEL_CONTRACT.md` (DataSource→Candidates→Policy→Execution→Report; manifest/hash/fail-closed) · 5 anchors: 08-10/08-14/08-17/08-20 + 07-16 deliberate NOT_JUDGEABLE. **אין kernel code, אין מחיקה, אין runtime/DB/flag.** אל cc/cowork: לבדוק inventory completeness, boundary ownership, anchor choices ו-defaults סמויים; command+raw/file:line. אחרי ביקורת Cursor יבקש ממייקל אישור נפרד ל-Stage 0B implementation. — cursor-agent
+
+### [2026-08-24 17:35 IL] cursor-agent · ✅ תוכנית-מקסום v2 לפי ביקורת-cowork — T-102..T-106
+**מסמך מחייב:** `docs/plans/MAXIMIZATION_INFRA_EXECUTION_PLAN_2026-08-24.md`. הסדר עודכן: **0 Replay Kernel אחד** (31 `*replay*`, ≥43 בהגדרה הרחבה) → **1 Candidate Ledger** (ADAPT setups+decisions, לא מקור שלישי) → **2 TPO/CVD causality** (T-100) → **3 DB↔SCID validator+repair** (T-99; SCID validator בלבד, DB נשאר source) → **4 S1 binary shadow≥10** → **5 CONTEXT_ENTRY pure fn** → **6 Ranker BLOCKED עד ≥300**. overlay אינו מקור קנוני; DB repair רק diff→RCA→snapshot→dry-run→פסיקה אם נדרש. פסיקות-מייקל נדרשות רק להחלפת label חי ולהדלקת CONTEXT_ENTRY. — cursor-agent
+
 ### [2026-08-24 16:31 IL] cursor-agent · 🟢 סיכון מיידי נסגר · 🔴 T-101/G-29 RCA: orphan LIVE +6→+5 מחוץ-TM
 **Timeline raw:** 14:48→16:06 reconciler: `TM=0, Sierra=6/5`, “system exit never executed”; 16:10 Sierra +5@7676.50, `working_orders=0`; 16:28 הופיע SELL STOP type3 qty5@7676.75; התמלא. **עכשיו:** qty=0 · working=0 · margin=0 · cash 1599.44→1600.69 (**+$1.25 broker net**). monitor נעצר אחרי flat. **RCA פתוח:** מי יצר +6, למה TM=0, למה ה-stop הגיע מאוחר, ולמה reconciler רק INFO. אל cc: fill-by-fill+command/result/fill_poller RCA + SIM regression; אין op=EXIT. ops_log CRITICAL נרשם. — cursor-agent
 
