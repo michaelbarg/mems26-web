@@ -29,6 +29,20 @@ _STATE = _EXPORT / "sierra_state.json"
 _MES_MARGIN = 276.21          # fallback; live value derives from the account block
 
 
+def _is_gate_line(line: str) -> bool:
+    """T-103B §3b: True for lines that represent gate decisions (not DETECTED/EMIT)."""
+    if not line or line[0] != '{':
+        return False
+    # Fast path: DETECTED/EMIT events contain the event_type marker.
+    # The ledger writes with separators=(",",":") (no space) but json.dumps
+    # with default formatting adds a space — match both.
+    if '"DETECTED"' in line and '"event_type"' in line:
+        return False
+    if '"EMIT_' in line and '"event_type"' in line:
+        return False
+    return True
+
+
 def _sierra() -> Dict[str, Any]:
     try:
         raw = _re.sub(r':\s*-?inf\b', ':null', _STATE.read_text().strip() or "{}")
@@ -105,8 +119,11 @@ def _gates_last_hour() -> Dict[str, Any]:
             return out
         cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
         counts: Dict[str, int] = {}
-        # tail-read: the file grows all day; last ~1500 lines cover an hour easily
-        lines = _DECISIONS.read_text(encoding="utf-8").splitlines()[-1500:]
+        # T-103B §3b: filter BEFORE truncation. DETECTED events from the
+        # candidate ledger would swallow the window and hide gate decisions.
+        from backend.v9.services.candidate_ledger import is_ui_decision
+        lines = [ln for ln in _DECISIONS.read_text(encoding="utf-8").splitlines()
+                 if _is_gate_line(ln)][-1500:]
         for ln in lines:
             try:
                 d = json.loads(ln)
@@ -133,7 +150,9 @@ def _gates_last_hour() -> Dict[str, Any]:
 def _release_state() -> Dict[str, Any]:
     """The release gate's current posture, judged from the freshest decision."""
     try:
-        lines = _DECISIONS.read_text(encoding="utf-8").splitlines()[-200:]
+        # T-103B §3b: filter before truncation (same fix as _gates_last_hour)
+        lines = [ln for ln in _DECISIONS.read_text(encoding="utf-8").splitlines()
+                 if _is_gate_line(ln)][-200:]
         for ln in reversed(lines):
             try:
                 d = json.loads(ln)

@@ -383,6 +383,15 @@ def _stop_table_should_apply(*, in_band: bool, rejected: bool,
     return float(risk_points) <= float(effective_cap_pts) + 1e-9
 
 
+def _is_ui_decision_row(row: dict) -> bool:
+    """Skip ledger DETECTED/EMIT/RESOLVED when hydrating the fire panel."""
+    try:
+        from backend.v9.services.candidate_ledger import is_ui_decision
+        return is_ui_decision(row)
+    except Exception:
+        return row.get("event_type") in (None, "GATE_DECISION", "ROUTED")
+
+
 class TradingGateway:
     """Central trade routing: SHADOW (unlimited) / DEMO (1 slot) / LIVE (1 slot + risk)."""
 
@@ -445,6 +454,8 @@ class TradingGateway:
                     continue
                 try:
                     d = json.loads(line)
+                    if not _is_ui_decision_row(d):
+                        continue
                     if d.get("ts", "")[:10] == today:
                         self.decisions.append(d)
                         count += 1
@@ -474,8 +485,29 @@ class TradingGateway:
             p = self._decisions_path
             if not p.exists():
                 return
-            mday = datetime.fromtimestamp(
-                p.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d")
+            # T-103B §3a: use the FIRST line's ts, not mtime. The ledger
+            # writes DETECTED events before route_setup, so mtime jumps to
+            # today before the rotation check — breaking the "new day" test.
+            # Reading the first ts is the honest check: what day does the
+            # file's CONTENT belong to?
+            mday = None
+            try:
+                with open(p, "r", encoding="utf-8") as _rf:
+                    for _rl in _rf:
+                        _rl = _rl.strip()
+                        if not _rl:
+                            continue
+                        _rd = json.loads(_rl)
+                        _rts = _rd.get("ts") or _rd.get("observed_at") or ""
+                        if _rts:
+                            mday = str(_rts)[:10]
+                            break
+            except Exception:
+                pass
+            if mday is None:
+                # Fallback to mtime if file has no parseable ts
+                mday = datetime.fromtimestamp(
+                    p.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%d")
             if mday >= today:
                 return  # file already belongs to today
             arch = p.parent / "decisions_archive"
@@ -772,6 +804,23 @@ class TradingGateway:
                     "t2": setup.get("t2"),
                     "t3": setup.get("t3"),
                 }
+            try:
+                from backend.v9.services.candidate_ledger import enabled as _led_on
+                if _led_on():
+                    _cid = setup.get("candidate_id") or (
+                        setup.get("metadata") or {}).get("candidate_id")
+                    if _cid:
+                        _dec["candidate_id"] = _cid
+                    _dec["event_type"] = "GATE_DECISION" if bb else "ROUTED"
+                    if bb and "mfe_track" not in _dec:
+                        _dec["mfe_track"] = {
+                            "stop": setup.get("stop"),
+                            "t1": setup.get("t1"),
+                            "t2": setup.get("t2"),
+                            "t3": setup.get("t3"),
+                        }
+            except Exception:
+                pass
             self.decisions.append(_dec)
             self._persist_decision(_dec)
         except Exception:

@@ -20,10 +20,14 @@ No `v9_candidate_events` table and no second JSONL.
 ```text
 DETECTED
   → EMIT_DECISION (ALLOW | REJECT)
-  → GATE_DECISION (ALLOW | BLOCK)
-  → ROUTED (SHADOW | DEMO | LIVE | NONE)
+  → GATE_DECISION (blocked)  |  ROUTED (not blocked)
   → RESOLVED
 ```
+
+`GATE_DECISION` and `ROUTED` are **mutually exclusive** on a single row
+(`trading_gateway.py:814`): a candidate is either blocked (GATE_DECISION) or
+routed (ROUTED), never both. They are not two sequential stages — a funnel
+that expects to see both will show "0% routed" for every blocked candidate.
 
 Not every candidate reaches every stage. Missing stages are meaningful.
 

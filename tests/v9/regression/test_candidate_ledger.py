@@ -244,3 +244,61 @@ def test_flag_off_emit_does_not_write(monkeypatch, tmp_path):
     )
     assert result is None
     assert _lines(Path(os.environ["GATEWAY_DECISIONS_PATH"])) == []
+
+
+# ── T-103B §3 blocker tests ──
+
+
+def test_rotation_not_broken_by_ledger_write(monkeypatch, tmp_path):
+    """§3a: ledger writing first on a new day must NOT prevent rotation."""
+    from backend.v9.gateway.trading_gateway import TradingGateway
+    import json as _json
+    # Simulate yesterday's file with a ts from yesterday
+    decisions_path = tmp_path / "gateway_decisions.jsonl"
+    yesterday_row = _json.dumps({
+        "ts": "2026-08-17T14:30:00+00:00", "pattern": "ZLR", "blocked_by": None
+    })
+    decisions_path.write_text(yesterday_row + "\n")
+    # The ledger appends a DETECTED event — this updates mtime to today
+    ledger_row = _json.dumps({
+        "event_type": "DETECTED", "observed_at": "2026-08-18T13:30:00+00:00",
+        "candidate_id": "abc", "pattern": "REACTIVE_LONG",
+    })
+    with open(decisions_path, "a") as f:
+        f.write(ledger_row + "\n")
+    # Now try to rotate — the fix should read the first line's ts (yesterday)
+    # and rotate despite the mtime being today
+    gw = TradingGateway.__new__(TradingGateway)
+    gw._decisions_path = decisions_path
+    gw._decisions_rotated_day = None
+    gw._rotate_decisions_if_new_day()
+    # After rotation, the file should be gone (renamed to archive)
+    arch = tmp_path / "decisions_archive"
+    assert arch.exists() or not decisions_path.exists() or \
+        decisions_path.read_text().strip() == "", \
+        "rotation should have moved yesterday's file"
+
+
+def test_radar_window_not_swallowed_by_detected(tmp_path):
+    """§3b: 200 DETECTED events must not hide an awaiting_release decision."""
+    import json as _json
+    from backend.v9.api.v9.context_radar import _is_gate_line
+    # A gate decision line
+    gate_line = _json.dumps({
+        "ts": "2026-08-18T14:00:00+00:00",
+        "blocked_by": "awaiting_release",
+        "reason": "zone not released",
+    })
+    # A detected line
+    detected_line = _json.dumps({
+        "event_type": "DETECTED",
+        "candidate_id": "abc",
+        "pattern": "ZLR",
+    })
+    assert _is_gate_line(gate_line) is True
+    assert _is_gate_line(detected_line) is False
+    # 200 DETECTED + 1 gate → filter must preserve the gate
+    all_lines = [detected_line] * 200 + [gate_line]
+    filtered = [ln for ln in all_lines if _is_gate_line(ln)]
+    assert len(filtered) == 1
+    assert "awaiting_release" in filtered[0]

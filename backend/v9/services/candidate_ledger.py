@@ -30,8 +30,21 @@ _LIVE_PATH_MARKERS = (
 
 _lock = threading.Lock()
 _seen_event_ids = set()
-_cached_commit: Optional[str] = None
 _warned = False
+
+# T-103B §4: resolve git commit at IMPORT time, not in the first event.
+# The old lazy-init ran subprocess inside process_bar; if CC commits
+# at that instant (.git/index.lock), git rev-parse blocks for up to 2s
+# on live detection. Import-time is safe: the module loads at boot.
+try:
+    _cached_commit: Optional[str] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"],
+        cwd=str(Path(__file__).resolve().parents[3]),
+        timeout=2,
+        stderr=subprocess.DEVNULL,
+    ).decode().strip()[:40]
+except Exception:
+    _cached_commit = "unknown"
 
 
 def enabled() -> bool:
@@ -228,20 +241,8 @@ def _as_utc(value: Any) -> datetime:
 
 
 def _code_commit() -> str:
-    global _cached_commit
-    if _cached_commit:
-        return _cached_commit
-    try:
-        root = Path(__file__).resolve().parents[3]
-        _cached_commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(root),
-            timeout=2,
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()[:40]
-    except Exception:
-        _cached_commit = "unknown"
-    return _cached_commit
+    """Return cached commit hash (resolved at import time, §4)."""
+    return _cached_commit or "unknown"
 
 
 def _swallow(location: str, exc: BaseException) -> None:

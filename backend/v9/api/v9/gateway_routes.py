@@ -57,7 +57,14 @@ async def gateway_decisions(request: Request, limit: int = 60):
     today_il = _dt.now(_il).date()
     by_gate: dict = {}
     fired = blocked = shadow_only = 0
+    try:
+        from backend.v9.services.candidate_ledger import is_ui_decision as _ui
+    except Exception:
+        def _ui(d):
+            return d.get("event_type") in (None, "GATE_DECISION", "ROUTED")
     for d in buf:
+        if not _ui(d):
+            continue
         try:
             ts_il = _dt.fromisoformat(d["ts"]).astimezone(_il)
             if ts_il.date() != today_il:
@@ -94,8 +101,11 @@ async def gateway_decisions(request: Request, limit: int = 60):
     except Exception:
         pass  # enrichment is best-effort
 
+    # T-103B §3c: filter BEFORE truncation. Ledger DETECTED events in buf
+    # would consume the 200-slot window and hide real gate decisions.
+    _ui_buf = [d for d in buf if _ui(d)]
     out = []
-    for d in buf[-max(1, min(int(limit), 200)):][::-1]:  # newest first
+    for d in _ui_buf[-max(1, min(int(limit), 200)):][::-1]:  # newest first
         e = dict(d)
         try:
             e["t_il"] = _dt.fromisoformat(d["ts"]).astimezone(_il).strftime("%H:%M:%S")
