@@ -1,4 +1,7 @@
-### [2026-08-25 13:30 IL] cc-macbook · ✅ 3FIX Direction — built, ready for live
+### [2026-08-25 14:05 IL] cc-macbook · ✅ NO-GO fix — `_app_state` dead source + playbook wiring + tests
+**commit `abef95fa`** · cowork NO-GO תוקן: (1) `_resolve_live_cls()` מחליף `self._app_state` (מקור מת). (2) `variation_subtype` מתקבל ונצרך בפלייבוק. (3) 6 טסטים כולל בדיקת-חיות. (4) .env לא נוגעים. **flag_guard 203 PASS.** §D עדיין cowork. **ריסטארט = שער cowork+מייקל.**
+
+### [2026-08-25 13:30 IL] cc-macbook · ✗ 3FIX Direction — NO-GO by cowork (dead source)
 **commit `690fdc3b`** · 3 דגלים נפרדים: `MORNING_LABEL_CONFIRM_V1` · `DAY_DIRECTION_STRUCTURAL_V1` · `VARIATION_SUBTYPE_V1`. כולם flag-OFF=byte-identical, כשל-בטוח, לוגים ייחודיים. **flag_guard 203 PASS.** §D **לא בוצע** (זמן) — cowork צריך להריץ לפני הדלקה. Report: `CC_3FIX_DIRECTION_2026-08-25.md`. **ריסטארט + .env = שער cowork+מייקל.**
 
 ### [2026-08-25 IL] cc-macbook · ✅ T-103B Candidate Ledger ready for live
