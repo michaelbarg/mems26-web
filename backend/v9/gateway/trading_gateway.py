@@ -1183,19 +1183,50 @@ class TradingGateway:
                 # expansion dir + entry/VA levels so require_with_trend uses
                 # day-direction / location, not momentary trend_state.
                 _pb_kw = {}
+                # Fix 2: DAY_DIRECTION_STRUCTURAL_V1 — day direction from
+                # session structure (IB break + acceptance / value migration),
+                # not from 6-bar LSMA momentum. Priority 0 (supersedes all
+                # below when available). Trend_* only to protect balance-day
+                # reactive trades (in-IB era-A: +3.93 nq/c on n=53).
+                if os.getenv("DAY_DIRECTION_STRUCTURAL_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _dds_dt = _pb_g1.get("day_type_at_entry", "")
+                        if _dds_dt and _dds_dt.startswith("Trend"):
+                            # Read accepted_break from the live classify result
+                            _dds_cls = getattr(
+                                getattr(self, "_app_state", None),
+                                "last_cls_result", None) or {}
+                            _dds_ab = _dds_cls.get("accepted_break")
+                            if _dds_ab in ("UP", "DOWN"):
+                                _pb_kw["day_direction"] = _dds_ab
+                                logger.info(
+                                    "[DayDirStruct] structural day_direction=%s "
+                                    "(accepted_break on %s)", _dds_ab, _dds_dt)
+                            else:
+                                # Value migration as secondary structural signal
+                                _dds_m = (_dds_cls.get("measured") or {}).get("value_migration")
+                                if _dds_m in ("UP", "DOWN"):
+                                    _pb_kw["day_direction"] = _dds_m
+                                    logger.info(
+                                        "[DayDirStruct] structural day_direction=%s "
+                                        "(value_migration on %s)", _dds_m, _dds_dt)
+                    except Exception as _dds_err:
+                        logger.warning("[DayDirStruct] structural direction failed "
+                                       "(fail-open): %s", _dds_err)
                 if os.getenv("REQUIRE_WITH_TREND_DAY_DIRECTION_V1", "0").lower() in (
                     "1", "true", "yes",
                 ):
-                    try:
-                        from backend.v9.services.trade_context import get_live_expansion
-                        _pb_exp = get_live_expansion()
-                        if _pb_exp and _pb_exp.get("dir") in ("UP", "DOWN"):
-                            _pb_kw["day_direction"] = _pb_exp["dir"]
-                    except Exception as _pb_exp_err:
-                        logger.warning(
-                            "[Gateway] get_live_expansion for playbook failed (fail-open): %s",
-                            _pb_exp_err,
-                        )
+                    if "day_direction" not in _pb_kw:
+                        try:
+                            from backend.v9.services.trade_context import get_live_expansion
+                            _pb_exp = get_live_expansion()
+                            if _pb_exp and _pb_exp.get("dir") in ("UP", "DOWN"):
+                                _pb_kw["day_direction"] = _pb_exp["dir"]
+                        except Exception as _pb_exp_err:
+                            logger.warning(
+                                "[Gateway] get_live_expansion for playbook failed (fail-open): %s",
+                                _pb_exp_err,
+                            )
                     # RESPONSIVE_WITH_DAY_TREND_V1 (Michael 2026-07-23): when there is
                     # no volume-accepted break, fall back to the HELD LSMA dir_bias so
                     # a plain trend day (no clean expansion event, e.g. 07-23's RED
@@ -1308,9 +1339,37 @@ class TradingGateway:
                                 "decision: %s", _dh_err)
                     if _pb_levels.get("vah") is not None and _pb_levels.get("val") is not None:
                         _pb_kw["levels"] = _pb_levels
+                # Fix 3: VARIATION_SUBTYPE_V1 — split Variation into two
+                # sub-behaviors: directional (accepted IB break → trend-like
+                # with-trend-only) vs rotational (no break → balance-like
+                # fade-at-edge). Evidence: ALL 4 Variation cells are negative
+                # (-$4.30 to -$3.64/c in era-A); ZLR/Var/SHORT alone = n=65,
+                # 32%, -$2,412. The merge hides the distinction.
+                _pb_dt = _pb_g1.get("day_type_at_entry")
+                if (os.getenv("VARIATION_SUBTYPE_V1", "0").lower() in ("1", "true", "yes")
+                        and _pb_dt in ("Variation", "Normal_Variation")):
+                    try:
+                        _vs_cls = getattr(
+                            getattr(self, "_app_state", None),
+                            "last_cls_result", None) or {}
+                        _vs_ab = _vs_cls.get("accepted_break")
+                        if _vs_ab in ("UP", "DOWN"):
+                            # Directional Variation: IB break accepted → trend-like
+                            _pb_kw["variation_subtype"] = "directional"
+                            logger.info(
+                                "[VarSubtype] %s: directional (accepted_break=%s) "
+                                "→ with-trend-only applies", _pb_dt, _vs_ab)
+                        else:
+                            # Rotational Variation: no accepted break → balance-like
+                            _pb_kw["variation_subtype"] = "rotational"
+                            logger.info(
+                                "[VarSubtype] %s: rotational (no accepted break) "
+                                "→ fade-at-edge applies", _pb_dt)
+                    except Exception as _vs_err:
+                        logger.warning("[VarSubtype] error (fail-open): %s", _vs_err)
                 _pb = _pb_decide(
                     pattern=resolve_pattern_id(setup, _pb_g1),
-                    day_type=_pb_g1.get("day_type_at_entry"),
+                    day_type=_pb_dt,
                     direction=direction,
                     trend_state=(_pb_woodies or {}).get("trend_state"),
                     **_pb_kw,
@@ -1365,10 +1424,63 @@ class TradingGateway:
                             # second notion of "untrustworthy label". Default OFF → False →
                             # byte-identical.
                             elif _daytype_provisional():
-                                _pb_conf_ok = False
+                                # T-103B Fix 1: MORNING_LABEL_CONFIRM_V1
+                                # Pre-IB-lock: label is unreliable. The old code
+                                # degraded the veto to advisory (_pb_conf_ok=False),
+                                # letting trades through WITHOUT a reliable label.
+                                # Evidence: <10:30 ET went from 57% +$1,075 (era-A)
+                                # to 19% -$1,481 (era-B). Fix: require structural
+                                # confirmation that doesn't depend on the label.
+                                if os.getenv("MORNING_LABEL_CONFIRM_V1", "0").lower() in ("1", "true", "yes"):
+                                    _morning_confirmed = False
+                                    try:
+                                        # Confirmation 1: IB side break + acceptance
+                                        _mc_tpo = (cross_context.get("tpo_system")
+                                                   if isinstance(cross_context, dict) else None) or {}
+                                        _mc_ibh = _mc_tpo.get("ib_high")
+                                        _mc_ibl = _mc_tpo.get("ib_low")
+                                        _mc_price = setup.get("entry_price")
+                                        _mc_dir = setup.get("direction", "").upper()
+                                        if _mc_ibh and _mc_ibl and _mc_price:
+                                            # Price accepted beyond IB edge in trade direction
+                                            if _mc_dir == "LONG" and float(_mc_price) > float(_mc_ibh):
+                                                _morning_confirmed = True
+                                            elif _mc_dir == "SHORT" and float(_mc_price) < float(_mc_ibl):
+                                                _morning_confirmed = True
+                                        # Confirmation 2: opening_type agrees with direction
+                                        if not _morning_confirmed:
+                                            try:
+                                                from backend.v9.services.trade_context import get_opening_type_seed
+                                                _mc_ots = get_opening_type_seed()
+                                                if (_mc_ots == "UP" and _mc_dir == "LONG") or \
+                                                   (_mc_ots == "DOWN" and _mc_dir == "SHORT"):
+                                                    _morning_confirmed = True
+                                            except Exception:
+                                                pass
+                                    except Exception:
+                                        pass
+                                    if not _morning_confirmed:
+                                        logger.warning(
+                                            "[MorningConfirm] pre-IB-lock entry BLOCKED: "
+                                            "no structural confirmation for %s %s (label=%s)",
+                                            setup.get("direction"),
+                                            setup.get("pattern") or setup.get("classification"),
+                                            _pb_dt or "?")
+                                        # Keep the playbook block active
+                                    else:
+                                        _pb_conf_ok = False  # confirmed → degrade to advisory
+                                        logger.warning(
+                                            "[MorningConfirm] pre-IB-lock entry CONFIRMED: "
+                                            "%s %s — structural confirmation present",
+                                            setup.get("direction"),
+                                            setup.get("pattern") or setup.get("classification"))
+                                else:
+                                    _pb_conf_ok = False  # legacy: degrade to advisory
                                 logger.warning(
-                                    "[Gateway] day-type playbook SKIP degraded to "
-                                    "ADVISORY (PROVISIONAL label — pre-IB-lock): %s",
+                                    "[Gateway] day-type playbook SKIP %s to "
+                                    "%s (PROVISIONAL label — pre-IB-lock): %s",
+                                    "kept as BLOCK" if _pb_conf_ok else "degraded to ADVISORY",
+                                    "confirmed" if not _pb_conf_ok else "unconfirmed",
                                     _pb.reason)
                         except Exception:
                             _pb_conf_ok = True  # unknown ⇒ unchanged legacy behavior

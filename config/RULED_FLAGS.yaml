@@ -91,6 +91,11 @@ ruled:
   CANDIDATE_LEDGER_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-25", note: "פסיקת 25.08 ('תוסיף את מה שהמלצת ככלי שבוחן ירי'). JSONL-only observability: DETECTED/EMIT_DECISION/GATE_DECISION/ROUTED events appended to gateway_decisions.jsonl. Never blocks detection/routing. §3a rotation fix + §3b radar filter." }
   DOUBLE_TOP_ADAM_FIX_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-23", note: "פסיקת 21:20 ('מאשר — צריך לסחור אותו יותר'). סבילות-Adam נפרדת (2 טיקים) + חוצץ-32. 1 סטאפ ב-34 סשנים → צפוי ~7-10 מועמדים. +$582 נמדד (סבילות+חוצץ כזוג בלבד). אין רגרסיה ל-DOUBLE_BOTTOM_EE: get_trough_tolerance נשאר ללא שינוי." }
 
+  # ── פסיקת-מייקל 25.08: שלושה תיקוני-כיוון — לייב היום ──
+  MORNING_LABEL_CONFIRM_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-25", note: "תיקון 1: חלון-בוקר טרום-נעילה. <10:30 ET עידן-B n=16 19% -$1,481. טרום-נעילה דורש אישור מבני (IB-break/opening-type) במקום הסרת-שומר. 04.08 שורד." }
+  DAY_DIRECTION_STRUCTURAL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-25", note: "תיקון 2: כיוון-יום ממבנה-סשן (IB-break+acceptance / value-migration), לא מ-6 ברי LSMA. Trend_* בלבד. TN SHORT -10.27/c." }
+  VARIATION_SUBTYPE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-25", note: "תיקון 3: פיצול Variation ל-directional (IB break accepted → with-trend) / rotational (no break → balance fade). ZLR/Var/SHORT n=65 32% -$2,412." }
+
   # ── פסיקת-מייקל 2026-07-19: סף אין-כניסות-לייב-חדשות 14:30 → 15:30 ET (22:30 IL) ──
   # ראיה (ספר-הצללים 07-17): הסף הישן שלח 4 עסקאות ל-shadow — 3 שורטי-S4 מנצחים (+$148.75)
   # ולונג-S2 מפסיד (−$86.25) = נטו +$62.50 שהסף עלה לנו. חוסם עכשיו רק 30 דק' אחרונות.
