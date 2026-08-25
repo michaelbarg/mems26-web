@@ -817,6 +817,23 @@ async def _startup():
                     _ot = getattr(day_type_machine.opening, 'opening_type', None)
                     if _ot:
                         _machine_opening = _ot.value if hasattr(_ot, 'value') else str(_ot)
+                # Root 1 fix (3ROOTS 25.08): save opening_type_result to app.state
+                # so market_context.py can read it. Was NEVER written → balance=UNKNOWN 673/673.
+                if _os.environ.get("APP_STATE_ROOT_FIX_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _ot_dir = None
+                        if hasattr(day_type_machine, 'opening') and day_type_machine.opening:
+                            _ot_dir_raw = getattr(day_type_machine.opening, 'direction', None)
+                            if _ot_dir_raw:
+                                _ot_dir = _ot_dir_raw.value if hasattr(_ot_dir_raw, 'value') else str(_ot_dir_raw)
+                        app.state.opening_type_result = {
+                            "opening_type": _machine_opening,
+                            "direction": _ot_dir or "NEUTRAL",
+                            "confidence": round(state.confidence, 2),
+                        }
+                    except Exception:
+                        pass
+
                 if dt_val != _prev_day_type["value"]:
                     _logger.info("[DayType] Classification changed: %s -> %s (conf=%.2f)",
                                  _prev_day_type["value"], dt_val, state.confidence)

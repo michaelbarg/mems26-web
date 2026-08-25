@@ -80,7 +80,61 @@ def main():
         print("שינוי דגל שנפסק = פסיקת מייקל בכתב + עדכון config/RULED_FLAGS.yaml באותו קומיט.")
         return 1
     print(f"\nFLAG-GUARD: PASS — all {len(ruled)} ruled flags match.")
+
+    # ── Second tooth (3ROOTS audit, 25.08): liveness checks ──
+    # These REPORT but do not block GO.
+    _second_tooth(ruled, envs)
+
     return 0
+
+
+def _second_tooth(ruled, envs):
+    """Report flags that are technically correct but functionally dead."""
+    import glob
+    src_dirs = [
+        os.path.join(ROOT, "backend"),
+        os.path.join(ROOT, "bridge"),
+    ]
+    # Exclude non-production files
+    exclude_patterns = {"_INDEX.md", "FLAG_REGISTRY", "RULED_FLAGS", "__pycache__"}
+    test_patterns = {"/tests/", "/test_", "conftest"}
+
+    inert = []
+
+    for flag, spec in sorted(ruled.items()):
+        want = spec["expected"]
+        have = envs.get(flag)
+        if want == "unset_or_0" or have in (None, "", "0"):
+            continue  # OFF flags are intentionally silent
+
+        # Check 1: ≥1 read-site in production code
+        read_sites = 0
+        for src_dir in src_dirs:
+            for root_d, _, files in os.walk(src_dir):
+                for fname in files:
+                    if not fname.endswith(".py"):
+                        continue
+                    fpath = os.path.join(root_d, fname)
+                    if any(p in fpath for p in exclude_patterns):
+                        continue
+                    is_test = any(p in fpath for p in test_patterns)
+                    if is_test:
+                        continue
+                    try:
+                        content = open(fpath, encoding="utf-8", errors="replace").read()
+                        if flag in content:
+                            read_sites += 1
+                    except Exception:
+                        pass
+        if read_sites == 0:
+            inert.append((flag, "NO_READ_SITE", "0 production code references"))
+
+    if inert:
+        print(f"\n  ── LIVENESS REPORT ({len(inert)} flags with no production read-site) ──")
+        for flag, code, detail in inert:
+            print(f"  ⚠ {flag}: {code} — {detail}")
+    else:
+        print(f"\n  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──")
 
 
 if __name__ == "__main__":

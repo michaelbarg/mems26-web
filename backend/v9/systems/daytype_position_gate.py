@@ -39,13 +39,25 @@ _CONT_PATTERNS = frozenset({
     # is not acceptable for a new pattern).
     "CONFLUENCE_RI_ZLR",
 })
-_REV_PATTERNS = frozenset({
+_REV_PATTERNS_BASE = frozenset({
     "REACTIVE", "REACTIVE_LONG", "REACTIVE_SHORT",
     "INVERSE_HNS", "INVERSE_HNS_LONG", "HNS_TOP", "HNS_TOP_SHORT",
     "DOUBLE_BOTTOM_EE", "DOUBLE_BOTTOM_EE_LONG",
     "DOUBLE_TOP_AA", "DOUBLE_TOP_AA_SHORT",
     "VEGAS", "GHOST", "FAMIR", "HTLB", "HFE",
 })
+# Root 2 (3ROOTS 25.08): PATTERN_FAMILY_DELTA_DBL_V1 — add S2_DELTA_DBL
+# to the reversal family. Without this, the pattern is invisible to the
+# position gate and playbook (105/108 gateway blocks are on this pattern).
+# Flag OFF = same as today (unmapped → None → fail-open FULL).
+_DELTA_DBL_PATTERNS = frozenset({
+    "S2_DELTA_DBL", "S2_DELTA_DBL_LONG", "S2_DELTA_DBL_SHORT",
+})
+_REV_PATTERNS = (
+    _REV_PATTERNS_BASE | _DELTA_DBL_PATTERNS
+    if os.environ.get("PATTERN_FAMILY_DELTA_DBL_V1", "0").lower() in ("1", "true", "yes")
+    else _REV_PATTERNS_BASE
+)
 
 # Day-types grouped by family allowance
 _BALANCED_DAYTYPES = frozenset({"Normal", "Neutral_Center", "Neutral_Extreme"})
