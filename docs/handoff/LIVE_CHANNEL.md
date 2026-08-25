@@ -10,6 +10,33 @@
 
 **אסור:** T-100 / T-99 / T-104 / T-105 / T-106 / הדלקת `CANDIDATE_LEDGER_V1` / טבלה שלישית / JSONL שני / שינוי שערי-ירי. T-107 פסיקת-3-חוזים נשאר אצל מייקל, מחוץ לשרשרת הזו.
 
+### [2026-08-25 10:50 IL] cowork-dev · 🔴 Replay Kernel היה **מחוץ לגיט** — נשמר · סטטוס תוכנית-המקסום
+**הממצא:** `cd0fda6c` נקרא *"Stage 0B Replay Kernel: GO"* — ומכיל **שני קבצים**: `LIVE_CHANNEL.md` ודוח-הביקורת. **אפס שורות קוד של הקרנל.**
+```
+$ git show --stat cd0fda6c
+ docs/handoff/LIVE_CHANNEL.md                      | 27 +++
+ docs/reports/CC_REVIEW_REPLAY_KERNEL_STAGE0B_...  | 198 +++++
+ 2 files changed, 225 insertions(+)
+$ git ls-files backend/v9/replay/     → (ריק)
+$ git status --porcelain | grep -c '^??'  → 23
+```
+כלומר: הקרנל (6 מודולים, 108K), 29 הטסטים, `REPLAY_KERNEL_CONTRACT`, `REPLAY_PARITY_ANCHORS`, האינוונטרי — **וגם `candidate_ledger.py` שהקוד החי כבר מייבא** (`five_min_system.py:30`) — כולם היו **רק בעץ-העבודה של מק-1**. לא בגיט, לא במק-2, ו-`git clean` אחד מהם. **ה-GO של cc ניתן לקוד שלא היה בקומיט שקיבל אותו.**
+זה הועלה פעמיים ולא בוצע: cursor ב-LIVE_CHANNEL 08-24 23:20 (*"kernel files still untracked on HEAD"*) ו-T-103 §0 Hygiene.
+**נסגר:** `2b4b7bbe` (קרנל+טסטים+חוזה+עוגנים) · `3b19d975` (ליגר+טסטים+024). בטיחות: `grep` הראה שהקרנל אינו מיובא בשום מקום ב-runtime החי — עומד ב-acceptance של Task 0; הליגר כבוי-דגל. **קומיט = גיבוי, לא שינוי-התנהגות.** נותרו 13 לא-מעוקבים (PM_776–788 + OPS_LOG) — לא נגעתי, לפי §0 של פקודת-העבודה.
+
+**סטטוס תוכנית-המקסום (`MAXIMIZATION_INFRA_EXECUTION_PLAN_2026-08-24`):**
+| Task | מצב |
+|---|---|
+| 0 · Replay Kernel | 🟡 נבנה + 29 טסטים + GO — **אבל 0B מוכיח אימות-נתונים בלבד** (כך בדוח cc), לא candidates/P&L. 31 סקריפטי-replay עדיין קיימים, אפס adapters, אפס parity-migration |
+| 1 · Candidate Ledger | 🔵 היום — T-103B אצל cc |
+| 2 · TPO causality + CVD | ⚪ לא התחיל (`available_at` קיים רק בקרנל, לא ב-writers) |
+| 3 · DB↔SCID | 🟡 `scid_validator.py` קיים בקרנל; מסלול ה-repair לא התחיל |
+| 4 · S1 בינארי shadow | 🟡 `structural_binary_v1.py` קיים ומעוקב; shadow ≥10 סשנים לא התחיל |
+| 5 · `CONTEXT_ENTRY_V1` | ⚪ **אפס קוד** (grep ריק) |
+| 6 · Ranker | ⚫ חסום נכון |
+
+**הערת-cowork על התוכנית עצמה:** היא נכונה ושש הערותיי התקבלו — **אבל כולה קדימה.** הליגר מודד מהיום והלאה; הוא לא יגיד לנו מה קרה ב-19–24.08. חסר **Task −1: פורנזיקה רטרואקטיבית** על השבר 68%→23%, מהראיות שכבר קיימות (`gateway_decisions` ארכיון · `v9_trades` · ברים קנוניים). בלי זה נכנסים לפתיחה בלי לדעת אם זה באג-רישום או אדג' שנשבר. — cowork-dev
+
 ### [2026-08-25 10:40 IL] cowork-dev · 🟢 4 חוזים בוצע · 🟡 T-103B נמסר ל-cc — הליגר עולה חי היום בלי DDL
 **פסיקת-מייקל 25.08:** *"תוסיף את מה שהמלצת ככלי שבוחן ירי... ונכין את המערכת למסחר על כסף חי היום עם 4 חוזים."*
 
