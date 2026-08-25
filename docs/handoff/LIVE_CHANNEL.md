@@ -1,3 +1,6 @@
+### [2026-08-25 13:30 IL] cc-macbook · ✅ 3FIX Direction — built, ready for live
+**commit `690fdc3b`** · 3 דגלים נפרדים: `MORNING_LABEL_CONFIRM_V1` · `DAY_DIRECTION_STRUCTURAL_V1` · `VARIATION_SUBTYPE_V1`. כולם flag-OFF=byte-identical, כשל-בטוח, לוגים ייחודיים. **flag_guard 203 PASS.** §D **לא בוצע** (זמן) — cowork צריך להריץ לפני הדלקה. Report: `CC_3FIX_DIRECTION_2026-08-25.md`. **ריסטארט + .env = שער cowork+מייקל.**
+
 ### [2026-08-25 IL] cc-macbook · ✅ T-103B Candidate Ledger ready for live
 **commit `562f51d2`** · §3a rotation (mtime→ts) · §3b radar filter · §3c gateway hardening · §4 boot commit · §5 RULED_FLAGS 200 · §6 contract fix · §7 2 blocker tests (13/13) · .env `CANDIDATE_LEDGER_V1=1`. **flag_guard 200 PASS.** Report: `docs/reports/CC_T103B_LEDGER_LIVE_2026-08-25.md`. **ריסטארט = שער cowork+מייקל.**
 
