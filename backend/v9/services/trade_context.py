@@ -859,9 +859,14 @@ def get_live_expansion():
     untouched.
     """
     import os as _os
-    _flag_on = _os.getenv("S1_DAY_DIRECTION_V1", "0").strip().lower() in (
-        "1", "true", "yes", "on",
-    )
+    _mode = _os.getenv("S1_DAY_DIRECTION_V1", "0").strip().lower()
+    # shadow (Michael 2026-08-25 15:55: "אפשר להפעיל בשדואו ולראות מה זה ייתן"):
+    # resolve the LIVE app and LOG what the fix WOULD return — then return the
+    # legacy value anyway. Byte-identical behaviour, real evidence from bar one.
+    # Michael's read of today's three failures — "they weren't built right" — is
+    # exactly why: each was enabled on reasoning instead of on measurement.
+    _shadow = _mode == "shadow"
+    _flag_on = _mode in ("1", "true", "yes", "on")
     try:
         import importlib as _il
         if _flag_on:
@@ -872,6 +877,52 @@ def get_live_expansion():
             # Legacy (dead) path — preserved byte-for-byte while the flag is OFF.
             _app = _il.import_module("backend.v9.app").app
             _src = "backend.v9.app"
+        if _shadow:
+            # Observation only — never touches the returned value below.
+            try:
+                _sapp = _il.import_module("backend.main").app
+                _sres = getattr(_sapp.state, "last_cls_result", None) or {}
+                _sd = _sres.get("accepted_break") or _sres.get("break_dir")
+                import logging as _slg
+                _slog = _slg.getLogger(__name__)
+                # Source B — v9_day_type_state.direction. RICHER than
+                # accepted_break: it carries the Dalton INSTRUCTION, not just a
+                # side. Observed values 2026-08-25: with_extension(UP|DOWN) =
+                # one-sided IB extension → trend day, trade WITH; fade_both(
+                # UP|DOWN) = both sides broke → balance day, FADE both edges.
+                # 13 of 26 rows are fade_both, so a plain UP/DOWN from
+                # accepted_break would tell the gateway "go with DOWN" on half
+                # the sessions where System-1 actually says "fade both extremes".
+                # Log both so tonight shows where they disagree — that
+                # disagreement is the whole decision.
+                _sdb = _sdb_raw = None
+                try:
+                    from backend.v9.db.read import read_one as _s_read
+                    _srow = _s_read(
+                        "SELECT direction FROM v9_day_type_state "
+                        "ORDER BY id DESC LIMIT 1", {})
+                    _sdb_raw = (_srow or {}).get("direction")
+                    if _sdb_raw:
+                        _t = str(_sdb_raw)
+                        if _t.startswith("with_extension("):
+                            _sdb = "UP" if "UP" in _t else "DOWN"
+                        elif _t.startswith("fade_both("):
+                            # Balance day: NO directional requirement.
+                            _sdb = "UNDETERMINED"
+                except Exception:
+                    pass
+                _slog.info(
+                    "[S1DayDir] SHADOW accepted_break=%s | s1_state=%s→%s | "
+                    "agree=%s (live returns legacy None → LSMA fallback)",
+                    _sd if _sd in ("UP", "DOWN") else "none",
+                    _sdb_raw or "none", _sdb or "none",
+                    "n/a" if (_sdb is None or _sd not in ("UP", "DOWN"))
+                    else str(_sd == _sdb),
+                )
+            except Exception as _serr:  # never raises into the trading path
+                import logging as _slg2
+                _slg2.getLogger(__name__).warning(
+                    "[S1DayDir] shadow probe failed (fail-open): %s", _serr)
         _res = getattr(_app.state, "last_cls_result", None) or {}
         _d = _res.get("accepted_break") or _res.get("break_dir")
         if _d in ("UP", "DOWN"):
