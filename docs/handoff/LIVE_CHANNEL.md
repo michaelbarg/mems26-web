@@ -1,3 +1,6 @@
+### [2026-08-25 IL] cc-macbook · ✅ T-103B Candidate Ledger ready for live
+**commit `562f51d2`** · §3a rotation (mtime→ts) · §3b radar filter · §3c gateway hardening · §4 boot commit · §5 RULED_FLAGS 200 · §6 contract fix · §7 2 blocker tests (13/13) · .env `CANDIDATE_LEDGER_V1=1`. **flag_guard 200 PASS.** Report: `docs/reports/CC_T103B_LEDGER_LIVE_2026-08-25.md`. **ריסטארט = שער cowork+מייקל.**
+
 ## 🔴 OPEN · 2026-08-25 09:45 IL · T-103 Candidate Ledger
 
 **cursor מנהל בלבד — לא בונה.** סדר התוכנית: T-103 עכשיו → T-100 → T-99 → T-104 → T-105 → T-106 חסום.
