@@ -1,3 +1,24 @@
+## 🔴 OPEN · 2026-08-25 09:45 IL · T-103 Candidate Ledger
+
+**cursor מנהל בלבד — לא בונה.** סדר התוכנית: T-103 עכשיו → T-100 → T-99 → T-104 → T-105 → T-106 חסום.
+
+| אל | תפקיד | קובץ |
+|---|---|---|
+| **cc-macbook** | לבצע עכשיו | `docs/handoff/CC_WORKORDER_T103_LEDGER_2026-08-25.md` |
+| **cowork-dev** | לאמת אחרי דוח CC (קריאה-בלבד, חוק-5) | `docs/handoff/COWORK_VERIFY_T103_LEDGER_2026-08-25.md` |
+| **cursor-agent** | GO/NO-GO אחרי cowork | אין קוד |
+
+**אסור:** T-100 / T-99 / T-104 / T-105 / T-106 / הדלקת `CANDIDATE_LEDGER_V1` / טבלה שלישית / JSONL שני / שינוי שערי-ירי. T-107 פסיקת-3-חוזים נשאר אצל מייקל, מחוץ לשרשרת הזו.
+
+### [2026-08-25 09:45 IL] cursor-agent · 🟡 T-103 נמסר ל-cc + cowork — cursor יצא מהבנייה
+מייקל: "תנהל, תן לקוורק לבצע עם קלוד קוד". Workorders נכתבו. שאר T-103 (snapshot+024+ORM+EOD+AC) = cc. אימות = cowork. Gate = cursor אחרי פקודה+פלט גולמי. אין `.env`, אין restart. — cursor-agent
+
+### [2026-08-25 09:40 IL] cursor-agent · 🟡 T-103 Candidate Ledger writer+hooks landed, flag default OFF
+מייקל אישר להמשיך. נבנה `backend/v9/services/candidate_ledger.py` + ווי S2/S4/gateway + פילטר API. `CANDIDATE_LEDGER_V1` ברירת-מחדל 0 ⇒ אפס שינוי-ירי. חורים שנסגרים כשהדגל יידלק: S2 FHB/dedup/anti-phantom, S4 `ready_to_route=False`/sizing/duplicate, emitter SKIP. Migration 024 כתובה ולא הורצה (אין ALTER ל-DB החי בלי snapshot). EOD RESOLVED עדיין לא. Raw: `pytest tests/v9/regression/test_candidate_ledger.py …` → **11 ledger + 4 emitter + 29 Stage0B = 44 passed**. `enabled_default False`. אין `.env` / restart. — cursor-agent
+
+### [2026-08-24 23:20 IL] cursor-agent · ✅ Stage 0B CLOSED independently — T-103 next
+CC verdict GO at `cd0fda6c` accepted after independent re-run: `BRIDGE_TOKEN=test DATABASE_URL=postgresql://localhost/mems26 python3 -m pytest tests/v9/regression/test_replay_kernel_stage0b.py -q` → **29 passed, 2 warnings in 14.72s**. 0B proves data-validation only (not candidates/P&L). 4 INFO non-blocking (SCID contract month, Stage 0C `fail_closed=True`, float 4dp, dirty_tree_hash includes untracked). **Open ops:** kernel files still untracked on HEAD; commit Stage 0B artifacts before T-103. Next = T-103 Candidate Ledger (observability, default-OFF, no third source). Contract draft: `docs/spec_authority/CANDIDATE_LEDGER_CONTRACT.md`. — cursor-agent
+
 ### [2026-08-24 23:15 IL] cc-macbook · ✅ Stage 0B Replay Kernel FINAL REVIEW — **GO**
 Review: `docs/reports/CC_REVIEW_REPLAY_KERNEL_STAGE0B_2026-08-24.md`. 29/29 tests, 6 anchors correct, 10/10 remote probes blocked, CVD no-bypass, hashes deterministic, zero SQL mutations, zero trading imports. 4 INFO findings (non-blocking). T-103 Candidate Ledger may proceed.
 
