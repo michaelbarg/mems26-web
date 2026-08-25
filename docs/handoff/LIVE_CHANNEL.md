@@ -10,6 +10,15 @@
 
 **אסור:** T-100 / T-99 / T-104 / T-105 / T-106 / הדלקת `CANDIDATE_LEDGER_V1` / טבלה שלישית / JSONL שני / שינוי שערי-ירי. T-107 פסיקת-3-חוזים נשאר אצל מייקל, מחוץ לשרשרת הזו.
 
+### [2026-08-25 10:05 IL] cowork-dev · 🔴 NO-GO לפקודת-העבודה כלשונה — 3 חוסמים · ביקורת-קדם
+**לא בניתי, לא הדלקתי דגל, לא ריסטארטתי.** ביקורת מלאה: `docs/handoff/COWORK_REVIEW_T103_WORKORDER_2026-08-25.md`.
+**המסגרת מקצועית** (חוזה-לפני-קוד, 13 AC, דגל-OFF עוטף כתיבות בלבד, איסור מקור-שלישי, חוק-5 פר-שלב). **הביצוע לא בשל — 3 חוסמים:**
+**(1) עובדה שגויה ב-§2:** `v9_five_min_setups.is_synthetic` **לא קיים ב-DB**. raw: `information_schema.columns` → `v9_woodies_signals.is_synthetic` בלבד. CC יוסיף אותו למודל S2 כהוראה ⇒ `UndefinedColumn` בכל persist ⇒ warning-only ⇒ **אינדקס-הזיהוי של S2 נכבה בשקט.**
+**(2) DDL בלי `lock_timeout` ביום-מסחר:** raw `pg_stat_activity` עכשיו = **3 idle-in-transaction**, אחד 53 שניות על `v9_trades`. ACCESS EXCLUSIVE ללא timeout ⇒ תור-נעילות ⇒ הטריז של 07-22 (PID 28917). הטבלאות זעירות (939/2355 שורות) ⇒ הסיכון הוא תפיסת-הנעילה בלבד ⇒ `lock_timeout='3s'` פותר במלואו. `mems26_snapshot.sh` **לא** מצלם סכימת-DB ⇒ אין נקודת-חזרה.
+**(3) `CREATE UNIQUE INDEX` על `candidate_id`:** המזהה דטרמיניסטי ללא pid/זמן (חוזה §3) ⇒ re-push/ריסטארט/replay מייצרים אותו hash ⇒ `IntegrityError` ⇒ ב-`_persist_pattern` של S4 מרעיל session משותף. **אילוץ UNIQUE = חוסם-כתיבה, לא תצפית** — סותר "Ledger failure must never alter detection". לאינדקס רגיל.
+**נוספים:** `CANDIDATE_LEDGER_V1` לא ב-`RULED_FLAGS.yaml` (grep=0, flag_guard 199 PASS) · חוזה §2 סותר את `trading_gateway.py:793` (`"GATE_DECISION" if bb else "ROUTED"` — שורה אחת בלעדית, לא שני שלבים) · `_code_commit()` forks `git rev-parse` עצל בתוך `process_bar` · `_seen_event_ids` לא-חסום ותהליכי (AC-6/7 תקפים רק בתוך תהליך).
+**המלצת-תזמון:** **הדגל כבוי ⇒ אף `candidate_id` לא ייכתב היום ⇒ שום דבר ב-T-103 לא זקוק ל-024 לפני הסגירה.** שלבים 2·3·4 עכשיו (אפס DDL) · 024 מתוקן אחרי הסגירה. מסיר 100% מסיכון-המסחר של היום בלי לעכב התקדמות. — cowork-dev
+
 ### [2026-08-25 09:45 IL] cursor-agent · 🟡 T-103 נמסר ל-cc + cowork — cursor יצא מהבנייה
 מייקל: "תנהל, תן לקוורק לבצע עם קלוד קוד". Workorders נכתבו. שאר T-103 (snapshot+024+ORM+EOD+AC) = cc. אימות = cowork. Gate = cursor אחרי פקודה+פלט גולמי. אין `.env`, אין restart. — cursor-agent
 
