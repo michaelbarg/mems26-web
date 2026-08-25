@@ -834,14 +834,55 @@ def get_live_expansion():
     app.state.last_cls_result. Returns {"dir": "UP"|"DOWN", "ref": str} or
     None when no accepted expansion exists right now (honest None — the LSMA
     color proxy in require_with_trend stays as fallback, never replaced here).
+
+    S1_DAY_DIRECTION_V1 (cowork 2026-08-25) — ROOT FIX, flag-gated, default OFF.
+
+    The `backend.v9.app` module resolved below is a DIFFERENT FastAPI object from
+    the one that actually runs. The single writer of `last_cls_result` is
+    `backend/main.py:674` (`app.state.last_cls_result = _cls_result`) on
+    `backend.main.app`. So `backend.v9.app.state.last_cls_result` is NEVER set →
+    this function returned None on every call → priority-1 of the gateway
+    `day_direction` chain (`trading_gateway.py:1234-1239`) was dead code, and
+    day_direction always fell through to `get_live_dir_bias` (LSMA 60%-majority
+    over 6 Woodies bars = 30 min of lag). System-1 computed the Dalton IB-expansion
+    direction and the gateway never received it.
+
+    The correct resolution already exists twice in this repo — `trading_gateway.
+    _resolve_live_cls()` (line 195) and `daytype_watchdog._resolve_app_state()` —
+    both of which import `backend.main`. When `S1_DAY_DIRECTION_V1` is ON this
+    function uses that same resolution; when OFF it is byte-identical to the
+    pre-existing (dead) behaviour, so enabling is the only thing that can change
+    a verdict.
+
+    NO confidence percentages at any stage (Michael ruling: Dalton is binary).
+    Fail-safe: any exception → None → the existing fallback chain continues
+    untouched.
     """
+    import os as _os
+    _flag_on = _os.getenv("S1_DAY_DIRECTION_V1", "0").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
     try:
         import importlib as _il
-        _app = _il.import_module("backend.v9.app").app
+        if _flag_on:
+            # The app that actually runs and actually gets written to.
+            _app = _il.import_module("backend.main").app
+            _src = "backend.main"
+        else:
+            # Legacy (dead) path — preserved byte-for-byte while the flag is OFF.
+            _app = _il.import_module("backend.v9.app").app
+            _src = "backend.v9.app"
         _res = getattr(_app.state, "last_cls_result", None) or {}
         _d = _res.get("accepted_break") or _res.get("break_dir")
         if _d in ("UP", "DOWN"):
-            return {"dir": _d, "ref": _res.get("accepted_break_ref") or _res.get("reclass_ref") or "?"}
+            _ref = _res.get("accepted_break_ref") or _res.get("reclass_ref") or "?"
+            if _flag_on:
+                import logging as _lg
+                _lg.getLogger(__name__).info(
+                    "[S1DayDir] day_direction=%s ref=%s src=%s.app.state.last_cls_result",
+                    _d, _ref, _src,
+                )
+            return {"dir": _d, "ref": _ref}
     except Exception:
         pass
     return None
