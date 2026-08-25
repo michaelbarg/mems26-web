@@ -151,6 +151,7 @@ def decide(
     entry_price: Optional[float] = None,
     levels: Optional[dict] = None,
     variation_phase: Optional[str] = None,
+    variation_subtype: Optional[str] = None,
 ) -> Decision:
     """Return a Decision for (pattern, day_type, direction, live trend_state).
 
@@ -229,6 +230,21 @@ def decide(
                     day_type or ""
                 ).startswith("Trend"):
                     _wt_on = False  # Variation → two-sided location-only fade
+                # VARIATION_SUBTYPE_V1 (Fix 3, 25.08): when the Variation is
+                # "directional" (IB break accepted), apply with-trend-only
+                # regardless of NEVERFADE_TREND_ONLY. This catches the 55%
+                # leaky bucket: ZLR/Var/SHORT n=65 32% -$2,412 — most of
+                # these are counter-trend entries on a directional Variation.
+                if (not _wt_on
+                        and os.environ.get("VARIATION_SUBTYPE_V1", "0").lower() in ("1", "true", "yes")
+                        and (variation_subtype or "").lower() == "directional"
+                        and day_type in ("Variation", "Normal_Variation")
+                        and _dd in ("UP", "DOWN")):
+                    _wt_on = True
+                    logger.info(
+                        "[VarSubtype] directional Variation + day_direction=%s "
+                        "→ with-trend-only enforced for %s %s",
+                        _dd, pkey, d)
                 # W4 (2026-07-25): VARIATION_WITH_TREND_CONT_V1 — on a directional
                 # Variation day (UP/DOWN), allow with-trend continuation entries
                 # using session extremes for chase detection instead of value-location.

@@ -192,6 +192,21 @@ def _daytype_provisional() -> bool:
         return False
 
 
+def _resolve_live_cls() -> Optional[dict]:
+    """Lazy-resolve the live classify_session result from backend.main.app.state.
+
+    NO-GO fix (cowork 25.08): `self._app_state` was NEVER set on the gateway.
+    Every `getattr(self, "_app_state", None)` returned None → `last_cls_result`
+    was always None → structural direction and variation subtype were dead code.
+    This is the same pattern fixed in daytype_watchdog._resolve_app_state().
+    """
+    try:
+        from backend.main import app as _main_app
+        return getattr(_main_app.state, "last_cls_result", None)
+    except Exception:
+        return None
+
+
 import os as _os
 # Use the same DATABASE_URL as db/session.py — no more hardcoded path.
 # Tests can override via DATABASE_URL or db_path constructor arg.
@@ -1193,9 +1208,9 @@ class TradingGateway:
                         _dds_dt = _pb_g1.get("day_type_at_entry", "")
                         if _dds_dt and _dds_dt.startswith("Trend"):
                             # Read accepted_break from the live classify result
-                            _dds_cls = getattr(
-                                getattr(self, "_app_state", None),
-                                "last_cls_result", None) or {}
+                            # NO-GO fix: self._app_state is never set. Use the
+                            # proven lazy-import path (daytype_watchdog pattern).
+                            _dds_cls = _resolve_live_cls() or {}
                             _dds_ab = _dds_cls.get("accepted_break")
                             if _dds_ab in ("UP", "DOWN"):
                                 _pb_kw["day_direction"] = _dds_ab
@@ -1349,9 +1364,8 @@ class TradingGateway:
                 if (os.getenv("VARIATION_SUBTYPE_V1", "0").lower() in ("1", "true", "yes")
                         and _pb_dt in ("Variation", "Normal_Variation")):
                     try:
-                        _vs_cls = getattr(
-                            getattr(self, "_app_state", None),
-                            "last_cls_result", None) or {}
+                        # NO-GO fix: same dead-source pattern as Fix 2
+                        _vs_cls = _resolve_live_cls() or {}
                         _vs_ab = _vs_cls.get("accepted_break")
                         if _vs_ab in ("UP", "DOWN"):
                             # Directional Variation: IB break accepted → trend-like
