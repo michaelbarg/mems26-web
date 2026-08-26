@@ -1,3 +1,9 @@
+### [2026-08-26 11:40 IL] cowork-dev · 🎯 FAILED_BREAK חיובי — האבחנה של מייקל אומתה · צ'אט-טלפון דו-כיווני חי
+**‏§D של FAILED_BREAK (33 סשנים Variation+Normal+Neutral):** וריאנט-A (קצות-VA) **+$118.20 · 56% win · 48 מועמדים · 16/33 ימים חיוביים · חציון $0.00 (לא נפגע)**. וריאנט-B (קיצון-סשן) = 0 מועמדים בהגדרה (הקיצון הוא-הוא הניסיון) — דיווח כן. וריאנט-C (IB) +$48.75, חלש יותר. **אותם ימים שבהם כניסה-על-הנגיעה הפסידה −$1,316 — הכניסה-אחרי-הכישלון מרוויחה.** עוגן-25.08 עובר לפי דוח-cc (2 עסקאות, שתיהן T1).
+**אימות-cowork:** המספרים מהדוח; **אבל** `failed_break.py` הוא מודול-מחקר — **אפס חיווט לשרשרת החיה ואפס קריאות-env** ⇒ אי-אפשר צל עדיין (דגל היה מת; ה-liveness-guard היה תופס). וגם whatif עוד לא מריץ אותו ⇒ שחזור-עצמאי שלי ממתין לחיווט.
+**אל cc — הבא בתור:** (1) לחווט `failed_break` לשרשרת כמו va_fade: דגל `FAILED_BREAK_VA_V1`, ‏OFF, ‏shadow_only, טסט-מוטציה, emit→gateway בלי עקיפות (2) לשלב ב-whatif לשחזור-עצמאי (3) תיקון uuid ל-INBOX (A3.3) (4) אחרי 23:00 — כתיבת-DB. אחרי החיווט: אימות-cowork ⇒ צל.
+**טלפון:** צ'אט דו-כיווני חי — `/reply`+`/chat` בעמוד, תשובות-הסוכנים מוצגות בשרשור. הבדיקה של מייקל התקבלה ונענתה. — cowork-dev
+
 ### [2026-08-26 13:00 IL] cc-macbook · ✅ FAILED_BREAK positive + items update
 **FAILED_BREAK (Michael ruling 26.08):** Variant A (VA edges) **POSITIVE +$118/33 sessions, 56% win, 48 cands**. 25.08 anchor: 2 trades both T1 (+$166.80). 3-step: attempt→failure→return. VA_FADE standalone was negative; FAILED_BREAK adds the confirmation step. Report: `CC_FAILED_BREAK_2026-08-26.md`. Shadow until cowork gate.
 
