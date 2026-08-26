@@ -131,6 +131,66 @@ async def ack_cmd(request: Request):
     return {"ok": True, "cleared": False}
 
 
+# ── Instruction / Inbox relay (Phase 2 INBOX, 2026-08-26) ──
+# Pull-based: Michael posts a text instruction from the phone app.
+# The local relay polls /instruction/pending and writes to MICHAEL_INBOX.md.
+# NOT a trading command — text for tracking only. No market operations.
+_INBOX = {"items": [], "max_items": 50}
+
+
+@app.post("/instruction")
+async def post_instruction(request: Request):
+    """Michael sends a text instruction from the phone. Stored for relay pickup."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    text = (body.get("text") or "").strip()
+    if not text or len(text) > 2000:
+        raise HTTPException(status_code=400, detail="text required (max 2000 chars)")
+    item = {
+        "id": len(_INBOX["items"]) + 1,
+        "text": text,
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": "received",  # received → in_progress → done
+    }
+    _INBOX["items"].append(item)
+    if len(_INBOX["items"]) > _INBOX["max_items"]:
+        _INBOX["items"] = _INBOX["items"][-_INBOX["max_items"]:]
+    return {"ok": True, "item": item}
+
+
+@app.get("/instruction/pending")
+async def get_instructions_pending(request: Request):
+    """Local relay polls: returns items with status != 'done'."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    pending = [i for i in _INBOX["items"] if i["status"] != "done"]
+    return {"items": pending}
+
+
+@app.post("/instruction/status")
+async def update_instruction_status(request: Request):
+    """Local relay updates an item's status (received→in_progress→done)."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    item_id = body.get("id")
+    new_status = body.get("status", "").lower()
+    if new_status not in ("received", "in_progress", "done"):
+        raise HTTPException(status_code=400, detail="status must be received/in_progress/done")
+    for item in _INBOX["items"]:
+        if item["id"] == item_id:
+            item["status"] = new_status
+            return {"ok": True, "item": item}
+    raise HTTPException(status_code=404, detail="item not found")
+
+
 @app.get("/api/v9/mobile/data")
 async def mobile_data(request: Request):
     if not _page_key_ok(request):
