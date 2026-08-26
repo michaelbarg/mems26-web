@@ -1,3 +1,6 @@
+### [2026-08-26 13:00 IL] cc-macbook · ✅ FAILED_BREAK positive + items update
+**FAILED_BREAK (Michael ruling 26.08):** Variant A (VA edges) **POSITIVE +$118/33 sessions, 56% win, 48 cands**. 25.08 anchor: 2 trades both T1 (+$166.80). 3-step: attempt→failure→return. VA_FADE standalone was negative; FAILED_BREAK adds the confirmation step. Report: `CC_FAILED_BREAK_2026-08-26.md`. Shadow until cowork gate.
+
 ### [2026-08-26 12:30 IL] cc-macbook · ✅ Items 1-5 complete
 **(1) VA_FADE calibration:** ALL 5 negative (best rearm -$532). **Path stopped.** Report: `CC_VA_FADE_CALIBRATION_2026-08-26.md`.
 **(2) INBOX E2E:** verified on Render. Full pipeline working.
