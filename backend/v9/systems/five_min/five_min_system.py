@@ -23,6 +23,24 @@ from backend.v9.systems.five_min.patterns.double_bt import detect_double_bottom_
 from backend.v9.systems.five_min.patterns.flags import detect_bull_flag, detect_bear_flag
 from backend.v9.systems.five_min.first_hour_buffer import FirstHourBuffer
 from backend.v9.systems.five_min.choppiness import compute_choppiness
+
+
+def _s2_ledger(event_type, *, pattern, direction, signal_bar_ts, **kwargs):
+    try:
+        from backend.v9.services.candidate_ledger import enabled, record
+        if not enabled():
+            return None
+        return record(
+            event_type,
+            system_id=2,
+            pattern=str(pattern or ""),
+            direction=direction,
+            signal_bar_ts=signal_bar_ts,
+            family="S2",
+            **kwargs,
+        )
+    except Exception:
+        return None
 from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
 
 logger = logging.getLogger("mems26.systems.five_min")
@@ -266,6 +284,7 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
             "sizing": t1_setup.sizing_contracts,
             "variant": info.get("variant"),  # D-RVX: A_VSA/B_RVOL/C_STRICT
             "variants_passed": info.get("variants_passed"),
+            "candidate_id": info.get("candidate_id"),
         },
     }
 
@@ -1763,6 +1782,41 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _ef_err:
                     logger.warning("[FiveMin] edge-fade failed (non-fatal): %s", _ef_err)
 
+                # ── VA_FADE_V1 (Phase 2): value-area rotation generator ──
+                # Dalton doctrine: on balance days, buy VAL rejection, sell VAH
+                # rejection, target the middle. 25.08 anchor: 4 rotations, zero
+                # doctrine-fires. This is the GENERATOR, not a filter.
+                try:
+                    if (os.getenv("VA_FADE_V1", "0").lower() in ("1", "true", "yes", "shadow")
+                            and self._gateway):
+                        from backend.v9.systems.va_fade import (
+                            detect_va_fade, build_va_fade_setup)
+                        # Get VAH/VAL from TPO
+                        _vf_vah = _vf_val = None
+                        try:
+                            _vf_tpo = _load_sierra_tpo() or {}
+                            _vf_vah = float(_vf_tpo.get("vah") or 0) or None
+                            _vf_val = float(_vf_tpo.get("val") or 0) or None
+                        except Exception:
+                            pass
+                        if _vf_vah and _vf_val:
+                            if not hasattr(self, "_vf_fired"):
+                                self._vf_fired = set()
+                            _vf_trig = detect_va_fade(
+                                _det_buf, _s2_det_dt,
+                                _vf_vah, _vf_val,
+                                already_fired=self._vf_fired)
+                            if _vf_trig:
+                                self._vf_fired.add(_vf_trig["type"])
+                                _vf_setup = build_va_fade_setup(_vf_trig)
+                                logger.warning(
+                                    "[VA_FADE] %s %s @%.2f (VAH=%.2f VAL=%.2f) → gateway",
+                                    _vf_trig["direction"], _vf_trig["type"],
+                                    _vf_trig["entry"], _vf_vah, _vf_val)
+                                self._gateway.route_setup(_vf_setup, 2)
+                except Exception as _vf_err:
+                    logger.warning("[VA_FADE] failed (non-fatal): %s", _vf_err)
+
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
         # Uses last 14 bars (rolling window) for stable measurement.
@@ -1891,6 +1945,22 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if _last is not None and (self.buffer_size - _last) < _cooldown:
                     logger.debug("[FiveMin] dedup: %s skipped (fired %d bars ago, cooldown=%d)",
                                  _dedup_key, self.buffer_size - _last, _cooldown)
+                    _s2_ledger(
+                        "DETECTED",
+                        pattern=f"{_kind}_{direction}",
+                        direction=direction,
+                        signal_bar_ts=bar.get("ts"),
+                        variant_tag=info.get("variant", ""),
+                    )
+                    _s2_ledger(
+                        "EMIT_DECISION",
+                        pattern=f"{_kind}_{direction}",
+                        direction=direction,
+                        signal_bar_ts=bar.get("ts"),
+                        variant_tag=info.get("variant", ""),
+                        verdict="REJECT",
+                        blocked_by="dedup",
+                    )
                     direction = None
 
         # First Hour Buffer eligibility gate (Tree V3.3 §Stage B)
@@ -1901,6 +1971,22 @@ class FiveMinSystem(BaseV9TradingSystem):
                 logger.info(
                     "[FiveMin] FHB gate: %s blocked (fhb_state=%s bar=%d)",
                     fhb_key, self._fhb.state.value, self._fhb.bar_count,
+                )
+                _s2_ledger(
+                    "DETECTED",
+                    pattern=fhb_key,
+                    direction=direction,
+                    signal_bar_ts=bar.get("ts"),
+                    variant_tag=info.get("variant", ""),
+                )
+                _s2_ledger(
+                    "EMIT_DECISION",
+                    pattern=fhb_key,
+                    direction=direction,
+                    signal_bar_ts=bar.get("ts"),
+                    variant_tag=info.get("variant", ""),
+                    verdict="REJECT",
+                    blocked_by="fhb",
                 )
                 direction = None
 
@@ -2236,6 +2322,17 @@ class FiveMinSystem(BaseV9TradingSystem):
                     pass
 
             # Persist to DB
+            _raw_ts_ledger = _completed_bar.get("ts", bar.get("ts", 0))
+            _cid = _s2_ledger(
+                "DETECTED",
+                pattern=f"{kind}_{direction}",
+                direction=direction,
+                signal_bar_ts=_raw_ts_ledger,
+                variant_tag=info.get("variant", ""),
+                prices={"entry": entry_price, "stop": stop_price},
+            )
+            if _cid:
+                info["candidate_id"] = _cid
             try:
                 db = SessionLocal()
                 from backend.v9.db.models.five_min_setups import V9FiveMinSetup
@@ -2465,6 +2562,8 @@ class FiveMinSystem(BaseV9TradingSystem):
                     t3_price=t3_price,
                     current_price=entry_price,
                     tpo_data=_tpo_for_emit,
+                    candidate_id=info.get("candidate_id"),
+                    signal_bar_ts=_raw_ts_ledger,
                 )
                 if t1_setup and self._gateway:
                     # P2 (2026-07-29): global anti-phantom — block signals from
@@ -2509,8 +2608,20 @@ class FiveMinSystem(BaseV9TradingSystem):
                         pass  # fail-open
                     if _phantom_block:
                         logger.info("[FiveMin] ANTI-PHANTOM: %s %s suppressed (replay/hydration bar)", pattern_name, direction)
+                        _s2_ledger(
+                            "EMIT_DECISION",
+                            pattern=pattern_name,
+                            direction=direction,
+                            signal_bar_ts=_raw_ts_ledger,
+                            variant_tag=info.get("variant", ""),
+                            candidate_id=info.get("candidate_id"),
+                            verdict="REJECT",
+                            blocked_by="anti_phantom",
+                        )
                     else:
                         gateway_setup = build_s2_gateway_setup(t1_setup, info)
+                        if info.get("candidate_id"):
+                            gateway_setup["candidate_id"] = info["candidate_id"]
                         # C2: absorption context field (P1a) — available to all
                         # detectors for quality assessment.  As ENTRY = −$2,871;
                         # as context-only field = $0 but enables future filters.

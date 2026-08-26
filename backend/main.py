@@ -819,18 +819,30 @@ async def _startup():
                         _machine_opening = _ot.value if hasattr(_ot, 'value') else str(_ot)
                 # Root 1 fix (3ROOTS 25.08): save opening_type_result to app.state
                 # so market_context.py can read it. Was NEVER written → balance=UNKNOWN 673/673.
-                if _os.environ.get("APP_STATE_ROOT_FIX_V1", "0").lower() in ("1", "true", "yes"):
+                _asrf_mode = _os.environ.get("APP_STATE_ROOT_FIX_V1", "0").lower()
+                if _asrf_mode in ("1", "true", "yes", "shadow"):
                     try:
                         _ot_dir = None
                         if hasattr(day_type_machine, 'opening') and day_type_machine.opening:
                             _ot_dir_raw = getattr(day_type_machine.opening, 'direction', None)
                             if _ot_dir_raw:
                                 _ot_dir = _ot_dir_raw.value if hasattr(_ot_dir_raw, 'value') else str(_ot_dir_raw)
-                        app.state.opening_type_result = {
+                        _ot_result = {
                             "opening_type": _machine_opening,
                             "direction": _ot_dir or "NEUTRAL",
                             "confidence": round(state.confidence, 2),
                         }
+                        if _asrf_mode == "shadow":
+                            # Shadow: log the would-be value, don't write to app.state
+                            _logger.info(
+                                "[AppStateRootFix] SHADOW would-be opening_type_result: "
+                                "type=%s dir=%s conf=%.2f (not written)",
+                                _ot_result["opening_type"],
+                                _ot_result["direction"],
+                                _ot_result["confidence"])
+                        else:
+                            # Live: write to app.state
+                            app.state.opening_type_result = _ot_result
                     except Exception:
                         pass
 
