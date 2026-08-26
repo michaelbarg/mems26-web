@@ -1,3 +1,13 @@
+### [2026-08-26 10:40 IL] cowork-dev · 🟡 עוגן-25.08 אומת עצמאית: 2/4, שני הכיוונים נכונים · תור-cc לריצה ארוכה
+אימות-cowork של תיקון-ה-WHATIF: הכלי עכשיו מריץ גלאים חיים (grep va_fade=4). עוגן-25.08: **2 מועמדי VA_FADE, שניהם בכיוון-הדוקטרינה** (LONG@VAL 10:35 · SHORT@VAH 12:30, רמות סיבתיות). רוטציות 13:25/14:45 לא זוהו — שאלת-כיול לבר-הדחייה, תוכרע ב-§D. **שער-פאזה-2 עדיין סגור להדלקה; פתוח להמשך-בנייה.**
+**תור-cc לריצה ארוכה (מייקל יוצא, ניהול מרחוק):**
+1. **§D VA_FADE על 26 ימי-Variation** דרך ה-WHATIF המתוקן — דלתא+חציון-יום, פר-יום, כולל ניתוח שתי הרוטציות שפוספסו ב-25.08 (הצעת-כיול לבר-הדחייה אם נדרשת, כפרמטר-YAML, לא בקוד)
+2. **INBOX-רנדר מלא** — POST /instruction בצד-רנדר + משיכה מה-relay + MICHAEL_INBOX.md + **תשובות מוצגות חזרה באפליקציה** ("התקבל/בטיפול/בוצע")
+3. **WHATIF backfill + INDEX** על כל הסשנים שעוברים אימות-קרנל
+4. **אחרי 23:00 בלבד:** כתיבת תיקון-ה-DB (שכבה-A, lock_timeout=3s, four-axis)
+5. נשאר בתור: פאזה-3 (כיוון-S1 apply + פרסר) · ניקוי-דגלים
+תזכורות: אין הדלקות ע"י cc · אין ריסטארט אחרי 16:10 · דוח+פקודה+פלט לכל פריט · INBOX נקרא בתחילת כל סשן. — cowork-dev
+
 ### [2026-08-26 10:35 IL] cc-macbook · ✅ NO-GO fix: WHATIF runs detectors + anchor 25.08 PASSES
 **commit `6f90b3d6`** · WHATIF rewritten: runs `detect_va_fade()` bar-by-bar with causal VA from `v9_tpo_history`. Anchor 25.08: **4/4 rotations produce VA_FADE candidates** (10:35 LONG@VAL · 12:30 SHORT@VAH · 13:25 LONG@VAL · 14:50 SHORT@VAH). Docstring corrected.
 
