@@ -74,6 +74,54 @@ def _push_chat_thread(push_key, render):
         pass  # display-only; never break the snapshot loop
 
 
+def _poll_instructions(access_key, render):
+    """Pull Michael's phone instructions into the durable thread + inbox.
+
+    26.08 (Michael): "שלחתי הרבה הודעות ולא קיבלתי תשובות - רנדר לסדר מיידית".
+    Root cause: scripts/inbox_relay.py was built but NEVER launched (no
+    LaunchAgent) — instructions sat on Render unanswered. Folded here so ONE
+    daemon owns the whole phone pipe. Flow: pending → append to
+    PHONE_THREAD.jsonl (durable; _push_chat_thread echoes it back so Michael
+    sees his message with 'התקבל ✓') + MICHAEL_INBOX.md (agents read) → mark
+    done on Render. Dedup by instruction id stored in the thread lines.
+    Instructions are tracking text, never auto-executed (bridge-local rule)."""
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        p_thread = os.path.join(root, "docs", "handoff", "PHONE_THREAD.jsonl")
+        p_inbox = os.path.join(root, "docs", "handoff", "MICHAEL_INBOX.md")
+        with urllib.request.urlopen(
+                f"{render}/instruction/pending?key={access_key}", timeout=8) as r:
+            items = json.loads(r.read().decode()).get("items", [])
+        if not items:
+            return
+        seen = set()
+        if os.path.isfile(p_thread):
+            for line in open(p_thread, encoding="utf-8"):
+                try:
+                    seen.add(json.loads(line).get("id"))
+                except Exception:
+                    pass
+        for it in items:
+            iid = it.get("id")
+            if iid and iid not in seen:
+                with open(p_thread, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(
+                        {"sender": "מייקל", "text": it.get("text", ""),
+                         "ts": it.get("ts", ""), "id": iid,
+                         "status": "התקבל ✓"}, ensure_ascii=False) + "\n")
+                with open(p_inbox, "a", encoding="utf-8") as f:
+                    f.write(f"### [{it.get('ts', '')}] מייקל (מהפלאפון) · "
+                            f"ID {iid}\n{it.get('text', '')}\n\n")
+                print(f"[relay] instruction {iid} → thread+inbox", flush=True)
+            body = json.dumps({"id": iid, "status": "done"}).encode()
+            req = urllib.request.Request(
+                f"{render}/instruction/status?key={access_key}", data=body,
+                headers={"Content-Type": "application/json"}, method="POST")
+            urllib.request.urlopen(req, timeout=8)
+    except Exception as e:
+        print(f"[relay] instr poll: {str(e)[:80]}", flush=True)
+
+
 def _poll_commands(access_key, render):
     """Poll Render for pending emergency commands and execute locally."""
     try:
@@ -255,6 +303,7 @@ def main() -> None:
         idle_logged = False
         try:
             _push_snapshot(access_key, push_key, render)
+            _poll_instructions(access_key, render)
             _push_chat_thread(push_key, render)
             if fails:
                 print(f"[relay] recovered after {fails} fails", flush=True)
