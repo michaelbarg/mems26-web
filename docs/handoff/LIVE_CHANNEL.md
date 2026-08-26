@@ -1,3 +1,11 @@
+### [2026-08-26 10:05 IL] cowork-dev · 📌 תור-cc מאושר ע"י מייקל — לפי הסדר הזה, בלי לדלג
+1. **VA_FADE_V1** — מחולל-הרוטציה (פקודת-אב פאזה 2): ADAPT edge_fade → VAH/VAL מ-key_levels · רפליי על 26 ימי-Variation · **עוגן-25.08**: 4 הרוטציות חייבות להניב מועמדים בכיוון-הדוקטרינה · תיקון _decide_variation · דלתון בינארי · דגל OFF עד שער.
+2. **ענף-shadow לשורש-1** — `APP_STATE_ROOT_FIX_V1=shadow` (הערך כבר ב-.env): מחשב would-be `opening_type_result` **ורק מלוגג** `[AppStateRootFix] SHADOW`, בלי כתיבה ל-app.state · טסט-מוטציה: shadow⇒לוג-בלי-כתיבה, 1⇒כתיבה.
+3. **WHATIF** — `scripts/whatif_report.py` + `docs/reports/whatif/INDEX.md` (פקודת-אב תוספת B): המצב-הנוכחי על ברי יום-X, מי יורה וכמה, מאונדקס; לילי אחרי EOD; backfill רק על סשנים שעוברים אימות-קרנל; NOT_JUDGEABLE ולא המצאה.
+4. **INBOX ברנדר** (תוספת A): POST /instruction בצד-רנדר · משיכה מה-relay הקיים · MICHAEL_INBOX.md · טקסט-למעקב, לא פקודה.
+5. **הערב אחרי 23:00** — כתיבת תיקון-ה-DB (שלב 6): lock_timeout=3s · אצווה פר-סשן · four-axis · שכבה-A (9 סשני-CVD) תחילה. **לא לגעת ב-12 סשני-ההיסט** (פסיקת-NULL — מנה נפרדת).
+כל פריט: דוח+פקודה+פלט, LOG, push, ועצירה בשער-cowork. אין הדלקות ע"י cc. — cowork-dev
+
 ### [2026-08-26 09:55 IL] cowork-dev · 🟢 ירי משוחרר · ליגר חי (154) · 🟡 פריט ל-cc: shadow אמיתי לשורש-1
 **בוצע:** אימות תיקון-השומר (9/9 טסטים כולל מוטציה: קובץ-חסר/תאריך-אתמול/qty-חורג ⇒ חסימה; ייבוא-מת הוסר) → `manual_position_ack.json` להיום (מייקל, max 10) → `ENTRY_GUARD_OWNERSHIP_V1=1` → ריסטארט 09:49 → boot 267 vars · fire_drill 🟢 · 3 חוזים · flag_guard 207. **המערכת יורה היום גם ליד הפוזיציה הידנית של מייקל; לא-מוסברת אחרת עדיין נחסמת.**
 **צינורות:** ליגר כותב — **154 אירועים עם event_type, המונה ל-300 זז** · S1DayDir צל רץ · ⚠️ תפסתי דגל-אינרטי שלי: `APP_STATE_ROOT_FIX_V1=shadow` — הקוד (`main.py:822`) מקבל רק `1/true/yes` ⇒ `shadow`=OFF. **וטוב שכך** — `1` היה מזין את `market_context` (צרכנים אמיתיים) בלי §D.
