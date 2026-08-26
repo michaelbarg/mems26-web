@@ -46,6 +46,34 @@ def _push_snapshot(access_key, push_key, render):
         json.loads(r.read().decode())
 
 
+def _push_chat_thread(push_key, render):
+    """Push the durable phone chat thread (Michael 26.08: 'אני לא רואה את
+    ההודעות שלכם — כל הרעיון שיהיה דו-סטרי'). Render memory is wiped on every
+    deploy, so the Mac re-pushes the thread from the durable JSONL each cycle."""
+    try:
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "docs", "handoff", "PHONE_THREAD.jsonl")
+        if not os.path.isfile(p):
+            return
+        items = []
+        with open(p, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        items.append(json.loads(line))
+                    except Exception:
+                        pass
+        payload = json.dumps({"items": items[-30:]}).encode()
+        req = urllib.request.Request(
+            f"{render}/chat_push", data=payload, method="POST",
+            headers={"Content-Type": "application/json", "X-Push-Key": push_key})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read()
+    except Exception:
+        pass  # display-only; never break the snapshot loop
+
+
 def _poll_commands(access_key, render):
     """Poll Render for pending emergency commands and execute locally."""
     try:
@@ -227,6 +255,7 @@ def main() -> None:
         idle_logged = False
         try:
             _push_snapshot(access_key, push_key, render)
+            _push_chat_thread(push_key, render)
             if fails:
                 print(f"[relay] recovered after {fails} fails", flush=True)
             fails = 0

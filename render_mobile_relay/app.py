@@ -198,19 +198,47 @@ async def post_reply(request: Request):
     return {"ok": True}
 
 
+# Durable thread pushed by the Mac every cycle (survives Render deploys —
+# the source of truth is docs/handoff/PHONE_THREAD.jsonl on the Mac).
+_PUSHED_THREAD = {"items": []}
+
+
+@app.post("/chat_push")
+async def chat_push(request: Request):
+    want = (os.getenv("MOBILE_PUSH_KEY") or "").strip()
+    got = (request.headers.get("X-Push-Key") or "").strip()
+    if not want or got != want:
+        raise HTTPException(status_code=401, detail="push key required")
+    try:
+        body = await request.json()
+        items = body.get("items") or []
+        assert isinstance(items, list)
+    except Exception:
+        raise HTTPException(status_code=400, detail="json items required")
+    _PUSHED_THREAD["items"] = items[-30:]
+    return {"ok": True, "n": len(_PUSHED_THREAD["items"])}
+
+
 @app.get("/chat")
 async def get_chat(request: Request):
     """The page polls this: merged thread of Michael's messages + agent replies."""
     if not _page_key_ok(request):
         raise HTTPException(status_code=401, detail="auth required")
     thread = (
-        [{"sender": "מייקל", "text": i["text"], "ts": i["ts"],
-          "status": i.get("status", "")} for i in _INBOX["items"]]
+        list(_PUSHED_THREAD["items"])  # durable, pushed by the Mac — survives deploys
+        + [{"sender": "מייקל", "text": i["text"], "ts": i["ts"],
+            "status": i.get("status", "")} for i in _INBOX["items"]]
         + [{"sender": r["sender"], "text": r["text"], "ts": r["ts"], "status": ""}
            for r in _REPLIES["items"]]
     )
-    thread.sort(key=lambda x: x["ts"])
-    return {"items": thread[-30:]}
+    seen, dedup = set(), []
+    for m in thread:
+        k = (m.get("sender"), m.get("text"), (m.get("ts") or "")[:16])
+        if k not in seen:
+            seen.add(k)
+            dedup.append(m)
+    dedup.sort(key=lambda x: x.get("ts") or "")
+    return {"items": dedup[-30:]}
 
 
 @app.post("/instruction/status")
