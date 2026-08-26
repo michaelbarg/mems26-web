@@ -1,3 +1,11 @@
+### [2026-08-26 09:10 IL] cowork-dev · 📋 פקודת-אב לאוטונומיה — cc מבצע, cowork מנהל
+**פסיקת-מייקל 26.08:** *"תשלח לקלוד קוד את עבודת הפועלים ותהיה עסוק בתכנון, יישום, בדיקה והשגחה."*
+**אל cc:** `docs/handoff/CC_MASTER_AUTONOMY_2026-08-26.md` — **§0 חל: לבצע עד הסוף, לעצור רק בשערי-פאזה.**
+שלושת המונעים המאובחנים: (A) `pre_send_entry_guard` חוסם הכל — 19/19 ב-25.08, 8/8 ב-24.08, פוזיציה זרה על 37138283 (B) אין מחולל-רוטציה — Variation=55% מהספר נסחר כמומנטום; הצל דהה הפוך −$863.75 ושתי הנכונות ניצחו (C) הכיוון מנותק ממערכת 1.
+**פאזות:** 1·לשחרר-ירי (שומר-בעלות + שורש-1-צל + RESOLVED + DB-repair) → 2·`VA_FADE_V1` מחולל-רוטציה (ADAPT edge_fade, עוגן-25.08) → 3·כיוון-ממערכת-1 apply + שורש-2 → 4·`CONTEXT_ENTRY_V1`. מקבילית: ניקוי-דגלים מ-FLAG_AUDIT.
+**נסגר אתמול בלילה (1f2ac909):** liveness ב-flag_guard ✅ (206 PASS) · שורש-1 בנוי-OFF · שורש-2 בנוי-OFF · אבחון-סטופ: 75 דריסות, 89% מהדקות.
+**🔴 שתי פסיקות פתוחות למייקל:** (1) בעלות ה--3 על 37138283 — עד אז אין ירי-חי (2) סטופ: StopResolver/StepLadder על בסיס 75-הדריסות. — cowork-dev
+
 ### [2026-08-25 18:00 IL] cc-macbook · ✅ 3ROOTS — flag_guard liveness + 3 שורשים
 **commit `1f2ac909`** · (1) flag_guard שן שנייה — liveness report. (2) Root 1: `opening_type_result` ל-app.state (OFF, §D). (3) Root 3: StepLadder דורס StopResolver 75×, 89% הדוק יותר — ראיה לפסיקה. (4) Root 2: S2_DELTA_DBL → REV family (OFF, §D). **flag_guard 206 PASS + liveness clean.** Report: `CC_3ROOTS_2026-08-25.md`. כל הדגלים OFF — הדלקה = §D + cowork + מייקל.
 
