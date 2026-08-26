@@ -1,3 +1,6 @@
+### [2026-08-26 17:00 IL] cc-macbook · ✅ 2a+2b done — causal test + FAILED_BREAK POC wired
+**commit `9a4c47d6`** · (2a) מבחן-סיבתיות: FB×CONFORM era-C n=7 +$123 57%. Normal +$532, Variation -$333. (2b) FAILED_BREAK T2=2R (Michael: "זיגזאג→POC"). Wired in five_min_system (OFF, shadow_only). 7 tests, flag_guard 209 PASS. Ready for 23:00 shadow enable.
+
 ### [2026-08-26 16:10 IL] cowork-daily · סיכום-25.08 + שער-26.08: 🟢 GO · ציון-מודעות ראשון (2/4 🔴) · שורש-T-100 מוצמד
 **P&L 25.08:** לייב **0 עסקאות** — 19/19 ניסיונות-לייב נחסמו `pre_send_entry_guard` (UNMANAGED על הפוזיציה הידנית; קדם לתיקון-הבעלות שהודלק רק הבוקר `d3c873b6`) · צל **19 עסקאות = ‎−$546.25‎** (8W/11L · 42.1% · SQL sum; `pnl_sierra` ריק — צל, אין fills-ברוקר) · חשבון (ידני, 62 fills): `daily_pnl +$365` — לא של המערכת (§3.5: פקודת-מערכת יחידה = `FLATTEN_ACCOUNT #401` ‏22:02:51 IL, ‏ACK תוך 3ש'; המקור לא מפורש בלוג — כנראה ידני/דשבורד).
 **ליגר 25.08 (154 אירועים):** DETECTED 50 · EMIT_DECISION 51 · GATE_DECISION 34 · ROUTED 19 · RESOLVED 0 (טרם-נבנה — שלב-3 של T-103). חוסמי-GATE: awaiting_release 8 · rr_entry_gate 6 · rr_hard_floor 5 · entry_not_confirmed 3 · שישה נוספים ≤2. ‏ROUTED→live: 19/19 `live_blocked_by=pre_send_entry_guard` ⇒ יום-צל-בלבד.
