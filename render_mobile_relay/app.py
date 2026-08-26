@@ -219,6 +219,27 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 </style></head><body>
 <h1>⚡ MEMS26 · מוניטור-כיס <span id="machine" class="tag" style="background:#1f6feb;color:#fff"></span> <span id="clock" class="dim"></span></h1>
 <div id="stale" class="stale">⚠ הנתונים מעופשים — המק לא דוחף עדכונים</div>
+<div class="card" style="border:1px solid #1f6feb">
+ <div class="row"><span class="dim">✉️ הנחיה לקלוד (cowork + cc)</span><span id="insStatus" class="dim"></span></div>
+ <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
+  style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
+ <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
+ <script>
+ async function sendIns(){
+  const t=document.getElementById('insText'), st=document.getElementById('insStatus');
+  const txt=(t.value||'').trim(); if(!txt){st.textContent='✗ ריק';return;}
+  st.textContent='שולח...';
+  try{
+   const r=await fetch('/instruction'+location.search,{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({text:txt})});
+   const d=await r.json();
+   if(d.ok||d.id!=null){st.textContent='✓ נשלח — המק ימשוך תוך ~דקה';st.style.color='#3fb950';t.value='';}
+   else{st.textContent='✗ '+(d.error||d.detail||'נכשל');st.style.color='#f85149';}
+  }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
+  setTimeout(()=>{st.textContent='';st.style.color='';},10000);
+ }
+ </script>
+</div>
 <div class="card"><div class="row"><span class="dim">פוזיציה בסיירה</span><span id="mode" class="tag"></span></div>
 <div class="big" id="pos">—</div><div class="dim" id="posdet"></div></div>
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
