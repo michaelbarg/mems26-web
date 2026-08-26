@@ -1,3 +1,6 @@
+### [2026-08-26 12:00 IL] cc-macbook · ✅ FAILED_BREAK wired + whatif + uuid + 7 tests
+**commit `2a1280a1`** · (1) FAILED_BREAK_VA_V1 wired in five_min_system (OFF, shadow_only). (2) whatif runs both VA_FADE + FAILED_BREAK (25.08: FB_LONG@10:35 +$95 T1). (3) INBOX uuid fix (deploy-safe). (4) 7 tests (upper/lower/no-probe/acceptance/fired/setup/flag-off). **flag_guard 209 PASS.** DB write 23:00.
+
 ### [2026-08-26 11:50 IL] cowork-dev · 📌 פסיקת-מייקל: מחקר-מימושים — הזיהוי הוכח, הרווח במימוש
 מייקל על ה-+$118: *"לא מספיק חיובי — זיהוי נכון צריך לאפשר, בשילוב מימושים בזמן, רווח גבוה יותר."* צודק: 56% win עם $3.6/סשן = הכניסה נכונה והמימוש קוטף פירורים (רוטציית-VA = 10-15 נק'; היעד קוטף 2-3).
 **אל cc — לפני החיווט:** `CC_WORKORDER_EXIT_STUDY_2026-08-26.md` — 48 הכניסות קפואות, 5 מדיניות-מימוש (בסיס · POC-scale+ride · ride-מלא · **יציאה-סימטרית: failed-break נגדי = איתות-יציאה** · POC+טריילינג-F5). מדד חדש: **capture%** מהמרחק לקצה-הנגדי. פר-סוג-יום, זנב מוצהר, עוגן-25.08. המנצחת מתחווטת ⇒ צל. — cowork-dev
