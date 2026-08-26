@@ -112,7 +112,18 @@ def _poll_instructions(access_key, render):
                 with open(p_inbox, "a", encoding="utf-8") as f:
                     f.write(f"### [{it.get('ts', '')}] מייקל (מהפלאפון) · "
                             f"ID {iid}\n{it.get('text', '')}\n\n")
-                print(f"[relay] instruction {iid} → thread+inbox", flush=True)
+                # 26.08 (Michael): "ברגע שליחת הודעה - קלוד קוד חייב להגיב
+                # שקיבל". Instant cc-signed receipt into the thread; the
+                # substantive answer follows from the agent (workorder §1).
+                import datetime as _dt
+                _ack_ts = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                with open(p_thread, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(
+                        {"sender": "cc", "text": "✓ קיבלתי את ההודעה — מטפל "
+                         "ועונה בהמשך (קבלה אוטומטית)", "ts": _ack_ts,
+                         "id": f"{iid}-ack", "status": ""},
+                        ensure_ascii=False) + "\n")
+                print(f"[relay] instruction {iid} → thread+inbox+ack", flush=True)
             body = json.dumps({"id": iid, "status": "done"}).encode()
             req = urllib.request.Request(
                 f"{render}/instruction/status?key={access_key}", data=body,
