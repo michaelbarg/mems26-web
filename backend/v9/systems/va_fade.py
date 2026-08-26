@@ -55,6 +55,10 @@ def detect_va_fade(
     val: Optional[float],
     *,
     already_fired: Optional[Set[str]] = None,
+    # Calibration overrides (from YAML or caller)
+    edge_zone_pts: Optional[float] = None,
+    close_pos_threshold: Optional[float] = None,
+    stop_offset_pts: Optional[float] = None,
     min_bars: int = 12,
     ib_width: Optional[float] = None,
 ) -> Optional[Dict[str, Any]]:
@@ -74,6 +78,10 @@ def detect_va_fade(
     if n < min_bars:
         return None
     fired = already_fired or set()
+    # Apply calibration overrides
+    _ez = edge_zone_pts if edge_zone_pts is not None else VA_EDGE_ZONE_PTS
+    _cp = close_pos_threshold if close_pos_threshold is not None else 0.5
+    _so = stop_offset_pts if stop_offset_pts is not None else VA_STOP_OFFSET_PTS
 
     last = session_bars[-1]
     lh = _f(last, "h", "high")
@@ -87,15 +95,14 @@ def detect_va_fade(
         return None
     close_pos = (lc - ll) / bar_rng  # 0=low, 1=high
 
-    poc = (vah + val) / 2.0  # approximation — live POC from TPO is better
+    poc = (vah + val) / 2.0
 
     # ── VAH rejection → SHORT ──
-    # Bar probed into the VAH zone, then closed back BELOW VAH
     if ("VA_FADE_HIGH" not in fired
-            and lh >= vah - VA_EDGE_ZONE_PTS
-            and close_pos <= 0.5
+            and lh >= vah - _ez
+            and close_pos <= _cp
             and lc < vah):
-        stop = min(lh + VA_STOP_OFFSET_PTS, lc + VA_STOP_CAP_PTS)
+        stop = min(lh + _so, lc + VA_STOP_CAP_PTS)
         return {
             "type": "VA_FADE_HIGH",
             "direction": "SHORT",
@@ -110,10 +117,10 @@ def detect_va_fade(
 
     # ── VAL rejection → LONG ──
     if ("VA_FADE_LOW" not in fired
-            and ll <= val + VA_EDGE_ZONE_PTS
-            and close_pos >= 0.5
+            and ll <= val + _ez
+            and close_pos >= (1.0 - _cp)
             and lc > val):
-        stop = max(ll - VA_STOP_OFFSET_PTS, lc - VA_STOP_CAP_PTS)
+        stop = max(ll - _so, lc - VA_STOP_CAP_PTS)
         return {
             "type": "VA_FADE_LOW",
             "direction": "LONG",

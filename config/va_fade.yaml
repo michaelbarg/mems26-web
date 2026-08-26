@@ -1,0 +1,36 @@
+# VA_FADE calibration parameters
+# Each variant is a named set of overrides. The code default is "baseline".
+
+baseline:
+  edge_zone_pts: 2.0
+  close_pos_threshold: 0.50
+  stop_offset_pts: 1.5
+  rearm_after_stop: false
+
+# Variant A: tighter rejection (33% instead of 50%)
+tight_rejection:
+  edge_zone_pts: 2.0
+  close_pos_threshold: 0.33
+  stop_offset_pts: 1.5
+  rearm_after_stop: false
+
+# Variant B: re-arm after stop-out (captures multi-rotation days)
+rearm:
+  edge_zone_pts: 2.0
+  close_pos_threshold: 0.50
+  stop_offset_pts: 1.5
+  rearm_after_stop: true
+
+# Variant C: wider stop (2.0pt offset)
+wide_stop:
+  edge_zone_pts: 2.0
+  close_pos_threshold: 0.50
+  stop_offset_pts: 2.5
+  rearm_after_stop: false
+
+# Variant D: combined (tight + rearm + wide)
+combined:
+  edge_zone_pts: 2.0
+  close_pos_threshold: 0.33
+  stop_offset_pts: 2.5
+  rearm_after_stop: true
