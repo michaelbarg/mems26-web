@@ -131,13 +131,12 @@ def build_failed_break_setup(trigger: Dict[str, Any],
     direction = trigger["direction"]
     risk = abs(entry - stop)
     sign = 1.0 if direction == "LONG" else -1.0
+    # Michael ruling 26.08: "יעד POC, לא קצה-נגדי" — only 7/87 reach opposite edge.
+    # T1 = POC. T2 = 2R (structured extension, not opposite edge).
     t1 = float(trigger["target_poc"])
-    t2 = float(trigger["target_opposite"])
-    # Ensure T1 is beyond entry in trade direction
     if (direction == "LONG" and t1 <= entry) or (direction == "SHORT" and t1 >= entry):
         t1 = entry + sign * 1.0 * risk
-    if (direction == "LONG" and t2 <= t1) or (direction == "SHORT" and t2 >= t1):
-        t2 = entry + sign * 2.0 * risk
+    t2 = entry + sign * 2.0 * risk
     pat = f"FAILED_BREAK_{direction}"
     return {
         "firing_system": 2,
