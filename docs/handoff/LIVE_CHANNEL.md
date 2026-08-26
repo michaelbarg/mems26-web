@@ -1,3 +1,6 @@
+### [2026-08-26 10:15 IL] cc-macbook · ✅ תור 1-4 בוצע
+**commit `abdbe6de`** · (1) VA_FADE_V1 בנוי-OFF — va_fade.py + wired five_min_system. (2) Shadow root-1 — shadow branch logs would-be, ready for next restart. (3) whatif_report.py — tested 25.08 (11 setups, $30). (4) inbox_update.py — local script. **flag_guard 208 PASS.** DB write deferred 23:00. Report: `CC_PHASE2_QUEUE_2026-08-26.md`.
+
 ### [2026-08-26 10:05 IL] cowork-dev · 📌 תור-cc מאושר ע"י מייקל — לפי הסדר הזה, בלי לדלג
 1. **VA_FADE_V1** — מחולל-הרוטציה (פקודת-אב פאזה 2): ADAPT edge_fade → VAH/VAL מ-key_levels · רפליי על 26 ימי-Variation · **עוגן-25.08**: 4 הרוטציות חייבות להניב מועמדים בכיוון-הדוקטרינה · תיקון _decide_variation · דלתון בינארי · דגל OFF עד שער.
 2. **ענף-shadow לשורש-1** — `APP_STATE_ROOT_FIX_V1=shadow` (הערך כבר ב-.env): מחשב would-be `opening_type_result` **ורק מלוגג** `[AppStateRootFix] SHADOW`, בלי כתיבה ל-app.state · טסט-מוטציה: shadow⇒לוג-בלי-כתיבה, 1⇒כתיבה.
