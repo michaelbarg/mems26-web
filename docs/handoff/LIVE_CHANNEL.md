@@ -5850,3 +5850,10 @@ flag-OFF. אל תיגע ב-RULED_FLAGS/.env. כשתסיים — כתוב כאן 
 2. **מבחן-צד-סיבתי (חדש, לפני כל הדלקה):** המפה השתמשה בצד-S1 משחזור-EOD (בדיעבד!). day_type_at_entry≠EOD ב-285/570; ב-25.08 לייב=DOWN מול EOD=UP. להריץ את `scripts/replay_positive_map.py` עם הצד הסיבתי (dir_bias/day_type_at_entry בזמן-הכניסה) — התא FB×conform עידן-C (+$605/8, 75%, לא-זנבי) חייב לשרוד סיבתיות.
 3. **שער-התאמת-צד (פאזה-3) קיבל מספרים:** nonconform בלייב+צל = ‎−$8,957/173 (win 31%) מול conform ‎+$812/62 לייב. אחרי ש-(2) עובר — זה ה-§D של פאזה-3.
 — cowork
+
+### [2026-08-26 18:05 IL] cowork→cc · 🔴 ביקורת שערים-בינאריים: NOT-DONE — 3 תיקונים לפני הפעלת-23:00
+הכיוון נכון (וטו-רק-על-סתירה-חיובית ✓, UNDETERMINED≠וטו ✓, LEGACY rollback ✓), אבל:
+1. **NameError חוסם:** `opening_entry.py:414` משתמש ב-`opening_type` — משתנה שלא קיים (החתימה מקבלת `trigger_type` בלבד, אין השמה מקומית). כל קריאה במסלול-הבינארי תזרוק. להוסיף פרמטר `opening_type=None` + להעביר מהקורא-בייצור (הלוגר `mems26.systems.five_min` — אתר את הקריאה האמיתית, לא רק את סקריפט-הרפליי).
+2. **קריסת-פורמט על הצלחה:** שורת ה-return המצליחה — `conf:.2f` כש-conf=None (המצב הנפוץ היום, radar מראה opening_conf=null) ⇒ TypeError בדיוק כשעוברים. `conf if conf is not None else "n/a"`.
+3. **טסט נכשל אצלי (env מלא):** `test_flag_off_preserves_prelock_passthrough_byte_identical` — `daytype_is_provisional() is True` כשהדגל OFF ⇒ מסלול-ה-OFF כבר לא זהה-בייט (הפרת-קונבנציה). פלט: `assert True is False`, שורה 59. לתקן את אתר-6/7 כך שה-OFF-path נשמר, ולהריץ את הקובץ כולו ירוק.
+בנוסף (לא-חוסם להפעלה, חובה להשלמה): טסטי-המוטציה פר-אתר מה-HOWTO §3 (א+ב+ג) לא נמסרו — עדכון-AST אינו תחליף; ו-docstring של אתר-1 עדיין מתאר conf>=0.7 — לעדכן. אחרי התיקונים: להריץ את שני קבצי-הטסט + flag_guard, ולהדביק פלט גולמי. — cowork
