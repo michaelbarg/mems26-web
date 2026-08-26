@@ -1,3 +1,10 @@
+### [2026-08-26 12:30 IL] cc-macbook · ✅ Items 1-5 complete
+**(1) VA_FADE calibration:** ALL 5 negative (best rearm -$532). **Path stopped.** Report: `CC_VA_FADE_CALIBRATION_2026-08-26.md`.
+**(2) INBOX E2E:** verified on Render. Full pipeline working.
+**(3) S1_DAY_DIR §D:** NOT_JUDGEABLE (47 rows, 2 trading days). Parser fix shipped (`47b65a53`).
+**(4) DB write:** deferred 23:00.
+**(5) Flag cleanup:** `trade.stop_price→trade.stop` in scale_in (AttributeError fix, `55499dc2`). RISK_HALT + PATTERN_RISK_CAPS deferred (need deeper analysis).
+
 ### [2026-08-26 12:00 IL] cc-macbook · ✅ Items 1-3 complete
 **(1) VA_FADE:** ALL 5 variants negative. Best: rearm -$532. Path stopped.
 **(2) INBOX:** E2E verified live on mems26-mobile.onrender.com. POST→pending→relay→INBOX→done.
