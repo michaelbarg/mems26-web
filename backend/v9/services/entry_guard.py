@@ -51,6 +51,36 @@ STATE_MAX_AGE_S = 30.0
 # The deployed DLL recipe caps |position| at 10 (MES_AI_DataExport_merged.cpp:1848).
 MAX_POSITION_ALLOWED = 10
 
+# Manual position acknowledgment file — written ONLY by cowork/Michael.
+_ACK_PATH = Path(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))).joinpath("config", "manual_position_ack.json")
+
+
+def _read_manual_ack() -> Optional[dict]:
+    """Read the manual position ack if present AND dated today.
+
+    The ack is valid for ONE calendar day only (ET). A stale ack from
+    yesterday does NOT explain today's position — that's an orphan.
+    Never raises.
+    """
+    try:
+        if not _ACK_PATH.exists():
+            return None
+        ack = json.loads(_ACK_PATH.read_text(encoding="utf-8"))
+        if not isinstance(ack, dict):
+            return None
+        # Date check: must be today ET
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        today_et = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+        if ack.get("date") != today_et:
+            return None
+        if not ack.get("owner"):
+            return None
+        return ack
+    except Exception:
+        return None
+
 
 def enabled() -> bool:
     """Default ON — the guard is the F1 root-fix, not an experiment."""
@@ -134,17 +164,20 @@ def check_live_entry(direction: Optional[str], contracts: int) -> Tuple[bool, st
                             "ownership check PASS",
                             pos, _tm_open.get("id"), _tm_dir)
                 if not _explained:
-                    # Check reconciler ownership attribution
+                    # Path 2: explicit manual position acknowledgment.
+                    # config/manual_position_ack.json, written ONLY by
+                    # cowork/Michael (never auto-generated). Valid for ONE
+                    # day (date must be today). This preserves the orphan
+                    # guard: an unacknowledged position still blocks.
                     try:
-                        from backend.v9.services.sierra_position_reconciler import (
-                            _ownership_attributed,
-                        )
-                        if _ownership_attributed():
+                        _ack = _read_manual_ack()
+                        if _ack and abs(pos) <= _ack.get("max_abs_qty", 0):
                             _explained = True
                             logger.info(
-                                "[EntryGuard] pos=%+d ownership-attributed — "
-                                "PASS (reconciler says explained)", pos)
-                    except (ImportError, AttributeError):
+                                "[EntryGuard] pos=%+d coexist_manual "
+                                "(ack %s, owner=%s) — ownership PASS",
+                                pos, _ack.get("date"), _ack.get("owner"))
+                    except Exception:
                         pass
             except Exception as _eo_err:
                 logger.warning("[EntryGuard] ownership check error (fail-closed): %s", _eo_err)
