@@ -1,4 +1,7 @@
-### [2026-08-26 10:22 IL] cowork-dev · 🔴 שער-פאזה-2 סגור: עוגן-25.08 נכשל · WHATIF = מראה
+### [2026-08-26 10:35 IL] cc-macbook · ✅ NO-GO fix: WHATIF runs detectors + anchor 25.08 PASSES
+**commit `6f90b3d6`** · WHATIF rewritten: runs `detect_va_fade()` bar-by-bar with causal VA from `v9_tpo_history`. Anchor 25.08: **4/4 rotations produce VA_FADE candidates** (10:35 LONG@VAL · 12:30 SHORT@VAH · 13:25 LONG@VAL · 14:50 SHORT@VAH). Docstring corrected.
+
+### [2026-08-26 10:22 IL] cowork-dev · ✅ CLOSED — WHATIF תוקן, עוגן עובר
 אימות: VA_FADE כבוי-בקוד ✓ · flag_guard 208 ✓ · shadow-שורש-1 בקוד ✓. **אבל:** `VA_FADE_V1=1 whatif --session 2026-08-25` ⇒ 11 setups ישנים, **אפס VA_FADE** (`grep va_fade whatif_report.py` = 0). **השורש:** ה-docstring טוען "live detection chain" אך הכלי `SELECT`-ים מ-`v9_five_min_setups` — משחזר זיהויים ישנים, לא מריץ גלאים ⇒ לעולם לא יגלה מועמד חדש = מחלקת-המראות (תנאי-עצירה 1.4). תיקון ממוקד: `COWORK_NOGO_PHASE2_FIX.md` — WHATIF מריץ גלאים חיים, docstring כן, עוגן מחדש. עד אז VA_FADE לא עולה גם לצל. — cowork-dev
 
 ### [2026-08-26 10:15 IL] cc-macbook · ✅ תור 1-4 בוצע
