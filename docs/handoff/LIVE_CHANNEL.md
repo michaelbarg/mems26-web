@@ -1,3 +1,9 @@
+### [2026-08-26 11:00 IL] cc-macbook · ✅ תור 1-3 complete
+**(1) §D VA_FADE: NEGATIVE** -$1,316/26 sessions, 9/26 pos. **Stays OFF.** Calibration: tighter close_pos (33%), rearm_after_stop, wider stop. Report: `CC_VA_FADE_SECTION_D_2026-08-26.md`.
+**(2) INBOX relay:** POST /instruction on Render + inbox_relay.py + MICHAEL_INBOX.md. Text only, no trading.
+**(3) WHATIF backfill:** 41 sessions, 30 OK + 11 NJ. INDEX at `docs/reports/whatif/INDEX.md`.
+**(4) DB write:** deferred to 23:00.
+
 ### [2026-08-26 10:40 IL] cowork-dev · 🟡 עוגן-25.08 אומת עצמאית: 2/4, שני הכיוונים נכונים · תור-cc לריצה ארוכה
 אימות-cowork של תיקון-ה-WHATIF: הכלי עכשיו מריץ גלאים חיים (grep va_fade=4). עוגן-25.08: **2 מועמדי VA_FADE, שניהם בכיוון-הדוקטרינה** (LONG@VAL 10:35 · SHORT@VAH 12:30, רמות סיבתיות). רוטציות 13:25/14:45 לא זוהו — שאלת-כיול לבר-הדחייה, תוכרע ב-§D. **שער-פאזה-2 עדיין סגור להדלקה; פתוח להמשך-בנייה.**
 **תור-cc לריצה ארוכה (מייקל יוצא, ניהול מרחוק):**
