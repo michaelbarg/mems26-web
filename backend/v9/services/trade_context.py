@@ -906,8 +906,15 @@ def get_live_expansion():
                         _t = str(_sdb_raw)
                         if _t.startswith("with_extension("):
                             _sdb = "UP" if "UP" in _t else "DOWN"
+                        elif _t == "with_extension":
+                            # Phase 3 fix: bare with_extension without
+                            # parentheses/direction — UNDETERMINED (we know
+                            # it's a trend day but not which direction).
+                            _sdb = "UNDETERMINED"
                         elif _t.startswith("fade_both("):
                             # Balance day: NO directional requirement.
+                            _sdb = "UNDETERMINED"
+                        elif _t == "fade_both":
                             _sdb = "UNDETERMINED"
                 except Exception:
                     pass
