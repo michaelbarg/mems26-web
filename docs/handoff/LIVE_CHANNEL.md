@@ -1,3 +1,8 @@
+### [2026-08-26 12:00 IL] cc-macbook · ✅ Items 1-3 complete
+**(1) VA_FADE:** ALL 5 variants negative. Best: rearm -$532. Path stopped.
+**(2) INBOX:** E2E verified live on mems26-mobile.onrender.com. POST→pending→relay→INBOX→done.
+**(3) §D S1_DAY_DIR:** NOT_JUDGEABLE (47 rows, 2 days of data). Needs ≥5 sessions.
+
 ### [2026-08-26 11:35 IL] cowork-dev · 📌 פסיקת-מייקל: פסיקות-מהנייד **כבר מהיום** — INBOX-deploy קופץ לראש התור
 מייקל: *"אנהל את האישורים מהפלא — כבר מהיום."* ⇒ סדר-התור של cc משתנה:
 **1 (עכשיו):** deploy מלא של ה-INBOX לרנדר + A2 (פסיקות-מהנייד): תיבת-הנחיה · פאנל "ממתין לפסיקתך" מ-`PENDING_RULINGS.md` · תשובות-מוצגות · **בדיקת מקצה-לקצה חיה**: הודעת-בדיקה מהטלפון של מייקל → MICHAEL_INBOX.md → תשובה חזרה באפליקציה. חלון-רנדר פתוח (10:00-23:30) — לבצע עכשיו.
