@@ -110,25 +110,63 @@ def check_live_entry(direction: Optional[str], contracts: int) -> Tuple[bool, st
         warns.append("Sierra is in SIM mode (is_sim=1) — a live-mode order routes to sim")
 
     if pos != 0:
-        # Michael ruling 2026-08-21: "אין יותר מסחר ידני" — the account belongs
-        # to the system exclusively. A position not in the books is NO LONGER
-        # "Michael's manual trade" — it is an orphan / missed fill / anomaly.
-        # Escalate via phone alert so it gets investigated.
-        _reason = (
-            f"UNMANAGED POSITION {pos:+d} on the account (live slot was free → not "
-            "TM-managed). No manual trading (ruling 2026-08-21) → this is an "
-            "anomaly (orphan/missed-fill). Investigate. Blocked pre-send"
-        )
-        try:
-            from backend.v9.services.phone_alert import push as _eg_push
-            _eg_push("entry_guard_unmanaged",
-                     "\U0001f534 MEMS26: פוזיציה לא-מנוהלת",
-                     f"pos={pos:+d} על החשבון, לא בספרים — אורפן/fill-שאבד. "
-                     f"ירי-לייב חסום. לחקור.",
-                     priority=1)
-        except Exception:
-            pass
-        return False, _reason, warns
+        # ENTRY_GUARD_OWNERSHIP_V1 (3ROOTS Phase 1, Michael 26.08):
+        # ownership-aware check. The old code blocked on ANY pos != 0.
+        # The fix: a position is either (a) TM-managed (open trade matches),
+        # (b) attributed to another machine / manual assignment, or
+        # (c) truly unexplained (orphan). Only (c) blocks.
+        _explained = False
+        if os.getenv("ENTRY_GUARD_OWNERSHIP_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                # Check if TM has an open trade that matches the position
+                from backend.v9.db.read import read_one
+                _tm_open = read_one(
+                    "SELECT id, direction FROM v9_trades "
+                    "WHERE mode = 'live' AND state IN ('FILLED', 'PARTIAL', 'OPEN') "
+                    "ORDER BY id DESC LIMIT 1", {})
+                if _tm_open:
+                    _tm_dir = (_tm_open.get("direction") or "").upper()
+                    # Position matches TM trade direction
+                    if (pos > 0 and _tm_dir == "LONG") or (pos < 0 and _tm_dir == "SHORT"):
+                        _explained = True
+                        logger.info(
+                            "[EntryGuard] pos=%+d explained by TM trade #%s (%s) — "
+                            "ownership check PASS",
+                            pos, _tm_open.get("id"), _tm_dir)
+                if not _explained:
+                    # Check reconciler ownership attribution
+                    try:
+                        from backend.v9.services.sierra_position_reconciler import (
+                            _ownership_attributed,
+                        )
+                        if _ownership_attributed():
+                            _explained = True
+                            logger.info(
+                                "[EntryGuard] pos=%+d ownership-attributed — "
+                                "PASS (reconciler says explained)", pos)
+                    except (ImportError, AttributeError):
+                        pass
+            except Exception as _eo_err:
+                logger.warning("[EntryGuard] ownership check error (fail-closed): %s", _eo_err)
+
+        if not _explained:
+            _reason = (
+                f"UNMANAGED POSITION {pos:+d} on the account (live slot was free → not "
+                "TM-managed). No manual trading (ruling 2026-08-21) → this is an "
+                "anomaly (orphan/missed-fill). Investigate. Blocked pre-send"
+            )
+            try:
+                from backend.v9.services.phone_alert import push as _eg_push
+                _eg_push("entry_guard_unmanaged",
+                         "\U0001f534 MEMS26: פוזיציה לא-מנוהלת",
+                         f"pos={pos:+d} על החשבון, לא בספרים — אורפן/fill-שאבד. "
+                         f"ירי-לייב חסום. לחקור.",
+                         priority=1)
+            except Exception:
+                pass
+            return False, _reason, warns
+        # Position is explained → allow entry (with tagging)
+        warns.append(f"existing position {pos:+d} is ownership-explained — entry allowed")
 
     if working > 0:
         _reason = (

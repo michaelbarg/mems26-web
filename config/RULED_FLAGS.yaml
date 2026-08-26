@@ -91,6 +91,7 @@ ruled:
   CANDIDATE_LEDGER_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-25", note: "פסיקת 25.08 ('תוסיף את מה שהמלצת ככלי שבוחן ירי'). JSONL-only observability: DETECTED/EMIT_DECISION/GATE_DECISION/ROUTED events appended to gateway_decisions.jsonl. Never blocks detection/routing. §3a rotation fix + §3b radar filter." }
   DOUBLE_TOP_ADAM_FIX_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-23", note: "פסיקת 21:20 ('מאשר — צריך לסחור אותו יותר'). סבילות-Adam נפרדת (2 טיקים) + חוצץ-32. 1 סטאפ ב-34 סשנים → צפוי ~7-10 מועמדים. +$582 נמדד (סבילות+חוצץ כזוג בלבד). אין רגרסיה ל-DOUBLE_BOTTOM_EE: get_trough_tolerance נשאר ללא שינוי." }
 
+  ENTRY_GUARD_OWNERSHIP_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-26", note: "Phase 1: שומר-כניסה מודע-בעלות. pos!=0 נחסם רק אם הפוזיציה לא-מוסברת (לא TM ולא ownership-attributed). דורש פסיקה: מי מחזיק -3 על 37138283." }
   APP_STATE_ROOT_FIX_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-25", note: "שורש 1 (3ROOTS): opening_type_result נכתב ל-app.state. §D+cowork נדרש לפני הדלקה ל-1. 5 דגלים מתים מתכונה אחת." }
   PATTERN_FAMILY_DELTA_DBL_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-25", note: "שורש 2 (3ROOTS): S2_DELTA_DBL → REV family. שינוי-סיכון (פותח מסלולים). §D+cowork נדרש לפני הדלקה ל-1." }
 
