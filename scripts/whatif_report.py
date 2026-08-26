@@ -119,9 +119,11 @@ def main():
 
     # Import the actual detectors
     from backend.v9.systems.va_fade import detect_va_fade, build_va_fade_setup
+    from backend.v9.systems.failed_break import detect_failed_break, build_failed_break_setup
 
     candidates = []
     va_fired = set()
+    fb_fired = set()
 
     # Bar-by-bar detection loop (causal: only bars[:i+1] visible)
     for i in range(IB_BARS, len(bars)):
@@ -133,9 +135,26 @@ def main():
         vah = va["vah"] if va else None
         val = va["val"] if va else None
 
-        # Classify day type (simplified: use post-hoc for now, note limitation)
-        # TODO: per-bar classify_session for true causal day type
-        day_type = "Variation"  # Most common; noted as limitation
+        day_type = "Variation"  # Limitation noted
+
+        # FAILED_BREAK detection (three-step: attempt→failure→return)
+        if vah and val and len(window) >= 14:
+            fb_trig = detect_failed_break(window, vah, val, edge_label="VA",
+                                           already_fired=fb_fired)
+            if fb_trig:
+                fb_fired.add(fb_trig["type"])
+                fb_setup = build_failed_break_setup(fb_trig, contracts=C)
+                candidates.append({
+                    "bar": i,
+                    "time": bar["ts"].strftime("%H:%M") if hasattr(bar["ts"], "strftime") else str(bar["ts"]),
+                    "source": "FAILED_BREAK",
+                    "pattern": fb_setup["pattern"],
+                    "direction": fb_setup["direction"],
+                    "entry": fb_setup["entry_price"],
+                    "stop": fb_setup["stop"],
+                    "t1": fb_setup["t1"],
+                    "vah": vah, "val": val,
+                })
 
         # VA_FADE detection
         trig = detect_va_fade(window, day_type, vah, val, already_fired=va_fired)

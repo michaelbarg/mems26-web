@@ -150,8 +150,9 @@ async def post_instruction(request: Request):
     text = (body.get("text") or "").strip()
     if not text or len(text) > 2000:
         raise HTTPException(status_code=400, detail="text required (max 2000 chars)")
+    import uuid
     item = {
-        "id": len(_INBOX["items"]) + 1,
+        "id": str(uuid.uuid4())[:8],  # stable across deploy restarts
         "text": text,
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "status": "received",  # received → in_progress → done

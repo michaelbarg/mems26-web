@@ -1817,6 +1817,39 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _vf_err:
                     logger.warning("[VA_FADE] failed (non-fatal): %s", _vf_err)
 
+                # ── FAILED_BREAK_VA_V1: entry after failed attempt to break VA edge ──
+                # Michael 26.08: "לזהות מתי המחיר לא מצליח לעבור קיצון ואז חוזר חזרה"
+                # §D: +$118/33 sessions, 56% win. Three-step: attempt→failure→return.
+                try:
+                    if (os.getenv("FAILED_BREAK_VA_V1", "0").lower() in ("1", "true", "yes", "shadow")
+                            and self._gateway):
+                        from backend.v9.systems.failed_break import (
+                            detect_failed_break, build_failed_break_setup)
+                        _fb_vah = _fb_val = None
+                        try:
+                            _fb_tpo = _load_sierra_tpo() or {}
+                            _fb_vah = float(_fb_tpo.get("vah") or 0) or None
+                            _fb_val = float(_fb_tpo.get("val") or 0) or None
+                        except Exception:
+                            pass
+                        if _fb_vah and _fb_val:
+                            if not hasattr(self, "_fb_fired"):
+                                self._fb_fired = set()
+                            _fb_trig = detect_failed_break(
+                                _det_buf, _fb_vah, _fb_val,
+                                edge_label="VA", already_fired=self._fb_fired)
+                            if _fb_trig:
+                                self._fb_fired.add(_fb_trig["type"])
+                                _fb_setup = build_failed_break_setup(_fb_trig)
+                                logger.warning(
+                                    "[FailedBreak] %s %s @%.2f (VAH=%.2f VAL=%.2f extreme=%.2f) → gateway",
+                                    _fb_trig["direction"], _fb_trig["type"],
+                                    _fb_trig["entry"], _fb_vah, _fb_val,
+                                    _fb_trig.get("failed_extreme", 0))
+                                self._gateway.route_setup(_fb_setup, 2)
+                except Exception as _fb_err:
+                    logger.warning("[FailedBreak] failed (non-fatal): %s", _fb_err)
+
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
         # Uses last 14 bars (rolling window) for stable measurement.
