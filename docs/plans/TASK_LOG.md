@@ -11,7 +11,8 @@
 | `docs/plans/ROADMAP_TO_LIVE.html` | מבט-על |
 
 **מקרא:** 🔴 חוסם · 🟠 פער-נכונות · 🟡 ממתין-לפסיקה · 🔵 חוב · ✅ נסגר
-**עודכן:** 2026-08-25 09:45 IL (cursor-agent, **ניהול בלבד — אין קוד**) — 🟠 **T-103 נמסר:** cc-macbook מבצע לפי `docs/handoff/CC_WORKORDER_T103_LEDGER_2026-08-25.md` · cowork מאמת לפי `docs/handoff/COWORK_VERIFY_T103_LEDGER_2026-08-25.md` · cursor רק GO/NO-GO. **אסור להתחיל T-100/T-99/T-104/T-105/T-106 לפני GO.** T-107/108/109 נשארים אצל מייקל/cowork בנפרד, לא בשרשרת-המקסום.
+**עודכן:** 2026-08-26 15:05 IL (cc-agent/cowork, **קריאה-בלבד על הייצור**) — ✅ **T-110 מחקר-המימושים של FAILED_BREAK נסגר: NO-GO, E0 נשארת.** הבסיס שוחזר ביט-אקזקט; ההחזקה-עד-הקצה מופרכת (9/48); ההיסט האמפירי היחיד הוא טיק (+$420) אבל נשען על 2 עסקאות-הצלה ⇒ נשלט-זנב; ובמחיר-עמלות-הבית E0 עצמה ‎−$97.80‎. דוח: `docs/reports/CC_EXIT_STUDY_2026-08-26.md`.
+*קודם:* 2026-08-25 09:45 IL (cursor-agent, **ניהול בלבד — אין קוד**) — 🟠 **T-103 נמסר:** cc-macbook מבצע לפי `docs/handoff/CC_WORKORDER_T103_LEDGER_2026-08-25.md` · cowork מאמת לפי `docs/handoff/COWORK_VERIFY_T103_LEDGER_2026-08-25.md` · cursor רק GO/NO-GO. **אסור להתחיל T-100/T-99/T-104/T-105/T-106 לפני GO.** T-107/108/109 נשארים אצל מייקל/cowork בנפרד, לא בשרשרת-המקסום.
 *קודם:* 2026-08-25 (cowork-dev/agent, **קריאה-בלבד**) — ✅ **T-107 פורנזיקת-הצל · תפקיד-S1 · הכנת-3-חוזים**:
 ‎280‎ עסקאות-צל בעידן-הלייב = ‎−$4,681.87‎ (win 45.5%); המפריד החזק ביותר הוא **צורת-היום המבנית**
 (‎Trend_Normal ‎+$3,177.50‎/93.8%‎ מול ‎Normal_Variation ‎−$9,004.37‎/31.9%‎) ואז **כיוון** (יום בלי `dir_bias`
@@ -220,6 +221,7 @@ T-61 שכבת-INFO אבדה מהלוג · T-62 ספרים≠מילויים על 
 
 | # | משימה | סטטוס | מי | הצעד הבא |
 |---|---|---|---|---|
+| T-110 | **מחקר-מימושים FAILED_BREAK (E0-E5)** — E0 שוחזרה ביט-אקזקט (+$118.20/48/56.25%); כל מדיניות-החזקה שלילית (רק 9/48 מגיעות לקצה-הנגדי לפני-סטופ); היסטוגרמת-החוסר בימודלית (26·2·0·0·0·20) ⇒ היסט=טיק; E0−1tick +$420 אך top-2=132% מהדלתא ⇒ נשלטת-זנב ⇒ **NO-GO, E0 נשארת**; עמלות: E0 עצמה ‎−$97.80‎ במחיר-הבית | ✅ 26.08 | cc-agent (cowork) | אין קוד. הצל המחווט סופר קדימה אירועי-miss-בטיק עד שיש n; הדלקה/היסט = פסיקת-מייקל. דוח: `CC_EXIT_STUDY_2026-08-26.md` · לוח: STATUS_BOARD 26.08 |
 | T-106 | 🔵 **Opportunity Ranker — חסום עד ≥300 candidate outcomes נקיים.** אין Logistic/GAM/GBDT לפני Ledger, forward-OOS ו-session-block bootstrap; עד אז scheduler דטרמיניסטי בלבד. | 🔵 **BLOCKED-BY-SAMPLE** | cursor | אין קוד. שער-פתיחה: ≥300 resolved rows מ-T-103, schema קפוא, OOS נפרד, bootstrap; אחר כך spec חדש |
 | T-105 | 🟡 **`CONTEXT_ENTRY_V1` pure function אחת ל-replay+shadow+live.** BALANCE=B+REACTIVE confirmation; DISCOVERY=D+with-direction; stop_anchors authority. | 🟡 **חסום עד T-103 GO ואז T-100/T-104** | cc-macbook → cursor/cowork | **אל תתחיל.** אחרי התלויות: build default-OFF; הטסט המרכזי אותו serialized input ⇒ output זהה-בייט ב-unit/replay/live; §D 4/6c×s0/s1/s2; shadow 10 sessions. live enable = פסיקת מייקל |
 | T-104 | 🟡 **השלמת `S1_STRUCTURAL_BINARY_V1` + shadow ≥10 סשנים.** חסרים EOD ו-DD-neck-refill; label/determined/direction/event ללא confidence לצרכנים. | 🟡 **חסום עד T-103 GO** | cc-macbook → cursor/cowork | **אל תתחיל לפני T-103.** אחרי GO: להשלים pure state events; acceptance מול daily_extremes קבוע; convergence≥80%, restart parity, אפס consumer behavior ב-shadow. החלפת label חי = פסיקת מייקל |
