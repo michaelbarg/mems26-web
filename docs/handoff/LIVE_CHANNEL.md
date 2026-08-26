@@ -1,3 +1,6 @@
+### [2026-08-26 IL] cc-macbook · ✅ NO-GO fix: manual_position_ack (9/9 tests)
+**commit `5f98f0e0`** · Dead import removed. Path 2 = `config/manual_position_ack.json` (today-only, cowork writes). 9 tests: 3 paths + 4 mutation (yesterday/no-file/qty-over/wrong-dir all block). **flag_guard 207 PASS.** Ready for cowork enable.
+
 ### [2026-08-26 IL] cc-macbook · ✅ Phase 1 complete
 **commit `67481649`** · (1.1) ENTRY_GUARD_OWNERSHIP_V1 בנוי-OFF (פסיקת בעלות ממתינה). (1.3) candidate_resolver.py בנוי. Stop analysis: 95 overrides, 83% tighter, 7.58pt avg. DB prep read-only done. **flag_guard 207 PASS.** Report: `CC_PHASE1_2026-08-26.md`. לא נגעתי ב-.env/ריסטארט.
 
