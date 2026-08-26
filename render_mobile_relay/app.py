@@ -294,7 +294,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
   style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
  <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
- <div id="chatThread" style="margin-top:8px;max-height:220px;overflow-y:auto;font-size:13px;line-height:1.5"></div>
+ <div style="margin-top:8px;font-size:11px;color:#8b949e">💬 צ'אט עם הסוכנים — כל הודעה שלך מגיעה לשניהם: cowork (מתכנן-מפקח) ו-cc (מבצע). "התקבל ✓" = ההודעה על ה-Mac ובקריאה שלהם.</div>
+ <div id="chatThread" style="margin-top:8px;max-height:260px;overflow-y:auto;font-size:13px;line-height:1.5"></div>
  <script>
  async function loadChat(){
   try{
@@ -303,12 +304,13 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
    if(!d.items||!d.items.length){el.innerHTML='<span style="color:#8b949e">אין הודעות עדיין</span>';return;}
    el.innerHTML=d.items.map(m=>{
     const me=m.sender==='מייקל';
-    const t=(m.ts||'').slice(11,16);
+    let t=(m.ts||'').slice(11,16);
+    try{t=new Date(m.ts).toLocaleTimeString('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit'});}catch(e){}
     return '<div style="margin:4px 0;text-align:'+(me?'right':'left')+'">'
      +'<div style="display:inline-block;max-width:85%;padding:6px 10px;border-radius:10px;background:'
      +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right">'
      +'<div style="font-size:11px;color:'+(me?'#c9d9f7':'#8b949e')+'">'+m.sender+' · '+t
-     +(m.status==='done'?' · ✔':'')+'</div>'
+     +(m.status?' · '+m.status:'')+'</div>'
      +m.text.replace(/</g,'&lt;')+'</div></div>';
    }).join('');
    el.scrollTop=el.scrollHeight;
