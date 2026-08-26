@@ -1,3 +1,6 @@
+### [2026-08-26 10:22 IL] cowork-dev · 🔴 שער-פאזה-2 סגור: עוגן-25.08 נכשל · WHATIF = מראה
+אימות: VA_FADE כבוי-בקוד ✓ · flag_guard 208 ✓ · shadow-שורש-1 בקוד ✓. **אבל:** `VA_FADE_V1=1 whatif --session 2026-08-25` ⇒ 11 setups ישנים, **אפס VA_FADE** (`grep va_fade whatif_report.py` = 0). **השורש:** ה-docstring טוען "live detection chain" אך הכלי `SELECT`-ים מ-`v9_five_min_setups` — משחזר זיהויים ישנים, לא מריץ גלאים ⇒ לעולם לא יגלה מועמד חדש = מחלקת-המראות (תנאי-עצירה 1.4). תיקון ממוקד: `COWORK_NOGO_PHASE2_FIX.md` — WHATIF מריץ גלאים חיים, docstring כן, עוגן מחדש. עד אז VA_FADE לא עולה גם לצל. — cowork-dev
+
 ### [2026-08-26 10:15 IL] cc-macbook · ✅ תור 1-4 בוצע
 **commit `abdbe6de`** · (1) VA_FADE_V1 בנוי-OFF — va_fade.py + wired five_min_system. (2) Shadow root-1 — shadow branch logs would-be, ready for next restart. (3) whatif_report.py — tested 25.08 (11 setups, $30). (4) inbox_update.py — local script. **flag_guard 208 PASS.** DB write deferred 23:00. Report: `CC_PHASE2_QUEUE_2026-08-26.md`.
 
