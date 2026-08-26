@@ -184,12 +184,40 @@ def compute_compass(
     score = round(score, 4)
     confidence = round(abs(score), 4)
 
-    if confidence < thr:
-        direction = "NEUTRAL"
-        why = "fused score %+.2f below min-confidence %.2f — no opinion" % (score, thr)
+    import os as _dc_os
+    if _dc_os.getenv("LEGACY_CONF_GATES", "0").lower() in ("1", "true", "yes"):
+        if confidence < thr:
+            direction = "NEUTRAL"
+            why = "fused score %+.2f below min-confidence %.2f — no opinion" % (score, thr)
+        else:
+            direction = "UP" if score > 0 else "DOWN"
+            why = "fused score %+.2f (conf %.2f) → %s" % (score, confidence, direction)
     else:
-        direction = "UP" if score > 0 else "DOWN"
-        why = "fused score %+.2f (conf %.2f) → %s" % (score, confidence, direction)
+        # Binary: direction from S1 state (structural fact, not score threshold).
+        # with_extension(X) → X, fade_both → NEUTRAL, undetermined → NEUTRAL.
+        try:
+            _dc_cls = None
+            try:
+                from backend.main import app as _dc_app
+                _dc_cls = getattr(_dc_app.state, "last_cls_result", None)
+            except Exception:
+                pass
+            _dc_ab = (_dc_cls or {}).get("accepted_break")
+            if _dc_ab in ("UP", "DOWN"):
+                direction = _dc_ab
+                why = "binary: S1 accepted_break=%s (structural)" % _dc_ab
+            elif score > 0:
+                direction = "UP"
+                why = "binary: score %+.2f → UP (no S1 break, fallback)" % score
+            elif score < 0:
+                direction = "DOWN"
+                why = "binary: score %+.2f → DOWN (no S1 break, fallback)" % score
+            else:
+                direction = "NEUTRAL"
+                why = "binary: score=0, no S1 break → UNDETERMINED"
+        except Exception:
+            direction = "UP" if score > 0 else ("DOWN" if score < 0 else "NEUTRAL")
+            why = "binary fallback: score %+.2f → %s" % (score, direction)
 
     # --- the leg clamp: the compass NEVER points against a live leg -----------
     # 2026-08-19 shape: DLL trend BEARISH + slower components stale, while a live
