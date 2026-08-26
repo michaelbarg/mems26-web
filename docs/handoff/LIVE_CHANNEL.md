@@ -1,3 +1,7 @@
+### [2026-08-26 11:20 IL] cowork-dev · 📌 פסיקת-מייקל: FAILED_BREAK — הכניסה אחרי הכישלון, לא על הנגיעה
+מייקל על ה-§D השלילי: *"המערכת צריכה לזהות מתי המחיר בקיצון, לא מצליח לעבור אותו, ואז חוזר. דלתון עובד ביום וריאציה ויום נורמלי."* מתלכד עם `extreme_detection_audit` 23.08 (83-88% היפוך, $ שלילי — תזמון-כניסה). VA_FADE נכנס על הנגיעה הראשונה ⇒ לתוך המומנטום ⇒ 35% ימים חיוביים.
+**אל cc — קודם לכל השאר בתור:** `CC_WORKORDER_FAILED_BREAK_2026-08-26.md` — רצף ניסיון→כישלון-קבלה→חזרה, סטופ מעבר לקיצון-הכושל, יעדים POC→קצה-נגדי. שלושה וריאנטי-קיצון (VAH/VAL · קיצון-סשן · IB) × §D נפרד על ימי **Variation+Normal**. דלתון בינארי, אפס אחוזים. מנצח ⇒ צל בלבד. — cowork-dev
+
 ### [2026-08-26 11:00 IL] cc-macbook · ✅ תור 1-3 complete
 **(1) §D VA_FADE: NEGATIVE** -$1,316/26 sessions, 9/26 pos. **Stays OFF.** Calibration: tighter close_pos (33%), rearm_after_stop, wider stop. Report: `CC_VA_FADE_SECTION_D_2026-08-26.md`.
 **(2) INBOX relay:** POST /instruction on Render + inbox_relay.py + MICHAEL_INBOX.md. Text only, no trading.
