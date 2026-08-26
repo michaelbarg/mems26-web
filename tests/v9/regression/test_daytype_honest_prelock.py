@@ -178,11 +178,13 @@ def test_gateway_provisional_degrades_through_the_same_variable():
 
 
 def test_s2_setup_emitter_provisional_uses_the_same_reduced_branch():
-    """S2's AUTH_LOWCONF_REDUCED SKIP->REDUCED-2 degrade must be the same branch
-    for conf<0.4 and for provisional — one notion of 'untrustworthy label'."""
+    """S2's AUTH_LOWCONF_REDUCED SKIP->REDUCED-2 degrade must use PROVISIONAL
+    as the binary structural fact (replaces conf<0.4 per Michael 25-26.08)."""
     src = _src("backend", "v9", "systems", "five_min", "setup_emitter.py")
     assert "daytype_is_provisional as _lc_prov_fn" in src
-    assert "or _lc_prov)" in src
-    # still gated by AUTH_LOWCONF_REDUCED_V1, still lands on REDUCED-2
-    assert "if _lc_on and ((_lc_conf is not None and _lc_conf < _lc_min) or _lc_prov):" in src
+    # Binary mode: degrade on PROVISIONAL only (not conf number)
+    assert "_degrade = _lc_on and _lc_prov" in src
+    # Legacy mode (LEGACY_CONF_GATES=1) still has the old check
+    assert "_lc_conf < _lc_min" in src
+    # Both paths land on REDUCED-2
     assert "verdict, sizing = 'REDUCED', 2" in src

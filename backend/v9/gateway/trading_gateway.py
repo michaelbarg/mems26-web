@@ -1418,18 +1418,24 @@ class TradingGateway:
                     _pb_conf_ok = True
                     if not _ow_ok:
                         try:
-                            from backend.v9.db.read import read_one as _pb_conf_read
-                            _pb_cr = _pb_conf_read(
-                                "SELECT confidence FROM v9_day_type_state "
-                                "ORDER BY id DESC LIMIT 1", {})
-                            _pb_conf = _pb_cr["confidence"] if _pb_cr else None
-                            _pb_min = float(os.getenv("DAYTYPE_PLAYBOOK_MIN_CONF", "0.4"))
-                            _pb_conf_ok = _daytype_conf_sufficient(_pb_conf, _pb_min)
-                            if not _pb_conf_ok:
-                                logger.warning(
-                                    "[Gateway] day-type playbook SKIP degraded to "
-                                    "ADVISORY (conf %s < %s): %s",
-                                    _pb_conf, _pb_min, _pb.reason)
+                            # Binary gate (replaces conf<0.4 per Michael 25-26.08).
+                            # LEGACY_CONF_GATES=1 restores the old conf check.
+                            if os.getenv("LEGACY_CONF_GATES", "0").lower() in ("1", "true", "yes"):
+                                from backend.v9.db.read import read_one as _pb_conf_read
+                                _pb_cr = _pb_conf_read(
+                                    "SELECT confidence FROM v9_day_type_state "
+                                    "ORDER BY id DESC LIMIT 1", {})
+                                _pb_conf = _pb_cr["confidence"] if _pb_cr else None
+                                _pb_min = float(os.getenv("DAYTYPE_PLAYBOOK_MIN_CONF", "0.4"))
+                                _pb_conf_ok = _daytype_conf_sufficient(_pb_conf, _pb_min)
+                                if not _pb_conf_ok:
+                                    logger.warning(
+                                        "[Gateway] LEGACY day-type playbook SKIP degraded to "
+                                        "ADVISORY (conf %s < %s): %s",
+                                        _pb_conf, _pb_min, _pb.reason)
+                            # else: binary mode — _pb_conf_ok stays True.
+                            # The playbook's verdict stands without a conf mediator.
+                            # Degradation only happens on PROVISIONAL (pre-IB-lock) below.
                             # ── T-47 / F6 · DAYTYPE_HONEST_PRELOCK_V1 (Michael 2026-08-19,
                             # re-confirmed 08-20): a PRE-IB-LOCK label is provisional — the
                             # Market Profile foundation it reasons from is not formed yet.

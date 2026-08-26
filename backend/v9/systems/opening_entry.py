@@ -397,27 +397,29 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
     except (TypeError, ValueError):
         conf = None
 
-    # B1: engine confidence fuse — when the entry engine detects a directional
-    # trigger AND the detector's opening-type is ALSO directional (DRIVE/ORR/TD),
-    # use the engine's graded confidence. This does NOT fire on auction days
-    # (detector conf=0, opening_type=AUCTION) — only when the detector agrees.
-    _ENGINE_CONF = {"DRIVE": 0.85, "TEST_DRIVE": 0.75, "ORR": 0.65,
-                    "PULLBACK_CONT": 0.70, "EXTREME_REJECT": 0.70}
-    _DETECTOR_IS_DIRECTIONAL = (conf is not None and conf >= 0.5)
-    if (_os.getenv("OPENING_CONF_ENGINE_FUSE_V1", "0").lower() in ("1", "true", "yes")
-            and trigger_type in _ENGINE_CONF
-            and _DETECTOR_IS_DIRECTIONAL):
-        engine_conf = _ENGINE_CONF[trigger_type]
-        if conf < engine_conf:
-            import logging as _log_b1
-            _log_b1.getLogger(__name__).info(
-                "[opening_entry] B1 CONF_FUSE: trigger=%s engine_conf=%.2f "
-                "overrides detector_conf=%s (was below min_conf=%.2f)",
-                trigger_type, engine_conf, conf, min_conf)
-            conf = engine_conf
+    # B1 CONF_FUSE: REMOVED (binary-gates, Michael 25-26.08).
+    # Was dead code: built to rescue conf=0.0 but its own guard was conf>=0.5.
+    # The entire conf gate is replaced above by the binary structural check.
 
-    if conf is None or conf < min_conf:
-        return False, f"opening confidence {conf} < {min_conf} — no certainty, no first trade"
+    # Binary gate (replaces conf<min_conf per Michael 25-26.08:
+    # "למה יש אחוזים" / "בלתי אפשרי למדוד באופן לא שקוף").
+    # LEGACY_CONF_GATES=1 restores the old path as a rollback.
+    import os as _lcg_os
+    if _lcg_os.getenv("LEGACY_CONF_GATES", "0").lower() in ("1", "true", "yes"):
+        if conf is None or conf < min_conf:
+            return False, f"opening confidence {conf} < {min_conf} — no certainty, no first trade"
+    else:
+        # Binary: veto only if the classifier POSITIVELY says the opposite direction.
+        # UNKNOWN / None / low-confidence = UNDETERMINED = no veto (Rule: absence ≠ negative).
+        if opening_type and direction:
+            _ot = str(opening_type).upper()
+            _dir = str(direction).upper()
+            # Classifier says DOWN but we want LONG → positive conflict → veto
+            _classified_down = _ot in ("OPEN_DRIVE_DOWN", "TEST_DRIVE_DOWN")
+            _classified_up = _ot in ("OPEN_DRIVE_UP", "TEST_DRIVE_UP")
+            if (_dir == "LONG" and _classified_down) or (_dir == "SHORT" and _classified_up):
+                return False, (f"binary veto: opening classifier says {_ot} "
+                               f"conflicts with {_dir} — positive opposing signal")
     if not session_bars or len(session_bars) < min_bars:
         return False, f"only {len(session_bars or [])} bars < {min_bars} — confirmation bar required"
     last = session_bars[-1]

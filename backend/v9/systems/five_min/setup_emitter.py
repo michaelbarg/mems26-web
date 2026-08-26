@@ -21,6 +21,36 @@ from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
 logger = logging.getLogger(__name__)
 
 
+def _ledger_emit(
+    *,
+    candidate_id: Optional[str],
+    pattern_name,
+    direction: str,
+    signal_bar_ts: Optional[str],
+    verdict: str,
+    blocked_by: Optional[str] = None,
+    reason: Optional[str] = None,
+) -> None:
+    try:
+        from backend.v9.services.candidate_ledger import enabled, record
+        if not enabled():
+            return
+        record(
+            "EMIT_DECISION",
+            system_id=2,
+            pattern=str(pattern_name),
+            direction=direction,
+            signal_bar_ts=signal_bar_ts or datetime.now(timezone.utc),
+            candidate_id=candidate_id,
+            verdict=verdict,
+            blocked_by=blocked_by,
+            reason=reason,
+            family="S2",
+        )
+    except Exception:
+        pass
+
+
 def _opening_window_check(direction: str):
     """Item-10 (OPENING_WINDOW_FIRE_V1, default OFF): positive with-drive
     confirmation in the first 30 min of RTH. Import at call time so tests can
@@ -46,6 +76,8 @@ def emit_t1_setup(
     t3_price: Optional[float] = None,
     current_price: Optional[float] = None,
     tpo_data: Optional[dict] = None,
+    candidate_id: Optional[str] = None,
+    signal_bar_ts: Optional[str] = None,
 ) -> Optional[T1Setup]:
     """Build, validate, and return T1Setup ready for gateway routing.
 
@@ -69,6 +101,15 @@ def emit_t1_setup(
                 logger.warning(
                     "[S2] emit_t1_setup refused: day_type=%s is NO_TRADE (D-091.Q2)",
                     day_type,
+                )
+                _ledger_emit(
+                    candidate_id=candidate_id,
+                    pattern_name=pattern_name,
+                    direction=direction,
+                    signal_bar_ts=signal_bar_ts,
+                    verdict="REJECT",
+                    blocked_by="no_trade",
+                    reason=f"day_type={day_type}",
                 )
                 return None
 
@@ -127,18 +168,38 @@ def emit_t1_setup(
                     _lc_prov = bool(_lc_prov_fn())
                 except Exception:
                     _lc_prov = False
-            if _lc_on and ((_lc_conf is not None and _lc_conf < _lc_min) or _lc_prov):
+            # Binary gate: provisional label → REDUCED (structural fact, not conf number).
+            # LEGACY_CONF_GATES=1 restores the old conf<0.4 check.
+            _legacy = _lc_os.getenv("LEGACY_CONF_GATES", "0").lower() in ("1", "true", "yes")
+            _degrade = False
+            if _legacy:
+                _degrade = _lc_on and ((_lc_conf is not None and _lc_conf < _lc_min) or _lc_prov)
+            else:
+                # Binary: degrade only if the label is PROVISIONAL (pre-IB-lock).
+                # A determined label → the Auth Table's SKIP stands as-is.
+                _degrade = _lc_on and _lc_prov
+            if _degrade:
                 verdict, sizing = 'REDUCED', 2
                 logger.warning(
                     "[S2] AUTH_LOWCONF_REDUCED: Auth Table SKIP (%s × %s) degraded to "
-                    "REDUCED-2 — day-type conf %s < %.2f%s (label untrustworthy)",
-                    pattern_name, _day_type, _lc_conf, _lc_min,
-                    " · PROVISIONAL pre-IB-lock" if _lc_prov else "",
+                    "REDUCED-2 — %s",
+                    pattern_name, _day_type,
+                    f"conf {_lc_conf} < {_lc_min}" if _legacy
+                    else "PROVISIONAL pre-IB-lock (binary gate)",
                 )
             else:
                 logger.info(
                     "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
                     pattern_name, _day_type, quality_tier,
+                )
+                _ledger_emit(
+                    candidate_id=candidate_id,
+                    pattern_name=pattern_name,
+                    direction=direction,
+                    signal_bar_ts=signal_bar_ts,
+                    verdict="REJECT",
+                    blocked_by="auth_skip",
+                    reason=f"day_type={_day_type} tier={quality_tier}",
                 )
                 return None
 
@@ -225,10 +286,26 @@ def emit_t1_setup(
 
     if not resp.valid:
         logger.warning("[S2] pre_fire_validator REJECTED: %s", resp.fail_reason)
+        _ledger_emit(
+            candidate_id=candidate_id,
+            pattern_name=pattern_name,
+            direction=direction,
+            signal_bar_ts=signal_bar_ts,
+            verdict="REJECT",
+            blocked_by="pre_fire_validator",
+            reason=str(resp.fail_reason),
+        )
         return None
 
     logger.info(
         "[S2] T1Setup emitted: %s %s entry=%.2f stop=%.2f tier=%s contracts=%d",
         pattern_name, direction, entry_price, stop_price, quality_tier, sizing,
+    )
+    _ledger_emit(
+        candidate_id=candidate_id,
+        pattern_name=pattern_name,
+        direction=direction,
+        signal_bar_ts=signal_bar_ts,
+        verdict="ALLOW",
     )
     return setup
