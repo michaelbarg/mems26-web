@@ -1283,7 +1283,8 @@ class BarLevelDetector:
         # P3: gather ATR, initial risk, session extremes for computed spacing
         _p3_atr = _p3_risk = _p3_sh = _p3_sl = _p3_stop = None
         try:
-            _p3_stop = float(trade.stop_price) if trade.stop_price else None
+            # FLAG_AUDIT fix: V9Trade uses `stop`, not `stop_price`
+            _p3_stop = float(trade.stop) if trade.stop else None
             _p3_risk = abs(float(trade.entry_price) - _p3_stop) if _p3_stop else None
         except (TypeError, ValueError):
             pass
