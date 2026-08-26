@@ -171,6 +171,47 @@ async def get_instructions_pending(request: Request):
     return {"items": pending}
 
 
+# Agent replies shown as a chat thread on the page (cowork/cc → Michael).
+# In-memory like the inbox; the durable record is MICHAEL_INBOX.md in git.
+_REPLIES = {"items": [], "max_items": 50}
+
+
+@app.post("/reply")
+async def post_reply(request: Request):
+    """cowork/cc post a reply; the page shows it in the chat thread."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    text = (body.get("text") or "").strip()
+    sender = (body.get("sender") or "cowork").strip()[:20]
+    if not text or len(text) > 2000:
+        raise HTTPException(status_code=400, detail="text required (max 2000 chars)")
+    item = {"sender": sender, "text": text,
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ")}
+    _REPLIES["items"].append(item)
+    if len(_REPLIES["items"]) > _REPLIES["max_items"]:
+        _REPLIES["items"] = _REPLIES["items"][-_REPLIES["max_items"]:]
+    return {"ok": True}
+
+
+@app.get("/chat")
+async def get_chat(request: Request):
+    """The page polls this: merged thread of Michael's messages + agent replies."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    thread = (
+        [{"sender": "מייקל", "text": i["text"], "ts": i["ts"],
+          "status": i.get("status", "")} for i in _INBOX["items"]]
+        + [{"sender": r["sender"], "text": r["text"], "ts": r["ts"], "status": ""}
+           for r in _REPLIES["items"]]
+    )
+    thread.sort(key=lambda x: x["ts"])
+    return {"items": thread[-30:]}
+
+
 @app.post("/instruction/status")
 async def update_instruction_status(request: Request):
     """Local relay updates an item's status (received→in_progress→done)."""
@@ -224,6 +265,28 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
   style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
  <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
+ <div id="chatThread" style="margin-top:8px;max-height:220px;overflow-y:auto;font-size:13px;line-height:1.5"></div>
+ <script>
+ async function loadChat(){
+  try{
+   const r=await fetch('/chat'+location.search); const d=await r.json();
+   const el=document.getElementById('chatThread');
+   if(!d.items||!d.items.length){el.innerHTML='<span style="color:#8b949e">אין הודעות עדיין</span>';return;}
+   el.innerHTML=d.items.map(m=>{
+    const me=m.sender==='מייקל';
+    const t=(m.ts||'').slice(11,16);
+    return '<div style="margin:4px 0;text-align:'+(me?'right':'left')+'">'
+     +'<div style="display:inline-block;max-width:85%;padding:6px 10px;border-radius:10px;background:'
+     +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right">'
+     +'<div style="font-size:11px;color:'+(me?'#c9d9f7':'#8b949e')+'">'+m.sender+' · '+t
+     +(m.status==='done'?' · ✔':'')+'</div>'
+     +m.text.replace(/</g,'&lt;')+'</div></div>';
+   }).join('');
+   el.scrollTop=el.scrollHeight;
+  }catch(e){}
+ }
+ loadChat(); setInterval(loadChat, 10000);
+ </script>
  <script>
  async function sendIns(){
   const t=document.getElementById('insText'), st=document.getElementById('insStatus');
