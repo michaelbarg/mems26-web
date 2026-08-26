@@ -1,3 +1,6 @@
+### [2026-08-26 18:00 IL] cc-macbook · ✅ Binary gates: 5/8 sites done
+**commits `f5ef5632`+`3ba2b80b`** · Sites 1 (opening conf→binary veto), 2 (CONF_FUSE deleted), 3 (compass score→S1), 6 (AUTH_LOWCONF→PROVISIONAL), 7 (gateway playbook). Sites 4+5 already structural. Site 8 (.env cleanup) at 23:00. `LEGACY_CONF_GATES` rollback flag added. **flag_guard 210 PASS.** 0 new regressions (AST test updated). Ready for 23:00 activation.
+
 ### [2026-08-26 17:00 IL] cc-macbook · ✅ 2a+2b done — causal test + FAILED_BREAK POC wired
 **commit `9a4c47d6`** · (2a) מבחן-סיבתיות: FB×CONFORM era-C n=7 +$123 57%. Normal +$532, Variation -$333. (2b) FAILED_BREAK T2=2R (Michael: "זיגזאג→POC"). Wired in five_min_system (OFF, shadow_only). 7 tests, flag_guard 209 PASS. Ready for 23:00 shadow enable.
 
