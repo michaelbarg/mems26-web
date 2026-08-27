@@ -27,7 +27,24 @@ def test_fc4_top_precedence(monkeypatch):
     assert effective_contracts(dict(SETUP)) == 4
 
 
+def _pin_ambient(monkeypatch):
+    """28.08 (cowork-night, §11): the ambient .env now carries
+    FIXED_CONTRACTS_2=1 (today's ruling) + SIZE_CAP_OVER_FIXED_V1=1 (ruled —
+    judgment cut min(fixed, cut)). Under a full-env suite run these leak in
+    and falsify the tests' premises (4→3 via the cut; _3 loses to ambient _2).
+    Pin them OFF here; the ruled interaction itself is pinned separately in
+    test_fc4_with_ruled_size_cap_tomorrow_gate."""
+    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2",
+               "SIZE_CAP_OVER_FIXED_V1",
+               # F5 (RUNNER_TRAIL_V2, ruled 20.08, postdates these tests):
+               # drops the runner leg's target -> t4=None by design. These
+               # tests pin the 07-15 T0-ladder shape, so F5 is pinned off.
+               "RUNNER_TRAIL_V2"):
+        monkeypatch.setenv(_f, "0")
+
+
 def test_t0_ladder_shift_long(monkeypatch, tmp_path):
+    _pin_ambient(monkeypatch)
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("T0_TARGET_PTS", "3.5")
     monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
@@ -42,6 +59,7 @@ def test_t0_ladder_shift_long(monkeypatch, tmp_path):
 
 
 def test_t0_short_mirror(monkeypatch, tmp_path):
+    _pin_ambient(monkeypatch)
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("T0_TARGET_PTS", "3.5")
     monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
@@ -52,6 +70,7 @@ def test_t0_short_mirror(monkeypatch, tmp_path):
 
 
 def test_without_flags_3pair_unchanged(monkeypatch, tmp_path):
+    _pin_ambient(monkeypatch)
     monkeypatch.delenv("FIXED_CONTRACTS_4", raising=False)
     monkeypatch.setenv("FIXED_CONTRACTS_3", "1")
     monkeypatch.delenv("T0_TARGET_PTS", raising=False)
@@ -62,6 +81,26 @@ def test_without_flags_3pair_unchanged(monkeypatch, tmp_path):
     assert p["target_price"] == 7606.0            # C1 = T1 (קלאסי)
     assert p["context"]["t4"] is None
     assert "t0" not in s
+
+
+def test_fc4_with_ruled_size_cap_tomorrow_gate(monkeypatch, tmp_path):
+    """The 28.08 morning-gate scenario AS RULED: FIXED_CONTRACTS_4=1 with
+    SIZE_CAP_OVER_FIXED_V1=1 (both will be ON tomorrow) and a setup carrying a
+    judgment cut of 3 ⇒ effective size is **3**, not 4 — the cut overrides
+    downward (Michael 07-09, 'still overrides downward, even under FIXED').
+    The morning gate MUST therefore verify the effective COMMAND size, not
+    just ruled_contracts(). A setup with sizing 4 ships the full 4."""
+    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2"):
+        monkeypatch.setenv(_f, "0")
+    monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
+    monkeypatch.setenv("SIZE_CAP_OVER_FIXED_V1", "1")
+    monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
+    cut3 = dict(SETUP)                            # metadata.sizing == 3
+    p3 = command_from_setup(cut3, trade_id="t", account="Sim1", mode="demo")
+    assert p3["contracts"] == 3, "the ruled judgment cut must win downward"
+    full4 = {**SETUP, "metadata": {"sizing": 4}}
+    p4 = command_from_setup(full4, trade_id="t", account="Sim1", mode="demo")
+    assert p4["contracts"] == 4, "no cut info below 4 — fixed size must ship"
 
 
 def test_t1setup_schema_accepts_the_ruled_size():
