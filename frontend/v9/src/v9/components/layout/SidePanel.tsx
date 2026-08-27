@@ -9,6 +9,7 @@ import { WoodiesLensContent } from '../systems/WoodiesLensContent';
 import { TPOLensContent } from '../systems/TPOLensContent';
 import { KillzoneLensContent } from '../systems/KillzoneLensContent';
 import { ActiveTradeCard } from '../sidepanel/ActiveTradeCard';
+import { NearestFireStrip } from '../sidepanel/NearestFireStrip';
 import { COLORS, SIZES } from '../../design/tokens';
 import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { SYSTEM_META } from '../../design/system_colors';
@@ -26,12 +27,19 @@ export function SidePanel() {
         borderLeft: `1px solid ${COLORS.borderTertiary}`,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        // מייקל 27.08: "בפאנל כולו צריך אפשרות לגלול — לא רואה את החלק התחתון".
+        // overflow:hidden חתך את התחתית כשהתוכן גבוה מהחלון; עכשיו הפאנל כולו
+        // נגלל, והעדשה שומרת על הגלילה הפנימית שלה.
+        overflowY: 'auto',
+        overflowX: 'hidden',
         flexShrink: 0,
       }}
     >
       {/* Active Trade Card */}
       <ActiveTradeCard onTradeContext={setTradeCtx} />
+
+      {/* מייקל 27.08: התבנית הקרובה-ביותר לירי — תמיד גלויה בראש הפאנל */}
+      <NearestFireStrip />
 
       {/* Switcher */}
       <div style={{ borderBottom: `1px solid ${COLORS.borderFaint}` }}>
