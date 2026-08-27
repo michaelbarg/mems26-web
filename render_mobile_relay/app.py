@@ -454,7 +454,7 @@ async function load(){
    if(!_near) { _near = {p, g}; return; }
    if(g!==null && (_near.g===null || g<_near.g)) _near = {p, g};
   });
-  const _nearHtml = _near? '<div style="background:#132a1a;border:1px solid #2ea04366;border-radius:8px;padding:6px 9px;margin-bottom:6px"><span style="color:#3fb950;font-weight:600">🎯 הכי קרוב לירי: '+_near.p.name+'</span>'+(_near.g!==null? ' <span style="color:#e6edf3">· '+_near.g.toFixed(2)+' נק\' מהטריגר</span>':'')+'<div class="dim" style="font-size:10.5px">'+String(_near.p.reason||'').replace(/</g,'&lt;').slice(0,90)+'</div></div>' : '';
+  const _nearHtml = _near? '<div style="background:#132a1a;border:1px solid #2ea04366;border-radius:8px;padding:6px 9px;margin-bottom:6px"><span style="color:#3fb950;font-weight:600">🎯 הכי קרוב לירי: '+_near.p.name+'</span>'+(_near.g!==null? ' <span style="color:#e6edf3">· '+_near.g.toFixed(2)+' נק׳ מהטריגר</span>':'')+'<div class="dim" style="font-size:10.5px">'+String(_near.p.reason||'').replace(/</g,'&lt;').slice(0,90)+'</div></div>' : '';
   document.getElementById('pats').innerHTML = _nearHtml + (P.length? P.map(p=>{
    const st = ST_HE[p.status]||ST_HE.unknown;
    let line = '';
