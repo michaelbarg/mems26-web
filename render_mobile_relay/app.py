@@ -280,7 +280,8 @@ _PAGE = """<!DOCTYPE html><html lang="he" dir="rtl"><head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>MEMS26 · מוניטור</title><style>
-body{margin:0;background:#0b0e14;color:#e6edf3;font-family:-apple-system,'Segoe UI',sans-serif;padding:14px 12px 40px}
+html{height:auto;overflow-y:auto}
+body{margin:0;background:#0b0e14;color:#e6edf3;font-family:-apple-system,'Segoe UI',sans-serif;padding:14px 12px 90px;height:auto;min-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
 h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:1px solid #2a3140;border-radius:12px;padding:12px;margin-bottom:10px}
 .big{font-size:28px;font-weight:800}.green{color:#3fb950}.red{color:#f85149}.dim{color:#8b949e;font-size:12px}
 .row{display:flex;justify-content:space-between;align-items:baseline;margin:3px 0}.tag{font-size:11px;padding:1px 7px;border-radius:6px;background:#21262d}
@@ -294,8 +295,10 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
   style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
  <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
- <div style="margin-top:8px;font-size:11px;color:#8b949e">💬 צ'אט עם הסוכנים — כל הודעה שלך מגיעה לשניהם: cowork (מתכנן-מפקח) ו-cc (מבצע). "התקבל ✓" = ההודעה על ה-Mac ובקריאה שלהם.</div>
- <div id="chatThread" style="margin-top:8px;max-height:260px;overflow-y:auto;font-size:13px;line-height:1.5"></div>
+ <details open style="margin-top:8px">
+ <summary style="font-size:11px;color:#8b949e;cursor:pointer">💬 צ'אט עם הסוכנים (הקש לקיפול) — כל הודעה מגיעה לשניהם: cowork (מתכנן) ו-cc (מבצע). "התקבל ✓" = על ה-Mac.</summary>
+ <div id="chatThread" style="margin-top:8px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;line-height:1.5"></div>
+ </details>
  <script>
  async function loadChat(){
   try{
