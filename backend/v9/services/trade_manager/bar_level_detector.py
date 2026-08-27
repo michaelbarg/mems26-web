@@ -814,6 +814,14 @@ class BarLevelDetector:
                         self._maybe_scale_in(trade, bar_high, bar_low)
                     except Exception as _si_e:
                         logger.warning("[ScaleIn] hook error (no add): %s", _si_e)
+                    # TREND_UPGRADE_ADD_V1 (ruling 27.08 19:55 §12) — built
+                    # 28.08 night, default OFF, NO enablement without
+                    # cowork+Michael. Additive-only, same fail-safe contract.
+                    try:
+                        self._maybe_trend_upgrade_add(trade, bar_high, bar_low)
+                    except Exception as _tu_e:
+                        logger.warning(
+                            "[TrendUpgrade] hook error (no add): %s", _tu_e)
 
                 # FIX-16 (TARGET_REALISM_V1): per-bar realism re-check on the
                 # pending front target — runs for ALL open bars (pre-T1 too;
@@ -1391,6 +1399,142 @@ class BarLevelDetector:
             "[ScaleIn] +%dc %s parent=%s child=%s @%.2f stop@%.2f (BE) — %s",
             dec.add_contracts, dec.direction, getattr(trade, "id", "?"),
             child_id, dec.entry, dec.stop, dec.reason,
+        )
+
+    def _maybe_trend_upgrade_add(self, trade, bar_high, bar_low) -> None:
+        """TREND_UPGRADE_ADD_V1 (Michael ruling 27.08 19:55 §12; doctrine
+        ~19:10 "כל תווית חדשה = סט-הזדמנויות חדש שנפתח מיד"). When the
+        PUBLISHED day-type label upgrades INTO Trend_* while this live trade
+        rides WITH the trend direction — reinforce through the SCALE_IN child
+        mechanism: independent bracket, child stop at parent BE, T-111 margin
+        precheck, physical OCO ceiling 6. Built 28.08 night, **default OFF —
+        enabling requires cowork+Michael sign-off**. Additive-only; fail-safe;
+        the no-position branch (next-entry size bonus) is NOT built yet.
+        """
+        import os as _tu_os
+        import time as _tu_time
+        if _tu_os.getenv("TREND_UPGRADE_ADD_V1", "0").lower() not in (
+                "1", "true", "yes"):
+            return
+        try:
+            from backend.v9.services.trade_context import get_live_day_type
+            label_now = get_live_day_type()
+        except Exception:
+            return
+        # Edge detection is PROCESS-level (one edge serves every open trade on
+        # that bar): remember the last label; a change records an edge that
+        # stays consumable for 240s. First observation after boot sets prev
+        # without firing (a restart is not an upgrade).
+        _now = _tu_time.time()
+        _last = getattr(self, "_tu_last_label", None)
+        if label_now != _last:
+            self._tu_last_label = label_now
+            if _last is not None:
+                self._tu_edge = {"prev": _last, "now": label_now, "at": _now}
+        edge = getattr(self, "_tu_edge", None)
+        if (not edge or edge.get("now") != label_now
+                or _now - float(edge.get("at", 0)) > 240):
+            return
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        dir_bias = None
+        try:
+            from backend.v9.services.trade_context import get_live_dir_bias
+            dir_bias = get_live_dir_bias()
+        except Exception:
+            pass
+        from backend.v9.services.trade_manager.scale_in import (
+            margin_precheck, trend_upgrade_add)
+        dec = trend_upgrade_add(
+            label_now=edge["now"], label_prev=edge["prev"],
+            position_direction=trade.direction, dir_bias=dir_bias,
+            already_added=bool(q.get("trend_upgrade_added")),
+            add_contracts=int(_tu_os.getenv(
+                "TREND_UPGRADE_ADD_CONTRACTS", "2") or 2),
+        )
+        if dec is None:
+            return
+        # Same "unknown is never a reason to add" contract as SCALE_IN.
+        _acct = None
+        try:
+            from backend.v9.services.sierra_position_reconciler import (
+                _sierra_state_qty)
+            _acct = _sierra_state_qty()
+        except Exception:
+            _acct = None
+        if _acct is None:
+            logger.warning("[TrendUpgrade] no fresh Sierra position — not adding")
+            return
+        _want_long = (trade.direction or "").upper() == "LONG"
+        if (_want_long and _acct <= 0) or ((not _want_long) and _acct >= 0):
+            return
+        if abs(int(_acct)) + int(dec["add_contracts"]) > 6:
+            logger.warning("[TrendUpgrade] OCO ceiling: |%s|+%s > 6 — not adding",
+                           _acct, dec["add_contracts"])
+            return
+        # T-111 margin precheck — identical contract to SCALE_IN's.
+        if _tu_os.getenv("SCALE_IN_MARGIN_PRECHECK_V1", "1").lower() in (
+                "1", "true", "yes"):
+            _mp_avail = None
+            try:
+                import json as _mp_json
+                _mp_path = _tu_os.path.join(
+                    _tu_os.getenv("V9_EXPORT_DIR", _tu_os.path.expanduser(
+                        "~/SierraChart_Data/v9_export")),
+                    "sierra_state.json")
+                with open(_mp_path) as _mp_fh:
+                    _mp_raw = _mp_json.load(_mp_fh).get("acct_available_funds")
+                _mp_avail = float(_mp_raw) if _mp_raw is not None else None
+            except Exception:
+                _mp_avail = None
+            _mp_ok, _mp_reason = margin_precheck(
+                int(dec["add_contracts"]), _mp_avail,
+                float(_tu_os.getenv("SCALE_IN_MARGIN_PER_CONTRACT",
+                                    "398.75") or 398.75))
+            if not _mp_ok:
+                logger.warning("[TrendUpgrade] SKIP child (parent=%s): %s",
+                               getattr(trade, "id", "?"), _mp_reason)
+                return
+        # mark parent FIRST (idempotent — a retry can never double-add)
+        q2 = dict(q)
+        q2["trend_upgrade_added"] = True
+        trade.quality = q2
+        try:
+            self._tm._db.commit()
+        except Exception:
+            pass
+        entry = round(round(((float(bar_high) + float(bar_low)) / 2.0) / 0.25)
+                      * 0.25, 2)
+        stop = float(trade.entry_price)          # child stop at parent BE
+        risk = abs(entry - stop) or 1.0
+        _t1 = (entry + 1.5 * risk) if _want_long else (entry - 1.5 * risk)
+        child = {
+            "firing_system": getattr(trade, "firing_system", 2) or 2,
+            "direction": trade.direction, "entry_price": entry, "stop": stop,
+            "t1": round(_t1, 2), "t2": None, "t3": None,
+            "contracts": int(dec["add_contracts"]),
+            "classification": "TREND_UPGRADE_ADD",
+            "metadata": {"trend_upgrade_parent": getattr(trade, "id", None),
+                         "reason": dec["reason"]},
+        }
+        _mode = getattr(trade, "mode", "live")
+        child_id = self._tm.accept_setup(child, _mode)
+        try:
+            _q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+            _q["trend_upgrade_child_id"] = child_id
+            trade.quality = _q
+            self._tm._db.commit()
+        except Exception:
+            pass
+        from backend.v9.services.sierra_command import command_from_setup
+        command_from_setup(
+            child, trade_id=str(child_id),
+            account=_tu_os.environ.get("SIERRA_LIVE_ACCOUNT", "37138283"),
+            mode=_mode,
+        )
+        logger.warning(
+            "[TrendUpgrade] +%dc %s parent=%s child=%s @%.2f stop@%.2f (BE) — %s",
+            dec["add_contracts"], trade.direction, getattr(trade, "id", "?"),
+            child_id, entry, stop, dec["reason"],
         )
 
     def _parse_ts(self, ts_raw) -> Optional[datetime]:

@@ -39,6 +39,50 @@ class ScaleInDecision:
     reason: str
 
 
+def trend_upgrade_add(*,
+                      label_now: Optional[str],
+                      label_prev: Optional[str],
+                      position_direction: Optional[str],
+                      dir_bias: Optional[str],
+                      already_added: bool,
+                      add_contracts: int = 2) -> Optional[dict]:
+    """TREND_UPGRADE_ADD_V1 (ruling 27.08 19:55 §12, built OFF 28.08 night).
+
+    Doctrine (מייקל 27.08 ~19:10): "כל תווית חדשה = סט-הזדמנויות חדש שנפתח
+    מיד". When the PUBLISHED label upgrades INTO Trend_* while a live position
+    rides WITH the trend direction, reinforce through the existing SCALE_IN
+    child mechanism (own bracket, child stop at parent BE).
+
+    Pure function — fires ONLY on the upgrade EDGE (prev not Trend, now
+    Trend), with a position, with dir_bias positively matching the position
+    direction, once per position. UNDETERMINED inputs (missing label/bias/
+    direction) => None — absence of knowledge is not an add signal.
+    Returns {"add_contracts", "reason"} or None.
+    """
+    if already_added:
+        return None
+    now_s = str(label_now or "")
+    prev_s = str(label_prev or "")
+    if not now_s.startswith("Trend"):
+        return None
+    if prev_s.startswith("Trend"):
+        return None                     # not an edge — already a trend day
+    if not prev_s or prev_s in ("UNKNOWN", "FORMING", "None"):
+        return None                     # first label of the day is not an upgrade
+    pd = str(position_direction or "").upper()
+    db = str(dir_bias or "").upper()
+    if pd not in ("LONG", "SHORT") or db not in ("UP", "DOWN"):
+        return None                     # UNDETERMINED — no add
+    if (pd == "LONG") != (db == "UP"):
+        return None                     # position is counter-trend — never add
+    add = max(1, min(int(add_contracts), 2))    # ruling param: 1 or 2
+    return {
+        "add_contracts": add,
+        "reason": ("trend upgrade %s→%s with-direction (%s/%s) → +%dc"
+                   % (prev_s, now_s, pd, db, add)),
+    }
+
+
 def margin_precheck(add_contracts: int,
                     available_funds: Optional[float],
                     per_contract_margin: float) -> tuple:
