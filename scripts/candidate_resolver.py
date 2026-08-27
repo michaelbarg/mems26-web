@@ -160,27 +160,52 @@ def resolve(jsonl_path: str, dry_run: bool = False) -> dict:
                 resolved_event["reason_codes"] = quality_issues
                 not_judgeable_count += 1
             else:
-                # Find the entry bar
+                # Find the entry bar.
+                # Rule-4 fix (cowork-night 28.08): signal_bar_ts is UTC-ISO
+                # ("...T19:15:00+00:00") while bars carry NAIVE ET datetimes
+                # ("2026-08-27 14:50:00"). The old str[:16] compare put 'T'(84)
+                # against ' '(32) at index 10, so NO bar ever matched and all
+                # 136 candidates resolved MISSING_ENTRY_OR_BARS. Convert the
+                # signal ts to naive-ET and compare datetimes, not strings.
                 entry_ts = det.get("signal_bar_ts", "")
+                entry_et = None
+                try:
+                    from zoneinfo import ZoneInfo
+                    _sig = dt.datetime.fromisoformat(str(entry_ts))
+                    if _sig.tzinfo is not None:
+                        _sig = _sig.astimezone(
+                            ZoneInfo("America/New_York")).replace(tzinfo=None)
+                    entry_et = _sig
+                except (TypeError, ValueError):
+                    entry_et = None
+
+                def _bar_dt(b):
+                    v = b["ts"]
+                    if isinstance(v, dt.datetime):
+                        return v.replace(tzinfo=None)
+                    try:
+                        return dt.datetime.fromisoformat(str(v)[:19])
+                    except ValueError:
+                        return None
+
                 entry_price = None
                 try:
                     prices = det.get("prices") or {}
                     entry_price = float(prices.get("entry") or prices.get("entry_price") or 0)
                 except (TypeError, ValueError):
                     pass
-                if not entry_price:
-                    # Use the bar's close at signal time
-                    for i, b in enumerate(bars):
-                        if str(b["ts"])[:16] >= str(entry_ts)[:16]:
-                            entry_price = b["c"]
-                            break
 
                 direction = (det.get("direction") or "").upper()
                 entry_bar_idx = None
-                for i, b in enumerate(bars):
-                    if str(b["ts"])[:16] >= str(entry_ts)[:16]:
-                        entry_bar_idx = i
-                        break
+                if entry_et is not None:
+                    for i, b in enumerate(bars):
+                        bdt = _bar_dt(b)
+                        if bdt is not None and bdt >= entry_et:
+                            entry_bar_idx = i
+                            break
+                if not entry_price and entry_bar_idx is not None:
+                    # Use the bar's close at signal time
+                    entry_price = bars[entry_bar_idx]["c"]
 
                 if entry_bar_idx is not None and entry_price and direction in ("LONG", "SHORT"):
                     outcomes = _compute_mfe_mae(bars, entry_bar_idx, direction, entry_price)
