@@ -370,26 +370,30 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
 
     Trade #575 fired on the bar-1 close of a 40pt opening bar with opening
     confidence 0.00 and no confirmation — long at the top of a spike that
-    reversed. Two strict conditions, both required, fail-CLOSED:
+    reversed.
 
-      1. CERTAINTY  — the opening-type detector's confidence must be >=
-         OPENING_MIN_CONF (0.7). Unknown/None confidence = no certainty = no
-         first trade. (Dalton grading: Drive .85 / Test .75 / ORR .65 — a
-         graded Drive passes, an ungraded guess never does.)
-      2. CONFIRMATION — at least OPENING_CONFIRM_BARS (3) closed bars, and
-         the LAST closed bar must close in the trigger direction (c>o for
-         LONG, c<o for SHORT). One impulsive bar is not an entry; the market
-         must confirm once.
+    BINARY GATE (site-1 of the binary-gates ruling, Michael 25-26.08 "למה יש
+    אחוזים… בלתי אפשרי למדוד באופן לא שקוף"). The old CERTAINTY condition
+    (conf >= OPENING_MIN_CONF) is GONE — it blocked 7/7 candidates plus 5
+    DRIVE-LONGs on 27.08. Its replacement is three-valued and structural:
 
-    B1 (2026-08-12): OPENING_CONF_ENGINE_FUSE_V1 — when the entry engine's
-    own trigger agrees with the direction, use the engine's graded confidence
-    (DRIVE=0.85, TEST=0.75, ORR=0.65) instead of the detector's opening_conf.
-    This prevents auction days (conf=0.0) from killing valid engine triggers.
+      1. VETO only on a POSITIVE conflict — the opening-type classifier
+         affirmatively names the OPPOSITE direction (OPEN_DRIVE_DOWN vs a
+         LONG, OPEN_DRIVE_UP vs a SHORT). UNKNOWN / None / AUCTION-without-
+         direction = UNDETERMINED = no veto (absence of knowledge is not
+         negative knowledge).
+      2. CONFIRMATION (unchanged, physical) — at least OPENING_CONFIRM_BARS
+         (3) closed bars, and the LAST closed bar must close in the trigger
+         direction (c>o for LONG, c<o for SHORT). One impulsive bar is not
+         an entry; the market must confirm once.
+
+    LEGACY_CONF_GATES=1 restores the old conf path wholesale (rollback-only;
+    using it is a reportable event). OPENING_MIN_CONF is read ONLY inside
+    that legacy branch — the binary path reads no confidence threshold.
+    B1 CONF_FUSE was deleted with the conf gate (it was dead code).
 
     Returns (ok: bool, reason: str)."""
     import os as _os
-    if min_conf is None:
-        min_conf = float(_os.getenv("OPENING_MIN_CONF", "0.7") or 0.7)
     if min_bars is None:
         min_bars = int(_os.getenv("OPENING_CONFIRM_BARS", "3") or 3)
     try:
@@ -406,6 +410,9 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
     # LEGACY_CONF_GATES=1 restores the old path as a rollback.
     import os as _lcg_os
     if _lcg_os.getenv("LEGACY_CONF_GATES", "0").lower() in ("1", "true", "yes"):
+        # Site-8: the conf threshold lives ONLY here, inside the rollback.
+        if min_conf is None:
+            min_conf = float(_os.getenv("OPENING_MIN_CONF", "0.7") or 0.7)
         if conf is None or conf < min_conf:
             return False, f"opening confidence {conf} < {min_conf} — no certainty, no first trade"
     else:

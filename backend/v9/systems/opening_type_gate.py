@@ -225,12 +225,20 @@ def _early_bias(
         try:
             rng = float(h) - float(l)
             if rng > 0:
+                # ── upper_third_rule / lower_third_rule (site-4 of the
+                # binary-gates ruling, 26.08): this is GEOMETRY, not a
+                # confidence score — "closed in the top third of its own
+                # range" is a measurable bar fact (a failed spike that closes
+                # at its high is an UP signal). The 0.66/0.34 cut is the
+                # third-boundary of the bar's range, kept per the HOWTO
+                # ("גיאומטרי, לא ביטחון — נשאר"); harm/no-harm is measured in
+                # its own §D line, not argued here.
                 pos = (float(last_close) - float(l)) / rng   # 1.0 = closed at high
                 if pos >= 0.66 and direction == "DOWN":
-                    logger.info("[OpeningGate] H14: close in top third (%.2f) → bias DOWN→UP", pos)
+                    logger.info("[OpeningGate] upper_third_rule (H14): close in top third (%.2f) → bias DOWN→UP", pos)
                     direction = "UP"
                 elif pos <= 0.34 and direction == "UP":
-                    logger.info("[OpeningGate] H14: close in bottom third (%.2f) → bias UP→DOWN", pos)
+                    logger.info("[OpeningGate] lower_third_rule (H14): close in bottom third (%.2f) → bias UP→DOWN", pos)
                     direction = "DOWN"
         except (TypeError, ValueError):
             pass

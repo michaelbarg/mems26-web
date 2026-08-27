@@ -51,9 +51,14 @@ def _env(**extra):
 # 1. flag OFF -> byte-identical
 # ==========================================================================
 def test_flag_off_preserves_prelock_passthrough_byte_identical():
-    """Default (flag unset) keeps today's behaviour — proves this is opt-in."""
+    """Default (flag unset) keeps today's behaviour — proves this is opt-in.
+
+    The flag is ruled ON in production .env (RULED_FLAGS:302), so a suite run
+    with the full env sourced would bleed it in and falsify the OFF premise
+    (the exact failure cowork's 26.08 audit hit at line 59). Pin it EMPTY —
+    getenv's default is "" so empty == unset for this gate."""
     mock_app = _mock_app_state("Trend_Normal", ib_locked=False)
-    with patch.dict(os.environ, _env()):
+    with patch.dict(os.environ, _env(DAYTYPE_HONEST_PRELOCK_V1="")):
         with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
             assert get_live_day_type() == "Trend_Normal"
             assert daytype_is_provisional() is False
@@ -61,7 +66,7 @@ def test_flag_off_preserves_prelock_passthrough_byte_identical():
 
 def test_flag_off_postlock_unchanged():
     mock_app = _mock_app_state("Variation", ib_locked=True)
-    with patch.dict(os.environ, _env()):
+    with patch.dict(os.environ, _env(DAYTYPE_HONEST_PRELOCK_V1="")):
         with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
             assert get_live_day_type() == "Variation"
             assert daytype_is_provisional() is False

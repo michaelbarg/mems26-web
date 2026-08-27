@@ -10,8 +10,31 @@ The classifier reaches ALL 7 types (the old matrix could only produce 3).
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+
+def delta_ext_verdict(delta_ext, enabled: bool) -> str:
+    """Site-5 of the binary-gates ruling (Michael 25-26.08) — the three-valued
+    Dalton contract for `delta_confirms_ext`:
+
+      True         -> "PASS"          (delta confirms the extension)
+      False + flag -> "VETO"          (positively contradicted -> no reclass)
+      None         -> "UNDETERMINED"  (input starved -> NOT a veto, logged by
+                                       the caller; never translated to False)
+      False, flag OFF -> "PASS"       (the veto is opt-in via DELTA_FEATURES_V1)
+
+    The feed starvation itself (4 points < 5) is a separate task — this
+    function only guarantees absence-of-knowledge is not negative knowledge.
+    """
+    if delta_ext is None:
+        return "UNDETERMINED"
+    if delta_ext is False and enabled:
+        return "VETO"
+    return "PASS"
 
 try:
     import yaml  # PyYAML
@@ -279,11 +302,16 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
         # promote to Variation/Trend. Only vetoes when DELTA_FEATURES_V1 is ON
         # and the data is available (False, not None). None = no data → pass.
         if _abrk in ("UP", "DOWN"):
-            _delta_ext = feat.get("delta_confirms_ext")
-            if _delta_ext is False and os.environ.get(
-                "DELTA_FEATURES_V1", "0"
-            ).lower() in ("1", "true", "yes"):
+            _dv = delta_ext_verdict(
+                feat.get("delta_confirms_ext"),
+                os.environ.get("DELTA_FEATURES_V1", "0").lower()
+                in ("1", "true", "yes"))
+            if _dv == "VETO":
                 _abrk = None  # extension not delta-confirmed → no reclass
+            elif _dv == "UNDETERMINED":
+                logger.info(
+                    "[S1-CLS] UNDETERMINED(delta_confirms_ext): extension %s "
+                    "kept — no delta data, no veto", _abrk)
         if _abrk in ("UP", "DOWN"):
             if feat.get("dd_second_dist"):
                 return out("Trend_DD", "CLASSIFIED",

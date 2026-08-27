@@ -88,7 +88,11 @@ def test_one_initiating_entry_per_session():
     assert evaluate_opening_entry(bars, {"TEST_DRIVE"}) is None
 
 
-def test_build_setup_shadow_structure_stop_and_1r():
+def test_build_setup_shadow_structure_stop_and_1r(monkeypatch):
+    """Code default: T1 = +1R. T1_BANK_R is ruled 1.5 in production .env
+    (RULED_FLAGS:232, 23.07), so it must be pinned EMPTY here or a full-env
+    suite run falsifies the default-premise (env-bleed, cowork 28.08)."""
+    monkeypatch.setenv("T1_BANK_R", "")
     bars = [NARROW_B1, B(7531.0, 7536.0, 7530.5, 7535.0)]
     t = evaluate_opening_entry(bars)
     s = build_opening_setup(t, bars, shadow_only=True)
@@ -99,6 +103,16 @@ def test_build_setup_shadow_structure_stop_and_1r():
     # T1 = +1R (bank)
     risk = s["entry_price"] - s["stop"]
     assert s["t1"] == pytest.approx(s["entry_price"] + risk)
+
+
+def test_build_setup_honors_ruled_t1_bank_r(monkeypatch):
+    """The ruled production value (T1_BANK_R=1.5, מייקל 23.07) must flow."""
+    monkeypatch.setenv("T1_BANK_R", "1.5")
+    bars = [NARROW_B1, B(7531.0, 7536.0, 7530.5, 7535.0)]
+    t = evaluate_opening_entry(bars)
+    s = build_opening_setup(t, bars, shadow_only=True)
+    risk = s["entry_price"] - s["stop"]
+    assert s["t1"] == pytest.approx(s["entry_price"] + 1.5 * risk)
 
 
 def test_gateway_shadow_only_never_routes_live(monkeypatch):
