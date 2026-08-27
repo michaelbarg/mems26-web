@@ -2681,6 +2681,25 @@ class TradingGateway:
                     # ראיה 27.08 17:50: DOUBLE_BOTTOM_EE_LONG @7734 נחסם ביום-ריצה.
                     # ביום לא-מגמתי הווטו נשאר (השומר של #655: −$63.75).
                     _st_daytype = str(_st_g1.get("day_type_at_entry") or "")
+                    # 27.08 ~19:10 doctrine (מייקל): "היום יכול להשתנות תוך-כדי
+                    # וזה בסדר — כל תווית חדשה = סט-הזדמנויות חדש שנפתח מיד".
+                    # The ruling text is "ביום-מגמה מפורסם" — so the exemption
+                    # keys on the label PUBLISHED at fire time, not the snapshot
+                    # frozen at detection. Live case 27.08 20:10:05: ZLR LONG
+                    # vetoed with day_type_at_entry=Variation two seconds AFTER
+                    # Trend_Normal was promoted (20:10:03 [S1-NEW-CLS]).
+                    # get_live_day_type() returns a STRING or None (T-109: do
+                    # NOT .get() it). Read fails/None → fall back to the entry
+                    # snapshot — fail-closed to the pre-existing behavior.
+                    try:
+                        from backend.v9.services.trade_context import (
+                            get_live_day_type as _st_gldt)
+                        _st_live_dt = str(_st_gldt() or "")
+                        if _st_live_dt and _st_live_dt not in (
+                                "None", "UNKNOWN", "FORMING"):
+                            _st_daytype = _st_live_dt
+                    except Exception:
+                        pass
                     if (_st is not None and _st.get("all_wrong_side")
                             and _st_daytype.startswith("Trend")):
                         logger.warning(
