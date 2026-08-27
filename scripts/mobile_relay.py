@@ -113,14 +113,30 @@ def _poll_instructions(access_key, render):
                     f.write(f"### [{it.get('ts', '')}] מייקל (מהפלאפון) · "
                             f"ID {iid}\n{it.get('text', '')}\n\n")
                 # 26.08 (Michael): "ברגע שליחת הודעה - קלוד קוד חייב להגיב
-                # שקיבל". Instant cc-signed receipt into the thread; the
-                # substantive answer follows from the agent (workorder §1).
+                # שקיבל" + 27.08: "שיח רציף שאני לא מול המחשב". Instant
+                # receipt WITH live status (answers "מה מצבנו" classes at
+                # zero latency); a real agent adds substance within ≤30min
+                # via the scheduled responder run.
                 import datetime as _dt
                 _ack_ts = _dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                _st = ""
+                try:
+                    _ak = _env().get("MOBILE_ACCESS_KEY", "")
+                    with urllib.request.urlopen(
+                            f"{LOCAL}/data?key={_ak}", timeout=4) as _r:
+                        _d = json.loads(_r.read().decode())
+                    _s = _d.get("sierra", {}) or {}
+                    _mode = "לייב" if _s.get("is_sim") == 0 else "סים"
+                    _armed = "חמוש" if _s.get("order_placement_armed") == 1 else "לא-חמוש"
+                    _st = (f" · מצב-חי: {_mode}+{_armed} · פוזיציה {_s.get('position_qty', '?')}"
+                           f" · P&L-יום {_s.get('daily_pnl', '?')}"
+                           f" · מחיר {_s.get('last_price', '?')}")
+                except Exception:
+                    _st = " · (מצב-חי לא זמין כרגע)"
                 with open(p_thread, "a", encoding="utf-8") as f:
                     f.write(json.dumps(
-                        {"sender": "cc", "text": "✓ קיבלתי את ההודעה — מטפל "
-                         "ועונה בהמשך (קבלה אוטומטית)", "ts": _ack_ts,
+                        {"sender": "cc", "text": "✓ התקבל" + _st +
+                         " · סוכן יענה בהרחבה (עד ~30 דק')", "ts": _ack_ts,
                          "id": f"{iid}-ack", "status": ""},
                         ensure_ascii=False) + "\n")
                 print(f"[relay] instruction {iid} → thread+inbox+ack", flush=True)
