@@ -1653,7 +1653,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                                         _ft_conf = None
                                     _ft_ok, _ft_why = _ft_ok_fn(
                                         self._oe_bars, _trig["direction"], _ft_conf,
-                                        trigger_type=_trig.get("type"))
+                                        trigger_type=_trig.get("type"),
+                                        opening_type=getattr(_mc, "opening_type",
+                                                             None) if _mc else None)
                                     if not _ft_ok:
                                         logger.warning(
                                             "[FiveMin] OPENING_FIRST_TRADE_STRICT held %s %s — %s",

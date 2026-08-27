@@ -364,7 +364,7 @@ def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
 
 def opening_first_trade_ok(session_bars, direction, opening_conf,
                            min_conf=None, min_bars=None,
-                           trigger_type=None):
+                           trigger_type=None, opening_type=None):
     """OPENING_FIRST_TRADE_STRICT_V1 (Michael ruling 2026-07-31 18:20:
     "העסקה הראשונה צריכה להגיע רק בוודאות של סוג הפתיחה ולהחמיר כניסה").
 
@@ -429,4 +429,5 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
     confirmed = (c > o) if direction == "LONG" else (c < o)
     if not confirmed:
         return False, f"last bar did not confirm {direction} (o={o} c={c})"
-    return True, f"confirmed: conf={conf:.2f}, {len(session_bars)} bars, last bar with-direction"
+    _conf_s = f"{conf:.2f}" if conf is not None else "n/a"
+    return True, f"confirmed: conf={_conf_s}, {len(session_bars)} bars, last bar with-direction"
