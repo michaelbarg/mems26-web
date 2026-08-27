@@ -158,7 +158,10 @@ opening_stance:
 patterns:
   # ── Continuation (S4 Woodies + S2 INITIATIVE) ──
   # ZLR inverted 2026-08-12 (ruling above): FULL→REDUCED, Normal→SKIP.
-  ZLR:        { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: SKIP,    Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  # 27.08 (פסיקת-מייקל "תבדוק אילו דגלים הורסים ותבטל — לא רק להיום"): Normal SKIP→REDUCED.
+  # ראיה: 27.08 17:46 ZLR-LONG @7728.75 conform נחסם על הרגל של +40 נק' (הפרסום הוחזק
+  # על Normal); באותו יום ZLR conform ב-17:15 שילם +$105. היסטורית ZLR×conform +$1,826/111.
+  ZLR:        { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   TLB:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
   TT:         { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   # GB100 inverted 2026-08-12 (ruling above): REDUCED→FULL on the 4 allowed day-types.

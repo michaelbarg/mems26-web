@@ -309,3 +309,8 @@ ruled:
   VA_FADE_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-26", note: "Phase 2: מחולל-רוטציה VA. ADAPT edge_fade → VAH/VAL. Shadow ≥3 sessions." }
   FAILED_BREAK_VA_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-26", note: "FAILED_BREAK: כניסה אחרי כישלון-מעבר ב-VA. §D +$118/33 sessions, 56% win. 3-step: attempt→failure→return. Shadow until cowork." }
   LEGACY_CONF_GATES: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-26", note: "Rollback flag: =1 restores all conf-percentage gates. Default OFF = binary gates per ruling 25-26.08. Use only for emergency rollback." }
+
+  # ── פסיקת-מייקל 27.08 ~18:20 ("תבדוק איזה דגלים הורסים לנו ותבטל אותם - לא רק להיום") ──
+  DAYTYPE_RECLASS_STABILITY_V1: {expected: "0", ruled_by: "מייקל", date: "2026-08-27", note: "בוטל בפסיקת 27.08 (דגלים-הורסים). ראיה: 17:45-18:05 החזיק פרסום Normal בזמן ש-Trend_DD פנימי ⇒ ZLR-conform נחסם-פלייבוק על רגל +40 נק', ו-trend_bypass של release-gate לא חל (קסקדה). הוקם 08-19 (T-47/F6) נגד ריצוד; הביטול מחזיר פרסום מיידי. אם ריצוד יחזור — פסיקה חדשה, לא שחזור שקט."}
+  STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-27", note: "נשאר דלוק אך הוחרג-בקוד ביום-מגמה מפורסם (פסיקת דגלים-הורסים 27.08): בכניסת-המשך בקצה כל המבנה מאחור בהגדרה — הווטו הרג DOUBLE_BOTTOM_EE_LONG @7734 ביום-ריצה (17:50). ביום לא-מגמתי נשאר (שומר #655 −$63.75). trading_gateway ~:2686."}
+  # פלייבוק-ZLR: Normal SKIP→REDUCED — אותה פסיקה; ראיות בהערת ה-yaml עצמו.

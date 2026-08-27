@@ -2675,7 +2675,21 @@ class TradingGateway:
                     # direction — hard block, not clamp-and-continue.
                     # Case #655 (2026-08-10): c1/c2/c3 all below LONG entry,
                     # R-fallback rescued the trade, −$63.75.
+                    # 27.08 (פסיקת-מייקל "תבטל דגלים הורסים — לא רק להיום"): ביום-מגמה
+                    # מפורסם הווטו מוחרג — בכניסת-המשך בקצה-סשן כל המבנה יושב מאחור
+                    # בהגדרה (הקייס של ה-stair בהערת-A1), והיעד הוא ההמשך, לא המבנה.
+                    # ראיה 27.08 17:50: DOUBLE_BOTTOM_EE_LONG @7734 נחסם ביום-ריצה.
+                    # ביום לא-מגמתי הווטו נשאר (השומר של #655: −$63.75).
+                    _st_daytype = str(_st_g1.get("day_type_at_entry") or "")
                     if (_st is not None and _st.get("all_wrong_side")
+                            and _st_daytype.startswith("Trend")):
+                        logger.warning(
+                            "[Gateway] wrong-side veto EXEMPT on trend day "
+                            "(%s): %s %s entry=%s — continuation objective, "
+                            "R-fallback targets kept",
+                            _st_daytype, _st_pat, direction,
+                            setup.get("entry_price"))
+                    elif (_st is not None and _st.get("all_wrong_side")
                             and os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
                             in ("1", "true", "yes")):
                         # F4 / G2 — TREND_STEP structural exemption
