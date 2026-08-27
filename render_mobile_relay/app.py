@@ -443,7 +443,19 @@ async function load(){
    building:['בהתהוות','#d29922'],blocked:['ממתין','#8b949e'],vetoed:['וטו','#f85149'],skip:['SKIP לסוג-היום','#f85149'],
    not_applicable:['לא-רלוונטי','#8b949e'],unknown:['?','#8b949e']};
   const P = d.patterns||[];
-  document.getElementById('pats').innerHTML = P.length? P.map(p=>{
+  // 27.08 (מייקל: "לשים בפאנל את התבנית הכי קרובה לירי כדי שאדע"):
+  // מדרג לפי פער-מספרי בהודעת-ההמתנה (gap=Xpts) — הקטן ביותר = הקרוב-לירי;
+  // תבנית בלי פער מדיד מדורגת אחרי המדידות. מוצג כשורה בולטת מעל הרשימה.
+  let _near = null;
+  P.forEach(p=>{
+   if(p.status!=='armed' && p.status!=='forming' && p.status!=='ready') return;
+   const m = /gap=(-?[0-9.]+)\s*pts/.exec(String(p.reason||''));
+   const g = m? Math.abs(parseFloat(m[1])) : null;
+   if(!_near) { _near = {p, g}; return; }
+   if(g!==null && (_near.g===null || g<_near.g)) _near = {p, g};
+  });
+  const _nearHtml = _near? '<div style="background:#132a1a;border:1px solid #2ea04366;border-radius:8px;padding:6px 9px;margin-bottom:6px"><span style="color:#3fb950;font-weight:600">🎯 הכי קרוב לירי: '+_near.p.name+'</span>'+(_near.g!==null? ' <span style="color:#e6edf3">· '+_near.g.toFixed(2)+' נק\' מהטריגר</span>':'')+'<div class="dim" style="font-size:10.5px">'+String(_near.p.reason||'').replace(/</g,'&lt;').slice(0,90)+'</div></div>' : '';
+  document.getElementById('pats').innerHTML = _nearHtml + (P.length? P.map(p=>{
    const st = ST_HE[p.status]||ST_HE.unknown;
    let line = '';
    if(p.last){
@@ -457,7 +469,7 @@ async function load(){
     line = '<div class="dim" style="font-size:10.5px">מה חסר: '+String(p.reason).replace(/</g,'&lt;').slice(0,80)+'</div>';
    }
    return '<div style="border-bottom:1px solid #1c2330;padding:3px 0"><div class="row"><span>'+p.name+'</span><span style="color:'+st[1]+';font-size:10.5px">'+st[0]+'</span></div>'+line+'</div>';
-  }).join('') : '<span class="dim">אין נתוני-תבניות</span>';
+  }).join('') : '<span class="dim">אין נתוני-תבניות</span>');
   const posEl = document.getElementById('pos');
   posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
   posEl.className = 'big ' + (q===0?'':'pulse');
