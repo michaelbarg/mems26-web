@@ -1850,3 +1850,11 @@ flags:
     why: "מתחת ל-3 חוזים רק רגל אחת בנקה לפני הראנר, כלומר שינוי-יחסי גדול מדי לעומת הסולם הפסוק. מדידה: min=2 נותן +$727.50 מול +$538.75 בגודל-שנסחר — חיובי, אך מחוץ לצורת-הסולם של פסיקת 08-16."
     status: param
     ref: "RULED_FLAGS 2026-08-20 (RUNNER_TRAIL_V2)"
+
+  CANDIDATE_LEDGER_V1:
+    category: misc
+    group: observability
+    what: "כותב אירועי DETECTED/EMIT_DECISION ל-gateway_decisions.jsonl לפני השער, עם candidate_id יציב. לא מסנן ולא מנתב."
+    why: "T-103: היום מועמדים שנחסמו ב-FHB/dedup/S4 decision-tree נעלמים. מדידה בלבד, ברירת-מחדל OFF, כשל בכתיבה לא נוגע בירי."
+    status: deferred
+    ref: "docs/spec_authority/CANDIDATE_LEDGER_CONTRACT.md"
