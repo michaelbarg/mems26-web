@@ -27,6 +27,24 @@ from backend.v9.systems.woodies.decision_tree import (
     _fetch_touchpoints_now,
 )
 
+
+def _s4_ledger(event_type, *, pattern, direction, signal_bar_ts, **kwargs):
+    try:
+        from backend.v9.services.candidate_ledger import enabled, record
+        if not enabled():
+            return None
+        return record(
+            event_type,
+            system_id=4,
+            pattern=str(pattern or ""),
+            direction=direction or "LONG",
+            signal_bar_ts=signal_bar_ts,
+            **kwargs,
+        )
+    except Exception:
+        return None
+
+
 # P30 SLOW handler fix (2026-05-20): touchpoint pre-fetch was removed in favour
 # of passing touchpoints={} directly (see process_bar comment). The wall-clock
 # budget constant is retained here as documentation of the original cap value.
@@ -1205,6 +1223,29 @@ class WoodiesSystem(BaseV9TradingSystem):
                 "pending_stages": dt_summary.get("pending_stages", []),
             })
 
+            for _p in patterns:
+                _s4_ledger(
+                    "DETECTED",
+                    pattern=_p.pattern_id,
+                    direction=_p.direction or "LONG",
+                    signal_bar_ts=bar_ts,
+                    family=_p.group or "",
+                    prices={"entry": _p.entry_price, "stop": _p.stop},
+                )
+            if patterns and not dt_summary.get("ready_to_route"):
+                _fail = ",".join(str(s) for s in (dt_summary.get("failed_stages") or []))
+                for _p in patterns:
+                    _s4_ledger(
+                        "EMIT_DECISION",
+                        pattern=_p.pattern_id,
+                        direction=_p.direction or "LONG",
+                        signal_bar_ts=bar_ts,
+                        family=_p.group or "",
+                        verdict="REJECT",
+                        blocked_by="decision_tree",
+                        reason=_fail or "ready_to_route=False",
+                    )
+
             # Prompt 14: auto-route to TradingGateway when ready
             if dt_summary.get("ready_to_route") and self._gateway and patterns:
                 # best already set by W-8 dispatcher above
@@ -1227,6 +1268,15 @@ class WoodiesSystem(BaseV9TradingSystem):
                     self.current_state["last_route"] = {
                         "skipped": True, "reason": "duplicate_bar_ts", "key": _fire_key,
                     }
+                    _s4_ledger(
+                        "EMIT_DECISION",
+                        pattern=best.pattern_id,
+                        direction=best.direction or "LONG",
+                        signal_bar_ts=bar_ts,
+                        family=best.group or "",
+                        verdict="REJECT",
+                        blocked_by="duplicate_bar_ts",
+                    )
                     return
                 # Item-11 Phase 2: under SIZING_CONSOLIDATION_V1, use the
                 # already-computed V2 sizing (set at ~645, risk-cap-checked at
@@ -1273,6 +1323,17 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "t3": None,
                         "metadata": _gw_meta,
                     }
+                    _cid = _s4_ledger(
+                        "EMIT_DECISION",
+                        pattern=best.pattern_id,
+                        direction=best.direction or "LONG",
+                        signal_bar_ts=bar_ts,
+                        family=best.group or "",
+                        verdict="ALLOW",
+                    )
+                    if _cid:
+                        setup["candidate_id"] = _cid
+                        _gw_meta["candidate_id"] = _cid
                     try:
                         route_result = self._gateway.route_setup(setup, 4)
                         self.current_state["last_route"] = route_result
@@ -1299,6 +1360,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                     except Exception as e:
                         self.current_state["last_route"] = {"error": str(e)}
                         logger.warning("[Woodies] Gateway route_setup failed: %s", e)
+                else:
+                    _s4_ledger(
+                        "EMIT_DECISION",
+                        pattern=best.pattern_id,
+                        direction=best.direction or "LONG",
+                        signal_bar_ts=bar_ts,
+                        family=best.group or "",
+                        verdict="REJECT",
+                        blocked_by="sizing",
+                    )
             else:
                 if not dt_summary.get("ready_to_route"):
                     # I-59: no silent failures — a detected pattern that gets dropped
