@@ -39,6 +39,30 @@ class ScaleInDecision:
     reason: str
 
 
+def margin_precheck(add_contracts: int,
+                    available_funds: Optional[float],
+                    per_contract_margin: float) -> tuple:
+    """T-111 (broker reject 27.08 21:05 IL): never PLACE a scale-in child the
+    broker will margin-reject. Live case: cmd #405 placed two 1c parents while
+    avail_funds was ~$59 — 10700 filled, 10703 rejected ("Insufficient Account
+    Value... Needed 1,428.90, Account Value: 1,162.34") — and the half-filled
+    add desynced the books (SYS-3 divergence every 30s until corrected).
+
+    Pure function. Returns (ok, reason).
+    available_funds None => UNDETERMINED => pass-through (absence of knowledge
+    is not negative knowledge — the broker remains the final arbiter); a
+    POSITIVE shortfall is the only veto.
+    """
+    if available_funds is None:
+        return True, "margin UNDETERMINED (no acct feed) — pass-through"
+    need = add_contracts * per_contract_margin
+    if available_funds < need:
+        return False, ("margin precheck: avail %.2f < need %.2f (%dc x %.2f)"
+                       % (available_funds, need, add_contracts,
+                          per_contract_margin))
+    return True, "margin ok: avail %.2f >= need %.2f" % (available_funds, need)
+
+
 def should_scale_in(
     *,
     direction: str,

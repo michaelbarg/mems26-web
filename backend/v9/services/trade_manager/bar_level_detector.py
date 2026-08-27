@@ -1320,6 +1320,35 @@ class BarLevelDetector:
         )
         if dec is None:
             return
+        # ── T-111 margin precheck (night mandate 27-28.08, broker-reject
+        # evidence in margin_precheck's docstring). Runs BEFORE the parent is
+        # marked, so a margin-skipped add stays eligible on a later bar when
+        # funds free up ("אם הכיוון ממשיך אפשר לחזק"). Default ON;
+        # SCALE_IN_MARGIN_PRECHECK_V1=0 restores the old blind PLACE.
+        if _si_os.getenv("SCALE_IN_MARGIN_PRECHECK_V1", "1").lower() in (
+                "1", "true", "yes"):
+            from backend.v9.services.trade_manager.scale_in import (
+                margin_precheck)
+            _mp_avail = None
+            try:
+                import json as _mp_json
+                _mp_path = _si_os.path.join(
+                    _si_os.getenv("V9_EXPORT_DIR", _si_os.path.expanduser(
+                        "~/SierraChart_Data/v9_export")),
+                    "sierra_state.json")
+                with open(_mp_path) as _mp_fh:
+                    _mp_raw = _mp_json.load(_mp_fh).get("acct_available_funds")
+                _mp_avail = float(_mp_raw) if _mp_raw is not None else None
+            except Exception:
+                _mp_avail = None
+            _mp_per = float(_si_os.getenv(
+                "SCALE_IN_MARGIN_PER_CONTRACT", "398.75") or 398.75)
+            _mp_ok, _mp_reason = margin_precheck(
+                dec.add_contracts, _mp_avail, _mp_per)
+            if not _mp_ok:
+                logger.warning("[ScaleIn] SKIP child (parent=%s): %s",
+                               getattr(trade, "id", "?"), _mp_reason)
+                return
         # mark parent FIRST (idempotent) — even if the PLACE below errors, we never re-add
         q2 = dict(q); q2["scaled_in"] = True; q2["scale_in_child_pending"] = True
         trade.quality = q2

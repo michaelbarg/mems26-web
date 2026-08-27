@@ -117,3 +117,50 @@ class TestItAsksSierraFirst:
         blk = _scale_in_method(src)
         assert "_want_long" in blk, (
             "reinforcing a LONG while Sierra is short would open a new position")
+
+
+# ══════════════ T-111 · margin precheck (broker reject 27.08 21:05) ══════════
+
+class TestMarginPrecheck:
+    """cmd #405 placed a 2c child while avail was ~$59 — 10700 filled, 10703
+    margin-rejected, books desynced (SYS-3). The precheck must veto ONLY on a
+    positive shortfall; missing data is UNDETERMINED, not a veto."""
+
+    def test_shortfall_blocks(self):
+        from backend.v9.services.trade_manager.scale_in import margin_precheck
+        ok, reason = margin_precheck(2, 59.0, 398.75)
+        assert ok is False and "avail 59.00 < need 797.50" in reason
+
+    def test_sufficient_passes(self):
+        from backend.v9.services.trade_manager.scale_in import margin_precheck
+        ok, _ = margin_precheck(2, 1314.84, 398.75)
+        assert ok is True
+
+    def test_exact_boundary_passes(self):
+        from backend.v9.services.trade_manager.scale_in import margin_precheck
+        ok, _ = margin_precheck(2, 797.50, 398.75)
+        assert ok is True
+
+    def test_unknown_funds_is_undetermined_pass(self):
+        """Absence of knowledge is not negative knowledge (binary doctrine) —
+        the broker stays the final arbiter."""
+        from backend.v9.services.trade_manager.scale_in import margin_precheck
+        ok, reason = margin_precheck(2, None, 398.75)
+        assert ok is True and "UNDETERMINED" in reason
+
+    def test_wired_before_parent_marking(self):
+        """The skip must happen BEFORE `scaled_in` is set, so a margin-skipped
+        add stays eligible when funds free up later."""
+        import inspect
+        from backend.v9.services.trade_manager import bar_level_detector as bld
+        src = inspect.getsource(bld)
+        pre = src.index("SCALE_IN_MARGIN_PRECHECK_V1")
+        mark = src.index('q2["scaled_in"] = True')
+        assert pre < mark, "precheck drifted below the parent-marking"
+
+    def test_flag_default_on_and_disableable(self, monkeypatch):
+        import inspect
+        from backend.v9.services.trade_manager import bar_level_detector as bld
+        src = inspect.getsource(bld)
+        assert 'getenv("SCALE_IN_MARGIN_PRECHECK_V1", "1")' in src, (
+            "default must be ON per the T-111 night mandate")
