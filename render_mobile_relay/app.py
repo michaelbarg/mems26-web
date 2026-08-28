@@ -410,12 +410,26 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
   d.textContent='📎 הקובץ נשמר על ה-Mac (תצוגת-הענן פגה)';
   var box=el.parentNode.parentNode; box.replaceChild(d,el.parentNode);
  }
+ function copyMsg(i,btn){
+  const txt=(window._chatTexts||[])[i]||'';
+  const ok=function(){btn.textContent='✓';setTimeout(function(){btn.textContent='📋';},1200);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+   navigator.clipboard.writeText(txt).then(ok).catch(function(){legacyCopy(txt);ok();});
+  }else{legacyCopy(txt);ok();}
+ }
+ function legacyCopy(txt){
+  var ta=document.createElement('textarea');ta.value=txt;
+  ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);
+  ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+ }
  async function loadChat(){
   try{
    const r=await fetch('/chat'+location.search); const d=await r.json();
    const el=document.getElementById('chatThread');
    if(!d.items||!d.items.length){el.innerHTML='<span style="color:#8b949e">אין הודעות עדיין</span>';return;}
-   el.innerHTML=d.items.map(m=>{
+   window._chatTexts=d.items.map(m=>m.text||'');
+   el.innerHTML=d.items.map((m,i)=>{
     const me=m.sender==='מייקל';
     let t=(m.ts||'').slice(11,16);
     try{t=new Date(m.ts).toLocaleTimeString('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit'});}catch(e){}
@@ -436,7 +450,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
      +'<div style="display:inline-block;max-width:85%;padding:6px 10px;border-radius:10px;background:'
      +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right">'
      +'<div style="font-size:11px;color:'+(me?'#c9d9f7':'#8b949e')+'">'+m.sender+' · '+t
-     +(m.status?' · '+m.status:'')+'</div>'
+     +(m.status?' · '+m.status:'')
+     +' <span onclick="copyMsg('+i+',this)" title="העתק הודעה" '
+     +'style="cursor:pointer;padding:0 4px;font-size:12px">📋</span></div>'
      +m.text.replace(/</g,'&lt;')+att+'</div></div>';
    }).join('');
    el.scrollTop=el.scrollHeight;
