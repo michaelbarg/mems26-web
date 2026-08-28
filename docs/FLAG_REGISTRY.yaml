@@ -622,6 +622,13 @@ flags:
     why: "OFF (default). EDGE_FADE needs this to find opportunities — the classifier labels most days NV which was excluded from FADE_DAY_TYPES."
     status: awaiting_backtest
     ref: "backend/v9/systems/edge_fade.py:FADE_DAY_TYPES_EXTENDED"
+  DALTON_EDGE_V1:
+    category: s2
+    group: "edge fade"
+    what: "DALTON_EDGE (T-118, Michael ruling a65f13aa 2026-08-28, IMG_3305): responsive LONG+SHORT reversal at Dalton termination points — the last closed bar sets the N-bar extreme (DALTON_EDGE_LOOKBACK_N, default 12), closes as a rejection (>=0.6 of the bar range back from the extreme, range >=2pt), on a volume spike >= DALTON_EDGE_VOL_MULT (default 2.0) x preceding-SMA20 (Michael's dashed volume line). Structural stop beyond the extreme -+ DALTON_EDGE_STOP_BUFFER_PTS (default 2.0) via setup.stop -> metadata.stop_initial (the ZLR channel); T1=1R near bank, T2=2R. Pure module backend/v9/systems/dalton_edge.py; wiring FiveMinSystem._maybe_dalton_edge runs all-session (FIRST_HOUR+DAY_TYPE modes, NOT inside the OPENING_ENTRY_V1 nest), continuous v9_bars_5min_woodies window, anti-phantom <10min, one fire per side per IL day. Values: unset/'0'=OFF byte-identical - 'shadow'=metadata.shadow_only setups (gateway records, never routes) - '1'/'live'=live path. Tunables are code-default env reads at the wiring layer (not in .env)."
+    why: "shadow (Michael 2026-08-28 a65f13aa: 'שנייצר תבנית כזאת שתתחיל לסחור היום לונג ושורט בנקודות סיום של דלתון... עם סטופ מתאים אפשר להתחיל במימושים קרובים'). Specimen DB-verified: 09:00-IL 28.08 low 7731.00, rejection close 7734.00, vol 885 vs SMA20 382.45 (x2.31). Shadow until gate verification; cowork flips to live at the 15:40 gate (implementation of an existing ruling — no second approval needed)."
+    status: shadow
+    ref: "backend/v9/systems/dalton_edge.py · backend/v9/systems/five_min/five_min_system.py:_maybe_dalton_edge"
   S6_MAE_SCRATCH_ATR_V1:
     category: risk
     group: "system 6"

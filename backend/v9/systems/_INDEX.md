@@ -26,6 +26,7 @@
 | `balance_edge_exempt.py` | ✅ 1 | 87 | 2026-08-07 | Balance-edge direction_context exemption (P1-4, Dalton). |
 | `balance_imbalance_toggle.py` | ✅ 2 | 187 | 2026-08-06 | Unified Balance↔Imbalance toggle (Dalton Step 3). |
 | `base_system.py` | ✅ 2 | 60 | 2026-05-11 | BaseSystem abstract class + Signal dataclass for V9 system wiring. |
+| `dalton_edge.py` | ✅ 1 | 185 | 2026-08-28 | DALTON_EDGE_V1 — responsive reversal at Dalton termination points (T-118). |
 | `day_direction.py` | ✅ 1 | 72 | 2026-07-03 | Item-18 halt-proof — when a directional day has demonstrably stalled. |
 | `daytype_playbook.py` | ✅ 5 | 421 | 2026-08-25 | Day-type playbook decision engine (flag-gated, default OFF). |
 | `daytype_position_gate.py` | ✅ 3 | 356 | 2026-08-25 | daytype_position_gate — direction allowed by day-type + price position. |
