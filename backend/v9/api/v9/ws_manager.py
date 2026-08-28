@@ -10,10 +10,22 @@ from fastapi import WebSocket
 
 import redis
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+# Ruling f4bf481d (Michael, phone 2026-08-28): Redis was never installed on
+# this machine and the channels have ZERO subscribers in the repo — the old
+# default ("redis://localhost:6379/0") made every publish attempt a doomed
+# connect (~1,400 rate-limited warnings/day of pure noise). Pub/sub is now
+# DISABLED unless REDIS_URL is explicitly configured; setting REDIS_URL in
+# .env re-enables it with no code change.
+REDIS_URL = os.getenv("REDIS_URL", "")
 HEARTBEAT_INTERVAL = 30  # seconds
 logger = logging.getLogger(__name__)
 _last_publish_warning_ts = 0.0
+_redis_disabled_logged = False
+
+
+def _redis_enabled() -> bool:
+    """True only when REDIS_URL is explicitly configured."""
+    return bool(REDIS_URL)
 
 # Redis channel names
 CHANNEL_BARS_5MIN = "v9:bars:5min"
@@ -40,7 +52,14 @@ def get_redis_client():
 
 def publish_event(channel: str, data: dict):
     """Publish an event to a Redis channel. Called from POST endpoints."""
-    global _last_publish_warning_ts
+    global _last_publish_warning_ts, _redis_disabled_logged
+    if not _redis_enabled():
+        if not _redis_disabled_logged:
+            logger.info(
+                "[ws_manager] REDIS_URL not configured — Redis pub/sub disabled "
+                "(ruling 2026-08-28); set REDIS_URL to re-enable")
+            _redis_disabled_logged = True
+        return
     try:
         r = get_redis_client()
         r.publish(channel, json.dumps(data))
@@ -107,6 +126,11 @@ class ConnectionManager:
 
     async def _redis_listener(self, channel: str):
         """Subscribe to Redis channel and broadcast to WS clients."""
+        if not _redis_enabled():
+            # No Redis configured (ruling 2026-08-28) — WS clients stay
+            # connected (heartbeat still runs); data reaches the frontend
+            # via the existing HTTP-poll fallback.
+            return
         try:
             r = redis.from_url(REDIS_URL, decode_responses=True)
             pubsub = r.pubsub()
