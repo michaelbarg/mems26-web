@@ -36,3 +36,6 @@
 ## כללים
 ‏Rule-5 פלט-גולמי · קומיט-פר-סעיף · snapshot לפני out-of-git · אין הדלקה בלי §D-עובר +
 פסיקה-קיימת (פסיקת-הכיוון של מייקל = הפסיקה; ה-§D הוא האימות) · ‏NOT-DONE מפורש.
+
+## סעיף-1ב (נתפס חי 18:16) · ZLR-TRACE: הדגל נזרק ב-override
+`closed_bar.zlr=True current_bar.zlr=True routed.zlr=True (src=current_bar) — closed=True+routed=False ⇒ override drops flag` — רץ ברצף ברגעים שהמחיר בשיא. ‏DLL מסמן ZLR על בר-סגור וה-route מפיל את הדגל לפני הגלאי (Mechanism-C כיסה רק חלק מהמקרים?). לאבחן: מתי routed=False על closed=True, ולמה ה-override מוחק במקום להעביר; טסט-מוטציה על התרחיש. זה מועמד-המשך שאובד בצנרת בזמן-אמת.
