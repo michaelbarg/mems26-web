@@ -11,9 +11,15 @@ and tags each with its session (live wiring only evaluates during RTH modes,
 Read-only: SELECTs via backend.v9.db.read. No writes, no routing, no env
 flags consulted (thresholds come from CLI args, defaults = the code defaults).
 
+Opening-bars guard (mirrors live DALTON_EDGE_SKIP_OPEN_BARS): candidates in
+the first K RTH slots after the 9:30-ET cash open are skipped BEFORE
+detection (default 3 like the wiring; --skip-open-bars 0 reproduces the
+unguarded replay). Same anchor + formula as _maybe_dalton_edge — the
+candidate bar's own ts, not a session counter — so replay == live.
+
 Usage:
   python3 scripts/replay_dalton_edge.py --start 2026-08-25 --end 2026-08-28 \
-      [--vol-mult 2.0] [--lookback 12] [--stop-buffer 2.0]
+      [--vol-mult 2.0] [--lookback 12] [--stop-buffer 2.0] [--skip-open-bars 3]
 """
 import argparse
 import os
@@ -28,6 +34,7 @@ from backend.v9.systems.dalton_edge import (  # noqa: E402
     VOL_SMA_WINDOW, detect_dalton_edge)
 
 IL = ZoneInfo("Asia/Jerusalem")
+ET = ZoneInfo("America/New_York")   # opening-bars guard anchor (9:30 cash open)
 FWD_BARS = 12
 
 
@@ -38,6 +45,10 @@ def main() -> int:
     ap.add_argument("--vol-mult", type=float, default=2.0)
     ap.add_argument("--lookback", type=int, default=12)
     ap.add_argument("--stop-buffer", type=float, default=2.0)
+    ap.add_argument("--skip-open-bars", type=int, default=3,
+                    help="skip candidates in the first K RTH slots after the "
+                         "9:30-ET open (live DALTON_EDGE_SKIP_OPEN_BARS "
+                         "default; 0 = guard off)")
     args = ap.parse_args()
 
     d0 = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=IL)
@@ -67,6 +78,15 @@ def main() -> int:
         day = dt_il.date().isoformat()
         if day < args.start or day > args.end:
             continue
+        # opening-bars guard — SAME formula as _maybe_dalton_edge (candidate
+        # bar's own ts vs the 9:30-ET open), applied BEFORE detection so the
+        # dedup simulation matches live exactly.
+        if args.skip_open_bars > 0:
+            dt_et = datetime.fromtimestamp(
+                float(rows[i]["ets"]), tz=timezone.utc).astimezone(ET)
+            open_min = (dt_et.hour * 60 + dt_et.minute) - (9 * 60 + 30)
+            if 0 <= open_min < 5 * args.skip_open_bars:
+                continue
         trig = detect_dalton_edge(rows[max(0, i - 39):i + 1], cfg)
         if not trig:
             continue
@@ -114,13 +134,17 @@ def main() -> int:
                   t1, int(trig["volume"]), trig["vol_ratio"], mfe, mae, outcome,
                   fwd_note, "" if is_live_kept else "  [dedup'd live]"))
 
-    print("\nper-day raw detections (vol_mult=%.2f, lookback=%d):" % (
-        args.vol_mult, args.lookback))
+    print("\nper-day raw detections (vol_mult=%.2f, lookback=%d, "
+          "skip_open_bars=%d):" % (args.vol_mult, args.lookback,
+                                   args.skip_open_bars))
     for day in sorted(per_day):
         print("  %s: %d" % (day, per_day[day]))
     if not per_day:
         print("  none")
-    print("total=%d, live-kept=%d" % (len(hits), sum(1 for h in hits if h[3])))
+    n_rth = sum(1 for h in hits if h[2].strip() == "RTH")
+    print("total=%d (glbx=%d, RTH=%d), live-kept=%d" % (
+        len(hits), len(hits) - n_rth, n_rth,
+        sum(1 for h in hits if h[3])))
     return 0
 
 
