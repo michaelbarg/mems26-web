@@ -1389,9 +1389,15 @@ class FiveMinSystem(BaseV9TradingSystem):
         ruling); downstream gates (location, wrong-side veto on published
         trend days, playbook, session gate) still apply on the live path.
 
-        Bars come straight from v9_bars_5min_woodies (closed canonical
-        bars, continuous feed — the SMA20 crosses session boundaries
-        exactly like Michael's chart), NOT from _det_buf. Flag unset/"0" →
+        Bars come straight from v9_bars_5min_woodies (continuous feed —
+        the SMA20 crosses session boundaries exactly like Michael's
+        chart), NOT from _det_buf; tail rows younger than one slot are
+        dropped so the candidate is deterministically the last CLOSED bar
+        (the table also carries the building bar). Opening-bars guard:
+        candidates inside the first DALTON_EDGE_SKIP_OPEN_BARS RTH slots
+        (default 3, 0=off; anchored on the candidate's ts vs 9:30 ET) are
+        skipped — 28.08 replay showed every RTH loser on those bars, where
+        volume runs ×10-×16 the globex-heavy SMA20. Flag unset/"0" →
         immediate return (byte-identical OFF). "shadow" → shadow_only
         setup (gateway records, never routes). "1"/"live" → live path.
         """
@@ -1414,14 +1420,50 @@ class FiveMinSystem(BaseV9TradingSystem):
                 "ORDER BY ts DESC LIMIT 40", {})
             _de_rows = list(reversed(list(_de_rows or [])))
             import time as _de_time
+            from zoneinfo import ZoneInfo as _de_ZI
+            # T-118 candidate fix (28.08): v9_bars_5min_woodies carries the
+            # CURRENT building bar (upserted on every bridge push — verified
+            # live 14:14 IL: the open slot's volume grew 351→376 within 25s),
+            # so [-1] raced between that near-empty building bar (auto-None
+            # on the volume check) and the intended last CLOSED bar,
+            # depending on which stream pushed first. Drop tail rows younger
+            # than one full slot so the candidate is deterministically the
+            # last closed bar — the module contract ("Evaluate the LAST
+            # closed bar") and what scripts/replay_dalton_edge.py measures.
+            _de_now = _de_time.time()
+            while _de_rows and _de_now - float(_de_rows[-1]["ets"]) < 300:
+                _de_rows.pop()
             # anti-phantom: newest closed bar must be fresh (<10 min) —
             # replay/hydration bars must not fire (EDGE_FADE precedent)
-            if not _de_rows or (
-                    _de_time.time() - float(_de_rows[-1]["ets"])) >= 600:
+            if not _de_rows or (_de_now - float(_de_rows[-1]["ets"])) >= 600:
                 return
+            # T-118 opening-bars guard (28.08 replay: RTH went 2×T1/4×STOP
+            # with EVERY loser on the 16:30-16:45-IL session-opening bars,
+            # where bar volume runs ×10-×16 the globex-heavy SMA20 — the
+            # volume confirmation is artificially satisfied at the open).
+            # Skip candidates inside the first DALTON_EDGE_SKIP_OPEN_BARS
+            # RTH slots (default 3; 0 = guard off), anchored on the
+            # CANDIDATE bar's own ts vs the 9:30-ET cash open — the same
+            # anchor the FHB hydration rebuild uses (DST-safe, unlike a
+            # fixed IL hour). Audited vs the FirstHourBuffer count and chose
+            # the anchor deliberately: _fhb indexes the arriving TOPIC bar
+            # while the candidate here is the previous CLOSED bar (an
+            # off-by-one that shifts under stream races), and it undercounts
+            # after a mid-session restart when the rebuild fails; the ts
+            # anchor needs no session state, so a restart changes nothing.
+            # Fail-side: if the TZ math ever raises, the outer except skips
+            # this bar's detection (fail-closed inside the window). Sits
+            # BEFORE detection → shadow measures exactly what live trades.
+            _de_skip_k = int(os.getenv("DALTON_EDGE_SKIP_OPEN_BARS", "3"))
+            if _de_skip_k > 0:
+                _de_et = datetime.fromtimestamp(
+                    float(_de_rows[-1]["ets"]), tz=timezone.utc,
+                ).astimezone(_de_ZI("America/New_York"))
+                _de_open_min = (_de_et.hour * 60 + _de_et.minute) - (9 * 60 + 30)
+                if 0 <= _de_open_min < 5 * _de_skip_k:
+                    return
             # one fire per side per IL day (edge_fade session convention),
             # honest reset on date change
-            from zoneinfo import ZoneInfo as _de_ZI
             _de_day = datetime.fromtimestamp(
                 float(_de_rows[-1]["ets"]), tz=timezone.utc,
             ).astimezone(_de_ZI("Asia/Jerusalem")).date().isoformat()

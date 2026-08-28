@@ -3,13 +3,16 @@
 Pure-detector tests + a real-bar acceptance fixture (frozen from
 v9_bars_5min_woodies, psql 2026-08-28 — the 09:00-IL specimen Michael marked
 on IMG_3305) + wiring-harness tests for the flag modes (OFF byte-identical /
-shadow / live) on FiveMinSystem._maybe_dalton_edge.
+shadow / live) on FiveMinSystem._maybe_dalton_edge, the building-bar candidate
+drop, and the DALTON_EDGE_SKIP_OPEN_BARS opening-bars guard (harness clock is
+frozen mid-RTH so the default guard can't flip tests run at 9:30-9:45 ET).
 
 Env discipline: every harness test pins/clears ALL DALTON_EDGE_* env vars via
 monkeypatch (known env-bleed failure class — ruled-ON flags leak into pytest).
 The detector itself is pure (no env, no I/O) so its tests need no pinning.
 """
 import time as _time
+from datetime import datetime, timezone
 
 import pytest
 
@@ -23,7 +26,16 @@ _ENV_KEYS = (
     "DALTON_EDGE_LOOKBACK_N",
     "DALTON_EDGE_VOL_MULT",
     "DALTON_EDGE_STOP_BUFFER_PTS",
+    "DALTON_EDGE_SKIP_OPEN_BARS",
 )
+
+# Frozen wall-clock for the wiring harness (2026-08-27 was a Thursday):
+# 17:00 UTC = 13:00 ET — mid-RTH, far outside the opening-bars guard window,
+# so the legacy shadow/live tests stay deterministic at any real run hour
+# (unfrozen, a pytest run at 9:30-9:45 ET would trip the default guard).
+_NOW_MID_RTH = datetime(2026, 8, 27, 17, 0, tzinfo=timezone.utc).timestamp()
+# 13:30 UTC = 9:30 ET on 2026-08-27 — the cash-open slot (RTH bar 1).
+_OPEN_ET_0827 = datetime(2026, 8, 27, 13, 30, tzinfo=timezone.utc).timestamp()
 
 
 def _pin_env(monkeypatch, **values):
@@ -202,17 +214,21 @@ class _GatewayRecorder:
         self.calls.append((setup, system_id))
 
 
-def _fresh_rows(last_age_s=60):
-    """Synthetic-LONG scenario as DB-shaped rows (ets/o/h/l/c/v), newest fresh."""
+def _fresh_rows(last_age_s=310, now=_NOW_MID_RTH):
+    """Synthetic-LONG scenario as DB-shaped rows (ets/o/h/l/c/v).
+
+    Default last_age_s=310: the newest row is the last CLOSED bar (>=300s
+    past its open-label — the wiring drops sub-slot-age tail rows as
+    building bars) and still <600s fresh for the anti-phantom check.
+    """
     bars = _quiet(24) + [{"o": 99.0, "h": 102.0, "l": 96.0, "c": 101.0, "v": 900}]
-    now = _time.time()
     rows = []
     for i, b in enumerate(bars):
         rows.append({"ets": now - last_age_s - (len(bars) - 1 - i) * 300.0, **b})
     return rows
 
 
-def _make_system(monkeypatch, rows):
+def _make_system(monkeypatch, rows, now=_NOW_MID_RTH):
     from backend.v9.systems.five_min.five_min_system import FiveMinSystem
     sys_obj = FiveMinSystem.__new__(FiveMinSystem)   # skip heavy __init__
     sys_obj._gateway = _GatewayRecorder()
@@ -223,7 +239,17 @@ def _make_system(monkeypatch, rows):
         lambda sql, params=None: list(reversed(rows)))
     import backend.v9.services.contract_size as _cs_mod
     monkeypatch.setattr(_cs_mod, "ruled_contracts", lambda: 2)
+    # freeze the wiring's `import time as _de_time` clock (same module obj)
+    monkeypatch.setattr(_time, "time", lambda: now)
     return sys_obj
+
+
+def _guard_case(monkeypatch, candidate_epoch, **env):
+    """System whose newest CLOSED candidate sits exactly at candidate_epoch
+    (now frozen 310s later), with DALTON_EDGE_V1=shadow + optional env."""
+    _pin_env(monkeypatch, DALTON_EDGE_V1="shadow", **env)
+    now = candidate_epoch + 310.0
+    return _make_system(monkeypatch, _fresh_rows(now=now), now=now)
 
 
 def test_wiring_flag_unset_off_byte_identical(monkeypatch):
@@ -289,3 +315,80 @@ def test_wiring_vol_mult_env_tunable(monkeypatch):
     sys_obj = _make_system(monkeypatch, _fresh_rows())
     sys_obj._maybe_dalton_edge()
     assert sys_obj._gateway.calls == []
+
+
+# ── building-bar candidate determinism (T-118 fix, 2026-08-28) ─────────────
+
+def test_wiring_building_bar_dropped_candidate_is_closed(monkeypatch):
+    """v9_bars_5min_woodies carries the CURRENT building bar (verified live:
+    open-slot volume grew 351→376 in 25s). A sub-slot-age tail row must be
+    dropped so the candidate is the last CLOSED bar — otherwise the near-empty
+    building bar races into [-1] and auto-fails the volume check (silent
+    detection haircut in shadow AND live)."""
+    _pin_env(monkeypatch, DALTON_EDGE_V1="shadow")
+    building = {"ets": _NOW_MID_RTH - 30.0,          # 30s into its slot
+                "o": 101.0, "h": 101.5, "l": 100.8, "c": 101.2, "v": 25}
+    rows = _fresh_rows() + [building]
+    sys_obj = _make_system(monkeypatch, rows)
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1          # fired on the CLOSED spike
+    setup, _ = sys_obj._gateway.calls[0]
+    assert setup["pattern"] == "DALTON_EDGE_LONG"
+    assert setup["entry_price"] == 101.0             # the closed bar's close
+
+
+# ── opening-bars guard: DALTON_EDGE_SKIP_OPEN_BARS (T-118, 2026-08-28) ─────
+
+def test_guard_skips_rth_bars_1_to_3(monkeypatch):
+    """Default K=3: candidates on the first three RTH slots (9:30/9:35/9:40
+    ET) are skipped — the 28.08 replay put EVERY RTH loser on those bars."""
+    for slot in (0, 1, 2):
+        sys_obj = _guard_case(monkeypatch, _OPEN_ET_0827 + slot * 300.0)
+        sys_obj._maybe_dalton_edge()
+        assert sys_obj._gateway.calls == [], f"slot {slot + 1} must be skipped"
+
+
+def test_guard_allows_rth_bar_4(monkeypatch):
+    """Candidate on the 4th RTH slot (9:45 ET) passes the default guard."""
+    sys_obj = _guard_case(monkeypatch, _OPEN_ET_0827 + 3 * 300.0)
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1
+    setup, _ = sys_obj._gateway.calls[0]
+    assert setup["metadata"]["shadow_only"] is True  # guard sits before mode split
+
+
+def test_guard_k0_disables(monkeypatch):
+    """DALTON_EDGE_SKIP_OPEN_BARS=0 → guard off: the 9:30-ET open bar fires."""
+    sys_obj = _guard_case(monkeypatch, _OPEN_ET_0827,
+                          DALTON_EDGE_SKIP_OPEN_BARS="0")
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1
+
+
+def test_guard_env_override_k6(monkeypatch):
+    """K=6 stretches the window: slot 6 (9:55 ET) skipped, slot 7 (10:00) fires."""
+    sys_obj = _guard_case(monkeypatch, _OPEN_ET_0827 + 5 * 300.0,
+                          DALTON_EDGE_SKIP_OPEN_BARS="6")
+    sys_obj._maybe_dalton_edge()
+    assert sys_obj._gateway.calls == []
+    sys_obj = _guard_case(monkeypatch, _OPEN_ET_0827 + 6 * 300.0,
+                          DALTON_EDGE_SKIP_OPEN_BARS="6")
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1
+
+
+def test_guard_inert_outside_open_window(monkeypatch):
+    """Guard keys on the candidate's own ts: globex bars (before 9:30 ET) and
+    day-type-mode bars (after the window) are untouched at any K."""
+    # globex: 8:00 ET candidate (12:00 UTC) — minutes-since-open negative
+    sys_obj = _guard_case(monkeypatch,
+                          datetime(2026, 8, 27, 12, 0, tzinfo=timezone.utc).timestamp(),
+                          DALTON_EDGE_SKIP_OPEN_BARS="3")
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1
+    # afternoon (DAY_TYPE_MODE window): 13:00 ET candidate — far past the window
+    sys_obj = _guard_case(monkeypatch,
+                          datetime(2026, 8, 27, 17, 0, tzinfo=timezone.utc).timestamp(),
+                          DALTON_EDGE_SKIP_OPEN_BARS="3")
+    sys_obj._maybe_dalton_edge()
+    assert len(sys_obj._gateway.calls) == 1

@@ -34,7 +34,10 @@ Pure logic — no env, no I/O (edge_fade.py doctrine). The five_min_system
 wiring gates on DALTON_EDGE_V1 (unset/"0" = OFF byte-identical · "shadow" =
 metadata.shadow_only=True, gateway records-not-routes · "1"/"live" = live
 path) and reads the tunables from env: DALTON_EDGE_LOOKBACK_N ·
-DALTON_EDGE_VOL_MULT · DALTON_EDGE_STOP_BUFFER_PTS.
+DALTON_EDGE_VOL_MULT · DALTON_EDGE_STOP_BUFFER_PTS ·
+DALTON_EDGE_SKIP_OPEN_BARS (opening-bars guard: skip candidates in the
+first K RTH slots after the 9:30-ET open, default 3, 0=off — the 28.08
+replay put every RTH loser on those volume-contaminated open bars).
 """
 from __future__ import annotations
 
