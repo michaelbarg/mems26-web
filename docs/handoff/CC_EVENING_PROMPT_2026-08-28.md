@@ -39,3 +39,6 @@
 
 ## סעיף-1ב (נתפס חי 18:16) · ZLR-TRACE: הדגל נזרק ב-override
 `closed_bar.zlr=True current_bar.zlr=True routed.zlr=True (src=current_bar) — closed=True+routed=False ⇒ override drops flag` — רץ ברצף ברגעים שהמחיר בשיא. ‏DLL מסמן ZLR על בר-סגור וה-route מפיל את הדגל לפני הגלאי (Mechanism-C כיסה רק חלק מהמקרים?). לאבחן: מתי routed=False על closed=True, ולמה ה-override מוחק במקום להעביר; טסט-מוטציה על התרחיש. זה מועמד-המשך שאובד בצנרת בזמן-אמת.
+
+## סעיף-1ג (השלמת פסיקת 18:20) · release-gate ביום-היפוך
+מייקל ביטל את שני מונעי-ה-LSMA (בוצע-חי 18:22). המונע השלישי של היום — awaiting_release על ZLR-17:21 — פיזי ונשאר, אבל ה-trend_bypass שלו מודד מ-open-הסשן (RELEASE_TREND_BYPASS_PTS=12) ולכן עיוור ליום-V (המחיר היה מתחת ל-open בזמן הריצה-החדשה). לתקן: המדידה מקצה-היום-בכיוון (מהשפל ללונג, מהשיא לשורט) או מנקודת-ההיפוך; §D + מוטציה. עד אז הוא המונע-החוקי היחיד שנותר על כניסות-המשך.
