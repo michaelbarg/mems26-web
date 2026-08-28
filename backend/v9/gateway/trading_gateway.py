@@ -1746,13 +1746,45 @@ class TradingGateway:
                                     "%s %s with-move vs stale sustained %s",
                                     _pat, _set_dir, _sus)
                             else:
-                                result["blocked_by"] = "cont_trend_filter"
-                                result["reason"] = (
-                                    f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
-                                )
-                                logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
-                                            _pat, _set_dir, _sus)
-                                return result
+                                # SCOPE SPLIT (ruling f4bf481d, Michael phone
+                                # 2026-08-28): on the S4/Woodies CONT patterns
+                                # (ZLR/TLB/TT/GB100) this filter was NET-
+                                # DESTRUCTIVE — 25-26.08 it killed 47.75pt of
+                                # winners (ZLR-SHORT 09:35 MFE 32.75, GB100-
+                                # SHORT 11:55 MFE 15.0) to save 10.25pt (ZLR-
+                                # LONG 12:55). It no longer BLOCKS them — it
+                                # SHADOW-logs the would-block for the nightly
+                                # counterfactual (+ T-114 leg-vs-sustained
+                                # replay). INITIATIVE (S2) KEEPS the filter —
+                                # the 34-session evidence (T-93) stands.
+                                # BULL_FLAG/BEAR_FLAG/CONFLUENCE_RI_ZLR also
+                                # keep it (BULL_FLAG chop fires were this
+                                # filter's original purpose; not part of the
+                                # ruling). CONT_TREND_FILTER_FULL_SCOPE=1
+                                # restores full-scope blocking (rollback).
+                                _ct_base = _pat
+                                for _sfx in ("_LONG", "_SHORT"):
+                                    if _ct_base.endswith(_sfx):
+                                        _ct_base = _ct_base[: -len(_sfx)]
+                                _ct_s4_shadow = (
+                                    _ct_base in ("ZLR", "TLB", "TT", "GB100")
+                                    and os.getenv(
+                                        "CONT_TREND_FILTER_FULL_SCOPE", "0"
+                                    ).lower() not in ("1", "true", "yes"))
+                                if _ct_s4_shadow:
+                                    logger.warning(
+                                        "[Gateway] cont-trend-filter S4-SHADOW "
+                                        "(ruling 28.08, would_block NOT blocking): "
+                                        "%s (CONT) setup %s vs sustained %s",
+                                        _pat, _set_dir, _sus)
+                                else:
+                                    result["blocked_by"] = "cont_trend_filter"
+                                    result["reason"] = (
+                                        f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
+                                    )
+                                    logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
+                                                _pat, _set_dir, _sus)
+                                    return result
 
                 # F1 DIRECTION_COMPASS_V1: same single INPUT here. The CVD+IB
                 # breakout read is one opinion among four; the compass fuses it

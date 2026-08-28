@@ -491,10 +491,17 @@ flags:
   CONT_TREND_FILTER:
     category: cascade_gate
     group: "direction engine"
-    what: "Continuation patterns (Flag/TLB/ZLR/TT/GB100 + S2 Reactive/Initiative) fire only WITH a SUSTAINED K-bar LSMA trend (dir_sustained). REVERSAL patterns (VEGAS/GHOST/FAMIR/HTLB + S2 Double/HnS) are EXEMPT (fire against the trend by design). Applied in trading_gateway after DIRECTION_CONTEXT; fail-open."
-    why: "ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS."
+    what: "Continuation patterns fire only WITH a SUSTAINED K-bar LSMA trend (dir_sustained). REVERSAL patterns (VEGAS/GHOST/FAMIR/HTLB + S2 Double/HnS) are EXEMPT (fire against the trend by design). SCOPE SPLIT (ruling f4bf481d 2026-08-28): ENFORCED on INITIATIVE + BULL_FLAG/BEAR_FLAG/CONFLUENCE_RI_ZLR; on S4/Woodies CONT patterns (ZLR/TLB/TT/GB100) it only SHADOW-logs the would-block ('[Gateway] cont-trend-filter S4-SHADOW') and does NOT block. Applied in trading_gateway after DIRECTION_CONTEXT; fail-open."
+    why: "ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS. Split 2026-08-28: on S4 it was NET-destructive — 25-26.08 killed 47.75pt of winners vs 10.25pt saved; INITIATIVE evidence (T-93, 34 sessions) stands."
     status: live
     ref: "outputs/trend_filter_counterfactual.py"
+  CONT_TREND_FILTER_FULL_SCOPE:
+    category: cascade_gate
+    group: "direction engine"
+    what: "ROLLBACK flag for the 2026-08-28 scope split: =1 restores full-scope CONT_TREND_FILTER blocking on S4/Woodies patterns (ZLR/TLB/TT/GB100). Unset/0 (ruled default) = S4 patterns are SHADOW-only (would_block logged, not blocked); INITIATIVE + flags/confluence stay enforced."
+    why: "Ruling f4bf481d (Michael, phone 2026-08-28, 'מאושר לפי ההמלצה'): on S4 the filter killed 47.75pt of winners (ZLR-SHORT 09:35 MFE 32.75, GB100-SHORT 11:55 MFE 15.0) to save 10.25pt (ZLR-LONG 12:55) on 25-26.08 — net-destructive at S4 scope. Re-enabling full scope = new written ruling."
+    status: live
+    ref: "backend/v9/gateway/trading_gateway.py"
   CONT_TREND_STATE_CERT_V1:
     category: cascade_gate
     group: "direction engine"
