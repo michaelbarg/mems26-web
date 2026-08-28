@@ -1375,6 +1375,82 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     _bar_buffer: List[Dict] = []
 
+    def _maybe_dalton_edge(self) -> None:
+        """DALTON_EDGE_V1 (T-118, Michael ruling a65f13aa 2026-08-28):
+        responsive reversal at Dalton termination points — N-bar extreme +
+        rejection close + volume spike over SMA20 (his dashed volume line).
+
+        Called once per NEW closed bar from process_bar, AFTER the
+        FIRST_HOUR block and BEFORE the Nontrend early-skip — deliberately
+        NOT inside the FIRST_HOUR_TACTICAL/OPENING_ENTRY_V1 nest where
+        EDGE_FADE/VA_FADE/FAILED_BREAK live: this pattern is all-session
+        (runs in FIRST_HOUR_TACTICAL + DAY_TYPE_MODE) and must not depend on
+        the opening-entry flag. No day-type restriction initially (the
+        ruling); downstream gates (location, wrong-side veto on published
+        trend days, playbook, session gate) still apply on the live path.
+
+        Bars come straight from v9_bars_5min_woodies (closed canonical
+        bars, continuous feed — the SMA20 crosses session boundaries
+        exactly like Michael's chart), NOT from _det_buf. Flag unset/"0" →
+        immediate return (byte-identical OFF). "shadow" → shadow_only
+        setup (gateway records, never routes). "1"/"live" → live path.
+        """
+        _de_mode = os.getenv("DALTON_EDGE_V1", "0").lower()
+        if _de_mode not in ("1", "true", "live", "shadow") or not self._gateway:
+            return
+        try:
+            from backend.v9.systems.dalton_edge import (
+                detect_dalton_edge, build_dalton_edge_setup)
+            from backend.v9.db.read import read_all as _de_readN
+            _de_cfg = {
+                "lookback_n": int(os.getenv("DALTON_EDGE_LOOKBACK_N", "12")),
+                "vol_mult": float(os.getenv("DALTON_EDGE_VOL_MULT", "2.0")),
+                "stop_buffer_pts": float(
+                    os.getenv("DALTON_EDGE_STOP_BUFFER_PTS", "2.0")),
+            }
+            _de_rows = _de_readN(
+                "SELECT extract(epoch from ts) ets, open o, high h, low l, "
+                "close c, volume v FROM v9_bars_5min_woodies "
+                "ORDER BY ts DESC LIMIT 40", {})
+            _de_rows = list(reversed(list(_de_rows or [])))
+            import time as _de_time
+            # anti-phantom: newest closed bar must be fresh (<10 min) —
+            # replay/hydration bars must not fire (EDGE_FADE precedent)
+            if not _de_rows or (
+                    _de_time.time() - float(_de_rows[-1]["ets"])) >= 600:
+                return
+            # one fire per side per IL day (edge_fade session convention),
+            # honest reset on date change
+            from zoneinfo import ZoneInfo as _de_ZI
+            _de_day = datetime.fromtimestamp(
+                float(_de_rows[-1]["ets"]), tz=timezone.utc,
+            ).astimezone(_de_ZI("Asia/Jerusalem")).date().isoformat()
+            if getattr(self, "_de_date", None) != _de_day:
+                self._de_date = _de_day
+                self._de_fired = set()
+            _de_trig = detect_dalton_edge(
+                _de_rows, _de_cfg, already_fired=self._de_fired)
+            if not _de_trig:
+                return
+            self._de_fired.add(_de_trig["type"])
+            # ONE resolver (2026-08-19 doctrine): size from ruled_contracts
+            from backend.v9.services.contract_size import ruled_contracts as _de_rc
+            _de_setup = build_dalton_edge_setup(
+                _de_trig, contracts=_de_rc() or 1,
+                shadow_only=(_de_mode == "shadow"))
+            logger.warning(
+                "[DaltonEdge] %s %s entry=%.2f stop=%.2f t1=%.2f t2=%.2f "
+                "vol=%.0f sma20=%.1f x%.2f (%s) → gateway",
+                _de_trig["type"], _de_trig["direction"],
+                _de_setup["entry_price"], _de_setup["stop"],
+                _de_setup["t1"], _de_setup["t2"],
+                float(_de_trig["volume"]), _de_trig["vol_sma20"],
+                _de_trig["vol_ratio"],
+                "SHADOW" if _de_mode == "shadow" else "live-eligible")
+            self._gateway.route_setup(_de_setup, 2)
+        except Exception as _de_err:
+            logger.warning("[DaltonEdge] failed (non-fatal): %s", _de_err)
+
     async def process_bar(self, event) -> None:
         """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors.
 
@@ -1852,6 +1928,11 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _fb_err:
                     logger.warning("[FailedBreak] failed (non-fatal): %s", _fb_err)
 
+        # ── DALTON_EDGE_V1 (T-118, Michael a65f13aa 28.08): Dalton-termination
+        # reversal — all-session (FIRST_HOUR + DAY_TYPE modes), every new
+        # closed bar, before the Nontrend skip. See _maybe_dalton_edge.
+        self._maybe_dalton_edge()
+
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
         # Uses last 14 bars (rolling window) for stable measurement.
@@ -2183,6 +2264,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                         "OPENING_DRIVE", "OPENING_TEST_DRIVE", "OPENING_ORR",
                         "OPENING_EXTREME_REJECT", "OPENING_PULLBACK_CONT",
                         "EDGE_FADE_LONG", "EDGE_FADE_SHORT",
+                        "DALTON_EDGE_LONG", "DALTON_EDGE_SHORT",
                     )
                     if _tsf_with_trend and not _tsf_is_opening:
                         # Compute floor: max(6.0, 0.15 × IB_width)
