@@ -22,3 +22,6 @@ sc_study/MES_AI_DataExport_merged.cpp
 # local build artifacts (install bundles) — never commit
 /dist/
 docs/spec_authority/source/*.pdf
+
+# phone uploads pulled from Render (durable on this Mac; photos too big for git)
+docs/handoff/phone_uploads/

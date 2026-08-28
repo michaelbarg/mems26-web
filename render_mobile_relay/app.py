@@ -21,7 +21,7 @@ import os
 import time
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 app = FastAPI(title="mems26-mobile-relay")
 
@@ -230,6 +230,15 @@ async def get_chat(request: Request):
             "status": i.get("status", "")} for i in _INBOX["items"]]
         + [{"sender": r["sender"], "text": r["text"], "ts": r["ts"], "status": ""}
            for r in _REPLIES["items"]]
+        # uploads not yet echoed back by the Mac push (text must equal the
+        # relay-written line so the dedup below collapses them once pulled)
+        + [{"sender": "מייקל",
+            "text": "📎 " + u["name"] + ((" — " + u["note"]) if u["note"] else ""),
+            "ts": u["ts"],
+            "status": "התקבל ✓" if u["status"] == "done" else "ממתין למשיכה למק...",
+            "att": {"id": u["id"], "name": u["name"], "mime": u["mime"],
+                    "size": u["size"]}}
+           for u in _UPLOADS["items"]]
     )
     seen, dedup = set(), []
     for m in thread:
@@ -258,6 +267,99 @@ async def update_instruction_status(request: Request):
         if item["id"] == item_id:
             item["status"] = new_status
             return {"ok": True, "item": item}
+    raise HTTPException(status_code=404, detail="item not found")
+
+
+# ── File/image upload from the phone (Michael 28.08, id 45f1231e:
+# "תוסיף אפשרות להעלות קבצים ותמונות לצ'אט כאן") ──
+# Pull-based like instructions: the page POSTs raw bytes (no multipart — keeps
+# requirements.txt unchanged) → kept in memory → the Mac relay polls
+# /upload/pending, downloads /upload/file/<id>, stores durably under
+# docs/handoff/phone_uploads/ + appends a thread line (agents open the file
+# locally), then ACKs /upload/status=done. Bytes stay here (size-capped LRU)
+# only so the page can render the image; a deploy wipes them — the durable
+# copy is on the Mac.
+_UPLOADS = {"items": [], "max_items": 10,
+            "max_bytes": 8 * 1024 * 1024, "max_total": 24 * 1024 * 1024}
+
+
+def _safe_name(name: str) -> str:
+    name = os.path.basename((name or "file").strip())[:80]
+    return "".join(c for c in name if c.isalnum() or c in "._- ") or "file"
+
+
+@app.post("/upload")
+async def post_upload(request: Request):
+    """Michael uploads a file/photo from the phone (raw body, name in query)."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    data = await request.body()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty body")
+    if len(data) > _UPLOADS["max_bytes"]:
+        raise HTTPException(status_code=413, detail="file too large (max 8MB)")
+    import uuid
+    item = {
+        "id": str(uuid.uuid4())[:8],
+        "name": _safe_name(request.query_params.get("name") or "file"),
+        "mime": (request.headers.get("Content-Type")
+                 or "application/octet-stream").split(";")[0].strip(),
+        "size": len(data), "data": data,
+        "note": (request.query_params.get("note") or "").strip()[:500],
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": "received",  # received → done (pulled to the Mac)
+    }
+    _UPLOADS["items"].append(item)
+    while (len(_UPLOADS["items"]) > _UPLOADS["max_items"]
+           or sum(len(i["data"]) for i in _UPLOADS["items"]) > _UPLOADS["max_total"]):
+        _UPLOADS["items"].pop(0)
+    return {"ok": True, "id": item["id"], "name": item["name"], "size": item["size"]}
+
+
+@app.get("/upload/pending")
+async def upload_pending(request: Request):
+    """Local relay polls: metadata of items not yet pulled to the Mac."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    return {"items": [{"id": i["id"], "name": i["name"], "mime": i["mime"],
+                       "size": i["size"], "ts": i["ts"], "note": i["note"]}
+                      for i in _UPLOADS["items"] if i["status"] != "done"]}
+
+
+@app.get("/upload/file/{uid}")
+async def upload_file(uid: str, request: Request):
+    """Bytes — used by the relay to download AND by the page to render."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    for i in _UPLOADS["items"]:
+        if i["id"] == uid:
+            # headers are latin-1 — Hebrew names need RFC 5987 (filename*=)
+            from urllib.parse import quote
+            ascii_name = (i["name"].encode("ascii", "ignore").decode()
+                          .strip() or "file")
+            return Response(
+                content=i["data"],
+                media_type=i["mime"] or "application/octet-stream",
+                headers={"Content-Disposition":
+                         'inline; filename="%s"; filename*=UTF-8\'\'%s'
+                         % (ascii_name, quote(i["name"]))})
+    raise HTTPException(status_code=404,
+                        detail="not on Render (deploy wiped memory); durable copy is on the Mac")
+
+
+@app.post("/upload/status")
+async def upload_status(request: Request):
+    """Local relay marks an upload done after storing it durably."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    for i in _UPLOADS["items"]:
+        if i["id"] == body.get("id"):
+            i["status"] = "done"
+            return {"ok": True}
     raise HTTPException(status_code=404, detail="item not found")
 
 
@@ -295,11 +397,19 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
   style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
  <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
+ <input type="file" id="insFile" style="display:none" onchange="if(this.files[0])sendFile(this.files[0]);this.value='';">
+ <button onclick="document.getElementById('insFile').click()" style="margin-top:6px;width:100%;padding:8px;background:#21262d;color:#79c0ff;border:1px solid #30363d;border-radius:6px;font-size:13px">📎 צרף קובץ / תמונה (עד 8MB; טקסט בתיבה = כיתוב)</button>
  <details open style="margin-top:8px">
  <summary style="font-size:11px;color:#8b949e;cursor:pointer">💬 צ'אט עם הסוכנים (הקש לקיפול) — כל הודעה מגיעה לשניהם: cowork (מתכנן) ו-cc (מבצע). "התקבל ✓" = על ה-Mac.</summary>
  <div id="chatThread" style="margin-top:8px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;line-height:1.5"></div>
  </details>
  <script>
+ function attErr(el){
+  var d=document.createElement('div');
+  d.style.cssText='font-size:11px;color:#8b949e';
+  d.textContent='📎 הקובץ נשמר על ה-Mac (תצוגת-הענן פגה)';
+  var box=el.parentNode.parentNode; box.replaceChild(d,el.parentNode);
+ }
  async function loadChat(){
   try{
    const r=await fetch('/chat'+location.search); const d=await r.json();
@@ -309,12 +419,25 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
     const me=m.sender==='מייקל';
     let t=(m.ts||'').slice(11,16);
     try{t=new Date(m.ts).toLocaleTimeString('he-IL',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit'});}catch(e){}
+    let att='';
+    if(m.att&&m.att.id){
+     const u='/upload/file/'+m.att.id+location.search;
+     if((m.att.mime||'').indexOf('image/')===0){
+      att='<div style="margin-top:4px"><a href="'+u+'" target="_blank">'
+       +'<img src="'+u+'" loading="lazy" onerror="attErr(this)" '
+       +'style="max-width:100%;max-height:180px;border-radius:8px"></a></div>';
+     }else{
+      att='<div style="margin-top:4px"><a href="'+u+'" target="_blank" style="color:#79c0ff">📄 '
+       +String(m.att.name||'קובץ').replace(/</g,'&lt;')+'</a>'
+       +'<span style="font-size:10px;color:#8b949e"> ('+Math.max(1,Math.round((m.att.size||0)/1024))+'KB)</span></div>';
+     }
+    }
     return '<div style="margin:4px 0;text-align:'+(me?'right':'left')+'">'
      +'<div style="display:inline-block;max-width:85%;padding:6px 10px;border-radius:10px;background:'
      +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right">'
      +'<div style="font-size:11px;color:'+(me?'#c9d9f7':'#8b949e')+'">'+m.sender+' · '+t
      +(m.status?' · '+m.status:'')+'</div>'
-     +m.text.replace(/</g,'&lt;')+'</div></div>';
+     +m.text.replace(/</g,'&lt;')+att+'</div></div>';
    }).join('');
    el.scrollTop=el.scrollHeight;
   }catch(e){}
@@ -334,6 +457,23 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
    else{st.textContent='✗ '+(d.error||d.detail||'נכשל');st.style.color='#f85149';}
   }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
   setTimeout(()=>{st.textContent='';st.style.color='';},10000);
+ }
+ async function sendFile(f){
+  const st=document.getElementById('insStatus');
+  if(f.size>8*1024*1024){st.textContent='✗ גדול מ-8MB';st.style.color='#f85149';return;}
+  st.textContent='מעלה '+f.name+'...';st.style.color='';
+  try{
+   const note=(document.getElementById('insText').value||'').trim();
+   const u='/upload'+location.search+'&name='+encodeURIComponent(f.name)
+    +(note?'&note='+encodeURIComponent(note):'');
+   const r=await fetch(u,{method:'POST',
+    headers:{'Content-Type':f.type||'application/octet-stream'},body:f});
+   const d=await r.json();
+   if(d.ok){st.textContent='✓ הועלה — המק ימשוך תוך ~חצי דקה';st.style.color='#3fb950';
+    if(note)document.getElementById('insText').value='';loadChat();}
+   else{st.textContent='✗ '+(d.detail||d.error||'נכשל');st.style.color='#f85149';}
+  }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
+  setTimeout(()=>{st.textContent='';st.style.color='';},12000);
  }
  </script>
 </div>

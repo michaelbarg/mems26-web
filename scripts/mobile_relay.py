@@ -149,6 +149,78 @@ def _poll_instructions(access_key, render):
         print(f"[relay] instr poll: {str(e)[:80]}", flush=True)
 
 
+def _poll_uploads(access_key, render):
+    """Pull Michael's phone file/image uploads to durable storage + thread.
+
+    28.08 (Michael, id 45f1231e): "תוסיף אפשרות להעלות קבצים ותמונות לצ'אט".
+    Flow mirrors _poll_instructions: /upload/pending → download bytes →
+    docs/handoff/phone_uploads/<date>_<id>_<name> (agents open it locally;
+    images are readable by Claude) → thread line with att metadata (the page
+    renders the image; text matches the Render-side /chat line so dedup
+    collapses them) + MICHAEL_INBOX.md pointer → ACK done on Render."""
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        p_thread = os.path.join(root, "docs", "handoff", "PHONE_THREAD.jsonl")
+        p_inbox = os.path.join(root, "docs", "handoff", "MICHAEL_INBOX.md")
+        d_files = os.path.join(root, "docs", "handoff", "phone_uploads")
+        with urllib.request.urlopen(
+                f"{render}/upload/pending?key={access_key}", timeout=8) as r:
+            items = json.loads(r.read().decode()).get("items", [])
+        if not items:
+            return
+        seen = set()
+        if os.path.isfile(p_thread):
+            for line in open(p_thread, encoding="utf-8"):
+                try:
+                    seen.add(json.loads(line).get("id"))
+                except Exception:
+                    pass
+        os.makedirs(d_files, exist_ok=True)
+        for it in items:
+            uid = it.get("id")
+            if not uid:
+                continue
+            if uid not in seen:
+                with urllib.request.urlopen(
+                        f"{render}/upload/file/{uid}?key={access_key}",
+                        timeout=30) as r:
+                    blob = r.read()
+                raw = os.path.basename((it.get("name") or "file").strip())[:80]
+                safe = "".join(c for c in raw
+                               if c.isalnum() or c in "._- ") or "file"
+                day = ((it.get("ts") or "")[:10].replace("-", "")
+                       or time.strftime("%Y%m%d"))
+                rel = f"docs/handoff/phone_uploads/{day}_{uid}_{safe}"
+                with open(os.path.join(root, rel), "wb") as f:
+                    f.write(blob)
+                note = (it.get("note") or "").strip()
+                txt = "📎 " + safe + ((" — " + note) if note else "")
+                with open(p_thread, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(
+                        {"sender": "מייקל", "text": txt,
+                         "ts": it.get("ts", ""), "id": uid,
+                         "status": "התקבל ✓",
+                         "att": {"id": uid, "name": safe,
+                                 "mime": it.get("mime", ""),
+                                 "size": len(blob), "path": rel}},
+                        ensure_ascii=False) + "\n")
+                with open(p_inbox, "a", encoding="utf-8") as f:
+                    f.write(f"### [{it.get('ts', '')}] מייקל (מהפלאפון) · "
+                            f"קובץ מצורף · ID {uid}\n📎 `{rel}` "
+                            f"({max(1, len(blob) // 1024)}KB)"
+                            + (f" — {note}" if note else "") + "\n\n")
+                print(f"[relay] upload {uid} → {rel}", flush=True)
+            body = json.dumps({"id": uid, "status": "done"}).encode()
+            req = urllib.request.Request(
+                f"{render}/upload/status?key={access_key}", data=body,
+                headers={"Content-Type": "application/json"}, method="POST")
+            urllib.request.urlopen(req, timeout=8)
+    except Exception as e:
+        # 404 = Render not yet redeployed with /upload — stay quiet
+        if "404" not in str(e):
+            print(f"[relay] upload poll: {str(e)[:80]}", flush=True)
+
+
 def _poll_commands(access_key, render):
     """Poll Render for pending emergency commands and execute locally."""
     try:
@@ -331,6 +403,7 @@ def main() -> None:
         try:
             _push_snapshot(access_key, push_key, render)
             _poll_instructions(access_key, render)
+            _poll_uploads(access_key, render)
             _push_chat_thread(push_key, render)
             if fails:
                 print(f"[relay] recovered after {fails} fails", flush=True)
