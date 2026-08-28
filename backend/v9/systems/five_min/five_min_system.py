@@ -1547,6 +1547,28 @@ class FiveMinSystem(BaseV9TradingSystem):
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
             self._fhb.on_bar()
 
+        # ── Hoisted locals (2026-08-28, T-118 verification find) ──
+        # _s2_det_dt and _det_buf were defined ~400 lines BELOW their first
+        # consumers (VA_FADE / FAILED_BREAK in the first-hour tactical block).
+        # Python scoping made them function-locals ⇒ UnboundLocalError on every
+        # first-hour bar, swallowed by those blocks' try/except ("non-fatal")
+        # ⇒ both detectors were dead in practice (FAILED_BREAK shadow measured
+        # nothing). Definitions are PURE (env read + attribute reads), so
+        # hoisting is value-identical for every later reader. The original
+        # definition sites below are kept (idempotent recompute) to minimize
+        # the diff; tests/v9/regression/test_det_buf_scoping.py guards the
+        # assign-before-use ordering.
+        _s2_det_dt = self.current_day_type
+        if os.getenv("S2_DETECTION_LIVE_DAYTYPE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.trade_context import get_live_day_type
+                _live = get_live_day_type()
+                if _live and _live not in ("UNKNOWN", "None", ""):
+                    _s2_det_dt = _live
+            except Exception:
+                pass  # fail-safe: keep hydrated value
+        _det_buf = self._bar_buffer[:-1] if len(self._bar_buffer) >= 8 else self._bar_buffer
+
         # ── Opening-entry triggers (Michael 07-22 "ירי לפי סוג-פתיחה" — REVISED
         # per the 31-session historical validation, SHADOW phase). Evaluates
         # bars 2-6 of the session; emits shadow_only setups (gateway records,
