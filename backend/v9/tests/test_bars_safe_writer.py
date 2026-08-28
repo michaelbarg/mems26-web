@@ -108,7 +108,10 @@ CREATE TABLE IF NOT EXISTS v9_bars_cumulative_delta (
     cumulative REAL,
     direction TEXT,
     session TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    symbol TEXT NOT NULL DEFAULT 'MES',
+    source_version TEXT NOT NULL DEFAULT 'live',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ts, symbol, source_version)
 );
 CREATE TABLE IF NOT EXISTS v9_bars_volume_profile (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -361,9 +364,55 @@ class TestPostCumulativeDelta:
         data = resp.json()
         assert data["ok"] is True
         assert data["inserted"] >= 1
-        rows = _query("SELECT * FROM v9_bars_cumulative_delta WHERE bar_id='cvd_0'")
+        rows = _query("SELECT * FROM v9_bars_cumulative_delta "
+                      "WHERE cumulative = 150.0")
         assert len(rows) == 1
-        assert rows[0]["cumulative"] == 150.0
+        # R0 (2026-08-28, T-112): bar_id is no longer written — the chart
+        # row index is not stable across reloads and must never be a key.
+        assert rows[0]["bar_id"] is None
+
+    def test_r0_chart_reload_does_not_drag_history(self):
+        """R0 regression (ruling f4bf481d 2026-08-28 / T-112).
+
+        A Sierra chart reload re-pushes the SAME bar under a DIFFERENT chart
+        row index. The old bar_id-keyed INSERT OR REPLACE became
+        ON CONFLICT(bar_id) DO UPDATE SET ts=… and DRAGGED historical rows
+        onto today's ts — 08-14 + 08-21 lost all 89 CVD rows each. The
+        time-keyed upsert must keep ONE row at the original ts with values
+        refreshed, regardless of the index the chart assigns.
+
+        (ts values are asserted as-written, not hardcoded — _ts_from_unix
+        applies the documented DLL time-skew correction on ingest.)
+        """
+        t1 = 1699975200  # 2023-11-14 14:40 UTC (RTH after skew-fix)
+        n0 = _count("v9_bars_cumulative_delta")
+        resp = client.post("/api/v9/bars/cumulative_delta", json={
+            "type": "cumulative_delta",
+            "points": [{"i": 7, "t": t1, "d": 51, "cum": 151, "p": 5000}],
+        })
+        assert resp.status_code == 200
+        rows = _query("SELECT * FROM v9_bars_cumulative_delta "
+                      "WHERE cumulative = 151.0")
+        assert len(rows) == 1
+        ts_written = rows[0]["ts"]
+        assert _count("v9_bars_cumulative_delta") == n0 + 1
+        # Chart reload: same t, SHIFTED index, refreshed values
+        resp = client.post("/api/v9/bars/cumulative_delta", json={
+            "type": "cumulative_delta",
+            "points": [{"i": 3, "t": t1, "d": 61, "cum": 161, "p": 5000}],
+        })
+        assert resp.status_code == 200
+        # no new row, no duplicate — the SAME ts row was refreshed in place
+        assert _count("v9_bars_cumulative_delta") == n0 + 1
+        rows = _query(f"SELECT * FROM v9_bars_cumulative_delta "
+                      f"WHERE ts = '{ts_written}'")
+        assert len(rows) == 1
+        assert rows[0]["delta"] == 61.0
+        assert rows[0]["cumulative"] == 161.0
+        # rows written earlier (other ts) were NOT dragged onto this ts
+        others = _query(f"SELECT * FROM v9_bars_cumulative_delta "
+                        f"WHERE ts != '{ts_written}'")
+        assert len(others) == n0
 
 
 @pytest.fixture(autouse=True, scope="session")

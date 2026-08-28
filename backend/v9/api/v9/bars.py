@@ -1092,12 +1092,26 @@ def post_cumulative_delta(
         delta = pt.get("d") or pt.get("delta")
         cumulative = pt.get("cum") or pt.get("cumulative_delta")
         if idx is not None:
+            # R0 — TIME-keyed upsert (ruling f4bf481d, Michael 2026-08-28 / T-112).
+            # The old key was bar_id=f"cvd_{idx}" where idx is the chart ROW
+            # INDEX, which SHIFTS on every Sierra chart reload; combined with
+            # INSERT OR REPLACE (safe_writer guessed ON CONFLICT(bar_id)
+            # DO UPDATE SET ts=EXCLUDED.ts…) it DRAGGED historical rows onto
+            # today's ts — 08-14 + 08-21 lost all 89 CVD rows each, 08-25
+            # doubled to 178. ts is the natural key of the series: re-pushes
+            # refresh VALUES ONLY and can never move a row in time, so a
+            # chart reload now self-heals history instead of eating it.
+            # bar_id is intentionally no longer written (NULL) — the chart
+            # index is not stable and must never be a dedup key again.
             result = safe_execute(
-                "INSERT OR REPLACE INTO v9_bars_cumulative_delta "
-                "(ts, bar_id, delta, cumulative, direction, session, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                "INSERT INTO v9_bars_cumulative_delta "
+                "(ts, symbol, source_version, delta, cumulative, direction, session, created_at) "
+                "VALUES (?, 'MES', 'live', ?, ?, ?, ?, CURRENT_TIMESTAMP) "
+                "ON CONFLICT (ts, symbol, source_version) DO UPDATE SET "
+                "delta = EXCLUDED.delta, cumulative = EXCLUDED.cumulative, "
+                "direction = EXCLUDED.direction",
                 (
-                    ts.isoformat(), f"cvd_{idx}", delta, cumulative,
+                    ts.isoformat(), delta, cumulative,
                     "UP" if (delta or 0) > 0 else ("DOWN" if (delta or 0) < 0 else "FLAT"),
                     None,
                 ),

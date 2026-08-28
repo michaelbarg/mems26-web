@@ -18,12 +18,24 @@ class V9BarsCumulativeDelta(Base):
     __tablename__ = "v9_bars_cumulative_delta"
     id = Column(BigIntPK, primary_key=True, autoincrement=True)
     ts = Column(String, nullable=False, index=True)
+    # R0 (2026-08-28, T-112): bar_id retired as the dedup key — it encoded
+    # the chart ROW INDEX, which shifts on every Sierra reload; keyed
+    # upserts on it dragged historical rows onto today's ts (08-14 + 08-21
+    # lost their entire CVD). Kept nullable for legacy rows; new rows write
+    # NULL. The dedup key is (ts, symbol, source_version) below — matches
+    # PG constraint uq_v9_cvd_ts_symbol_source (migration 2026-08-27).
     bar_id = Column(String, unique=True)
     delta = Column(Float)
     cumulative = Column(Float)
     direction = Column(String)
     session = Column(String)
+    symbol = Column(String, nullable=False, server_default="MES")
+    source_version = Column(String, nullable=False, server_default="live")
     created_at = Column(DateTime, server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("ts", "symbol", "source_version",
+                         name="uq_v9_cvd_ts_symbol_source"),
+    )
 
 
 class V9BarsImbalance(Base):

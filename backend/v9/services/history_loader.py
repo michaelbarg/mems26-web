@@ -196,10 +196,12 @@ def parse_cvd_points(data: dict) -> List[Dict[str, Any]]:
         if ts_iso is None:
             continue
         delta = pt.get("d")
+        # R0 (2026-08-28, T-112): bar_id (chart row index) is no longer
+        # written — it shifts on every chart reload and must never be a
+        # dedup key. Dedup is by ts (UNIQUE ts+symbol+source_version).
         rows.append(
             {
                 "ts": ts_iso,
-                "bar_id": f"cvd_{idx}",
                 "delta": delta,
                 "cumulative": pt.get("cum"),
                 "direction": "UP" if (delta or 0) > 0 else ("DOWN" if (delta or 0) < 0 else "FLAT"),
@@ -337,7 +339,9 @@ def parse_woodies_bars(data: dict, *, period_minutes: int) -> List[Dict[str, Any
 # makes ``INSERT OR IGNORE`` idempotent. Without it, every gap-fill run
 # duplicates rows. The three streams below all satisfy that:
 #   * v9_bars_5min: ``UNIQUE (ts, symbol)`` (ux_v9_bars_5min_ts_symbol)
-#   * v9_bars_cumulative_delta: ``bar_id TEXT UNIQUE``
+#   * v9_bars_cumulative_delta: ``UNIQUE (ts, symbol, source_version)``
+#     (uq_v9_cvd_ts_symbol_source — R0 2026-08-28: bar_id retired as key,
+#     the chart row index shifts on reload and dragged/deleted history)
 #   * v9_bars_volume_profile: ``bar_id TEXT UNIQUE``
 #
 # Streams NOT included here (intentional, deferred):
@@ -366,9 +370,11 @@ STREAMS: List[Tuple[str, Callable[..., List[Dict[str, Any]]], str, str]] = [
         "cumulative_delta.json",
         lambda data: parse_cvd_points(data),
         "v9_bars_cumulative_delta",
+        # R0 (2026-08-28): no bar_id — dedup rides the (ts, symbol,
+        # source_version) UNIQUE via the column defaults ('MES', 'live').
         "INSERT OR IGNORE INTO v9_bars_cumulative_delta "
-        "(ts, bar_id, delta, cumulative, direction, created_at) "
-        "VALUES (:ts, :bar_id, :delta, :cumulative, :direction, CURRENT_TIMESTAMP)",
+        "(ts, delta, cumulative, direction, created_at) "
+        "VALUES (:ts, :delta, :cumulative, :direction, CURRENT_TIMESTAMP)",
     ),
     (
         "volume_profile.json",
