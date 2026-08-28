@@ -20,7 +20,7 @@
 | `five_min_state.py` | ✅ 2 | 18 | 2026-05-12 | V9 model: 5-min system state for crash recovery (Section 3, D-077). |
 | `footprint_markers.py` | ✅ 1 | 23 | 2026-05-11 | V9 model: Footprint markers (System 3). |
 | `killzone_log.py` | ✅ 1 | 18 | 2026-05-11 | V9 model: Killzone session log (System 6). |
-| `missing_tables.py` | ⚠️ orphan? | 325 | 2026-06-03 | ORM models for tables previously managed via raw DDL/migrations. |
+| `missing_tables.py` | ⚠️ orphan? | 337 | 2026-06-03 | ORM models for tables previously managed via raw DDL/migrations. |
 | `postmortem.py` | ✅ 2 | 62 | 2026-08-05 | V9 model: Post-mortem summary for losing trades (POST_MORTEM_V1). |
 | `system_configs.py` | ✅ 1 | 19 | 2026-05-09 | V9 model: System configs. |
 | `system_markers.py` | ✅ 1 | 21 | 2026-05-09 | V9 model: System visual markers for chart overlay. |

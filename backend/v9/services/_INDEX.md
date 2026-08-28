@@ -44,7 +44,7 @@
 | `gate_overrides.py` | ✅ 1 | 93 | 2026-08-19 | Phone-triggered gate overrides — Michael 2026-08-19: |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |
 | `historical_replay.py` | ✅ 3 | 109 | 2026-06-03 | HistoricalReplay — warm system buffers from existing DB rows. |
-| `history_loader.py` | ✅ 2 | 525 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
+| `history_loader.py` | ✅ 2 | 531 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
 | `kill_switch.py` | ✅ 3 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `local_alert.py` | ✅ 1 | 117 | 2026-08-17 | local_alert — LOUD local alerts on the trading Mac (Michael 2026-07-27, after |
 | `margin_sizing.py` | ✅ 2 | 192 | 2026-08-19 | MARGIN_AWARE_SIZING_V1 — never send an order the account cannot carry. |

@@ -16,7 +16,7 @@
 | `agent_chat.py` | ✅ 1 | 403 | 2026-07-14 | agent_chat — in-dashboard Claude chat with live system context (Michael 07-12). |
 | `audit.py` | ✅ 1 | 81 | 2026-05-11 | Audit query endpoints — read from v9_audit_events table. |
 | `auth.py` | ✅ 10 | 22 | 2026-05-10 | V9 auth — BRIDGE_TOKEN check (same pattern as V8). |
-| `bars.py` | ✅ 8 | 1676 | 2026-08-14 | V9 API: Bar data endpoints — receives Bridge pushes for all bar types. |
+| `bars.py` | ✅ 8 | 1690 | 2026-08-14 | V9 API: Bar data endpoints — receives Bridge pushes for all bar types. |
 | `bars_5min_history.py` | ✅ 1 | 218 | 2026-06-24 | GET /api/v9/chart/bars* — multi-timeframe bars for chart rendering. |
 | `build_status_routes.py` | ✅ 1 | 62 | 2026-06-01 | Router: GET /api/v9/build/pattern-status — Pattern Build Status aggregator. |
 | `chart_replay_routes.py` | ✅ 2 | 278 | 2026-07-17 | V9 API: chart replay aggregator (read-only). |
@@ -54,4 +54,4 @@
 | `trades.py` | ✅ 2 | 700 | 2026-08-18 | V9 API: Trades + management log CRUD. |
 | `websocket.py` | ✅ 1 | 268 | 2026-05-18 | V9 WebSocket endpoints for real-time Dashboard feeds. |
 | `woodies_chart_routes.py` | ✅ 1 | 415 | 2026-08-22 | GET /api/v9/woodies/chart — Sierra woodies_5min.json for Cockpit CCI panel (P30.10). |
-| `ws_manager.py` | ✅ 5 | 138 | 2026-05-19 | V9 WebSocket connection manager with Redis pub/sub. |
+| `ws_manager.py` | ✅ 5 | 162 | 2026-05-19 | V9 WebSocket connection manager with Redis pub/sub. |

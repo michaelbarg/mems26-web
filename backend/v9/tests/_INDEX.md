@@ -22,7 +22,7 @@
 | `test_balance_edge_exempt.py` | ▶ entry/test | 58 | 2026-08-07 | Tests for balance-edge direction_context exemption. |
 | `test_balance_imbalance_toggle.py` | ▶ entry/test | 65 | 2026-08-06 | Tests for balance_imbalance_toggle — unified regime assessment. |
 | `test_bar_router.py` | ▶ entry/test | 83 | 2026-05-12 | Tests for BarRouter. |
-| `test_bars_safe_writer.py` | ▶ entry/test | 375 | 2026-08-05 | Anti-tautological tests for bars.py safe_writer migration (2026-06-03). |
+| `test_bars_safe_writer.py` | ▶ entry/test | 424 | 2026-08-05 | Anti-tautological tests for bars.py safe_writer migration (2026-06-03). |
 | `test_boot_daytype_replay.py` | ▶ entry/test | 272 | 2026-07-13 | Anti-tautological verification for BOOT_DAYTYPE_REPLAY_V1. |
 | `test_c1_atr_daily_fix.py` | ▶ entry/test | 175 | 2026-08-11 | C1 — ATR ×13 bug fix (2026-08-11). |
 | `test_c2_pullback_retest.py` | ▶ entry/test | 201 | 2026-08-11 | C2 — RE_PULLBACK_ENTRY_V1 tests (2026-08-11). |

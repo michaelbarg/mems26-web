@@ -133,6 +133,7 @@
 | `replay_trend_stop_floor.py` | ▶ entry/test | 223 | 2026-08-04 | Replay TREND_STOP_FLOOR_V1 on truth bars — GO/NO-GO for enable. |
 | `report_blocked.sh` | — | 33 | 2026-05-16 | Post a concise BLOCKED summary to Slack. |
 | `restart_all.sh` | — | 13 | 2026-07-15 | MEMS26 Restart All — stop + start |
+| `restore_cvd_days.py` | ▶ entry/test | 228 | — | restore_cvd_days.py — rebuild the CVD rows that the bar_id-keyed writer ate. |
 | `run_stage.sh` | — | 84 | 2026-05-16 | MEMS26 Stage Runner — safe automation for prompt stages |
 | `s4_full_audit.py` | ▶ entry/test | 1306 | 2026-08-12 | SYSTEM-4 (Woodies CCI) FULL AUDIT — every trading day we have. |
 | `s6_eod_report.py` | ▶ entry/test | 136 | 2026-07-08 | System-6 EOD report — ביקורת סטופ-חכם/מימוש-חכם על עסקאות היום (מייקל 2026-07-08). |
