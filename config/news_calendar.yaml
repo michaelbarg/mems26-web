@@ -4,52 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-28 08:35 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-29 03:59 ET
 events:
-  - date: 2026-08-27
-    time_et: "20:00"
-    name: "Jackson Hole Symposium"
-    severity: orange
-  - date: 2026-08-28
-    time_et: "09:45"
-    name: "Chicago PMI"
-    severity: orange
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Michigan Current Conditions Final"
-    severity: yellow
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Michigan Inflation Expectations Final"
-    severity: yellow
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Michigan Consumer Expectations Final"
-    severity: yellow
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Michigan 5 Year Inflation Expectations Final"
-    severity: yellow
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Michigan Consumer Sentiment Final"
-    severity: orange
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Fed Chair Warsh Speech"
-    severity: red
-  - date: 2026-08-28
-    time_et: "10:00"
-    name: "Non Farm Payrolls Annual Revision Prel"
-    severity: red
-  - date: 2026-08-28
-    time_et: "13:00"
-    name: "Baker Hughes Oil Rig Count"
-    severity: yellow
-  - date: 2026-08-28
-    time_et: "13:00"
-    name: "Baker Hughes Total Rigs Count"
-    severity: yellow
   - date: 2026-08-28
     time_et: "20:00"
     name: "Jackson Hole Symposium"
@@ -75,8 +31,16 @@ events:
     name: "Redbook YoY"
     severity: yellow
   - date: 2026-09-01
+    time_et: "09:05"
+    name: "Fed Barr Speech"
+    severity: orange
+  - date: 2026-09-01
     time_et: "09:45"
     name: "S&P Global Manufacturing PMI Final"
+    severity: yellow
+  - date: 2026-09-01
+    time_et: "10:00"
+    name: "JOLTs Job Quits"
     severity: yellow
   - date: 2026-09-01
     time_et: "10:00"
@@ -89,10 +53,6 @@ events:
   - date: 2026-09-01
     time_et: "10:00"
     name: "Construction Spending MoM"
-    severity: yellow
-  - date: 2026-09-01
-    time_et: "10:00"
-    name: "JOLTs Job Quits"
     severity: yellow
   - date: 2026-09-01
     time_et: "10:00"
@@ -168,6 +128,10 @@ events:
     severity: yellow
   - date: 2026-09-02
     time_et: "10:30"
+    name: "EIA Gasoline Production Change"
+    severity: yellow
+  - date: 2026-09-02
+    time_et: "10:30"
     name: "EIA Distillate Stocks Change"
     severity: yellow
   - date: 2026-09-02
@@ -181,10 +145,6 @@ events:
   - date: 2026-09-02
     time_et: "10:30"
     name: "EIA Heating Oil Stocks Change"
-    severity: yellow
-  - date: 2026-09-02
-    time_et: "10:30"
-    name: "EIA Gasoline Production Change"
     severity: yellow
   - date: 2026-09-02
     time_et: "10:30"
@@ -204,11 +164,11 @@ events:
     severity: yellow
   - date: 2026-09-02
     time_et: "14:00"
-    name: "Fed Beige Book"
+    name: "Total Vehicle Sales"
     severity: yellow
   - date: 2026-09-02
     time_et: "14:00"
-    name: "Total Vehicle Sales"
+    name: "Fed Beige Book"
     severity: yellow
   - date: 2026-09-03
     time_et: "05:30"
@@ -216,7 +176,7 @@ events:
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Jobless Claims 4-week Average"
+    name: "Unit Labour Costs QoQ Final"
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
@@ -224,16 +184,12 @@ events:
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
+    name: "Jobless Claims 4-week Average"
+    severity: yellow
+  - date: 2026-09-03
+    time_et: "08:30"
     name: "Nonfarm Productivity QoQ Final"
     severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Unit Labour Costs QoQ Final"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Balance of Trade"
-    severity: orange
   - date: 2026-09-03
     time_et: "08:30"
     name: "Initial Jobless Claims"
@@ -247,12 +203,20 @@ events:
     name: "Exports"
     severity: orange
   - date: 2026-09-03
-    time_et: "09:45"
-    name: "S&P Global Composite PMI Final"
-    severity: yellow
+    time_et: "08:30"
+    name: "Balance of Trade"
+    severity: orange
+  - date: 2026-09-03
+    time_et: "08:30"
+    name: "Fed Waller Speech"
+    severity: orange
   - date: 2026-09-03
     time_et: "09:45"
     name: "S&P Global Services PMI Final"
+    severity: yellow
+  - date: 2026-09-03
+    time_et: "09:45"
+    name: "S&P Global Composite PMI Final"
     severity: yellow
   - date: 2026-09-03
     time_et: "10:00"
@@ -295,6 +259,58 @@ events:
     name: "15-Year Mortgage Rate"
     severity: yellow
   - date: 2026-09-03
+    time_et: "15:00"
+    name: "Fed Hammack Speech"
+    severity: orange
+  - date: 2026-09-03
     time_et: "16:30"
     name: "Fed Balance Sheet"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Manufacturing Payrolls"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Nonfarm Payrolls Private"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Government Payrolls"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "U-6 Unemployment Rate"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Average Weekly Hours"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Average Hourly Earnings MoM"
+    severity: orange
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Average Hourly Earnings YoY"
+    severity: orange
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Participation Rate"
+    severity: orange
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Non Farm Payrolls"
+    severity: red
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Unemployment Rate"
+    severity: red
+  - date: 2026-09-04
+    time_et: "13:00"
+    name: "Baker Hughes Total Rigs Count"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "13:00"
+    name: "Baker Hughes Oil Rig Count"
     severity: yellow
