@@ -388,6 +388,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 .big{font-size:28px;font-weight:800}.green{color:#3fb950}.red{color:#f85149}.dim{color:#8b949e;font-size:12px}
 .row{display:flex;justify-content:space-between;align-items:baseline;margin:3px 0}.tag{font-size:11px;padding:1px 7px;border-radius:6px;background:#21262d}
 .alert{color:#f0883e;font-size:12px;line-height:1.5}.pulse{animation:p 2s infinite}@keyframes p{50%{opacity:.4}}
+/* 29.08: ב-RTL הסימן המוביל של מספר שלילי נזרק לצד השני ("-62.50$" נראה
+   "62.50$-"), כך שרווח והפסד נבדלו בצבע בלבד. .num מבודד את המספר ל-LTR. */
+.num{direction:ltr;unicode-bidi:isolate;display:inline-block}
 .stale{background:#2d1214;border:1px solid #f85149;color:#f85149;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;display:none}
 </style></head><body>
 <h1>⚡ MEMS26 · מוניטור-כיס <span id="machine" class="tag" style="background:#1f6feb;color:#fff"></span> <span id="clock" class="dim"></span></h1>
@@ -396,9 +399,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <div class="row"><span class="dim">✉️ הנחיה לקלוד (cowork + cc)</span><span id="insStatus" class="dim"></span></div>
  <textarea id="insText" rows="2" placeholder="כתוב הנחיה או פסיקה... (למשל: מאשר 12)"
   style="width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px;font-size:14px;margin-top:6px"></textarea>
- <button onclick="sendIns()" style="margin-top:6px;width:100%;padding:9px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
+ <button onclick="sendIns()" style="margin-top:6px;width:100%;min-height:44px;padding:12px;background:#1f6feb;color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:700">שלח הנחיה</button>
  <input type="file" id="insFile" style="display:none" onchange="if(this.files[0])sendFile(this.files[0]);this.value='';">
- <button onclick="document.getElementById('insFile').click()" style="margin-top:6px;width:100%;padding:8px;background:#21262d;color:#79c0ff;border:1px solid #30363d;border-radius:6px;font-size:13px">📎 צרף קובץ / תמונה (עד 8MB; טקסט בתיבה = כיתוב)</button>
+ <button onclick="document.getElementById('insFile').click()" style="margin-top:6px;width:100%;min-height:44px;padding:11px 8px;background:#21262d;color:#79c0ff;border:1px solid #30363d;border-radius:6px;font-size:13px">📎 צרף קובץ / תמונה (עד 8MB; טקסט בתיבה = כיתוב)</button>
  <details open style="margin-top:8px">
  <summary style="font-size:11px;color:#8b949e;cursor:pointer">💬 צ'אט עם הסוכנים (הקש לקיפול) — כל הודעה מגיעה לשניהם: cowork (מתכנן) ו-cc (מבצע). "התקבל ✓" = על ה-Mac.</summary>
  <div id="chatThread" style="margin-top:8px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;line-height:1.5"></div>
@@ -494,15 +497,16 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  </script>
 </div>
 <div class="card"><div class="row"><span class="dim">פוזיציה בסיירה</span><span id="mode" class="tag"></span></div>
-<div class="big" id="pos">—</div><div class="dim" id="posdet"></div></div>
+<div class="big" id="pos">—</div><div class="dim" id="posdet"></div>
+<div id="sierraAge" style="font-size:11px;margin-top:3px"></div></div>
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
 <div class="card"><div class="row"><span class="dim">יומי (סגורות)</span><span class="dim" id="daymeta"></span></div>
-<div class="big" id="daypnl">—</div><div class="dim">עצירה ב-−$<span id="cap"></span></div></div>
+<div class="big num" id="daypnl">—</div><div class="dim">תקרת-הפסד לעצירת-יום: <span class="num" id="cap">—</span></div></div>
 <div class="card"><div class="row"><span class="dim">חשבון</span><span id="acctmeta" class="dim"></span></div>
-<div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" style="font-weight:800;font-size:18px">—</span></div>
-<div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day">—</span></div>
-<div class="row"><span class="dim">P&L פוזיציה פתוחה</span><span id="acct_open">—</span></div>
-<div class="row"><span class="dim">זמין למרג'ין</span><span id="acct_avail" class="dim">—</span></div></div>
+<div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" class="num" style="font-weight:800;font-size:18px">—</span></div>
+<div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day" class="num">—</span></div>
+<div class="row"><span class="dim">P&L פוזיציה פתוחה</span><span id="acct_open" class="num">—</span></div>
+<div class="row"><span class="dim">זמין למרג'ין</span><span id="acct_avail" class="num dim">—</span></div></div>
 <div class="card"><div class="row"><span class="dim">📡 רדאר</span><span id="rmeta" class="dim"></span></div>
 <div id="radar" style="font-size:12.5px;line-height:1.8">—</div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
@@ -545,6 +549,16 @@ async function load(){
     el.style.background = '#2d2614'; el.style.borderColor = '#d29922'; el.style.color = '#d29922';
     el.textContent = '⏸ ' + (d.relay_note || ('ממסר במנוחה — נתונים חיים בחלון ' + (d.relay_window_il || '')));
     el.style.display = 'block';
+  } else if (d._relay === 'empty') {
+    // 29.08: זה המצב שמייקל רואה בפועל בשבת/אחרי-deploy — Render בתוכנית-חינם
+    // נרדם ומאבד את הזיכרון, ואז העמוד צעק "המק לא דוחף עדכונים" (האשמה
+    // לא-מאומתת שנראית כמו תקלה). עכשיו: הסבר ישר, וציון שבת אם רלוונטי.
+    const _il = new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem',weekday:'short'});
+    el.style.background = '#2d2614'; el.style.borderColor = '#d29922'; el.style.color = '#d29922';
+    el.textContent = '⏸ אין נתונים בענן — שירות-הענן התעורר מחדש והזיכרון נמחק.'
+      + (_il.startsWith('Sat')? ' שבת — השוק סגור והממסר במנוחה.' : '')
+      + ' הנתונים יחזרו תוך שניות אם המק דוחף; אם לא — המק כבוי או הממסר לא רץ.';
+    el.style.display = 'block';
   } else if (age == null || age > 30) {
     el.style.background = '#2d1214'; el.style.borderColor = '#f85149'; el.style.color = '#f85149';
     el.textContent = '⚠ הנתונים מעופשים (' + (age==null? 'אין נתונים' : Math.round(age)+'ש') +
@@ -554,14 +568,37 @@ async function load(){
     el.style.display = 'none';
   }
   if (d.relay_idle) return;  // no trading data in an idle notice
-  document.getElementById('clock').textContent = (d.ts||'') + ' · ☁ Render' + (age!=null? ' · עדכון לפני '+Math.round(age)+'ש':'');
-  if(d._relay==='empty'){ document.getElementById('health').textContent='ממתין ל-snapshot ראשון מהמק...'; return; }
-  const s = d.sierra||{}; const q = s.position_qty||0;
-  document.getElementById('mode').textContent = (s.is_sim? 'סים':'אמת') + (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
+  // ts במצב-ריק מגיע משעון-UTC של Render (3 שעות אחורה) — הוצג כאילו הוא זמן
+  // הנתונים. במצב-ריק לא מציגים שעון בכלל.
+  document.getElementById('clock').textContent = d._relay==='empty' ? '☁ ממתין למק'
+    : ((d.ts||'') + ' · ☁ Render' + (age!=null? ' · עדכון לפני '+Math.round(age)+'ש':''));
+  if(d._relay==='empty'){ _lastOk = Date.now();
+    document.getElementById('health').textContent='ממתין ל-snapshot ראשון מהמק...'; return; }
+  const s = d.sierra||{}; const q = s.position_qty;
+  // 29.08 ביקורת-UX: "לא ידוע" חייב להיראות שונה מ-"אפס"/"תקין". שדה חסר
+  // (sierra_state לא נקרא) הציג בעבר "אמת · לא-חמוש" ו-FLAT בביטחון מלא —
+  // בדיוק המקרה שבו מייקל ראה "לא חמושה" בזמן שהמנוע עבד. שלושה מצבים.
+  const modeEl = document.getElementById('mode');
+  const _sim = s.is_sim==null? '⚠ מצב?' : (s.is_sim? 'סים':'אמת');
+  const _arm = s.order_placement_armed==null? ' · ⚠ חימוש?'
+             : (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
+  modeEl.textContent = _sim + _arm;
+  modeEl.style.background = (s.is_sim==null||s.order_placement_armed==null)? '#5a3d0a' : '';
+  modeEl.style.color = (s.is_sim==null||s.order_placement_armed==null)? '#ffd479' : '';
+  // גיל עין-המצב: נקרא בשניות גולמיות ("41209.6ש") — בלתי-קריא. מוצג כמשך
+  // אנושי, ומעל 2 דק' מסמן את כל הכרטיס כלא-עדכני.
+  const _ageS = s._age_s;
+  const _dur = v => v==null? null : v<90? Math.round(v)+' שנ׳'
+             : v<5400? Math.round(v/60)+' דק׳' : (v/3600).toFixed(1)+' שע׳';
+  const _sierraStale = (_ageS==null || _ageS>120);
+  document.getElementById('sierraAge').innerHTML = _sierraStale
+    ? '<span style="color:#f0883e">⚠ '+(_ageS==null? 'עין-מצב: גיל-הנתונים לא ידוע'
+        : 'עין-מצב לפני '+_dur(_ageS))+' — לא עדכני</span>'
+    : '<span class="dim">עין-מצב לפני '+_dur(_ageS)+'</span>';
   if (d.machine) document.getElementById('machine').textContent = d.machine;
   // ── חשבון (Account Monitor, מה-snapshot) ──
   const $$ = (v,pfx)=> v==null? '—' : (pfx&&v>=0?'+':'')+Number(v).toFixed(2)+'$';
-  const cls = v => v==null?'dim':(v>=0?'green':'red');
+  const cls = v => 'num '+(v==null?'dim':(v>=0?'green':'red'));
   document.getElementById('acct_val').textContent = $$(s.acct_account_value);
   const ad=document.getElementById('acct_day'); ad.textContent=$$(s.acct_daily_pl,1); ad.className=cls(s.acct_daily_pl);
   const ao=document.getElementById('acct_open'); ao.textContent=$$(s.acct_open_positions_pl,1); ao.className=cls(s.acct_open_positions_pl);
@@ -593,7 +630,8 @@ async function load(){
     : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
    if(!L.blocked_by && L.live_blocked_by) ge.innerHTML += '<div style="color:#f0883e;font-size:11px">⛔ הלייב לא-שוגר: <b>'+(GATE_HE[L.live_blocked_by]||L.live_blocked_by)+'</b>'+(L.live_block_reason?' — '+String(L.live_block_reason).replace(/</g,'&lt;').slice(0,70):'')+'</div>';
-   if(L.blocked_by && (d.gate_overridable||[]).includes(L.blocked_by)) ge.innerHTML += ' <button onclick="gateOv(\\''+L.blocked_by+'\\',false)" style="padding:3px 10px;border-radius:8px;border:1px solid #d29922;background:#2d2614;color:#d29922;font-size:11px;font-family:inherit">🔓 בטל חוסם זה (עד-ריסטארט)</button>';
+   // 29.08: אזור-הנגיעה היה 170×24px על פקד שמשבית שער-בטיחות — הוגדל ל-44px.
+   if(L.blocked_by && (d.gate_overridable||[]).includes(L.blocked_by)) ge.innerHTML += '<div style="margin-top:6px"><button onclick="gateOv(\\''+L.blocked_by+'\\',false)" style="min-height:44px;padding:10px 14px;border-radius:8px;border:1px solid #d29922;background:#2d2614;color:#d29922;font-size:12px;font-family:inherit">🔓 בטל חוסם זה (עד-ריסטארט)</button></div>';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט</span>'; document.getElementById('gmeta').textContent=''; }
   const ov = d.gate_overrides||[];
@@ -630,9 +668,20 @@ async function load(){
    return '<div style="border-bottom:1px solid #1c2330;padding:3px 0"><div class="row"><span>'+p.name+'</span><span style="color:'+st[1]+';font-size:10.5px">'+st[0]+'</span></div>'+line+'</div>';
   }).join('') : '<span class="dim">אין נתוני-תבניות</span>');
   const posEl = document.getElementById('pos');
-  posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
-  posEl.className = 'big ' + (q===0?'':'pulse');
-  document.getElementById('posdet').textContent = q!==0? ('ממוצע '+s.avg_price+' · '+s.working_orders+' הוראות-הגנה') : ('עין-מצב '+(s._age_s??'?')+'ש');
+  // 29.08: פוזיציה לא-ידועה הוצגה כ-"FLAT" מודגש — השקר המסוכן ביותר בעמוד
+  // (מייקל קורא FLAT, לא עושה כלום, ופוזיציה עירומה נשארת בשוק).
+  if (q==null) {
+   posEl.textContent = '⚠ לא ידוע';
+   posEl.className = 'big'; posEl.style.color = '#f0883e';
+   document.getElementById('posdet').innerHTML =
+    '<span style="color:#f0883e">אין קריאת-פוזיציה מסיירה — בדוק בסיירה לפני כל החלטה</span>';
+  } else {
+   posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
+   posEl.className = 'big ' + (q===0?'':'pulse');
+   posEl.style.color = _sierraStale? '#f0883e' : '';
+   document.getElementById('posdet').textContent = q!==0
+    ? ('ממוצע '+(s.avg_price??'—')+' · '+(s.working_orders??'—')+' הוראות-הגנה') : '';
+  }
   // 2026-08-19 (Michael): the cloud page showed levels only — now the same
   // per-contract bars + movement block the local page has.
   const a = d.active||[];
@@ -646,15 +695,15 @@ async function load(){
     return `<div style="border-bottom:1px solid #1c2330;padding:2px 0"><div class="row">`+
      `<span class="dim" style="width:22px">${c.id}</span><span style="font-family:monospace;font-size:11px">${c.target?c.target.toFixed(2):'—'}</span>`+
      `<span style="font-size:10px;color:${SC[c.status]||'#8b949e'}">${SL[c.status]||c.status}${c.be?' ⇄BE':''}</span>`+
-     `<span class="${c.pnl>=0?'green':'red'}" style="font-family:monospace;font-size:11px">${c.pnl>=0?'+':''}${c.pnl}$</span>`+
-     `<span style="font-size:10.5px" class="${(c.pct||0)>=0?'green':'red'}">${c.pct!=null?(c.pct>0?'+':'')+c.pct+'%':''}</span></div>${bar}</div>`;
+     `<span class="num ${c.pnl>=0?'green':'red'}" style="font-family:monospace;font-size:11px">${c.pnl>=0?'+':''}${c.pnl}$</span>`+
+     `<span style="font-size:10.5px" class="num ${(c.pct||0)>=0?'green':'red'}">${c.pct!=null?(c.pct>0?'+':'')+c.pct+'%':''}</span></div>${bar}</div>`;
    }).join('');
-   const mv=t.move_pts!=null?`<div class="row" style="font-size:11.5px"><span class="dim">תזוזה</span><span class="${t.move_pts>=0?'green':'red'}">${t.move_pts>0?'+':''}${t.move_pts} נק׳${t.mae_pts!=null?' · הכי-נגד '+t.mae_pts:''}${t.mfe_pts!=null?' · הכי-בעד '+t.mfe_pts:''}</span></div>`:'';
-   const sp=t.stop_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">מהדרך לסטופ</span><span class="${t.stop_pct>=50?'red':'dim'}" style="font-weight:700">${Math.max(t.stop_pct,0)}%</span></div>`:'';
-   const nt=t.next_target_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">ליעד הבא ${t.next_target??''}</span><span class="${t.next_target_pct>=0?'green':'red'}" style="font-weight:700">${t.next_target_pct>0?'+':''}${t.next_target_pct}%</span></div>`:'';
+   const mv=t.move_pts!=null?`<div class="row" style="font-size:11.5px"><span class="dim">תזוזה</span><span class="num ${t.move_pts>=0?'green':'red'}">${t.move_pts>0?'+':''}${t.move_pts} נק׳${t.mae_pts!=null?' · הכי-נגד '+t.mae_pts:''}${t.mfe_pts!=null?' · הכי-בעד '+t.mfe_pts:''}</span></div>`:'';
+   const sp=t.stop_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">מהדרך לסטופ</span><span class="num ${t.stop_pct>=50?'red':'dim'}" style="font-weight:700">${Math.max(t.stop_pct,0)}%</span></div>`:'';
+   const nt=t.next_target_pct!=null?`<div class="row" style="font-size:11.5px"><span class="dim">ליעד הבא ${t.next_target??''}</span><span class="num ${t.next_target_pct>=0?'green':'red'}" style="font-weight:700">${t.next_target_pct>0?'+':''}${t.next_target_pct}%</span></div>`:'';
    const tp=t.total_pnl??t.upnl_usd;
    return `<div class="row"><span>#${t.id} ${t.direction} ×${legs.length||t.contracts} ${t.pattern||''} @${t.entry_price} <span class="dim">${t.t_in}</span></span>`+
-    `<span class="${(tp||0)>=0?'green':'red'}" style="font-weight:800">${tp!=null?(tp>=0?'+':'')+tp+'$':''}</span></div>`+
+    `<span class="num ${(tp||0)>=0?'green':'red'}" style="font-weight:800">${tp!=null?(tp>=0?'+':'')+tp+'$':''}</span></div>`+
     `<div class="dim" style="font-size:11px">סטופ ${t.stop??'—'} · ${t.summary||''}</div>`+mv+sp+nt+
     (rows?`<div style="margin-top:4px">${rows}</div>`:`<div class="dim">T0 ${t.t0??'—'} · T1 ${t.t1??'—'} · T2 ${t.t2??'—'} · T3 ${t.t3??'—'}</div>`);
   }).join('<div style="height:8px"></div>')
@@ -662,15 +711,22 @@ async function load(){
   const td = d.today||{}; const pnl = td.pnl??0;
   const de = document.getElementById('daypnl');
   de.textContent = (pnl>=0?'+':'')+Number(pnl).toFixed(0)+'$';
-  de.className = 'big '+(pnl>=0?'green':'red');
+  de.className = 'big num '+(pnl>=0?'green':'red');
   document.getElementById('daymeta').textContent = (td.n||0)+' עסקאות · '+(td.w||0)+' מנצחות';
-  document.getElementById('cap').textContent = d.halt_cap;
-  document.getElementById('daytype').textContent = d.day_type||'—';
-  document.getElementById('dayconf').textContent = d.day_conf!=null? 'ביטחון '+d.day_conf : '';
+  document.getElementById('cap').textContent = d.halt_cap==null? '—' : '−'+d.halt_cap+'$';
+  // 29.08: כרטיס "סוג-יום" הציג "—" בזמן שהרדאר שני כרטיסים מעליו הציג
+  // Neutral_Center 67% — שני פאנלים באותו מסך סותרים זה את זה. אותה snapshot,
+  // מקור מסומן במפורש (בלי להמציא ערך).
+  const _dt = d.day_type ?? (d.radar&&d.radar.day_type) ?? null;
+  const _dtFromRadar = (d.day_type==null && _dt!=null);
+  document.getElementById('daytype').innerHTML = _dt
+    ? (_dt + (_dtFromRadar? ' <span class="dim" style="font-size:11px">(מהרדאר)</span>':'')) : '—';
+  const _dc = d.day_conf ?? (d.radar&&d.radar.confidence!=null? Math.round(d.radar.confidence*100)+'%':null);
+  document.getElementById('dayconf').textContent = _dc!=null? 'ביטחון '+_dc : '';
   const dr = d.daily; const drEl = document.getElementById('daily');
   if(dr){
    const p = dr.pnl_usd||0;
-   drEl.innerHTML = '<span class="'+(p>=0?'green':'red')+'" style="font-size:16px;font-weight:800">'+(p>=0?'+':'')+p+'$</span> · '+
+   drEl.innerHTML = '<span class="num '+(p>=0?'green':'red')+'" style="font-size:16px;font-weight:800">'+(p>=0?'+':'')+p+'$</span> · '+
     (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
@@ -684,9 +740,42 @@ async function load(){
    if(v.from!=null&&v.to!=null) det = ' '+v.from+'→'+v.to;
    return '<div class="row"><span>'+e.t+' #'+e.trade_id+' '+e.direction+'</span><span style="color:#58a6ff">'+act+det+'</span></div>';
   }).join('') : '<span class="dim">אין פעילות S6 ב-24ש האחרונות</span>';
-  document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
-  document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+d.contracts_cfg+' · רענון-5ש · ☁';
- }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר לענן — '+e; }
+  // 29.08: התראות הוצגו כ-markdown גולמי ("**"), נחתכו ב-110 תווים בלי "…",
+  // ובלי גיל — כך שהתראה בת 36 יום נראתה בדיוק כמו התראה מלפני דקה.
+  document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>{
+   const raw = String(x);
+   const m = /([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{2}):([0-9]{2})/.exec(raw);
+   let badge = '';
+   if(m){
+    const days = Math.floor((Date.now()-new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]).getTime())/864e5);
+    if(days>=1) badge = '<span class="tag" style="color:#8b949e">לפני '+days+' ימים</span> ';
+   }
+   const body = raw.replace(/[*]{2}/g,'').replace(/^[-•][ ]*/,'').replace(/</g,'&lt;');
+   const cut = body.length>130? body.slice(0,130)+'…' : body;
+   return '<div style="margin-bottom:4px">'+badge+cut+'</div>';
+  }).join(''):'<span class="dim">שקט ✓</span>';
+  // 29.08: updatePause הוגדרה מעולם-לא-נקראה — הבאנר האדום "PAUSED" לא הופיע
+  // אף פעם, והכפתור תמיד שלח PAUSE. כלומר: אי-אפשר היה לחדש מסחר מהטלפון.
+  // d.trading_paused כבר קיים ב-snapshot; שורה אחת סוגרת את הפער.
+  if (d.trading_paused!=null) updatePause(!!d.trading_paused);
+  document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+(d.contracts_cfg??'—')+' · רענון-5ש · ☁';
+  _lastOk = Date.now();
+ }catch(e){ _offline(e); }
+}
+// 29.08: נפילת-רשת הותירה את העמוד מציג "SHORT 3 · אמת · חמוש · עדכון לפני 4ש"
+// לנצח, עם שורת-שגיאה אפורה בתחתית העמוד בלבד. עכשיו: באנר אדום למעלה + גיל
+// אמיתי של הנתונים המוצגים.
+let _lastOk = 0;
+function _offline(e){
+ const el = document.getElementById('stale');
+ const secs = _lastOk? Math.round((Date.now()-_lastOk)/1000) : null;
+ el.style.background='#2d1214'; el.style.borderColor='#f85149'; el.style.color='#f85149';
+ el.textContent = '⚠ אין קשר לענן — הנתונים למטה ' +
+  (secs==null? 'לא נטענו כלל' : 'מלפני '+(secs<90? secs+' שנ׳' : Math.round(secs/60)+' דק׳')) +
+  ' · אל תסתמך עליהם';
+ el.style.display='block';
+ document.getElementById('clock').textContent = '⚠ מנותק · ☁';
+ document.getElementById('health').textContent = 'שגיאת-רשת: '+String(e).slice(0,60);
 }
 load(); setInterval(load, 5000);
 async function gateOv(g,restore){
