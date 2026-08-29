@@ -45,7 +45,23 @@ def _orphan_cooldown_s() -> float:
 # on mismatch, cleared when match resumes. Gateway checks this before any entry.
 _position_mismatch_block: bool = False
 
+def _mismatch_block_enabled() -> bool:
+    """‏cowork 29.08 — גידור T-43b לפני יום-שני.
+
+    ‏cc בנה את חסם-אי-ההתאמה **דלוק כברירת-מחדל, בלי דגל ובלי בדיקת-בעלות**.
+    אימות בלתי-תלוי הראה שהוא נדלק על כל ‏TM≠Sierra — כולל פוזיציה-ידנית של
+    מייקל, שלפי פסיקת 24.07 (‏RECONCILER_OWNERSHIP_AWARE) היא **מוסברת ולגיטימית**.
+    התוצאה: יום-מסחר שלם נחסם בשקט. בנוסף שלושה `return` מוקדמים משאירים את
+    הדגל נעול בלי מסלול-ניקוי.
+    לכן: התנהגות-סיכון חדשה בלי פסיקה ⇒ ‏default-OFF (הכלל הקבוע). להדלקה נדרש
+    קודם: בדיקת-בעלות לפני החסימה + ניקוי בכל מסלולי-היציאה (או TTL) + פסיקת-מייקל.
+    """
+    return os.getenv("POSITION_MISMATCH_BLOCK_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
 def position_mismatch_blocks_entry() -> bool:
+    if not _mismatch_block_enabled():
+        return False
     """T-43 (Michael 28.08 19:30): Σ TM.contracts == |position_qty| validation.
     Returns True when the contract count diverges — the gateway must block new
     entries until the mismatch is resolved."""
