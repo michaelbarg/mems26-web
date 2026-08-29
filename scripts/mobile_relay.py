@@ -402,11 +402,19 @@ def main() -> None:
             # שלנו לא מוצגות, בדיוק מה שקרה היום. הסנפשוט הכבד נשאר מושבת;
             # רק ההנחיות והשרשור, פעם ב-60ש'. עלות-שעות: השירות ער ממילא
             # בזכות הודעת-המנוחה, ולכן התוספת זניחה מול תקציב-החינם.
+            # 🔴 ביקורת-עצמית 29.08 (ממצא-4): הגרסה הראשונה של הבלוק הזה שכחה
+            # את _poll_commands — שיושב אחרי ה-continue — ולכן FLATTEN/PAUSE
+            # מהטלפון פגו בשקט בכל שבת ובכל לילה 23:30-10:00. פקודת-חירום
+            # חייבת להימשך תמיד, בלי קשר לחלון-החיסכון. גם הבליעה השקטה הוסרה.
+            try:
+                _poll_commands(access_key, render)
+            except Exception as _ce:
+                print("[relay] idle cmd poll FAILED: %s" % str(_ce)[:90], flush=True)
             try:
                 _poll_instructions(access_key, render)
                 _push_chat_thread(push_key, render)
-            except Exception:
-                pass
+            except Exception as _ie:
+                print("[relay] idle chat/instr: %s" % str(_ie)[:90], flush=True)
             time.sleep(60)
             continue
         idle_logged = False
