@@ -19,6 +19,9 @@ const MODE_STYLES: Record<string, { bg: string; border: string; text: string; la
   SHADOW: { bg: 'rgba(250,204,21,0.12)', border: '#facc15', text: '#facc15', label: 'SHADOW' },  // V5 §4.1 yellow
   SIM:    { bg: 'rgba(6,182,212,0.12)', border: '#06b6d4', text: '#06b6d4', label: 'DEMO' },     // V5 §4.1 cyan
   LIVE:   { bg: 'rgba(220,38,38,0.12)', border: '#dc2626', text: '#fca5a5', label: 'LIVE' },     // V5 §4.1 red
+  // ביקורת-UX 29.08: מצב-לא-ידוע חייב להיראות שונה משלושת המצבים האמיתיים.
+  // קודם היה ברירת-מחדל 'SHADOW' — כלומר תג-צל צהוב בזמן מסחר-אמת (ראה למטה).
+  UNKNOWN: { bg: 'rgba(148,163,184,0.14)', border: '#94a3b8', text: '#e2e8f0', label: 'מצב ?' },
 };
 
 export function TopBar() {
@@ -28,7 +31,11 @@ export function TopBar() {
   const allSignals = useSystemStore((s) => s.signals);
 
   // Mode + backend health — lightweight heartbeat (no Redis)
-  const [mode, setMode] = useState('SHADOW');
+  // ביקורת-UX 29.08 (שקר-תצוגה #1): הערך ההתחלתי היה 'SHADOW'. ה-fetch נבלע
+  // ב-.catch(() => {}) ריק, כך שכל כשל-רשת השאיר תג "SHADOW" צהוב על המסך —
+  // בזמן ש-MEMS26_MODE=live, is_sim=0, חשבון 37138283 = כסף אמיתי.
+  // ברירת-המחדל היא 'UNKNOWN'; הודעת-האמת מגיעה רק מה-heartbeat.
+  const [mode, setMode] = useState('UNKNOWN');
   const [backendHealth, setBackendHealth] = useState<{ wsClients: number; priceFileOk: boolean } | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   useEffect(() => {
@@ -41,12 +48,14 @@ export function TopBar() {
         // MODE_STYLES key (demo→SIM) so the badge shows correctly (was defaulting to
         // SHADOW for any non-uppercase value — hid DEMO and would hide LIVE).
         const MK: Record<string, string> = { shadow: 'SHADOW', demo: 'SIM', sim: 'SIM', live: 'LIVE' };
-        setMode(MK[(d.mode || 'shadow').toLowerCase()] || 'SHADOW');
+        // ערך חסר/לא-מוכר => UNKNOWN, לא SHADOW.
+        setMode(MK[String(d.mode ?? '').toLowerCase()] || 'UNKNOWN');
         setBackendHealth({
           wsClients: d.ws_clients ?? 0,
           priceFileOk: d.price_file_age_ms >= 0 && d.price_file_age_ms < 120000,
         });
-      }).catch(() => {}).finally(() => { inFlight = false; });
+        // כשל-רשת => מפסיקים לטעון מצב; לא "נשארים" על הערך האחרון ולא על SHADOW.
+      }).catch(() => { setMode('UNKNOWN'); }).finally(() => { inFlight = false; });
     };
     f(); const id = setInterval(f, 15000); return () => clearInterval(id);
   }, []);
@@ -115,13 +124,17 @@ export function TopBar() {
         <ConnectionIndicator />
         {/* Mode badge */}
         {(() => {
-          const ms = MODE_STYLES[mode] || MODE_STYLES.SHADOW;
+          const ms = MODE_STYLES[mode] || MODE_STYLES.UNKNOWN;
           return (
-            <span style={{
-              fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
-              background: ms.bg, border: `1px solid ${ms.border}`, color: ms.text,
-              animation: mode === 'LIVE' ? 'pulse 2s infinite' : 'none',
-            }}>
+            <span
+              title={mode === 'UNKNOWN'
+                ? 'מצב-המסחר לא נקרא מה-backend (/api/v9/cockpit/heartbeat). אל תניח צל — בדוק לפני ירי.'
+                : `מצב-מסחר: ${ms.label}`}
+              style={{
+                fontSize: 9, fontWeight: 600, padding: '2px 8px', borderRadius: 4,
+                background: ms.bg, border: `1px solid ${ms.border}`, color: ms.text,
+                animation: mode === 'LIVE' ? 'pulse 2s infinite' : 'none',
+              }}>
               {ms.label}
             </span>
           );

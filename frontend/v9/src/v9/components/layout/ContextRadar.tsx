@@ -67,6 +67,10 @@ export function ContextRadar() {
   const tr = r?.trading;
   const integrity = r?.bar_integrity;
   const canTrade = tr?.armed === 1 && (tr?.contracts_allowed ?? 0) > 0 && !tr?.stale;
+  // ביקורת-UX 29.08 (שקר-תצוגה #2): כשאין מטען-רדאר בכלל, הקופסאות היו טוענות
+  // טענות-אמת מתוך חוסר: 'פנוי' לשער-השחרור, '0 עברו / 0 נחסמו', ו'לא חמוש'
+  // למסחר — בדיוק הפאנל שהראה "לא-חמושה" בזמן שהמנוע עבד. אין-נתונים ≠ אפס.
+  const noData = r == null;
 
   const Box = ({ label, children, title, alert }:
     { label: string; children: React.ReactNode; title?: string; alert?: boolean }) => (
@@ -76,7 +80,9 @@ export function ContextRadar() {
       border: `1px solid ${alert ? R : COLORS.borderFaint}`,
       background: alert ? 'rgba(220,38,38,0.10)' : 'rgba(255,255,255,0.02)',
     }}>
-      <span style={{ fontSize: 7, color: COLORS.textDim, letterSpacing: '0.5px' }}>{label}</span>
+      {/* ביקורת-UX 29.08: התווית הייתה textDim (#404040) על רקע כמעט-שחור = יחס-ניגודיות
+          1.91:1 ב-7px — התוויות שמזהות איזה מספר זה כמעט בלתי-קריאות. textSecondary = 7.7:1. */}
+      <span style={{ fontSize: 7, color: COLORS.textSecondary, letterSpacing: '0.5px' }}>{label}</span>
       <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'ui-monospace' }}>{children}</span>
     </div>
   );
@@ -90,6 +96,37 @@ export function ContextRadar() {
         alignSelf: 'center', fontSize: 8, fontWeight: 800, letterSpacing: '1px',
         color: C, transform: 'rotate(0deg)',
       }}>רדאר</span>
+
+      {/* ביקורת-UX 29.08 (חיתוך): ב-1440px עם פוזיציה פתוחה נמדדו 508px חתוכים
+          מימין — "מסחר" ו"שלמות ברים" היו מחוץ-למסך לגמרי. הם הראשונים עכשיו,
+          כי "האם אפשר לסחור" ו"האם הזרם אמין" הן שתי שאלות-ההכרעה. */}
+      <Box label="מסחר"
+        alert={noData || !canTrade}
+        title={noData
+          ? 'אין נתוני-רדאר — מצב-החימוש אינו ידוע. אל תסיק "לא חמוש".'
+          : `armed=${tr?.armed} sendorders=${tr?.sendorders} sim=${tr?.is_sim} פוזיציה=${tr?.position_qty}`}>
+        {noData || tr == null
+          ? <span style={{ color: Y }}>לא ידוע</span>
+          : canTrade
+            ? <span style={{ color: G }}>✓ מוכן · עד {tr.contracts_allowed} חוזים</span>
+            : <span style={{ color: R }}>{tr.stale ? 'נתונים לא טריים' : tr.armed !== 1 ? 'לא חמוש' : 'אין מרג\'ין'}</span>}
+      </Box>
+
+      <Box label="שלמות ברים"
+        alert={integrity === 'suspect'}
+        title="תפר >15 נק' בין ברים סמוכים = זרם חשוד — אל תסמוך על הסיווגים">
+        {integrity === 'clean' ? <span style={{ color: G }}>✓ נקי</span>
+          : integrity === 'suspect' ? <span style={{ color: R }}>🔴 חשוד</span>
+          /* 'no_data' הגיע מה-API כמחרוזת-קוד גולמית ונרנדר ככה בממשק העברי */
+          : integrity === 'no_data' ? <span style={{ color: Y }}>אין ברים</span>
+          : <span style={{ color: COLORS.textTertiary }}>{integrity ?? '—'}</span>}
+      </Box>
+
+      {err && (
+        <Box label="רדאר" alert title="הקריאה ל-/api/v9/context/radar נכשלה — הערכים בשורה אינם עדכניים">
+          <span style={{ color: R }}>🔴 לא זמין</span>
+        </Box>
+      )}
 
       <Box label="סוג יום" title={`stage ${r?.stage ?? '—'} · lock ${r?.lock_state ?? '—'}`}>
         {r?.day_type ?? '—'}
@@ -118,18 +155,24 @@ export function ContextRadar() {
         </span>
       </Box>
 
+      {/* אין-מטען => '—'. 'idle' (המצב האמיתי כשאין מה להחזיק) נשאר 'פנוי'. */}
       <Box label="שער שחרור"
         alert={rg?.state === 'holding'}
-        title={rg?.reason ?? 'לא מחזיק כלום'}>
-        {rg?.state === 'holding' ? `מחזיק ${rg?.age_min ?? '?'} דק'` : rg?.state === 'released' ? 'שוחרר' : 'פנוי'}
+        title={noData ? 'אין נתוני-רדאר — לא ידוע אם משהו מחזיק ירי' : (rg?.reason ?? 'לא מחזיק כלום')}>
+        {noData || rg == null ? <span style={{ color: COLORS.textTertiary }}>—</span>
+          : rg.state === 'holding' ? `מחזיק ${rg.age_min ?? '?'} דק'`
+          : rg.state === 'released' ? 'שוחרר' : 'פנוי'}
       </Box>
 
       <Box label="שערים / שעה"
-        title={gl?.top?.length ? gl.top.map(([g, n]) => `${g}×${n}`).join(' · ') : 'אין חסימות'}
+        title={noData ? 'אין נתוני-רדאר — ספירת-השערים אינה ידועה'
+          : gl?.top?.length ? gl.top.map(([g, n]) => `${g}×${n}`).join(' · ') : 'אין חסימות'}
         alert={(gl?.blocked ?? 0) > 0 && (gl?.passed ?? 0) === 0}>
-        <span style={{ color: (gl?.passed ?? 0) > 0 ? G : COLORS.textSecondary }}>{gl?.passed ?? 0} עברו</span>
-        <span style={{ color: COLORS.textDim }}> / </span>
-        <span style={{ color: (gl?.blocked ?? 0) > 0 ? Y : COLORS.textSecondary }}>{gl?.blocked ?? 0} נחסמו</span>
+        {noData || gl == null ? <span style={{ color: COLORS.textTertiary }}>—</span> : <>
+          <span style={{ color: (gl.passed ?? 0) > 0 ? G : COLORS.textSecondary }}>{gl.passed ?? 0} עברו</span>
+          <span style={{ color: COLORS.textTertiary }}> / </span>
+          <span style={{ color: (gl.blocked ?? 0) > 0 ? Y : COLORS.textSecondary }}>{gl.blocked ?? 0} נחסמו</span>
+        </>}
       </Box>
 
       {gl?.last_block && (
@@ -138,23 +181,8 @@ export function ContextRadar() {
         </Box>
       )}
 
-      <Box label="מסחר"
-        alert={!canTrade}
-        title={`armed=${tr?.armed} sendorders=${tr?.sendorders} sim=${tr?.is_sim} פוזיציה=${tr?.position_qty}`}>
-        {canTrade
-          ? <span style={{ color: G }}>✓ מוכן · עד {tr?.contracts_allowed} חוזים</span>
-          : <span style={{ color: R }}>{tr?.stale ? 'נתונים לא טריים' : tr?.armed !== 1 ? 'לא חמוש' : 'אין מרג\'ין'}</span>}
-      </Box>
-
-      <Box label="שלמות ברים"
-        alert={integrity === 'suspect'}
-        title="תפר >15 נק' בין ברים סמוכים = זרם חשוד — אל תסמוך על הסיווגים">
-        {integrity === 'clean' ? <span style={{ color: G }}>✓ נקי</span>
-          : integrity === 'suspect' ? <span style={{ color: R }}>🔴 חשוד</span>
-          : <span style={{ color: COLORS.textDim }}>{integrity ?? '—'}</span>}
-      </Box>
-
-      {err && <span style={{ alignSelf: 'center', fontSize: 8, color: Y }}>רדאר לא זמין</span>}
+      {/* "מסחר" + "שלמות ברים" עברו לראש-השורה (ראה למעלה) — הם היו אחרונים ולכן
+          הראשונים להיחתך בגלילה-האופקית. */}
     </div>
   );
 }

@@ -45,7 +45,18 @@ export function NearestFireStrip() {
     return () => { alive = false; clearInterval(t); };
   }, []);
 
-  if (err || !near) return null; // אין מה להציג — לא תופסים מקום
+  // ביקורת-UX 29.08: קודם `if (err || !near) return null` — כלומר כשל-רשת
+  // והיעדר-תבנית נראו זהים: השורה פשוט נעלמה. מייקל ביקש את השורה הזו כדי
+  // *לדעת*, אז "לא הצלחתי לקרוא" חייב להיראות אחרת מ"אין תבנית קרובה".
+  if (err) return (
+    <div dir="rtl" style={{
+      margin: '4px 6px', padding: '5px 8px', background: '#2a1f0a',
+      border: '1px solid #eab30855', borderRadius: 6, fontSize: 10, color: '#facc15',
+    }} title="הקריאה ל-/api/v9/build/pattern-status נכשלה — אין לדעת מה קרוב לירי">
+      ⚠ הכי-קרוב-לירי: אין נתונים (שגיאת-קריאה)
+    </div>
+  );
+  if (!near) return null; // באמת אין תבנית קרובה — לא תופסים מקום
   return (
     <div dir="rtl" style={{
       margin: '4px 6px', padding: '5px 8px',

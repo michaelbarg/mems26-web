@@ -42,6 +42,19 @@ function money(v: number | null | undefined): string {
   const n = Number(v);
   return `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 }
+/** גיל-הנתונים בקריאה אנושית. ביקורת-UX 29.08: הגיל הוצג רק כשהנתונים טריים,
+ *  כלומר נעלם בדיוק כשצריך אותו. "לא טרי" ב-40 שניות ו"לא טרי" ב-11 שעות הם
+ *  שני עולמות — בלי המספר אי-אפשר להבדיל (נמדד age_s=39,832 = 11ש').
+ *  יחידות בעברית בכוונה: עם סיומת לטינית ("11.1h") מנוע ה-bidi מפריד את ה-'h'
+ *  מהמספר בתוך משפט עברי ומעיף אותו לקצה הנגדי של השורה — נמדד בפועל
+ *  ("11.1 … h"). מספר + יחידה עברית נשארים צמודים. */
+function ageLabel(sec: number | null | undefined): string | null {
+  if (sec == null || Number.isNaN(sec)) return null;
+  const s = Math.max(0, Math.round(Number(sec)));
+  if (s < 90) return `${s} שנ׳`;
+  if (s < 5400) return `${Math.round(s / 60)} דק׳`;
+  return `${(s / 3600).toFixed(1)} שע׳`;
+}
 
 export function SierraTruthStrip() {
   const [s, setS] = useState<SierraState | null>(null);
@@ -83,7 +96,10 @@ export function SierraTruthStrip() {
   const Cell = ({ label, children, title }:
     { label: string; children: React.ReactNode; title?: string }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 54 }} title={title}>
-      <span style={{ fontSize: 7, color: COLORS.textDim, letterSpacing: '0.4px' }}>{label}</span>
+      {/* ביקורת-UX 29.08: התוויות היו textDim (#404040) = 1.91:1 ניגודיות ב-7px.
+          חמש תאי-כסף צמודים ("P&L פתוח" / "P&L יומי" / "שווי חשבון" / "מזומן" /
+          "פנוי למסחר") שאי-אפשר לקרוא את התווית שלהם = סיכון-לקריאה-שגויה. */}
+      <span style={{ fontSize: 7, color: COLORS.textSecondary, letterSpacing: '0.4px' }}>{label}</span>
       <span style={{ fontSize: 9, fontFamily: 'ui-monospace', fontWeight: 600 }}>{children}</span>
     </div>
   );
@@ -171,14 +187,20 @@ export function SierraTruthStrip() {
           {s?.acct_under_margin === 1 ? '🔴 מתחת למרג\'ין' : '🔴 המסחר מושבת בחשבון'}
         </span>
       )}
+      {/* הגיל מוצג תמיד — עם דגש כשהנתונים לא טריים. */}
       {stale && (
-        <span style={{ fontSize: 8, color: '#eab308' }} title="קובץ-המצב לא טרי">
-          נתוני-סיירה לא טריים
+        <span dir="rtl" style={{
+          fontSize: 9, fontWeight: 700, color: '#facc15',
+          background: 'rgba(234,179,8,0.14)', border: '1px solid rgba(234,179,8,0.45)',
+          borderRadius: 3, padding: '1px 6px',
+        }} title={err ? 'הקריאה ל-/api/v9/account/state נכשלה' : 'קובץ-המצב לא טרי — כל המספרים בשורה הם מהרגע הזה בעבר'}>
+          {err ? 'אין קשר לחשבון' : `נתונים לא טריים${ageLabel(s?.age_s) ? ` · לפני ${ageLabel(s?.age_s)}` : ''}`}
         </span>
       )}
       {s?.age_s != null && !stale && (
-        <span style={{ fontSize: 7, color: COLORS.textDim, marginInlineStart: 'auto' }}>
-          {Number(s.age_s).toFixed(0)}s
+        <span dir="rtl" style={{ fontSize: 8, color: COLORS.textTertiary, marginInlineStart: 'auto' }}
+          title="גיל נתוני-החשבון">
+          {ageLabel(s.age_s)}
         </span>
       )}
     </div>

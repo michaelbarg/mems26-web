@@ -113,7 +113,10 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
 
         {/* 4. The 7 types — trader meaning (playbook one-liners) */}
         <div style={{ marginTop: 8, paddingTop: 6, borderTop: `1px solid ${COLORS.borderFaint}` }}>
-          <div style={{
+          {/* ביקורת-UX 29.08 (RTL): בלי dir="rtl" ה-"7" הפותח מקבל כיוון-LTR ונדחף
+              לקצה השמאלי — כלומר לסוף המשפט לקורא עברית ("סוגי-יום … 7").
+              נמדד: x(7)=0 מול x(ס)=184 ב-ltr; ב-rtl ה-7 חוזר לימין (591 מול 576). */}
+          <div dir="rtl" style={{
             fontSize: 7, fontWeight: 700, color: COLORS.textDisabled,
             letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3,
           }}>
