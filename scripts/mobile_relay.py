@@ -397,6 +397,16 @@ def main() -> None:
                     _push_idle_notice(push_key, render, env)
             except Exception:
                 pass
+            # 29.08 (ביקורת-UX + מייקל משתמש בטלפון גם בשבת): ערוץ-השיחה חייב
+            # לחיות גם כשהמסחר במנוחה — אחרת ההנחיות שלו לא נמשכות והתשובות
+            # שלנו לא מוצגות, בדיוק מה שקרה היום. הסנפשוט הכבד נשאר מושבת;
+            # רק ההנחיות והשרשור, פעם ב-60ש'. עלות-שעות: השירות ער ממילא
+            # בזכות הודעת-המנוחה, ולכן התוספת זניחה מול תקציב-החינם.
+            try:
+                _poll_instructions(access_key, render)
+                _push_chat_thread(push_key, render)
+            except Exception:
+                pass
             time.sleep(60)
             continue
         idle_logged = False
