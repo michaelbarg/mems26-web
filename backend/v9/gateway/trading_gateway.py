@@ -3613,6 +3613,18 @@ class TradingGateway:
 
             # LIVE: single slot + strict risk checks
             if self._is_live_enabled(system_id):
+                # T-43b: block entries when contract count is mismatched
+                try:
+                    from backend.v9.services.sierra_position_reconciler import (
+                        position_mismatch_blocks_entry)
+                    if position_mismatch_blocks_entry():
+                        logger.warning(
+                            "[Gateway] T-43 POSITION_MISMATCH: blocking LIVE entry "
+                            "system=%d — Σ TM.contracts ≠ |position_qty|", system_id)
+                        result["live_blocked_by"] = "position_mismatch"
+                        return result
+                except Exception:
+                    pass  # fail-open: import error → don't block
                 if self.live_slot is None and passes_strict_checks(setup, "live", self):
                     self._last_live_abort = None
                     live_trade = self._execute_live(setup, system_id, cross_context)
@@ -3799,6 +3811,54 @@ class TradingGateway:
             logger.info("[Gateway] DEMO slot freed: %s", trade_id)
 
         if self.live_slot and str(self.live_slot.get("trade_id")) == str(trade_id):
+            # T-43c (Michael 28.08 19:30): slot freed ONLY when position_qty==0
+            # AND zero protective orders. A partial fill (T1 hit on a parent with
+            # SCALE_IN child still open) must NOT release the slot — the broker
+            # still holds a position.
+            # CANCELLED/ORDER_FAILED always free immediately (no position exists).
+            _force_free = outcome in ("CANCELLED", "ORDER_FAILED") or \
+                outcome.startswith("ORDER_FAILED:")
+            if not _force_free:
+                try:
+                    from backend.v9.services.sierra_position_reconciler import (
+                        _sierra_state_qty, _sierra_state_working)
+                    _sq = _sierra_state_qty()
+                    _sw = _sierra_state_working()
+                    if _sq is not None and _sq != 0:
+                        logger.info(
+                            "[Gateway] T-43c: slot NOT freed for %s — Sierra "
+                            "position_qty=%d (still holding). Outcome=%s",
+                            trade_id, _sq, outcome)
+                        # Still count the PnL/trades but keep the slot occupied
+                        if outcome not in ("CANCELLED",):
+                            self._daily_trades += 1
+                            self._daily_pnl += pnl
+                            if pnl < 0:
+                                self._consecutive_losses += 1
+                            else:
+                                self._consecutive_losses = 0
+                        logger.info("[Gateway] LIVE trade closed (slot retained): "
+                                    "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
+                        return
+                    # position_qty==0 but working orders remain: also hold
+                    if _sw is not None and _sw > 0 and _sq == 0:
+                        logger.info(
+                            "[Gateway] T-43c: slot NOT freed for %s — Sierra "
+                            "working_orders=%d (protective orders pending)",
+                            trade_id, _sw)
+                        if outcome not in ("CANCELLED",):
+                            self._daily_trades += 1
+                            self._daily_pnl += pnl
+                            if pnl < 0:
+                                self._consecutive_losses += 1
+                            else:
+                                self._consecutive_losses = 0
+                        logger.info("[Gateway] LIVE trade closed (slot retained): "
+                                    "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
+                        return
+                except Exception as _t43_err:
+                    logger.warning("[Gateway] T-43c sierra check failed (%s) — "
+                                   "freeing slot (fail-open)", _t43_err)
             self.live_slot = None
             # P8 fix (2026-07-22): CANCELLED/order-failed trades should NOT count
             # toward daily trades or PnL — the order was never executed.

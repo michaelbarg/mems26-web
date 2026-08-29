@@ -41,6 +41,16 @@ def _orphan_max_qty() -> int:
 def _orphan_cooldown_s() -> float:
     return float(os.getenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "60"))
 
+# T-43b: contract count mismatch entry blocker. Set True by reconcile_position
+# on mismatch, cleared when match resumes. Gateway checks this before any entry.
+_position_mismatch_block: bool = False
+
+def position_mismatch_blocks_entry() -> bool:
+    """T-43 (Michael 28.08 19:30): Σ TM.contracts == |position_qty| validation.
+    Returns True when the contract count diverges — the gateway must block new
+    entries until the mismatch is resolved."""
+    return _position_mismatch_block
+
 # Idempotency: tracks (qty, avg_price) → timestamp of last placement attempt.
 # Reset when position changes (different qty). Module-level to survive across
 # reconcile_position() calls within the same process.
@@ -812,9 +822,12 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
         logger.warning("[Reconciler] TM query error: %s", e)
         return True, f"TM query error: {e}"
 
-    global _phantom_flat_streak
+    global _phantom_flat_streak, _position_mismatch_block
     if tm_qty == sierra_qty:
         _phantom_flat_streak = 0
+        if _position_mismatch_block:
+            _position_mismatch_block = False
+            logger.info("[Reconciler] T-43: contract mismatch CLEARED — entries unblocked")
         _short = _unprotected_contracts(sierra_qty)
         if _short:
             return True, (f"MATCH: TM={tm_qty} Sierra={sierra_qty} (src={src}) "
@@ -916,6 +929,21 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
         # not flat.  A stale state file / heal-flag-off / momentary working!=0
         # should NOT wipe accumulated evidence — that caused 0/3 stuck loops.)
         _phantom_flat_streak = 0
+
+    # T-43b: block new entries while contract count is mismatched
+    if not _position_mismatch_block:
+        _position_mismatch_block = True
+        logger.warning(
+            "[Reconciler] T-43: contract mismatch DETECTED (TM=%d Sierra=%d) — "
+            "BLOCKING new entries until resolved", tm_qty, sierra_qty)
+        try:
+            from backend.v9.services.phone_alert import push as _pp
+            _pp("position_mismatch",
+                "\u26a0\ufe0f MEMS26: contract mismatch",
+                f"TM={tm_qty} Sierra={sierra_qty} — entries blocked until match",
+                priority=1)
+        except Exception:
+            pass
 
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "
            f"Sierra says {sierra_qty} (src={src}). Records \u2260 reality!"

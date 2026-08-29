@@ -92,6 +92,72 @@ def _zlr_mgmt_enabled() -> bool:
     return os.environ.get("ZLR_MGMT_V1", "0").strip().lower() in ("1", "true", "yes")
 
 
+def _position_reference_price(trade, db_session) -> float:
+    """T-43 (Michael 28.08 19:30): when Sierra manages a net position with an
+    averaged entry, the reference price for stop management must be the broker's
+    avg_price — NOT the individual trade.entry_price.
+
+    Sierra averages automatically when >1 trade is open on the same side.
+    The TM tracks separate trades (parent + SCALE_IN child), each with its own
+    entry_price. Stops computed from the individual entry sit at the wrong level
+    relative to the real averaged position.
+
+    Logic:
+      1. Count same-direction live trades in TM.
+      2. If only one → trade.entry_price is the correct reference (no averaging).
+      3. If >1 → read sierra_state.json avg_price (the broker's truth).
+      4. If avg_price unavailable (stale/weekend) → weighted average of TM entries
+         as a local approximation (honest fallback, not synthetic truth).
+    """
+    entry = float(trade.entry_price)
+    direction = (getattr(trade, "direction", "") or "").upper()
+    if direction not in ("LONG", "SHORT"):
+        return entry
+
+    # Count same-direction live trades
+    try:
+        same_dir_trades = db_session.query(V9Trade).filter(
+            V9Trade.state.in_(_ACTIVE_TRADE_STATES),
+            V9Trade.direction == direction,
+            V9Trade.mode.in_(("live", "demo")),
+        ).all()
+    except Exception:
+        return entry  # fail-safe: single-trade behavior
+
+    if len(same_dir_trades) <= 1:
+        return entry  # single trade — no averaging
+
+    # Multiple same-direction trades: Sierra is averaging. Use broker's avg.
+    from backend.v9.services.sierra_position_reconciler import _sierra_state_avg_price
+    sierra_avg = _sierra_state_avg_price()
+    if sierra_avg is not None:
+        logger.info(
+            "[TradeManager] T-43 position ref: %d same-dir %s trades → "
+            "sierra.avg_price=%.2f (trade.entry=%.2f)",
+            len(same_dir_trades), direction, sierra_avg, entry)
+        return sierra_avg
+
+    # Fallback: weighted average of TM entries (Rule 1 — honest approximation)
+    total_contracts = 0
+    weighted_sum = 0.0
+    for t in same_dir_trades:
+        ep = getattr(t, "entry_price", None)
+        if ep is None:
+            continue
+        nc = trade_contract_count(t)
+        weighted_sum += float(ep) * nc
+        total_contracts += nc
+    if total_contracts > 0:
+        approx_avg = weighted_sum / total_contracts
+        logger.warning(
+            "[TradeManager] T-43 position ref: sierra.avg stale — using "
+            "TM weighted avg=%.2f (%d contracts, %d trades)",
+            approx_avg, total_contracts, len(same_dir_trades))
+        return approx_avg
+
+    return entry  # absolute fallback
+
+
 def is_zlr_trade(trade) -> bool:
     """True for a System-4 (woodies) ZLR trade.
 
@@ -709,13 +775,20 @@ class TradeManager:
         OLD behavior: stop = entry (BE) — too tight, no slippage room.
         NEW behavior: stop = entry + 1T (LONG) or entry - 1T (SHORT) per Sheet C.
 
+        T-43 (Michael 28.08 19:30): when >1 same-direction trade is open,
+        the reference price is sierra.avg_price (the broker's net average),
+        not the individual trade.entry_price. The broker manages one position;
+        a BE stop must sit at the averaged entry, not a phantom per-trade entry
+        that doesn't exist in the broker's books.
+
         Idempotent: if stop is ALREADY at BE+1T or tighter, no-op (Gap 13 'never widen').
         """
         from backend.v9.systems.five_min.constants import MES_TICK_SIZE
         if trade.entry_price is None:
             return
         direction = (trade.direction or "").upper()
-        entry = float(trade.entry_price)
+        # T-43: use position reference price (avg when multiple trades)
+        entry = _position_reference_price(trade, self._db)
         tick = MES_TICK_SIZE
 
         # Save initial stop before any move
