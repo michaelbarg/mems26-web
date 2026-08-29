@@ -794,18 +794,55 @@ function updatePause(p){
  if(p){b.textContent='▶ חדש מסחר (RESUME)';b.style.borderColor='#3fb950';b.style.color='#3fb950';b.style.background='#0d2818';}
  else{b.textContent='⏸ השהה מסחר (צל-בלבד)';b.style.borderColor='#d29922';b.style.color='#d29922';b.style.background='#2d2614';}
 }
+// 29.08: פקודת-חירום הציגה "✓ נשלחה" ונמחקה אחרי 8ש — בלי שום סימן אם המק
+// אכן קיבל וביצע. אם הממסר לא רץ (מצב שקרה בפועל), FLATTEN פג בשקט אחרי 60ש
+// ומייקל נשאר עם פוזיציה פתוחה ובטוח שסגר. עכשיו עוקבים אחרי /cmd/pending עד
+// שהתור מתנקה (=המק משך וביצע) או פג (=לא הגיע לאף אחד).
+async function _watchCmd(id, action){
+ const st=document.getElementById('cmdStatus');
+ const t0=Date.now();
+ while(Date.now()-t0 < 70000){
+  await new Promise(r=>setTimeout(r,2000));
+  let d;
+  try{ d = await (await fetch('/cmd/pending'+Q,{cache:'no-store'})).json(); }
+  catch(e){ st.textContent='⚠ '+action+' נשלחה — אבד הקשר, לא ידוע אם בוצעה';
+            st.style.color='#f0883e'; return; }
+  if(d && d.expired){
+   st.textContent='🔴 '+action+' לא בוצעה — המק לא משך את הפקודה (הממסר לא רץ?). בדוק בסיירה!';
+   st.style.color='#f85149'; return;
+  }
+  if(!d || d.cmd==null || d.cmd.id!==id){
+   st.textContent='✓ '+action+' — המק משך וביצע. ודא את התוצאה בסיירה/בפאנל.';
+   st.style.color='#3fb950'; return;
+  }
+  st.textContent='⏳ '+action+' ממתינה למק... ('+Math.round((Date.now()-t0)/1000)+'ש)';
+  st.style.color='#d29922';
+ }
+ st.textContent='🔴 '+action+' פגה אחרי 60ש בלי שהמק משך אותה. בדוק בסיירה!';
+ st.style.color='#f85149';
+}
 async function sendCmd(action){
- const msg={FLATTEN:'לסגור את כל הפוזיציות?',PAUSE:'להשהות מסחר? כניסות חדשות → צל-בלבד.',RESUME:'לחדש מסחר רגיל?'}[action];
+ const msg={FLATTEN:'לסגור עכשיו את כל הפוזיציות בחשבון (FLATTEN מלא)?',
+            PAUSE:'להשהות מסחר? כניסות חדשות → צל-בלבד. פוזיציות פתוחות נשארות.',
+            RESUME:'לחדש מסחר רגיל? כניסות חדשות ישוגרו שוב.'}[action];
  if(!confirm(msg)) return;
- if(!confirm('אישור סופי — '+action+'?')) return;
- const st=document.getElementById('cmdStatus'); st.textContent='שולח...';
+ const msg2={FLATTEN:'אישור סופי — לסגור את כל הפוזיציות בשוק עכשיו?',
+             PAUSE:'אישור סופי — להשהות מסחר?',
+             RESUME:'אישור סופי — לחדש מסחר?'}[action];
+ if(!confirm(msg2)) return;
+ const st=document.getElementById('cmdStatus'); st.textContent='שולח...'; st.style.color='';
  try{
   const r=await fetch('/cmd'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action})});
   const d=await r.json();
-  st.textContent=d.ok?'✓ פקודה נשלחה — ממתין לביצוע (עד 10s)':'✗ '+(d.error||'failed');
-  st.style.color=d.ok?'#3fb950':'#f85149';
- }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';}
- setTimeout(()=>{st.textContent='';st.style.color='';},8000);
+  if(d.ok && d.cmd){
+   st.textContent='⏳ '+action+' נשלחה — ממתינה למק...'; st.style.color='#d29922';
+   _watchCmd(d.cmd.id, action);   // לא מנקה לבד — נשאר עד תוצאה סופית
+  } else {
+   st.textContent='✗ '+(d.error||d.detail||'נכשל'); st.style.color='#f85149';
+   setTimeout(()=>{st.textContent='';st.style.color='';},8000);
+  }
+ }catch(e){st.textContent='✗ '+e;st.style.color='#f85149';
+  setTimeout(()=>{st.textContent='';st.style.color='';},8000);}
 }
 document.getElementById('pauseBtn').onclick=()=>sendCmd(_paused?'RESUME':'PAUSE');
 document.getElementById('flatBtn').onclick=()=>sendCmd('FLATTEN');
