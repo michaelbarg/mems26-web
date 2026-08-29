@@ -50,8 +50,12 @@ def test_zlr_reduced_on_trend_variation(monkeypatch):
 
 
 def test_zlr_skip_on_normal_and_neutral(monkeypatch):
+    # Michael 27.08 ruling: ZLR×Normal changed SKIP→REDUCED ("תבדוק אילו
+    # דגלים הורסים ותבטל"). Evidence: 27.08 17:46 ZLR-LONG blocked on +40pt leg.
     _on(monkeypatch)
-    for dt in ("Normal", "Neutral_Center", "Neutral_Extreme", "Nontrend"):
+    assert _v("ZLR_SHORT", "Normal", "SHORT", "RED") == "REDUCED", \
+        "Normal: ruling 27.08 SKIP→REDUCED"
+    for dt in ("Neutral_Center", "Neutral_Extreme", "Nontrend"):
         assert _v("ZLR_SHORT", dt, "SHORT", "RED") == "SKIP", dt
 
 

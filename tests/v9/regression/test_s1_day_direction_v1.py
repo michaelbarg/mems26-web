@@ -69,16 +69,31 @@ def test_flag_on_falls_back_to_break_dir(monkeypatch, real_app_state):
 
 
 def test_flag_on_is_honest_when_no_break(monkeypatch, real_app_state):
-    """No accepted expansion → honest None (Rule 1), never a synthesised guess."""
+    """No accepted expansion → UNDETERMINED (T-37: absence of knowledge ≠ veto).
+    Previously this returned None (Rule 1). T-37 (Michael 28.08) changed the
+    contract: None falls through to LSMA fallback which vetoes wrongly; UNDETERMINED
+    is the honest answer ("no directional requirement yet"). Rule 1 is satisfied
+    because UNDETERMINED is not a synthetic direction guess — it's an explicit "I
+    don't know yet, don't block." The DB is mocked to isolate the test from live
+    state (the unmocked path read Friday's fade_both row on Saturday)."""
     monkeypatch.setenv("S1_DAY_DIRECTION_V1", "1")
     real_app_state.last_cls_result = {"day_type": "Normal_Variation"}
-    assert get_live_expansion() is None
+    from unittest.mock import patch
+    with patch("backend.v9.db.read.read_one", return_value=None):
+        result = get_live_expansion()
+    assert result is not None, "T-37: no break should return UNDETERMINED, not None"
+    assert result["dir"] == "UNDETERMINED"
 
 
 def test_flag_on_ignores_garbage_direction(monkeypatch, real_app_state):
+    """Garbage 'SIDEWAYS' is not UP/DOWN → UNDETERMINED (T-37)."""
     monkeypatch.setenv("S1_DAY_DIRECTION_V1", "1")
     real_app_state.last_cls_result = {"accepted_break": "SIDEWAYS"}
-    assert get_live_expansion() is None
+    from unittest.mock import patch
+    with patch("backend.v9.db.read.read_one", return_value=None):
+        result = get_live_expansion()
+    assert result is not None, "T-37: garbage direction should return UNDETERMINED"
+    assert result["dir"] == "UNDETERMINED"
 
 
 def test_no_confidence_leaks_into_the_result(monkeypatch, real_app_state):
