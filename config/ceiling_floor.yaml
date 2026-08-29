@@ -1,0 +1,53 @@
+# CEILING_FLOOR_STATE_V1 — double-ceiling / double-floor failure detector.
+#
+# Michael 28.08 18:55: "זה היה צריך להיות יחסי" — no fixed point thresholds.
+# `tol_atr` is a MULTIPLE OF ATR(14); everything else is a BAR COUNT (structure,
+# not price). Nothing in this file, and nothing in
+# backend/v9/systems/ceiling_floor_state.py, is a fixed number of points.
+#
+# The code carries the same values as DEFAULTS, so a missing/broken file falls
+# back silently-but-loudly (ConfigLoader logs a warning) instead of failing.
+# `baseline` is the ruled set; the other blocks exist for §D replay variants
+# and are never read by production (va_fade.yaml convention).
+
+baseline:
+  # |P2 - P1| <= tol_atr × ATR14 — "נגיעה שנייה באותו אזור" (the ruling's 0.25)
+  tol_atr: 0.25
+  # P2 no later than this many bars after P1 ("תוך ≤ 12 ברים")
+  max_bars_between: 12
+  # P2 at least this many bars after P1
+  min_bars_between: 1
+  # confirm bar no later than this many bars after P2. NOT in the written
+  # ruling — added because an unbounded confirm window would report "the
+  # ceiling just failed" on a neckline break hours later. Bar count, so it
+  # stays inside the relative-thresholds ruling.
+  confirm_max_bars: 12
+  # Edge sources, tried IN ORDER; the first that yields a state wins.
+  # VAH/VAL from the Sierra TPO export · session high/low running from the RTH
+  # bars · IB high/low from the same TPO export. A missing level disables that
+  # source (Rule 1) — it is never substituted.
+  edge_sources: [VAH, SESSION_HIGH, IB_HIGH]
+
+# Variant A (§D only): tighter "same area" tolerance.
+tight_tol:
+  tol_atr: 0.15
+  max_bars_between: 12
+  min_bars_between: 1
+  confirm_max_bars: 12
+  edge_sources: [VAH, SESSION_HIGH, IB_HIGH]
+
+# Variant B (§D only): wider tolerance / longer memory between the two touches.
+wide_tol:
+  tol_atr: 0.40
+  max_bars_between: 18
+  min_bars_between: 1
+  confirm_max_bars: 12
+  edge_sources: [VAH, SESSION_HIGH, IB_HIGH]
+
+# Variant C (§D only): value-area edge only — no session-extreme / IB fallback.
+va_only:
+  tol_atr: 0.25
+  max_bars_between: 12
+  min_bars_between: 1
+  confirm_max_bars: 12
+  edge_sources: [VAH]

@@ -629,6 +629,49 @@ def get_live_day_type() -> Optional[str]:
     return None
 
 
+def _live_five_min_system() -> Any:
+    """The RUNNING app's FiveMinSystem — backend.main's, never the dead wrapper.
+
+    Same resolution as `_live_day_type_machine` and for the same documented
+    reason (CLAUDE.md § Codebase Index Protocol): importing `backend.v9.app`
+    yields a DIFFERENT, EMPTY app object, so reading state off it returns a
+    convincing-looking None. `backend/main.py` assigns the real instance to
+    `app.state.five_min_system`; `backend/v9/app.py`, `build_status_routes`
+    and `shadow_routes` all read that same attribute.
+    """
+    import importlib as _il
+    import sys as _sys
+    _main_mod = _sys.modules.get("backend.main")
+    _live_app = getattr(_main_mod, "app", None) if _main_mod else None
+    _app_mod = _live_app if _live_app is not None else _il.import_module("backend.v9.app").app
+    return getattr(_app_mod.state, "five_min_system", None)
+
+
+def get_ceiling_floor_state() -> Optional[Dict[str, Any]]:
+    """The live CEILING_FAILED / FLOOR_FAILED state, or None.
+
+    CEILING_FLOOR_STATE_V1 (Michael 2026-08-28). This is the READ side of the
+    detector wired in `FiveMinSystem._maybe_ceiling_floor_state`: that method
+    publishes the dict onto the running instance, this resolves the instance
+    and hands the dict back. It is the entry point the three future consumers
+    (bank the long · lock the edge against new longs · flip short) are meant
+    to use instead of each re-deriving the geometry.
+
+    Returns a COPY — a consumer must not be able to mutate detector output.
+    None when: the flag is off, no state has been detected today, the state
+    was reset at the IL day roll, or the app is not running (unit tests).
+    Fail-safe: any error → None (a bug must never fabricate a state).
+    """
+    try:
+        _fm = _live_five_min_system()
+        if _fm is None:
+            return None
+        _st = getattr(_fm, "ceiling_floor_state", None)
+        return dict(_st) if isinstance(_st, dict) else None
+    except Exception:
+        return None
+
+
 def _g1_replay_fallback_ok() -> bool:
     """classify_replay fallback allowed ONLY outside the live session (ET h>=16 or h<9).
 

@@ -416,3 +416,53 @@ def load_stop_anchors() -> Optional[Dict[str, Any]]:
         logger.warning("[ConfigLoader] stop_anchors validation errors: %s", errors[:6])
         return None
     return data
+
+
+# ── Ceiling/Floor state (config/ceiling_floor.yaml) ──────────────────
+
+def load_ceiling_floor(variant: str = "baseline") -> Optional[Dict[str, Any]]:
+    """Load one variant block from ceiling_floor.yaml (CEILING_FLOOR_STATE_V1).
+
+    Returns None when the file/variant is missing or malformed — the caller
+    (ceiling_floor_state.DEFAULTS) then carries the identical ruled values, so
+    a broken file degrades to the code default instead of to silence.
+    Michael 28.08 18:55: every threshold relative — `tol_atr` is an ATR
+    multiple, the rest are bar counts. Validation rejects a block that puts a
+    price-looking number where a ratio belongs.
+    """
+    data = _load_yaml("ceiling_floor.yaml")
+    if data is None:
+        return None
+    block = data.get(variant)
+    if not isinstance(block, dict):
+        logger.warning("[ConfigLoader] ceiling_floor: variant '%s' missing", variant)
+        return None
+
+    errors = []
+    try:
+        tol = float(block.get("tol_atr"))
+        if not (0.0 < tol <= 2.0):
+            errors.append(f"tol_atr={tol} out of range (0,2]")
+    except (TypeError, ValueError):
+        errors.append(f"tol_atr={block.get('tol_atr')!r} not a number")
+    for key, hi in (("max_bars_between", 60), ("min_bars_between", 12),
+                    ("confirm_max_bars", 60)):
+        try:
+            v = int(block.get(key))
+            if not (1 <= v <= hi):
+                errors.append(f"{key}={v} out of range [1,{hi}]")
+        except (TypeError, ValueError):
+            errors.append(f"{key}={block.get(key)!r} not an int")
+    srcs = block.get("edge_sources")
+    if not isinstance(srcs, list) or not srcs:
+        errors.append("edge_sources: missing/empty")
+    else:
+        valid = {"VAH", "SESSION_HIGH", "IB_HIGH"}
+        bad = [s for s in srcs if str(s).upper() not in valid]
+        if bad:
+            errors.append(f"edge_sources: unknown {bad}")
+
+    if errors:
+        logger.warning("[ConfigLoader] ceiling_floor validation errors: %s", errors[:5])
+        return None
+    return dict(block)

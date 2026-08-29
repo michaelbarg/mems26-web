@@ -1507,6 +1507,158 @@ class FiveMinSystem(BaseV9TradingSystem):
         except Exception as _de_err:
             logger.warning("[DaltonEdge] failed (non-fatal): %s", _de_err)
 
+    def _maybe_ceiling_floor_state(self) -> None:
+        """CEILING_FLOOR_STATE_V1 (Michael 2026-08-28, ב-1 of CC_SUNDAY_BUILD):
+        detect a double ceiling / double floor that FAILED TO ADVANCE.
+
+        "ברגע שנוצרה תקרה כפולה שלא הצליחה להתקדם, אני רוצה שהמערכת תזהה את
+        זה" — this method is the *detection and reporting* half only. It
+        places no order, moves no stop, blocks no entry and never touches
+        `route_setup`. The three consumers of the state (bank the long ·
+        lock the edge against new longs · flip short) are separate builds
+        behind their own flags; this exists so the state is MEASURABLE from
+        day one and so those consumers have something to read.
+
+        Wiring mirrors `_maybe_dalton_edge` deliberately (T-118 precedent):
+        called once per NEW CLOSED bar from process_bar, all-session, before
+        the Nontrend early-skip — a Nontrend label must not blind a
+        loss-preventing state. Bars come from v9_bars_5min_woodies (the
+        canonical live series per docs/SOURCE_OF_TRUTH.md) rather than
+        `self._bar_buffer`, which is capped at 20 bars — too short for the
+        24-bar structure window plus ATR-14. Tail rows younger than one slot
+        are dropped: that table also carries the CURRENT BUILDING bar (the
+        T-118 race, verified live 28.08), and confirming a ceiling on a
+        half-formed bar would be a lie.
+
+        Levels come from the Sierra TPO export (VAH/VAL, IB high/low) and
+        from the session's own RTH extremes. A level that is missing is left
+        missing — Rule 1; the detector then skips that edge source instead of
+        substituting one.
+
+        Flag: unset/"0" → immediate return, byte-identical OFF.
+              "shadow" → detect + log + ledger, publish nothing.
+              "1"/"live" → detect + log + ledger + publish the state on the
+              instance for future consumers. Neither mode trades.
+        """
+        _cf_mode = os.getenv("CEILING_FLOOR_STATE_V1", "0").lower()
+        if _cf_mode not in ("1", "true", "live", "shadow"):
+            return
+        try:
+            from backend.v9.systems.ceiling_floor_state import detect_ceiling_floor
+            from backend.v9.config_loader import load_ceiling_floor
+            from backend.v9.db.read import read_all as _cf_readN
+            from backend.v9.shared.atr import atr_5min as _cf_atr
+            import time as _cf_time
+            from zoneinfo import ZoneInfo as _cf_ZI
+
+            _cf_rows = _cf_readN(
+                "SELECT extract(epoch from ts) ets, open o, high h, low l, "
+                "close c FROM v9_bars_5min_woodies "
+                "ORDER BY ts DESC LIMIT 120", {})
+            _cf_bars = [dict(r) for r in reversed(list(_cf_rows or []))]
+            _cf_now = _cf_time.time()
+            # drop the building bar(s) — T-118 race, see docstring
+            while _cf_bars and _cf_now - float(_cf_bars[-1]["ets"]) < 300:
+                _cf_bars.pop()
+            # anti-phantom: replay/hydration bars must not raise a state
+            if not _cf_bars or (_cf_now - float(_cf_bars[-1]["ets"])) >= 600:
+                return
+
+            _cf_et = [
+                datetime.fromtimestamp(float(b["ets"]), tz=timezone.utc)
+                .astimezone(_cf_ZI("America/New_York")) for b in _cf_bars]
+            _cf_day_et = _cf_et[-1].date()
+            # session high/low = running RTH extremes of the candidate's own
+            # ET day, up to and including the candidate (no look-ahead).
+            _cf_hi = _cf_lo = None
+            for _b, _e in zip(_cf_bars, _cf_et):
+                if _e.date() != _cf_day_et or (_e.hour * 60 + _e.minute) < 570:
+                    continue  # 570 = 09:30 ET
+                _h, _l = float(_b["h"]), float(_b["l"])
+                _cf_hi = _h if _cf_hi is None else max(_cf_hi, _h)
+                _cf_lo = _l if _cf_lo is None else min(_cf_lo, _l)
+
+            _cf_tpo = {}
+            try:
+                _cf_tpo = _load_sierra_tpo() or {}
+            except Exception:
+                _cf_tpo = {}
+
+            def _cf_lvl(key):
+                v = _cf_tpo.get(key)
+                try:
+                    return float(v) if v not in (None, "") and float(v) > 0 else None
+                except (TypeError, ValueError):
+                    return None
+
+            _cf_levels = {
+                "vah": _cf_lvl("vah"), "val": _cf_lvl("val"),
+                "ib_high": _cf_lvl("ib_high"), "ib_low": _cf_lvl("ib_low"),
+                "session_high": _cf_hi, "session_low": _cf_lo,
+            }
+
+            # one state per structure per IL day (dalton_edge convention)
+            _cf_day_il = _cf_et[-1].astimezone(_cf_ZI("Asia/Jerusalem")).date().isoformat()
+            if getattr(self, "_cf_date", None) != _cf_day_il:
+                self._cf_date = _cf_day_il
+                self._cf_fired = set()
+                self.ceiling_floor_state = None  # honest reset at the day roll
+
+            _cf_st = detect_ceiling_floor(
+                _cf_bars, _cf_levels, _cf_atr(_cf_bars, period=14),
+                load_ceiling_floor("baseline"),
+                already_fired=getattr(self, "_cf_fired", set()))
+            if not _cf_st:
+                return
+            self._cf_fired.add(_cf_st["key"])
+
+            logger.warning(
+                "[CeilingFloor] %s edge=%s(%.2f) P1=%.2f P2=%.2f "
+                "confirm_level=%.2f confirm_close=%.2f confirm_bar_extreme=%.2f "
+                "bars_between=%d bars_to_confirm=%d atr=%.2f tol=%.2f ts=%s (%s)",
+                _cf_st["state"], _cf_st["edge_source"], _cf_st["edge_price"],
+                _cf_st["p1"], _cf_st["p2"], _cf_st["confirm_level"],
+                _cf_st["confirm_close"],
+                _cf_st.get("confirm_bar_low", _cf_st.get("confirm_bar_high", 0.0)),
+                _cf_st["bars_between"], _cf_st["bars_to_confirm"],
+                _cf_st["atr"], _cf_st["tol"], _cf_st["signal_bar_ts"],
+                "SHADOW" if _cf_mode == "shadow" else "published")
+
+            # Candidate Ledger: DETECTED only — `is_ui_decision` excludes
+            # DETECTED from the fire panel, so this is measurable without
+            # ever looking like a trade candidate. Direction is the IMPLIED
+            # one (a failed ceiling favours short); nothing consumes it yet.
+            _s2_ledger(
+                "DETECTED",
+                pattern="CEILING_FLOOR_STATE",
+                direction=("SHORT" if _cf_st["state"] == "CEILING_FAILED" else "LONG"),
+                signal_bar_ts=_cf_st["signal_bar_ts"],
+                variant_tag=_cf_mode,
+                reason=_cf_st["state"],
+                prices={"p1": _cf_st["p1"], "p2": _cf_st["p2"],
+                        "confirm_level": _cf_st["confirm_level"],
+                        "edge_price": _cf_st["edge_price"]},
+                extra={k: _cf_st.get(k) for k in (
+                    "edge_source", "edge_family", "bars_between",
+                    "bars_to_confirm", "confirm_bar_low", "confirm_bar_high",
+                    "confirm_close", "atr", "tol")
+                    if _cf_st.get(k) is not None},
+            )
+
+            if _cf_mode != "shadow":
+                # Published for the future consumers (bank / edge-lock /
+                # flip-short). Read via
+                # backend.v9.services.trade_context.get_ceiling_floor_state,
+                # which resolves the RUNNING app's five_min_system — the same
+                # instance backend/main.py assigns to app.state.five_min_system
+                # and that app.py / build_status_routes / shadow_routes read.
+                # It PERSISTS for the rest of the IL day: "the ceiling failed
+                # at 7782.50" has to stay true for the edge-lock, not evaporate
+                # on the next bar.
+                self.ceiling_floor_state = dict(_cf_st)
+        except Exception as _cf_err:
+            logger.warning("[CeilingFloor] failed (non-fatal): %s", _cf_err)
+
     async def process_bar(self, event) -> None:
         """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors.
 
@@ -2010,6 +2162,13 @@ class FiveMinSystem(BaseV9TradingSystem):
         # reversal — all-session (FIRST_HOUR + DAY_TYPE modes), every new
         # closed bar, before the Nontrend skip. See _maybe_dalton_edge.
         self._maybe_dalton_edge()
+
+        # ── CEILING_FLOOR_STATE_V1 (Michael 28.08, CC_SUNDAY_BUILD ב-1):
+        # double-ceiling / double-floor failure state. Detection + reporting
+        # only — no order, no stop, no entry gate. Same cadence and same
+        # placement rationale as DALTON_EDGE (all-session, every new closed
+        # bar, before the Nontrend skip). See _maybe_ceiling_floor_state.
+        self._maybe_ceiling_floor_state()
 
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
