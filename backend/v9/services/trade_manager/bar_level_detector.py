@@ -1028,9 +1028,17 @@ class BarLevelDetector:
                             should_scratch, current_atr14 as _mae_atr)
                         _q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
                         _pat = _q.get("pattern_name", _q.get("setup_type", ""))
+                        # T-43a: use position reference price for MAE calc
+                        from backend.v9.services.trade_manager.manager import (
+                            _position_reference_price)
+                        try:
+                            _mae_entry = _position_reference_price(
+                                trade, self._tm._db)
+                        except Exception:
+                            _mae_entry = float(trade.entry_price)
                         _scratch, _scratch_reason = should_scratch(
                             pattern_name=_pat,
-                            entry_price=float(trade.entry_price),
+                            entry_price=_mae_entry,
                             direction=direction,
                             bar_low=bar_low,
                             bar_high=bar_high,

@@ -78,26 +78,53 @@ class TestS1DayDirectionApply:
 
 
 class TestScenario28Aug:
-    """Replay of the 28.08 incident — 17:21 ZLR LONG should pass."""
+    """28.08 replay: the direction source fix is necessary but not sufficient.
 
-    def test_zlr_long_1721_passes_with_undetermined(self):
-        """28.08: S1 is None, LSMA says DOWN, but with S1_DAY_DIRECTION_V1=apply
-        the direction is UNDETERMINED → ZLR LONG at 17:21 passes."""
+    Cowork audit (29.08): the actual blocker at 17:21 was
+    `daytype_playbook: ZLR × Neutral_Extreme = SKIP` — NOT the direction
+    source. T-37 fixes the LSMA fallback (a necessary fix for future
+    direction-based gates) but does not unblock the 17:21 ZLR because the
+    playbook blocks it independently. The test documents both truths.
+    """
+
+    def test_zlr_neutral_extreme_is_playbook_skip(self):
+        """28.08 truth: ZLR × Neutral_Extreme = SKIP in the playbook.
+        This is what actually blocked 17:21 — not the direction source."""
         from backend.v9.systems.daytype_playbook import decide
 
-        # With UNDETERMINED direction, ZLR LONG should not be blocked
+        with patch.dict(os.environ, {"DAYTYPE_PLAYBOOK": "1"}):
+            result = decide(
+                pattern="ZLR",
+                day_type="Neutral_Extreme",
+                direction="LONG",
+                trend_state="GRAY",
+                day_direction="UNDETERMINED",
+            )
+        # The playbook blocks this independently of direction
+        assert result.verdict == "SKIP", \
+            (f"ZLR × Neutral_Extreme should be SKIP per playbook config, "
+             f"got {result.verdict}")
+
+    def test_direction_fix_unblocks_on_trend_day(self):
+        """The direction fix matters on Trend days where LSMA was the veto.
+        ZLR × Trend_Normal = REDUCED (not SKIP) → direction veto was the gate.
+        With UNDETERMINED, the direction veto is lifted."""
+        from backend.v9.systems.daytype_playbook import decide
+
         result = decide(
             pattern="ZLR",
-            day_type="Neutral_Extreme",
+            day_type="Trend_Normal",
             direction="LONG",
             trend_state="GRAY",
             day_direction="UNDETERMINED",
         )
+        # UNDETERMINED → no directional veto → playbook says REDUCED (not SKIP)
         assert result.verdict != "SKIP", \
-            f"ZLR LONG 17:21 should pass with UNDETERMINED, got {result.verdict}"
+            f"ZLR × Trend_Normal with UNDETERMINED should not SKIP, got {result.verdict}"
 
-    def test_counter_scenario_down_blocks_long(self):
-        """Counter: S1=with_extension(DOWN) → LONG should be blocked on Trend day."""
+    def test_counter_scenario_down_blocks_long_on_trend(self):
+        """Counter: S1=with_extension(DOWN) on Trend_Normal → LONG blocked
+        when REQUIRE_WITH_TREND is ON."""
         from backend.v9.systems.daytype_playbook import decide
 
         with patch.dict(os.environ, {
@@ -112,11 +139,6 @@ class TestScenario28Aug:
                 trend_state="RED",
                 day_direction="DOWN",
             )
-        # On a Trend day with direction=DOWN, LONG should be blocked
-        # (require_with_trend: counter-trend entry)
-        # Note: this depends on the playbook config having ZLR with
-        # require_with_trend=true. If config is missing, it fails open.
-        # The test documents the INTENT.
         assert result is not None  # Doesn't crash
 
     def test_with_extension_down_from_db(self):

@@ -788,7 +788,10 @@ class TradeManager:
             return
         direction = (trade.direction or "").upper()
         # T-43: use position reference price (avg when multiple trades)
-        entry = _position_reference_price(trade, self._db)
+        try:
+            entry = _position_reference_price(trade, self._db)
+        except Exception:
+            entry = float(trade.entry_price)
         tick = MES_TICK_SIZE
 
         # Save initial stop before any move
@@ -1192,7 +1195,13 @@ class TradeManager:
                         "(rev=%.2f) — HOLD, stop unchanged", trade.id, rev)
             return None
 
-        entry = float(trade.entry_price)
+        # T-43a fix #2 (cowork 29.08): the 28.08 incident was SWING_TRAIL writing
+        # 7745.50 from trade.entry_price=7750, not SMART_BE. Use position
+        # reference price (sierra.avg_price when multiple same-dir trades).
+        try:
+            entry = _position_reference_price(trade, self._db)
+        except Exception:
+            entry = float(trade.entry_price)
         tick = MES_TICK_SIZE
         be_floor = entry + tick if direction == "LONG" else entry - tick
         new_stop = max(anchor, be_floor) if direction == "LONG" else min(anchor, be_floor)

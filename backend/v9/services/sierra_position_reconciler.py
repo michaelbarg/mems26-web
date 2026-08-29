@@ -60,11 +60,13 @@ def _mismatch_block_enabled() -> bool:
 
 
 def position_mismatch_blocks_entry() -> bool:
-    if not _mismatch_block_enabled():
-        return False
     """T-43 (Michael 28.08 19:30): Σ TM.contracts == |position_qty| validation.
     Returns True when the contract count diverges — the gateway must block new
-    entries until the mismatch is resolved."""
+    entries until the mismatch is resolved.
+    Gated behind POSITION_MISMATCH_BLOCK_V1 (cowork 29.08 — default OFF until
+    ownership-aware + TTL cleanup + Michael ruling)."""
+    if not _mismatch_block_enabled():
+        return False
     return _position_mismatch_block
 
 # Idempotency: tracks (qty, avg_price) → timestamp of last placement attempt.
@@ -806,6 +808,9 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
         src = "events"
         sierra_qty = _sierra_position_qty()
     if sierra_qty is None:
+        # T-43b cleanup: no Sierra data → can't prove mismatch → clear block
+        global _position_mismatch_block
+        _position_mismatch_block = False
         return True, "no Sierra position data (state file + events file empty)"
 
     # Count TM open contracts (demo + live, not shadow)
@@ -836,9 +841,11 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                 tm_trades.append(f"#{t.id}({mode},{direction},{n}c)")
     except Exception as e:
         logger.warning("[Reconciler] TM query error: %s", e)
+        # T-43b cleanup: TM query failed → can't prove mismatch → clear block
+        _position_mismatch_block = False
         return True, f"TM query error: {e}"
 
-    global _phantom_flat_streak, _position_mismatch_block
+    global _phantom_flat_streak
     if tm_qty == sierra_qty:
         _phantom_flat_streak = 0
         if _position_mismatch_block:
@@ -938,6 +945,8 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                 _pp("phantom_heal", "\u267b\ufe0f MEMS26: %s" % _label, hmsg, priority=0)
             except Exception:
                 pass
+            # T-43b cleanup: phantom healed → mismatch resolved
+            _position_mismatch_block = False
             return True, hmsg
     elif sierra_qty != 0:
         # Sierra is definitively NOT flat — the phantom condition is genuinely

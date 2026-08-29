@@ -952,8 +952,12 @@ def get_live_expansion():
             # Also check v9_day_type_state for the Dalton instruction
             try:
                 from backend.v9.db.read import read_one as _s_read
+                # T-37 fix #5 (cowork 29.08): add date filter + freshness
+                # check. Without it, Monday morning returns Friday's row.
                 _srow = _s_read(
                     "SELECT direction FROM v9_day_type_state "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                    "(now() AT TIME ZONE 'America/New_York')::date "
                     "ORDER BY id DESC LIMIT 1", {})
                 _sdb_raw = (_srow or {}).get("direction")
                 if _sdb_raw:

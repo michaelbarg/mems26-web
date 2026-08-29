@@ -148,16 +148,15 @@ class TestPositionReferencePrice:
              f"The position avg is 7740.83 — stops must be computed from there.")
 
 
-# ── T-43b: contract mismatch blocks entries ────────────────────────────────
+# ── T-43b: contract mismatch blocks entries (behind POSITION_MISMATCH_BLOCK_V1) ──
 
 class TestContractMismatchBlock:
-    """Σ TM.contracts ≠ |position_qty| → entries blocked."""
+    """Σ TM.contracts ≠ |position_qty| → entries blocked (when flag ON)."""
 
-    def test_mismatch_sets_block(self):
-        """reconcile_position on mismatch → position_mismatch_blocks_entry()."""
+    def test_mismatch_sets_block_when_enabled(self):
+        """reconcile_position on mismatch with flag ON → blocks entry."""
         from backend.v9.services import sierra_position_reconciler as spr
 
-        # Reset
         spr._position_mismatch_block = False
         spr._phantom_flat_streak = 0
 
@@ -165,15 +164,38 @@ class TestContractMismatchBlock:
         tm = MagicMock()
         tm.get_active_trades.return_value = [trade]
 
-        # Sierra says -5 (3 in TM but sierra has 5)
         with patch.object(spr, "_sierra_state_qty", return_value=-5), \
              patch.object(spr, "_sierra_position_qty", return_value=None), \
-             patch.object(spr, "_unprotected_contracts", return_value=None):
+             patch.object(spr, "_unprotected_contracts", return_value=None), \
+             patch.dict(os.environ, {"POSITION_MISMATCH_BLOCK_V1": "1"}):
+            ok, msg = spr.reconcile_position(tm)
+            assert not ok, f"Should detect divergence, msg={msg}"
+            # Check inside the patch.dict context (env var still set)
+            assert spr.position_mismatch_blocks_entry(), \
+                "Mismatch with flag ON should block entries"
+
+    def test_mismatch_does_not_block_when_flag_off(self):
+        """Default OFF: mismatch detected but entry not blocked."""
+        from backend.v9.services import sierra_position_reconciler as spr
+
+        spr._position_mismatch_block = False
+        spr._phantom_flat_streak = 0
+
+        trade = _mk_trade(contracts=3, direction="SHORT")
+        tm = MagicMock()
+        tm.get_active_trades.return_value = [trade]
+
+        with patch.object(spr, "_sierra_state_qty", return_value=-5), \
+             patch.object(spr, "_sierra_position_qty", return_value=None), \
+             patch.object(spr, "_unprotected_contracts", return_value=None), \
+             patch.dict(os.environ, {}, clear=False):
+            # Ensure flag is OFF
+            os.environ.pop("POSITION_MISMATCH_BLOCK_V1", None)
             ok, msg = spr.reconcile_position(tm)
 
         assert not ok, f"Should detect divergence, msg={msg}"
-        assert spr.position_mismatch_blocks_entry(), \
-            "Mismatch should block entries"
+        assert not spr.position_mismatch_blocks_entry(), \
+            "Mismatch with flag OFF must NOT block entries (cowork gate)"
 
     def test_match_clears_block(self):
         """When count matches again → block cleared."""
@@ -191,18 +213,39 @@ class TestContractMismatchBlock:
             ok, msg = spr.reconcile_position(tm)
 
         assert ok, f"Should match, msg={msg}"
-        assert not spr.position_mismatch_blocks_entry(), \
-            "Match should clear entry block"
+        assert not spr._position_mismatch_block, \
+            "Match should clear the mismatch flag"
+
+    def test_early_return_no_sierra_clears_block(self):
+        """No sierra data → can't prove mismatch → block cleared."""
+        from backend.v9.services import sierra_position_reconciler as spr
+
+        spr._position_mismatch_block = True
+
+        tm = MagicMock()
+        with patch.object(spr, "_sierra_state_qty", return_value=None), \
+             patch.object(spr, "_sierra_position_qty", return_value=None):
+            ok, msg = spr.reconcile_position(tm)
+
+        assert not spr._position_mismatch_block, \
+            "No sierra data → block must be cleared (T-43b cleanup)"
 
 
 # ── T-43c: slot freed only at position_qty==0 ─────────────────────────────
+# These tests call the ACTUAL on_trade_close method on a real TradingGateway
+# instance, not a logic duplicate.
 
 class TestSlotRelease:
     """live_slot freed only when position_qty==0 AND zero protective orders."""
 
-    def _make_gateway(self):
-        """Minimal gateway with live_slot set."""
-        gw = types.SimpleNamespace()
+    def _make_gateway_instance(self):
+        """Create a minimal TradingGateway with live_slot set, mocking
+        only the parts that don't exist without a running backend."""
+        from backend.v9.gateway.trading_gateway import TradingGateway
+
+        # Patch the __init__ to avoid needing a real registry
+        with patch.object(TradingGateway, '__init__', lambda self: None):
+            gw = TradingGateway()
         gw.live_slot = {"trade_id": "851"}
         gw.demo_slot = None
         gw._daily_trades = 0
@@ -211,58 +254,57 @@ class TestSlotRelease:
         gw.cooldown = MagicMock()
         gw.ssv = MagicMock()
         gw._close_notified = set()
+        gw.shadow_trades = []
         return gw
 
     def test_slot_retained_when_position_nonzero(self):
-        """T1 partial: Sierra still holds -3 → slot stays occupied."""
-        from backend.v9.gateway.trading_gateway import TradingGateway
-
-        # We test on_trade_close by calling it directly with mocked sierra state
-        gw = self._make_gateway()
-
-        trade_close = {
-            "trade_id": 851,
-            "mode": "live",
-            "pnl_usd": 58.75,
-            "outcome": "T1_HIT",
-            "direction": "SHORT",
-        }
+        """T1 partial: Sierra still holds -3 → on_trade_close keeps slot."""
+        gw = self._make_gateway_instance()
+        assert gw.live_slot is not None, "Pre: slot must be occupied"
 
         with patch("backend.v9.services.sierra_position_reconciler._sierra_state_qty",
                    return_value=-3), \
              patch("backend.v9.services.sierra_position_reconciler._sierra_state_working",
-                   return_value=4):
-            # Call the relevant portion of on_trade_close
-            trade_id = trade_close["trade_id"]
-            if gw.live_slot and str(gw.live_slot.get("trade_id")) == str(trade_id):
-                from backend.v9.services.sierra_position_reconciler import (
-                    _sierra_state_qty, _sierra_state_working)
-                sq = _sierra_state_qty()
-                assert sq == -3
-                # Position still held → slot should NOT be freed
-                assert sq != 0, "Position is nonzero — slot must be retained"
+                   return_value=4), \
+             patch("backend.v9.services.ntfy_notify.on_close", return_value=None):
+            gw.on_trade_close({
+                "trade_id": 851, "mode": "live",
+                "pnl_usd": 58.75, "outcome": "T1_HIT",
+                "direction": "SHORT",
+            })
 
-        # Verify slot is still occupied
         assert gw.live_slot is not None, \
-            "Slot must stay occupied when Sierra position is nonzero"
+            "Slot must stay occupied when Sierra position_qty=-3 (T1 partial)"
 
     def test_slot_freed_when_position_zero(self):
-        """Full close: Sierra position_qty=0 → slot freed."""
+        """Full close: Sierra position_qty=0 → on_trade_close frees slot."""
+        gw = self._make_gateway_instance()
+
         with patch("backend.v9.services.sierra_position_reconciler._sierra_state_qty",
                    return_value=0), \
              patch("backend.v9.services.sierra_position_reconciler._sierra_state_working",
-                   return_value=0):
-            from backend.v9.services.sierra_position_reconciler import (
-                _sierra_state_qty, _sierra_state_working)
-            sq = _sierra_state_qty()
-            sw = _sierra_state_working()
-            assert sq == 0 and sw == 0, \
-                "Position flat + no working orders → slot should be freed"
+                   return_value=0), \
+             patch("backend.v9.services.ntfy_notify.on_close", return_value=None):
+            gw.on_trade_close({
+                "trade_id": 851, "mode": "live",
+                "pnl_usd": 200.0, "outcome": "T3_HIT",
+                "direction": "SHORT",
+            })
+
+        assert gw.live_slot is None, \
+            "Slot must be freed when Sierra position_qty=0 + working=0"
 
     def test_cancelled_always_frees_slot(self):
-        """CANCELLED/ORDER_FAILED always frees immediately (no position)."""
-        # This is a logic test — CANCELLED bypasses the sierra check
-        outcome = "CANCELLED"
-        force_free = outcome in ("CANCELLED", "ORDER_FAILED") or \
-            outcome.startswith("ORDER_FAILED:")
-        assert force_free, "CANCELLED must force-free the slot"
+        """CANCELLED always frees immediately — no sierra check."""
+        gw = self._make_gateway_instance()
+
+        # Don't mock sierra — CANCELLED must bypass it entirely
+        with patch("backend.v9.services.ntfy_notify.on_close", return_value=None):
+            gw.on_trade_close({
+                "trade_id": 851, "mode": "live",
+                "pnl_usd": 0.0, "outcome": "CANCELLED",
+                "direction": "SHORT",
+            })
+
+        assert gw.live_slot is None, \
+            "CANCELLED must always free the slot (no position exists)"
