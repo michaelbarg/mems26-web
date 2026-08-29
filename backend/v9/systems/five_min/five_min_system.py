@@ -785,20 +785,34 @@ class FiveMinSystem(BaseV9TradingSystem):
             )
             cums = [float(r["cumulative"]) for r in rows
                     if r.get("cumulative") is not None]
-            if len(cums) < window:
-                # A1 (map §S2-6): CVD ran on 2-3 rows 55.4% of the time,
-                # producing an artifact worth $585.  Rule 1: honest failure
-                # when the window isn't fully covered.
+            # T-41 (Michael 28.08): window resilience — allow partial coverage
+            # with tagging instead of returning None on a single missing bar.
+            # Old behavior: 1 hole in 20 bars → entire CVD reading = None →
+            # the "volume + candles" confluence cannot exist. New: accept
+            # window_min (90% of window) with an honest coverage tag.
+            import os as _t41_os
+            _window_min_pct = float(_t41_os.getenv(
+                "CVD_WINDOW_MIN_PCT", "0.9"))
+            _window_min = max(2, int(window * _window_min_pct))
+            if len(cums) < _window_min:
+                # Below minimum threshold — honest failure (Rule 1)
                 if cums:
                     logger.warning(
-                        "[S2-CVD] insufficient coverage: %d/%d rows — "
-                        "returning None (Rule 1)", len(cums), window)
+                        "[S2-CVD] insufficient coverage: %d/%d rows (min=%d) — "
+                        "returning None (Rule 1)", len(cums), window, _window_min)
                 return None
+            coverage = round(len(cums) / window, 2) if window > 0 else 0.0
+            if len(cums) < window:
+                logger.info(
+                    "[S2-CVD] T-41 partial coverage: %d/%d rows (%.0f%%) — "
+                    "proceeding with coverage tag", len(cums), window,
+                    coverage * 100)
             perbar = [cums[i] - cums[i - 1] for i in range(1, len(cums))]
             return {
                 "net_delta": cums[-1] - cums[0],
                 "perbar_deltas": perbar,
                 "cumulatives": cums,
+                "coverage": coverage,
             }
         except Exception:
             return None

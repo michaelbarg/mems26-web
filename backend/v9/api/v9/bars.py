@@ -1066,6 +1066,18 @@ def post_cumulative_delta(
     for pt in points:
         raw_ts = pt.get("t") or pt.get("ts")
         ts = _ts_from_unix(raw_ts)
+        # T-41 (Michael 28.08): normalize CVD timestamp seconds to :00.
+        # The DLL writes timestamps at :59 (end-of-bar) which misaligns with
+        # the 5-min bar grid at :00/:05/:10/... causing holes in the
+        # CVD window query. Round up: any second > 0 → next minute boundary.
+        if ts.second > 0:
+            ts = ts.replace(second=0, microsecond=0) + timedelta(minutes=1)
+            # Then snap to the 5-minute grid (e.g., :01 → :05, :04 → :05)
+            minute = ts.minute
+            remainder = minute % 5
+            if remainder != 0:
+                ts = ts + timedelta(minutes=(5 - remainder))
+            ts = ts.replace(second=0, microsecond=0)
         # B4: RTH time-gate for CVD (aligned with 5-min bars)
         if not _is_within_rth(ts):
             rth_skipped += 1

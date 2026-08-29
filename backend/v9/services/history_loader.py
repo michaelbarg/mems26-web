@@ -37,7 +37,7 @@ import logging
 import os
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -185,6 +185,28 @@ def parse_5min_bars(data: dict) -> List[Dict[str, Any]]:
     return rows
 
 
+def _normalize_cvd_ts(ts_iso: str) -> str:
+    """T-41: snap CVD timestamps to the 5-minute grid (:00/:05/:10/...).
+
+    The DLL writes CVD points at second=59 (end-of-bar tick), which misaligns
+    with the 5-min bar timestamps at :00. This causes holes in the CVD window
+    query because the WHERE ts BETWEEN :t0 AND :t1 doesn't find :59 rows.
+    """
+    try:
+        dt = datetime.fromisoformat(ts_iso.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        if dt.second > 0:
+            dt = dt.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        minute = dt.minute
+        remainder = minute % 5
+        if remainder != 0:
+            dt = dt + timedelta(minutes=(5 - remainder))
+        return dt.strftime("%Y-%m-%d %H:%M:%S.%f")
+    except Exception:
+        return ts_iso
+
+
 def parse_cvd_points(data: dict) -> List[Dict[str, Any]]:
     """cumulative_delta.json → v9_bars_cumulative_delta ingest rows."""
     rows: List[Dict[str, Any]] = []
@@ -195,6 +217,8 @@ def parse_cvd_points(data: dict) -> List[Dict[str, Any]]:
         ts_iso = _ts_iso_from_unix(pt.get("t"))
         if ts_iso is None:
             continue
+        # T-41: normalize to 5-minute grid
+        ts_iso = _normalize_cvd_ts(ts_iso)
         delta = pt.get("d")
         # R0 (2026-08-28, T-112): bar_id (chart row index) is no longer
         # written — it shifts on every chart reload and must never be a
