@@ -866,7 +866,9 @@ def get_live_expansion():
     # Michael's read of today's three failures — "they weren't built right" — is
     # exactly why: each was enabled on reasoning instead of on measurement.
     _shadow = _mode == "shadow"
-    _flag_on = _mode in ("1", "true", "yes", "on")
+    # T-37 (Michael 28.08): "apply" = live direction from System-1/IB.
+    # LSMA demoted to tiebreaker only. None early = UNDETERMINED (no veto).
+    _flag_on = _mode in ("1", "true", "yes", "on", "apply")
     try:
         import importlib as _il
         if _flag_on:
@@ -941,6 +943,38 @@ def get_live_expansion():
                     _d, _ref, _src,
                 )
             return {"dir": _d, "ref": _ref}
+        # T-37: when flag is ON and S1 has no direction yet (early session,
+        # before IB expansion), return UNDETERMINED — not None. None falls
+        # through to the LSMA fallback which vetoes wrong-side on stale data.
+        # UNDETERMINED = "no opinion yet" = NO directional veto (binary doctrine:
+        # absence of knowledge ≠ veto).
+        if _flag_on:
+            # Also check v9_day_type_state for the Dalton instruction
+            try:
+                from backend.v9.db.read import read_one as _s_read
+                _srow = _s_read(
+                    "SELECT direction FROM v9_day_type_state "
+                    "ORDER BY id DESC LIMIT 1", {})
+                _sdb_raw = (_srow or {}).get("direction")
+                if _sdb_raw:
+                    _t = str(_sdb_raw)
+                    if _t.startswith("with_extension("):
+                        _sdb = "UP" if "UP" in _t else "DOWN"
+                        import logging as _lg2
+                        _lg2.getLogger(__name__).info(
+                            "[S1DayDir] T-37 from v9_day_type_state: %s → %s",
+                            _t, _sdb)
+                        return {"dir": _sdb, "ref": f"v9_day_type_state:{_t}"}
+                    elif _t.startswith("fade_both"):
+                        # Balance day: NO directional requirement
+                        return {"dir": "UNDETERMINED", "ref": f"v9_day_type_state:{_t}"}
+            except Exception:
+                pass
+            import logging as _lg3
+            _lg3.getLogger(__name__).info(
+                "[S1DayDir] T-37 UNDETERMINED: S1 has no direction yet "
+                "(early session / no IB break) — no directional veto")
+            return {"dir": "UNDETERMINED", "ref": "s1_not_ready"}
     except Exception:
         pass
     return None
