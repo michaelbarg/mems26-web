@@ -1,0 +1,331 @@
+<title>תיק מוכנות ליום שני</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#f5f4f1; --panel:#ffffff; --panel-2:#efeee9; --line:#dcd9d1; --line-soft:#e8e6e0;
+  --ink:#1b2028; --ink-2:#4e5661; --ink-3:#7d8590;
+  --amber:#a8720d; --amber-soft:#f3e5c8; --teal:#0f6d6a; --teal-soft:#d6ebe9;
+  --up:#166b3e; --up-soft:#d9ecdf; --down:#a32d24; --down-soft:#f6dedb;
+  --warn:#8a5a08;
+  --stripe-crit:#a32d24; --stripe-high:#a8720d; --stripe-med:#0f6d6a; --stripe-low:#7d8590;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1319; --panel:#151c24; --panel-2:#1b232c; --line:#2a343f; --line-soft:#222b34;
+    --ink:#e7e9ec; --ink-2:#a9b2bd; --ink-3:#75808c;
+    --amber:#e2ac4e; --amber-soft:#33280f; --teal:#4fc4bd; --teal-soft:#10312f;
+    --up:#54c281; --up-soft:#12301f; --down:#e5756a; --down-soft:#341715;
+    --warn:#e2ac4e;
+    --stripe-crit:#e5756a; --stripe-high:#e2ac4e; --stripe-med:#4fc4bd; --stripe-low:#75808c;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1319; --panel:#151c24; --panel-2:#1b232c; --line:#2a343f; --line-soft:#222b34;
+  --ink:#e7e9ec; --ink-2:#a9b2bd; --ink-3:#75808c;
+  --amber:#e2ac4e; --amber-soft:#33280f; --teal:#4fc4bd; --teal-soft:#10312f;
+  --up:#54c281; --up-soft:#12301f; --down:#e5756a; --down-soft:#341715;
+  --warn:#e2ac4e;
+  --stripe-crit:#e5756a; --stripe-high:#e2ac4e; --stripe-med:#4fc4bd; --stripe-low:#75808c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink); direction:rtl;
+  font-family:"Assistant",-apple-system,"Segoe UI",sans-serif; font-weight:400;
+  font-size:16px; line-height:1.65; padding:0 0 72px;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 22px}
+h1,h2,h3{font-family:"Frank Ruhl Libre",Georgia,serif; text-wrap:balance; margin:0}
+h1{font-weight:900; font-size:clamp(30px,5vw,46px); line-height:1.15; letter-spacing:-.01em}
+h2{font-weight:700; font-size:clamp(21px,3vw,27px); line-height:1.25}
+h3{font-weight:700; font-size:17px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500;
+}
+
+/* ── header ── */
+header{border-bottom:1px solid var(--line); background:var(--panel); padding:34px 0 26px; margin-bottom:34px}
+.hgrid{display:flex; flex-wrap:wrap; gap:26px; align-items:flex-end; justify-content:space-between}
+.sub{color:var(--ink-2); font-size:17px; max-width:60ch; margin-top:10px}
+.verdict{
+  display:flex; flex-direction:column; gap:3px; padding:14px 20px; border-radius:4px;
+  background:var(--amber-soft); border:1px solid var(--amber); min-width:210px;
+}
+.verdict .big{font-family:"Frank Ruhl Libre",serif; font-weight:900; font-size:23px; color:var(--amber)}
+.verdict .small{font-size:13px; color:var(--ink-2); line-height:1.4}
+
+/* ── sections ── */
+section{margin-bottom:44px}
+.shead{display:flex; align-items:baseline; gap:14px; border-bottom:2px solid var(--ink); padding-bottom:8px; margin-bottom:20px; flex-wrap:wrap}
+.shead .note{font-size:13.5px; color:var(--ink-3); margin-inline-start:auto}
+
+/* ── evidence strip ── */
+.days{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
+.day{background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:14px 16px}
+.day .d{font-size:12.5px; color:var(--ink-3); letter-spacing:.04em}
+.day .v{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:24px; font-weight:600; margin:4px 0 2px}
+.day .m{font-size:12.5px; color:var(--ink-2)}
+.pos{color:var(--up)} .neg{color:var(--down)}
+.total{background:var(--up-soft); border-color:var(--up)}
+
+.claim{background:var(--panel); border:1px solid var(--line); border-inline-start:3px solid var(--teal); border-radius:4px; padding:16px 18px; margin-top:16px}
+.claim p{margin:0 0 9px} .claim p:last-child{margin:0}
+
+/* ── tables ── */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:4px; background:var(--panel)}
+table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:640px}
+th{
+  text-align:start; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:500; padding:11px 14px;
+  border-bottom:1px solid var(--line); background:var(--panel-2); white-space:nowrap;
+}
+td{padding:12px 14px; border-bottom:1px solid var(--line-soft); vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+.id{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-3); white-space:nowrap}
+.stripe{border-inline-start:3px solid var(--stripe-low)}
+.s-crit{border-inline-start-color:var(--stripe-crit)}
+.s-high{border-inline-start-color:var(--stripe-high)}
+.s-med{border-inline-start-color:var(--stripe-med)}
+
+/* chips */
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:3px; font-size:12px; font-weight:600;
+  white-space:nowrap; font-family:"IBM Plex Mono",monospace;
+}
+.c-cc{background:var(--amber-soft); color:var(--amber); border:1px solid var(--amber)}
+.c-cw{background:var(--teal-soft); color:var(--teal); border:1px solid var(--teal)}
+.c-mi{background:var(--panel-2); color:var(--ink-2); border:1px solid var(--line)}
+.c-yes{background:var(--down-soft); color:var(--down); border:1px solid var(--down)}
+.c-no{background:var(--panel-2); color:var(--ink-3); border:1px solid var(--line)}
+.c-kill{background:var(--down-soft); color:var(--down)}
+.c-keep{background:var(--up-soft); color:var(--up)}
+.c-fix{background:var(--amber-soft); color:var(--amber)}
+
+/* frequency bar */
+.bar{display:flex; align-items:center; gap:8px}
+.bar .track{flex:1; min-width:54px; height:6px; background:var(--panel-2); border-radius:3px; overflow:hidden}
+.bar .fill{height:100%; background:var(--amber); border-radius:3px}
+.bar .n{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-2); width:22px; text-align:end}
+
+/* mechanism */
+.mech{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:8px}
+.step{background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:16px 18px; position:relative}
+.step .n{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--amber); letter-spacing:.1em; font-weight:600}
+.step h3{margin:6px 0 7px}
+.step p{margin:0; font-size:14px; color:var(--ink-2)}
+.trigger{background:var(--panel-2); border:1px solid var(--line); border-radius:4px; padding:15px 18px; margin-bottom:16px}
+.trigger .mono{font-size:13.5px; color:var(--ink); line-height:2}
+
+/* timeline */
+.tl{list-style:none; margin:0; padding:0; display:grid; gap:2px}
+.tl li{display:flex; gap:16px; align-items:baseline; background:var(--panel); border:1px solid var(--line); padding:13px 16px}
+.tl li:first-child{border-radius:4px 4px 0 0} .tl li:last-child{border-radius:0 0 4px 4px}
+.tl .when{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--amber); font-weight:600; white-space:nowrap; min-width:96px}
+.tl .what{flex:1}
+.tl .what b{font-weight:600}
+
+.foot{border-top:1px solid var(--line); padding-top:18px; color:var(--ink-3); font-size:13.5px}
+a{color:var(--amber)}
+:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+@media (max-width:620px){ .verdict{min-width:0; width:100%} }
+</style>
+
+<header>
+  <div class="wrap hgrid">
+    <div>
+      <div class="eyebrow">MEMS26 · שבת 29.08 · לקראת 31.08</div>
+      <h1>תיק מוכנות ליום שני</h1>
+      <p class="sub">מה המערכת הוכיחה בשלושת ימי-האוטונומיה, מה עדיין חוסם אותה, מי מתקן מה — ומה חייב להיסגר לפני פתיחת יום שני.</p>
+    </div>
+    <div class="verdict">
+      <div class="eyebrow">מצב</div>
+      <div class="big">מותנה בשלושה</div>
+      <div class="small">שלושה פערים חוסמים־מסחר. השאר נבנה לצל. הכרעה: ראשון בערב.</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="shead">
+    <h2>הפרוטוקול: מה המערכת הוכיחה</h2>
+    <span class="note">מקור: <span class="mono">v9_trades</span> · לייב בלבד · אחרי התאמת-ברוקר</span>
+  </div>
+  <div class="days">
+    <div class="day"><div class="d">26.08 · יום ראשון אוטונומי</div><div class="v neg">−$1.25</div><div class="m">4 עסקאות · 50%</div></div>
+    <div class="day"><div class="d">27.08</div><div class="v pos">+$123.75</div><div class="m">5 עסקאות · 80%</div></div>
+    <div class="day"><div class="d">28.08</div><div class="v pos">+$348.75</div><div class="m">8 עסקאות · 75%</div></div>
+    <div class="day total"><div class="d">סך שלושת הימים</div><div class="v pos">+$471.25</div><div class="m">17 עסקאות · שיפור יומי רצוף</div></div>
+  </div>
+  <div class="claim">
+    <p><b>מה נלקח בחשבון נכון.</b> המערכת סחרה שלושה ימים ברצף בלי יד אנושית על ההדק, והגדילה רווח בכל יום. היא זיהתה נכון את כיוון-היום (ב-28.08 ירתה עם צד-השורט בבוקר וניצחה, ואת רגל-הלונג של אחה"צ סימנה בזמן), הפעילה מימושים בשלבים, והגנה על עסקה שנקלעה לצרה במקום להפסיד בה.</p>
+    <p><b>ומה שהמספרים גם אומרים, ביושר.</b> תיק-הצל — כלומר כל מה שהמערכת <em>הייתה</em> מבצעת בלי שערי-הסינון — היה שלילי כמעט בכל יום. כלומר: לא הזיהוי לבדו מרוויח, אלא הזיהוי בתוספת סינון. זו בדיוק הסיבה שכל שינוי-שער נמדד לפני שהוא נדלק, ולמה החזרנו שערים שהיו חוסמים כניסות טובות אבל לא נגענו באלה שחוסמים כניסות רעות.</p>
+    <p><b>הפער היקר של השבוע</b> אינו זיהוי אלא <em>מיקום</em>: ארבע כניסות-לונג טובות ב-28.08 בין 17:00 ל-17:35 נחסמו, ובמקומן אושרו ארבע כניסות מאוחרות בתקרה — שכולן הפסידו. הפרש-השווי המדוד: כ-32 נקודות לכניסה.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>פערים פתוחים · מי מבצע</h2>
+    <span class="note"><span class="chip c-cc">cc</span> בונה קוד · <span class="chip c-cw">cowork</span> מאמת ומדליק · <span class="chip c-mi">מייקל</span> פוסק</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>הפער</th><th>התיקון</th><th>מבצע</th><th>חוסם שני?</th></tr></thead>
+      <tbody>
+        <tr class="stripe s-crit">
+          <td class="id">T-43</td>
+          <td><b>מודל-הפוזיציה שגוי</b><br><span style="color:var(--ink-2);font-size:13.5px">סיירה מנהלת פוזיציה אחת בממוצע; המערכת חושבת שיש שתי עסקאות נפרדות. שני סטופים ישבו מעל הממוצע = הפסד בזמן רווח. בנוסף שער "עסקה-אחת-בכל-רגע" השתחרר על מימוש-חלקי.</span></td>
+          <td>מחיר-הייחוס לניהול = הממוצע של הברוקר · אימות רציף שסך-החוזים בספרים = הפוזיציה בפועל · שחרור-סלוט רק בפוזיציה אפס</td>
+          <td><span class="chip c-cc">cc</span> <span class="chip c-cw">cowork</span></td>
+          <td><span class="chip c-yes">כן</span></td>
+        </tr>
+        <tr class="stripe s-crit">
+          <td class="id">T-41</td>
+          <td><b>הוולום-המצטבר מת בזמן-אמת</b><br><span style="color:var(--ink-2);font-size:13.5px">חסר בר-CVD אחד בחלון — וכל הקריאה מבוטלת. 28 שורות מול 38 ברים. הקונפלואנס "וולום + נרות" לא יכול להתקיים.</span></td>
+          <td>תיקון החותמת והמפתח בהזנה · מילוי-חורים · חסינות לחור-בודד עם תיוג-כיסוי כן</td>
+          <td><span class="chip c-cc">cc</span></td>
+          <td><span class="chip c-yes">כן</span></td>
+        </tr>
+        <tr class="stripe s-crit">
+          <td class="id">T-37</td>
+          <td><b>הכיוון עדיין מגיע מ-LSMA</b><br><span style="color:var(--ink-2);font-size:13.5px">מערכת-1 מחזירה ריק והמערכת נופלת ל-LSMA, שמפגר בהיפוכים. זה מה שחסם את לונגי-הבוקר.</span></td>
+          <td>הפעלת הכיוון ממערכת-1/IB לפי מדידת-הצל שנצברה · LSMA יורד לשובר-שוויון · טסט שמשחזר את 28.08</td>
+          <td><span class="chip c-cc">cc</span> <span class="chip c-cw">cowork</span></td>
+          <td><span class="chip c-yes">כן</span></td>
+        </tr>
+        <tr class="stripe s-high">
+          <td class="id">T-39</td>
+          <td><b>עצירת-כיוון מוקדמת חסרה</b> — תקרה/רצפה כפולה לא עוצרת עסקה ולא מהפכת צד</td>
+          <td>ראה הפרק הבא — נבנה כבוי, נמדד, ונדלק בשלבים</td>
+          <td><span class="chip c-cc">cc</span></td>
+          <td><span class="chip c-no">צל</span></td>
+        </tr>
+        <tr class="stripe s-high">
+          <td class="id">T-40</td>
+          <td><b>אין מדד לאיכות-מיקום</b> — המערכת מאשרת כניסה שרודפת אחרי תנועה שכבר קרתה</td>
+          <td>פסילה לפי מיקום בתוך הרגל, יחס-סטופ לתנודתיות, ועומק מעבר לאזור-הערך — הכל יחסי, בקובץ-הגדרות</td>
+          <td><span class="chip c-cc">cc</span></td>
+          <td><span class="chip c-no">צל</span></td>
+        </tr>
+        <tr class="stripe s-high">
+          <td class="id">T-42</td>
+          <td><b>ספים מוחלטים בשערים ותיקים</b> — נקודות קבועות שנשברות בין ימים תנודתיים לרגועים</td>
+          <td>המרה ליחס-תנודתיות, פרמטרים בקובץ-הגדרות, מדידה פר-שער</td>
+          <td><span class="chip c-cc">cc</span></td>
+          <td><span class="chip c-no">חלקי</span></td>
+        </tr>
+        <tr class="stripe s-med">
+          <td class="id">T-88 · T-123</td>
+          <td><b>פערי-ספרים מול הברוקר</b> — מילויי-יציאה שלא נרשמו, סיבות-יציאה שגויות</td>
+          <td>תיקון יומן-המילויים · התאמה יומית אוטומטית בסגירה</td>
+          <td><span class="chip c-cc">cc</span></td>
+          <td><span class="chip c-no">לא</span></td>
+        </tr>
+        <tr class="stripe s-med">
+          <td class="id">חדש</td>
+          <td><b>חסימת-דגל ליום-מסחר</b> — הכפתור קיים בטלפון אך פג בהפעלה-מחדש, מכסה 9 שערים בלבד, ואינו קיים במחשב</td>
+          <td>הרחבה ל-ליום-מסחר עם פקיעה אוטומטית · אותם כפתורים בפאנל-המחשב · כיסוי כל השערים החוסמים · יומן-חסימות</td>
+          <td><span class="chip c-cc">cc</span> <span class="chip c-cw">cowork</span></td>
+          <td><span class="chip c-no">רצוי</span></td>
+        </tr>
+        <tr class="stripe s-low">
+          <td class="id">T-121</td>
+          <td>פסיקת-הגדלת-עסקה: אין הגדלה בלי פולבק וזיהוי מאושר</td>
+          <td>מחייב את בניית תוספת-החוזים ביום-מגמה — חסום עד שהמדידה תעבור</td>
+          <td><span class="chip c-cc">cc</span> <span class="chip c-mi">מייקל</span></td>
+          <td><span class="chip c-no">לא</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>עצירת-כיוון מוקדמת</h2>
+    <span class="note">הפסיקה שלך: "תקרה כפולה שלא מתקדמת — עוצרים ומחפשים את הצד השני"</span>
+  </div>
+  <div class="trigger">
+    <div class="eyebrow" style="margin-bottom:8px">הטריגר — בינארי, בלי אחוזי-ביטחון</div>
+    <div class="mono">
+      נגיעה בקצה (אזור-ערך עליון · שיא-סשן · קצה-שעה-ראשונה) ← נרשם שיא ראשון<br>
+      דחייה: סגירה חזרה מתחת לקצה<br>
+      נגיעה שנייה באותו אזור, בטווח רבע-תנודתיות, ואינה סוגרת מעל הראשון<br>
+      בר-אישור: סגירה מתחת לשפל שבין השיאים ← <b>כישלון-תקרה</b>
+    </div>
+  </div>
+  <div class="mech">
+    <div class="step"><div class="n">פעולה א</div><h3>לבנק את הרווח</h3><p>הסטופ נדחף מתחת לשפל בר-האישור. ברווח משמעותי — סגירה מלאה. דרך מנגנוני-היציאה המאומתים בלבד.</p></div>
+    <div class="step"><div class="n">פעולה ב</div><h3>לנעול את הקצה</h3><p>אסורה כניסה חדשה באותו כיוון מעל אותה תקרה, עד שהיא נפרצת בקבלה אמיתית. זה בדיוק מה שמנע את ארבע הקניות-לתוך-התקרה.</p></div>
+    <div class="step"><div class="n">פעולה ג</div><h3>לחמש את הצד השני</h3><p>שורט בבר-האישור עצמו — לא אחרי שהמחיר כבר ירד. סטופ מעל השיא, יעד ראשון נקודת-הערך המרכזית.</p></div>
+  </div>
+  <p style="color:var(--ink-2); font-size:14.5px; margin-top:16px">
+    שלוש הפעולות נבנות ככבויות, נמדדות מול כל הימים ההיסטוריים כולל עמלות, ונדלקות בסדר: נעילת-הקצה ראשונה (מונעת הפסד), אחריה הבנק, ולבסוף ההיפוך. <b>עוגן-האימות הוא 28.08 עצמו</b> — הכניסות בתקרה חייבות להיפסל, והשורט חייב להיפתח ברגע-הכישלון.
+  </p>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>הדגלים שחוסמים מסחר</h2>
+    <span class="note">ספירה מהליגר החי · 25–28.08</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>החוסם</th><th style="width:130px">תדירות</th><th>מה הוא עושה</th><th>פסק</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">daytype_playbook</td><td><div class="bar"><div class="track"><div class="fill" style="width:100%"></div></div><span class="n">18</span></div></td><td>סוג-היום אוסר את משפחת-התבנית</td><td><span class="chip c-fix">לתקן</span> ‏ZLR שוחרר; לבדוק את שאר התאים מול התוצאות</td></tr>
+        <tr><td class="mono">live_slot_occupied</td><td><div class="bar"><div class="track"><div class="fill" style="width:78%"></div></div><span class="n">14</span></div></td><td>עסקה חיה כבר פתוחה</td><td><span class="chip c-fix">לתקן</span> נכון כרעיון — אך משתחרר מוקדם מדי (T-43)</td></tr>
+        <tr><td class="mono">awaiting_release</td><td><div class="bar"><div class="track"><div class="fill" style="width:67%"></div></div><span class="n">12</span></div></td><td>המחיר עדיין באזור-הקיצון בלי שחרור מבני</td><td><span class="chip c-fix">לתקן</span> שומר אמיתי, אך עיוור לימי-היפוך</td></tr>
+        <tr><td class="mono">eod_entry_cutoff</td><td><div class="bar"><div class="track"><div class="fill" style="width:44%"></div></div><span class="n">8</span></div></td><td>אין כניסות ב-45 הדקות האחרונות</td><td><span class="chip c-keep">להשאיר</span></td></tr>
+        <tr><td class="mono">lsma_flat</td><td><div class="bar"><div class="track"><div class="fill" style="width:39%"></div></div><span class="n">7</span></div></td><td>אין שיפוע-מגמה</td><td><span class="chip c-kill">בוטל</span> לצמיתות ב-28.08</td></tr>
+        <tr><td class="mono">rr_hard_floor</td><td><div class="bar"><div class="track"><div class="fill" style="width:17%"></div></div><span class="n">3</span></div></td><td>יחס סיכוי-סיכון מתחת לרצפה</td><td><span class="chip c-keep">להשאיר</span></td></tr>
+        <tr><td class="mono">cold_start_guard</td><td><div class="bar"><div class="track"><div class="fill" style="width:11%"></div></div><span class="n">2</span></div></td><td>המערכת עלתה הרגע — ממתינה לברים</td><td><span class="chip c-keep">להשאיר</span></td></tr>
+        <tr><td class="mono">location_gate</td><td><div class="bar"><div class="track"><div class="fill" style="width:11%"></div></div><span class="n">2</span></div></td><td>מיקום-הכניסה לא מתאים לסוג-היום</td><td><span class="chip c-keep">להשאיר</span> — משלים את מדד-איכות-המיקום</td></tr>
+        <tr><td class="mono">direction_context</td><td><div class="bar"><div class="track"><div class="fill" style="width:6%"></div></div><span class="n">1</span></div></td><td>וטו-כיוון מבוסס-LSMA</td><td><span class="chip c-kill">בוטל</span> לצמיתות ב-28.08</td></tr>
+        <tr><td class="mono">structural_targets_wrong_side</td><td><div class="bar"><div class="track"><div class="fill" style="width:6%"></div></div><span class="n">1</span></div></td><td>כל היעדים המבניים בצד ההפוך</td><td><span class="chip c-fix">הוחרג</span> בימי-מגמה; נשאר בימי-דשדוש</td></tr>
+        <tr><td class="mono">entry_not_confirmed</td><td><div class="bar"><div class="track"><div class="fill" style="width:6%"></div></div><span class="n">1</span></div></td><td>אין בר-אישור בכיוון</td><td><span class="chip c-keep">להשאיר</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="color:var(--ink-2); font-size:14.5px; margin-top:14px">
+    <b>מצב ספר-הדגלים:</b> 214 דגלים פסוקים, כולם תואמים את מה שנפסק, וכל דגל דלוק מוכח כנקרא בקוד-הייצור. הבודק רץ לפני כל סשן ונכשל על סטייה. <b>מה שנותר לא-תקני</b> אינו "דגל שקרי" אלא ספים מוחלטים שצריכים להפוך ליחסיים — זה T-42.
+  </p>
+</section>
+
+<section>
+  <div class="shead"><h2>חסימת דגל ליום מסחר</h2><span class="note">קיים חלקית — צריך השלמה</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>יכולת</th><th>היום</th><th>הנדרש</th></tr></thead>
+      <tbody>
+        <tr><td>ביטול חוסם מהטלפון</td><td>✅ כפתור ליד כל חסימה</td><td>נשאר</td></tr>
+        <tr><td>תוקף</td><td>עד הפעלה-מחדש של המערכת</td><td><b>ליום-מסחר, עם פקיעה אוטומטית בסגירה</b></td></tr>
+        <tr><td>כיסוי</td><td>9 שערים</td><td>כל השערים החוסמים, למעט קבוצת-הבטיחות</td></tr>
+        <tr><td>מהמחשב</td><td>❌ לא קיים</td><td>אותם כפתורים בפאנל-הצד</td></tr>
+        <tr><td>תיעוד</td><td>שורת-לוג בלבד</td><td>יומן: מי חסם, מתי, ומה זה שינה באותו יום</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>לוח-זמנים עד הפתיחה</h2></div>
+  <ul class="tl">
+    <li><span class="when">שבת · היום</span><span class="what"><b>cc</b> — שלושת החוסמים: מודל-הפוזיציה, הזנת-הוולום, מקור-הכיוון. כל אחד עם טסט שמשחזר את הכשל של 28.08.</span></li>
+    <li><span class="when">שבת · ערב</span><span class="what"><b>cowork</b> — אימות עצמאי של כל תיקון: הרצת הטסטים בעצמי, קריאת הדיף, ובדיקה שהמסלול-הכבוי לא השתנה.</span></li>
+    <li><span class="when">ראשון</span><span class="what"><b>cc</b> — הבנייה-לצל: עצירת-הכיוון, איכות-המיקום, המרת-הספים, וחסימת-דגל-ליום. <b>cowork</b> — מדידה על כל הימים ההיסטוריים כולל עמלות.</span></li>
+    <li><span class="when">ראשון · ערב</span><span class="what"><b>הכרעה</b> — מה נדלק חי ומה נשאר בצל. גודל-עסקה לפי המרג'ין בפועל. <b>מייקל מאשר.</b></span></li>
+    <li><span class="when">שני · 15:40</span><span class="what">שער-הבוקר האוטומטי: בדיקת-מוכנות מלאה, קביעת גודל, ודיווח לטלפון לפני הפתיחה.</span></li>
+  </ul>
+</section>
+
+<div class="foot">
+  כל המספרים בדף נמשכו ממסד-הנתונים והלוג החי ב-29.08. מקורות: <span class="mono">v9_trades</span> · <span class="mono">gateway_decisions</span> · <span class="mono">backend.err.log</span> · <span class="mono">RULED_FLAGS</span>. הפערים המלאים, עם קובץ ושורה, נמצאים ב-<span class="mono">TASK_LOG</span> ובפקודות-העבודה.
+</div>
+
+</div>
