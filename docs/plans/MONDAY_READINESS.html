@@ -142,8 +142,8 @@ a{color:var(--amber)}
     </div>
     <div class="verdict">
       <div class="eyebrow">מצב</div>
-      <div class="big">מותנה בשלושה</div>
-      <div class="small">שלושה פערים חוסמים־מסחר. השאר נבנה לצל. הכרעה: ראשון בערב.</div>
+      <div class="big">מותנה בשבעה</div>
+      <div class="small">שבעה פערים חוסמים־מסחר אחרי סריקת-29.08. שלושה כבר נסגרו. הכרעה: ראשון בערב.</div>
     </div>
   </div>
 </header>
@@ -244,6 +244,59 @@ a{color:var(--amber)}
       </tbody>
     </table>
   </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>פערים שנוספו בסריקת 29.08</h2>
+    <span class="note">שלוש ביקורות: עצמית · דשבורד · טלפון</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>הפער</th><th>הראיה</th><th>מבצע</th><th>חוסם שני?</th></tr></thead>
+      <tbody>
+        <tr class="stripe s-crit"><td class="id">SA-4</td>
+          <td><b>פקודת-חירום מהטלפון פגה בשקט</b> — משיכת-הפקודות ישבה אחרי היציאה מענף-המנוחה</td>
+          <td>שבתות ולילות 23:30–10:00: ‏FLATTEN היה מציג "נשלחה" ולא נמשך</td>
+          <td><span class="chip c-cw">cowork</span> ✅ תוקן</td><td><span class="chip c-no">נסגר</span></td></tr>
+        <tr class="stripe s-crit"><td class="id">SA-6</td>
+          <td><b>ספר-הפסיקות הכיל רשומות כפולות סותרות</b> — 3 שערי-מסחר</td>
+          <td>מיון-מחדש היה מהפך את שלוש הפסיקות הקבועות בחזרה למצב דלוק</td>
+          <td><span class="chip c-cw">cowork</span> ✅ תוקן</td><td><span class="chip c-no">נסגר</span></td></tr>
+        <tr class="stripe s-crit"><td class="id">SA-3</td>
+          <td><b>ביטול וטו-הכיוון סגר בטעות 196 שורות</b> — כולל מסנן-ההמשך ומצפן-הכיוון, שניהם פסוקים-דלוקים</td>
+          <td>ארבעה דגלים פסוקים איבדו את מסלול-הביצוע היחיד שלהם</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-yes">כן</span></td></tr>
+        <tr class="stripe s-crit"><td class="id">SA-7</td>
+          <td><b>שער-הפתיחה הבינארי אינרטי</b> — הוא משווה למחרוזות שהייצור לא מייצר</td>
+          <td>הווטו חוסם אפס מקרים; הטסט שאישר אותו ממציא את הקלט</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-yes">כן</span></td></tr>
+        <tr class="stripe s-high"><td class="id">SA-5</td>
+          <td><b>שלושה טסטי-רגרסיה אדומים</b> — שניים מהם מקבעים פסיקה שלך מ-12.08</td>
+          <td>נשברו בשינוי-הפלייבוק ולא עודכנו</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-no">לפני הדלקה</span></td></tr>
+        <tr class="stripe s-high"><td class="id">SA-8</td>
+          <td><b>ריצוד-תווית אחרי ביטול שער-היציבות</b> — 15 שינויי-סיווג ב-35 שורות ב-28.08</td>
+          <td>הפלייבוק קורא את התווית החיה ⇒ אותו סטאפ מותר או נחסם לפי השנייה</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-yes">כן</span></td></tr>
+        <tr class="stripe s-med"><td class="id">UX-1</td>
+          <td><b>פאנל מערכת-6 מציג "אין נתונים"</b> בזמן שהמפקח מדווח תקין</td>
+          <td>אי-התאמת-חוזה בין הצד השרת לצד הלקוח</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-no">לא</span></td></tr>
+        <tr class="stripe s-med"><td class="id">UX-2</td>
+          <td><b>אפס מצבי-פוקוס בכל הפרונטאנד</b> — כולל כפתור-הסגירה ההרסני</td>
+          <td>‏grep על כל הקוד: אפס</td>
+          <td><span class="chip c-cc">cc</span></td><td><span class="chip c-no">לא</span></td></tr>
+        <tr class="stripe s-med"><td class="id">חדש</td>
+          <td><b>חלונית-נרות בטלפון</b> — תמונת-מצב ויזואלית של המחיר מול הרמות</td>
+          <td>בקשת-מייקל 29.08 · אין תלות במסחר, קל להוסיף</td>
+          <td><span class="chip c-cw">cowork</span></td><td><span class="chip c-no">רצוי</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="color:var(--ink-2); font-size:14.5px; margin-top:14px">
+    <b>שלושה תוקנו כבר, שישה נשארו.</b> ארבעה מהם חוסמי-שני. הדוחות המלאים, כולל מה שלא ניתן היה לבדוק כשהשוק סגור: <span class="mono">COWORK_SELF_AUDIT</span> · <span class="mono">UX_AUDIT_DASHBOARD</span> · <span class="mono">UX_AUDIT_MOBILE</span>.
+  </p>
 </section>
 
 <section>
