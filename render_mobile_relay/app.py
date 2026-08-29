@@ -393,7 +393,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 .num{direction:ltr;unicode-bidi:isolate;display:inline-block}
 .stale{background:#2d1214;border:1px solid #f85149;color:#f85149;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13px;display:none}
 </style></head><body>
-<h1>⚡ MEMS26 · מוניטור-כיס <span id="machine" class="tag" style="background:#1f6feb;color:#fff"></span> <span id="clock" class="dim"></span></h1>
+<h1>⚡ MEMS26 · מוניטור-כיס <span id="machine" class="tag" style="background:#1f6feb;color:#fff"></span> <span id="clock" class="dim"></span>
+ <a id="readyLink" href="/readiness" class="tag" style="color:#79c0ff;text-decoration:none;font-weight:600;white-space:nowrap">📋 תיק-מוכנות</a></h1>
 <div id="stale" class="stale">⚠ הנתונים מעופשים — המק לא דוחף עדכונים</div>
 <div class="card" style="border:1px solid #1f6feb">
  <div class="row"><span class="dim">✉️ הנחיה לקלוד (cowork + cc)</span><span id="insStatus" class="dim"></span></div>
@@ -526,6 +527,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="dim" id="health" style="text-align:center"></div>
 <script>
 const Q = location.search || '';
+/* תיק-המוכנות מאומת באותו MOBILE_ACCESS_KEY, ולכן הקישור נושא את המפתח
+   שכבר בכתובת — בלעדיו הדף היה מחזיר 401 בקליק. */
+try{document.getElementById('readyLink').href='/readiness'+Q;}catch(e){}
 const GATE_HE = {kill_switch:'מתג-חירום',session_gate_closed:'מחוץ לחלון-מסחר',eod_entry_cutoff:'סוף-יום',
 feed_watchdog:'פיד תקוע',cooldown:'צינון',suffering_side_veto:'וטו צד-סובל',duplicate_fire:'ירי-כפול',
 chop_searching:'שוק-קופצני',opening_type_gate:'שער סוג-פתיחה',daytype_playbook:'פלייבוק סוג-יום',
@@ -847,6 +851,48 @@ async function sendCmd(action){
 document.getElementById('pauseBtn').onclick=()=>sendCmd(_paused?'RESUME':'PAUSE');
 document.getElementById('flatBtn').onclick=()=>sendCmd('FLATTEN');
 </script></body></html>"""
+
+
+# ── תיק-המוכנות (מייקל 29.08: "שיהיה לינק באפליקציה ובמערכת פרונטאנד") ──
+# דף סטטי בלבד. נוצר מ-docs/plans/TASK_LOG.md ע"י scripts/gen_readiness_page.py
+# ונכתב ל-render_mobile_relay/static/readiness.html — כלומר בתוך rootDir של
+# השירות ברנדר, ולכן הוא נפרס יחד עם הקוד. אין DB, אין backend, אין מסחר.
+_READINESS_PATHS = (
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "readiness.html"),
+    # גיבוי: כשהריפו כולו זמין (ריצה מקומית), המקור הקנוני.
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "docs", "plans", "MONDAY_READINESS.html"),
+)
+
+
+@app.get("/readiness", response_class=HTMLResponse)
+@app.get("/readiness/", response_class=HTMLResponse)
+async def readiness_page(request: Request):
+    if not _page_key_ok(request):
+        return HTMLResponse(
+            "<html dir=rtl><body style='background:#0b0e14;color:#e6edf3;"
+            "font-family:-apple-system;padding:40px;text-align:center'>"
+            "<h2>🔒 נדרש מפתח-גישה</h2><p>הוסף <code>?key=…</code> לכתובת.</p>"
+            "</body></html>", status_code=401)
+    for p in _READINESS_PATHS:
+        try:
+            with open(p, "r", encoding="utf-8") as fh:
+                return HTMLResponse(fh.read())
+        except OSError:
+            continue
+    # כנות במקום 500: אם הקובץ לא נפרס — אומרים את זה, ואומרים איך מתקנים.
+    return HTMLResponse(
+        "<html dir=rtl><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        "</head><body style='background:#0b0e14;color:#e6edf3;"
+        "font-family:-apple-system;padding:32px 20px;line-height:1.7'>"
+        "<h2>📋 תיק-המוכנות לא נפרס</h2>"
+        "<p>הקובץ <code>static/readiness.html</code> אינו קיים בשירות הזה.</p>"
+        "<p class=dim style='color:#8b949e;font-size:13px'>התיקון: להריץ על המק "
+        "<code>python3 scripts/gen_readiness_page.py</code>, ואז commit+push — "
+        "רנדר פורס אוטומטית תוך ~90 שניות.</p>"
+        "<p><a href='/' style='color:#79c0ff'>← חזרה למוניטור</a></p>"
+        "</body></html>", status_code=404)
 
 
 @app.get("/api/v9/mobile", response_class=HTMLResponse)

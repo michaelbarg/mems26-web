@@ -135,12 +135,34 @@ def check() -> List[str]:
     return problems
 
 
+def _refresh_readiness() -> None:
+    """מרענן את תיק-המוכנות מהלוג — כאן, כי כאן הלוג ממילא נקרא ונבדק.
+
+    מייקל 2026-08-29: "שיהיה לך כל פעם שתיצור משימות תשים שם ותאנדקס מה
+    בוצע ומה מאורכב." הגנרטור נתלה בבודק ולא ב-EOD, כדי שהדף לא יוכל
+    להתיישן מול הלוג: כל ריצה של הבודק (וה-fire_drill מריץ אותו לפני כל
+    סשן) כותבת מחדש את שלושת היעדים.
+
+    **לעולם לא מפיל את הבודק ולא נוגע בקוד-היציאה** — תיק-המוכנות הוא
+    תצוגה; כשל בו אינו סיבה לחסום סשן-מסחר. וכל פלט הולך ל-stderr, כי
+    `--json` נצרך ע"י שער-הקדם-פתיחה ושורה נוספת ב-stdout הייתה שוברת אותו.
+    """
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import gen_readiness_page  # noqa: WPS433 — לאזי בכוונה
+        gen_readiness_page.main(["--quiet"])
+    except Exception as exc:  # pragma: no cover - תצוגה בלבד
+        print(f"(readiness page not refreshed: {type(exc).__name__}: {exc})",
+              file=sys.stderr)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
     problems = check()
+    _refresh_readiness()
     age = _last_touched_days()
     n = len(_rows(LOG.read_text(encoding="utf-8"))) if LOG.exists() else 0
 

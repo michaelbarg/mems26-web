@@ -81,7 +81,37 @@ export function SidePanel() {
           <KeyLevelsStrip />
         </div>
       </SecondaryDrawer>
+
+      {/* מייקל 29.08: "שיהיה לינק באפליקציה ובמערכת פרונטאנד". תיק-המוכנות
+          הוא דף סטטי ב-public/, שנוצר מ-docs/plans/TASK_LOG.md ע"י
+          scripts/gen_readiness_page.py. תצוגה בלבד — אין קריאת-API, אין
+          פולינג, ואין נגיעה בלוגיקת-המסחר (CLAUDE.md § Frontend Polling Floors). */}
+      <ReadinessLink />
     </div>
+  );
+}
+
+/** קישור לתיק-המוכנות (T-135). נפתח בלשונית חדשה כדי לא לאבד את הדשבורד. */
+function ReadinessLink() {
+  const [hover, setHover] = useState(false);
+  return (
+    <a
+      href="/readiness.html"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="תיק-המוכנות — פתוח / בוצע / מאורכב, נגזר מלוג-המשימות"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'block', flexShrink: 0, textAlign: 'right', direction: 'rtl',
+        padding: '4px 8px', fontSize: 9, fontWeight: 700, textDecoration: 'none',
+        color: hover ? COLORS.textPrimary : COLORS.textTertiary,
+        background: hover ? COLORS.bgSurface3 : 'transparent',
+        borderTop: `1px solid ${COLORS.borderFaint}`,
+      }}
+    >
+      📋 תיק-מוכנות ↗
+    </a>
   );
 }
 
