@@ -360,7 +360,7 @@ ruled:
   POSITION_REF_PRICE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-28", note: "T-43 תיקון-נכונות: מחיר-הייחוס לסטופ = sierra.avg_price כש->1 עסקה באותו כיוון. default ON (שימור התנהגות). 0=כיבוי → חזרה ל-entry_price פר-עסקה. killswitch ללא deploy."}
 
   # ── T-160 (cowork 30.08, פורנזיקת P&L: 11 פאנטומים = +$406.25, כולם בלי exit_price) ──
-  PNL_REQUIRES_EXIT_PRICE_V1: {expected: "unset_or_0", ruled_by: "cowork", date: "2026-08-30", note: "סגירה בלי exit_price על demo/live = pnl_usd=NULL + pnl_status=UNPRICED. כלל-1: כישלון-כן > ערך-סינתטי. phantom_reconcile כתב $406.25 רווח-פנטום ב-11 עסקאות. OFF=legacy (ספרים שגויים). הדלקה: cowork+מייקל."}
+  PNL_REQUIRES_EXIT_PRICE_V1: {expected: "1", ruled_by: "מייקל", date: " 2026-08-30", note: "סגירה בלי exit_price על demo/live = pnl_usd=NULL + pnl_status=UNPRICED. כלל-1: כישלון-כן > ערך-סינתטי. phantom_reconcile כתב $406.25 רווח-פנטום ב-11 עסקאות. OFF=legacy (ספרים שגויים). הדלקה: cowork+מייקל."}
 
   # ── פסיקת-מייקל 2026-08-30 ("מאשר" + "למעשה אני רוצה לראות סגירה בכישלון פריצה") ──
   STRUCTURE_EXIT_FAILBREAK_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-30", note: "דרגה-A: יציאה על כישלון-פריצה בכיוון הפוזיציה. אותו גלאי failed_break שמשמש לכניסות — צרכן שני (יציאה). שלוש פעולות מדורגות: MODIFY_TARGET לקו-החזרה/POC · MODIFY_STOP מעבר לבר-החזרה · FLATTEN ברווח ≥1.0R/≥0.75×ATR. op=EXIT אסור (07-13). OFF=זהה-בייט. הדלקה: cowork+מייקל."}

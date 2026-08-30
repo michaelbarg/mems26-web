@@ -1,3 +1,22 @@
+### [2026-08-30 18:40 IL] cowork-dev · ניטור-חלון (יום א') · 🔵 פסיקת T-160 נקלטה ב-18:18 — **טרם פעילה**
+
+**מצב (הכל אומת, לא מהזיכרון):** שירותים 4/4 (`backend 573` · `bridge 600` · `frontend 583` · `mobile_relay 11846`) · `health` **200 ב-1.7ms** · `backend.err.log` **0** ‏`ERROR|CRITICAL|Traceback` · `flag_guard` **221 PASS** (אומת עצמאית אחרי תיקון CC) · `task_log_guard` **PASS, 163 פריטים**.
+
+**שוק סגור — והקיפאון תקין ולא תקלה:** `/api/v9/status` → `session=WEEKEND`, `is_trading_active=false`, `sierra.status=stale (149,539s)`. תהליך Sierra **לא רץ**; כל ה-exports קפואים על `sierra_state.ts = 29.08 01:07` (נעילת-שישי). בר אחרון `28-08 23:55+03`. הגשר עצמו מצהיר `market likely closed`. **לא אזעקתי על פיד-מת — זה סוף-שבוע.**
+
+**פוזיציה:** `position_qty=0` · `working_orders=0` · `order_placement_armed=1` · `is_sim=0` · `acct_available_funds=$1,728.54`.
+⚠️ **מלכודת שנמנעה:** ‏`SELECT count(*) WHERE exit_ts IS NULL` מחזיר **19** — נראה כמו 19 פוזיציות פתוחות. פירוק לפי `state`: **6 `live/CANCELLED` + 13 `shadow/CLOSED` מ-27.07**. אפס פוזיציות פתוחות. ספירה בלי `state` היתה מייצרת אזעקת-אורפן כוזבת.
+
+**גודל:** `ruled_contracts() = 3` (‏`FIXED_CONTRACTS_3=1`, השאר 0) — ללא שינוי, כמתוכנן. המעבר ל-4 מחר ב-15:30 עם מרג'ין טרי.
+
+**🔵 הממצא היחיד — פסיקת T-160 נחתה ב-18:18, שלוש דקות אחרי הרשומה הקודמת:**
+`.env` ו-`config/RULED_FLAGS.yaml` **שניהם `mtime = 18:18:11`**. ב-YAML: `PNL_REQUIRES_EXIT_PRICE_V1` עבר מ-`expected: "unset_or_0" / ruled_by: "cowork"` ל-`expected: "1" / ruled_by: "מייקל"`. ב-`.env:602`: `PNL_REQUIRES_EXIT_PRICE_V1=1`. **זו הפסיקה שביקשתי ב-16:15 — התקבלה.**
+
+**אבל היא עדיין לא פועלת, וזה מה שצריך לדעת:** ‏`backend` ‏PID 573 עלה ב-**שבת 29.08 10:58** — ‏**31 שעות לפני** העריכה. ‏`.env` נקרא ב-boot בלבד ⇒ **התהליך הרץ עדיין מתנהג legacy** (רווח-פנטום מחושב-מהיעד). **התיקון נכנס לתוקף בריסטארט-קדם-הפתיחה של מחר.** חשיפה הלילה = **אפס**, כי השוק סגור ואין מה להיסגר.
+
+**מה לא עשיתי:** אפס ריסטארט (אסור 16:10-23:00) · לא נגעתי בדגל, בפוזיציה או בקוד · לא "החזרתי" את ה-YAML — פסיקה של מייקל אינה רגרסיה.
+**מה כן עשיתי:** ‏`RULED_FLAGS.yaml` היה **לא-מקומיט**. קומיט — אחרת `flag_guard` על `cc-imac` יראה `expected=unset_or_0` מול `.env=1` כאן ויחזור **NO-GO**. ‏`.env` הוא gitignored ⇒ **הקומיט אינו מדליק דבר**, הוא רק מיישר את הרישום למציאות. — cowork-dev
+
 ### [2026-08-30 18:15 IL] cowork-dev · ✅ אימות CC_TONIGHT — 4/5 GO · 🔴 חוסם אחד תוקן · והמספר האמיתי
 **‏T-160 ✅** — `PNL_REQUIRES_EXIT_PRICE_V1` ב-`manager.py:1678,1699` · `RULED_FLAGS:363` · ברירת-מחדל OFF · טסטים **4 passed**.
 **‏T-153 ✅** — `v9_shadow_ledger` הוא **VIEW** (‏`information_schema.tables → VIEW`), **לא טבלה רביעית** ✓ · **346 שורות** בתצוגה.
