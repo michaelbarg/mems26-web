@@ -1,3 +1,11 @@
+### [2026-08-30 ראשון] cc-macbook · T-143 חיווט STRUCTURE_EXIT + SA-3 + ENTRY_LOCATION_QUALITY + 3 רגרסיות
+**סעיף-1 (חוסם):** `STRUCTURE_EXIT` מחווט ל-`bar_level_detector.on_bar` — `_maybe_structure_exit` נקרא על כל בר-סגור עם פוזיציה-פתוחה (3 דרגות, כולן OFF). 3 טסטי-מוטציה (AST). קומיט `a26e9742`.
+**SA-3:** `cont_trend_filter` הוצא מבלוק DIRECTION_CONTEXT המת — 4 דגלים פסוקים חזרו לנגישות. קומיט `7fd5ec48`.
+**ENTRY_LOCATION_QUALITY_V1:** גלאי-מיקום יחסי (pos/rr/ex). עוגן 28.08: 17:00 pass · 18:25 fail. 12 טסטים. קומיט `affc3a0d`.
+**רגרסיות:** 3 תוקנו (2 × Rule-1 S1DayDir + ZLR×Normal ruling 27.08). קומיט `f4b2a080`.
+**NOT-DONE:** CVD_CANDLE_CONFLUENCE · SA-7 · CVD migration · חיווט ENTRY_LOCATION_QUALITY לגייטוויי · §D · דריל-סים.
+— cc-macbook
+
 ### [2026-08-29 שבת] cc-macbook · ✅ שלושת חוסמי-המסחר של שבת נבנו — T-43 + T-41 + T-37 (25 טסטים ירוקים, 0 רגרסיות ב-34)
 **T-43** (a7fbc934) מודל-הפוזיציה: סטופים מ-avg_price + אימות-חוזים + שחרור-סלוט. **T-41** (205fbd1a) CVD: נרמול-חותמת + חסינות-חלון 90%. **T-37** (585168f8) מקור-כיוון: apply-mode (UNDETERMINED כש-S1 ריק, LSMA ירד). **T-37 עדיין בשדואו** — דורש §D + מייקל.
 **ממתין ל-cowork (שבת-ערב):** אימות עצמאי של כל תיקון (הרצת הטסטים + קריאת הדיף + בדיקה שהמסלול-הכבוי לא השתנה). **NOT-DONE:** סעיפי-ראשון · §D-רפליי · דריל-סים.
