@@ -1,3 +1,12 @@
+### [2026-08-30 לילה] cc-macbook · CC_TONIGHT: T-160 + T-153 + T-159 + T-155 (4/5 משימות)
+**T-160** (`1e73d652`): PNL_REQUIRES_EXIT_PRICE_V1 — סגירה בלי exit_price = UNPRICED. דוח-אמת: trusted net = **-$495** (לא +$360). 4 טסטים + סקריפט-ביקורת.
+**T-153** (`9eb65a21`): v9_shadow_ledger VIEW + shadow_promotion_board.py + התרעת-צל-ריק.
+**T-159** (`7645a4de`): TPO TZ fix — +00:00 (לא naive). 3 טסטים.
+**T-155** (`40245190`): killswitch POSITION_REF_PRICE_V1 (default ON).
+**משימה 4:** `atr_from` לא קיים בייצור (סקריפט-מחקר בלבד). אפס צרכנים-מבולבלים.
+**NOT-DONE:** .env shadow · backfill TPO/pnl_trusted (סקריפטים מוכנים, אישור נדרש) · STATUS_BOARD.
+— cc-macbook
+
 ### [2026-08-30 ערב] cowork-dev · 🎁 ייתכן ש-`op=EXIT` כבר לא שבור · פקודת-סים ל-01:00
 **פסיקות-מייקל:** (1) *"את התיקון של ה-DLL תבצע אחרי 1 בלילה — ותבדוק אותו ותבצע בחינה עם הדמיה, כדי שלא ייווצר מצב שיש באגים על כסף לייב."* (2) *"ברור שסוחרים ואתה תעשה הכל."*
 
