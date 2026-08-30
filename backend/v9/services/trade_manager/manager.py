@@ -1665,6 +1665,12 @@ class TradeManager:
         outcome_override: when provided (e.g. "CANCELLED" for ORDER_FAILED),
         replaces the PnL-based outcome. P8 fix (2026-07-22): prevents _set_outcome
         from writing "BE" on a trade that was never actually executed.
+
+        T-160 PNL_REQUIRES_EXIT_PRICE_V1 (cowork 30.08): a close WITHOUT
+        exit_price on a demo/live trade sets pnl_usd=NULL and marks
+        pnl_status='UNPRICED'. Rule 1: honest failure > synthetic value.
+        The phantom_reconcile path was crediting target-price P&L on trades
+        that Sierra said "flat" — 11 phantom wins totaling $406.25.
         """
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
@@ -1678,6 +1684,27 @@ class TradeManager:
         trade.exit_reason = reason
         if exit_price is not None:
             trade.exit_price = exit_price
+
+        # T-160: a close without exit_price on demo/live = UNPRICED
+        _t160_on = os.environ.get(
+            "PNL_REQUIRES_EXIT_PRICE_V1", "0").lower() in ("1", "true", "yes")
+        _is_live_demo = getattr(trade, "mode", "shadow") in ("live", "demo")
+        if _t160_on and _is_live_demo and exit_price is None:
+            trade.pnl_usd = None
+            q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+            q["pnl_status"] = "UNPRICED"
+            q["pnl_unpriced_reason"] = reason
+            trade.quality = q
+            if outcome_override:
+                trade.outcome = outcome_override
+            else:
+                trade.outcome = "UNPRICED"
+            logger.warning(
+                "[TradeManager] T-160: close_trade #%d reason=%s WITHOUT "
+                "exit_price — pnl=NULL, status=UNPRICED (Rule 1)",
+                trade_id, reason)
+            self._cleanup_machine(trade_id)
+            return
 
         self._calculate_pnl(trade)
         if outcome_override:
