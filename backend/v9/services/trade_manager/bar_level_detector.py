@@ -891,6 +891,20 @@ class BarLevelDetector:
                     # W9: journal all exit/hold signals per bar (advisory, flag-gated)
                     self._system6_journal_autoloop(trade, _ts_key)
 
+                # ── STRUCTURE_EXIT (Michael 30.08, T-142): exit on structural
+                # failure. Three grades (A: failed break · B: double top · C:
+                # reversal), each behind its own flag. The pure functions in
+                # structure_exit.py return an action dict; the execution here
+                # uses the same MODIFY_STOP/MODIFY_TARGET/FLATTEN plumbing.
+                if _is_demo_live:
+                    try:
+                        self._maybe_structure_exit(
+                            trade, direction, bar_high, bar_low,
+                            float(bar_data.get("close", bar_data.get("c", 0))),
+                        )
+                    except Exception as _se_err:
+                        logger.debug("[StructureExit] error (fail-safe): %s", _se_err)
+
                 # S6 Target Approach Realize (2026-08-06): price within 1pt of
                 # target for 2+ bars + rejection → realize via FLATTEN. Flag-gated
                 # S6_TARGET_APPROACH_REALIZE_V1 (OFF). Never op=EXIT. Fail-safe.
@@ -1408,6 +1422,155 @@ class BarLevelDetector:
             dec.add_contracts, dec.direction, getattr(trade, "id", "?"),
             child_id, dec.entry, dec.stop, dec.reason,
         )
+
+    def _maybe_structure_exit(self, trade, direction, bar_high, bar_low,
+                              bar_close) -> None:
+        """STRUCTURE_EXIT (Michael 30.08, T-142): exit on structural failure.
+
+        Three grades, each behind its own env flag (OFF = byte-identical).
+        The pure functions in structure_exit.py decide; this method executes
+        via the trade_manager's verified MODIFY/FLATTEN plumbing.
+        op=EXIT is never used (broken, ruling 07-13).
+        """
+        import os as _se_os
+
+        # ── Grade-A: failed break in position direction ──
+        _se_a_mode = _se_os.getenv(
+            "STRUCTURE_EXIT_FAILBREAK_V1", "0").lower()
+        if _se_a_mode in ("1", "true", "live", "shadow"):
+            try:
+                from backend.v9.services.trade_manager.structure_exit import (
+                    should_exit_on_failbreak)
+                from backend.v9.systems.failed_break import detect_failed_break
+
+                # Run the SAME detector the entry system uses
+                _se_bars = []
+                try:
+                    from backend.v9.db.read import read_all as _se_read
+                    _se_rows = _se_read(
+                        "SELECT high h, low l, close c, open o "
+                        "FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT 14", {})
+                    _se_bars = [dict(r) for r in reversed(list(_se_rows or []))]
+                except Exception:
+                    pass
+
+                if len(_se_bars) >= 3:
+                    # Get levels for the failed break detector
+                    _se_tpo = {}
+                    try:
+                        from backend.v9.systems.five_min.five_min_system import (
+                            _load_sierra_tpo)
+                        _se_tpo = _load_sierra_tpo() or {}
+                    except Exception:
+                        pass
+                    _se_vah = float(_se_tpo.get("vah") or 0) or None
+                    _se_val = float(_se_tpo.get("val") or 0) or None
+
+                    _se_fb = None
+                    if _se_vah and _se_val:
+                        _se_fb = detect_failed_break(
+                            _se_bars, _se_vah, _se_val,
+                            edge_label="VA",
+                            already_fired=getattr(self, "_se_fired", None),
+                        )
+
+                    if _se_fb:
+                        from backend.v9.shared.atr import atr_5min as _se_atr
+                        _se_atr_val = _se_atr(_se_bars, period=14)
+                        _se_result = should_exit_on_failbreak(
+                            trade_direction=direction,
+                            trade_entry_price=float(trade.entry_price),
+                            trade_stop=float(trade.stop) if trade.stop else None,
+                            trade_t1_hit=trade.t1_hit_ts is not None,
+                            bar_high=bar_high,
+                            bar_low=bar_low,
+                            bar_close=bar_close,
+                            failed_break=_se_fb,
+                            atr=_se_atr_val,
+                        )
+                        if _se_result:
+                            _se_key = f"SE_A_{trade.id}_{_se_fb.get('type', '')}"
+                            if not hasattr(self, "_se_fired"):
+                                self._se_fired = set()
+                            if _se_key not in self._se_fired:
+                                self._se_fired.add(_se_key)
+                                logger.warning(
+                                    "[StructureExit] GRADE-A: trade %d %s — %s",
+                                    trade.id, direction, _se_result["reason"])
+                                if _se_a_mode != "shadow":
+                                    # EXECUTE the action
+                                    if _se_result.get("flatten"):
+                                        try:
+                                            from backend.v9.services.sierra_command import (
+                                                write_flatten_account)
+                                            write_flatten_account(
+                                                trade_id=str(trade.id),
+                                                source="structure_exit_failbreak",
+                                                reason=_se_result["reason"])
+                                        except Exception as _fl_err:
+                                            logger.critical(
+                                                "[StructureExit] FLATTEN FAILED: %s",
+                                                _fl_err)
+                                    else:
+                                        # Tighten stop
+                                        new_stop = _se_result["new_stop"]
+                                        self._tm._emit_modify_stop(
+                                            trade, new_stop)
+                                        # Pull target
+                                        new_target = _se_result.get("new_target")
+                                        if new_target is not None:
+                                            self._tm._emit_modify_target(
+                                                trade, new_target)
+            except Exception as _se_a_err:
+                logger.debug("[StructureExit] grade-A error: %s", _se_a_err)
+
+        # ── Grade-B: double ceiling/floor → FLATTEN ──
+        _se_b_mode = _se_os.getenv(
+            "STRUCTURE_EXIT_DOUBLE_V1", "0").lower()
+        if _se_b_mode in ("1", "true", "live", "shadow"):
+            try:
+                from backend.v9.services.trade_manager.structure_exit import (
+                    should_exit_on_double_top)
+                # Read the ceiling/floor state from the five_min_system instance
+                _se_cfs = None
+                try:
+                    from backend.v9.services.trade_context import (
+                        get_ceiling_floor_state)
+                    _se_cfs = get_ceiling_floor_state()
+                except Exception:
+                    pass
+                _se_b_result = should_exit_on_double_top(
+                    trade_direction=direction,
+                    ceiling_floor_state=_se_cfs,
+                    grade_a_fired=bool(
+                        getattr(self, "_se_fired", set()) &
+                        {f"SE_A_{trade.id}_{t}"
+                         for t in ("FB_HIGH_VA", "FB_LOW_VA",
+                                   "FB_HIGH_SESSION", "FB_LOW_SESSION")}),
+                )
+                if _se_b_result:
+                    _se_b_key = f"SE_B_{trade.id}"
+                    if not hasattr(self, "_se_fired"):
+                        self._se_fired = set()
+                    if _se_b_key not in self._se_fired:
+                        self._se_fired.add(_se_b_key)
+                        logger.warning(
+                            "[StructureExit] GRADE-B: trade %d %s — %s",
+                            trade.id, direction, _se_b_result["reason"])
+                        if _se_b_mode != "shadow":
+                            try:
+                                from backend.v9.services.sierra_command import (
+                                    write_flatten_account)
+                                write_flatten_account(
+                                    trade_id=str(trade.id),
+                                    source="structure_exit_double",
+                                    reason=_se_b_result["reason"])
+                            except Exception as _fl_err:
+                                logger.critical(
+                                    "[StructureExit] FLATTEN (grade-B) FAILED: %s",
+                                    _fl_err)
+            except Exception as _se_b_err:
+                logger.debug("[StructureExit] grade-B error: %s", _se_b_err)
 
     def _maybe_trend_upgrade_add(self, trade, bar_high, bar_low) -> None:
         """TREND_UPGRADE_ADD_V1 (Michael ruling 27.08 19:55 §12; doctrine
