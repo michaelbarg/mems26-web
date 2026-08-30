@@ -4,15 +4,15 @@
 |-------|-------|
 | Mode | demo |
 | Direction | LONG |
-| System | S<MagicMock name='mock.query().filter().first().firing_system' id='140206577803664'> |
-| Entry | 7500.0 @ <MagicMock name='mock.query().filter().first().entry_ts' id='140206578210128'> |
-| Exit | 7493.0 @ 2026-08-26 14:24:44.646907+00:00 |
+| System | S<MagicMock name='mock.query().filter().first().firing_system' id='140656102601680'> |
+| Entry | 7500.0 @ <MagicMock name='mock.query().filter().first().entry_ts' id='140656098469056'> |
+| Exit | 7493.0 @ 2026-08-30 05:13:18.429178+00:00 |
 | Stop | 7493.0 |
 | PnL | $-105.0 (-1.0R) |
 | Exit Reason | STOP_HIT |
 
 ## Day Type
-- At entry: **<MagicMock name='mock.query().filter().first().day_type_at_entry' id='140206578227424'>**
+- At entry: **<MagicMock name='mock.query().filter().first().day_type_at_entry' id='140656098519120'>**
 - EOD truth: **UNKNOWN**
 - Mismatch: NO
 
@@ -29,6 +29,7 @@
   - leg: 0
   - location: 0
   - opening_conf: 0
+  - cvd_directionality: 0.208
   - delta: 0
   - noon_penalty: 0
   - late_zlr: 0
@@ -38,4 +39,4 @@
 **NORMAL_NOISE**: Acceptable loss — no structural issue detected
 
 ---
-*Generated: 2026-08-26T14:24:44.666640+00:00 | POST_MORTEM_V1*
+*Generated: 2026-08-30T05:13:18.442313+00:00 | POST_MORTEM_V1*

@@ -4,12 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-29 03:59 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-29 21:59 ET
 events:
-  - date: 2026-08-28
-    time_et: "20:00"
-    name: "Jackson Hole Symposium"
-    severity: orange
   - date: 2026-08-31
     time_et: "10:30"
     name: "Dallas Fed Manufacturing Index"
@@ -192,11 +188,11 @@ events:
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Initial Jobless Claims"
+    name: "Imports"
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Imports"
+    name: "Initial Jobless Claims"
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
@@ -204,11 +200,11 @@ events:
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Balance of Trade"
+    name: "Fed Waller Speech"
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Fed Waller Speech"
+    name: "Balance of Trade"
     severity: orange
   - date: 2026-09-03
     time_et: "09:45"
