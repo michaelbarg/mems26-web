@@ -1,3 +1,61 @@
+### [2026-08-30 19:45 IL] cowork-dev · ניטור-חלון (יום א') · 🟢 תקין · 🔵 **ריסטארט ב-19:31 שלא אני עשיתי ⇒ T-160 עלה לתוקף** · 🔵 מרג'ין קפץ ל-$2,881.94
+
+**‏🔵 הממצא המרכזי — הבקאנד עלה מחדש ב-19:31:26, ‏5 דקות לפני הריצה הזו. אני לא עשיתי אותו.**
+זו יציאה **נקייה ומכוונת**, לא קריסה — הראיה הגולמית מ-`/tmp/backend.err.log` (השורות שלפני ה-boot):
+```
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-08-30 19:31:26 [INFO] [mems26] [Shutdown] WAL checkpoint starting
+2026-08-30 19:31:26 [INFO] [mems26] [Shutdown] WAL checkpoint complete — clean exit
+INFO:     Finished server process [573]
+...
+[env_loader] applied 272 vars from .../.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 ...
+2026-08-30 19:31:29 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=69924 commit=fd672554
+```
+‏`launchctl print gui/$UID/com.mems26.backend` → `state = running · runs = 2 · pid = 69924`.
+‏`ps -o lstart -p 69924` → `Sun Aug 30 19:31:26 2026`.
+**ייחוס:** ‏`SIGTERM`+checkpoint-נקי = פעולה יזומה (‏`launchctl kickstart -k` או עצירה ידנית), **לא** `KeepAlive` אחרי קריסה. אין קומיט של cc ואין שורת-claim ב-LIVE_CHANNEL שמלווים אותו ⇒ ההסבר הסביר הוא **מייקל עצמו**. **אני לא מבצע ולא מבטל ריסטארט בחלון הזה** — רק מתעד ומאמת את התוצאה.
+
+**‏✅ התוצאה — פסיקת T-160 של מייקל פעילה מעכשיו (זה מבטל את מה שכתבתי ב-18:40 וב-19:10):**
+| מדד | לפני (pid 573, boot שבת 10:58) | אחרי (pid 69924, boot 19:31) |
+|---|---|---|
+| ‏`env_loader` vars | ‏267 | **272** |
+| ‏`PNL_REQUIRES_EXIT_PRICE_V1` | ב-`.env` בלבד, **לא בתהליך** | **בתהליך** |
+| ‏`POSITION_REF_PRICE_V1` | כנ"ל | **בתהליך** |
+```
+$ python3 scripts/flag_guard.py | grep -E "PNL_REQUIRES_EXIT_PRICE|POSITION_REF_PRICE"
+  ✓ PNL_REQUIRES_EXIT_PRICE_V1: expected=1 actual=1
+  ✓ POSITION_REF_PRICE_V1: expected=1 actual=1
+FLAG-GUARD: PASS — all 221 ruled flags match.
+  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+```
+‏**התהליך עלה אחרי עריכת-18:18 ⇒ ה-`.env` שנקרא הוא זה שמכיל את הפסיקה.** מסלול הרווח-הסינתטי סגור מעכשיו, לא ממחר.
+
+**‏🔵 מרג'ין — קפיצה שצריך לדעת עליה לפני שער-מחר:**
+```
+sierra_state.ts = 1788107953 → 2026-08-30 19:39:13 (טרי, 0.2 דק')
+acct_available_funds = 2881.94 · acct_cash_balance = 2881.94 · acct_account_value = 2881.94
+acct_ok = 1 · acct_is_sim = 0 · acct_daily_pl = 0.0 · acct_under_margin = 0 · acct_trading_disabled = 0
+```
+ב-18:40 דיווחתי **$1,728.54** — אבל זו הייתה קריאה **קפואה מנעילת-שישי** (‏`sierra_state.ts = 29.08 01:07`, סיירה לא רצה). סיירה עלתה ב-19:07 ⇒ **זו הקריאה הטרייה הראשונה מאז**. **מה אני לא יודע ולא אמציא:** אין ב-DB טבלת-היסטוריית-חשבון (‏`information_schema` → אפס עמודות `available_funds`/`cash_balance`) ⇒ **לא ניתן לקבוע** מתי ולמה השתנה. החשבון משותף (‏37138283) ⇒ תנועה בלי עסקה שלנו היא לגיטימית ולא חריגה.
+**נגזרת ל-T-34:** ‏$2,881.94 ≫ ‏$1,595 ⇒ **4 חוזים** יעברו בנוחות בשער-מחר 15:30. **אפס פעולה עכשיו** — השער יקרא מרג'ין טרי משלו; אני לא מכריע גודל מקריאה של יום-א'. הגודל כרגע נשאר **3** (`ruled_contracts()=3`).
+
+**‏✅ בונוס — סופת-ה-ERROR שחזיתי ב-19:10 **לא תתרחש**, והריסטארט הוא הסיבה:**
+```
+$ awk '/logging OK .* pid=69924/{f=1} f' /tmp/backend.err.log | grep -Eic "error|critical|traceback"
+0
+```
+ב-19:10 העריכה שלי הייתה "~20k שורות ERROR עד הפתיחה". הריסטארט אִיפֵּס את `_ts_gate_last_newest` בזיכרון-התהליך ⇒ ‏`bars/5min` כבר לא נראה "advancing" ⇒ עבר מענף-ה-REJECT (‏ERROR) לענף ה-non-advancing (‏WARNING). **אפס ERROR/CRITICAL/Traceback מאז ה-boot.** התחזית שלי הייתה נכונה-בקוד ושגויה-בתוצאה; מתקן אותה כאן.
+
+**מצב שאר-המערכת (אומת עכשיו, לא מהזיכרון):**
+- **שירותים 4/4:** ‏`backend 69924` · `bridge 600` · `frontend 728` · `mobile_relay 11846`. ‏`health` → `{"status":"ok","version":"v9.0.0"}`.
+- **פוזיציה:** ‏`position_qty=0` · `orders=0` · `is_sim=0`. ‏DB: ‏`exit_ts IS NULL GROUP BY state` → `CLOSED 13 · CANCELLED 6` · **אפס `OPEN`**. ⚠️ המלכודת של 18:40 חזרה — ספירה בלי `state` הייתה נותנת "19 פוזיציות פתוחות" ואזעקת-אורפן כוזבת.
+- **פיד:** בר אחרון `2026-08-28 23:55+03`, גיל **43.7h** — **תקין, לא תקלה**; גלובקס נפתח **01:00 IL**. הגשר דוחף, השער חוסם re-push של ברים שכבר במסד — אפס אובדן-נתונים (שתי הטבלאות זהות בקצה).
+- **טלפון:** **אפס ממתינות.** הודעת-מייקל אחרונה `2026-08-28T14:31:25Z` (‏`1759f960`), נענתה; ‏36 מענים אחריה.
+- **‏cc:** קומיטים אחרונים 17:33–18:07 (‏T-160/T-153/T-155/T-159). אפס מאז. תור-הלילה נפתח 23:00, **דדליין-claim 23:20 עומד**.
+
+**מה לא עשיתי:** אפס ריסטארט (לא שלי — ראה לעיל) · לא נגעתי בדגל, ב-`.env`, בפוזיציה או בקוד · לא "החזרתי" את הריסטארט ולא הפכתי את פסיקת-מייקל. **מה כן:** קומיט `news_calendar.yaml` (רענון-אוטומטי של ה-boot) כדי להשאיר עץ נקי ל-`pull --rebase` של המתוזמנת הבאה. — cowork-dev
+
 ### [2026-08-30 19:10 IL] cowork-dev · ניטור-חלון (יום א') · 🟢 תקין · 🔵 סיירה עלתה ב-19:07 → רעש-שער-TS בזרם-הלגסי (שפיר)
 
 **מצב (הכל אומת עכשיו, לא מהזיכרון):** `health` **200 ב-2.4ms** · backend PID 573 uptime **115,710s (32.1h)** · שירותים: `backend 573` · `bridge 600` · `frontend 728` · `mobile_relay 11846` · `flag_guard` **221/221 PASS** + LIVENESS.
