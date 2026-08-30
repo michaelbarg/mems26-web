@@ -356,6 +356,9 @@ ruled:
   # "0" (חייב להופיע ב-.env עם הערך 0) לבין unset_or_0 (לא-מוגדר או 0). הדגל אינו
   # ב-.env ואסור לי לגעת בו ⇒ "0" מייצר NO-GO שקרי. unset_or_0 הוא הביטוי המדויק
   # לאותה כוונה, והקונבנציה של כל דגל-חדש-כבוי בקובץ (VA_FADE_V1, TREND_UPGRADE_ADD_V1).
+  # ── T-155 (cowork 30.08: _position_reference_price רץ בלי killswitch) ──
+  POSITION_REF_PRICE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-28", note: "T-43 תיקון-נכונות: מחיר-הייחוס לסטופ = sierra.avg_price כש->1 עסקה באותו כיוון. default ON (שימור התנהגות). 0=כיבוי → חזרה ל-entry_price פר-עסקה. killswitch ללא deploy."}
+
   # ── T-160 (cowork 30.08, פורנזיקת P&L: 11 פאנטומים = +$406.25, כולם בלי exit_price) ──
   PNL_REQUIRES_EXIT_PRICE_V1: {expected: "unset_or_0", ruled_by: "cowork", date: "2026-08-30", note: "סגירה בלי exit_price על demo/live = pnl_usd=NULL + pnl_status=UNPRICED. כלל-1: כישלון-כן > ערך-סינתטי. phantom_reconcile כתב $406.25 רווח-פנטום ב-11 עסקאות. OFF=legacy (ספרים שגויים). הדלקה: cowork+מייקל."}
 

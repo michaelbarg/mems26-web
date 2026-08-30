@@ -92,6 +92,12 @@ def _zlr_mgmt_enabled() -> bool:
     return os.environ.get("ZLR_MGMT_V1", "0").strip().lower() in ("1", "true", "yes")
 
 
+def _position_ref_price_enabled() -> bool:
+    """T-155 killswitch (cowork 30.08): default ON (preserves T-43 behavior).
+    Set POSITION_REF_PRICE_V1=0 to revert to per-trade entry_price."""
+    return os.environ.get("POSITION_REF_PRICE_V1", "1").lower() not in ("0", "false", "no", "off")
+
+
 def _position_reference_price(trade, db_session) -> float:
     """T-43 (Michael 28.08 19:30): when Sierra manages a net position with an
     averaged entry, the reference price for stop management must be the broker's
@@ -110,6 +116,9 @@ def _position_reference_price(trade, db_session) -> float:
          as a local approximation (honest fallback, not synthetic truth).
     """
     entry = float(trade.entry_price)
+    # T-155: killswitch — OFF reverts to per-trade entry_price
+    if not _position_ref_price_enabled():
+        return entry
     direction = (getattr(trade, "direction", "") or "").upper()
     if direction not in ("LONG", "SHORT"):
         return entry
