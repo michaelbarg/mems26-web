@@ -313,7 +313,11 @@ class TPOHistorySnapshotter:
         utc = et.astimezone(UTC)
         slot_minute = (utc.minute // 30) * 30
         slot_start_utc = utc.replace(minute=slot_minute, second=0, microsecond=0)
-        return slot_start_utc.strftime("%Y-%m-%d %H:%M:%S")
+        # T-159 TZ fix (cowork 30.08): the old format was naive ("%Y-%m-%d %H:%M:%S")
+        # which PG timestamptz interprets in the session TZ (Israel +03), adding
+        # a +3h shift. Use ISO with +00:00 so PG stores the correct UTC instant.
+        # Median staleness drops from 182min to ~15min.
+        return slot_start_utc.strftime("%Y-%m-%d %H:%M:%S+00:00")
 
     def next_boundary_utc(self, *, ref_et: Optional[datetime] = None) -> datetime:
         """Next 30-min ET wall-clock boundary, returned in UTC for sleep math."""
