@@ -18,6 +18,16 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 EXPORT = os.path.expanduser("~/SierraChart_Data/v9_export")
 
+# T-161 (2026-08-30): הדוקסטרינג מבטיח "Postgres מקומי" — אבל הסקריפט מעולם לא
+# טען את .env, ובלי DATABASE_URL ‏backend/v9/db/read.py נופל ל-SQLite
+# (data/mems26_local.db — מראה בת-28.08). כאן זה חמור במיוחד: הסקריפט **כותב**
+# את daily_report.json שהכיס קורא ⇒ ריצת-CLI בלי env הייתה דורסת את כרטיס-הטלפון
+# בדוח-אפס/מיושן. קונבנציה כמו scripts/fire_drill.py; ממוגן מפני ייבוא.
+if __name__ == "__main__" or os.getenv("DAILY_REPORT_LOAD_ENV", "0") == "1":
+    from scripts.flag_guard import parse_env  # noqa: E402
+    for _k, _v in parse_env(str(REPO / ".env")).items():
+        os.environ.setdefault(_k, _v)
+
 # ── central ops log (N12) — GUARDED: logging must never break the report
 try:
     from scripts.ops_log import log_event

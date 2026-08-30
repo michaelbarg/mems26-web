@@ -14,7 +14,18 @@ import os
 import sys
 
 # Bootstrap: ensure the project root is on sys.path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+# T-161 (2026-08-30): בלי טעינת .env אין DATABASE_URL, ו-backend/v9/db/read.py
+# נופל ל-SQLite (data/mems26_local.db — מראה בת-28.08) ⇒ הדוח הראה
+# **0 עסקאות / phantom $0.00** במקום 46 / +$855. מסוכן כפליים: ‏--apply על
+# המסלול השבור מסמן **כלום** ונראה "נקי". קונבנציה כמו scripts/fire_drill.py;
+# ממוגן כך שייבוא המודול לא ירעיל את סביבת-התהליך.
+if __name__ == "__main__" or os.getenv("T160_AUDIT_LOAD_ENV", "0") == "1":
+    from scripts.flag_guard import parse_env  # noqa: E402
+    for _k, _v in parse_env(os.path.join(ROOT, ".env")).items():
+        os.environ.setdefault(_k, _v)
 
 
 def _connect():

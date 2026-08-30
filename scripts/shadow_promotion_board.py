@@ -13,7 +13,21 @@ import os
 import sys
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+# T-161 (2026-08-30): הלוח קורא מה-DB, אבל לא טען את .env — ובלי DATABASE_URL
+# ‏backend/v9/db/read.py נופל ל-SQLite, שלא יודע לפרסר את ה-SQL של Postgres שכאן
+# (‏"near '7 days': syntax error") ⇒ read_all מחזיר [] בשקט והלוח מדווח
+# **אפס-כוזב** (0 במקום 146). חמור יותר: ‏--alert על המסלול השבור יורה
+# התרעת-טלפון שקרית "צל ריק" בכל לילה. זו מחלקת-הכשל של sot_health (SQLite-stale
+# ⇒ 🔴 כוזב) שמתועדת ב-CLAUDE.md.
+# הקונבנציה זהה ל-scripts/fire_drill.py; ממוגן כך שייבוא המודול (טסטים/כלים)
+# לעולם לא ירעיל את סביבת-התהליך.
+if __name__ == "__main__" or os.getenv("SHADOW_BOARD_LOAD_ENV", "0") == "1":
+    from scripts.flag_guard import parse_env  # noqa: E402
+    for _k, _v in parse_env(os.path.join(ROOT, ".env")).items():
+        os.environ.setdefault(_k, _v)
 
 
 def _read():
