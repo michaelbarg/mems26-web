@@ -1,5 +1,70 @@
 
 
+### [2026-08-31 00:05 IL] cowork-night · ✅ **תור-הלילה הושלם** · 🔴 **הממצא: הכלי שאמור לשפוט את יום-הצל של היום היה עיוור**
+
+**הפריט שהצדיק את כל הלילה.** `scripts/shadow_promotion_board.py` — הלוח שאמור להכריע הערב מי עולה ללייב מחר — החזיר אפס-כוזב:
+
+```
+$ python3 scripts/shadow_promotion_board.py
+[db.read] read_all failed: (sqlite3.OperationalError) near "'7 days'": syntax error
+## Last 7 days: 0 raw events, 0 unique
+```
+
+**שורש, נקרא בקוד ולא מהזיכרון:** `backend/v9/db/session.py:12` הוא `os.getenv("DATABASE_URL", "sqlite:///./data/mems26_local.db")`, והסקריפט **לא טען `.env` כלל** ⇒ נפל ל-SQLite, ו-`read_all` בולע את השגיאה ומחזיר `[]`. זו **מחלקת-הכשל של `sot_health`** המתועדת ב-CLAUDE.md — ולמעשה **חזרה של תקלה מ-2026-06-07** שההערה מעל `DATABASE_URL` ב-`.env` כבר מתעדת מילה-במילה (*"a restart that bypassed start_all.sh came up without DATABASE_URL and fell back to the old corrupt SQLite"*).
+
+```
+$ env -u DATABASE_URL python3 scripts/shadow_promotion_board.py     # אחרי התיקון
+## Last 7 days: 146 raw events, 89 unique
+| SYSTEM7_SCORE | 73 | — | +43.29 |
+| TREND_STEP_ENTRY_V1 | 73 | — | +0.00 |
+```
+
+**🪤 שתי החמרות שהסריקה חשפה, ושתיהן גרועות מהתסמין המקורי:**
+1. `data/mems26_local.db` **קיים, 446MB, mtime 28.08 14:23** — מראה **מיושן**, לא ריק. הלוח "ניצל" רק כי ה-SQL שלו הוא Postgres-בלבד ולכן **שגה בקול**; אח עם SQL תואם-SQLite יחזיר **נתוני-28.08 בשקט**.
+2. `shadow_promotion_board.py --alert` על המסלול השבור **יורה התרעת-טלפון שקרית "צל ריק"** בכל לילה.
+
+**שני אחים נושאי-משקל תוקנו באותה קונבנציה** (`parse_env`+`setdefault` כמו `fire_drill.py`, ממוגן ב-`__main__` כדי שייבוא לא ירעיל טסטים — אומת `GUARD OK`):
+
+```
+$ env -u DATABASE_URL python3 scripts/t160_pnl_trust_audit.py --report
+לפני:  Total trades: 0    Delta (phantom): $+0.00
+אחרי:  Total trades: 46   net: $+360.00 / Trusted: 18 ($-495.00) / Untrusted: 28 ($+855.00)
+```
+`--apply` על המסלול השבור היה מסמן **כלום** ונראה "נקי". ו-`gen_daily_report.py` — שהדוקסטרינג שלו מבטיח "Postgres מקומי" — **כותב** את `daily_report.json` שכרטיס-הטלפון קורא ⇒ ריצת-CLI בלי env הייתה דורסת אותו בדוח מיושן. commit `d57eb273`. **8 אחים נותרו (T-162)** — כולם כלי-מחקר/רפליי, לא נתיב-שער.
+
+**✅ T-153 נסגר — אבל בהיקף מתוקן.** cc סיפק ליגר+לוח+התרעה; אני השלמתי את `.env`. **אימתתי בקוד ולא בהנחה:**
+
+| דגל | מקבל `shadow`? | סוחר? | פעולה |
+|---|---|---|---|
+| `CEILING_FLOOR_STATE_V1` | ✅ | ❌ *"Neither mode trades"*, אפס `route_setup`/`MODIFY_STOP`/`FLATTEN`/`op=EXIT` (טסט-AST) | ✅ `=shadow` |
+| `VA_FADE_V1` | ✅ | ❌ קורא `route_setup`, אבל `build_va_fade_setup` כופה `metadata.shadow_only=True` ו-`trading_gateway.py:3545` קורא **אותו נתיב מקונן** ומחזיר לפני ניתוב | ✅ `=shadow` |
+| `LEG_REPLACES_SUSTAINED_V1` | ❌ רק `("1","true","yes")` | — | 🔴 **no-op שקט** — נשאר כבוי |
+| `TREND_UPGRADE_ADD_V1` | ❌ רק `("1","true","yes")` | מוסיף חוזים | 🔴 דורש sign-off — נשאר כבוי |
+
+⚠️ **תיקון-היקף מוצהר:** החוסם תואר כ-"4 דגלים חסרים" — בפועל **2**. לשניים האחרים `=shadow` היה **נראה כמו הדלקה בלי למדוד דבר** — בדיוק סוג הדיווח-שקר שהלילה הזה נועד למנוע. הותקן `tests/v9/regression/test_va_fade_shadow_only.py` (5/5) שנועל את **שני חצאי** חוזה-ה-`shadow_only`, כי הוא לא היה מכוסה באף טסט. commit `3542e94c`, snapshot `20260830T202351Z`.
+
+**🟠 T-158 — ה-TODO נוטרל, אבל ההנחה שבמשימה הופרכה.** השורה המסוכנת ב-`.env` הוחלפה בגוש `⛔ DO NOT REVERT`. אבל `git grep` הראה ש-**"אין קורא-ייצור" אינו נכון** — 3 סקריפטים עדיין מתשאלים את המארח המושעה: `scripts/check_status.sh:123,171` · `scripts/credentials_self_test.sh:57` · `scripts/data_integrity_audit.sh:107`. לא סיכון-מסחר (דיאגנוסטיקה), אבל מקור דיווח-שקר קבוע ⇒ נשאר פתוח ל-cc.
+
+**ריסטארט 23:25 — בפוזיציה-0 מאומתת מראש** (`position_qty=0` · `orders=[]` · DB: 6 live/CANCELLED + 13 shadow/CLOSED, **אפס OPEN**), שוק סגור:
+
+```
+[env_loader] applied 274 vars   ← מול 272 לפני ומול 267 בבוקר = בדיוק שני החדשים
+pid 69924 → 79651 · /api/v9/health = http=200 time=0.002646s
+מעוגן לשורת-ה-boot: [ERROR]/[CRITICAL]/Traceback = 0 · ORPHAN|NAKED = 0
+FLAG-GUARD: PASS — all 221 ruled flags match  ·  ruled_contracts() = 3
+```
+(נקרא **משורת-ה-`env_loader`** ולא מ-`ps eww`, לפי הכלל.)
+
+**נבדק ונמצא נקי:** `whatif_report.py` ו-`candidate_resolver.py` **אינם** במחלקת-T-161 — שניהם `os.environ.get("DATABASE_URL", "postgresql://localhost/mems26")`, ברירת-מחדל **Postgres**. `candidate_resolver --dry-run` ⇒ `200 / 136 already / 64 unresolved / 64 resolved_now / 0 not_judgeable` (אומת במפורש שאין תקרת-200 בקוד — שולל את מלכודת "פיד-חסום-ל-200"). `whatif --session 2026-08-28` ⇒ 4 גילויי-VA_FADE, `$50.55 (3c)`; **שתי מועמדות VA_FADE נרשמו `SKIP (slot occupied)`** אחרי FAILED_BREAK — נתון רלוונטי לשער-הערב. Redis: אין `redis-server`, אין `redis-cli` (עקבי עם פסיקת 28.08 "מעולם לא הותקן"), **0 אזכורים** מה-boot ⇒ רעש-ה-1,305 מ-26.08 לא חזר. יומן-מילויים: 423 שורות, אחרונה `28.08 21:50:28 IL`, `trade_fills.json` בגודל 0 = שטוח.
+
+**מה לא נעשה (NOT-DONE):** backfill (TPO/`pnl_trusted`) — **ממתין לאישור מייקל, לא הורץ** · `candidate_resolver` הורץ ב-`--dry-run` בלבד, 64 אירועי-RESOLVED ממתינים לכתיבה (לא הורץ-לאמת כי כתיבת-לדג'ר בליל-הלייב לא נתבקשה) · T-162 (8 אחים) · T-163 (`LEG_REPLACES_SUSTAINED_V1` **חסר לגמרי מ-RULED_FLAGS** ⇒ `flag_guard` עיוור אליו) · 3 קוראי-המארח-המושעה · T-160 true-up היסטורי.
+
+**אפס נגיעה בפוזיציות · אפס פקודות-מסחר · אפס הדלקה שלא נפסקה בכתב.**
+
+— cowork-night
+
+---
+
 ### [2026-08-30 23:20 IL] cowork-night · 🔒 **CLAIM — תור-הלילה נתפס ע"י cowork**
 
 **דדליין-cc 23:20 חלף ללא פעילות.** אימות גולמי:
