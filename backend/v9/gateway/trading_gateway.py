@@ -1660,131 +1660,97 @@ class TradingGateway:
             except Exception as _dp_err:
                 logger.warning("[Gateway] day-type position gate errored (fail-open): %s", _dp_err)
 
-        # --- #68 Direction-Context gate — blocks fires AGAINST the live CVD+breakout
-        # auction direction (direction_context). Flag: DIRECTION_CONTEXT (default OFF),
-        # fail-open. The CVD-in-direction lever (validated to fix Neutral/chop, e.g. 06-11:
-        # blocks the wrong-side shorts into a failed-low→reversal). Re-enable = trading-
-        # surface change → Michael sign-off + backtest.
+        # --- SA-3 fix (cowork 29.08): CONT_TREND_FILTER was trapped inside the
+        # DIRECTION_CONTEXT block which is permanently OFF (ruling 28.08).
+        # Extracted to its own independent condition so the 4 ruled-on flags
+        # (CONT_TREND_FILTER, LEG_REPLACES_SUSTAINED_V1, DIRECTION_COMPASS_V1,
+        # CONT_TREND_FILTER_FULL_SCOPE) are reachable.
+        if os.getenv("CONT_TREND_FILTER", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.direction_context_live import current as _dc_current
+                _dc = _dc_current() or {}
+                _set_dir = "UP" if str(direction).upper() == "LONG" else "DOWN"
+                from backend.v9.systems.daytype_position_gate import _pattern_family
+                _pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or ""
+                _fam = _pattern_family(_pat)
+                if _fam == "CONT":
+                    _sus = _dc.get("dir_sustained", "NEUTRAL")
+                    if os.getenv("LEG_REPLACES_SUSTAINED_V1", "0").lower() in (
+                        "1", "true", "yes"):
+                        try:
+                            from backend.v9.services.market_context import get_market_context
+                            _mc_d3 = get_market_context()
+                            _leg_d3 = getattr(_mc_d3, "leg_dir", None) if _mc_d3 else None
+                            if _leg_d3 in ("UP", "DOWN"):
+                                _sus = _leg_d3
+                        except Exception:
+                            pass
+                    _sus = _compass_or(_sus)
+                    if _sus != _set_dir:
+                        _ct_bypass = False
+                        try:
+                            from backend.v9.systems.release_gate import trend_bypass as _ct_tb
+                            from backend.v9.db.read import read_one as _ct_read
+                            _ct_row = _ct_read(
+                                "SELECT open FROM v9_bars_5min_woodies "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                "ORDER BY ts LIMIT 1", {})
+                            _ct_open = float(_ct_row["open"]) if _ct_row else None
+                            _ct_entry = setup.get("entry_price")
+                            _ct_bypass = _ct_tb(
+                                _ct_open,
+                                float(_ct_entry) if _ct_entry is not None else None,
+                                direction)
+                        except Exception:
+                            _ct_bypass = False
+                        if not _ct_bypass and _live_leg(direction):
+                            _ct_bypass = True
+                        if _ct_bypass:
+                            logger.warning(
+                                "[Gateway] cont-trend-filter DISPLACEMENT BYPASS: "
+                                "%s %s with-move vs stale sustained %s",
+                                _pat, _set_dir, _sus)
+                        else:
+                            _ct_base = _pat
+                            for _sfx in ("_LONG", "_SHORT"):
+                                if _ct_base.endswith(_sfx):
+                                    _ct_base = _ct_base[: -len(_sfx)]
+                            _ct_s4_shadow = (
+                                _ct_base in ("ZLR", "TLB", "TT", "GB100")
+                                and os.getenv(
+                                    "CONT_TREND_FILTER_FULL_SCOPE", "0"
+                                ).lower() not in ("1", "true", "yes"))
+                            if _ct_s4_shadow:
+                                logger.warning(
+                                    "[Gateway] cont-trend-filter S4-SHADOW "
+                                    "(ruling 28.08, would_block NOT blocking): "
+                                    "%s (CONT) setup %s vs sustained %s",
+                                    _pat, _set_dir, _sus)
+                            else:
+                                result["blocked_by"] = "cont_trend_filter"
+                                result["reason"] = (
+                                    f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
+                                )
+                                logger.info("[Gateway] BLOCKED by cont-trend-filter: %s", result["reason"])
+                                return result
+            except Exception as _ct_err:
+                logger.warning("[Gateway] cont-trend-filter errored (fail-open): %s", _ct_err)
+
+        # --- #68 Direction-Context gate — PERMANENTLY OFF (ruling 28.08).
+        # The block below is kept for historical reference and for rollback
+        # safety (DIRECTION_CONTEXT=1 would restore it). The cont_trend_filter
+        # that was trapped here has been extracted above (SA-3).
         if os.getenv("DIRECTION_CONTEXT", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.direction_context_live import current as _dc_current
                 _dc = _dc_current()
                 _set_dir = "UP" if str(direction).upper() == "LONG" else "DOWN"
 
-                # CONT_TREND_FILTER (default OFF): CONTINUATION patterns must fire WITH a
-                # SUSTAINED trend (K-bar LSMA side, dir_sustained). REVERSAL patterns are
-                # EXEMPT — they fire against the trend by design (a sustained filter would
-                # kill HTLB/VEGAS/GHOST/FAMIR — counterfactual 2026-06-25). Fixes the
-                # BULL_FLAG_LONG chop fires that the single-bar veto passed (momentary poke).
-                if os.getenv("CONT_TREND_FILTER", "0").lower() in ("1", "true", "yes"):
-                    from backend.v9.systems.daytype_position_gate import _pattern_family
-                    _pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or ""
-                    _fam = _pattern_family(_pat)
-                    # REV (REACTIVE, GHOST, VEGAS, HnS, Double, …) are EXEMPT — they
-                    # fire against the trend by design. Only CONT requires sustained trend.
-                    # Unknown pattern (_fam=None) → fail-open (not filtered).
-                    if _fam == "CONT":
-                        # D3 (2026-08-03): LEG_REPLACES_SUSTAINED_V1 — use
-                        # MarketContext.leg_dir as the sustained direction
-                        # instead of the lagging dir_sustained primitive.
-                        # The leg is a more immediate, structural signal.
-                        _sus = _dc.get("dir_sustained", "NEUTRAL")
-                        if os.getenv("LEG_REPLACES_SUSTAINED_V1", "0").lower() in (
-                            "1", "true", "yes"):
-                            try:
-                                from backend.v9.services.market_context import get_market_context
-                                _mc_d3 = get_market_context()
-                                _leg_d3 = getattr(_mc_d3, "leg_dir", None) if _mc_d3 else None
-                                if _leg_d3 in ("UP", "DOWN"):
-                                    _sus = _leg_d3  # leg overrides dir_sustained
-                            except Exception:
-                                pass  # fail-open: use dir_sustained
-                        # F1 DIRECTION_COMPASS_V1 (2026-08-20): the fused compass
-                        # is the single direction INPUT. dir_sustained lagged on
-                        # three documented days; the compass fuses leg+LSMA+value-
-                        # migration+CVD and can never oppose a live leg. NEUTRAL /
-                        # low-confidence ⇒ `_sus` keeps its legacy value above ⇒
-                        # byte-identical behaviour, no new blocking.
-                        _sus = _compass_or(_sus)
-                        if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
-                            # DISPLACEMENT CONSISTENCY (2026-07-31, third gate to
-                            # get the audited primitive): dir_sustained LAGS —
-                            # 07-29 it said UP through an 80pt drop, 07-30 evening
-                            # it said DOWN through a rally to 7471 and blocked 11
-                            # ZLR longs at 7450-7455. When the SESSION DISPLACEMENT
-                            # (>=15pt) agrees with the setup, the sustained read is
-                            # stale by definition — bypass with a loud log; the
-                            # nightly counterfactual judges it. No displacement /
-                            # counter-move => the filter stands (its chop fix).
-                            _ct_bypass = False
-                            try:
-                                from backend.v9.systems.release_gate import trend_bypass as _ct_tb
-                                from backend.v9.db.read import read_one as _ct_read
-                                _ct_row = _ct_read(
-                                    "SELECT open FROM v9_bars_5min_woodies "
-                                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
-                                    "(now() AT TIME ZONE 'America/New_York')::date "
-                                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
-                                    "ORDER BY ts LIMIT 1", {})
-                                _ct_open = float(_ct_row["open"]) if _ct_row else None
-                                _ct_entry = setup.get("entry_price")
-                                _ct_bypass = _ct_tb(
-                                    _ct_open,
-                                    float(_ct_entry) if _ct_entry is not None else None,
-                                    direction)
-                            except Exception:
-                                _ct_bypass = False
-                            # LEG_RIDE (Michael's screenshot, 31.07): a live leg
-                            # outranks the lagging dir_sustained entirely — the
-                            # 9 blocked ZLR longs of Friday evening are the
-                            # reference case.
-                            if not _ct_bypass and _live_leg(direction):
-                                _ct_bypass = True
-                            if _ct_bypass:
-                                logger.warning(
-                                    "[Gateway] cont-trend-filter DISPLACEMENT BYPASS: "
-                                    "%s %s with-move vs stale sustained %s",
-                                    _pat, _set_dir, _sus)
-                            else:
-                                # SCOPE SPLIT (ruling f4bf481d, Michael phone
-                                # 2026-08-28): on the S4/Woodies CONT patterns
-                                # (ZLR/TLB/TT/GB100) this filter was NET-
-                                # DESTRUCTIVE — 25-26.08 it killed 47.75pt of
-                                # winners (ZLR-SHORT 09:35 MFE 32.75, GB100-
-                                # SHORT 11:55 MFE 15.0) to save 10.25pt (ZLR-
-                                # LONG 12:55). It no longer BLOCKS them — it
-                                # SHADOW-logs the would-block for the nightly
-                                # counterfactual (+ T-114 leg-vs-sustained
-                                # replay). INITIATIVE (S2) KEEPS the filter —
-                                # the 34-session evidence (T-93) stands.
-                                # BULL_FLAG/BEAR_FLAG/CONFLUENCE_RI_ZLR also
-                                # keep it (BULL_FLAG chop fires were this
-                                # filter's original purpose; not part of the
-                                # ruling). CONT_TREND_FILTER_FULL_SCOPE=1
-                                # restores full-scope blocking (rollback).
-                                _ct_base = _pat
-                                for _sfx in ("_LONG", "_SHORT"):
-                                    if _ct_base.endswith(_sfx):
-                                        _ct_base = _ct_base[: -len(_sfx)]
-                                _ct_s4_shadow = (
-                                    _ct_base in ("ZLR", "TLB", "TT", "GB100")
-                                    and os.getenv(
-                                        "CONT_TREND_FILTER_FULL_SCOPE", "0"
-                                    ).lower() not in ("1", "true", "yes"))
-                                if _ct_s4_shadow:
-                                    logger.warning(
-                                        "[Gateway] cont-trend-filter S4-SHADOW "
-                                        "(ruling 28.08, would_block NOT blocking): "
-                                        "%s (CONT) setup %s vs sustained %s",
-                                        _pat, _set_dir, _sus)
-                                else:
-                                    result["blocked_by"] = "cont_trend_filter"
-                                    result["reason"] = (
-                                        f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
-                                    )
-                                    logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
-                                                _pat, _set_dir, _sus)
-                                    return result
+                # SA-3: CONT_TREND_FILTER extracted to its own independent block
+                # above (no longer nested inside DIRECTION_CONTEXT). The code
+                # that was here is now at line ~1668.
 
                 # F1 DIRECTION_COMPASS_V1: same single INPUT here. The CVD+IB
                 # breakout read is one opinion among four; the compass fuses it
