@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-30 16:25 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-08-30 22:25 ET
 events:
   - date: 2026-08-31
     time_et: "10:30"
@@ -309,4 +309,8 @@ events:
   - date: 2026-09-04
     time_et: "13:00"
     name: "Baker Hughes Oil Rig Count"
+    severity: yellow
+  - date: 2026-09-06
+    time_et: "20:00"
+    name: "Labor Day"
     severity: yellow
