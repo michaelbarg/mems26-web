@@ -37,6 +37,35 @@ def enabled() -> bool:
 
 
 def shadow_only() -> bool:
+    """True ⇒ the setup is recorded but never routed to demo/live.
+
+    T-179 (31.08): this pattern fired for the FIRST time ever — 41 shadow
+    trades, 0 wins, -$6,975 = 86% of the day's shadow damage. Root: the line
+    `S2_DELTA_DBL_V1=shadow` was added to .env at 13:39:58 IL that morning;
+    the detector itself has been wired + subscribed since 08-22 but
+    `enabled()` defaulted to "0", so it had never fired before.
+
+    Until now the ONLY thing between this pattern and a live slot was that
+    one string in the out-of-git .env. Flip it to "1" and the setup reaches
+    `_execute_live` with NO family gate behind it: PATTERN_FAMILY_DELTA_DBL_V1
+    is ruled OFF, so `daytype_position_gate._pattern_family()` returns None
+    for S2_DELTA_DBL — fail-open FULL, by design of that flag.
+
+    Michael's standing ruling T-153 (".env=shadow לכל החדש") says a new
+    pattern stays shadow-only until it has a ledger and a measured promotion.
+    This makes that ruling the CODE default rather than an .env string, per
+    CLAUDE.md § "Standing Decisions" ("the disabled behavior is the code
+    default (no env var needed), so a restart/clone keeps it off").
+
+    Release therefore requires an explicit S2_DELTA_DBL_LIVE_RELEASE=1.
+    (Named for what it ENABLES, not for the guard: a `..._SHADOW_ONLY` flag
+    with expected=unset_or_0 would read in flag_guard output as "shadow-only
+    is off" — the exact opposite of the truth — and would make flag_guard
+    fail on the SAFE value. See config/RULED_FLAGS.yaml.)
+    """
+    if os.getenv("S2_DELTA_DBL_LIVE_RELEASE", "0").lower() not in (
+            "1", "true", "yes"):
+        return True
     return os.getenv("S2_DELTA_DBL_V1", "0").lower() == "shadow"
 
 
