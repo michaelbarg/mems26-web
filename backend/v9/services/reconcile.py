@@ -311,14 +311,23 @@ def gather_and_reconcile(gateway=None) -> ReconcileVerdict:
 # NOTHING said so. This is the third instance of the class: I-57 (07-08, fixed
 # at one call site in trades.py) and T-178 (08-31) are the same failure.
 #
-# Why the EXISTING reconcile did not catch it — the real finding:
-#   MISMATCH_PHANTOM_SLOT requires `slot_occupied and not db_open and
-#   tm_in_position is False`. `db_open_ids` above is built from
-#   `state NOT IN ('CLOSED')` with **no mode filter**, so the SHADOW trades that
-#   kept firing all evening made `db_open` True → the phantom branch was skipped
-#   → it fell through to the naked-stop path and emitted 403 CRITICAL
-#   NAKED_STOP_SUSPECT lines that said "in position", i.e. the exact opposite of
-#   the truth. Evidence: `grep -c PHANTOM_SLOT /tmp/backend.err.log` → 0.
+# Why the EXISTING reconcile did not catch it — MISMATCH_PHANTOM_SLOT is
+# UNREACHABLE DEAD CODE, and has been since 2026-07-27:
+#   It requires `slot_occupied and not db_open and tm_in_position is False`.
+#   `db_open_ids` above is built with the DENYLIST `state NOT IN ('CLOSED')`.
+#   v9_trades holds 35 rows in state 'CANCELLED' (live, 07-10..07-27) which are
+#   terminal but are NOT 'CLOSED' — so that query NEVER returns empty, `db_open`
+#   is PERMANENTLY True, and the phantom branch can never run on any day.
+#   Verified 09-01: `SELECT state, count(*) FROM v9_trades GROUP BY 1`
+#   → CLOSED 788, CANCELLED 35 (and nothing else).
+#   The run instead falls through to the naked-stop path, which on 08-31 emitted
+#   403 CRITICAL "NAKED_STOP_SUSPECT — in position" lines: the exact opposite of
+#   the truth. Evidence: `grep -c PHANTOM_SLOT /tmp/backend.err.log` → 0,
+#   `grep -c 'Reconcile-live' …` → 403, all NAKED_STOP_SUSPECT.
+#   (Open SHADOW rows add to db_open during a session, but the CANCELLED rows
+#   alone make the masking permanent — the mode filter is not sufficient.)
+#
+# Hence this check uses an ALLOW-LIST of genuinely open states, never a denylist.
 #
 # This check is deliberately NOT a second opinion on the root cause. It asks one
 # question that is true in every variant: *is the live slot held by a trade that
@@ -419,10 +428,13 @@ def gather_stuck_slot(gateway, stuck_since: Optional[float] = None) -> StuckSlot
     live_open_ids: List[int] = []
     try:
         from backend.v9.db.read import read_all
-        # mode filter is the whole point — shadow rows are NOT a live position
-        # and are exactly what masked this condition on 08-31.
+        # ALLOW-LIST, not `state NOT IN ('CLOSED')` — that denylist is the exact
+        # bug that made MISMATCH_PHANTOM_SLOT unreachable (see the note above).
+        # Plus the mode filter: shadow rows are not a live position.
+        # 'OPEN' is the legacy cockpit alias for FILLED (see bar_level_detector).
         rows = read_all(
-            "SELECT id FROM v9_trades WHERE state NOT IN ('CLOSED','closed') "
+            "SELECT id FROM v9_trades "
+            "WHERE state IN ('PENDING','FILLED','PARTIAL','OPEN') "
             "AND mode IN ('live','demo') ORDER BY id", {})
         live_open_ids = [int(r["id"]) for r in rows]
     except Exception as e:

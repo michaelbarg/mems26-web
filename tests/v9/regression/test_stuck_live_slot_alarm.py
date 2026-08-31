@@ -6,18 +6,20 @@ occupied, so every new live fire was refused with live_blocked_by=
 "live_slot_occupied" — and nothing said so. Third instance of the class:
 I-57 (07-08, patched at ONE call site in trades.py) and T-178 (08-31).
 
-Why the existing reconcile missed it — the finding this test pins down:
-MISMATCH_PHANTOM_SLOT requires `slot_occupied and not db_open and
-tm_in_position is False`. `db_open_ids` is built from `state NOT IN ('CLOSED')`
-with NO mode filter, so the SHADOW trades firing all evening kept db_open True
-→ the phantom branch never ran. Instead it fell through to the naked-stop path
-and logged 403 CRITICAL "NAKED_STOP_SUSPECT — in position" lines, i.e. the
-opposite of the truth. Raw evidence: grep -c PHANTOM_SLOT backend.err.log → 0.
+Why the existing reconcile missed it — MISMATCH_PHANTOM_SLOT is unreachable
+dead code: it requires `db_open` false, but `db_open_ids` uses the DENYLIST
+`state NOT IN ('CLOSED')`, and v9_trades permanently holds 35 'CANCELLED' rows
+(live, 07-10..07-27) which are terminal but not 'CLOSED'. That query therefore
+never returns empty, `db_open` is always True, and the phantom branch cannot
+fire on any day. Verified 2026-09-01: CLOSED 788, CANCELLED 35, nothing else.
+It fell through to the naked-stop path instead and logged 403 CRITICAL
+"NAKED_STOP_SUSPECT — in position" lines, the opposite of the truth.
+Raw evidence: grep -c PHANTOM_SLOT backend.err.log → 0.
 
-test_shadow_trades_do_not_mask_a_stuck_slot is the anti-regression for exactly
-that masking. Removing the `mode IN ('live','demo')` filter in
-gather_stuck_slot, or the dwell threshold in evaluate_stuck_slot, turns these
-RED.
+So this alarm ALLOW-LISTS genuinely open states and never uses a denylist.
+Swapping the allow-list back to `state NOT IN ('CLOSED')`, dropping the
+`mode IN ('live','demo')` filter, or removing the dwell threshold each turn
+these RED.
 """
 import pytest
 
@@ -99,12 +101,18 @@ def _fake_gateway(slot_trade_id=939):
     return _GW()
 
 
-def test_shadow_trades_do_not_mask_a_stuck_slot(monkeypatch):
-    """THE 08-31 regression: open SHADOW rows must not make the slot look fine.
+def test_query_uses_an_allowlist_not_the_denylist_that_killed_phantom_slot(monkeypatch):
+    """THE regression that made the existing detector dead code.
 
-    gather_stuck_slot must query live/demo only. If the mode filter is dropped,
-    the shadow rows come back, the slot id is not among them anyway... so this
-    asserts on the QUERY itself, which is where the masking lived.
+    `db_open_ids` in gather_and_reconcile uses `state NOT IN ('CLOSED')`.
+    v9_trades permanently holds 35 rows in state 'CANCELLED' (live, 07-10..
+    07-27) — terminal, but not 'CLOSED' — so that query NEVER returns empty,
+    `db_open` is always True, and MISMATCH_PHANTOM_SLOT can never fire on any
+    day. Verified 2026-09-01: CLOSED 788, CANCELLED 35, nothing else.
+
+    This check must therefore ALLOW-LIST genuinely open states, and must also
+    exclude shadow rows. Asserting on the SQL is the point: this is where the
+    masking lived.
     """
     seen = {}
 
@@ -115,11 +123,27 @@ def test_shadow_trades_do_not_mask_a_stuck_slot(monkeypatch):
     monkeypatch.setattr("backend.v9.db.read.read_all", _fake_read_all)
 
     st = gather_stuck_slot(_fake_gateway(), stuck_since=T0 - 3600)
+    sql = seen["sql"]
 
-    assert "mode IN ('live','demo')" in seen["sql"], (
-        "gather_stuck_slot must exclude shadow rows — open shadow trades are "
-        "exactly what masked MISMATCH_PHANTOM_SLOT on 2026-08-31")
+    assert "NOT IN" not in sql.upper(), (
+        "gather_stuck_slot must NOT use a state denylist — 'CANCELLED' is "
+        "terminal but not 'CLOSED', which is exactly what made "
+        "MISMATCH_PHANTOM_SLOT unreachable")
+    assert "state IN ('PENDING','FILLED','PARTIAL','OPEN')" in sql
+    assert "mode IN ('live','demo')" in sql, "shadow rows are not a live position"
     assert st.stuck is True and st.alarm is True
+
+
+def test_cancelled_trades_never_count_as_an_open_live_trade(monkeypatch):
+    """A slot pointing at a CANCELLED trade is STUCK, not healthy.
+
+    The allow-list query returns no row for a CANCELLED id, so the slot is
+    correctly reported as holding nothing real.
+    """
+    monkeypatch.setattr("backend.v9.db.read.read_all", lambda sql, p: [])
+    st = gather_stuck_slot(_fake_gateway(541), stuck_since=T0 - 3600)  # 541 = CANCELLED
+    assert st.stuck is True and st.alarm is True
+    assert st.live_open_ids == []
 
 
 def test_db_read_failure_is_not_reported_as_stuck(monkeypatch):
