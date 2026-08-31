@@ -41,6 +41,23 @@ async def diagnose(request: Request):
     if not slot:
         return {"active": False}
 
+    # T-187 (31.08): the gateway slot became a **dict** in ef01d040 (08-08) —
+    # {"trade_id": "939", "mode": "live", ...} — while this route was written
+    # against the scalar form (a7758a06, 07-05). `int(slot)` raised TypeError,
+    # the except below swallowed it, and the endpoint answered `trade: null` on
+    # EVERY open trade for 23 days. It survived that long because the failure
+    # READ LIKE HEALTH: `recommendation: "hold"` + `supervisor: null` look like
+    # "nothing to report", not "I could not read the slot".
+    slot_id = slot.get("trade_id") if isinstance(slot, dict) else slot
+    try:
+        trade_id = int(slot_id)
+    except (TypeError, ValueError):
+        logger.warning(
+            "[System6API] slot carries no usable trade_id (%r) — "
+            "supervision panel is BLIND, not idle", slot)
+        return {"active": True, "trade": None, "error": "slot_unreadable",
+                "note": f"slot {slot!r} carries no usable trade_id"}
+
     from backend.v9.db.read import read_one, read_all
     out = {"active": True, "trade": None, "hold": None,
            "supervisor": None, "exit_signals": [], "recommendation": "hold"}
@@ -49,12 +66,16 @@ async def diagnose(request: Request):
     try:
         tr = read_one(
             "SELECT id, direction, entry_price, stop, t1_hit_ts "
-            "FROM v9_trades WHERE id = :id", {"id": int(slot)})
+            "FROM v9_trades WHERE id = :id", {"id": trade_id})
     except Exception as e:
-        logger.warning("[System6API] trade read failed: %s", e)
-        tr = None
+        # No silent failures (CLAUDE.md): a read error is NOT "trade not found".
+        logger.warning("[System6API] trade read failed for id=%s: %s",
+                       trade_id, e)
+        return {"active": True, "trade": None, "error": "trade_read_failed",
+                "note": f"read failed for trade {trade_id}: {str(e)[:120]}"}
     if not tr:
-        return {"active": True, "trade": None, "note": f"slot {slot} not found in DB"}
+        return {"active": True, "trade": None, "error": "trade_not_in_db",
+                "note": f"slot {trade_id} not found in DB"}
     direction = str(tr["direction"])
     entry = float(tr["entry_price"]) if tr["entry_price"] is not None else None
     stop = float(tr["stop"]) if tr["stop"] is not None else None
