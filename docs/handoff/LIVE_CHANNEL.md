@@ -1,3 +1,112 @@
+### [2026-08-31 21:15 IL] cowork-scheduled · מענה-טלפון + ניטור-RTH · 🔴 **ריסטארט לא-מכוון באמצע RTH (ככל-הנראה באשמתי) — שחרר את סלוט-T-178** · 🟢 **תשובת-הלונג: 97% מהחסימות = `awaiting_release`, לא הסלוט**
+
+**שורה תחתונה:** מייקל שאל ב-20:56 *"למה אין ירי ללונג מה חוסם ולמה? לתקן"*. התשובה נמדדה
+ונענתה. **אבל קודם לכן, ובאותו חלון-זמן, ה-backend עשה ריסטארט ב-21:07:42 — בתוך חלון-האיסור
+16:10-23:00 — ואני מעריך שאני גרמתי לו.** אין נזק כספי (פוזיציה 0 לאורך כל האירוע), והוא
+שחרר כתופעת-לוואי את הסלוט התקוע של `T-178`.
+
+## א. 🔴 הריסטארט — דיווח-עצמי, סיבתיות לא-מוכחת
+
+```
+$ ps -p 20754 -o lstart=       Mon Aug 31 21:07:42 2026
+$ sed -n '117608,117621p' /tmp/backend.err.log
+  INFO: Shutting down
+  INFO: Waiting for connections to close. (CTRL+C to force quit)
+  2026-08-31 21:07:42 [Shutdown] WAL checkpoint complete — clean exit
+  INFO: Finished server process [1581]
+  shell-init: error retrieving current directory: getcwd: cannot access parent
+              directories: Operation not permitted
+  /bin/bash: .env: Operation not permitted
+  INFO: Started server process [20754]
+```
+
+**מה שאני יודע:** הכיבוי היה **מסודר** (SIGINT/SIGTERM + WAL-checkpoint נקי), ו-uvicorn רץ
+**בלי `--reload`** (`ps -p 20754 -o command=` ⇒ `uvicorn backend.main:app` בלבד) ⇒ זה **לא**
+היה reload אוטומטי על שינוי-קובץ.
+
+**מה שאני מעריך ולא מוכיח:** כ-60 שניות קודם לכן הרצתי `git stash push -u` ואחריו
+`git stash pop` על הריפו החי (7 קבצים מסומנים `M` + 55 קבצי `PM_*.md` לא-מסומנים). עשיתי
+זאת כדי לאפשר `git pull --rebase` שנכשל על unstaged-changes. **הצמידות בזמן חשודה ואני
+מניח שאני האחראי.** ה-`pull` ממילא היה `Already up to date` ⇒ הסיכון נלקח בחינם.
+
+**🔴 לקח לתיעוד — לא לחזור עליו:** *אין `git stash` על הריפו החי בחלון-המסחר.* אם `pull`
+נכשל על unstaged — **לוותר על ה-pull**, לא לנקות את עץ-העבודה. הריפו הזה הוא משטח-ריצה, לא
+עותק-פיתוח.
+
+**אפס נזק כספי — אומת ולא הונח:** לאורך כל האירוע `[Reconcile] AGREED_FLAT — Sierra reports
+FLAT (position_qty=0)` (21:07:29 · :30 · :34 · :37 · :38 · :39), ו-`sierra_state.json` אחרי
+הריסטארט ⇒ `position_qty=0 · orders=0 · daily_pnl=-225.0` (ללא-שינוי). לא הייתה פוזיציה
+שיכלה להיפגע, ולא נגעתי בפוזיציות/דגלים.
+
+## ב. ✅ T-178 נסגר כתופעת-לוואי — הסלוט שוחרר
+
+```
+$ curl /api/v9/system6/diagnose        {"active":false}          ← היה slot{877,PENDING}
+$ psql "SELECT state,count(*) FROM v9_trades WHERE state NOT IN ('CLOSED','CANCELLED')"
+                                       (0 rows)                  ← הספרים נקיים
+$ grep -oE 'TRADING_ARMED=[01]' .env   TRADING_ARMED=1
+```
+
+ההכרעה שמייקל החזיק מ-18:45 (*ריסטארט-עכשיו מול המתנה-לתור-הלילה*) — **התייתרה**. הריסטארט
+קרה, ולא לפי בחירה. `live_slot` הוא משתנה-בזיכרון ⇒ נוקה בעלייה, בדיוק כפי שנחזה בצעד-הבא
+של T-178. **תיקון-השורש (חלק ב' של T-178) עדיין נדרש** — הפגם שאִפשר לסלוט להיתקע לא תוקן,
+רק המופע נוקה.
+
+## ג. 🟢 תשובת-הלונג — 302 חסימות-לונג היום, פילוח מלא
+
+```
+$ grep "^2026-08-31" /tmp/backend.err.log | grep "\[Gateway\] BLOCKED" \
+    | sed -E 's/.*dir=([A-Z]+).*blocked_by=([a-z_]+).*/\1 \2/' | sort | uniq -c | sort -rn
+   292 LONG awaiting_release      ← 97%
+     5 LONG duplicate_fire
+     3 LONG daytype_playbook       (VEGAS SKIP / FAMIR SKIP on Normal)
+     2 LONG cold_start_guard
+   ---
+   135 SHORT duplicate_fire · 12 SHORT cluster_guard · 6 SHORT direction_compass
+     3 SHORT location_gate · 1 SHORT rr_hard_floor · 1 SHORT rr_entry_gate
+```
+
+**המסקנה שמשנה את התמונה: זה לא הסלוט.** הלונגים כלל לא הגיעו לשכבת-הלייב — הם נחסמו
+בגייטוויי שער אחד לפניה. `live_slot_occupied` **אינו מופיע** בפילוח הזה כלל (הוא נרשם
+בשדה נפרד, `live_blocked_by`, ורק על מועמדים שכבר עברו את הגייטוויי — כולם S4/SHORT).
+
+**`awaiting_release` הוא שער-תקין ולא באג.** הדפוס: `S2_DELTA_DBL_LONG`. הנימוק שהמערכת
+עצמה כותבת (`trading_gateway.py:2350`): `waiting for the zone release — structure not
+turning (1/2 higher lows)`, ובעברית מ-`mobile_monitor.py:638`: *"המחיר עוד באזור-הקיצון —
+מחכים לשחרור מבני (שפלים-עולים + נפח מתייבש)"*. ⇒ **אין מה לתקן** — השער אומר שהמבנה עוד
+לא התהפך. הורדת-סף כאן היא **שינוי משטח-סיכון** ⇒ מחוץ-לסמכות-cowork, דורשת פסיקת-מייקל
+בכתב. **לא נגעתי.**
+
+## ד. ⏳ שער חדש זמני — `cold_start_guard` (תוצאת הריסטארט)
+
+```
+2026-08-31 21:07:47 [Gateway] BLOCKED cold_start_guard: bars=0 < min=3 (buffer=1)
+                              — system not hydrated after restart
+2026-08-31 21:07:47 [Gateway] BLOCKED system=2 pattern=DOUBLE_BOTTOM_EE_LONG dir=LONG
+                              entry=7693.25 blocked_by=cold_start_guard
+```
+
+מועמד-לונג אמיתי **נחסם בגלל הריסטארט**. מתנקה לבד אחרי 3 ברים (~21:23). **חשוב להבחנה:**
+`bars=0` כאן הוא הבאפר **בזיכרון** של הגייטוויי, לא הפיד — הפיד תקין לגמרי
+(`max(ts)=21:05, age=3.7 דק', 24 ברים ב-2ש'` ב-`v9_bars_5min_woodies`).
+
+## ה. מצב-מערכת בסיום (Rule 5)
+
+```
+$ curl /api/v9/health                  http=200  time=0.0037s
+$ psql max(ts) v9_bars_5min_woodies    2026-08-31 21:05 · age 3.7 דק'  ⇒ ≤10 ✅
+$ sierra_state.json                    position_qty=0 · orders=0 · daily_pnl=-225.0
+$ /api/v9/system6/diagnose             {"active":false}                ⇒ סלוט פנוי
+$ v9_trades לא-סגורות                  0 שורות
+$ TRADING_ARMED                        1
+```
+
+⇒ פוזיציה-מול-TM מסכימים (0/0), אין אורפן, חמוש. **לא אבצע ריסטארט נוסף היום.**
+
+**נמסר למייקל בטלפון 21:11:28Z** (1,458 תווים, אומת ב-`tail -1 PHONE_THREAD.jsonl`) — כולל
+דיווח-עצמי מלא על הריסטארט.
+
+---
 ### [2026-08-31 20:45 IL] cowork-scheduled · ניטור-RTH · 🟠 **מערכת תקינה · T-178 ללא-שינוי · חדש: הצל ירה 17× ב-6 דק' (ריצת-חוזר), צל-סגור ‎-$2,351‎**
 
 **שורה תחתונה:** אין חריגה מבצעית בלייב. `T-178` בעינו (סלוט תפוס על `#877`, הכרעת-מייקל
