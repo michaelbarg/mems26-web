@@ -35,10 +35,64 @@ def _env() -> dict:
     return out
 
 
+# ── Session series for the pocket chart (T-167, Michael 31.08 "גרף קטן פה") ──
+# The buffer lives HERE, on the Mac, and not only on Render — measured 31.08:
+# every `git push` (even a docs-only one) redeploys the free-tier service and
+# wipes its memory, so a Render-side buffer resets ~every 30 min on a normal
+# scheduled-run day. The Mac re-sends the whole series each cycle, so a redeploy
+# or a cold start costs nothing. Display-only: never read by trading code.
+# P&L is today.pnl (the system's own closed trades) — NOT sierra.daily_pnl,
+# which is mixed on the shared account 37138283.
+_SERIES = {"day": None, "pts": []}
+_SERIES_MAX = 500       # ~4h at one point per 30s
+_SERIES_GAP_S = 30      # normal gap; a P&L / trade-count change samples at once
+
+
+def _series_update(body: dict) -> list:
+    """Append one sample and return the (downsampled) series. Never raises."""
+    try:
+        day = time.strftime("%Y-%m-%d")
+        if _SERIES["day"] != day:
+            _SERIES["day"] = day
+            _SERIES["pts"] = []
+        price = (body.get("sierra") or {}).get("last_price")
+        if price is None:
+            return _SERIES["pts"]
+        today = body.get("today") or {}
+        price = round(float(price), 2)
+        pnl = round(float(today.get("pnl") or 0.0), 2)
+        n = int(today.get("n") or 0)
+        now = time.time()
+        pts = _SERIES["pts"]
+        if pts:
+            last = pts[-1]
+            if last[2] == pnl and last[3] == n and (now - last[0]) < _SERIES_GAP_S:
+                return pts
+        pts.append([int(now), price, pnl, n])
+        if len(pts) > _SERIES_MAX:
+            del pts[:len(pts) - _SERIES_MAX]
+    except Exception as e:
+        print(f"[relay] series skipped: {e}", flush=True)
+    pts = _SERIES["pts"]
+    if len(pts) <= 110:
+        return pts
+    step = len(pts) / 110.0
+    out = [pts[int(i * step)] for i in range(110)]
+    out[-1] = pts[-1]
+    return out
+
+
 def _push_snapshot(access_key, push_key, render):
     """Push local snapshot to Render."""
     with urllib.request.urlopen(f"{LOCAL}/data?key={access_key}", timeout=4) as r:
         data = r.read()
+    try:
+        body = json.loads(data.decode())
+        if isinstance(body, dict):
+            body["_series"] = _series_update(body)
+            data = json.dumps(body).encode()
+    except Exception as e:
+        print(f"[relay] series attach skipped: {e}", flush=True)
     req = urllib.request.Request(
         f"{render}/api/v9/mobile/snapshot", data=data, method="POST",
         headers={"Content-Type": "application/json", "X-Push-Key": push_key})

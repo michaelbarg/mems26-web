@@ -425,7 +425,10 @@ async def mobile_data(request: Request):
     out = dict(_SNAP["data"])
     out["_relay"] = "render"
     out["_relay_age_s"] = round(time.time() - _SNAP["recv_ts"], 1)
-    out["_series"] = _series_out()
+    # The Mac's pusher owns the series (it survives our redeploys and cold
+    # starts); the local ring-buffer is only the fallback for an older pusher.
+    if not out.get("_series"):
+        out["_series"] = _series_out()
     return JSONResponse(out)
 
 
@@ -557,7 +560,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="big num" id="daypnl">—</div><div class="dim">תקרת-הפסד לעצירת-יום: <span class="num" id="cap">—</span></div></div>
 <div class="card"><div class="row"><span class="dim">גרף הסשן</span><span class="dim" id="chmeta"></span></div>
 <div id="chart" style="margin-top:6px"></div>
-<div class="dim" style="font-size:10.5px;margin-top:4px">מחיר <span style="color:#58a6ff">━</span> · רווח-סגורות <span style="color:#3fb950">━</span> · נמדד מרגע שהעמוד קם</div></div>
+<div class="dim" style="font-size:10.5px;margin-top:4px">מחיר <span style="color:#58a6ff">━</span> · רווח-סגורות <span style="color:#3fb950">━</span> · נצבר במק — מתאפס רק בהפעלת-הממסר</div></div>
 <div class="card"><div class="row"><span class="dim">חשבון</span><span id="acctmeta" class="dim"></span></div>
 <div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" class="num" style="font-weight:800;font-size:18px">—</span></div>
 <div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day" class="num">—</span></div>
