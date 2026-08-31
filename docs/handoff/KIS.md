@@ -51,6 +51,46 @@
 
 ## §LOG — החדש למעלה
 
+### 2026-08-31 21:30 IL · cowork-dev · 🔴 הלייב נחסם 3.5 שעות בשקט · שלוש דליפות-שקט · תור-תיקונים נפתח
+
+**אל `cc-macbook` ואל כל צ'אט שנכנס — שלוש עובדות מהיום שמשנות מה שאתם רואים בלוג.**
+
+**1 · הלייב היה חסום מ-17:35 עד 21:07 ואף אחד לא ידע.**
+```
+#877  17:00  reason=phantom_reconcile  →  live_slot=877 נשאר תפוס
+סיירה: position_qty=0 · אפס עסקאות פתוחות · 5 עסקאות חיות היום כולן CLOSED
+הצל בינתיים: 58 עסקאות
+```
+**השורש (`sierra_position_reconciler.py`):** שחרור-הסלוט יושב **בתוך `if _cancel_detect:`**.
+‏`manual_cancel` משחרר — **`phantom_reconcile` לא.** ⇒ הסלוט ננעל בשקט.
+**‏🔴 זו פעם שלישית לאותה מחלקה:** הקוד עצמו מתעד תקרית 08.07 (`trades.py`: *"exit closed trade 310 but the gateway live_slot stayed occupied → ALL new fires blocked until restart"*) ותיקון-חלקי 18.08 — **שהונח בתוך אותו `if`.**
+**נפתר זמנית בריסטארט 21:07** (אישור-מייקל, אחרי אימות `position_qty=0` ואפס עסקאות פתוחות) → `live_slot=None` · `fire_drill` 🟢 GO · `commit=755ea79b`. **התיקון הקבוע: A1 ב-`FIX_QUEUE.md`.**
+
+**2 · `safe_execute` בולע כתיבות כושלות — ודוח הצליח על אפס.**
+```
+[safe_writer] execute failed: A value is required for bind parameter 'q'
+[parameters: [{0: 'q', 1: 'id'}]]
+```
+`safe_writer.py:135` מצפה ל**פרמטרים ממוקמים** (`?` + tuple). מי שמעביר **dict** עם `:named` — ה-dict נקרא כרצף ומחזיר את **מפתחותיו**. והכשל **נבלע** (`returns 0 on failure`). ‏`t160_pnl_trust_audit.py --apply` הדפיס **"Marked 62 trades"** ו-**אפס נכתבו**. תוקן ידנית (62 סומנו, אומת מה-DB). **‏⚠️ זה כותב מרכזי — מי שמשתמש בו: בדקו את הערך המוחזר, ואל תניחו dict.**
+
+**3 · `PNL_REQUIRES_EXIT_PRICE_V1=1` חי מ-30.08 — ואתם תראו `pnl=NULL`.**
+‏#877 ו-#881 סגורות עם `pnl_usd=NULL` + `quality.pnl_status='UNPRICED'`. **זה תקין ומכוון** — סגירה בלי `exit_price` כבר לא מייצרת רווח-מהיעד. **אל "תתקנו" את זה.**
+ובהיסטוריה: **62 עסקאות מסומנות `quality.pnl_trusted=false`** (‏`pnl_usd` לא נגע). **הספר הנאמן: −$495 על 18 עסקאות**, לא ‎+$360. מי שמצטט נטו-לייב — לסנן.
+
+**4 · הצ'אט בטלפון עבר ל-`claude-opus-5`** (היה `claude-sonnet-5`), `max_tokens` 700→4000. אומת מול ה-API: `model: claude-opus-5`.
+
+---
+
+**📋 `docs/handoff/FIX_QUEUE.md` — נפתח עכשיו.** מפרט מלא לכל תיקון פתוח, בחמש קבוצות ובסדר-ביצוע. **הוא לא מחליף את `TASK_LOG`** — הוא המפרט שממנו בונים. סדר-העל נשאר `SYSTEM_FIX_PLAN.md`.
+
+**מה שאני לוקח:** אימות + שערים + ריסטארטים.
+**מה שפנוי ל-cc:** A1+A2 (סלוט ואזעקה) · A3 (`safe_execute`) · B3 (‏`RULED_FLAGS` לא-YAML, T-168).
+**‏🔴 claim: אל תיגעו ב-`op=EXIT` לפני 01:00** — יש מפרט-סים ב-`CC_EXIT_V2_2026-08-31.md`, ו-`SupportTradingScaleOut=1` **כבר פרוס**, כך שייתכן שאין מה לבנות. **לאמת לפני שבונים.**
+
+**ומלכודת ליום-הצל הערב:** `_maybe_structure_exit` לא כותב ללדג'ר ⇒ `shadow_promotion_board` **לא יספור** אותו. השיפוט הוא `grep '[StructureExit] GRADE-A' /tmp/backend.err.log`. מי שיריץ רק את הלוח יראה אפס ויסיק "מת".
+
+— `cowork-dev`
+
 ### 2026-08-31 13:55 IL · cowork-dev · פתיחת-הכיס + תמונת-מצב לכל צ׳אט שנכנס קר
 
 **קריאה ראשונה? שלוש שורות שצריך לדעת לפני שנוגעים במשהו:**
