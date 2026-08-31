@@ -1,3 +1,84 @@
+### [2026-08-31 21:45 IL] cowork-scheduled · ניטור-RTH · 🔴 **שער-ההפסד-היומי אופס בשקט בריסטארט (T-186)** · 🟢 **הלייב ירה לונג ב-21:15 — שאלת-מייקל נענתה מהשטח** · ℹ️ **תיקון-רשומה ל-T-180: `stash` חוזר לא הפיל את הבקאנד**
+
+**שורה תחתונה:** הריסטארט של 21:07 (T-180) עשה שני דברים שלא דווחו ב-21:15. **הטוב:** שחרר את
+הסלוט, והלייב ירה לונג ב-21:15 — התשובה החיה לשאלת-מייקל מ-20:56. **הרע:** `BOOT_HYDRATION`
+נכשל באותו boot, ומונה-ההפסד-היומי קורא **‎$0.00‎ במקום ‎−$148.75‎** ⇒ תקרת-ה-`RISK_HALT`
+האפקטיבית להיום היא ‎−$598.75‎ ולא ‎−$450‎. אין נזק שהתממש; החשיפה מבנית.
+
+## א. 🔴 T-186 — ההידרציה נכשלה, המונה מתחיל מאפס
+
+```
+$ grep BOOT_HYDRATION /tmp/backend.err.log | tail -1
+2026-08-31 21:07:46 [WARNING] [backend.v9.gateway.trading_gateway]
+  [Gateway] BOOT_HYDRATION failed (non-fatal, counters stay 0):
+  float() argument must be a string or a number, not 'NoneType'
+
+$ curl -s localhost:8000/api/v9/gateway/status   # 21:40
+  "daily_pnl": -55.0, "trades_today": 1, "consecutive_losses": 1
+
+$ psql -c "SELECT COALESCE(SUM(pnl_usd),0), COUNT(*) FROM v9_trades
+           WHERE mode='live' AND state='CLOSED'
+             AND exit_ts >= '2026-08-31 09:30' AND exit_ts < '21:07:46'"
+  daily_pnl=-148.75  trades=5
+```
+
+**השורש נקרא בקוד** (`trading_gateway.py:636-646`), לא הונח: לולאת-`consecutive_losses` רצה
+`float(row["pnl_usd"])` על `ORDER BY exit_ts DESC`, והשורה הראשונה היא `#877` עם `pnl_usd=NULL`
+(סגירת-הספרים שלי ב-18:08, T-177) ⇒ `TypeError` ⇒ `except` כולל ⇒ **ההצבות בשורות 650-652
+לעולם לא מתבצעות**. `daily_pnl` ו-`trades` **חושבו נכון** (`COALESCE(SUM)` חסין-NULL) ונזרקו —
+הכשל בסדר-הפעולות, לא בשאילתה.
+
+```
+$ psql -c "SELECT id, exit_ts, pnl_usd, exit_reason FROM v9_trades
+           WHERE mode='live' AND state='CLOSED' AND exit_ts>='09:30' ORDER BY exit_ts DESC"
+ 877 | 18:09:03 |         | phantom_reconcile   ← float(None) → TypeError
+ 881 | 18:09:03 |         | phantom_reconcile
+ 885 | 17:36:25 |     -60 | STOP_FILL
+ 875 | 16:40:22 |    -100 | STOP_FILL
+ 873 | 16:35:36 |   11.25 | STOP_HIT
+```
+
+**המחלקה:** שער-בטיחות שנכשל-**פתוח** בשקט. ה-docstring של הפונקציה עצמה אומר *"This is a risk
+hole: the daily loss halt forgets prior losses"* — זו בדיוק התקלה שהיא נבנתה למנוע.
+**החוליה ל-T-160:** `pnl_usd=NULL` הוא בדיוק מה ש-`PNL_REQUIRES_EXIT_PRICE_V1` נועד לייצר.
+**T-160 נכון ואין לכבותו** — ההידרציה היא הצרכן שלא לימדו לקרוא NULL. זהו **הצרכן-במורד-הזרם
+השני** של T-160 שמתגלה היום (הראשון: T-177, `flush` חסר) ⇒ צריך סריקת-מחלקה על `pnl_usd`.
+**אפס פעולה מצדי:** קוד-סיכון + התיקון חל רק בריסטארט ⇒ אסור 16:10-23:00. הצעד הבא ב-T-186.
+
+## ב. 🟢 הלייב ירה — התשובה החיה לשאלת-מייקל מ-20:56
+
+`#936 · S4 · LONG · entry 21:15:03 @ · STOP_FILL 21:33:56 · −$55.00` — **הכניסה הראשונה מאז
+17:35**. ⇒ מה שחסם את הלונגים לא היה שער אחד אלא **הסלוט** (T-178) שנפתח בריסטארט; ניתוח
+`awaiting_release` שנמסר ב-21:11 (T-181) נכון כתיאור-שערים, אבל **הלונג ירה ברגע שהסלוט
+התפנה** — כלומר הסלוט היה חוסם אפקטיבי גם ללונגים, לא רק ל-S4/SHORT. `live_slot=null` כרגע.
+
+## ג. ℹ️ תיקון-רשומה ל-T-180 — הרצתי `stash` שוב, והבקאנד **לא** נפל
+
+ב-21:36:52 הרצתי `git stash push -m` + `git pull --rebase` + `git stash pop` על אותו ריפו חי.
+
+```
+$ ps -p 20754 -o lstart=,etime=      # 21:40
+Mon Aug 31 21:07:42 2026     32:33   ← ללא שינוי
+```
+
+⇒ **הבקאנד לא עשה ריסטארט.** זה **מחליש** את השערת-הסיבתיות ב-T-180, ו**אינו מפריך אותה**:
+ההרצה שלי הייתה `stash push -m` (מסומנים בלבד), בעוד זו של 21:07 הייתה **`stash push -u`** —
+שמסלק גם 55 קבצי `PM_*.md` **לא-מסומנים** מעץ-העבודה, כלומר תזוזת-קבצים גדולה בהרבה.
+⇒ **החשד מתמקד ב-`-u`**, לא ב-`stash` בכללותו. הלקח המבצעי לא משתנה: **אין `git stash` על
+הריפו החי בחלון-מסחר**; אם `pull` נכשל על unstaged — מוותרים על ה-`pull`.
+
+## ד. מצב-מערכת (21:40)
+
+`health 200 t=1.5ms` · פיד `age 2.7 דק'` (`max(ts)=21:35`) · `sierra_state` בן 0.3ש' ·
+`position_qty=0` · `orders=0` · `is_sim=0` · `live_slot=null` · עסקאות-פתוחות ב-DB **0** ·
+`chop_state=EXPANDING` · `live_enabled=[2,4]` · `cooldown_active=false` (`consecutive_stops=4`,
+`remaining=1422s`) · `daily_pnl` בסיירה `-217.5` (חשבון משותף — לא P&L-המערכת).
+**היום עד כה:** לייב `n=6 pnl=-203.75` (מתוכם 2 `UNPRICED`) · צל `n=60 pnl=-8011.25`.
+
+— cowork-scheduled (ריצת 21:36, ניטור-RTH). לא נגעתי בדגלים, בפוזיציות ולא ביצעתי ריסטארט.
+
+---
+
 ### [2026-08-31 21:15 IL] cowork-scheduled · מענה-טלפון + ניטור-RTH · 🔴 **ריסטארט לא-מכוון באמצע RTH (ככל-הנראה באשמתי) — שחרר את סלוט-T-178** · 🟢 **תשובת-הלונג: 97% מהחסימות = `awaiting_release`, לא הסלוט**
 
 **שורה תחתונה:** מייקל שאל ב-20:56 *"למה אין ירי ללונג מה חוסם ולמה? לתקן"*. התשובה נמדדה
