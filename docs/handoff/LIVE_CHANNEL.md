@@ -1,3 +1,82 @@
+### [2026-08-31 20:10 IL] cowork-scheduled · ניטור-RTH · 🟢 **מערכת תקינה · T-178 ללא-שינוי · הצל איבד עוד $525 ב-30 דק' ⇒ מחיר-ההמתנה ממשיך לרדת**
+
+**שורה תחתונה:** אין חריגה מבצעית. `T-178` בעינו (הסלוט תפוס על `#877`, הכרעת-מייקל
+ממתינה, **לא בוצע ריסטארט**). דווח לטלפון בכל-זאת כי הראיה שמאחורי ההכרעה שמייקל
+מחזיק **התחזקה מהותית** — לא כי משהו נשבר.
+
+## א. מצב-מערכת — ראיה גולמית (Rule 5)
+
+```
+$ date                          2026-08-31 20:06:45 IDT
+$ curl /api/v9/health           {"status":"ok","version":"v9.0.0"}  HTTP=200 t=0.0015s
+$ psql -c "SELECT max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) FROM v9_bars_5min_woodies;"
+                                2026-08-31 20:05:00+03 | 2.5   ⇒ פיד טרי (≤10 דק')
+$ sierra_state.json (age 0.0m)  is_sim=0 · position_qty=0 · orders=[] · working_orders=0
+                                order_placement_armed=1 · send_orders_to_trade_service=1
+                                acct_available_funds=2871.94 · daily_pnl=-225.0 · filled=32
+                                acct_loss_limit_reached=0 · acct_trading_disabled=0
+$ psql -c "...mode='live' AND state NOT IN (CLOSED,CANCELLED,REJECTED)"   → 0 שורות
+$ grep -iE "ERROR|CRITICAL|Traceback|ORPHAN|halt" (tail -4000 backend.err.log)  → 0 שורות
+```
+
+⇒ פוזיציה-מול-TM **מסכימים** (סיירה 0 · אפס לייב-פתוחות ב-DB) — אין אורפן, אין אזעקה.
+
+## ב. T-178 — הסלוט עדיין תפוס, ומועמד נוסף דולג
+
+```
+$ curl /api/v9/system6/diagnose
+ note: slot {'trade_id':'877','mode':'live','state':'PENDING',...} not found in DB
+$ grep "LIVE slot occupied" /tmp/backend.err.log | tail -2
+ 2026-08-31 19:22:29 [Gateway] LIVE slot occupied, skipping system 4 setup
+ 2026-08-31 19:45:03 [Gateway] LIVE slot occupied, skipping system 4 setup   ← חדש
+```
+
+שוב `system 4` — **משפחה מגודרת**, לא `S2_DELTA_DBL` חסר-השער. מחזק את תיקון-העובדה
+מ-19:39: המועמדים שבפועל מופיעים הם דווקא המגודרים.
+
+## ג. מה החסימה עלתה — עדיין כלום, וההפרש גדל לטובתה
+
+```
+$ psql -c "...shadow ... entry_ts >= '2026-08-31 19:15'"
+ 907 | ZLR                | SHORT | 19:22:29 | 7681.25 | FILLED   ← תאום המועמד שדולג 19:22
+ 917 | ZLR                | SHORT | 19:45:03 | 7681.75 | FILLED   ← תאום המועמד שדולג 19:45
+ 912 | S2_DELTA_DBL_SHORT | SHORT | 19:39:35 | 7680.50 | CLOSED -175
+ 915 | S2_DELTA_DBL_SHORT | SHORT | 19:40:00 | 7680.00 | CLOSED -175
+ 916 | ZLR                | SHORT | 19:40:04 | 7680.25 | CLOSED -175
+last_price = 7684.75  ⇒ #907 3.5 נק' נגד · #917 3.0 נק' נגד (שניהם שורט, שניהם מפסידים)
+```
+
+**שלושה סטופים של ‎-175‎ בתוך 69 שניות** (19:39:35→19:40:04) כשהמחיר עלה 7680→7687.
+
+```
+$ psql -c "...mode='shadow' AND entry_ts>='2026-08-31' GROUP BY pattern,state"
+ S2_DELTA_DBL_LONG  CLOSED n=4  -587.50      ZLR           CLOSED n=6  -317.50
+ S2_DELTA_DBL_SHORT CLOSED n=2  -350.00      OPENING_DRIVE CLOSED n=1  -100.00
+ S2_DELTA_DBL_SHORT PARTIAL n=8 / FILLED n=11 (פתוחות)      GHOST     CLOSED n=3  +37.50
+ סה"כ צל CLOSED: n=19  -1,403.75
+```
+
+⇒ צל-סגור עבר מ-‎-878.75‎ (19:15) ל-‎-1,403.75‎ — **עוד ‎-$525‎ ב-~30 דק'**.
+`S2_DELTA_DBL` = ‎-937.50‎ מתוך ‎-1,403.75‎ = **67%** — בדיוק היחס שדווח ב-T-179, יציב.
+
+## ד. תיקון-עצמי (לא הגיע למייקל)
+
+בבדיקה קראתי תחילה `acct_daily_pl=-10.0` וכמעט דיווחתי "תזוזה של ‎+$215‎". **שגוי** —
+זה שדה אחר. השדה שכל הדיווחים ציטטו הוא `daily_pnl`, והוא **‎-225.0‎ ללא שינוי**.
+נתפס לפני שליחה. (מחזק את מזכר-החשבון-המשותף: `acct_*` מעורב עם אתי ⇒ לא מקור-אמת
+ל-P&L של המערכת.)
+
+## ה. פעולות
+
+- ✅ מענה-טלפון: אין הודעת-מייקל ממתינה (האחרונה, 18:13, נענתה 18:45). נשלח עדכון-יזום
+  20:09Z, 965 תווים, אומת בזנב ה-JSONL.
+- ⛔ **לא בוצע**: ריסטארט (אסור 16:10-23:00 בלי מילת-מייקל) · שינוי-דגלים · נגיעה בפוזיציה.
+- 📌 ללא-שינוי: `T-178` (תיקון-שורש בתור-הלילה) · `T-179` (מחקר `S2_DELTA_DBL`) · `T-177`.
+
+— cowork-dev (scheduled, 20:10 IL)
+
+---
+
 ### [2026-08-31 19:39 IL] cowork-scheduled · ניטור-RTH · 🟠 **תיקון-עובדה ל-T-178: הסלוט התקוע כן עלה במועמד — ב-19:22, ודווקא בדפוס מגודר (S4/ZLR), לא ב-`S2_DELTA_DBL`**
 
 **שורה תחתונה:** המערכת בריאה. `T-178` ללא-שינוי מבצעי (הסלוט תפוס על `#877`, הכרעת-מייקל
