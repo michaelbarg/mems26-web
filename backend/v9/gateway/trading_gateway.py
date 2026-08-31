@@ -632,23 +632,41 @@ class TradingGateway:
                 {"ss": session_start},
             )
 
-            # Consecutive losses: walk backwards from most recent
+            # T-186 (31.08): assign the two NULL-safe counters BEFORE the streak
+            # walk. Previously all three assignments sat AFTER the loop, so one
+            # bad row threw away two values that had already been computed
+            # correctly — and the daily-loss cap silently restarted from $0
+            # (measured: $0.00 instead of -$148.75 ⇒ effective cap -$598.75
+            # instead of the ruled -$450).
+            self._daily_pnl = float(daily_pnl or 0.0)
+            self._daily_trades = int(daily_trades or 0)
+
+            # Consecutive losses: walk backwards from most recent.
+            #
+            # UNPRICED rows (pnl_usd IS NULL) are neither a loss nor a win.
+            # T-160 / PNL_REQUIRES_EXIT_PRICE_V1 deliberately writes NULL
+            # instead of inventing an exit price (CLAUDE.md Rule 1), so NULL is
+            # a VALID value in this column and every reader must handle it.
+            # `float(None)` here was the TypeError that killed the hydration.
+            # We SKIP them rather than break: breaking would understate the
+            # streak and weaken the cooldown, so skipping is the safe direction.
             rows = read_all(
-                "SELECT pnl_usd FROM v9_trades "
+                "SELECT id, pnl_usd FROM v9_trades "
                 "WHERE mode = 'live' AND state = 'CLOSED' "
                 "AND exit_ts >= :ss "
                 "ORDER BY exit_ts DESC",
                 {"ss": session_start},
             )
             cons_losses = 0
+            unpriced_ids = []
             for row in rows:
+                if row["pnl_usd"] is None:
+                    unpriced_ids.append(row["id"])
+                    continue
                 if float(row["pnl_usd"]) < 0:
                     cons_losses += 1
                 else:
                     break
-
-            self._daily_pnl = float(daily_pnl or 0.0)
-            self._daily_trades = int(daily_trades or 0)
             self._consecutive_losses = cons_losses
 
             logger.info(
@@ -656,8 +674,24 @@ class TradingGateway:
                 "(from %s 09:30 ET)",
                 self._daily_pnl, self._daily_trades, self._consecutive_losses, session_date,
             )
+            if unpriced_ids:
+                # Not silent: SUM() skips NULL, so daily_pnl EXCLUDES these
+                # trades — the cap is running on an incomplete number and the
+                # operator has to be told, not left to infer it.
+                logger.warning(
+                    "[Gateway] BOOT_HYDRATION: %d UNPRICED live trade(s) %s — no exit "
+                    "price, so daily_pnl=$%.2f EXCLUDES them and the loss streak counts "
+                    "them as neither win nor loss",
+                    len(unpriced_ids), unpriced_ids[:10], self._daily_pnl,
+                )
         except Exception as e:
-            logger.warning("[Gateway] BOOT_HYDRATION failed (non-fatal, counters stay 0): %s", e)
+            # A risk gate that fails OPEN must never read like noise. The old
+            # "(non-fatal, counters stay 0)" WARNING is precisely how this hid:
+            # counters staying 0 IS the risk hole this function exists to close.
+            logger.error(
+                "[Gateway] BOOT_HYDRATION FAILED — daily-loss cap starts from $0 and "
+                "forgets this session's realised losses: %s", e, exc_info=True,
+            )
 
     def enable_demo(self, system_id: int) -> None:
         self._demo_enabled_systems.add(system_id)
