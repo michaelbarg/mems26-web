@@ -1,4 +1,56 @@
 
+### [2026-08-31 13:58 IL] cowork · חובה-1 · **T-166 בוצע ונסגר לפי אישור-מייקל 13:22** · T-168 נפתח · T-169 (כיס) נוצר
+
+**החלון:** 13:36-13:58, **לפני** שער-15:30 ⇒ חובה-1 בלבד. השינוי בוצע **בסמכות אישור-מייקל מפורש**, לא ביוזמתי.
+
+**1 · T-166 — יציאת-המבנה הודלקה לצל.** מייקל `e655a8bb` 13:22 ⇒ **"כן"**, בתשובה להצעה המנוסחת
+*"אם אתה אומר כן — אני מוסיף את השורה ומריץ ריסטארט לפני 16:10"*. נוהל מלא:
+
+```
+snapshot      20260831T103926Z_preopen-structexit-shadow-michael-yes-1322
+.env          STRUCTURE_EXIT_FAILBREAK_V1=shadow   (+ הערת-מקור: פסיקה, id, אימות-צל, מלכודת-שמות)
+RULED_FLAGS   expected: unset_or_0 → shadow        (אותו קומיט, עם ציטוט-הפסיקה)
+flag_guard    ✓ STRUCTURE_EXIT_FAILBREAK_V1: expected=shadow actual=shadow
+              FLAG-GUARD: PASS — all 221 ruled flags match
+שער-בטיחות    position_qty=0 · orders=0 · state_file_age_s=0.4
+ריסטארט       launchctl kickstart  13:40:43   (2:29 שעות לפני 16:10)
+boot          [env_loader] applied 275 vars   (מול 274 — הדלתא = הדגל האחד, משורת-boot לא מ-ps eww)
+              Started server process [1581]   (מ-93309) · commit=af145fee
+health        {"status":"ok"} · uptime 21.7s
+fire_drill    🟢 GO · ✓ effective_contracts == 5 · feed age=1004ms · live_slot=None
+מעוגן-boot    ERROR=0 CRITICAL=0 Traceback=0 ORPHAN=0 NAKED=0  (129 שורות)
+פוזיציה       position_qty=0 גם אחרי
+```
+
+**צל אינו הדלקת-מסחר — אומת בקוד:** `bar_level_detector.py:1500` `if _se_a_mode != "shadow":` עוטף את
+**כל** ענף-הביצוע (`write_flatten_account` · `_emit_modify_stop` · `_emit_modify_target`).
+
+**🔴 לתשומת-לב מי שמריץ את שער-הערב — שתי מגבלות-מדידה:**
+1. הקריאה גדורה ב-`if _is_demo_live:` (שורה 899) ⇒ מודד **רק בפוזיציה-פתוחה**. אפס-עסקאות ⇒ אפס-אירועים,
+   וזה **אינו** תקלת-גלאי לפי פסיקת-30.08 אלא הגדרת-המנגנון.
+2. הענף **אינו כותב ללדג'ר** (`grep ledger` על 1426-1600 ⇒ 0) ⇒ `shadow_promotion_board.py` **לא יספור** אותו.
+   **השיפוט חייב:** `grep '[StructureExit] GRADE-A' /tmp/backend.err.log`.
+
+**2 · בדיקת-הדגלים שמייקל ביקש (`124b143d`) — 🟢 נקי.** שתי שכבות, לא אחת:
+`flag_guard` PASS 221 (כל דגל-פסוק תואם), **ועל גביו** ביקורת-על ידנית מול 12 הפסיקות-לסגירה של
+CLAUDE.md/הזיכרון — `S2_CHOPPINESS_GATE` · `LAYER0_CHOP_GATE` · `S2_REQUIRE_COT_AMT` · `STALL_EXIT` ·
+`OPPOSITE_EXIT_V1` · `EDGE_FADE` · `T1_LADDER_V2` · `STRUCTURE_EXIT_DOUBLE/REVERSAL` ⇒ **כולן unset**;
+`SYSTEM6_AUTOCORRECT=protective` = מותר-וחי (פסיקת 07-15), לא רגרסיה. **אפס דגל שנפסק-לסגירה ודלוק.**
+**פער-כיסוי מדווח:** 41 מ-201 הדגלים הדלוקים **אינם ב-RULED_FLAGS** ⇒ `flag_guard` עיוור אליהם
+(`LIVE_TRADING_ARMED`, `MEMS26_MODE=live`, `S1_*`, `S2_*`…). לא-חריגה — אבל גם לא-מכוסה.
+
+**3 · T-168 נפתח (🔵, ל-cc):** `config/RULED_FLAGS.yaml` **אינו YAML תקין** —
+`yaml.parser.ParserError … line 12, column 23` (מרכאות מקוננות לא-מוברחות ב-`note`). **קדם-קיים** —
+`git show HEAD:` זהה. `flag_guard` שורד רק כי יש לו `parse_ruled()` רגקסי משלו. הסיכון לעתיד:
+כלי חדש עם `yaml.safe_load` ייפול או יבלע-ויחזיר-ריק — **מחלקת T-161/`sot_health`**. הצעה: להבריח +
+להוסיף ל-`flag_guard` שער-שפיות `yaml.safe_load` ⇒ NO-GO.
+
+**4 · T-169 — `docs/handoff/KIS.md` ("כיס") נוצר.** ערוץ-שיח בין-סוכנים. **אינו מרשם-משימות** —
+פותח בטבלת-הפרדת-תפקידים כדי שלא יהפוך למקור-שני. **כל סוכן: זה הקובץ שמייקל יפנה אליכם.**
+
+**אפס נגיעה בפוזיציות. אפס הדלקה מעבר לפסיקה-כתובת. הריסטארט היחיד בוצע 13:40:43, לפני 16:10.**
+— cowork
+
 
 ### [2026-08-31 13:15 IL] cowork · חובה-1 בלבד · **נענתה שאלת-מייקל 13:00 "הכל תקין? מוכנים? מה נדחה?"** · 🔴 T-166 עדיין ממתין-לפסיקה, חלון עד 16:10
 
