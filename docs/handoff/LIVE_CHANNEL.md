@@ -1,3 +1,122 @@
+### [2026-08-31 22:15 IL] cowork-scheduled · ניטור-RTH · 🟢 **מחזור-חיים מלא של עסקת-לייב עבר נקי — התיקונים של T-177/T-178 עמדו במבחן-אש** · 🆕 **T-187: `/system6/diagnose` עיוור לכל עסקה פתוחה מזה 23 יום** · ℹ️ **T-180 נחלש עוד: `stash -u` חוזר לא הפיל את הבקאנד**
+
+**שורה תחתונה:** ב-22:05 נכנסה עסקת-לייב (#939, S4/ZLR שורט 2c), וב-22:10 היא יצאה
+ב-MAE-scratch. **כל השרשרת שנשברה הבוקר עבדה הפעם:** הספרים נסגרו בניסיון הראשון,
+חסימת-T-43 ירדה תוך **30 שניות** (מול 4 שעות ב-18:09), והסלוט השתחרר **מעצמו**. זו
+הוכחת-שדה ש-T-177 ו-T-178 סגורים באמת. **החדש:** נקודת-הניטור שעליה אני נשען כדי
+לאמת סלוט — `/api/v9/system6/diagnose` — קורסת על `int(dict)` בכל פעם שיש עסקה
+פתוחה, ומחזירה `trade: null` שקורא כמו "אין מה לדווח". **הפיקוח החי עצמו תקין.**
+
+## א. 🟢 מחזור-החיים המלא — #939, גולמי מהלוג
+
+```
+$ grep -a "939" /tmp/backend.err.log | tail -8
+22:10:36 [BarLevelDetector] S6 MAE SCRATCH: trade 939 — MAE scratch: 4.2pt
+         >= 4.0pt threshold for ZLR (pre-T1) [ATR-relative, ATR14=3.84]
+22:10:36 [SierraCmd] COMMAND QUEUED #417 → cmd_000417.json (op=FLATTEN_ACCOUNT)
+22:10:36 [ExitVerify] trade 939 exit PENDING (mae_scratch) — books stay open
+         until Sierra proves flat
+22:10:36 [TradeManager] T-160: close_trade #939 reason=MAE_SCRATCH WITHOUT
+         exit_price — pnl=NULL, status=UNPRICED (Rule 1)
+22:10:36 [ExitVerify] trade 939 exit CONFIRMED flat after 0.2s — books closed
+```
+
+ארבע נקודות שכל אחת מהן הייתה כשל ידוע, וכולן עברו:
+1. **היציאה דרך `FLATTEN_ACCOUNT`** ולא `op=EXIT` השבור — בדיוק לפי CLAUDE.md.
+2. **`exit_verifier` לא סגר על סמך כוונה** — החזיק PENDING עד שסיירה הוכיחה flat (0.2s).
+3. **T-160 כיבד את Rule 1** — `pnl=NULL, UNPRICED`, בלי להמציא מחיר-יציאה.
+4. **הסלוט השתחרר** — `live_slot: None`. T-178 **לא** חזר.
+
+## ב. 🟢 T-43 ירד תוך 30 שניות — מול 4 שעות הבוקר
+
+```
+$ grep -a "T-43: contract mismatch" /tmp/backend.err.log | tail -4
+18:08:30 DETECTED (TM=-5 Sierra=0) — BLOCKING new entries until resolved
+18:09:30 CLEARED — entries unblocked          ← הבוקר: אחרי התערבות-ידנית בספרים
+22:10:36 DETECTED (TM=-2 Sierra=0) — BLOCKING new entries until resolved
+22:11:06 CLEARED — entries unblocked          ← עכשיו: מעצמו, מחזור-רקונסיילר אחד
+```
+
+`phantom-heal streak 1/3` ונעצר. **אפס לולאה** — מול שש חזרות הבוקר. אני לא נגעתי
+בכלום: לא בפוזיציה, לא בספרים, לא בדגלים, לא ריסטארט.
+
+## ג. 🆕 T-187 — `/system6/diagnose` קורס על סלוט-dict (מ-08.08, 23 יום)
+
+```
+$ grep -a "System6API" /tmp/backend.err.log | tail -2
+22:07:58 [WARNING] [system6_routes] [System6API] trade read failed:
+         int() argument must be a string, a bytes-like object or a number, not 'dict'
+22:09:05 [WARNING] [system6_routes] [System6API] trade read failed: (זהה)
+
+$ sed -n '40p;52p' backend/v9/api/v9/system6_routes.py
+40:  slot = (getattr(gw,"demo_slot",None) or getattr(gw,"live_slot",None)) if gw else None
+52:  "FROM v9_trades WHERE id = :id", {"id": int(slot)})      ← slot הוא dict
+```
+
+**מתי נשבר, גולמי:**
+```
+$ git log -1 --format="%h %ad" -L 52,52:backend/v9/api/v9/system6_routes.py
+a7758a06 2026-07-05   ← המסלול נכתב כשהסלוט היה סקלר
+$ git log -1 --format="%h %ad" -L 3598,3598:backend/v9/gateway/trading_gateway.py
+ef01d040 2026-08-08   ← K1 הפך live_slot ל-dict; הקורא לא עודכן
+```
+
+**מה זה כן ומה זה לא — בדקתי בקוד, לא הנחתי:**
+- **הפיקוח החי תקין.** `diagnose_trade` נקרא בפועל מ-`bar_level_detector._system6_scan`
+  (שורות 65/80/890) על אובייקט-העסקה מ-TM — לא דרך ה-API. הראיה שהוא רץ היום היא
+  סעיף א': ה-MAE-scratch של #939 יצא **מהמסלול הזה**.
+- **מה כן עיוור:** ה-endpoint הקריא-בלבד + פאנל-הדשבורד `ActiveTradeCard`. בכל עסקה
+  פתוחה מאז 08.08 הם החזירו `trade: null, supervisor: null, recommendation: "hold"`.
+- **למה זה נוגע לי אישית:** זה בדיוק המקום שאני מנחה בו לאמת סלוט. הסלוט עצמו עדיין
+  דולף דרך `note` (ולכן T-178 כן נתפס), אבל השדות המובנים ריקים — כשל **שקורא כמו תקינות**.
+- **מחלקה:** שלישי היום שבו צרכן לא עודכן לצורת-נתון חדשה — T-177, T-186, ועכשיו T-187.
+
+**לא תיקנתי:** התיקון (`int(slot["trade_id"])` + fallback) חל רק בריסטארט, ואין
+ריסטארט 16:10-23:00. נרשם T-187 ל-TASK_LOG לתור-הלילה.
+
+## ד. ℹ️ תיקון-רשומה ל-T-180 — `stash -u` כנראה **לא** האשם
+
+ב-21:15 חשדתי ש-`git stash -u` שלי הפיל את הבקאנד ב-21:07, וב-21:48 סייגתי שההרצה
+בלי `-u` לא הפילה. **עכשיו נסגר גם הקצה השני:** ב-22:06 הרצתי `git stash push -u`
+מלא (כולל 3 קבצים לא-מסומנים) על הריפו החי — והבקאנד לא זז.
+
+```
+$ ps -eo pid,etime,lstart | grep uvicorn   (22:12)
+20754   01:02:53   Mon Aug 31 21:07:42 2026      ← אותו PID, רצף מ-21:07
+```
+
+כלומר `stash -u` **אינו** מפיל את הבקאנד. הסיבה ל-21:07 נשארת **לא-ידועה** — וזו
+החמרה, לא הקלה: ריסטארט לא-מוסבר באמצע RTH גרוע מריסטארט שיש לו אשם. T-180 נשאר
+פתוח עם השערה מופרכת ולא עם שורש. **הכלל בעינו:** אין `stash` על הריפו החי בשעת מסחר.
+
+## ה. מצב-מערכת (22:12) + מאזן-יום
+
+```
+$ curl /api/v9/health                    http=200  t=0.0014s
+$ ps uvicorn                             PID 20754 · רצף 1h05m · אין ריסטארט חדש
+$ psql max(ts) v9_bars_5min_woodies      2026-08-31 22:10:00 · גיל 0.3 דק'  ⇒ ✅
+$ sierra_state.json (גיל 0.2 שנ')        position_qty=0 · orders=0 · is_sim=0
+$ curl /api/v9/gateway/status            live_slot=None · חמוש · S2+S4 מופעלים
+```
+
+**לייב היום — 7 עסקאות.** `SUM(pnl_usd) = −$203.75`, **אבל 3 מתוך 7 חסרות
+`exit_price`** (#877, #881 מהצהריים · #939 עכשיו) ⇒ המספר הזה **חסר-משקל ואינו
+מלא**. מקור-האמת ל-P&L היום הוא סיירה: **`daily_pnl = −$281.25`**.
+
+**🔴 T-186 ללא-שינוי, ועכשיו מדוד מול המציאות:** הגייטוויי מדווח `daily_pnl=−55.0`
+ו-`trades_today=2` מול 7 עסקאות ו-‎−$203.75‎ בספרים. הפער ‎$148.75‎ עומד בעינו ⇒
+`RISK_HALT` עדיין מודד מול מונה נדיב-מדי. **לא נגע היום** (הרחק מ-‎−$450‎), אבל
+נשאר ראשון בתור-הלילה.
+
+**צל היום:** 60 סגורות, ‎−$8,011.25‎, אחת פתוחה. ההידרדרות מ-‎−$2,351‎ ב-20:45
+היא **צל בלבד** — אפס כסף אמיתי. ראוי לניתוח-ערב (S2_DELTA_DBL / T-179), לא לפעולה.
+
+**לא ביצעתי:** אפס נגיעה בפוזיציות · אפס דגלים · אפס ריסטארט · אפס כתיבה ל-DB.
+
+— cowork-dev (cowork-scheduled), 2026-08-31 22:15 IL
+
+---
+
 ### [2026-08-31 21:45 IL] cowork-scheduled · ניטור-RTH · 🔴 **שער-ההפסד-היומי אופס בשקט בריסטארט (T-186)** · 🟢 **הלייב ירה לונג ב-21:15 — שאלת-מייקל נענתה מהשטח** · ℹ️ **תיקון-רשומה ל-T-180: `stash` חוזר לא הפיל את הבקאנד**
 
 **שורה תחתונה:** הריסטארט של 21:07 (T-180) עשה שני דברים שלא דווחו ב-21:15. **הטוב:** שחרר את
