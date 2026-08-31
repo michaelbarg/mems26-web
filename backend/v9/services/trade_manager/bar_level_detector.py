@@ -717,6 +717,48 @@ class BarLevelDetector:
             logger.warning("[BarLevelDetector] reconcile-live error (fail-safe skip): %s", _rc_err)
             return None
 
+    def _check_stuck_live_slot(self):
+        """T-183 — alarm when the live slot blocks fires while holding nothing.
+
+        Root-cause-INDEPENDENT: it does not care WHY the slot was not released
+        (I-57 cockpit-exit path, T-178 books-closed-in-DB path, or the next
+        variant). It asks only whether the slot is held by a trade that is not
+        among the open live/demo trades, for longer than the threshold.
+
+        Why this is not covered by _reconcile_live: MISMATCH_PHANTOM_SLOT needs
+        `db_open` false, but its query has no mode filter — the shadow trades
+        firing all evening on 08-31 kept it True, so the phantom branch never
+        ran and 403 CRITICAL "NAKED_STOP_SUSPECT — in position" lines were
+        emitted instead, claiming the opposite of the truth.
+
+        ALERT-ONLY: logs, never releases the slot, never writes, never touches
+        the execution path. Rate-limited so a stuck slot does not spam the log
+        the way the naked-stop check did (403 lines in one evening).
+        """
+        import os as _ss_os
+        if _ss_os.getenv("STUCK_SLOT_ALARM_V1", "1").lower() not in ("1", "true", "yes"):
+            return None
+        try:
+            import time as _ss_t
+            from backend.v9.services.reconcile import gather_stuck_slot
+
+            st = gather_stuck_slot(self._gateway, getattr(self, "_stuck_slot_since", None))
+            self._stuck_slot_since = st.stuck_since  # None when healthy → auto-reset
+            self._last_stuck_slot = st
+
+            if not st.alarm:
+                return st
+            # rate-limit: one line per 5 min while the condition persists
+            _last = getattr(self, "_stuck_slot_logged_at", 0.0)
+            if _ss_t.time() - _last >= 300.0:
+                self._stuck_slot_logged_at = _ss_t.time()
+                logger.warning("[StuckSlot] %s", st.detail)
+            return st
+        except Exception as _ss_err:  # never let an alarm break trade management
+            logger.warning("[BarLevelDetector] stuck-slot check error (fail-safe skip): %s",
+                           _ss_err)
+            return None
+
     async def on_bar(self, event) -> None:
         """Process a 5-min bar: check all active trades for hits."""
         try:
@@ -756,6 +798,11 @@ class BarLevelDetector:
             # Reconcile slot↔DB↔Sierra while in a position (flag-gated RECONCILE_LIVE_V1, OFF).
             # Capture the verdict so System 6 folds the DB↔Sierra truth into its diagnosis.
             _recon_v = self._reconcile_live()
+            # T-183: stuck live slot = live path blocked SILENTLY. Runs
+            # unconditionally (not behind RECONCILE_LIVE_V1) and independently of
+            # the reconcile verdict, because the 08-31 blackout happened WITH
+            # reconcile on — it just answered the wrong question. Alert-only.
+            self._check_stuck_live_slot()
 
             # System 0 A3: shadow direction authority log (flag-gated, advisory)
             self._system0_shadow_log(_ts_key)

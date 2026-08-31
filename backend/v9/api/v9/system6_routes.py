@@ -38,8 +38,21 @@ def _atr(bars):
 async def diagnose(request: Request):
     gw = getattr(request.app.state, "trading_gateway", None)
     slot = (getattr(gw, "demo_slot", None) or getattr(gw, "live_slot", None)) if gw else None
+
+    # T-183 (31.08): the live path was blocked SILENTLY for ~3.5h because the
+    # slot stayed occupied after the books closed. This is THE surface where slot
+    # truth is read (memory 31.08: "לאמת סלוט רק ב-/api/v9/system6/diagnose, לא
+    # להסיק מ-DB"), so the structured verdict belongs here rather than in a new
+    # endpoint. Read-only and fail-safe: never releases a slot, never writes.
+    slot_health = None
+    try:
+        from backend.v9.services.reconcile import gather_stuck_slot
+        slot_health = gather_stuck_slot(gw).as_dict()
+    except Exception as _sh_err:  # a broken alarm must not break the panel
+        logger.warning("[System6API] stuck-slot check failed: %s", _sh_err)
+
     if not slot:
-        return {"active": False}
+        return {"active": False, "slot_health": slot_health}
 
     # T-187 (31.08): the gateway slot became a **dict** in ef01d040 (08-08) —
     # {"trade_id": "939", "mode": "live", ...} — while this route was written
@@ -60,7 +73,8 @@ async def diagnose(request: Request):
 
     from backend.v9.db.read import read_one, read_all
     out = {"active": True, "trade": None, "hold": None,
-           "supervisor": None, "exit_signals": [], "recommendation": "hold"}
+           "supervisor": None, "exit_signals": [], "recommendation": "hold",
+           "slot_health": slot_health}
 
     # active trade
     try:

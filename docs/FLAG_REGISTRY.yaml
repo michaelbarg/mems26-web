@@ -1098,6 +1098,14 @@ flags:
     category: risk
     what: "P1.3 reconcile-live in the per-bar loop: 3-way Sierra-slot/DB/TradeManager comparison + naked-stop detection; verdict feeds System 6 (65dff60)."
     why: "ON in .env for real-money live (2026-07-07 preflight). Part of the mandatory safety set — do not disable without Michael."
+  STUCK_SLOT_ALARM_V1:
+    # NOTE: gen_flag_index.py only emits a fixed set of category sections
+    # (S1-S4/cascade/targets/stops/risk/param/misc) and SILENTLY DROPS any other
+    # category — "observability" produced a registry entry that never reached
+    # FLAG_INDEX.md. Use `misc` (the generator's own default) until that is fixed.
+    category: misc
+    what: "T-183 stuck-live-slot alarm: per-bar check that the gateway slot is not held by a trade which is not among the OPEN live/demo trades. Rate-limited logger.warning (1/5min) + structured `slot_health` on GET /api/v9/system6/diagnose. backend/v9/services/reconcile.py:evaluate_stuck_slot/gather_stuck_slot + bar_level_detector._check_stuck_live_slot."
+    why: "ON by CODE DEFAULT — alert-only, no execution-path effect (never releases a slot, never writes). Built 2026-08-31 after the live path was blocked SILENTLY 17:45→21:07 (T-178). RECONCILE_LIVE_V1 was ON and did NOT catch it: MISMATCH_PHANTOM_SLOT needs db_open false, but its query has no mode filter, so the shadow trades firing all evening kept db_open True and it logged 403 CRITICAL NAKED_STOP_SUSPECT 'in position' lines instead — the opposite of the truth. This check ignores the TradeManager boolean and counts live/demo rows only."
   LIVE_LEDGER_V1:
     category: risk
     group: "L8 Sierra-sourced ledger"

@@ -302,6 +302,143 @@ def gather_and_reconcile(gateway=None) -> ReconcileVerdict:
     return v
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# T-183 — STUCK LIVE SLOT (root-cause-independent alarm)
+#
+# 2026-08-31: the live path was blocked SILENTLY for ~3.5h (17:45→21:07). The
+# books were closed in the DB but `gateway.live_slot` stayed occupied, so every
+# new live fire was refused with `live_blocked_by="live_slot_occupied"` and
+# NOTHING said so. This is the third instance of the class: I-57 (07-08, fixed
+# at one call site in trades.py) and T-178 (08-31) are the same failure.
+#
+# Why the EXISTING reconcile did not catch it — the real finding:
+#   MISMATCH_PHANTOM_SLOT requires `slot_occupied and not db_open and
+#   tm_in_position is False`. `db_open_ids` above is built from
+#   `state NOT IN ('CLOSED')` with **no mode filter**, so the SHADOW trades that
+#   kept firing all evening made `db_open` True → the phantom branch was skipped
+#   → it fell through to the naked-stop path and emitted 403 CRITICAL
+#   NAKED_STOP_SUSPECT lines that said "in position", i.e. the exact opposite of
+#   the truth. Evidence: `grep -c PHANTOM_SLOT /tmp/backend.err.log` → 0.
+#
+# This check is deliberately NOT a second opinion on the root cause. It asks one
+# question that is true in every variant: *is the live slot held by a trade that
+# is not actually open?* It compares the slot against OPEN LIVE/DEMO trades only
+# (never shadow), and ignores the TradeManager's boolean entirely — that belief
+# was stale in T-178 and is what misrouted the verdict.
+#
+# ALERT-ONLY. It never releases a slot, never writes, never touches execution.
+STUCK_SLOT_THRESHOLD_S = 600.0  # 10 min — long enough to outlast entry/fill races
+
+
+@dataclass
+class StuckSlotState:
+    stuck: bool = False
+    alarm: bool = False               # stuck for longer than the threshold
+    slot_trade_id: Optional[int] = None
+    live_open_ids: List[int] = field(default_factory=list)
+    stuck_since: Optional[float] = None
+    stuck_seconds: float = 0.0
+    detail: str = ""
+
+    def as_dict(self) -> dict:
+        return {
+            "stuck": self.stuck, "alarm": self.alarm,
+            "slot_trade_id": self.slot_trade_id,
+            "live_open_ids": list(self.live_open_ids),
+            "stuck_seconds": round(self.stuck_seconds, 1),
+            "threshold_seconds": STUCK_SLOT_THRESHOLD_S,
+            "detail": self.detail,
+        }
+
+
+def evaluate_stuck_slot(
+    *,
+    slot_occupied: bool,
+    slot_trade_id: Optional[int],
+    live_open_ids: List[int],
+    stuck_since: Optional[float],
+    now: float,
+    threshold_s: float = STUCK_SLOT_THRESHOLD_S,
+) -> StuckSlotState:
+    """PURE verdict: is the live slot blocking fires while holding nothing real?
+
+    `stuck_since` is the caller's memory of when this condition started (None if
+    it was healthy last time). Returns the new state; the caller persists
+    `stuck_since` for the next call. No I/O, no clock — unit-testable.
+    """
+    ids = [int(i) for i in (live_open_ids or [])]
+
+    if not slot_occupied:
+        return StuckSlotState(stuck=False, live_open_ids=ids,
+                              detail="live slot is free")
+
+    # Occupied by a trade that IS open live/demo → healthy, nothing to say.
+    if slot_trade_id is not None and int(slot_trade_id) in ids:
+        return StuckSlotState(stuck=False, slot_trade_id=int(slot_trade_id),
+                              live_open_ids=ids,
+                              detail=f"slot holds open live trade {int(slot_trade_id)}")
+
+    began = stuck_since if stuck_since is not None else now
+    held = max(0.0, now - began)
+    why = ("slot holds trade "
+           f"{slot_trade_id!r} which is NOT among the open live/demo trades {ids}"
+           if slot_trade_id is not None else
+           f"slot is occupied but carries no readable trade_id; open live/demo trades: {ids}")
+    return StuckSlotState(
+        stuck=True, alarm=held >= threshold_s,
+        slot_trade_id=(int(slot_trade_id) if slot_trade_id is not None else None),
+        live_open_ids=ids, stuck_since=began, stuck_seconds=held,
+        detail=(f"LIVE PATH BLOCKED: {why} — every new live fire is being "
+                f"refused with live_slot_occupied ({held / 60.0:.1f} min)"),
+    )
+
+
+def _slot_trade_id(gateway) -> Optional[int]:
+    """The trade_id inside the gateway slot, whether dict (post-08-08) or scalar.
+
+    Same shape trap that made /system6/diagnose blind for 23 days (T-187).
+    """
+    slot = (getattr(gateway, "demo_slot", None) or
+            getattr(gateway, "live_slot", None)) if gateway is not None else None
+    if not slot:
+        return None
+    raw = slot.get("trade_id") if isinstance(slot, dict) else slot
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def gather_stuck_slot(gateway, stuck_since: Optional[float] = None) -> StuckSlotState:
+    """Gather the live inputs and evaluate. Never raises."""
+    import time as _t
+    slot_occupied = bool(
+        getattr(gateway, "demo_slot", None) or getattr(gateway, "live_slot", None)
+    ) if gateway is not None else False
+
+    live_open_ids: List[int] = []
+    try:
+        from backend.v9.db.read import read_all
+        # mode filter is the whole point — shadow rows are NOT a live position
+        # and are exactly what masked this condition on 08-31.
+        rows = read_all(
+            "SELECT id FROM v9_trades WHERE state NOT IN ('CLOSED','closed') "
+            "AND mode IN ('live','demo') ORDER BY id", {})
+        live_open_ids = [int(r["id"]) for r in rows]
+    except Exception as e:
+        # Rule 1: a failed read is NOT evidence of a stuck slot. Report unknown.
+        logger.warning("[StuckSlot] open live-trade query failed: %s", e)
+        return StuckSlotState(stuck=False, detail=f"unknown — DB read failed: {str(e)[:100]}")
+
+    return evaluate_stuck_slot(
+        slot_occupied=slot_occupied,
+        slot_trade_id=_slot_trade_id(gateway),
+        live_open_ids=live_open_ids,
+        stuck_since=stuck_since,
+        now=_t.time(),
+    )
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     v = gather_and_reconcile(gateway=None)  # CLI has no live gateway → slot/TM unknown

@@ -90,9 +90,18 @@ def test_demo_dict_slot_is_read(monkeypatch):
 # ── the other half: failures must NOT read like health ────────────────────
 
 def test_empty_slot_still_reports_inactive(monkeypatch):
+    """A free slot reports inactive and never invents a trade.
+
+    T-183 (01.09) added an additive `slot_health` field to this response, so
+    this asserts the CONTRACT (active is False, no trade claimed) rather than
+    exact dict equality — the equality was incidental to what the test protects.
+    """
     _patch_db(monkeypatch, _ROW)
-    assert _diagnose(_Gw()) == {"active": False}
-    assert _diagnose(None) == {"active": False}
+    for res in (_diagnose(_Gw()), _diagnose(None)):
+        assert res["active"] is False
+        assert res.get("trade") is None
+        # the free slot must not be reported as a blocked live path
+        assert (res.get("slot_health") or {}).get("stuck") in (False, None)
 
 
 def test_unreadable_slot_reports_explicit_error(monkeypatch):
