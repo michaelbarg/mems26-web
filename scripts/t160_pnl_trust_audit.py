@@ -87,14 +87,32 @@ def mark_untrusted(dry_run=True):
         print("DRY-RUN: no changes made. Use --apply to mark.")
         return
 
+    # T-182 (31.08): this used to pass a DICT with `:named` binds. safe_execute
+    # takes POSITIONAL `?` params only — the dict fell into the mismatch branch
+    # (`dict(enumerate(params))` walks a dict's KEYS), the engine raised, the
+    # except swallowed it, and this function printed "Marked 62 trades" while
+    # ZERO rows were written. safe_execute now raises on a Mapping; the binds
+    # below are positional so the UPDATE actually lands.
     from backend.v9.db.safe_writer import safe_execute
     for r in to_mark:
         q = r["quality"] if isinstance(r["quality"], dict) else {}
         q["pnl_trusted"] = False
         safe_execute(
-            "UPDATE v9_trades SET quality = :q WHERE id = :id",
-            {"q": json.dumps(q), "id": r["id"]})
-    print(f"Marked {len(to_mark)} trades as pnl_trusted=false")
+            "UPDATE v9_trades SET quality = ? WHERE id = ?",
+            (json.dumps(q), r["id"]))
+
+    # Count the RESULT, not the intention (the other half of the T-182 lie):
+    # safe_execute returns lastrowid, which is None for a Postgres UPDATE even
+    # on success, so it cannot be used as a success signal. Re-read instead.
+    verified = read_all(
+        "SELECT COUNT(*) AS n FROM v9_trades "
+        "WHERE mode IN ('live', 'demo') AND exit_price IS NULL "
+        "AND state = 'CLOSED' AND quality->>'pnl_trusted' = 'false'", {})
+    n_marked = int(verified[0]["n"]) if verified else 0
+    print(f"Intended to mark: {len(to_mark)}")
+    print(f"VERIFIED marked (re-read from DB): {n_marked}")
+    if n_marked < len(to_mark):
+        print("WARNING: fewer rows marked than intended — check safe_writer logs.")
 
 
 if __name__ == "__main__":

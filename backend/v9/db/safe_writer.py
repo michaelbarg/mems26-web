@@ -12,6 +12,7 @@ import contextlib
 import logging
 import os
 import threading
+from collections.abc import Mapping
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
 from sqlalchemy import text
@@ -141,7 +142,40 @@ def safe_execute(
 
     Returns lastrowid on success, None on failure (logged, not raised).
     Converts ? placeholders and INSERT OR REPLACE for Postgres compatibility.
+
+    `params` is POSITIONAL (`?` placeholders). Passing a dict for `:named`
+    binds is NOT supported and now raises instead of silently writing nothing.
+
+    T-182 (30.08): `t160_pnl_trust_audit.py --apply` passed a dict. It reached
+    `_convert_positional_to_named`, whose mismatch branch does
+    `dict(enumerate(params))` — and `enumerate()` over a dict walks its KEYS,
+    producing `{0: 'q', 1: 'id'}`. The engine then raised "A value is required
+    for bind parameter 'q'", the except below swallowed it, and the script
+    reported "Marked 62 trades" while ZERO rows were written: it counted
+    intention instead of result. (The 62 rows were later marked BY HAND in
+    psql — so the DB looks marked today even though the script never wrote a
+    single row. Don't read the marked rows as evidence the script worked.)
+
+    Failing loud here is safe. AST sweep of every call site in the repo
+    (31.08): 40 sites — 39 production (backend/bridge), all positional
+    tuples/lists; 1 script (t160_pnl_trust_audit.py) which was the sole
+    dict-passer and is fixed to positional `?` in the same commit. No
+    production caller is affected. That sweep is kept honest by
+    tests/v9/regression/test_safe_execute_dict_guard.py, which re-runs it on
+    every test run and fails if a new dict-passing caller appears.
+
+    STILL OPEN (T-182 part 3): 23 production call sites DISCARD the return
+    value. Note the naive remedy is wrong — this returns `result.lastrowid`,
+    which psycopg2 leaves None for a successful UPDATE/DELETE, so `is not
+    None` is NOT a success test on Postgres. A real fix returns rowcount.
     """
+    if isinstance(params, Mapping):
+        raise TypeError(
+            "safe_execute() takes POSITIONAL params for `?` placeholders; got a "
+            f"{type(params).__name__}. A dict is silently mangled into "
+            "{0: <key>, 1: <key>} and writes nothing (T-182). Use a tuple with "
+            "`?`, or go through the ORM / read.py for :named binds."
+        )
     engine = _get_engine(db_path)
     is_pg = _is_postgres(engine)
 
