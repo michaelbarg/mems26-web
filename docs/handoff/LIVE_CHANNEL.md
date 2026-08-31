@@ -1,3 +1,43 @@
+### [2026-09-01 00:25 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה של 31.08 נלקח ע"י cowork** (אין פעילות-cc מאז 22:16; עברנו את 23:20)
+
+**בסיס-ההכרעה, גולמי:**
+```
+$ git log -1 --date=format:'%Y-%m-%d %H:%M' --pretty='%ad %s'
+2026-08-31 22:16 chore(phone): cowork RTH update 22:15 — #939 lifecycle clean...
+$ ls docs/handoff/CC_EVENING_PROMPT_2026-08-31.md
+ls: no such file            ← אין קובץ-ערב של היום
+$ head -1 docs/handoff/LIVE_CHANNEL.md   ← אין שורת-claim של cc
+$ date '+%H:%M'  → 00:25 IL (‏65 דק' אחרי סף-23:20)
+```
+
+**ממצא-הפתיחה שמכתיב את סדר-התור — `S2_DELTA_DBL` הוא 86% מנזק-הצל של היום:**
+```
+$ psql -c "SELECT pattern_id_at_entry,count(*),sum(pnl_usd),
+           count(*) FILTER (WHERE outcome='WIN') w FROM v9_trades
+           WHERE entry_ts>='2026-08-31 00:00-04' AND mode<>'live' GROUP BY 1 ORDER BY 3;"
+ S2_DELTA_DBL_SHORT | 37 | -6387.50 | 0 wins
+ S2_DELTA_DBL_LONG  |  4 |  -587.50 | 0 wins      ← 41 עסקאות, 0 ניצחונות
+ ZLR                | 11 |  -742.50 | 2
+ (סה"כ צל: 61 עסקאות, -8,078.75)
+```
+41 ירי · **0/41 ניצחונות** · ‎-$6,975‎ = **86%** מ-‎-$8,078.75‎. הדפוס ירה היום
+בפעם הראשונה אי-פעם (אפס בכל יום קודם), והוא **חסר שער-משפחה** ⇒ fail-open FULL
+לכיוון-הלייב. זה עולה לראש-התור מעל כל פריט-תשתית אחר (T-179).
+
+**אמת-הלייב של היום (‏Rule 1 נשמר — אין P&L מומצא):**
+```
+7 עסקאות-לייב · 4 מתומחרות = -$203.75 · 3 בלי exit_price (877/881 phantom_reconcile, 939 SIERRA_FLAT)
+sierra daily_pnl = -281.25   ← אמת-הברוקר, כוללת את השלוש
+```
+
+**מה cowork מבצע הלילה (סדר):** T-179 מדידה+שער-משפחה ל-DELTA_DBL · T-187
+(`int(dict)`) · T-186 BOOT_HYDRATION · T-182 `safe_execute` בולע · T-183 אזעקת-סלוט ·
+דוח-EOD לטלפון. **בלי הדלקות שלא נפסקו** — כל דגל חדש נכתב `shadow`/OFF ומדווח.
+
+— cowork-scheduled, 2026-09-01 00:25 IL
+
+---
+
 ### [2026-08-31 22:15 IL] cowork-scheduled · ניטור-RTH · 🟢 **מחזור-חיים מלא של עסקת-לייב עבר נקי — התיקונים של T-177/T-178 עמדו במבחן-אש** · 🆕 **T-187: `/system6/diagnose` עיוור לכל עסקה פתוחה מזה 23 יום** · ℹ️ **T-180 נחלש עוד: `stash -u` חוזר לא הפיל את הבקאנד**
 
 **שורה תחתונה:** ב-22:05 נכנסה עסקת-לייב (#939, S4/ZLR שורט 2c), וב-22:10 היא יצאה
