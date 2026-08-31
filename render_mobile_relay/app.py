@@ -31,6 +31,56 @@ _SNAP = {"data": None, "recv_ts": 0.0}
 _CMD = {"pending": None, "ts": 0.0, "counter": 0}
 _CMD_TTL = 60
 
+# ── Session series for the pocket chart (Michael 31.08: "גרף קטן פה") ──
+# Built HERE, from the snapshots the Mac already pushes every ~5s. No Mac-side
+# change, no backend restart, no new data path. In-memory only: it resets on a
+# Render cold start, and the page says so rather than pretending otherwise.
+# P&L is today.pnl (the system's own closed trades from v9_trades) — NOT
+# sierra.daily_pnl, which is mixed on the shared account 37138283.
+_SERIES = {"day": None, "pts": []}   # pts: [epoch_s, price, pnl, n_trades]
+_SERIES_MAX = 500       # ~4h at one point per 30s
+_SERIES_GAP_S = 30      # normal sampling gap; a P&L change samples immediately
+
+
+def _series_add(body: dict) -> None:
+    """Append one sample. Never raises — a bad snapshot must not break /snapshot."""
+    try:
+        day = time.strftime("%Y-%m-%d", time.gmtime())
+        if _SERIES["day"] != day:
+            _SERIES["day"] = day
+            _SERIES["pts"] = []
+        price = (body.get("sierra") or {}).get("last_price")
+        today = body.get("today") or {}
+        pnl = today.get("pnl")
+        n = today.get("n") or 0
+        if price is None:
+            return
+        price = round(float(price), 2)
+        pnl = round(float(pnl), 2) if pnl is not None else 0.0
+        now = time.time()
+        pts = _SERIES["pts"]
+        if pts:
+            last = pts[-1]
+            pnl_changed = (last[2] != pnl) or (last[3] != n)
+            if not pnl_changed and (now - last[0]) < _SERIES_GAP_S:
+                return
+        pts.append([int(now), price, pnl, int(n)])
+        if len(pts) > _SERIES_MAX:
+            del pts[:len(pts) - _SERIES_MAX]
+    except Exception:
+        pass
+
+
+def _series_out(limit: int = 110) -> list:
+    """Downsample to <= limit points so the mobile payload stays small."""
+    pts = _SERIES["pts"]
+    if len(pts) <= limit:
+        return pts
+    step = len(pts) / float(limit)
+    out = [pts[int(i * step)] for i in range(limit)]
+    out[-1] = pts[-1]   # always keep the freshest point
+    return out
+
 
 def _page_key_ok(request: Request) -> bool:
     want = (os.getenv("MOBILE_ACCESS_KEY") or "").strip()
@@ -60,6 +110,7 @@ async def snapshot(request: Request):
         raise HTTPException(status_code=400, detail="json body required")
     _SNAP["data"] = body
     _SNAP["recv_ts"] = time.time()
+    _series_add(body)
     return {"ok": True}
 
 
@@ -374,6 +425,7 @@ async def mobile_data(request: Request):
     out = dict(_SNAP["data"])
     out["_relay"] = "render"
     out["_relay_age_s"] = round(time.time() - _SNAP["recv_ts"], 1)
+    out["_series"] = _series_out()
     return JSONResponse(out)
 
 
@@ -503,6 +555,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
 <div class="card"><div class="row"><span class="dim">יומי (סגורות)</span><span class="dim" id="daymeta"></span></div>
 <div class="big num" id="daypnl">—</div><div class="dim">תקרת-הפסד לעצירת-יום: <span class="num" id="cap">—</span></div></div>
+<div class="card"><div class="row"><span class="dim">גרף הסשן</span><span class="dim" id="chmeta"></span></div>
+<div id="chart" style="margin-top:6px"></div>
+<div class="dim" style="font-size:10.5px;margin-top:4px">מחיר <span style="color:#58a6ff">━</span> · רווח-סגורות <span style="color:#3fb950">━</span> · נמדד מרגע שהעמוד קם</div></div>
 <div class="card"><div class="row"><span class="dim">חשבון</span><span id="acctmeta" class="dim"></span></div>
 <div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" class="num" style="font-weight:800;font-size:18px">—</span></div>
 <div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day" class="num">—</span></div>
@@ -542,6 +597,47 @@ cold_start_guard:'אתחול-קר',structural_targets_wrong_side:'יעדים ב�
 drive_exhaustion_veto:'תשישות-דרייב',pattern_stop_cooldown:'צינון אחרי-סטופ',zone_limit_late_entry:'איחור לאזור',strict_risk:'בדיקת-סיכון-לייב',
 pre_send_entry_guard:'שומר קדם-שיגור (פוזיציה-עומדת)',margin_zero_size:'אין מרג׳ין',live_slot_occupied:'עסקה-חיה פתוחה',place_refused:'PLACE נדחה'};
 const GATE_WHY={lsma_flat:'אין שיפוע-מגמה (LSMA שטוח) — כניסות-המשך חלשות; רגל-חיה עוקפת',extreme_chase_guard:'הכניסה רודפת קיצון-סשן טרי — סיכון-היפוך; רגל-חיה עוקפת',awaiting_release:'המחיר עוד באזור-הקיצון — מחכים לשחרור מבני (שפלים-עולים + נפח מתייבש)',daytype_playbook:'סוג-היום לא מרשה את משפחת-התבנית הזו',cont_trend_filter:'כניסת-המשך בלי מגמה מבוססת דיה',direction_context:'הכיוון מנוגד ל-bias של היום',rr_entry_gate:'סיכוי/סיכון לרוטציה מתחת 0.65',rr_hard_floor:'R:R מתחת לרצפה 0.3',pattern_stop_cooldown:'אותה תבנית נעצרה בסטופ ב-30 הדק׳ האחרונות',location_gate:'מיקום-הכניסה לא מתאים לסוג-היום (דלתון)',entry_not_confirmed:'אין בר-אישור בכיוון אחרי האיתות',cold_start_guard:'המערכת עלתה הרגע — ממתינה ל-3 ברים',eod_entry_cutoff:'45 דק׳ אחרונות — אין כניסות חדשות',daily_loss_halt:'הפסד-יומי ממומש מעל התקרה — נעצר יום',pre_send_entry_guard:'החשבון מחזיק פוזיציה שלא-בספרים — לא יורים מעליה',margin_zero_size:'אין מרג׳ין פנוי אפילו לחוזה אחד',live_slot_occupied:'עסקה חיה פתוחה — אחת בכל רגע',strict_risk:'בדיקת-סיכון-לייב (שעת-חיתוך/תקרות) עצרה'};
+// גרף-כיס (מייקל 31.08). מצויר מסדרה שהממסר צובר מה-snapshots — ולכן הוא
+// מתחיל כשהעמוד ברנדר קם, לא בפתיחת-הסשן. אומרים את זה בכותרת ולא מעמידים
+// פנים. הרווח הוא today.pnl (הסגורות של המערכת), לא daily_pnl של החשבון
+// המשותף. אין נתון ⇒ כתוב "אוסף נתונים", בלי להמציא קו.
+function drawChart(d){
+ const el=document.getElementById('chart'); const mt=document.getElementById('chmeta');
+ if(!el) return;
+ const S=d._series||[];
+ if(S.length<2){ el.innerHTML='<span class="dim" style="font-size:12px">אוסף נתונים…</span>';
+  if(mt) mt.textContent=S.length?'1 דגימה':''; return; }
+ const W=320,H=88,PL=4,PR=4,PT=8,PB=12;
+ const t0=S[0][0], t1=S[S.length-1][0], dt=Math.max(t1-t0,1);
+ const X=t=>PL+((t-t0)/dt)*(W-PL-PR);
+ const px=S.map(p=>p[1]), pmin=Math.min(...px), pmax=Math.max(...px);
+ const pr=Math.max(pmax-pmin,0.5);
+ const YP=v=>PT+(1-(v-pmin)/pr)*(H-PT-PB);
+ const priceLine=S.map(p=>X(p[0]).toFixed(1)+','+YP(p[1]).toFixed(1)).join(' ');
+ let svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:88px;display:block">';
+ // קו-כניסה ממוצע כשיש פוזיציה — רק אם הוא בתוך טווח-הגרף, אחרת הוא משקר על הסקאלה
+ const ap=(d.sierra&&d.sierra.avg_price)||0;
+ if(ap>0&&ap>=pmin&&ap<=pmax){ const y=YP(ap).toFixed(1);
+  svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#f0883e" stroke-width="1" stroke-dasharray="3,3" opacity="0.8"/>'; }
+ svg+='<polyline points="'+priceLine+'" fill="none" stroke="#58a6ff" stroke-width="1.6" stroke-linejoin="round"/>';
+ const lastX=X(t1).toFixed(1), lastY=YP(S[S.length-1][1]).toFixed(1);
+ svg+='<circle cx="'+lastX+'" cy="'+lastY+'" r="2.6" fill="#58a6ff"/>';
+ // רווח-הסגורות — סקאלה משלו, נמתח רק אם באמת היה רווח/הפסד
+ const pl=S.map(p=>p[2]); const lmin=Math.min(...pl,0), lmax=Math.max(...pl,0);
+ if(lmax-lmin>0.01){ const lr=lmax-lmin;
+  const YL=v=>PT+(1-(v-lmin)/lr)*(H-PT-PB);
+  const z=YL(0).toFixed(1);
+  svg+='<line x1="'+PL+'" y1="'+z+'" x2="'+(W-PR)+'" y2="'+z+'" stroke="#8b949e" stroke-width="0.7" stroke-dasharray="2,4" opacity="0.6"/>';
+  const cur=pl[pl.length-1], col=cur>=0?'#3fb950':'#f85149';
+  svg+='<polyline points="'+S.map(p=>X(p[0]).toFixed(1)+','+YL(p[2]).toFixed(1)).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round"/>'; }
+ svg+='<text x="'+(W-PR)+'" y="7" text-anchor="end" fill="#8b949e" font-size="8">'+pmax.toFixed(2)+'</text>';
+ svg+='<text x="'+(W-PR)+'" y="'+(H-2)+'" text-anchor="end" fill="#8b949e" font-size="8">'+pmin.toFixed(2)+'</text>';
+ svg+='</svg>';
+ el.innerHTML=svg;
+ const mins=Math.round((t1-t0)/60);
+ if(mt) mt.textContent=(mins<60? mins+' דק׳': (mins/60).toFixed(1)+' שע׳')+' · '+S.length+' דגימות';
+}
+
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
@@ -717,6 +813,7 @@ async function load(){
   de.textContent = (pnl>=0?'+':'')+Number(pnl).toFixed(0)+'$';
   de.className = 'big num '+(pnl>=0?'green':'red');
   document.getElementById('daymeta').textContent = (td.n||0)+' עסקאות · '+(td.w||0)+' מנצחות';
+  try{ drawChart(d); }catch(e){ const _ce=document.getElementById('chart'); if(_ce) _ce.innerHTML='<span class="dim" style="font-size:11px">גרף לא-זמין</span>'; }
   document.getElementById('cap').textContent = d.halt_cap==null? '—' : '−'+d.halt_cap+'$';
   // 29.08: כרטיס "סוג-יום" הציג "—" בזמן שהרדאר שני כרטיסים מעליו הציג
   // Neutral_Center 67% — שני פאנלים באותו מסך סותרים זה את זה. אותה snapshot,
