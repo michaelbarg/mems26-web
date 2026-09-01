@@ -170,7 +170,28 @@ def reconcile_positions(
     stop_stale = (not ack_within_position
                   and last_result_age_s is not None
                   and last_result_age_s > _STOP_STALE_S)
+    # T-175: before raising NAKED_STOP_SUSPECT, check Sierra's ACTUAL working
+    # orders. The `last_result` file is a DLL ACK that goes stale after 15min
+    # on a quiet trade (OCO stop resting Sierra-side emits no new ACKs).
+    # Sierra's own order list is the ground truth. If it shows a protective
+    # stop → the position is covered, regardless of last_result staleness.
     if (not stop_ok) or stop_stale:
+        try:
+            from backend.v9.services.sierra_position_reconciler import (
+                _has_protective_stop, _sierra_state_orders, _sierra_state_avg_price,
+                _sierra_state_qty)
+            _sq = _sierra_state_qty()
+            if _sq is not None and _sq != 0:
+                _orders = _sierra_state_orders()
+                _avg = _sierra_state_avg_price()
+                _protected = _has_protective_stop(_sq, _orders, _avg)
+                if _protected is True:
+                    v.verdict = IN_POSITION_OK
+                    v.detail = (f"T-175: last_result stale but Sierra shows "
+                                f"protective stop (orders={len(_orders or [])})")
+                    return v
+        except Exception:
+            pass  # fail-open: can't check → fall through to original alarm
         v.verdict, v.naked_stop_suspect = NAKED_STOP_SUSPECT, True
         v.detail = (f"in position but stop not confirmed "
                     f"(last_result={last_result_status!r}, age={last_result_age_s}s)")
