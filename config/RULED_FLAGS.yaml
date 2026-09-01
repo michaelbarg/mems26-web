@@ -351,6 +351,12 @@ ruled:
   DIRECTION_CONTEXT:  {expected: "0", ruled_by: "מייקל", date: "2026-08-28", note: "בוטל לצמיתות (פסיקת 28.08). מנע את OPENING_DRIVE-LONG @7749.75 ב-17:00 על 'LSMA DOWN' בזמן היפוך — LSMA אינו מקור-כיוון מוסמך (פסיקת 26.08: הכיוון ממערכת-1/IB). ברירת-הקוד ממילא OFF. אין להחזיר — bypass-כיוון-S1 יגיע עם Phase-3."}
   LSMA_FLAT_GATE_V1:  {expected: "0", ruled_by: "מייקל", date: "2026-08-28", note: "בוטל לצמיתות (פסיקת 28.08). חסם ZLR-LONG פעמיים ב-17:35 באמצע ריצת +45 נק' ('אין שיפוע') — שיפוע-LSMA מפגר בהיפוכים. LEG_RIDE-exempt כבר הוכיח שהשער שגוי בתוך רגל; עכשיו כולו ירד. אין להחזיר."}
 
+  # ── פסיקת-מייקל 2026-09-01 ("אפשר לעשות חוזים יחסי?") ──
+  RISK_BUDGET_SIZING_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-01", note: "n=floor(BUDGET/(risk*$5)). n<MIN=REJECT (שער-איכות). contracts=min(n,ruled). OFF=legacy ruled-force."}
+  RISK_BUDGET_USD: {expected: "150", ruled_by: "מייקל", date: "2026-09-01", note: "150*3<=450 (RISK_DAILY_LOSS_CAP). צימוד קשיח."}
+  RISK_MIN_CONTRACTS: {expected: "3", ruled_by: "מייקל", date: "2026-09-01", note: "n<3=דחייה. סטופ-מקס 10 נק'."}
+  RISK_MAX_PTS_HARD: {expected: "30", ruled_by: "מייקל", date: "2026-09-01", note: "רשת שנייה."}
+
   POSITION_MISMATCH_BLOCK_V1: {expected: "0", ruled_by: "cowork", date: "2026-08-29", note: "גידור-בטיחות של cowork על T-43b של cc: החסם נבנה דלוק-כברירת-מחדל בלי דגל ובלי בדיקת-בעלות ⇒ פוזיציה-ידנית של מייקל (מוסברת לפי פסיקת 24.07) הייתה חוסמת מסחר-לייב ליום שלם בשקט; ובנוסף 3 return מוקדמים משאירים את הדגל נעול בלי ניקוי. התנהגות-סיכון חדשה בלי פסיקה ⇒ OFF. תנאי-הדלקה: בדיקת-בעלות לפני החסימה + ניקוי/TTL + פסיקת-מייקל."}
 
   # ── פסיקת-מייקל 2026-08-28 18:45 (CC_WORKORDER_CEILING_FLIP_2026-08-28.md) ──

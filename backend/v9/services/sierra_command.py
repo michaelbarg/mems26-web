@@ -689,6 +689,44 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
     # field means "no cut info" → keep the fixed count (never a spurious cut to
     # the floor-1 default). When OFF the result is byte-identical to the historic
     # force-2 / force-3 behavior below.
+    # ── RISK_BUDGET_SIZING_V1 (Michael 01.09) — checked FIRST, before
+    # SIZE_CAP_OVER_FIXED which would return early and skip it.
+    if _fc3_os.environ.get("RISK_BUDGET_SIZING_V1", "0").lower() in ("1", "true", "yes"):
+        from backend.v9.services.contract_size import ruled_contracts as _rb_ruled
+        _rb_rc = _rb_ruled()
+        if _rb_rc is not None and _rb_rc > 0:
+            _risk_pts = setup.get("risk_pts")
+            if _risk_pts is None:
+                _ep = setup.get("entry_price")
+                _sp = setup.get("stop")
+                if _ep is not None and _sp is not None:
+                    try:
+                        _risk_pts = abs(float(_ep) - float(_sp))
+                    except (TypeError, ValueError):
+                        pass
+            if _risk_pts is not None and _risk_pts > 0:
+                _budget = float(_fc3_os.environ.get("RISK_BUDGET_USD", "150"))
+                _min_c = int(_fc3_os.environ.get("RISK_MIN_CONTRACTS", "3"))
+                _point_value = 5.0  # MES
+                _hard_max_pts = float(_fc3_os.environ.get("RISK_MAX_PTS_HARD", "30"))
+                _raw_n = _budget / (_risk_pts * _point_value)
+                _n = int(_raw_n)  # floor, never round up
+                if _risk_pts > _hard_max_pts:
+                    _n = 0
+                if _n < _min_c:
+                    logger.warning(
+                        "[SierraCmd] RISK_BUDGET REJECT: risk=%.1f pts → "
+                        "n=%d < min=%d — entry too far from structure",
+                        _risk_pts, _n, _min_c)
+                    return 0  # reject
+                _rb_result = min(_n, _rb_rc)
+                logger.info(
+                    "[SierraCmd] RISK_BUDGET: risk=%.1f pts → raw=%.1f → "
+                    "floor=%d → min(ruled=%d)=%d",
+                    _risk_pts, _raw_n, _n, _rb_rc, _rb_result)
+                return _rb_result
+            # No risk info → fall through to existing sizing (fail-open)
+
     if _fc3_os.environ.get("SIZE_CAP_OVER_FIXED_V1", "0").lower() in ("1", "true", "yes"):
         from backend.v9.services.contract_size import ruled_contracts as _ruled
         _rc = _ruled()
