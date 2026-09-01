@@ -472,6 +472,17 @@ class TradeManager:
             "blocked_by": setup.get("blocked_by"),
             "contracts": _n_contracts,
         }
+        # T-200a: entry_stop — the stop AT ENTRY, written once, never updated.
+        # v9_trades.stop is overwritten 8 times by BE/trail/structure — it is
+        # the FINAL stop, not the entry stop. quality.initial_stop is biased
+        # (present on 55/117 live, correlated with wins). This field is the
+        # immutable truth for risk measurement.
+        _entry_stop = setup.get("stop")
+        if _entry_stop is not None:
+            try:
+                quality["entry_stop"] = round(float(_entry_stop), 2)
+            except (TypeError, ValueError):
+                pass
         # T17 (BE_AFTER_REAL_T1_V1): persist T0 info so on_target_hit can remap
         # DLL T1→T0 (the scalp) and not fire BE prematurely. Same condition as
         # sierra_command.py:351 — 4+ contracts with T0_TARGET_PTS set.
