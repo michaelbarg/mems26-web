@@ -92,11 +92,19 @@ def fire() -> None:
 
     px = float(d["last_price"])
     tick = lambda x: round(round(x / 0.25) * 0.25, 2)
-    # LONG, deliberately roomy: a 25pt stop and far targets so nothing fills
+    # LONG, deliberately roomy: a wide stop and far targets so nothing fills
     # while we look at the bracket. The drill is about SHAPE, not P&L.
+    #
+    # 2026-09-01: the original 25pt stop is now REJECTED by
+    # RISK_BUDGET_SIZING_V1 (225/(25*5) = 1 contract < min 3) — which is the
+    # rule working, not a drill bug. But it also means the drill can no longer
+    # open a position, so the width is now a parameter. For WANT contracts the
+    # stop must satisfy  RISK_BUDGET_USD / (stop_pts * 5) >= WANT, i.e.
+    # 9pt for 5 contracts at a $225 budget. Still far wider than anything that
+    # fills inside a two-minute drill.
     setup = {
         "firing_system": 4, "direction": "LONG",
-        "entry_price": tick(px), "stop": tick(px - 25.0),
+        "entry_price": tick(px), "stop": tick(px - STOP_PTS),
         "t1": tick(px + 20.0), "t2": tick(px + 30.0), "t3": tick(px + 40.0),
         "contracts": WANT, "classification": "SIM_DRILL_%dC" % WANT,
         "metadata": {"sizing_contracts": WANT, "pattern": "SIM_DRILL_%dC" % WANT},
@@ -157,10 +165,14 @@ def flatten() -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
+    ap.add_argument("--stop-pts", type=float, default=9.0,
+                    help="stop width in points (default 9.0 = 5 contracts at a $225 budget)")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--flatten", action="store_true")
     ap.add_argument("--keep", action="store_true", help="do not flatten after verifying")
     a = ap.parse_args()
+    STOP_PTS = a.stop_pts
+    globals()["STOP_PTS"] = a.stop_pts
     if a.flatten:
         flatten(); raise SystemExit(0)
     if a.verify:
