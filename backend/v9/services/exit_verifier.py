@@ -76,6 +76,10 @@ class PendingExit:
     qty_before: Optional[int] = None
     contracts: Optional[int] = None
     notes: List[str] = field(default_factory=list)
+    # T-193 1א: exit price from broker (activity log CLOSED_TRADE_PNL).
+    # Set by fill_poller when it back-computes from Sierra PnL.
+    # The on_confirmed callback can read this to pass exit_price to close_trade.
+    exit_price: Optional[float] = None
 
 
 # trade_id → PendingExit. Module-level so it survives across poller cycles.
@@ -259,9 +263,58 @@ def verify_pending(now: Optional[float] = None) -> int:
         if _exit_happened(p, qty):
             # Sierra proved the position left. Close the books now.
             del _pending[tid]
+            # T-193 1א: write FLATTEN fill to the journal so sierra_pnl_reconcile
+            # can match it. The exit_price comes from the activity log's
+            # CLOSED_TRADE_PNL (back-computed by fill_poller), NOT from
+            # LastTradePrice (forbidden — that's a synthesized number).
+            if p.exit_price is not None and p.source in (
+                    "mae_scratch", "target_approach_realize",
+                    "structure_exit_failbreak", "structure_exit_double"):
+                try:
+                    import json as _j193
+                    from pathlib import Path as _P193
+                    _journal_path = _P193(os.path.expanduser(
+                        "~/SierraChart_Data/v9_export/trade_fills_journal.jsonl"))
+                    _fill_line = _j193.dumps({
+                        "kind": "FLATTEN", "ts": time.time(),
+                        "order_id": None,  # FLATTEN has no order_id
+                        "price": p.exit_price,
+                        "contracts": p.contracts,
+                        "source": "exit_verifier",
+                        "trade_id": tid,
+                    })
+                    with open(_journal_path, "a") as _jf:
+                        _jf.write(_fill_line + "\n")
+                    logger.info("[ExitVerify] T-193: FLATTEN fill written to "
+                                "journal — trade %d px=%.2f source=exit_verifier",
+                                tid, p.exit_price)
+                except Exception as _j193_err:
+                    logger.warning("[ExitVerify] T-193 journal write failed: %s",
+                                   _j193_err)
             try:
                 p.on_confirmed()
                 confirmed += 1
+                # T-193 1א: if exit_price is available from the activity log,
+                # update the trade's exit_price AFTER close_trade ran (the
+                # callback already closed the books — we just set the price
+                # so pnl_sierra can be computed).
+                if p.exit_price is not None:
+                    try:
+                        import backend.main as _main_app
+                        _tm_ref = getattr(getattr(getattr(
+                            _main_app, "app", None), "state", None),
+                            "trade_manager", None)
+                        if _tm_ref:
+                            _t = _tm_ref._get_trade(tid)
+                            if _t and _t.exit_price is None:
+                                _t.exit_price = p.exit_price
+                                _tm_ref._db.commit()
+                                logger.info(
+                                    "[ExitVerify] T-193: set exit_price=%.2f "
+                                    "on trade %d (was UNPRICED)", p.exit_price, tid)
+                    except Exception as _t193_err:
+                        logger.warning("[ExitVerify] T-193 exit_price set "
+                                       "failed (non-fatal): %s", _t193_err)
                 logger.info("[ExitVerify] trade %d exit CONFIRMED flat after "
                             "%.1fs (%s) — books closed", tid, elapsed, p.source)
             except Exception as err:
