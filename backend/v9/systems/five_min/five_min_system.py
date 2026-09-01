@@ -1751,6 +1751,59 @@ class FiveMinSystem(BaseV9TradingSystem):
         from backend.v9.shared.atr import atr_5min as _compute_atr_5m
         self._current_atr_5m = _compute_atr_5m(self._bar_buffer, period=14)
 
+        # OPENING_ATR_RTH_SEED_V1 (cowork 01.09): until 14 RTH bars of the
+        # day exist, the buffer is dominated by pre-RTH bars whose ATR is
+        # ~2× lower (13/13 sessions measured). This makes the stop floor
+        # (0.5×ATR) sit inside the noise at the open — trade #875 got a
+        # 4.4pt stop on ATR 2.2 and died in 114 seconds.
+        # Fix: seed from the PREVIOUS SESSION's RTH ATR until we have enough
+        # of our own. No previous session → None → ATR unchanged (Rule 1).
+        # Precedent: STOP_FLOOR_ROTATION_ATR (stop_resolver.py:69-72).
+        if os.getenv("OPENING_ATR_RTH_SEED_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                # Count RTH bars in the buffer
+                from zoneinfo import ZoneInfo as _atr_ZI
+                _atr_et = _atr_ZI("America/New_York")
+                _rth_count = 0
+                for _b in self._bar_buffer:
+                    _bts = _b.get("ts") or _b.get("ets")
+                    if _bts is not None:
+                        try:
+                            from datetime import datetime as _atr_dt, timezone as _atr_tz
+                            if isinstance(_bts, (int, float)):
+                                _bet = _atr_dt.fromtimestamp(float(_bts), tz=_atr_tz.utc).astimezone(_atr_et)
+                            else:
+                                _bet = _atr_dt.fromisoformat(str(_bts).replace("Z", "+00:00")).astimezone(_atr_et)
+                            if 9 * 60 + 30 <= _bet.hour * 60 + _bet.minute < 16 * 60:
+                                _rth_count += 1
+                        except Exception:
+                            pass
+                if _rth_count < 14:
+                    # Not enough RTH bars — seed from previous session
+                    try:
+                        from backend.v9.db.read import read_all as _atr_read
+                        _prev_bars = _atr_read(
+                            "SELECT high h, low l, close c FROM v9_bars_5min_woodies "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                            "((now() AT TIME ZONE 'America/New_York')::date - 1) "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+                            "ORDER BY ts", {})
+                        _prev_bars = [dict(r) for r in (_prev_bars or [])]
+                        if len(_prev_bars) >= 14:
+                            _prev_atr = _compute_atr_5m(_prev_bars, period=14)
+                            if _prev_atr is not None and _prev_atr > 0:
+                                logger.info(
+                                    "[FiveMin] OPENING_ATR_SEED: %d RTH bars < 14 — "
+                                    "using prev session ATR=%.2f (current=%.2f)",
+                                    _rth_count, _prev_atr,
+                                    self._current_atr_5m or 0)
+                                self._current_atr_5m = _prev_atr
+                    except Exception as _prev_err:
+                        logger.debug("[FiveMin] ATR seed failed: %s", _prev_err)
+            except Exception:
+                pass
+
         # First Hour Buffer: advance bar count during first hour
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
             self._fhb.on_bar()
