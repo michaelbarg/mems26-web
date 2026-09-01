@@ -129,6 +129,14 @@ def _gateway_that_records_calls(monkeypatch):
     gw = tg.TradingGateway(db_path=":memory:")
     calls = {"demo": 0, "live": 0}
     _silence_pre_gates(monkeypatch)
+    # T-191: explicitly disable gates that read live market data.
+    # _silence_pre_gates catches os.getenv in the gateway source but misses
+    # gates in imported modules (direction_compass.flag_on, _compass_or).
+    # Mock the compass module-level flag to prevent live-market-dependent blocks.
+    monkeypatch.setenv("DIRECTION_COMPASS_V1", "0")
+    monkeypatch.setenv("CONT_TREND_FILTER", "0")
+    from backend.v9.services import direction_compass as _dc_mod
+    monkeypatch.setattr(_dc_mod, "flag_on", lambda: False)
     monkeypatch.setattr(tg, "is_within_firing_window", lambda *a, **k: True)
     # Hydrated context, otherwise cold_start_guard blocks before our guard.
     monkeypatch.setattr(
