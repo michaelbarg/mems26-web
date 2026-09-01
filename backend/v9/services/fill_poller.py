@@ -973,9 +973,23 @@ class FillPoller:
             return
         self._last_mtime = mtime
 
+        # T-193 2: atomic claim — rename BEFORE reading so fills appended by
+        # the DLL during processing are not lost. os.rename is atomic on the
+        # same filesystem; the DLL's next ofstream(app) recreates the file.
+        _claimed = FILLS_PATH.with_suffix(".claimed")
         try:
-            content = FILLS_PATH.read_text().strip()
+            os.rename(FILLS_PATH, _claimed)
+        except OSError:
+            # File vanished between exists() and rename (race with another reader)
+            return
+
+        try:
+            content = _claimed.read_text().strip()
             if not content:
+                try:
+                    _claimed.unlink()
+                except OSError:
+                    pass
                 return
         except OSError:
             return
@@ -1008,9 +1022,9 @@ class FillPoller:
         except OSError as e:
             logger.warning("[FillPoller] fills journal append failed: %s", e)
 
-        # Clear the file after processing all fills
+        # Remove the claimed file (original is already gone from rename)
         try:
-            FILLS_PATH.write_text("")
+            _claimed.unlink()
         except OSError:
             pass
 

@@ -38,7 +38,8 @@ DEFAULT_JOURNAL = Path(os.getenv(
     os.path.expanduser("~/SierraChart_Data/v9_export/trade_fills_journal.jsonl"),
 ))
 
-EXIT_KINDS = ("T0", "T1", "T2", "T3", "T4", "STOP", "FLATTEN", "BE")
+# T-193 1ג: "EXIT" added — the DLL's op=EXIT kind unrecognized by both readers.
+EXIT_KINDS = ("T0", "T1", "T2", "T3", "T4", "STOP", "FLATTEN", "BE", "EXIT")
 
 #: Every per-contract child order-id key the backend persists on a trade.
 #: Four OCO groups cover every ruled size (contract_size.LADDER, 1/2/2/1 at six);
@@ -225,6 +226,12 @@ def divergence_summary(rows: Iterable[Any], fills: Optional[List[dict]] = None,
                                  if x["pnl_sierra"] is not None), 2),
         "sierra_total": round(sum(x["pnl_sierra"] or 0 for x in f), 2),
         "net_error": round(sum(x["delta"] or 0 for x in f), 2),
+        # T-193 4: unpriced_contracts — the money that disappeared contributes
+        # 0.00 to net_error because delta=None. This counter makes the gap
+        # visible: "net_error=+0.00 BUT 13 contracts have no Sierra price."
+        "unpriced_contracts": sum(
+            (x.get("contracts") or 0) - (x.get("covered") or 0)
+            for x in inc),
         "worst": ({"trade_id": worst["trade_id"], "delta": worst["delta"],
                    "books": worst["pnl_books"], "sierra": worst["pnl_sierra"]}
                   if worst else None),

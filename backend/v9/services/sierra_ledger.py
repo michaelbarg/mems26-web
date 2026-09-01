@@ -25,7 +25,9 @@ from typing import Any, Optional
 
 # MES micro E-mini S&P = $5 / point. Override per instrument if needed.
 DEFAULT_POINT_VALUE = 5.0
-EXIT_KINDS = ("T1", "T2", "T3", "STOP", "FLATTEN")
+# T-193 1ג: "EXIT" added — the DLL's op=EXIT kind that neither reader
+# recognized. The fill was silently dropped, hiding Sierra-truth exits.
+EXIT_KINDS = ("T1", "T2", "T3", "STOP", "FLATTEN", "EXIT")
 
 
 @dataclass

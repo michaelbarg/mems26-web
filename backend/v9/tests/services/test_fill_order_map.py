@@ -175,7 +175,8 @@ def test_fills_journal_persists_before_clear():
         p._check_fills()
         journal = Path(d) / "trade_fills_journal.jsonl"
         assert journal.exists() and "ENTRY" in journal.read_text()
-        assert fills.read_text() == ""  # cleared, as before
+        # T-193 2: atomic rename — fills file is unlinked (not cleared to empty)
+        assert not fills.exists(), "fills file should be unlinked after atomic claim"
         fills.write_text(json.dumps({"kind": "STOP", "order_id": 1, "price": 7495.0, "ts": 2}) + "\n")
         os.utime(fills)
         p._last_mtime = 0
