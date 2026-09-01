@@ -1972,6 +1972,17 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     logger.warning(
                                         "[FiveMin] first-trade-strict errored — holding: %s", _ft_err)
                                     _trig = None
+                            # OPENING_DRIVE_SKIP_V1 (Michael 01.09: 6 trades, 0 wins).
+                            # Skips DRIVE only — not ORR, not TEST_DRIVE.
+                            if (_trig
+                                    and _trig.get("type") == "OPENING_DRIVE"
+                                    and os.getenv("OPENING_DRIVE_SKIP_V1", "0").lower()
+                                    in ("1", "true", "yes")):
+                                logger.info(
+                                    "[FiveMin] OPENING_DRIVE_SKIP: %s %s dropped "
+                                    "(0/6 win rate, ruling 01.09)",
+                                    _trig["type"], _trig.get("direction"))
+                                _trig = None
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
                                 _setup = build_opening_setup(
