@@ -66,6 +66,29 @@ def _is_rth_now() -> bool:
     return (et_hour > 9 or (et_hour == 9 and et_min >= 30)) and et_hour < 16
 
 
+def _five_min_feed_age_min() -> Optional[float]:
+    """T-210: age in minutes of the newest 5-min bar, or None if unknowable.
+
+    The ONE question the escalation-3 alarm has to answer before it may accuse
+    the feed. Returns None on any failure — an honest "unknown" (Rule 1), never
+    a number that would let the alarm keep guessing.
+
+    Source: v9_bars_5min_woodies, per docs/SOURCE_OF_TRUTH.md — the LIVE bar
+    table (v9_bars_5min stalls/gaps; that mix-up is the 2026-06-22 class).
+    """
+    try:
+        from backend.v9.db.read import read_scalar
+        age_s = read_scalar(
+            "SELECT EXTRACT(EPOCH FROM (now() - max(ts))) "
+            "FROM v9_bars_5min_woodies", {})
+        if age_s is None:
+            return None
+        return float(age_s) / 60.0
+    except Exception as exc:            # no silent failures
+        logger.warning("[DAYTYPE_WATCHDOG] feed-age probe failed: %s", exc)
+        return None
+
+
 def _resolve_app_state(app_state):
     """K2 fix #1: the self-heal must reach the REAL app.state.
 
@@ -112,17 +135,39 @@ def _escalate(age_min: float) -> None:
         except Exception as e:
             logger.warning("[DAYTYPE_WATCHDOG] ESCALATION-2 force-close failed: %s", e)
 
-    # Stage 3: still stale far past the threshold — the feed itself is dead.
+    # Stage 3: still stale far past the threshold.
     if age_min > STALE_THRESHOLD_MIN * 2 and (now - _esc["critical_ts"]) >= _ALERT_COOLDOWN_S:
         _esc["critical_ts"] = now
+        # T-210 ROOT-FIX (2026-09-01): this alarm used to ASSERT "the 5min feed
+        # (bridge/DLL) is likely dead" without ever measuring the feed. It
+        # measures the age of the newest v9_day_type_state ROW — and that table
+        # is CHANGE-DRIVEN, not per-bar (verified 2026-09-01: 75 rows / 75
+        # distinct ts, irregular intervals; today 13:50->15:00 ET is a 70-minute
+        # gap with no row because the label simply did not change). So a stable
+        # day-type on a perfectly healthy feed fires a CRITICAL that names an
+        # innocent subsystem, and it phone-pushes. Rule 1 + Rule 2: measure the
+        # feed, then say what is actually true. Naming the wrong cause is worse
+        # than saying "unknown" — it sends the human to the wrong machine.
+        feed_age_min = _five_min_feed_age_min()
+        if feed_age_min is None:
+            _cause = ("feed age UNKNOWN (bar query failed) — cannot attribute; "
+                      "check the feed manually")
+        elif feed_age_min > STALE_THRESHOLD_MIN:
+            _cause = (f"the 5min feed IS stale too (newest bar {feed_age_min:.0f} "
+                      f"min old) — bridge/DLL is the likely cause")
+        else:
+            _cause = (f"the 5min feed is ALIVE (newest bar {feed_age_min:.1f} min "
+                      f"old) — so this is NOT a dead feed. Either the writer is "
+                      f"starved, or the day-type label has genuinely not changed "
+                      f"(v9_day_type_state is written on change, not per bar)")
         logger.critical(
             "[DAYTYPE_WATCHDOG] ESCALATION-3: day_type_state stale %.0f min "
-            "despite sig-reset + force-close — the 5min feed (bridge/DLL) is "
-            "likely dead. Day-type gates are running on stale state.", age_min)
+            "despite sig-reset + force-close — %s. Day-type gates are running "
+            "on stale state.", age_min, _cause)
         try:
             from scripts.ops_log import log_event
             log_event("daytype_watchdog", "ERROR",
-                      f"writer starved {age_min:.0f}min — 5min feed likely dead "
+                      f"writer starved {age_min:.0f}min — {_cause} "
                       f"(sig-reset + force-close did not produce a row)")
         except Exception:
             pass

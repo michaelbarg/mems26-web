@@ -685,6 +685,23 @@ class TradeManager:
             trade.state = TradeState.PARTIAL.value
             self._log_management(trade_id, "T0_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
+            # T-211 ROOT-FIX (2026-09-01): this branch `return`s BEFORE the
+            # `self._db.flush()` that every other target branch falls through
+            # to. `_record_exit_fill` above mutates `trade.quality` in the
+            # identity map only; without a flush the T0 leg never reaches the
+            # DB, and the NEXT fill (minutes later, after the session has been
+            # refreshed) re-reads `quality` WITHOUT it and appends onto the
+            # stale list — the leg is not "not recorded", it is OVERWRITTEN.
+            # `_log_management` writes its own row, which is why `T0_HIT`
+            # survives in v9_trade_management_log while the fill does not:
+            # that asymmetry is the fingerprint of this bug.
+            #   #942 2026-09-01: Sierra order 10845 T0 1c @7663.25 (entry
+            #     7660.25) = +3.00pt. Lost -> booked at the stop (+0.25pt).
+            #     Error $13.75.
+            #   #948 2026-09-01: Sierra order 10857 T0 1c @7671.75 (entry
+            #     7668.75) = +3.00pt. Lost -> booked at the stop (-7.50pt).
+            #     Error $52.50, on a trade booked -$187.50 that was -$135.00.
+            self._db.flush()
             # T0 is NEVER the last target — always at least T1/T2/T3 after
             return
 
@@ -2001,15 +2018,52 @@ class TradeManager:
             # _calculate_pnl must skip so a fill is not booked twice (once from
             # the ledger, once from its `*_hit_ts`). A stop owns no column.
             column = self._TARGET_COLUMN.get(str(kind).upper())
-        ts_key = ts.isoformat() if hasattr(ts, "isoformat") else (
-            str(ts) if ts is not None else None)
+        # T-211 (2026-09-01): NORMALIZE the dedup timestamp to UTC before it
+        # becomes a key. Two call sites feed this with differently-zoned
+        # datetimes for the SAME instant: on_target_hit/on_stop_hit pass
+        # `fill_ts or _market_now_utc()` (UTC, "+00:00") while
+        # update_closed_trade_pnl passes `trade.exit_ts` read back through the
+        # ORM as timestamptz in the session zone ("+03:00"). Observed raw in
+        # v9_trades.quality.exit_fills on #948 today:
+        #     "ts": "2026-09-01T16:15:15+00:00"   (on_stop_hit)
+        #     "ts": "2026-09-01T19:15:15+03:00"   (update_closed_trade_pnl)
+        # — the same second, two spellings. Those two rows were genuinely
+        # different Sierra orders, so nothing was double-booked TODAY; but the
+        # fills file is re-read on every mtime bump, and a leg that arrives
+        # once through each path differs on the ts component alone, so the
+        # dedup silently fails and the leg is booked twice. Normalizing makes
+        # the key describe the instant, not the rendering. order_id stays in
+        # the key, so two distinct orders remain two distinct legs.
+        if hasattr(ts, "isoformat"):
+            _t = ts
+            try:
+                if getattr(_t, "tzinfo", None) is not None:
+                    _t = _t.astimezone(timezone.utc)
+            except Exception:
+                pass
+            ts_key = _t.isoformat()
+        else:
+            ts_key = str(ts) if ts is not None else None
 
         q = dict(trade.quality) if isinstance(getattr(trade, "quality", None), dict) else {}
         fills = [f for f in (q.get("exit_fills") or []) if isinstance(f, dict)]
-        key = (str(kind).upper(), order_id, round(px, 4), ts_key)
+        def _norm_ts(v):
+            """T-211: compare instants, not spellings — legacy rows already in
+            the DB carry the '+03:00' rendering of the same second."""
+            if not isinstance(v, str):
+                return v
+            try:
+                d = datetime.fromisoformat(v)
+            except Exception:
+                return v
+            return (d.astimezone(timezone.utc).isoformat()
+                    if d.tzinfo is not None else v)
+
+        key = (str(kind).upper(), order_id, round(px, 4), _norm_ts(ts_key))
         for f in fills:
             if (str(f.get("kind", "")).upper(), f.get("order_id"),
-                    round(float(f.get("price") or 0), 4), f.get("ts")) == key:
+                    round(float(f.get("price") or 0), 4),
+                    _norm_ts(f.get("ts"))) == key:
                 return  # same fill re-read — never book a leg twice
         fills.append({"kind": str(kind).upper(), "price": px, "qty": n,
                       "order_id": order_id, "column": column, "ts": ts_key})
