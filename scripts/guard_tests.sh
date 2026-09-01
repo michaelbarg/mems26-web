@@ -56,6 +56,15 @@ if [ ${#missing[@]} -gt 0 ]; then
   exit 1
 fi
 
+# Map hygiene — ADVISORY, deliberately not part of rc.
+# The source-of-truth maps drifting is a documentation defect, not a change in
+# live behaviour, and this script is what decides whether we arm. Gating a
+# trading session on a stale document is the same mistake as gating it on the
+# full suite: the open gets blocked for a reason unrelated to today's risk.
+# It prints, loudly, and `sot_map_guard.py --strict` is the strict form for the
+# nightly and for anyone about to trust a map.
+python3 scripts/sot_map_guard.py || true
+
 echo "── running ${#present[@]} guard files ──"
 python3 -m pytest "${present[@]}" -q --tb=short
 rc=$?
