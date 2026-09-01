@@ -1,3 +1,14 @@
+### [2026-09-02 00:00 IL] cowork-night · ➕ **תוספת לרשומה שמעליה — ריסטארט שני, כדי שתיקוני T-211/T-210 יהיו חיים לפני מחר**
+
+הריסטארט של §4 עלה על `commit=17e0cc7e` — **לפני** קומיט-הסעיף-6. כלומר תיקון T-211 היה בגיט אך **לא רץ**, ועל כל מימוש-T0 מחר היה ממשיך להיעלם כסף. תוקן: ריסטארט שני אחרי אימות-פוזיציה מחדש.
+
+**ראיה גולמית (Rule 5):** לפני — `sierra_state.json` בן `0.0s` ⇒ `position_qty=0 · working_orders=0 · orders=0`; `slot_trade_id=None` (מ-`/api/v9/system6/diagnose`). `launchctl kickstart -k gui/501/com.mems26.backend` ⇒ `rc=0`.
+אחרי — `[boot] logging OK pid=93156 **commit=1f5c41b9**` (כולל T-211 · T-210 · T-220) · `[env_loader] applied 282 vars` · `health 200 ב-18.6ms` · `/api/v9/day_type/state` ⇒ `meta={"source":"v9_day_type_state","degraded":false}` · `slot_trade_id=None` · בר-woodies `3.4` דק' · **`0` ERROR/CRITICAL/Traceback** · `flag_guard: PASS — all 228 ruled flags match`.
+
+**⛔ אפס דגל · אפס `.env` · אפס נגיעה בפוזיציה.**
+
+---
+
 ### [2026-09-01 23:55 IL] cowork-night · ✅ **תור-הלילה 01.09 הושלם — 7/7 סעיפים · שני שורשים תוקנו · והמדידה קובעת: T-216/217/218 בלתי-ניתנים-להכרעה**
 
 **המשך ישיר לשורת-ה-CLAIM 23:20.** הסדר בוצע כפי שנקבע מראש. **אפס דגל הודלק · אפס נגיעה ב-`.env`/LaunchAgent/DLL · אפס נגיעה בפוזיציה · אפס `op=EXIT`.**
