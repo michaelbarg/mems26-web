@@ -496,6 +496,19 @@ class FillPoller:
                     elif direction == "SHORT":
                         exit_price = round(float(entry_price) - pts, 2)
 
+            # T-193 1א: propagate exit_price to the PendingExit so
+            # exit_verifier can write it to the journal and set it on the trade.
+            if exit_price is not None:
+                try:
+                    from backend.v9.services.exit_verifier import _pending as _ev_pending
+                    _pex = _ev_pending.get(trade_id)
+                    if _pex is not None:
+                        _pex.exit_price = exit_price
+                        logger.info("[FillPoller] T-193: set exit_price=%.2f on "
+                                    "PendingExit %d", exit_price, trade_id)
+                except Exception:
+                    pass  # fail-safe: price propagation is additive
+
             logger.warning(
                 "[FillPoller] W2 EXIT-TRACK: CLOSED_TRADE_PNL detected — closing "
                 "trade %d (%s %s) with Sierra PnL=$%s, exit_price=%s, ts=%s",
