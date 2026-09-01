@@ -2036,6 +2036,39 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     "(0/6 win rate, ruling 01.09)",
                                     _trig["type"], _trig.get("direction"))
                                 _trig = None
+                            # OPENING_PATTERN_SKIP_V1 (Michael 01.09 14:05):
+                            # "מאשר — לשים לב שלא נאפשר מסחר עד שיתוקן", scoped to
+                            # the losing opening patterns. Additive to the DRIVE
+                            # flag above, which is left untouched: unset ⇒ this
+                            # block cannot fire and behaviour is byte-identical.
+                            #
+                            # 🔴 A SAFETY hold, not a statistical verdict, and the
+                            # evidence behind the three names is NOT equal:
+                            #   OPENING_DRIVE          n=6  0 wins   −$750
+                            #   OPENING_ORR            n=3  1W-2L    −$120
+                            #   OPENING_PULLBACK_CONT  n=1           −$216
+                            # Killing a pattern on n=1 is exactly what the
+                            # "no verdict on single-digit n" rule warns against.
+                            # This is admitted deliberately: the ruling is "do not
+                            # let a pattern that misreads direction trade until the
+                            # direction and stop roots are fixed" — a temporary
+                            # hold with an expiry condition, not a measured kill.
+                            # Michael's standing rule is "a pattern that loses gets
+                            # FIXED, not cancelled" (see T-195): when the opening
+                            # ATR seed and ENTRY_LOCATION_QUALITY wiring land, this
+                            # list must be emptied and the patterns re-measured.
+                            # Leaving it set afterwards would be a silent kill.
+                            _ops_raw = os.getenv("OPENING_PATTERN_SKIP_V1", "")
+                            if _trig and _ops_raw.strip():
+                                _ops = {p.strip().upper()
+                                        for p in _ops_raw.split(",") if p.strip()}
+                                if _trig.get("type", "").upper() in _ops:
+                                    logger.info(
+                                        "[FiveMin] OPENING_PATTERN_SKIP: %s %s dropped "
+                                        "(ruling 01.09 — temporary hold pending the "
+                                        "opening direction/stop fixes)",
+                                        _trig["type"], _trig.get("direction"))
+                                    _trig = None
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
                                 _setup = build_opening_setup(
