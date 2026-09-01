@@ -1,3 +1,16 @@
+### [2026-09-01 15:xx] cc-macbook · 🔴 RISK_BUDGET_SIZING_V1 pushed — needs .env + restart before 16:10
+**`1a5f8d28`**: RISK_BUDGET_SIZING_V1 built + tested (9/9). n=floor(150/(risk*$5)), n<3=REJECT.
+**Needs in .env before restart:**
+```
+RISK_BUDGET_SIZING_V1=1
+RISK_BUDGET_USD=150
+RISK_MIN_CONTRACTS=3
+RISK_MAX_PTS_HARD=30
+```
+**flag_guard consistency check (BUDGET*MIN<=CAP) NOT-DONE — document only.**
+**S2 path not verified** — work order says S2/five_min may bypass the sizer. To verify and report.
+— cc-macbook
+
 ### [2026-09-01] cc-macbook · T-193 MEASURE (backend 4/5) + SHADOW in progress
 **T-193 1ג** (`c473bb7e`): EXIT added to EXIT_KINDS in both readers.
 **T-193 4** (`c473bb7e`): unpriced_contracts counter in reconcile summary.
