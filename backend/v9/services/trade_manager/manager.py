@@ -1713,6 +1713,23 @@ class TradeManager:
                 "exit_price — pnl=NULL, status=UNPRICED (Rule 1)",
                 trade_id, reason)
             self._cleanup_machine(trade_id)
+            # T-177 (2026-09-01): this `return` used to jump over the
+            # `self._db.flush()` below, so the close lived only on the
+            # in-memory ORM object. `get_active_trades()` calls expire_all()
+            # and re-queries, read the row back as PARTIAL, and the phantom
+            # heal fired again — 6 times in a row on 2026-08-31, blocking
+            # entries via T-43 for ~30 minutes each cycle.
+            # It was NON-DETERMINISTIC, which is why it looked fixed: any
+            # later query in the same session triggers SQLAlchemy autoflush,
+            # so the close sometimes persisted by accident (trade #939 at
+            # 22:10 did). Same code, two outcomes. Never rely on autoflush.
+            self._db.flush()
+            self._emitter.emit("trade_closed", trade_id, {
+                "reason": reason,
+                "state": TradeState.CLOSED.value,
+                "pnl_usd": None,
+                "pnl_status": "UNPRICED",
+            })
             return
 
         self._calculate_pnl(trade)

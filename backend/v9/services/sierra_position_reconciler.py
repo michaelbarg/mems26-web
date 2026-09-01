@@ -795,7 +795,7 @@ def _sierra_position_qty() -> Optional[int]:
         return None
 
 
-def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
+def reconcile_position(tm, *, fill_poller=None, gateway=None) -> Tuple[bool, str]:
     """Compare TM open trades vs Sierra's actual position.
 
     Returns (ok, message). ok=False means divergence detected.
@@ -846,6 +846,9 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
         return True, f"TM query error: {e}"
 
     global _phantom_flat_streak
+    # T-178: the gateway is injected (app.state.trading_gateway); it cannot
+    # be imported from this module. Fall back to the fill_poller that owns it.
+    _gw = gateway if gateway is not None else getattr(fill_poller, "_gateway", None)
     if tm_qty == sierra_qty:
         _phantom_flat_streak = 0
         if _position_mismatch_block:
@@ -889,7 +892,9 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                     if hasattr(tm, "close_trade"):
                         tm.close_trade(int(tid), reason=_reason)
                         healed.append(int(tid))
-                    # MANUAL_CANCEL_DETECT_V1: mark CANCELLED + release slot
+                    # MANUAL_CANCEL_DETECT_V1: a manual cancel is not a loss,
+                    # so it is booked CANCELLED rather than CLOSED. This part
+                    # IS manual-cancel-specific and stays gated.
                     if _cancel_detect:
                         try:
                             if hasattr(t, "state"):
@@ -898,11 +903,46 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                                 t.outcome = "CANCELLED"
                         except Exception:
                             pass
-                        # Signal gateway to release slot immediately
+
+                    # ---- T-178 (2026-09-01): slot release is NOT gated ----
+                    # This block used to sit INSIDE `if _cancel_detect:`, and
+                    # MANUAL_CANCEL_DETECT_V1 defaults to 0 — so on the
+                    # phantom_reconcile path the slot was NEVER released. The
+                    # books closed, T-43 cleared, and the gateway kept holding
+                    # live_slot forever: every new live fire was dropped with
+                    # `live_blocked_by=live_slot_occupied` and NO alarm.
+                    # Cost: 2026-08-31 17:45→21:07, ~3.3h of silent live
+                    # blocking, cleared only by an unplanned restart.
+                    # Third occurrence of this class (I-57 08.07, 18.08 partial
+                    # fix — which was itself placed inside the same `if`).
+                    # The tell that this was an indentation slip and not a
+                    # decision: the dict below carried
+                    # `"CANCELLED" if _cancel_detect else "CLOSED"` — a dead
+                    # branch, since _cancel_detect is always True in there.
+                    # Safety is NOT weakened by moving it out: on_trade_close
+                    # itself (T-43c) refuses to release while Sierra reports a
+                    # position or any protective order is working, and we only
+                    # reach here after `sierra_qty == 0 and _working == 0`
+                    # held for `_need` consecutive polls.
+                    # Killswitch: PHANTOM_SLOT_RELEASE_V1=0 restores the old
+                    # (broken) behavior byte-for-byte.
+                    if os.getenv("PHANTOM_SLOT_RELEASE_V1", "1").lower() in ("1", "true", "yes"):
                         try:
-                            from backend.v9.gateway.trading_gateway import get_gateway
-                            _gw = get_gateway()
-                            if _gw and hasattr(_gw, "on_trade_close"):
+                            # 2026-09-01: the old line here was
+                            #   from backend.v9.gateway.trading_gateway import get_gateway
+                            # and `get_gateway` HAS NEVER EXISTED in that module
+                            # (`grep -rn "def get_gateway" backend/` is empty).
+                            # So this raised ImportError on EVERY call, was
+                            # caught by the except below, and the slot was
+                            # never released on EITHER path -- not phantom_
+                            # reconcile and not manual_cancel. The 2026-08-18
+                            # "fix" was dead code twice over: wrong gate AND
+                            # non-existent import.
+                            # The gateway is only reachable via
+                            # app.state.trading_gateway (backend/main.py:1285),
+                            # so it is injected by the caller (FillPoller holds
+                            # it as self._gateway) instead of imported.
+                            if _gw is not None and hasattr(_gw, "on_trade_close"):
                                 # 2026-08-18: this passed a bare int. The
                                 # signature is on_trade_close(trade: dict), so
                                 # every call raised AttributeError on the first
@@ -922,6 +962,10 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                                                else "phantom_heal"),
                                     "mode": (getattr(t, "mode", None) or "live"),
                                 })
+                                logger.warning(
+                                    "[Reconciler] T-178: slot release notified "
+                                    "for #%s (reason=%s, sierra flat %dx)",
+                                    tid, _reason, _need)
                         except Exception as _gwe:
                             # was DEBUG — a swallowed wiring error here is
                             # indistinguishable from "nothing happened".

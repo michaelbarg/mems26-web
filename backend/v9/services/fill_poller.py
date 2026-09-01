@@ -579,7 +579,10 @@ class FillPoller:
             return
         try:
             from backend.v9.services.sierra_position_reconciler import reconcile_position
-            ok, msg = reconcile_position(self._tm)
+            # T-178: hand the reconciler the gateway it cannot import,
+            # so the phantom-heal path can actually free live_slot.
+            ok, msg = reconcile_position(
+                self._tm, fill_poller=self, gateway=self._gateway)
             if not ok:
                 logger.warning("[FillPoller] SYS-3 RECONCILER: %s", msg)
             else:
