@@ -1,3 +1,11 @@
+### [2026-09-01] cc-macbook · T-193 MEASURE (backend 4/5) + SHADOW in progress
+**T-193 1ג** (`c473bb7e`): EXIT added to EXIT_KINDS in both readers.
+**T-193 4** (`c473bb7e`): unpriced_contracts counter in reconcile summary.
+**T-193 2** (`c473bb7e`): Atomic fill claim (os.rename, 5 lines).
+**T-193 1א** (`a079f953`+`da99ab59`): FLATTEN fill journal write + exit_price propagation via PendingExit.
+**NOT-DONE:** DLL (1ב+3) — after 01:00, SIM only. SHADOW work order next.
+— cc-macbook
+
 ### [2026-09-01 00:25 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה של 31.08 נלקח ע"י cowork** (אין פעילות-cc מאז 22:16; עברנו את 23:20)
 
 **בסיס-ההכרעה, גולמי:**
