@@ -80,6 +80,30 @@ def _rows(text: str) -> List[Dict]:
     return out
 
 
+def _status_cell(cells: List[str], maxlen: int = 80) -> str:
+    """The status COLUMN's text — not the whole row.
+
+    Found 2026-09-01 (cowork): check 4 read `"✅" in " ".join(cells)`, so it
+    fired on T-204 — whose status is `🔴 פתוח` but whose *description* reads
+    "(1) רישום ✅ candidate_ledger", a sub-stage marked done inside prose.
+    A guard that fails on an open item is a false alarm, and this one blocks
+    the pre-open gate: task_log_guard runs inside fire_drill.py. 19 of 207
+    rows carry a ✅ in prose; only T-204 lacked a board line, so the bug had
+    been latent since the check was written.
+
+    Taking cells[1] by index is not enough either: 5 rows embed '|' inside
+    code spans, so split() mis-assigns their columns (T-177 lands on 'live\\').
+    A status cell is SHORT and starts with the marker. A description cell may
+    also start with one (T-204 does) but runs for hundreds of characters —
+    that length difference is what separates them.
+    """
+    for c in cells:
+        c2 = c.lstrip("* ").strip()
+        if c2[:1] in STATUSES and len(c2) <= maxlen:
+            return c2
+    return ""
+
+
 def check() -> List[str]:
     problems: List[str] = []
 
@@ -146,7 +170,7 @@ def check() -> List[str]:
     # 4. closed items must be verifiable
     board = BOARD.read_text(encoding="utf-8", errors="replace") if BOARD.exists() else ""
     for r in rows:
-        if "✅" in " ".join(r["cells"]) and r["id"] not in board:
+        if "✅" in _status_cell(r["cells"]) and r["id"] not in board:
             problems.append(
                 f"{r['id']} is marked ✅ but has no line in STATUS_BOARD.md — "
                 f"'done' without a finding and a verification is not allowed "

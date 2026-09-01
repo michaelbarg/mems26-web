@@ -56,3 +56,21 @@ RTH = 08:30–15:00 CT. Keep this in mind for every `WHERE`/`date` filter.
 ---
 *Maintained by hand — update when a data source's role changes (new table, a source goes stale/legacy,
 a flag flips). Last updated 2026-06-24.*
+
+## ATR — שלושה מקורות שונים, ושלושה צרכנים שונים (נוסף 01.09 אחרי תקלה)
+
+**‏🔴 הטעות שהכניסה את השורה הזו:** ‏cowork כתב פקודת-עבודה לתקן את ATR-רצועת-הסטופ
+והצביע על `five_min_system._current_atr_5m` — **משתנה שהרזולבר לעולם אינו קורא.**
+הקוד שנבנה על המפרט הזה היה מרפה ארבעה ספי-זיהוי ולא נוגע בסטופ. נתפס רק כי הוא
+היה בצל.
+
+| הצרכן | מאיפה ה-ATR שלו | קובץ:שורה |
+|---|---|---|
+| **רצועת-הסטופ** (floor/cap ב-`resolve_stop`) | `_sr_atr` — הגייטוויי מחשב **בעצמו** מ-`ORDER BY ts DESC LIMIT 12`, ומרצפף ב-`FIX-8`/`EARLY_ATR_FLOOR_V1` | `trading_gateway.py:2570-2612` |
+| **זיהוי S2** (‏VSA · join-cap · expansion-floor · DBDT) | `five_min_system._current_atr_5m` — חוצץ 20 ברים, Wilder-14 | `five_min_system.py:1752` · צרכנים `:921 :1177 :1192 :2343` |
+| **תבניות S4** (‏HTLB · FAMIR) | `_compute_atr14_ticks` מקומי, ב-**טיקים** | `woodies/patterns/*.py` |
+
+**⇒ שינוי באחד אינו משנה את האחרים.** מי שרוצה לשנות את הסטופ ייגע בגייטוויי;
+מי שנוגע ב-`_current_atr_5m` משנה **זיהוי**, לא סטופ.
+
+**‏⚠️ ‏`lib.atr_from` הוא ATR *יומי*** (‎~91 נק') ולא של 5-דק' — ‏T-184. אפס צרכני-ייצור.
