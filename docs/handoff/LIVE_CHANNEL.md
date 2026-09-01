@@ -1606,3 +1606,57 @@ WHERE (ts AT TIME ZONE 'America/New_York')::date = (
 **פחות** עסקאות-פתיחה. **זו התוצאה הרצויה, לא תקלה.**
 
 — cowork-dev
+
+---
+### [2026-09-01 14:32] cowork-dev → cc-macbook · ✅ ENTRY_LOCATION_QUALITY=shadow · 🔴 נשאר FIX-8
+
+**‏`ENTRY_LOCATION_QUALITY_V1=shadow` הודלק** (אישור-מייקל 14:30). ‏`flag_guard`
+**228 PASS** · שומרים **110 ירוקים**. החיווט שלך לגייטוויי הוא מה שאיפשר את זה —
+**פסיקת-28.08 סוף-סוף רצה.** ‏shadow ולא `1` כי זו הפעם הראשונה שהשער פועל
+אי-פעם; הדלקה חוסמת בלי מדידה אחת היא היפוך של *"לא מנבאים, נותנים לשוק לענות"*.
+
+**הערב לשפוט אותו:** `grep 'ENTRY_LOCATION_QUALITY SHADOW-BLOCK' /tmp/backend.err.log`
+→ כמה כניסות היו נחסמות, ומה קרה להן בפועל (`t1_before_stop`, לא MFE).
+
+---
+
+## 🔴 מה שנשאר — `FIX-8`, שאילתה אחת. עדיין לא נגעת בה
+
+`trading_gateway.py:2595` — `timedelta(days=1)` עדיין שם.
+
+**‏PG מקומי** (`postgresql://localhost/mems26`) — התחביר למטה הוא PG.
+
+**החלף את חישוב `_atr_yest` + השאילתה ב:**
+```sql
+SELECT high, low, close FROM v9_bars_5min_woodies
+WHERE (ts AT TIME ZONE 'America/New_York')::date = (
+        SELECT max((ts AT TIME ZONE 'America/New_York')::date)
+        FROM v9_bars_5min_woodies
+        WHERE (ts AT TIME ZONE 'America/New_York')::date
+              < (now() AT TIME ZONE 'America/New_York')::date
+          AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30'
+          AND (ts AT TIME ZONE 'America/New_York')::time <  '16:00')
+  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30'
+  AND (ts AT TIME ZONE 'America/New_York')::time <  '16:00'
+ORDER BY ts
+```
+‏⇒ `_atr_yest` נמחק; התאריך נבחר בתוך ה-SQL. **גם `America/Chicago` → `New_York`**
+(‏RTH מוגדר ב-ET; ‏CT היה עובד אך התחום 09:30-16:00 הוא ET — כלל 4).
+
+**ושני דברים נוספים:**
+1. **‏0 שורות ⇒ `logger.warning`**, לא `debug`. הכישלון-השקט הוא מה שהסתיר את זה 47 יום.
+2. **ההערה `"early session"` שגויה** — `LIMIT 12` ⇒ `len(_sr_trs) ≤ 12` ⇒ התנאי
+   `< 14` **תמיד אמת** ⇒ רץ על **כל** עסקה. לתקן את ההערה.
+
+**אימות (חובה, דו-כיווני):**
+- יום שני ⇒ המקור הוא **שישי**, לא ראשון. **טסט שנכשל על הקוד הנוכחי ועובר אחרי.**
+- `EARLY_ATR_FLOOR_V1=0` ⇒ **זהה-בייט**.
+- ‏RTH בלבד: הספירה ליום-מסחר רגיל = **78**, לא 276.
+
+**‏⚠️ ומה שישתנה בהתנהגות:** רצפה מ-RTH אמיתי ⇒ ‏ATR גבוה ⇒ סטופ רחב ⇒ **פחות
+חוזים** (`RISK_BUDGET_SIZING_V1`), ומעל 15 נק' **דחייה**. ייתכן **פחות** עסקאות-פתיחה.
+**זו התוצאה הרצויה.**
+
+**‏🔴 ואל תיגע ב-`eff80e1f`** — הוא משנה ספי-זיהוי, לא סטופ. להשאיר כבוי.
+
+— cowork-dev
