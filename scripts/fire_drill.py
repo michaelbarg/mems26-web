@@ -263,6 +263,29 @@ def stage_e(no_live=False):
     check("fire_readiness_real", result.returncode == 0, detail)
 
 
+def stage_guards():
+    """Run the trading-behaviour guard tests (guard_tests.sh).
+
+    These are the named regression tests that protect live behaviour —
+    sizing, entry_stop immutability, VA sanity, entry quality, slot.
+    A failure here means a live behaviour changed underneath us.
+    Wired here so they run before every session, not just in CI.
+    """
+    print("— שלב G · שומרי-התנהגות (guard_tests.sh) —")
+    script = os.path.join(ROOT, "scripts", "guard_tests.sh")
+    if not os.path.exists(script):
+        check("guard_tests", False, "guard_tests.sh missing")
+        return
+    result = subprocess.run(["bash", script], capture_output=True, text=True)
+    if result.stdout:
+        # Print just the last few lines (summary)
+        lines = result.stdout.strip().splitlines()
+        for line in lines[-5:]:
+            print(f"  {line}")
+    detail = (result.stdout.strip().splitlines() or ["no output"])[-1]
+    check("guard_tests", result.returncode == 0, detail)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-live", action="store_true", help="דלג על שלב D")
@@ -271,6 +294,7 @@ def main():
     stage_a()
     stage_b()
     stage_c()
+    stage_guards()
     if not args.no_live:
         stage_d()
     if os.getenv("FIRE_DRILL_STAGE_E", "0").lower() in ("1", "true", "yes"):

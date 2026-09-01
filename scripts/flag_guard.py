@@ -79,6 +79,29 @@ def main():
         print(f"\nFLAG-GUARD: NO-GO — {len(bad)} ruled flag(s) drifted: {', '.join(bad)}")
         print("שינוי דגל שנפסק = פסיקת מייקל בכתב + עדכון config/RULED_FLAGS.yaml באותו קומיט.")
         return 1
+
+    # ── BUDGET × MIN ≤ CAP consistency (T-198, cowork 01.09) ──
+    # The daily loss cap bounds the risk budget: raising the budget without
+    # raising the cap just advances the shutdown. 225×3=675 ≤ 800 today.
+    try:
+        _budget = float(envs.get("RISK_BUDGET_USD", "0") or 0)
+        _min_c = int(envs.get("RISK_MIN_CONTRACTS", "0") or 0)
+        _cap = float(envs.get("RISK_DAILY_LOSS_CAP", "0") or 0)
+        _budget_on = envs.get("RISK_BUDGET_SIZING_V1", "0") in ("1", "true", "yes")
+        if _budget_on and _budget > 0 and _min_c > 0 and _cap > 0:
+            _product = _budget * _min_c
+            if _product > _cap:
+                bad.append("BUDGET_CAP_CONSISTENCY")
+                print(f"\n  ✗ BUDGET×MIN > CAP: {_budget}×{_min_c}={_product} > {_cap}")
+                print("    העלאת תקציב בלי העלאת תקרה = כיבוי שגרתי.")
+            else:
+                print(f"\n  ✓ BUDGET×MIN ≤ CAP: {_budget}×{_min_c}={_product} ≤ {_cap}")
+    except (TypeError, ValueError):
+        pass  # missing values → skip check
+
+    if bad:
+        print(f"\nFLAG-GUARD: NO-GO — {len(bad)} issue(s)")
+        return 1
     print(f"\nFLAG-GUARD: PASS — all {len(ruled)} ruled flags match.")
 
     # ── Second tooth (3ROOTS audit, 25.08): liveness checks ──
