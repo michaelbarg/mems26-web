@@ -356,6 +356,7 @@ ruled:
   RISK_BUDGET_USD: {expected: "225", ruled_by: "מייקל", date: "2026-09-01", note: '150*3<=450 (RISK_DAILY_LOSS_CAP). צימוד קשיח.' }
   RISK_MIN_CONTRACTS: {expected: "3", ruled_by: "מייקל", date: "2026-09-01", note: 'n<3=דחייה. סטופ-מקס 10 נק''.' }
   RISK_MAX_PTS_HARD: {expected: "30", ruled_by: "מייקל", date: "2026-09-01", note: 'רשת שנייה.' }
+  ENTRY_LOCATION_QUALITY_V1: {expected: 'shadow', ruled_by: 'מייקל', date: '2026-08-28', note: 'פסיקת 28.08 18:50: pos>0.66 בלי פולבק = רודף, stop/ATR>1.5 = יקר, (entry-VAH)/VA>0.25 = מעבר-לערך. shadow=לוג בלבד, 1=חוסם. הכל יחסי.' }
   OPENING_DRIVE_SKIP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-01", note: 'לייב 3 = -$383.75 · צל 3 = -$366.25 · 0 ניצחונות מ-6. מדלג על DRIVE בלבד — לא ORR, לא TEST_DRIVE.' }
 
   POSITION_MISMATCH_BLOCK_V1: {expected: "0", ruled_by: "cowork", date: "2026-08-29", note: 'גידור-בטיחות של cowork על T-43b של cc: החסם נבנה דלוק-כברירת-מחדל בלי דגל ובלי בדיקת-בעלות ⇒ פוזיציה-ידנית של מייקל (מוסברת לפי פסיקת 24.07) הייתה חוסמת מסחר-לייב ליום שלם בשקט; ובנוסף 3 return מוקדמים משאירים את הדגל נעול בלי ניקוי. התנהגות-סיכון חדשה בלי פסיקה ⇒ OFF. תנאי-הדלקה: בדיקת-בעלות לפני החסימה + ניקוי/TTL + פסיקת-מייקל.' }

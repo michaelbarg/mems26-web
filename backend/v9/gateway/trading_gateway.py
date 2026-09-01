@@ -1694,6 +1694,79 @@ class TradingGateway:
             except Exception as _dp_err:
                 logger.warning("[Gateway] day-type position gate errored (fail-open): %s", _dp_err)
 
+        # --- ENTRY_LOCATION_QUALITY_V1 (Michael 28.08 18:50, T-200a)
+        # Relative position quality gate: chaser / expensive stop / beyond value.
+        # All thresholds relative. Flag OFF = byte-identical. Shadow = log only.
+        _elq_mode = os.getenv("ENTRY_LOCATION_QUALITY_V1", "0").lower()
+        if _elq_mode in ("1", "true", "shadow"):
+            try:
+                from backend.v9.systems.entry_location_quality import assess_entry_quality
+                _elq_entry = setup.get("entry_price")
+                _elq_stop = setup.get("stop")
+                _elq_stop_dist = abs(float(_elq_entry) - float(_elq_stop)) if (
+                    _elq_entry is not None and _elq_stop is not None) else None
+                # ATR from the live system
+                _elq_atr = None
+                try:
+                    from backend.v9.shared.atr import current_atr14
+                    _elq_atr = current_atr14()
+                except Exception:
+                    pass
+                # VAH/VAL from tpo.json (the correct source, not v9_tpo_sessions)
+                _elq_tpo = {}
+                try:
+                    from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+                    _elq_tpo = _load_sierra_tpo() or {}
+                except Exception:
+                    pass
+                _elq_vah = _elq_tpo.get("vah")
+                _elq_val = _elq_tpo.get("val")
+                # Session high/low for leg base
+                _elq_sh = _elq_tpo.get("session_high")
+                _elq_sl = _elq_tpo.get("session_low")
+                if _elq_sh is None or _elq_sl is None:
+                    try:
+                        from backend.v9.db.read import read_one as _elq_read
+                        _elq_rng = _elq_read(
+                            "SELECT max(high) sh, min(low) sl "
+                            "FROM v9_bars_5min_woodies "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                            "(now() AT TIME ZONE 'America/New_York')::date "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30'", {})
+                        if _elq_rng:
+                            _elq_sh = float(_elq_rng["sh"]) if _elq_rng["sh"] else None
+                            _elq_sl = float(_elq_rng["sl"]) if _elq_rng["sl"] else None
+                    except Exception:
+                        pass
+                # Leg base = session extreme in the opposite direction
+                _elq_leg_base = _elq_sl if direction == "LONG" else _elq_sh
+                _elq_leg_ext = _elq_sh if direction == "LONG" else _elq_sl
+                if _elq_entry is not None:
+                    _elq_result = assess_entry_quality(
+                        entry_price=float(_elq_entry),
+                        direction=direction,
+                        leg_base=_elq_leg_base,
+                        leg_extreme=_elq_leg_ext,
+                        stop_distance=_elq_stop_dist,
+                        atr=_elq_atr,
+                        vah=float(_elq_vah) if _elq_vah else None,
+                        val=float(_elq_val) if _elq_val else None,
+                    )
+                    if not _elq_result["pass"]:
+                        if _elq_mode == "shadow":
+                            logger.warning(
+                                "[Gateway] ENTRY_LOCATION_QUALITY SHADOW-BLOCK: "
+                                "%s — %s (would block, logging only)",
+                                direction, _elq_result["reasons"])
+                        else:
+                            result["blocked_by"] = "entry_location_quality"
+                            result["reason"] = "; ".join(_elq_result["reasons"])
+                            logger.info("[Gateway] BLOCKED by entry_location_quality: %s",
+                                        result["reason"])
+                            return result
+            except Exception as _elq_err:
+                logger.warning("[Gateway] entry_location_quality errored (fail-open): %s", _elq_err)
+
         # --- SA-3 fix (cowork 29.08): CONT_TREND_FILTER was trapped inside the
         # DIRECTION_CONTEXT block which is permanently OFF (ruling 28.08).
         # Extracted to its own independent condition so the 4 ruled-on flags
