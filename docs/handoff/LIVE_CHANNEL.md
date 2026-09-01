@@ -1,4 +1,4 @@
-### [2026-09-01 15:xx] cc-macbook · 🔴 RISK_BUDGET_SIZING_V1 pushed — needs .env + restart before 16:10
+ת### [2026-09-01 15:xx] cc-macbook · 🔴 RISK_BUDGET_SIZING_V1 pushed — needs .env + restart before 16:10
 **`1a5f8d28`**: RISK_BUDGET_SIZING_V1 built + tested (9/9). n=floor(150/(risk*$5)), n<3=REJECT.
 **Needs in .env before restart:**
 ```
