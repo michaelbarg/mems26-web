@@ -50,10 +50,28 @@ class DayTypeSystem(BaseSystem):
     name: str = "day_type"
 
     def __init__(self) -> None:
-        from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
+        # T-220 (2026-09-01): this wrapper used to build a SECOND live
+        # DayTypeStateMachine at boot (app.py:init_event_dispatcher registers
+        # DayTypeSystem() in the trading process). It is never fed — the class
+        # is DISCONNECTED (subscribed_streams == []) — and its result is
+        # discarded, so it was pure duplicate state sitting next to the
+        # canonical app.state.day_type_machine. Now built lazily and loudly:
+        # if this path ever comes alive, the log says so instead of a silent
+        # second brain appearing. The canonical machine stays main.py:228.
         from backend.v9.systems.day_type.schemas import BarInput
-        self._machine = DayTypeStateMachine()
+        self._machine = None
         self._BarInput = BarInput
+
+    def _get_machine(self):
+        if self._machine is None:
+            from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
+            logger.warning(
+                "[DayTypeSystem] building a SECOND DayTypeStateMachine — this "
+                "wrapper is supposed to be DISCONNECTED (subscribed_streams=%s). "
+                "The canonical machine is app.state.day_type_machine (main.py).",
+                self.subscribed_streams)
+            self._machine = DayTypeStateMachine()
+        return self._machine
 
     def analyze(self, stream_name: str, bar: dict) -> Optional[Signal]:
         """Process bar through day type state machine.
@@ -84,7 +102,7 @@ class DayTypeSystem(BaseSystem):
                 returned_to_range=bar.get("returned_to_range", False),
             )
 
-            state = self._machine.process_bar(bar_input)
+            state = self._get_machine().process_bar(bar_input)
 
             # D-090: S1 = OBSERVER per Registry — classification continues,
             # but Signal generation is blocked. Remove this guard to re-enable

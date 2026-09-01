@@ -1,9 +1,12 @@
 """Day Type Engine API — GET state, GET history, POST process, GET current."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 from backend.v9.common.trading_date import et_today
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
@@ -45,8 +48,20 @@ def get_state():
 
     Reads from v9_day_type_state DB (populated by main.py day_type_machine)
     rather than the dead api.py _engine singleton, which never receives bars.
+
+    2026-09-01 (T-220, CLAUDE.md Rule 1 "honest failure > synthetic value"):
+    the previous fallback silently returned `_engine._build_state(zero-bar)` —
+    a fully-populated, plausible-looking A1/UNKNOWN/conf-0.0 payload from a
+    state machine that is NEVER fed a bar — with `except Exception: pass` and
+    no marker. Six live consumers read this route (fire_drill.py · morning_
+    briefing.py · s6_eod_report.py · mems26_preflight.sh · uat_prompt_4.sh ·
+    ChartV5a.tsx) and could not tell a real reading from the dead instance;
+    fire_drill's `bool(st["day_type"])` check PASSES on the synthetic
+    "UNKNOWN". The fallback now carries `meta.source`/`meta.degraded` and the
+    failure is logged, so a dead read is visible instead of silent.
     """
     from backend.v9.db.read import read_one
+    _degraded_reason = "no_row_in_v9_day_type_state"
     try:
         row = read_one(
             "SELECT ts, stage, day_type, confidence, lock_state, opening_type, "
@@ -63,14 +78,26 @@ def get_state():
                 ib_width=IBWidth(row["ib_width_class"]) if row["ib_width_class"] and row["ib_width_class"] != "UNKNOWN" else IBWidth.UNKNOWN,
                 behavior=Behavior(row["behavior"]) if row["behavior"] else Behavior.DEVELOPING,
             )
+            if isinstance(state.meta, dict):
+                state.meta["source"] = "v9_day_type_state"
+                state.meta["degraded"] = False
             return DayTypeStateResponse(state=state)
-    except Exception:
-        pass
-    # Fallback: empty state
+    except Exception as exc:            # no silent failures (CLAUDE.md)
+        _degraded_reason = f"db_read_failed: {type(exc).__name__}: {exc}"
+        logger.warning("[day_type/state] DB read failed -> DEGRADED response: %s", exc)
+    else:
+        logger.warning("[day_type/state] no row in v9_day_type_state -> DEGRADED response")
+
+    # Fallback: the api.py _engine is NEVER fed a bar. Its state is therefore
+    # synthetic, not a reading. Label it so no consumer mistakes it for one.
     engine = _get_engine()
     state = engine._build_state(
         BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
     )
+    if isinstance(state.meta, dict):
+        state.meta["source"] = "dead_engine_fallback"
+        state.meta["degraded"] = True
+        state.meta["degraded_reason"] = _degraded_reason
     return DayTypeStateResponse(state=state)
 
 
