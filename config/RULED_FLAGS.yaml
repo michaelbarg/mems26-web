@@ -353,7 +353,7 @@ ruled:
 
   # ── פסיקת-מייקל 2026-09-01 ("אפשר לעשות חוזים יחסי?") ──
   RISK_BUDGET_SIZING_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-01", note: "n=floor(BUDGET/(risk*$5)). n<MIN=REJECT (שער-איכות). contracts=min(n,ruled). OFF=legacy ruled-force."}
-  RISK_BUDGET_USD: {expected: "150", ruled_by: "מייקל", date: "2026-09-01", note: "150*3<=450 (RISK_DAILY_LOSS_CAP). צימוד קשיח."}
+  RISK_BUDGET_USD: {expected: "225", ruled_by: "מייקל", date: "2026-09-01", note: "150*3<=450 (RISK_DAILY_LOSS_CAP). צימוד קשיח."}
   RISK_MIN_CONTRACTS: {expected: "3", ruled_by: "מייקל", date: "2026-09-01", note: "n<3=דחייה. סטופ-מקס 10 נק'."}
   RISK_MAX_PTS_HARD: {expected: "30", ruled_by: "מייקל", date: "2026-09-01", note: "רשת שנייה."}
 
