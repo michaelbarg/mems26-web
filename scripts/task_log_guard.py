@@ -106,6 +106,33 @@ def check() -> List[str]:
     if not rows:
         problems.append("no T-xx rows found — the log has lost its structure")
 
+    # 2b. duplicate task ids (2026-09-01, cowork)
+    # Found the hard way: I opened "T-194 · risk-relative sizing" while a
+    # T-194 already existed — on the SAME root (SIZE_CAP_CUT selecting late
+    # entries). Two rows, one id, one subject: the second reads as new work
+    # and the first stops being findable. This is the class T-137 already
+    # documented ("מזהי-משימות התנגשו") and the guard never checked for it.
+    # 15 collisions predate this check — they come from an earlier numbering
+    # era (T-28..T-45) and renumbering them would break cross-doc references.
+    # They are frozen below so the check can fail on NEW ones from day one
+    # instead of waiting for a cleanup that would never happen.
+    _GRANDFATHERED = {
+        "T-28", "T-29", "T-30", "T-31", "T-33", "T-34", "T-35", "T-36",
+        "T-44", "T-45", "T-124", "T-125", "T-141", "T-155", "T-161",
+    }
+    _seen: dict = {}
+    for r in rows:
+        _seen[r["id"]] = _seen.get(r["id"], 0) + 1
+    _new_dupes = sorted(t for t, n in _seen.items()
+                        if n > 1 and t not in _GRANDFATHERED)
+    if _new_dupes:
+        problems.append(
+            f"DUPLICATE TASK IDS — {', '.join(_new_dupes)} each appear more "
+            f"than once. Two rows under one id means the older one becomes "
+            f"unfindable and the newer one reads as fresh work. Give the new "
+            f"item the next free number, or merge it into the existing row "
+            f"if it is the same root.")
+
     # 3. every item needs a status and a next action
     for r in rows:
         body = " ".join(r["cells"])
