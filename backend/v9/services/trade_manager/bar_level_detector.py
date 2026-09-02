@@ -1544,7 +1544,50 @@ class BarLevelDetector:
                                 logger.warning(
                                     "[StructureExit] GRADE-A: trade %d %s — %s",
                                     trade.id, direction, _se_result["reason"])
-                                if _se_a_mode != "shadow":
+                                # STRUCTURE_EXIT_REALIZE_V1 (Michael 02.09 13:40):
+                                # כפולה-שנכשלת ⇒ מימוש. After T1 hit, tighten
+                                # stops on ALL open legs to lock profit, don't FLATTEN.
+                                # Before T1 → no action (don't realize a loss).
+                                # Consumer file:line: THIS block.
+                                _realize_on = _se_os.getenv(
+                                    "STRUCTURE_EXIT_REALIZE_V1", "0").lower() in (
+                                    "1", "true", "live")
+                                if _realize_on and trade.t1_hit_ts is not None:
+                                    # After T1 — lock profit on all open legs
+                                    _rlz_dir = direction
+                                    if _rlz_dir == "LONG":
+                                        _rlz_stop = round(bar_close - 0.25, 2)
+                                    else:
+                                        _rlz_stop = round(bar_close + 0.25, 2)
+                                    # Per-leg MODIFY_STOP using T0-aware mapping
+                                    q = trade.quality if isinstance(
+                                        trade.quality, dict) else {}
+                                    _rlz_emitted = 0
+                                    for _tgt_f in ("t1", "t2", "t3"):
+                                        _hit = getattr(trade, f"{_tgt_f}_hit_ts", None)
+                                        if _hit is not None:
+                                            continue  # already banked
+                                        _okey = self._tm._target_order_key(trade, _tgt_f)
+                                        # Get the STOP order for this leg's group
+                                        _grp = self._tm._ladder_group_for(trade,
+                                            _tgt_f.upper())
+                                        _skey = f"c{(_grp or 0) + 1}_stop_id"
+                                        _sid = q.get(_skey)
+                                        if _sid:
+                                            self._tm._emit_modify_stop(
+                                                trade, _rlz_stop)
+                                            _rlz_emitted += 1
+                                    logger.warning(
+                                        "[StructureExit] REALIZE: trade %d %s — "
+                                        "locked %d open legs to %.2f (failed break "
+                                        "after T1)", trade.id, direction,
+                                        _rlz_emitted, _rlz_stop)
+                                elif _realize_on and trade.t1_hit_ts is None:
+                                    logger.info(
+                                        "[StructureExit] REALIZE skip: trade %d "
+                                        "pre-T1 — no action on failed break signal",
+                                        trade.id)
+                                elif _se_a_mode != "shadow":
                                     # EXECUTE the action
                                     if _se_result.get("flatten"):
                                         try:
