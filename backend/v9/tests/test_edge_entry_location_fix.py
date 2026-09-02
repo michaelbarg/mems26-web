@@ -83,6 +83,52 @@ class TestGapDayEdgeRedefinition:
                 levels=LEVELS_0109)
         assert not allow
 
+    def test_0109_1735_ceiling_short_passes(self):
+        """01.09 17:35: ceiling 7673.00 → SHORT near developing VAH passes.
+        The candle research says this was worth +18 pts."""
+        with patch.dict(os.environ, {
+            "DAYTYPE_LOCATION_GATE": "1",
+            "EDGE_ENTRY_LOCATION_FIX_V1": "1",
+            "REV_EDGE_DAY_STRUCTURE_V1": "1",
+        }):
+            allow, reason = decide_location(
+                family="REV", direction="SHORT",
+                day_type="Neutral_Center",
+                entry_price=7665.75,  # confirm bar close
+                levels={
+                    "vah": 7693.50,  # yesterday's VAH (unreachable)
+                    "val": 7681.00,
+                    "ib_width": 28.75,
+                    "ib_high": 7667.25,
+                    "session_high": 7673.75,
+                    "session_low": 7621.50,
+                    "day_high": 7673.75,
+                },
+                recent_bars=[
+                    {"high": 7673.75, "low": 7662.0, "close": 7665.75},  # confirm bar
+                    {"high": 7673.00, "low": 7665.0, "close": 7668.0},   # probed ceiling
+                ],
+            )
+        assert allow, (
+            f"01.09 17:35 ceiling SHORT should pass with EDGE_FIX: {reason}")
+
+    def test_mid_range_short_still_blocked(self):
+        """Same gap day, but SHORT in the MIDDLE of the range → still blocked.
+        Candle research: '7687.25 אמצע = רעש'."""
+        with patch.dict(os.environ, {
+            "DAYTYPE_LOCATION_GATE": "1",
+            "EDGE_ENTRY_LOCATION_FIX_V1": "1",
+            "REV_EDGE_DAY_STRUCTURE_V1": "0",
+        }):
+            allow, reason = decide_location(
+                family="REV", direction="SHORT",
+                day_type="Neutral_Center",
+                entry_price=7650.00,  # mid-range (not near any edge)
+                levels=LEVELS_0109,
+            )
+        assert not allow, (
+            f"Mid-range SHORT should still be blocked even on gap day: {reason}")
+
     def test_non_gap_day_unchanged(self):
         """When price IS inside yesterday's range, no redefinition occurs."""
         levels = {
