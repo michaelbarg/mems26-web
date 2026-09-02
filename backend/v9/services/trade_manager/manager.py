@@ -2184,10 +2184,26 @@ class TradeManager:
         _has_t0 = bool((trade.quality if isinstance(
             getattr(trade, "quality", None), dict) else {}).get("has_t0"))
         for g_idx in range(len(weights)):
-            if g_idx in consumed_columns:
-                continue
             # T-213: column index accounting for T0 offset
             _col = max(0, g_idx - 1) if _has_t0 else g_idx
+            # T-227 ROOT-FIX (2026-09-02): the membership test must use the
+            # COLUMN, not the GROUP. `consumed_columns` is filled from
+            # `f["column"]` (a COLUMN index, 0=t1 .. 3=t4) but was compared
+            # against `g_idx` (a LADDER GROUP). With has_t0 the two are offset
+            # by one, so on every T0 ladder exactly one already-banked leg fell
+            # through this guard and was booked A SECOND TIME — once from the
+            # fill ledger at its real price, once again from its `*_hit_ts`.
+            # Measured on production, 2026-09-02 (both reproduced by the tests
+            # in tests/v9/regression/test_t227_double_booked_leg.py):
+            #   #953 books +277.50 vs Sierra fills +187.50 → +$90.00 = the
+            #        7686.75 leg (18.00pt x 1c) counted twice.
+            #   #971 books +145.00 vs Sierra fills  +82.50 → +$62.50 = the
+            #        7679.50 leg ( 6.25pt x 2c) counted twice.
+            # The code already KNEW: "T-62 #953: exit legs cover 6c but the
+            # trade is booked as 5c" is in /tmp/backend.err.log at 18:48:13 —
+            # the warning fired and the wrong number was still written.
+            if _col in consumed_columns:
+                continue
             tgt = _targets[_col] if _col < len(_targets) else None
             hit = _hits[_col] if _col < len(_hits) else None
             if hit is not None and tgt is not None and weights[g_idx] > 0:

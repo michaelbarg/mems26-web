@@ -30,6 +30,11 @@ EXPORT_DIR = Path(os.path.expanduser("~/SierraChart_Data/v9_export"))
 EVENTS_FILE = EXPORT_DIR / "trade_activity_events.jsonl"
 POLL_INTERVAL = 60  # seconds
 
+# T-227 (2026-09-02): per-line parse failures, surfaced instead of swallowed.
+# Read by the regression test and printed by run_once so a parser bug can never
+# again cost a silent trading day.
+_PARSE_ERRORS: list[dict] = []
+
 
 def _today_log_path(account: str) -> Path:
     """Path to today's TradeActivityLog for the given account.
@@ -67,101 +72,126 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
     is_sim = account.lower().startswith("sim") if account else False
 
     for i, line in enumerate(lines):
-        if i < last_offset:
+        # T-227 ROOT-FIX (2026-09-02): ONE malformed line must never cost a
+        # whole trading day. The greedy "New price" regex below used to raise
+        # ValueError out of this loop, out of run_once, and out of the process —
+        # so a single bracket-modify line silently stopped the entire Sierra
+        # activity feed from 2026-08-27 onward. Parse defensively and SCREAM
+        # (never `pass`) so the next parser bug is visible the same day.
+        try:
+            if i < last_offset:
+                continue
+
+            # Closed Trade P&L
+            m = re.search(r"Closed Trade Profit/Loss: ([\d.-]+)\. Symbol: (\S+)", line)
+            if m:
+                events.append({
+                    "type": "CLOSED_TRADE_PNL",
+                    "pnl": float(m.group(1)),
+                    "symbol": m.group(2),
+                    "scan_ts": ts_now,
+                    "line": i,
+                })
+
+            # Position quantity change
+            m = re.search(
+                r"Updated Internal Position Quantity to (-?\d+)\. Previous: (-?\d+)\. "
+                r"Fill of InternalOrderID: (\d+)", line)
+            if m:
+                events.append({
+                    "type": "POSITION_CHANGE",
+                    "new_qty": int(m.group(1)),
+                    "prev_qty": int(m.group(2)),
+                    "order_id": int(m.group(3)),
+                    "scan_ts": ts_now,
+                    "line": i,
+                })
+
+            # FIX-10 (2026-07-10, trade 337): async broker rejection — Sierra logs
+            # "Teton CME Routing (Order reject). Info: Trade Order Error - ..."
+            # AFTER a successful submit-ack. Without this event the backend recorded
+            # a margin-rejected entry as CLOSED/BE. No order-id on the line → the
+            # backend correlates to the submit-acked PENDING trade with no fill.
+            m = re.search(r"\(Order reject\)\.\s*Info:\s*(.{0,140})", line)
+            if m:
+                events.append({
+                    "type": "ORDER_REJECT",
+                    "reason": m.group(1).strip(),
+                    "scan_ts": ts_now,
+                    "line": i,
+                })
+
+            # User order modification (manual stop/target move)
+            m = re.search(
+                r"User order modification.*Requested Price: ([\d.]+?)\.?\s.*Requested Quantity: (\d+)",
+                line)
+            if m:
+                events.append({
+                    "type": "USER_ORDER_MODIFY",
+                    "price": float(m.group(1)),
+                    "qty": int(m.group(2)),
+                    "scan_ts": ts_now,
+                    "line": i,
+                })
+
+            # Parent base price from bracket
+            # T-227 ROOT-FIX (2026-09-02): `([\d.]+)` is greedy and `.` is INSIDE the
+            # class, so on the real Sierra line
+            #     "... Parent base price: 7676.50. New price: 7673.50. Requested Price: ..."
+            # group(2) captured "7673.50." — trailing sentence period included — and
+            # `float()` raised `ValueError: could not convert string to float:
+            # '7673.50.'`. That exception escaped `_parse_events`, killed `run_once`,
+            # and with it the WHOLE day's feed: `trade_activity_events.jsonl` last
+            # grew 2026-08-27, so the ruled-ON W2 exit tracker
+            # (EXIT_TRACK_ACTIVITY_V1=1, Michael 2026-07-27) has been a no-op ever
+            # since — which is why every MAE_SCRATCH/FLATTEN exit stayed UNPRICED and
+            # `pnl_sierra` is NULL on 100% of rows. Anchor the number instead.
+            m = re.search(r"Parent base price: (-?\d+(?:\.\d+)?)\. "
+                          r"New price: (-?\d+(?:\.\d+)?)\.", line)
+            if m:
+                events.append({
+                    "type": "BRACKET_MODIFY",
+                    "parent_price": float(m.group(1)),
+                    "new_price": float(m.group(2)),
+                    "scan_ts": ts_now,
+                    "line": i,
+                })
+
+            # Sim-account patterns (07-21): Sim1 logs contain NONE of the live-account
+            # lines above (verified: 0/5 matches on a 49KB session log). The only fill
+            # evidence `strings` recovers is "Trade simulation fill. Bid/Ask/Last" and
+            # the Flatten&Cancel position line. Without these the feed is blind on sim
+            # days and the events file looks stalled.
+            if is_sim:
+                m = re.search(
+                    r"Trade simulation fill\. Bid: ([\d.]+) Ask: ([\d.]+) Last: ([\d.]+)", line)
+                if m:
+                    events.append({
+                        "type": "SIM_FILL",
+                        "bid": float(m.group(1)),
+                        "ask": float(m.group(2)),
+                        "last": float(m.group(3)),
+                        "scan_ts": ts_now,
+                        "line": i,
+                    })
+
+                m = re.search(
+                    r"Flatten&CancelAllOrders \| Last: ([\d.]+)\. "
+                    r"Current Position quantity: (-?\d+)", line)
+                if m:
+                    events.append({
+                        "type": "SIM_FLATTEN",
+                        "last": float(m.group(1)),
+                        "position_qty": int(m.group(2)),
+                        "scan_ts": ts_now,
+                        "line": i,
+                    })
+        except Exception as e:  # noqa: BLE001 — one bad line, not one bad day
+            _PARSE_ERRORS.append({"line": i, "error": repr(e),
+                                  "text": line[:200]})
+            print(f"[trade_activity_feed] PARSE ERROR on line {i}: {e!r} :: "
+                  f"{line[:160]}", file=sys.stderr)
             continue
-
-        # Closed Trade P&L
-        m = re.search(r"Closed Trade Profit/Loss: ([\d.-]+)\. Symbol: (\S+)", line)
-        if m:
-            events.append({
-                "type": "CLOSED_TRADE_PNL",
-                "pnl": float(m.group(1)),
-                "symbol": m.group(2),
-                "scan_ts": ts_now,
-                "line": i,
-            })
-
-        # Position quantity change
-        m = re.search(
-            r"Updated Internal Position Quantity to (-?\d+)\. Previous: (-?\d+)\. "
-            r"Fill of InternalOrderID: (\d+)", line)
-        if m:
-            events.append({
-                "type": "POSITION_CHANGE",
-                "new_qty": int(m.group(1)),
-                "prev_qty": int(m.group(2)),
-                "order_id": int(m.group(3)),
-                "scan_ts": ts_now,
-                "line": i,
-            })
-
-        # FIX-10 (2026-07-10, trade 337): async broker rejection — Sierra logs
-        # "Teton CME Routing (Order reject). Info: Trade Order Error - ..."
-        # AFTER a successful submit-ack. Without this event the backend recorded
-        # a margin-rejected entry as CLOSED/BE. No order-id on the line → the
-        # backend correlates to the submit-acked PENDING trade with no fill.
-        m = re.search(r"\(Order reject\)\.\s*Info:\s*(.{0,140})", line)
-        if m:
-            events.append({
-                "type": "ORDER_REJECT",
-                "reason": m.group(1).strip(),
-                "scan_ts": ts_now,
-                "line": i,
-            })
-
-        # User order modification (manual stop/target move)
-        m = re.search(
-            r"User order modification.*Requested Price: ([\d.]+?)\.?\s.*Requested Quantity: (\d+)",
-            line)
-        if m:
-            events.append({
-                "type": "USER_ORDER_MODIFY",
-                "price": float(m.group(1)),
-                "qty": int(m.group(2)),
-                "scan_ts": ts_now,
-                "line": i,
-            })
-
-        # Parent base price from bracket
-        m = re.search(r"Parent base price: ([\d.]+)\. New price: ([\d.]+)", line)
-        if m:
-            events.append({
-                "type": "BRACKET_MODIFY",
-                "parent_price": float(m.group(1)),
-                "new_price": float(m.group(2)),
-                "scan_ts": ts_now,
-                "line": i,
-            })
-
-        # Sim-account patterns (07-21): Sim1 logs contain NONE of the live-account
-        # lines above (verified: 0/5 matches on a 49KB session log). The only fill
-        # evidence `strings` recovers is "Trade simulation fill. Bid/Ask/Last" and
-        # the Flatten&Cancel position line. Without these the feed is blind on sim
-        # days and the events file looks stalled.
-        if is_sim:
-            m = re.search(
-                r"Trade simulation fill\. Bid: ([\d.]+) Ask: ([\d.]+) Last: ([\d.]+)", line)
-            if m:
-                events.append({
-                    "type": "SIM_FILL",
-                    "bid": float(m.group(1)),
-                    "ask": float(m.group(2)),
-                    "last": float(m.group(3)),
-                    "scan_ts": ts_now,
-                    "line": i,
-                })
-
-            m = re.search(
-                r"Flatten&CancelAllOrders \| Last: ([\d.]+)\. "
-                r"Current Position quantity: (-?\d+)", line)
-            if m:
-                events.append({
-                    "type": "SIM_FLATTEN",
-                    "last": float(m.group(1)),
-                    "position_qty": int(m.group(2)),
-                    "scan_ts": ts_now,
-                    "line": i,
-                })
 
     # Tag every event with account + sim flag
     for ev in events:
@@ -244,7 +274,21 @@ def run_once(account: str) -> list[dict]:
               f"skipping this poll", file=sys.stderr)
         return []
 
+    _PARSE_ERRORS.clear()
     events, new_offset = _parse_events(lines, last_offset, account=account)
+    if _PARSE_ERRORS:
+        # No silent failures (CLAUDE.md): the feed keeps going, but the operator
+        # and the ops log both hear about it on the same poll.
+        print(f"[trade_activity_feed] {len(_PARSE_ERRORS)} line(s) failed to "
+              f"parse in {log_path.name} — feed CONTINUED, events may be "
+              f"incomplete", file=sys.stderr)
+        try:
+            from scripts.ops_log import log_event
+            log_event("trade_activity_feed", "WARNING",
+                      f"{len(_PARSE_ERRORS)} unparsable line(s) in "
+                      f"{log_path.name}: {_PARSE_ERRORS[0]['error']}")
+        except Exception:
+            pass
 
     if events:
         _append_events(events)

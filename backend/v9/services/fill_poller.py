@@ -362,8 +362,37 @@ class FillPoller:
             return
         if self._tm is None:
             return
+        # T-227 (2026-09-02) — NO SILENT FAILURES on the feed this path depends on.
+        # `EXIT_TRACK_ACTIVITY_V1` was ruled ON (Michael 2026-07-27) and IS "1" in
+        # .env, but the producer (scripts/trade_activity_feed.py, LaunchAgent
+        # com.mems26.activity_feed) died on a ValueError in the BRACKET_MODIFY
+        # regex and stopped writing on 2026-08-27. Nothing noticed for six
+        # trading days: this method just `return`ed on a missing/stale file, so
+        # every MAE_SCRATCH / FLATTEN_ACCOUNT exit stayed UNPRICED and
+        # pnl_sierra was NULL on 100% of rows. A flag that is ON but whose feed
+        # is dead is worse than a flag that is OFF — it looks like coverage.
         if not ACTIVITY_EVENTS_PATH.exists():
+            self._warn_throttled(
+                "activity_feed_missing",
+                "[FillPoller] EXIT_TRACK_ACTIVITY_V1 is ON but %s does not exist "
+                "— exit tracking is DEAD (start com.mems26.activity_feed)",
+                ACTIVITY_EVENTS_PATH)
             return
+        try:
+            _feed_age = time.time() - ACTIVITY_EVENTS_PATH.stat().st_mtime
+        except OSError:
+            _feed_age = -1.0
+        try:
+            _max_age = float(os.getenv("ACTIVITY_FEED_MAX_AGE_S", "900"))
+        except (TypeError, ValueError):
+            _max_age = 900.0
+        if _feed_age > _max_age:
+            self._warn_throttled(
+                "activity_feed_stale",
+                "[FillPoller] EXIT_TRACK_ACTIVITY_V1 is ON but %s is %.0fs stale "
+                "(> %.0fs) — exit tracking is BLIND; Sierra-truth exits will not "
+                "be priced (check com.mems26.activity_feed)",
+                ACTIVITY_EVENTS_PATH, _feed_age, _max_age)
         try:
             size = ACTIVITY_EVENTS_PATH.stat().st_size
             if self._activity_exit_pos is None:
