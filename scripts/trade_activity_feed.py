@@ -297,6 +297,19 @@ def run_once(account: str) -> list[dict]:
             print(f"  {ev['type']}: {json.dumps({k: v for k, v in ev.items() if k != 'type'})}")
 
     offset_file.write_text(str(new_offset))
+    # T-227 (2026-09-02): a HEARTBEAT, not a write. The consumer
+    # (FillPoller._check_activity_exits) judges "is this feed alive?" by the
+    # events file's mtime, and a quiet session produces no events — so a
+    # perfectly healthy feeder looked identical to the one that had been dead
+    # since 2026-08-27. Touching the file on every successful poll makes mtime
+    # mean "the feeder ran", which is the question actually being asked. Size
+    # is untouched, and the consumer reads by size, so nothing is re-processed.
+    try:
+        if EVENTS_FILE.exists():
+            os.utime(EVENTS_FILE, None)
+    except OSError as e:
+        print(f"[trade_activity_feed] heartbeat touch failed: {e}",
+              file=sys.stderr)
     return events
 
 
