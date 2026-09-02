@@ -1,3 +1,77 @@
+### [2026-09-02 21:41 IL] cowork-scheduled · 🟠 ניטור-RTH 21:40 — **T-226 שחזר בפעם השנייה היום: כל ירי-`SCALE_IN` מייצר שורת-רפאים (הורה `#971` → ילד `#979`)** · 🟢 הפוזיציה ברווח-נעול, ההכלה עבדה שוב
+
+**ריצת-21:40 = חובה-1 + חובה-3. קריאה-בלבד.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — איסור-הריסטארט 16:10-23:00 נשמר במלואו.
+
+**📞 חובה-1: אין ממתינות ⇒ שקט.** `PHONE_THREAD.jsonl` (303 שורות) ⇒ הודעת-מייקל האחרונה `01.09 20:11:18Z`, נענתה `20:12:26Z`+`20:50:09Z`; **כל 10 ההודעות של 02.09 יוצאות (`sender=cowork`)**. נשלח עדכון-יזום בלבד (§2 למטה).
+
+---
+
+#### 🟢 חובה-3 — נמדד ברגע-האמירה (`sierra_state age=0.26s`, לא ציטוט ממדידה קודמת)
+
+```
+21:40:57 IDT  (ET 14:40)
+/api/v9/health          http=200  t=0.0027s                                      ✅
+v9_bars_5min_woodies    lag 1.0 דק' (סף 10)                                       ✅
+sierra_state.json       age=0.26s  is_sim=0  last=7674.75
+                        position_qty=+2  avg=7673.50  open_pnl=+12.50
+                        acct_daily_pl=+600.00  avail=2,682.14  margin_req=572.00
+                        orders=3:
+                          10930  target  qty=1 @ 7690.25
+                          10931  stop    qty=1 @ 7673.75
+                          10933  stop    qty=1 @ 7673.75
+                        ⇒ COVERAGE 2/2  ✅  אין חוזה עירום
+/api/v9/system6/diagnose  slot_trade_id=971 · live_open_ids=[971, 979]
+                          stuck=false · alarm=false · "slot holds open live trade 971"
+                          recommendation="exit" · hold.broke=true (score 0.25)
+```
+
+**🟢 הסטופ המשיך לעלות ⇒ רווח-נעול, לא רק BE.** `[TradeManager] F5 SWING_TRAIL: trade 971 stop 7673.5 -> 7673.75 (swing=7670.00 rev=5.50 floor=7673.75 LONG)` ⇒ שני הסטופים **מעל** `entry=7673.25`: `+0.50pt × 2c × $5 = +$5.00` נעול (מול `avg=7673.50` ⇒ `+$2.50`). גם אם שניהם נפגעים — היציאה חיובית.
+
+---
+
+#### 🟠 T-226 · שחזור שני באותו יום — **השורש חי, והמופע של 17:30 לא היה חד-פעמי**
+
+**ראיה גולמית (Rule 5), רצף אחד מ-`/tmp/backend.err.log` בשנייה `21:18:53`:**
+
+```
+21:18:53 [SierraCmd] RISK_BUDGET: risk=11.1 pts → raw=4.0 → floor=4 → min(ruled=5)=4
+21:18:53 [TradeManager] Trade 979 created: mode=live sys=4 dir=LONG
+21:18:53 [SierraCmd] T-214: PLACE rejected — t3=None invalid on 4 contracts. Every contract must have a target.
+21:18:53 [ScaleIn] +2c LONG parent=971 child=979 @7684.50 stop@7673.38 (BE) — P3 reinforce LONG:
+                   T1 banked + 11.2pt (spacing 11.2pt ≥ 1.5×ATR) + with-trend (UP) → +2c, avg-stop 7673.38
+```
+
+`psql` ⇒ `979 | live | PENDING | entry_ts=NULL | entry_price=7684.50 | t1=7701.18 | t2=NULL | t3=NULL | sierra_bracket_id=NULL`.
+
+**שני הפגמים של 17:30 חזרו זהים, מילה במילה:** (א) `SCALE_IN_P3` ביקש **+2 חוזים** ו-`RISK_BUDGET` תמחר **4** — הילד אינו יורש את גודל-ההגדלה; (ב) הילד נבנה עם `t1` בלבד, ו-`T-214` דורש יעד לכל חוזה ⇒ **דחיית כל הפקודה**, והשורה נשארת בספרים. **⇒ המסקנה משתנה מ"מופע" ל"דפוס": כל ירי-`SCALE_IN` מייצר שורת-רפאים** — עובדה מדודה פעמיים (`953→955` ב-17:30, `971→979` ב-21:18), לא הערכה.
+
+**✅ ההכלה עבדה שוב — אפס כסף בסיכון (מתועד כדי שלא "יתוקן" בטעות):**
+
+```
+21:18:54 [FillPoller] POSITION_TRUTH: Sierra holds 2c but trade 979 has NO submit-ack —
+                      NOT attributing (manual/not-ours position? command still queued? #652 class)
+                      (חזר 21:23:54, 21:28:54 — throttled 300s)
+21:19:14 [Reconciler] SYS-3 DIVERGENCE: TM says 8 contracts ['#971(live,LONG,4c)', '#979(live,LONG,4c)'],
+                      Sierra says 2 (src=state). Records ≠ reality! [phantom-heal streak 0/3]   (כל 30ש')
+diagnose ⇒ slot_trade_id=971 · stuck=false · alarm=false ⇒ הסלוט על העסקה האמיתית, אין T-178
+```
+
+**ממצא-לוואי:** גם ספירת-`#971` בספרים שגויה — `4c` מול `2c` בפועל (שאריות מחלקת T-229) ⇒ המונה `8` מנפח את הפער **פי-4** מעבר לרפאים עצמו. מי שיקרא את שורת-ה-DIVERGENCE כמדד-חשיפה יקבל מספר שגוי פעמיים.
+
+**סיווג ללא-שינוי: 🟠 פער-מדידה, לא חשיפה ולא חסימת-מסחר.** הצעד-הבא של T-226 נשאר כפי שנרשם ב-17:30 (ירושת-גודל · `t2/t3` לילד · ביטול-שורה על `PLACE rejected`).
+
+---
+
+#### ℹ️ שני אותות-ייעוץ שלא בוצעו — **לא נגעתי בפוזיציה**
+
+`system6 recommendation="exit"`: `hold.broke=true score=0.25 "structure broke — swing taken out against the trade"` + `stall fired 0.67 "no new favorable extreme for 4 bars"` · ובמקביל `runner_reversal ALERT: runner leg reversing after T1 on LONG trade` (**מחלקה מ-31.08 17:15**, 2,130 שורות מצטברות ⇒ לא חדשה). `STALL_EXIT` כבוי כי `op=EXIT` שבור (CLAUDE.md), הסטופ ממילא ברווח-נעול, ונגיעה בפוזיציה היא מחוץ-לסמכות ⇒ **נמסר ולא בוצע**.
+
+**⚠️ T-213 נמשך ללא הידרדרות:** `target_divergence` מצטבר **32,374** מאז `31.08 17:05:02`; `AUTO-CORRECT … → rejected` + `MODIFY_TARGET … (advisory)` ⇒ הערך השגוי אינו נדחף לסיירה. **T-228 נראה בשטח:** `[db.read] read_one failed: column "vah" does not exist` ×4 (`19:5x`–`20:35`) ⇒ ריצה על מסלול-הגיבוי, בדיוק כמתועד.
+
+— *cowork-dev, 2026-09-02 21:41 IL*
+
+---
+
 ### [2026-09-02 21:12 IL] cowork-scheduled · 🟠 ניטור-RTH 21:10 — **T-229 אושש מהשורש: המילוי נרשם על הרגה הלא-נכונה (`kind=T2` → `t1_hit_ts`), והמיפוי-לפי-מחיר נתפס בשעת-מעשה** · 🟢 הפוזיציה עברה ל-BE, סיכון-פתוח ≈ אפס
 
 **ריצת-21:10 = חובה-1 + חובה-3. קריאה-בלבד.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — איסור-הריסטארט 16:10-23:00 נשמר במלואו.
