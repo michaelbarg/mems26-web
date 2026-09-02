@@ -108,6 +108,18 @@ class TestCeilingFlipShort:
         )
         assert setup["metadata"]["shadow_only"] is True
 
+    def test_wiring_exists_in_five_min(self):
+        """Mutation: build_flip_setup is called from five_min_system."""
+        import inspect, textwrap
+        from backend.v9.systems.five_min.five_min_system import FiveMinSystem
+        source = textwrap.dedent(inspect.getsource(
+            FiveMinSystem._maybe_ceiling_floor_state))
+        assert "build_flip_setup" in source, (
+            "MUTATION: CEILING_FLIP is not wired in five_min_system. "
+            "The setup builder has no caller.")
+        assert "CEILING_FLIP_SHORT_V1" in source, (
+            "MUTATION: CEILING_FLIP_SHORT_V1 flag not checked in five_min_system.")
+
     def test_pattern_name(self):
         """Pattern = CEILING_FLIP_SHORT or CEILING_FLIP_LONG."""
         setup = build_flip_setup(

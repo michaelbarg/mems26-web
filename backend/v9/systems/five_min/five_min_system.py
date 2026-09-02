@@ -1646,16 +1646,45 @@ class FiveMinSystem(BaseV9TradingSystem):
             )
 
             if _cf_mode != "shadow":
-                # Published for the future consumers (bank / edge-lock /
-                # flip-short). Read via
-                # backend.v9.services.trade_context.get_ceiling_floor_state,
-                # which resolves the RUNNING app's five_min_system — the same
-                # instance backend/main.py assigns to app.state.five_min_system
-                # and that app.py / build_status_routes / shadow_routes read.
-                # It PERSISTS for the rest of the IL day: "the ceiling failed
-                # at 7782.50" has to stay true for the edge-lock, not evaporate
-                # on the next bar.
                 self.ceiling_floor_state = dict(_cf_st)
+
+            # CEILING_FLIP_SHORT_V1 (Michael T-140, 02.09): reverse entry
+            # on the confirm bar of a ceiling/floor failure at an edge.
+            # Consumer file:line: ceiling_flip.py:build_flip_setup.
+            _flip_mode = os.getenv("CEILING_FLIP_SHORT_V1", "0").lower()
+            if _flip_mode in ("1", "true", "shadow"):
+                try:
+                    from backend.v9.systems.ceiling_flip import build_flip_setup
+                    _flip_poc = None
+                    _flip_opp = None
+                    try:
+                        _flip_poc = _cf_lvl("poc")
+                        if _cf_st["state"] == "CEILING_FAILED":
+                            _flip_opp = _cf_lvl("val") or _cf_lo
+                        else:
+                            _flip_opp = _cf_lvl("vah") or _cf_hi
+                    except Exception:
+                        pass
+                    _flip_setup = build_flip_setup(
+                        ceiling_floor=_cf_st,
+                        atr=_cf_atr(_cf_bars, period=14) or 7.0,
+                        poc=_flip_poc,
+                        opposite_edge=_flip_opp,
+                    )
+                    if _flip_setup and self._gateway:
+                        if _flip_mode == "shadow":
+                            _flip_setup["metadata"]["shadow_only"] = True
+                        logger.warning(
+                            "[CeilingFlip] %s → %s entry=%.2f stop=%.2f "
+                            "t1=%.2f (%s)",
+                            _cf_st["state"], _flip_setup["direction"],
+                            _flip_setup["entry_price"], _flip_setup["stop"],
+                            _flip_setup["t1"],
+                            "SHADOW" if _flip_mode == "shadow" else "live")
+                        self._gateway.route_setup(_flip_setup, 2)
+                except Exception as _flip_err:
+                    logger.warning("[CeilingFlip] failed (non-fatal): %s",
+                                   _flip_err)
         except Exception as _cf_err:
             logger.warning("[CeilingFloor] failed (non-fatal): %s", _cf_err)
 
