@@ -1,3 +1,76 @@
+### [2026-09-02 18:45 IL] cowork-scheduled · 🟢 ניטור-RTH 18:37 — תקין, ללא חריגה חדשה; T-213/T-226 יציבים ולא מחמירים
+
+**ריצת-18:37 = חובה-1 + חובה-3.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — הקפאת-02.09 עד 23:00 נשמרה. קריאה-בלבד.
+
+**📞 חובה-1: אין ממתינות.** הודעת-מייקל האחרונה `01.09 20:11:18Z`, נענתה עניינית (`20:12:26Z` + `20:50:09Z`). 298 שורות בתהליך, 79 מייקל / 156 cowork / 63 cc ⇒ **שקט, לא נשלחה הודעה.**
+
+---
+
+#### 🟢 חובה-3 — נמדד ברגע-האמירה (לא ציטוט ממדידה קודמת)
+
+```
+18:39:09 ET 11:39:09
+18:39    backend /health            http=200 t=0.023s uptime_s=12786 (ריסטארט קדם-פתיחה 15:06)
+         backend /api/v9/health     http=200 t=0.0016s
+18:39    v9_bars_5min_woodies  max(ts)=2026-09-02 18:35:00+03 → lag 4.47 דק' (סף 10) ✅
+18:39:09 sierra_state.json  file_age=0.8s  is_sim=0  last_price=7686.0
+         position_qty=1  avg_price=7669.75  acct_open_positions_pl=+81.25  acct_daily_pl=+693.75
+         acct_cash_balance=3332.89  acct_available_funds=3128.14
+         working_orders=1  orders=[{type:3, qty:1, price:7677.75}]
+```
+
+**הפוזיציה שלנו ומוגנת — ownership נבדק לפני אזעקה** (`RECONCILER_OWNERSHIP_AWARE`, 24.07):
+כניסה `7668.75` מול Stop `7677.75` על **1 חוזה מול 1 בפוזיציה** ⇒ כיסוי מלא **מעל** הכניסה (רווח נעול גם בהיפוך).
+
+```
+[Reconcile] IN_POSITION_OK — in position with confirmed stop (MODIFY_STOP_OK)
+/api/v9/system6/diagnose ⇒ slot_health: stuck=false · alarm=false · slot_trade_id=953
+                           supervisor.healthy=true · issues=[]  · hold.intact=true (score 0.75)
+                           exit_signals: counter_flow fired (0.81, "counter CVD +2426 over 3 bars")
+                           recommendation="hold"   ← ייעוץ בלבד, לא בוצע
+```
+⇒ **אין אזעקת-אורפן, אין T-178.**
+
+---
+
+#### T-213 / T-226 — יציבים, לא מחמירים (השוואה מדודה מול 17:45 ו-18:10)
+
+**T-226 (רפאים #955) — שלושת השומרים אומתו מחדש עכשיו, לא מהזיכרון:**
+```
+psql: id|mode|state|entry_price|entry_ts|sierra_bracket_id
+      953|live|PARTIAL|7668.75|2026-09-02 17:15:07+03|
+      955|live|PENDING |7679.50|          (NULL)     |   ← entry_ts ריק + bracket ריק
+ls ~/SierraChart_Data/v9_export/command_queue/ ⇒ ריק (רק archived_stale, אחרון 29.08)
+```
+⇒ הרפאים **מעולם לא הגיע לסיירה**. ה-DIVERGENCE כל 30ש' הוא פער-מדידה, לא חסימה:
+`TM says 7 ['#955(4c)','#953(3c)'], Sierra says 1 [phantom-heal streak 0/3]`.
+המונה ירד 8→7 ו-Sierra 2→1 **באותו חוזה** ⇒ הריקונסיילר עוקב נכון אחרי היציאה האמיתית; הפער הקבוע הוא בספירת-#953 בלבד.
+
+**T-213 (הסטת T0-remap) — קצב יציב, ללא הידרדרות:**
+```
+2,000 שורות אחרונות (טווח 18:38:14→18:40:50, 2:36 דק'):
+  "T3 HIT: trade 952"  88   |  "T3 INFERRED" 89   →  ~34/דק' כל אחד
+  runner_reversal      39   |  DIVERGENCE     5 (=כל 30ש', תקין)
+  ERROR 0 · CRITICAL 0 · r=-1 0
+BarRouter SLOW handler BarLevelDetector.on_bar = 262-344ms  (18:10 מדד 274ms ⇒ ללא שינוי)
+צמיחת-לוג 125 KB/דק' · /tmp/backend.err.log 59MB · דיסק פנוי 130GB (8% בשימוש) ⇒ אין סיכון-דיסק
+```
+⇒ הלולאה עולה ב-CPU ובלוג, **לא בכסף ולא בחשיפה**. אין הרעה מאז 18:10 ⇒ לא הוסלם שוב, לא נשלחה הודעת-טלפון (כלל: תקין ⇒ שקט).
+
+**היום עד כה (v9_trades, לא `acct_daily_pl` המעורב עם אתי):** לייב 1 עסקה `+$232.50` (#953, PARTIAL, רץ) · צל 7 `+$236.25`. חמש כניסות-צל sys4 ב-20 דק' (#956-#960) — הסלוט-החי תפוס ע"י #953 ⇒ אפס כפילות-לייב.
+
+---
+
+#### 🧹 היגיינה (לא-מסחרי, לתשומת-לב cc)
+
+`docs/reports/OPS_LOG_2026-09-02.md` צבר **1,257 שורות-לוג גולמיות** בין הריצות (`runner_reversal`/`T2-FILL` חוזרות) — הקובץ עוקב-git ותופח מלולאת-T-213. נעשה `commit` כדי לשחרר `git pull` (`OPS_LOG append (RTH 18:37 run)`); **לא נמחק דבר.** כשייסגר שורש-T-213 הרעש ייפסק מעצמו.
+
+**NOT-DONE בכוונה:** לא נגעתי בפוזיציה · לא הדלקתי/כיביתי דגל · לא ריסטארט (16:10-23:00) · לא פעלתי על `counter_flow`.
+
+— cowork-dev (Cowork/MacBook), ריצה מתוזמנת 18:37 IL
+
+---
+
 ### [2026-09-02 18:10 IL] cowork-scheduled · 🔴🔴 **הסלמת T-213: ההסטה כבר לא רק "לא ממלאת" — היא דורסת את הספרים של עסקת-לייב, ורצה מאז 31.08**
 
 **ריצת-18:06 = חובה-1 + חובה-3 (ניטור-RTH).** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — הקפאת-02.09 עד 23:00 נשמרה.
