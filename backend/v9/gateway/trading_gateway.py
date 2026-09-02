@@ -810,6 +810,64 @@ class TradingGateway:
             except Exception:
                 pass
         bb = result.get("blocked_by")
+
+        # ── T-219: shadow_blocked twin for every refused candidate ──────────
+        # Runs AFTER _route_setup_inner returned → structurally cannot change
+        # a gate decision. No slot, no Sierra order, no feedback into gates.
+        # Consumer file:line: THIS block (route_setup, after result is final).
+        if (bb and result.get("shadow") is None
+                and os.getenv("BLOCKED_TWIN_V1", "0").lower() in ("1", "true", "shadow")):
+            try:
+                # Daily cap to bound management load (§4.2 of spec)
+                _bt_max = int(os.getenv("SHADOW_BLOCKED_MAX_PER_DAY", "150"))
+                _bt_count = getattr(self, "_shadow_blocked_today", 0)
+                if _bt_count < _bt_max:
+                    _bt_cross = self._capture_cross_context(setup) if hasattr(
+                        self, "_capture_cross_context") else {}
+                    _bt_q = {
+                        "blocked_by": bb,
+                        "block_reason": result.get("reason"),
+                        "candidate_id": (setup.get("metadata") or {}).get("candidate_id"),
+                    }
+                    try:
+                        from backend.v9.gateway.trading_gateway import extract_g1_entry_context
+                        _g1 = extract_g1_entry_context(_bt_cross)
+                        _bt_q["day_type_at_entry"] = (_g1 or {}).get("day_type_at_entry")
+                    except Exception:
+                        pass
+                    _bt_setup = dict(setup)
+                    _bt_setup.setdefault("metadata", {})
+                    _bt_setup["metadata"]["shadow_blocked"] = True
+                    _bt_setup["metadata"]["blocked_by"] = bb
+                    # Use the existing shadow path but mark as shadow_blocked
+                    _bt_trade = self._execute_shadow(
+                        _bt_setup, system_id, _bt_cross)
+                    if _bt_trade:
+                        # Mark the trade row as shadow_blocked (not regular shadow)
+                        try:
+                            _bt_tid = _bt_trade.get("trade_id")
+                            if _bt_tid and hasattr(self, "_trade_manager"):
+                                _t = self._trade_manager._get_trade(int(_bt_tid))
+                                if _t:
+                                    q = dict(_t.quality) if isinstance(_t.quality, dict) else {}
+                                    q.update(_bt_q)
+                                    _t.quality = q
+                                    self._trade_manager._db.commit()
+                        except Exception:
+                            pass
+                        # Do NOT append to shadow_trades (§3.4 — no feedback)
+                        # Do NOT increment _daily_trades/_daily_pnl
+                        self._shadow_blocked_today = _bt_count + 1
+                        logger.info(
+                            "[Gateway] T-219 shadow_blocked: %s %s blocked_by=%s "
+                            "→ twin #%s (%d/%d today)",
+                            setup.get("direction"),
+                            setup.get("pattern") or setup.get("classification"),
+                            bb, _bt_trade.get("trade_id"),
+                            _bt_count + 1, _bt_max)
+            except Exception as _bt_err:
+                logger.warning("[Gateway] T-219 shadow_blocked error (non-fatal): %s", _bt_err)
+
         if bb:
             logger.warning(
                 "[Gateway] BLOCKED system=%s pattern=%s dir=%s entry=%s blocked_by=%s",
