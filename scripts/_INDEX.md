@@ -96,7 +96,7 @@
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
 | `opening_atr_audit.py` | ▶ entry/test | 179 | 2026-09-01 | Is the stop band at the open calibrated on pre-market volatility? |
 | `opening_signal_edge.py` | ▶ entry/test | 153 | 2026-07-24 | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
-| `ops_log.py` | ✅ 19 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
+| `ops_log.py` | ✅ 20 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
 | `oracle_study.py` | ▶ entry/test | 767 | 2026-08-20 | oracle_study.py — bar-by-bar "ORACLE vs FEASIBLE vs SYSTEM" study of every live-era |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
 | `parity_report.py` | ▶ entry/test | 372 | 2026-08-19 | parity_report.py — EOD cross-machine parity check (cc-imac, 2026-08-19). |
@@ -106,7 +106,7 @@
 | `phone_request_guard.py` | ▶ entry/test | 151 | 2026-09-01 | Requests Michael sent from the phone that no task log ever recorded. (T-208) |
 | `pkg0_redis_migrate.py` | ▶ entry/test | 78 | 2026-05-23 | Pkg 0 · Redis migration · chart_5min → five_min |
 | `place_test_demo_order.py` | ▶ entry/test | 29 | 2026-07-02 | Pipeline 5 — place ONE test DEMO entry to Sierra Sim. MICHAEL runs this (he holds the |
-| `pnl_reconcile.py` | ▶ entry/test | 139 | 2026-08-20 | T-10 / T-62 — books vs broker, per trade, from the Sierra fills journal. |
+| `pnl_reconcile.py` | ▶ entry/test | 198 | 2026-09-02 | T-10 / T-62 — books vs broker, per trade, from the Sierra fills journal. |
 | `post-commit-hook.sh` | — | 105 | 2026-05-16 | ═══════════════════════════════════════════════════════════════ |
 | `post_restart_verify.sh` | — | 110 | 2026-07-17 | post_restart_verify.sh — liveness gate after every restart/kickstart. |
 | `pre-commit-hook.sh` | — | 77 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
@@ -168,12 +168,12 @@
 | `system2_full_audit.py` | ▶ entry/test | 1182 | 2026-08-11 | system2_full_audit.py — SYSTEM-2 full audit across every session we have. |
 | `t160_pnl_trust_audit.py` | ▶ entry/test | 126 | 2026-09-01 | T-160: P&L trust audit — marks trades without exit_price as untrusted. |
 | `t211_backfill_apply.py` | ▶ entry/test | 152 | 2026-09-02 | T-211 backfill — add the missing T0 leg and recompute P&L from real fills. |
-| `t211_t0_backfill.py` | ▶ entry/test | 94 | 2026-09-02 | T-211: backfill T0 remap on historical trades. |
+| `t211_t0_backfill.py` | ▶ entry/test | 98 | 2026-09-02 | SUPERSEDED (02.09): list-only, --apply branch was empty, filter missed #948. |
 | `task_log_guard.py` | ▶ entry/test | 245 | 2026-09-02 | task_log_guard — make the task log fail loudly instead of going stale. |
 | `test_binary_convergence.py` | ▶ entry/test | 187 | 2026-08-22 | Test structural binary classifier convergence against post-hoc. |
 | `tp_audit.py` | ▶ entry/test | 106 | 2026-07-08 | TP audit v1 — האם המימושים (T1) נכונים פר-תבנית×סוג-יום מול מה שהיום נתן |
 | `tp_audit_v2.py` | ▶ entry/test | 236 | 2026-07-09 | TP audit v2 — target placement analysis (30 days) via direct psql. |
-| `trade_activity_feed.py` | ▶ entry/test | 309 | 2026-07-28 | Trade Activity Log feeder — extracts fill/stop-move events from Sierra's binary log. |
+| `trade_activity_feed.py` | ▶ entry/test | 366 | 2026-09-02 | Trade Activity Log feeder — extracts fill/stop-move events from Sierra's binary log. |
 | `uat_hotfix_4_3.sh` | — | 47 | 2026-05-11 | page.tsx imports V9Dashboard which has all V9 components |
 | `uat_hotfix_4_4.sh` | — | 49 | 2026-05-12 |  |
 | `uat_hotfix_4_5.sh` | — | 62 | 2026-05-12 |  |
