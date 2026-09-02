@@ -522,7 +522,15 @@ async def _startup():
                                             _sb_out["label"], _cls_dt_str,
                                             _sb_out["bar_count"])
                             except Exception as _sb_err:
-                                _logger.debug("[S1-BINARY] shadow error (non-fatal): %s", _sb_err)
+                                # CLAUDE.md "No silent failures": at debug this
+                                # could have been raising on every bar for days
+                                # and the shadow comparison would look merely
+                                # quiet rather than dead — the same disguise
+                                # that hid T-227's activity feed. 5-min bars cap
+                                # this at ~78 lines/day.
+                                _logger.warning(
+                                    "[S1-BINARY] shadow error (non-fatal, the "
+                                    "comparison is BLIND this bar): %s", _sb_err)
 
                             # Map 7-type string → DayType enum (Normal_Variation→Variation; rest direct)
                             _DT_MAP = {
