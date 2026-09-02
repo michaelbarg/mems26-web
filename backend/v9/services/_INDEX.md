@@ -31,7 +31,7 @@
 | `bar_router.py` | ✅ 4 | 127 | 2026-05-29 | BarRouter — central distributor for bar events. |
 | `candidate_ledger.py` | ✅ 6 | 256 | 2026-08-25 | Candidate Ledger — observability-only event writer (T-103). |
 | `contract_size.py` | ✅ 12 | 103 | 2026-08-16 | The one place that answers "how many contracts did Michael rule for?". |
-| `daily_pnl.py` | ✅ 1 | 204 | 2026-08-20 | Daily P&L table from Sierra's OWN per-day Trade Activity Logs. |
+| `daily_pnl.py` | ✅ 2 | 204 | 2026-08-20 | Daily P&L table from Sierra's OWN per-day Trade Activity Logs. |
 | `daytype_watchdog.py` | ✅ 2 | 273 | 2026-09-01 | Day-type writer watchdog — detects AND heals a stale v9_day_type_state. |
 | `direction_compass.py` | ✅ 2 | 438 | 2026-08-26 | direction_compass — F1: the ONE fused direction reading (Michael 2026-08-20). |
 | `entry_guard.py` | ✅ 3 | 226 | 2026-08-26 | PRE_SEND_ENTRY_GUARD_V1 — refuse a LIVE entry the account state guarantees to kill. |
@@ -39,7 +39,7 @@
 | `eod_archiver.py` | ✅ 3 | 219 | 2026-08-22 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
 | `exit_verifier.py` | ✅ 2 | 394 | 2026-09-01 | T4 — books close only after Sierra proves the exit actually happened. |
 | `feed_watchdog.py` | ✅ 2 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
-| `fill_poller.py` | ✅ 6 | 1246 | 2026-09-01 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
+| `fill_poller.py` | ✅ 6 | 1275 | 2026-09-02 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `gate_overrides.py` | ✅ 1 | 93 | 2026-08-19 | Phone-triggered gate overrides — Michael 2026-08-19: |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |

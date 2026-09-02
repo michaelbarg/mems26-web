@@ -41,7 +41,7 @@
 | `extremes_quality.py` | ✅ 7 | 241 | 2026-08-06 | Excess / Poor-High / Poor-Low detection (Dalton gap analysis, Step 1). |
 | `failed_break.py` | ✅ 6 | 158 | 2026-08-26 | FAILED_BREAK — entry after a failed attempt to break an edge. |
 | `leg_state.py` | ✅ 6 | 122 | 2026-07-31 | LEG_RIDE_V1 — intraday LEG detection (Michael's ruling, 2026-07-31 21:45). |
-| `location_gate.py` | ✅ 3 | 297 | 2026-09-02 | location_gate — DAYTYPE_LOCATION_GATE v2 (Michael 2026-07-22, default OFF). |
+| `location_gate.py` | ✅ 3 | 359 | 2026-09-02 | location_gate — DAYTYPE_LOCATION_GATE v2 (Michael 2026-07-22, default OFF). |
 | `mae_scratch.py` | ✅ 2 | 293 | 2026-08-21 | S6 MAE Scratch — adverse-excursion-based early exit (DEV_PLAN 02.08 §P3.1). |
 | `multiday_profile.py` | ✅ 4 | 189 | 2026-08-02 | MULTIDAY_CONTEXT_V1 — 7-day TPO context computed from canonical bars. |
 | `opening_entry.py` | ✅ 5 | 440 | 2026-08-27 | Opening-type ENTRY triggers (Dalton) — REVISED per the 31-session historical |
