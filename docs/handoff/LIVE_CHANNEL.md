@@ -1,3 +1,74 @@
+### [2026-09-02 19:10 IL] cowork-scheduled · 🟢 ניטור-RTH 19:07 — תקין · **T-226 נסגר מעצמו ע"י שומר-`POSITION_TRUTH`** · עסקת-לייב חדשה `#963` מוגנת **5/5**
+
+**ריצת-19:07 = חובה-1 + חובה-3.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — הקפאת-02.09 עד 23:00 נשמרה. קריאה-בלבד.
+
+**📞 חובה-1: אין ממתינות.** הודעת-מייקל האחרונה `01.09 20:11:18Z`, נענתה עניינית (`20:12:26Z` + `20:50:09Z`). כל 8 השורות האחרונות בתהליך הן `sender=cowork` ⇒ **אין הודעה בלי תשובה.** (נשלח בכל זאת עדכון-סגירה על T-226 — ראה §4.)
+
+---
+
+#### 🟢 חובה-3 — נמדד ברגע-האמירה (לא ציטוט ממדידה קודמת)
+
+```
+19:07:40 IDT  (ET 12:07)
+19:07    /api/v9/health   http=200  t=0.0017s  body={"status":"ok","version":"v9.0.0"}
+19:07    v9_bars_5min_woodies  max(ts)=2026-09-02 19:05:00+03 → lag 2.7 דק' (סף 10) ✅
+19:07    sierra_state.json  file_age=0.4s  is_sim=0  last_price=7684.75 (19:08: 7685.0)
+         position_qty=5  avg_price=7686.0  acct_open_positions_pl=-31.25  acct_daily_pl=+733.75
+         acct_cash_balance=3372.89  acct_available_funds=1911.64  working_orders=8
+         orders: {10898,t1,q1,7688.75} {10899,t3,q1,7677.5} {10901,t1,q2,7692.75} {10902,t3,q2,7677.5}
+                 {10904,t1,q1,7692.75} {10905,t3,q1,7677.5} {10907,t1,q1,7699.5}  {10908,t3,q1,7677.5}
+         qty_by_type = {targets: 5, stops: 5}
+19:09:21 [Reconcile] IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+19:09    /system6/diagnose → slot_trade_id=963 · stuck=false · alarm=false
+                             detail="slot holds open live trade 963"
+                             trade={id:963, LONG, entry:7685.75, stop:7677.5, contracts:5, t1_hit:false}
+```
+
+**הפוזיציה שלנו ומוגנת — ownership נבדק לפני אזעקה** (`RECONCILER_OWNERSHIP_AWARE`, 24.07):
+`psql` ⇒ `963 | live | 4 | LONG | FILLED | entry=7685.75 | stop=7677.5 | t1=7692.75` (18:59) — ה-**5 חוזים** בסיירה מול **5 חוזי-סטופ ב-7677.5 בדיוק כמו הספרים** ⇒ **כיסוי 5/5, אין חוזה עירום, אין אורפן, אין T-178.** הגודל **5** = הפסיקה העומדת (`FIXED_CONTRACTS_5`), אין דריפט-גודל.
+
+---
+
+#### ✅ T-226 — **המופע נסגר מעצמו; השורש חי.** תיקון למה שנמסר ב-17:45
+
+ב-17:45 נמסר «`DIVERGENCE` **קבוע** כל 30ש'». **זה לא נשאר קבוע** — ראיה גולמית (Rule 5):
+
+```
+18:48:26 [Reconciler] SYS-3 DIVERGENCE: TM says 4 contracts ['#955(live,LONG,4c)'], Sierra says 0
+                      [phantom-heal streak 1/3]                       ← השורה האחרונה אי-פעם
+18:48:33 [TradeManager] T-160: close_trade #955 reason=SIERRA_FLAT WITHOUT exit_price
+                        — pnl=NULL, status=UNPRICED (Rule 1)
+18:48:33 [FillPoller] POSITION_TRUTH: Sierra FLAT for 20s → closed trade 955 (was PENDING) + freed slot
+```
+`tail -5000 /tmp/backend.err.log | grep -ic DIVERGENCE (ללא target_divergence)` ⇒ **0**.
+`psql` ⇒ `955 | live | CLOSED | SIERRA_FLAT | entry_ts=NULL`.
+
+**שתי מסקנות:** (1) **הסגירה הייתה כנה** — `pnl=NULL / UNPRICED` ולא P&L-מהיעד ⇒ **תיקון-T-160 עובד בשטח** (זו הפעם הראשונה שרואים אותו סוגר עסקת-רפאים). (2) **הסלוט שוחרר נכון** ועבר ל-`#963` ⇒ הרפאים אכן לא היה T-178. **⚠️ אבל השורש לא נגע:** ילד-ההגדלה עדיין לא יורש את גודל-ההגדלה, `t2/t3` עדיין `NULL`, ו-`PLACE rejected` עדיין לא גורר ביטול-שורה ⇒ **יחזור בירי-`SCALE_IN` הבא. T-226 נשאר 🟠 פתוח** (לא ✅ — אין תיקון-קוד ואין ראיית-סים).
+
+---
+
+#### 🟠 T-213 — ללא הידרדרות (השוואה מדודה)
+
+`tail -4000 /tmp/backend.err.log | grep -c target_divergence` ⇒ **735** · `AUTO … MODIFY_TARGET needs manual handling (advisory)` ממשיך ⇒ **ה-`t2` השגוי עדיין לא נדחף לסיירה** (`SYSTEM6_AUTOCORRECT=protective` הוא השומר) · `BarRouter SLOW handler BarLevelDetector.on_bar` **143.2ms** מול **274.5ms** ב-18:10 ⇒ **שיפור, לא הידרדרות.** ללא שינוי בהצעד-הבא.
+
+---
+
+#### ℹ️ שני אותות-ייעוץ שלא בוצעו (ובכוונה)
+
+1. `supervisor.healthy=false` — **פריט אחד בלבד:** `{"code":"stop_too_wide","severity":"WARN","action":"ALERT","detail":"risk 8.25pt > cap 7.65pt"}`. סיכון בפועל `8.25pt × 5c × $5 = $206.25` מול תקרה `$191.25` ⇒ **חריגה של ~$15**. **המחלקה אינה חדשה:** מופע ראשון `2026-08-31 21:20:05` (`risk 5.50 > cap 5.49`), **1,004** שורות מאז ⇒ אין AUTO, אין חיווט, לא נגעתי.
+2. `exit_signals` ⇒ `{"kind":"stall","score":0.83,"fired":true,"reason":"no new favorable extreme for 5 bars"}` — אבל `recommendation="hold"`, ו-`STALL_EXIT` **כבוי** לפי CLAUDE.md (op=EXIT שבור) ⇒ **ייעוץ בלבד, לא בוצע.**
+
+---
+
+#### 💵 הספרים של היום (`v9_trades`, לא `acct_daily_pl` המעורב עם אתי)
+
+**לייב:** `#953` CLOSED `STOP_HIT` `exit=7677.75` (**מעל** הכניסה 7668.75) ⇒ **+$277.50 אמיתי** (`exit_price` קיים ⇒ **לא** סינתטי-T-160) · `#955` CLOSED `SIERRA_FLAT` **UNPRICED** (אפס כסף — מעולם לא הגיע לשוק) · `#963` **פתוח**.
+**צל:** `#952 +153.75` · `#954 +142.50` · `#959 −200` · `#960 −200` · `#961 −62.50` ⇒ **−$166.25** ממומש · `#956/957/958` PARTIAL + `#962/964/965` FILLED פתוחות.
+
+**📞 חובה-1 (המשך):** נשלחה הודעה אחת לטלפון (סגירת-T-226 + תיקון-הניסוח מ-17:45 + מצב-הפוזיציה). **אפס פעולה מעבר לכתיבת-מסמכים.**
+
+---
+
 ### [2026-09-02 18:45 IL] cowork-scheduled · 🟢 ניטור-RTH 18:37 — תקין, ללא חריגה חדשה; T-213/T-226 יציבים ולא מחמירים
 
 **ריצת-18:37 = חובה-1 + חובה-3.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — הקפאת-02.09 עד 23:00 נשמרה. קריאה-בלבד.
