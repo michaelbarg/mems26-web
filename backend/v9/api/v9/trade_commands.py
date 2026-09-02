@@ -219,9 +219,12 @@ def modify_target(
         db.commit()
 
         # Send MODIFY to Sierra
+        # T-213: T0-aware order_id mapping
         q = trade.quality if isinstance(trade.quality, dict) else {}
-        order_id_key = {"t1": "c1_target_id", "t2": "c2_target_id", "t3": "c3_target_id"}[cmd.target]
-        order_id = q.get(order_id_key)
+        from backend.v9.services.trade_manager.manager import TradeManager
+        _okey = TradeManager._target_order_key(trade, cmd.target)
+        order_id = q.get(_okey) if _okey else q.get(
+            {"t1": "c1_target_id", "t2": "c2_target_id", "t3": "c3_target_id"}.get(cmd.target))
 
         sierra_result = None
         if order_id:

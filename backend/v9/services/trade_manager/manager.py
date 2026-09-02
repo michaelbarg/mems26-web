@@ -1081,15 +1081,18 @@ class TradeManager:
             return False
 
         # Front pending target: t1 before T1-hit, else t2, else t3 (runner)
+        # T-213: use _target_order_key for the correct cN_target_id (T0 offset)
         q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
         if getattr(trade, "t1_hit_ts", None) is None and trade.t1 is not None:
-            tgt_field, tgt_val, order_id = "t1", float(trade.t1), q.get("c1_target_id")
+            tgt_field, tgt_val = "t1", float(trade.t1)
         elif getattr(trade, "t2_hit_ts", None) is None and trade.t2 is not None:
-            tgt_field, tgt_val, order_id = "t2", float(trade.t2), q.get("c2_target_id")
+            tgt_field, tgt_val = "t2", float(trade.t2)
         elif getattr(trade, "t3_hit_ts", None) is None and trade.t3 is not None:
-            tgt_field, tgt_val, order_id = "t3", float(trade.t3), q.get("c3_target_id")
+            tgt_field, tgt_val = "t3", float(trade.t3)
         else:
             return False
+        _okey = self._target_order_key(trade, tgt_field)
+        order_id = q.get(_okey) if _okey else None
 
         from backend.v9.systems.structural_targets import realism_ceiling
         entry = float(trade.entry_price)
@@ -1523,14 +1526,17 @@ class TradeManager:
 
         # Advance the FRONT runner's target (C1 target is FIXED — never re-anchor).
         # C2 is the front runner while it's unfilled; once C2 fills, C3 becomes front.
+        # T-213: use _target_order_key for T0-aware order_id mapping
         runner_target_id = None
         if next_tgt is not None:
             if trade.t2 is not None and trade.t2_hit_ts is None:
                 trade.t2 = next_tgt
-                runner_target_id = q.get("c2_target_id")
+                _rk = self._target_order_key(trade, "t2")
+                runner_target_id = q.get(_rk) if _rk else q.get("c2_target_id")
             elif trade.t3 is not None and trade.t3_hit_ts is None:
                 trade.t3 = next_tgt
-                runner_target_id = q.get("c3_target_id")
+                _rk = self._target_order_key(trade, "t3")
+                runner_target_id = q.get(_rk) if _rk else q.get("c3_target_id")
 
         trade.quality = q
 
@@ -1932,6 +1938,31 @@ class TradeManager:
     #: T-62: which `t1..t4` COLUMN a logical target label persists into. T0 has
     #: no column of its own — that hole is half of #749's error.
     _TARGET_COLUMN = {"T1": 0, "T2": 1, "T3": 2, "T4": 3}
+
+    #: T-213: the correct cN_target_id key for a target field, accounting for
+    #: the T0 remap offset. With has_t0=true, t1's order lives at c2_target_id
+    #: (not c1), because c1 holds the T0 scalp.
+    _TARGET_ORDER_KEYS = ("c1_target_id", "c2_target_id", "c3_target_id", "c4_target_id")
+
+    @staticmethod
+    def _target_order_key(trade, target_field: str) -> Optional[str]:
+        """Return the quality key for the Sierra order_id of this target.
+
+        T-213 (02.09): with has_t0=true the mapping shifts +1:
+          t1 → c2_target_id, t2 → c3_target_id, t3 → c4_target_id.
+        Without T0: t1 → c1_target_id (unchanged).
+
+        Consumer file:lines: manager.py:1086 (TARGET_REALISM),
+        manager.py:1528 (STRUCT_TRAIL), api/v9/trade_commands.py:223.
+        """
+        _col_map = {"t1": 0, "t2": 1, "t3": 2, "t4": 3}
+        col = _col_map.get(target_field)
+        if col is None:
+            return None
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        has_t0 = bool(q.get("t0_target_pts") or q.get("has_t0"))
+        idx = min(col + 1, 3) if has_t0 else col
+        return TradeManager._TARGET_ORDER_KEYS[idx]
 
     @staticmethod
     def _ladder_group_for(trade, kind: str) -> Optional[int]:
