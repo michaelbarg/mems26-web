@@ -1,3 +1,72 @@
+### [2026-09-02 22:40 IL] cowork-scheduled · 🟢 ניטור-RTH 22:40 — **החשבון שטוח ובריא; יום-המסחר נסגר לכניסות ב-22:15 ע"י `eod_entry_cutoff`** · אפס ממצא חדש
+
+**ריצת-22:40 = חובה-1 + חובה-3. קריאה-בלבד.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — איסור-הריסטארט 16:10-23:00 נשמר במלואו.
+
+**📞 חובה-1: אין ממתינות ⇒ שקט.** `PHONE_THREAD.jsonl` (306 שורות) ⇒ הודעת-מייקל האחרונה עדיין `01.09 20:11:18Z` (נענתה); כל 13 השורות מאז `sender=cowork` — יוצאות. **לא נשלחה הודעת-טלפון בריצה הזו:** חובה-3 מורה "תקין → שקט", ודוח-22:15 כבר מסר את אותה תמונה (שטוח, `+602.50`).
+
+---
+
+#### 🟢 חובה-3 — נמדד ברגע-האמירה (`sierra_state age=0.34s`, לא ציטוט ממדידה קודמת)
+
+```
+22:38:06 IDT  (ET 15:38)
+/api/v9/health            http=200  t=0.0078s  {"status":"ok","version":"v9.0.0"}   ✅
+v9_bars_5min_woodies      last=2026-09-02 22:35:00+03 · lag 3.22 דק' (סף 10)        ✅
+sierra_state.json         age=0.34s  is_sim=0  last_price=7677.25
+                          position_qty=0   orders_count=0
+                          acct_daily_pl=+602.50   cash=3,241.64   avail=3,241.64
+                          acct_margin_req=0.0     acct_under_margin=0
+/api/v9/system6/diagnose  active=false · stuck=false · alarm=false
+                          slot_trade_id=null · live_open_ids=[]
+                          detail="live slot is free"
+```
+
+⇒ **אין פוזיציה · אין פקודה פתוחה · אין מרג'ין תפוס · אין אורפן · אין `T-178` · אין דיברגנס.** אין למי לייחס ownership — אין מה לייחס. `backend.err.log`: **אפס `ERROR`/`CRITICAL`/`Traceback` ב-4,000 השורות האחרונות**; הלוג כותב חי (`22:38:51`).
+
+**⏹️ יום-המסחר נסגר לכניסות חדשות ב-22:15 — פסיקת-תכן, לא תקלה.** זו הסיבה לאפס-עסקאות מאז `21:41`, ולא "מערכת מתה":
+
+```
+22:15:02  [FiveMin] FIRE: REACTIVE LONG (conf=0.80, size=half, COT=7138.0, AMT=6131.7, loc=near)
+22:15:02  [Gateway] BLOCKED by EOD entry cutoff: 45 min before close
+22:15:02  [Gateway] BLOCKED system=2 pattern=REACTIVE_LONG dir=LONG entry=7680.25
+                    blocked_by=eod_entry_cutoff
+22:15:03  [Woodies] Pattern GHOST SHORT fired: CCI=65.1 conf=0.70 trend=BLUE
+22:15:03  [Gateway] BLOCKED system=4 pattern=GHOST dir=SHORT entry=7680.5
+                    blocked_by=eod_entry_cutoff
+```
+
+**פילוח-חסימות מ-22:15 ואילך: `5×eod_entry_cutoff` — ואפס אחר.** (ה-`session_gate_closed` היחיד שנראה ב-grep הוא מ-`01.09 23:00:05`, לא מהיום.) ⇒ **הגייטוויי חי ומעריך, והשער היחיד שפועל עכשיו הוא שער-הסגירה.**
+
+**🟢 אפס דריפט-גודל:** `ruled_contracts() = 5` — תואם את הפסיקה העומדת (`FIXED_CONTRACTS_5=1`, 31.08).
+
+---
+
+#### ℹ️ מאזן-יום — ללא שינוי מ-22:15, ו-`T-227`/`T-229` נשארים פתוחים
+
+```
+mode   | n  | pnl_books | pnl_sierra | unpriced_closed
+live   |  4 |    422.50 |       0.00 | 2
+shadow | 22 |  -1813.75 |       0.00 | 0
+```
+
+```
+id  | sys | dir   | ent      | ex       | entry   | exit    | exit_reason  | pnl   | outcome
+953 |  2  | LONG  | 17:15:07 | 18:48:13 | 7668.75 | 7677.75 | STOP_HIT     | 277.5 | WIN
+963 |  4  | LONG  | 18:59:38 | 19:16:11 | 7685.75 |  (NULL) | MAE_SCRATCH  | (NULL)| UNPRICED
+968 |  4  | SHORT | 19:40:12 | 20:04:45 | 7676.25 |  (NULL) | MAE_SCRATCH  | (NULL)| UNPRICED
+971 |  4  | LONG  | 20:10:05 | 21:41:04 | 7673.25 | 7673.75 | STOP_FILL    | 145   | WIN
+```
+
+**אין לצטט `+422.50` כתרומת-המערכת.** `2/4` מהעסקאות החיות של היום נסגרו **בלי `exit_price`** (שתיהן `MAE_SCRATCH` — בדיוק הדפוס שנרשם ב-22:10), ו-`pnl_sierra=0.00` בכל השורות ⇒ הספרים עדיין לא מתומחרים ממקור-האמת (`TradeActivityLog_<date>_UTC.<acct>.data` שדה `Closed Trade Profit/Loss`). **המספר האמין היחיד הוא `acct_daily_pl = +602.50` — שדה של סיירה, והוא כולל גם את המסחר של אתי על אותו חשבון.** אין פריט חדש: זו אותה `T-227`/`T-229`, ללא הסלמה מאז 22:15.
+
+**אפס עסקה נכנסה או נסגרה ב-45 הדקות האחרונות** (`WHERE entry_ts >= now()-'45 min' OR exit_ts >= now()-'45 min'` ⇒ `0 rows`) — עקבי עם חסם-הסגירה.
+
+**הצעד הבא:** ריצת 23:00-23:30 = **חובה-4 (תור-הלילה)** — לבדוק `git log` לפעילות-`cc` טרייה/שורת-claim לפני נגיעה; אם אין עד 23:20, לתפוס claim ולהריץ את קובץ-הערב דרך סוכן-משנה. `T-227`/`T-229` (תמחור מ-`TradeActivityLog`) הוא המועמד הראשון לתור.
+
+— `cowork-dev` (Cowork/MacBook), 2026-09-02 22:40 IL
+
+---
+
 ### [2026-09-02 22:10 IL] cowork-scheduled · 🟢 ניטור-RTH 22:10 — **החשבון שטוח, נקי ופנוי-לסחור; `T-43` נסגר מעצמו** · 🔴 **ממצא היסטורי: `MAE_SCRATCH` מעולם לא רשם מחיר-יציאה — ושבע רשומות נרשמו `$0 / BE` בלי מדידה**
 
 **ריצת-22:10 = חובה-1 + חובה-3. קריאה-בלבד.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — איסור-הריסטארט 16:10-23:00 נשמר במלואו.
