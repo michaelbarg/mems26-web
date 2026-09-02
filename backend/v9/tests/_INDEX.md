@@ -46,7 +46,7 @@
 | `test_daytype_watchdog.py` | ▶ entry/test | 137 | 2026-08-08 | Tests for day-type writer watchdog (+ K2 2026-08-08: self-heal that HEALS). |
 | `test_drive_exhaustion_veto.py` | ▶ entry/test | 125 | 2026-08-06 | Tests for OPENING_DRIVE_EXHAUSTION_VETO_V1. |
 | `test_e2_trend_be_delay.py` | ▶ entry/test | 61 | 2026-08-11 | E2 — S6 BE too early on trend days + E4 confluence scoring (2026-08-11). |
-| `test_edge_entry_location_fix.py` | ▶ entry/test | 161 | 2026-09-02 | EDGE_ENTRY_LOCATION_FIX_V1: gap-day edge redefinition. |
+| `test_edge_entry_location_fix.py` | ▶ entry/test | 175 | 2026-09-02 | EDGE_ENTRY_LOCATION_FIX_V1: gap-day edge redefinition. |
 | `test_entry_location_quality.py` | ▶ entry/test | 129 | 2026-08-30 | ENTRY_LOCATION_QUALITY_V1 — position quality gate tests. |
 | `test_entry_stop_immutable.py` | ▶ entry/test | 75 | 2026-09-01 | T-200a: entry_stop is written ONCE and never updated. |
 | `test_exit_flattens_sierra.py` | ▶ entry/test | 139 | 2026-08-05 | Anti-tautological test: /trades/{id}/exit MUST flatten Sierra before closing. |
