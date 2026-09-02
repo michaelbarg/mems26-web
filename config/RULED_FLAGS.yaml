@@ -360,6 +360,7 @@ ruled:
   OPENING_ATR_RTH_SEED_V1: {expected: 'shadow', ruled_by: 'cowork', date: '2026-09-01', note: 'עד 14 ברי-RTH, ATR מוזן מהסשן הקודם. 13/13 סשנים ATR-פתיחה נמוך פי 2 ⇒ רצפת-סטופ בתוך הרעש. תקדים: STOP_FLOOR_ROTATION_ATR. shadow=לוג בלבד.' }
   OPENING_DRIVE_SKIP_V1: {expected: "0", ruled_by: "מייקל", date: "2026-09-01", note: 'פסיקת-מייקל 01.09 14:12: ''לפני שתכבה קודם תתקן''. הודלק ב-13:12 (n=6, 0 ניצחונות) והוסר שעה אחר-כך — הכלל הקבוע הוא ''מערכת שמפסידה לנו בתבנית אנחנו מתקנים ולא מבטלים''. הקוד נשאר; הדגל כבוי. להדליק רק אם תיקוני-הפתיחה ייכשלו במדידה.' }
 
+  CEILING_FLIP_SHORT_V1: {expected: 'shadow', ruled_by: 'מייקל', date: '2026-09-02', note: 'T-140 פסיקת-מייקל: כניסה הפוכה בבר-האישור של תקרה/רצפה-כפולה. CEILING_FAILED→SHORT, FLOOR_FAILED→LONG. סטופ מעל max(P1,P2)+0.2×ATR, T1=POC, T2=קצה-נגדי. shadow=לוג. op=EXIT אסור.' }
   EDGE_ENTRY_LOCATION_FIX_V1: {expected: 'unset_or_0', ruled_by: 'cowork', date: '2026-09-02', note: 'Gap-day: session outside yesterday VA → redefine edge zones from developing balance (IB/session). 31.08+01.09: 0 VA events vs +162.75 pts on table. OFF=byte-identical.' }
 
   POSITION_MISMATCH_BLOCK_V1: {expected: "0", ruled_by: "cowork", date: "2026-08-29", note: 'גידור-בטיחות של cowork על T-43b של cc: החסם נבנה דלוק-כברירת-מחדל בלי דגל ובלי בדיקת-בעלות ⇒ פוזיציה-ידנית של מייקל (מוסברת לפי פסיקת 24.07) הייתה חוסמת מסחר-לייב ליום שלם בשקט; ובנוסף 3 return מוקדמים משאירים את הדגל נעול בלי ניקוי. התנהגות-סיכון חדשה בלי פסיקה ⇒ OFF. תנאי-הדלקה: בדיקת-בעלות לפני החסימה + ניקוי/TTL + פסיקת-מייקל.' }
