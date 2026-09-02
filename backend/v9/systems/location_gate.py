@@ -19,10 +19,32 @@ Flag: DAYTYPE_LOCATION_GATE (default OFF). Pure functions, no I/O.
 """
 from __future__ import annotations
 
+import logging
 import os
+import time
 from typing import Dict, List, Optional, Tuple
 
 _ROTATION_PREFIXES = ("Variation", "Normal_Variation", "Normal", "Neutral")
+
+logger = logging.getLogger(__name__)
+
+#: T-228 (2026-09-02): this module is called on every evaluated fire, so a raw
+#: logger.warning here would flood. Throttled per message, but NEVER `pass` —
+#: a bare swallow is what hid a broken column reference for a whole day.
+_EDGE_WARN_LAST: Dict[str, float] = {}
+
+
+def _edge_warn(msg: str, *args) -> None:
+    try:
+        period = float(os.getenv("LOCATION_GATE_WARN_THROTTLE_S", "300"))
+    except (TypeError, ValueError):
+        period = 300.0
+    now = time.time()
+    if now - _EDGE_WARN_LAST.get(msg, 0.0) < period:
+        return
+    _EDGE_WARN_LAST[msg] = now
+    logger.warning("[LocationGate] " + msg + " [throttled %.0fs]",
+                   *(args + (period,)))
 
 
 def probe_detected(
@@ -209,39 +231,78 @@ def decide_location(
         _sl = _lvs.get("session_low") or _lvs.get("day_low")
         # The gateway feeds TODAY's developing VA as vah/val. To detect a gap
         # we need YESTERDAY's VA — the reference the trade faces.
+        # T-228 ROOT-FIX (2026-09-02). Two defects, one line apart:
+        #
+        #  1. the SQL asked `v9_bars_5min_woodies` for `vah, val, poc` — columns
+        #     that table has never had. Verified against the live schema:
+        #         ERROR: column "vah" does not exist
+        #     so the primary source failed on EVERY call and the whole of
+        #     Michael's 02.09 13:35 ruling was riding on the TPO backup alone.
+        #  2. the failure landed in a bare `except Exception: pass`, so nothing
+        #     said a word. If the TPO export ever went stale or missing the fix
+        #     would have vanished with it — silently — and the gate would go
+        #     back to blocking edges exactly as before the ruling.
+        #
+        # Order is deliberate: Sierra's own TPO export stays FIRST, because that
+        # is the source that actually carries the ruling today and CLAUDE.md
+        # makes Sierra exports the source of truth for VA. The DB query is now a
+        # working fallback instead of dead wiring — `v9_tpo_history` is the
+        # table that really holds per-session vah/val (verified fresh: last row
+        # 2026-09-02 22:30, and yesterday's RTH VA reads 7662/7633).
+        #
+        # The two sources are NOT interchangeable and the fallback is the weaker
+        # one — measured 2026-09-02 for the 01.09 session:
+        #     Sierra export previous_session : vah 7666.00 val 7629.50
+        #     v9_tpo_history last RTH row    : vah 7662.00 val 7633.00
+        # because the DB row is the last DEVELOPING snapshot (15:30 ET) while
+        # the export is the SETTLED session value area. Hence the tag in the log
+        # line below: whoever reads it must be able to see which one decided.
         _prev_vah, _prev_val = None, None
+        _prev_src = None
         try:
-            from backend.v9.db.read import read_one as _edge_read
-            _prev = _edge_read(
-                "SELECT vah, val FROM ("
-                "  SELECT vah, val, poc, "
-                "         (ts AT TIME ZONE 'America/New_York')::date as d "
-                "  FROM v9_bars_5min_woodies "
-                "  WHERE (ts AT TIME ZONE 'America/New_York')::date = ("
-                "    SELECT max((ts AT TIME ZONE 'America/New_York')::date) "
-                "    FROM v9_bars_5min_woodies "
-                "    WHERE (ts AT TIME ZONE 'America/New_York')::date < "
-                "          (now() AT TIME ZONE 'America/New_York')::date "
-                "      AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
-                "      AND (ts AT TIME ZONE 'America/New_York')::time < '16:00'"
-                "  ) ORDER BY ts DESC LIMIT 1"
-                ") sub WHERE vah IS NOT NULL", {})
-            if _prev:
-                _prev_vah = float(_prev["vah"]) if _prev.get("vah") else None
-                _prev_val = float(_prev["val"]) if _prev.get("val") else None
-        except Exception:
-            pass  # fail-open: no previous VA → skip gap check
-        # Also try the TPO previous_session export (more reliable)
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            _tpo = _load_sierra_tpo() or {}
+            _ps = _tpo.get("previous_session") or {}
+            if _ps.get("vah") and _ps.get("val"):
+                _prev_vah = float(_ps["vah"])
+                _prev_val = float(_ps["val"])
+                _prev_src = "sierra_tpo_export"
+        except Exception as _tpo_err:
+            _edge_warn("EDGE_FIX: Sierra TPO previous_session unreadable (%s)",
+                       _tpo_err)
         if _prev_vah is None:
             try:
-                from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
-                _tpo = _load_sierra_tpo() or {}
-                _ps = _tpo.get("previous_session") or {}
-                if _ps.get("vah") and _ps.get("val"):
-                    _prev_vah = float(_ps["vah"])
-                    _prev_val = float(_ps["val"])
-            except Exception:
-                pass
+                from backend.v9.db.read import read_one as _edge_read
+                _prev = _edge_read(
+                    "SELECT vah, val FROM ("
+                    "  SELECT vah, val, ts FROM v9_tpo_history "
+                    "  WHERE (ts AT TIME ZONE 'America/New_York')::date = ("
+                    "    SELECT max((ts AT TIME ZONE 'America/New_York')::date) "
+                    "    FROM v9_tpo_history "
+                    "    WHERE (ts AT TIME ZONE 'America/New_York')::date < "
+                    "          (now() AT TIME ZONE 'America/New_York')::date "
+                    "      AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "      AND (ts AT TIME ZONE 'America/New_York')::time < '16:00'"
+                    "  ) "
+                    "    AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "    AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+                    "  ORDER BY ts DESC LIMIT 1"
+                    ") sub WHERE vah IS NOT NULL", {})
+                if _prev:
+                    _prev_vah = float(_prev["vah"]) if _prev.get("vah") else None
+                    _prev_val = float(_prev["val"]) if _prev.get("val") else None
+                    if _prev_vah is not None:
+                        _prev_src = "v9_tpo_history"
+            except Exception as _db_err:
+                # NEVER `pass` again — this is the exact swallow that hid the
+                # broken column reference for a full day.
+                _edge_warn("EDGE_FIX: previous-session VA query FAILED (%s) — "
+                           "gap detection is blind this call", _db_err)
+        if _prev_vah is None or _prev_val is None:
+            _edge_warn("EDGE_FIX: no previous-session VA from either source "
+                       "(Sierra TPO export + v9_tpo_history) — Michael's 02.09 "
+                       "gap-day rule cannot be applied; gate falls back to "
+                       "today's VA zones")
         if _prev_vah is not None and _prev_val is not None:
             # Gap check: is today's session entirely outside yesterday's VA?
             _gap_below = (_sh is not None and float(_sh) < _prev_val)
@@ -257,7 +318,8 @@ def decide_location(
                     import logging as _eloc_log
                     _eloc_log.getLogger(__name__).info(
                         "[LocationGate] EDGE_FIX: gap day (%s) — "
-                        "prev VA %.2f/%.2f, today %.2f/%.2f → developing "
+                        "prev VA %.2f/%.2f (src=" + str(_prev_src) + ")"
+                        ", today %.2f/%.2f → developing "
                         "balance %.2f/%.2f → zone=%s",
                         "below" if _gap_below else "above",
                         _prev_vah, _prev_val,

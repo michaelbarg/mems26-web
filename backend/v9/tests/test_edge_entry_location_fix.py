@@ -58,10 +58,19 @@ class TestGapDayEdgeRedefinition:
             "EDGE_ENTRY_LOCATION_FIX_V1": "1",
             "REV_EDGE_DAY_STRUCTURE_V1": "0",
         }):
-            # Mock: previous session VA (yesterday's) is above today's range
-            with patch("backend.v9.db.read.read_one", return_value={
-                "vah": 7693.50, "val": 7681.00  # yesterday's VA
-            }):
+            # T-228 (2026-09-02): this test used to mock ONLY the DB read, and
+            # the DB read was `SELECT vah, val, poc FROM v9_bars_5min_woodies`
+            # — columns that table does not have. In production that query
+            # raised on every call, so what this test exercised could never run
+            # live; the gate was really being driven by the Sierra TPO export.
+            # Mock BOTH sources so the test proves the RULE (gap detected
+            # against yesterday's VA) rather than one particular pipe: the
+            # export is silenced, and the DB fallback supplies the value.
+            with patch("backend.v9.api.v9.tpo_routes._load_sierra_tpo",
+                       return_value=None), \
+                 patch("backend.v9.db.read.read_one", return_value={
+                     "vah": 7693.50, "val": 7681.00  # yesterday's VA
+                 }):
                 allow, reason = decide_location(
                     family="REV", direction="SHORT",
                     day_type="Neutral_Center",
@@ -95,9 +104,14 @@ class TestGapDayEdgeRedefinition:
             "EDGE_ENTRY_LOCATION_FIX_V1": "1",
             "REV_EDGE_DAY_STRUCTURE_V1": "1",
         }):
-            with patch("backend.v9.db.read.read_one", return_value={
-                "vah": 7693.50, "val": 7681.00  # yesterday's VA
-            }):
+            # T-228: silence the Sierra export too — see the note on the
+            # previous test. The rule under test is the gap redefinition, not
+            # which pipe delivers yesterday's VA.
+            with patch("backend.v9.api.v9.tpo_routes._load_sierra_tpo",
+                       return_value=None), \
+                 patch("backend.v9.db.read.read_one", return_value={
+                     "vah": 7693.50, "val": 7681.00  # yesterday's VA
+                 }):
                 allow, reason = decide_location(
                     family="REV", direction="SHORT",
                     day_type="Neutral_Center",
