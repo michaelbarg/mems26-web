@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""T-211: backfill T0 remap on historical trades.
+"""
+SUPERSEDED (02.09): list-only, --apply branch was empty, filter missed #948.
+Use scripts/t211_backfill_apply.py (ran 02.09, 15 rows, anchors verified).
+T-211: backfill T0 remap on historical trades.
 
 79 trades where BE_AFTER_REAL_T1_V1 remapped T1→T0 but the PnL was never
 recalculated with the corrected target. Every money conclusion is biased ~20.5%.
@@ -90,5 +93,6 @@ def main():
         print("\nDRY-RUN: no changes. Use --apply with Michael's ruling.")
 
 
+import sys as _s; _s.stderr.write('SUPERSEDED — use t211_backfill_apply.py\n'); _s.exit(2)
 if __name__ == "__main__":
     main()

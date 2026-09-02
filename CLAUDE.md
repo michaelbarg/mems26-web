@@ -29,7 +29,7 @@ stability settings as production safety controls.
 
 ## ערוץ-עדכונים משותף — קרא `docs/handoff/LIVE_CHANNEL.md` FIRST (מייקל 2026-07-17)
 
-**שלושה סוכנים על אותו ריפו:** `cowork-dev` (Cowork/MacBook — מנהל+מאמת) · `cc-macbook`
+**ארבעה סוכנים על אותו ריפו** (פסיקת-מייקל 02.09: כולם מסונכרנים על מסמך אחד): **`phone-claude`** (צ'אט-הטלפון — קורא `LIVE_CHANNEL.md` בתחילת כל סשן ועונה עם `scripts/channel_post.py --frm phone-claude`; בקשות-מייקל מהטלפון נבדקות ע"י `scripts/phone_request_guard.py`) · `cowork-dev` (Cowork/MacBook — מנהל+מאמת) · `cc-macbook`
 (Claude Code/MacBook — מבצע, אותה מכונה שסוחרת) · `cc-imac` (Claude Code/iMac — סים).
 **בתחילת כל סשן: `git pull` + קרא `docs/handoff/LIVE_CHANNEL.md`** — שם המשימות הפתוחות,
 הפסיקות הממתינות, ומצב-המערכת. סיימת משהו? הוסף שורה חתומה ל-LOG שם, `commit`+`push`.
