@@ -2177,11 +2177,19 @@ class TradeManager:
         # always built THREE and then `[:n_contracts]` truncated, so a
         # 4-contract trade lost 25% of its P&L (102 closed trades affected;
         # #682's real loss was $83.75, booked $75.00) and RISK_HALT tripped late.
+        # T-213 site-4: g_idx is a LADDER GROUP (0-based). With T0, group 0 is
+        # the scalp with no column; group 1 is T1 (column 0), etc. The
+        # _targets/_hits arrays are indexed by COLUMN (0=t1, 1=t2, 2=t3, 3=t4).
+        # Map group→column via the T0 offset.
+        _has_t0 = bool((trade.quality if isinstance(
+            getattr(trade, "quality", None), dict) else {}).get("has_t0"))
         for g_idx in range(len(weights)):
             if g_idx in consumed_columns:
-                continue  # this level already left the market at a real fill
-            tgt = _targets[g_idx] if g_idx < len(_targets) else None
-            hit = _hits[g_idx] if g_idx < len(_hits) else None
+                continue
+            # T-213: column index accounting for T0 offset
+            _col = max(0, g_idx - 1) if _has_t0 else g_idx
+            tgt = _targets[_col] if _col < len(_targets) else None
+            hit = _hits[_col] if _col < len(_hits) else None
             if hit is not None and tgt is not None and weights[g_idx] > 0:
                 legs.append((tgt, weights[g_idx]))
 
