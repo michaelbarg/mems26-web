@@ -1460,15 +1460,77 @@ class BarLevelDetector:
         except Exception:
             pass
         from backend.v9.services.sierra_command import command_from_setup
-        command_from_setup(
+        _res = command_from_setup(
             child, trade_id=str(child_id),
             account=_si_os.environ.get("SIERRA_LIVE_ACCOUNT", "37138283"), mode=_mode,
         )
+        # T-226 ROOT-FIX (2026-09-02): the PLACE result was DISCARDED. When a
+        # pre-send guard refuses the order the books keep a live trade that
+        # never reached the market — a ghost. Measured twice today, the same
+        # chain word for word (#955 17:30, #979 21:18:53):
+        #   Trade 979 created: mode=live sys=4 dir=LONG
+        #   T-214: PLACE rejected — t3=None invalid on 4 contracts.
+        #   [Reconciler] SYS-3 DIVERGENCE: TM says 8 contracts
+        #       ['#971(live,LONG,4c)', '#979(live,LONG,4c)'], Sierra says 2
+        # — then DIVERGENCE every 30s until a containment guard cleaned up.
+        # A refused PLACE must unwind its own row.
+        if not self._rollback_if_place_refused(_res, child_id, trade, "ScaleIn"):
+            return
         logger.warning(
             "[ScaleIn] +%dc %s parent=%s child=%s @%.2f stop@%.2f (BE) — %s",
             dec.add_contracts, dec.direction, getattr(trade, "id", "?"),
             child_id, dec.entry, dec.stop, dec.reason,
         )
+
+    def _rollback_if_place_refused(self, result, child_id, parent, tag: str) -> bool:
+        """T-226: unwind an add-on child whose PLACE never reached the broker.
+
+        Returns True when the PLACE went out (caller continues), False when the
+        child was rolled back. Fail-safe: any error here leaves the row alone
+        and screams — a botched rollback must never touch a real position.
+
+        Only ever acts on an explicit ``{"rejected": True}`` from
+        ``command_from_setup``. A None/absent result is treated as "sent", which
+        is the pre-fix behaviour, so no path that currently places is changed.
+        """
+        if not isinstance(result, dict) or not result.get("rejected"):
+            return True
+        reason = result.get("reason", "unknown")
+        detail = result.get("detail", "")
+        logger.error(
+            "[%s] T-226: PLACE REFUSED (%s: %s) for child %s of parent %s — "
+            "rolling the child back; it never reached the market",
+            tag, reason, detail, child_id, getattr(parent, "id", "?"))
+        try:
+            self._tm.close_trade(int(child_id),
+                                 reason=f"PLACE_REFUSED:{reason}"[:30],
+                                 outcome_override="CANCELLED")
+            _child = self._tm._get_trade(int(child_id))
+            if _child is not None:
+                _child.state = "CANCELLED"
+                self._notify_trade_close(_child, f"PLACE_REFUSED:{reason}")
+            # The parent was told it had grown — untell it, or the trade card
+            # and every post-mortem keep claiming contracts that do not exist.
+            _q = dict(parent.quality) if isinstance(
+                getattr(parent, "quality", None), dict) else {}
+            if _q.pop("scale_in_child_id", None) is not None:
+                _q.pop("scale_in_added", None)
+                _q["scale_in_last_refused"] = {"child_id": child_id,
+                                               "reason": reason}
+                parent.quality = _q
+            self._tm._db.commit()
+        except Exception as e:
+            logger.error(
+                "[%s] T-226: rollback of child %s FAILED (%s) — the ghost row "
+                "is still open, expect SYS-3 DIVERGENCE", tag, child_id, e)
+        try:
+            from scripts.ops_log import log_event as _ops
+            _ops("scale_in", "ERROR",
+                 f"T-226 {tag} PLACE refused ({reason}) — child {child_id} "
+                 f"rolled back, parent {getattr(parent, 'id', '?')} unlinked")
+        except Exception:
+            pass
+        return False
 
     def _maybe_structure_exit(self, trade, direction, bar_high, bar_low,
                               bar_close) -> None:
@@ -1816,11 +1878,16 @@ class BarLevelDetector:
         except Exception:
             pass
         from backend.v9.services.sierra_command import command_from_setup
-        command_from_setup(
+        _res = command_from_setup(
             child, trade_id=str(child_id),
             account=_tu_os.environ.get("SIERRA_LIVE_ACCOUNT", "37138283"),
             mode=_mode,
         )
+        # T-226: same ghost class as ScaleIn — this path is flag-OFF today
+        # (TREND_UPGRADE_ADD_V1), so fix it before it can ever ship one.
+        if not self._rollback_if_place_refused(_res, child_id, trade,
+                                               "TrendUpgrade"):
+            return
         logger.warning(
             "[TrendUpgrade] +%dc %s parent=%s child=%s @%.2f stop@%.2f (BE) — %s",
             dec["add_contracts"], trade.direction, getattr(trade, "id", "?"),
