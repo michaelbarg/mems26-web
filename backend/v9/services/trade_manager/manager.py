@@ -655,6 +655,14 @@ class TradeManager:
         # Overwrite target level with actual Sierra fill price when available.
         # This ensures _calculate_pnl uses the real execution price.
         if fill_price is not None:
+            # T-227 (2026-09-02): the overwrite DESTROYS the plan. On #953 it
+            # left t2=7686.75 > t3=7684.75 on a LONG — an impossible plan, and
+            # the reason System6 spent the afternoon emitting
+            # `target_divergence_t1/t2/t3` against the books' own row. Keep the
+            # planned ladder before the first fill overwrites it, so the plan
+            # stays auditable next to what actually filled (the real fills live
+            # in quality["exit_fills"], the T-62 ledger).
+            self._preserve_planned_targets(trade)
             if target == "T1":
                 trade.t1 = fill_price
             elif target == "T2":
@@ -671,6 +679,7 @@ class TradeManager:
             # recorded with its own price.
             self._record_exit_fill(trade, target, fill_price, qty=fill_qty,
                                    order_id=order_id, ts=hit_ts)
+            self._check_target_ladder_sane(trade, f"{target}-fill")
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
@@ -1983,6 +1992,73 @@ class TradeManager:
         q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
         has_t0 = bool(q.get("t0_target_pts") or q.get("has_t0"))
         return min(col + 1, 3) if has_t0 else col
+
+    _TARGET_FIELDS = ("t1", "t2", "t3", "t4")
+
+    def _preserve_planned_targets(self, trade) -> None:
+        """T-227: snapshot the PLANNED ladder before a fill price overwrites it.
+
+        `on_target_hit` writes the Sierra fill price into `trade.tN`. That is
+        how the row ends up holding a ladder no planner ever produced — #953
+        2026-09-02 closed with `t2=7686.75 > t3=7684.75` on a LONG. Written
+        once per trade (the first fill wins); a later call is a no-op, so the
+        stored plan is always the pre-fill one.
+        """
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        if q.get("planned_targets"):
+            return
+        plan = {f: getattr(trade, f, None) for f in self._TARGET_FIELDS}
+        if all(v is None for v in plan.values()):
+            return
+        q = dict(q)
+        q["planned_targets"] = plan
+        trade.quality = q
+
+    def _check_target_ladder_sane(self, trade, context: str = "") -> bool:
+        """T-227: a LONG ladder must ascend (t1<t2<t3<t4); a SHORT must descend.
+
+        Loud on purpose (ERROR, not debug): a violation means a price that is
+        not a plan has been written into a plan column, and every consumer that
+        compares the books to Sierra — System6's `target_divergence_*`, the
+        panel, the R denominator — is now comparing against a fiction. #953
+        carried `t2=7686.75 > t3=7684.75` all afternoon and nothing said a word.
+
+        Returns True when sane. Never raises: this is a detector, not a gate —
+        it must not be able to interfere with managing a live position.
+        """
+        try:
+            vals = [(f, self._valid_target(getattr(trade, f, None)))
+                    for f in self._TARGET_FIELDS]
+            seq = [(f, v) for f, v in vals if v is not None]
+            if len(seq) < 2:
+                return True
+            ascending = str(getattr(trade, "direction", "")).upper() == "LONG"
+            bad = []
+            for (fa, a), (fb, b) in zip(seq, seq[1:]):
+                if (a >= b) if ascending else (a <= b):
+                    bad.append(f"{fa}={a} !{'<' if ascending else '>'} {fb}={b}")
+            if not bad:
+                return True
+            q = trade.quality if isinstance(
+                getattr(trade, "quality", None), dict) else {}
+            logger.error(
+                "[TradeManager] T-227 TARGET_LADDER_INVALID #%s %s (%s): %s — "
+                "a fill price was written into a target column; planned=%s",
+                getattr(trade, "id", "?"),
+                getattr(trade, "direction", "?"), context or "-",
+                " ; ".join(bad), q.get("planned_targets"),
+            )
+            try:
+                from scripts.ops_log import log_event as _ops
+                _ops("trade_manager", "ERROR",
+                     f"T-227 TARGET_LADDER_INVALID #{getattr(trade, 'id', '?')} "
+                     f"{context}: {' ; '.join(bad)}")
+            except Exception:
+                pass
+            return False
+        except Exception as e:  # detector must never break management
+            logger.warning("[TradeManager] T-227 ladder check failed: %s", e)
+            return True
 
     @staticmethod
     def _exit_fill_ledger(trade) -> List[dict]:

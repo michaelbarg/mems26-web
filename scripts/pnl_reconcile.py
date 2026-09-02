@@ -83,10 +83,30 @@ def main() -> int:
     ap.add_argument("--since", default="", help="YYYY-MM-DD")
     ap.add_argument("--tol", type=float, default=0.01, help="dollars")
     ap.add_argument("--divergent-only", action="store_true")
+    ap.add_argument("--dry-run", action="store_true", default=True,
+                    help="default: report only, touch nothing")
     ap.add_argument("--write", action="store_true",
-                    help="persist pnl_sierra (pnl_usd is never touched)")
+                    help="persist pnl_sierra (pnl_usd is never touched) — "
+                         "REQUIRES --i-have-michaels-ruling")
+    ap.add_argument("--i-have-michaels-ruling", action="store_true",
+                    help="Michael 2026-09-02: retroactive changes to recorded "
+                         "P&L need his written ruling. Without this flag "
+                         "--write refuses.")
+    ap.add_argument("--sierra-day", default="",
+                    help="YYYY-MM-DD — also print Sierra's own account total "
+                         "for that day from TradeActivityLog")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
+
+    # T-227 guardrail (Michael 2026-09-02): a retroactive P&L rewrite is a
+    # ruling, not a chore. The tool exists so the delta can be SEEN; applying
+    # it is a separate, explicit act.
+    if a.write and not a.i_have_michaels_ruling:
+        print("REFUSED: --write rewrites recorded P&L history. Michael's "
+              "written ruling is required (2026-09-02, same rule as T-211). "
+              "Re-run with --i-have-michaels-ruling once you have it, or drop "
+              "--write for the read-only report.", file=sys.stderr)
+        return 2
 
     fills = load_journal(a.journal)
     rows = fetch_rows(a.dsn, a.mode, a.since)
@@ -124,11 +144,50 @@ def main() -> int:
         print(f"worst single trade: #{w['trade_id']} books {_m(w['books'])} "
               f"vs sierra {_m(w['sierra'])} (delta {_m(w['delta'])})")
 
+    if a.sierra_day:
+        _print_sierra_day(a.sierra_day, summary)
+
     if a.write:
         n = write_back(a.dsn, findings)
         print(f"\nwrote pnl_sierra on {n} row(s) — pnl_usd untouched")
+    else:
+        print("\n(dry-run: nothing was written — pnl_sierra untouched)")
 
     return 0 if summary["ok"] else 1
+
+
+def _print_sierra_day(day: str, summary: dict) -> None:
+    """Account-level truth for one day, straight out of Sierra's own log.
+
+    NOT a per-trade attribution and must never be used as one: Sierra's binary
+    TradeActivityLog carries no recoverable per-line timestamp (see
+    backend/v9/services/daily_pnl.py), and account 37138283 is SHARED with Eti
+    (Michael 2026-08-30), so an account total mixes her trades with the
+    system's. This prints the one number that IS provable — the day's account
+    total — and says out loud what it does not prove.
+    """
+    from pathlib import Path
+    from backend.v9.services.daily_pnl import (
+        LIVE_ACCOUNT, LOG_DIR, _strings, parse_day_log,
+    )
+    p = Path(LOG_DIR) / f"TradeActivityLog_{day}_UTC.{LIVE_ACCOUNT}.data"
+    if not p.exists():
+        print(f"\nSierra day log not found: {p}")
+        return
+    text = _strings(p)
+    if text is None:
+        print(f"\nSierra day log unreadable (strings failed): {p.name}")
+        return
+    d = parse_day_log(text)
+    print(f"\nSierra account truth for {day} ({p.name}):")
+    print(f"  closed-trade records : {d['closes']}")
+    print(f"  account total        : {d['pnl']:+.2f}   "
+          f"(= sierra_state.acct_daily_pl)")
+    print(f"  books (this report)  : {summary.get('books_total'):+.2f} "
+          f"over {summary.get('rows_read', '?')} CLOSED row(s)")
+    print("  CAVEAT: shared account (Eti trades on it too) and the log has no "
+          "per-line timestamps —\n          the account total is NOT a "
+          "per-trade attribution and must not be used as one.")
 
 
 def _m(v):
