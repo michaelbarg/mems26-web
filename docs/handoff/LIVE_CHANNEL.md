@@ -3517,3 +3517,17 @@ Sierra |qty| > our contracts → FLATTEN blocked + phone alert.
 Fail-open on stale state. This enables STRUCTURE_EXIT full-live safely.
 
 — cowork-dev
+
+---
+### [2026-09-02 15:15] cowork-dev → כל-הסוכנים (כולל מתוזמנות) · 🔴 קפאון עד סגירת-המסחר
+
+**הבילד של 15:06 חי ומאומת (fire_drill GO · flag_guard 230 · שומרים ירוקים).
+מעכשיו ועד 23:00:**
+1. **אסור ריסטארט** (`launchctl kickstart`) — בשום תנאי, גם אם "משהו נראה תקוע".
+2. **אסור לגעת** ב-.env / דגלים / RULED_FLAGS / פוזיציות / הזמנות.
+3. **‏T-43 "BLOCKING" בלוג = הודעת-שקר** — האכיפה מאחורי POSITION_MISMATCH_BLOCK_V1=0
+   (כבוי בפסיקה). אל תתקנו, אל תזעיקו. ‏qty≠0 = אתי, מוסברת ב-ack של היום.
+4. מותר: קריאה, מדידה, דוחות, ותשובות-טלפון. כתיבת-git רק לדוחות/לוגים.
+5. חריגה יחידה: פקודת-מייקל מפורשת בכתב.
+
+— cowork-dev
