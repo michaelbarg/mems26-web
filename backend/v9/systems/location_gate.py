@@ -194,6 +194,47 @@ def decide_location(
     z = zone_of(e, vah, val, (levels or {}).get("ib_width"))
     d = direction.upper()
     _t = _tol((levels or {}).get("ib_width"))
+
+    # EDGE_ENTRY_LOCATION_FIX_V1 (Michael 02.09 + candle research 31.08/01.09):
+    # When price is entirely outside yesterday's VA (gap day), the VA-based
+    # zones are meaningless. Both 31.08 and 01.09 had 0 VA events because
+    # the entire day traded below VAL. In a gap-day, redefine the edge zones
+    # using the DEVELOPING BALANCE (IB high/low, session high/low) instead of
+    # yesterday's VA. A short at the day's own ceiling IS an edge trade even
+    # if it's "below_value" in yesterday's terms.
+    # file:line of consumer: THIS function, line ~203 below (zone check).
+    if os.getenv("EDGE_ENTRY_LOCATION_FIX_V1", "0").lower() in ("1", "true", "yes"):
+        _lvs = levels or {}
+        _ib_h = _lvs.get("ib_high")
+        _ib_l = _lvs.get("ib_low")
+        _sh = _lvs.get("session_high") or _lvs.get("day_high")
+        _sl = _lvs.get("session_low") or _lvs.get("day_low")
+        # Is the entire session below yesterday's VAL?
+        _gap_below = (_sh is not None and float(_sh) < val)
+        # Is the entire session above yesterday's VAH?
+        _gap_above = (_sl is not None and float(_sl) > vah)
+        if _gap_below or _gap_above:
+            # Redefine edges using the developing balance
+            _dev_high = _sh if _sh is not None else (_ib_h if _ib_h else vah)
+            _dev_low = _sl if _sl is not None else (_ib_l if _ib_l else val)
+            try:
+                _dev_vah = float(_dev_high)
+                _dev_val = float(_dev_low)
+                if _dev_vah > _dev_val:
+                    z = zone_of(e, _dev_vah, _dev_val,
+                                (levels or {}).get("ib_width"))
+                    # Also update the vah/val used for probe check below
+                    vah = _dev_vah
+                    val = _dev_val
+                    import logging as _eloc_log
+                    _eloc_log.getLogger(__name__).info(
+                        "[LocationGate] EDGE_FIX: gap day (%s) — "
+                        "using developing balance %.2f/%.2f → zone=%s",
+                        "below" if _gap_below else "above",
+                        _dev_vah, _dev_val, z)
+            except (TypeError, ValueError):
+                pass  # fail-open: use original zone
+
     # v1: wrong location by VALUE edges → before blocking, check DAY-STRUCTURE
     # edges (Michael ruling 2026-07-22 'מאשר': a day that bases above value
     # never touches VAL — the 07-21 double-bottom at day-low 7521.5 had no
