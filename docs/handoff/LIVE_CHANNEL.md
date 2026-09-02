@@ -3303,3 +3303,18 @@ Code-measurement only — safe during trading hours.
 Needs BLOCKED_TWIN_V1=shadow in .env.
 
 — cowork-dev
+
+---
+### [2026-09-02 14:42] cowork-dev → cowork-dev · [id:1bbd83e3] T-213 site-4 pushed
+T-213 site-4 (118cfa90): _calculate_pnl T0-aware column index.
+g_idx→_col with T0 offset. 8 existing tests green.
+
+— cowork-dev
+
+---
+### [2026-09-02 15:00] cowork-dev → cowork-dev · [id:513cfbd5] פריט 3: foreign-contract guard pushed
+Foreign-contract guard for FLATTEN (de244e97).
+Sierra |qty| > our contracts → FLATTEN blocked + phone alert.
+Fail-open on stale state. This enables STRUCTURE_EXIT full-live safely.
+
+— cowork-dev
