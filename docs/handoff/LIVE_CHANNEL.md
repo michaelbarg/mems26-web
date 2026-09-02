@@ -1,3 +1,73 @@
+### [2026-09-02 23:20 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה 02.09 נתפס ע"י `cowork`** (אין פעילות-`cc`)
+
+**ריצת-23:10 = חובה-1 + חובה-4.** לפי פסיקת-מייקל 27.08 ("מבוצע גם בלעדיו ליד המחשב").
+
+**📞 חובה-1: אין ממתינות ⇒ שקט.** `PHONE_THREAD.jsonl` — הודעת-מייקל האחרונה עדיין
+`01.09 20:11:18Z` (נענתה); כל 15 השורות מאז `sender=cowork` ⇒ יוצאות. לא נשלחה הודעה.
+
+#### 🔍 בדיקת-`cc` — שלוש ראיות, שלוש נקודות-זמן (23:06 · 23:09 · 23:15)
+
+```
+git log -15            → 15/15 הקומיטים = cowork; האחרון 9a915adb 22:41
+git log --grep=cc-      → אפס קומיט cc היום (02.09) בכלל
+LIVE_CHANNEL head-200   → אפס שורת-claim; 3 הרשומות עם "cc-" הן cowork→cc (פקודות שנשלחו)
+pgrep -fl "bin/claude"  → ריק
+git pull                → Already up to date (×3)
+```
+
+⇒ **אין קומיטים טריים מ-23:00+, אין שורת-claim, אין תהליך-`cc` חי** ⇒ סף-23:20 חלף ⇒ `cowork` מבצע.
+
+#### 🟢 מצב-פתיחה לתור — נמדד 23:08, לא ציטוט ממדידה קודמת
+
+```
+/api/v9/health            http=200  t=0.0049s   {"status":"ok","version":"v9.0.0"}
+sierra_state.json         age=0.27s  is_sim=0   last_price=7681.00
+                          position_qty=0        acct_daily_pl=+602.50
+                          cash=3,241.64  avail=3,241.64  margin_req=0.0  under_margin=0
+/api/v9/system6/diagnose  active=false · slot_trade_id=null
+backend PID 31460         up since 15:06:18 (8h02m)
+```
+
+⇒ **שטוח · סלוט פנוי · אפס פקודה פתוחה · אפס מרג'ין תפוס** ⇒ ריסטארט מותר (אחרי 23:00).
+
+#### ✅ ארבע בדיקות-שער שכבר רצו (פלט-גולמי, Rule-5)
+
+```
+pg_locks NOT granted                     → 0
+pg_stat_activity idle in transaction     → 0
+v9_bars_5min_woodies RTH/יום ×12 ימים    → 78/78 בכל יום, uniq=78 (אפס חותמת כפולה)
+last bar                                 → 2026-09-02 23:10:00+03 (גיל 1.7 דק')
+scripts/flag_guard.py                    → PASS — all 230 ruled flags match
+scripts/task_log_guard.py                → 231 items, 0.0 days — current/structured/only-one
+yaml.safe_load(RULED_FLAGS.yaml)         → OK  ⚠️ T-168 ייתכן שנפתר — לאמת ולסגור בתור
+```
+
+#### 📋 קובץ-הערב
+
+**לא היה קובץ-ערב ל-02.09** (האחרון `CC_EVENING_PROMPT_2026-08-28.md`) ⇒ נבנה עכשיו מממצאי-היום:
+**`docs/handoff/CC_EVENING_PROMPT_2026-09-02.md`** — סדר: `T-227`+`T-229` (תמחור ממקור-האמת) →
+`T-226` (רפאים-SCALE_IN) → `T-228` (SQL מת ב-location_gate) → תחזוקה (DB · S1-BINARY · שערים ·
+ריסטארט-צל · resolver/WHATIF · fills/Redis) → דוח-EOD.
+
+⛔ **גבולות שנרשמו בקובץ:** `backfill` למפרע **אסור** (פסיקת-מייקל, כמו `T-211`) · `T-212` לא
+עולה ל-live (`n=1`) · `STALL_EXIT`/`OPPOSITE_EXIT_V1` נשארים OFF · אפס נגיעה בפוזיציות (חשבון
+משותף עם אתי) · אסור "לתקן" את `exit_price=NULL` בחזרה ל-P&L מחושב (זה `T-160` עובד כשורה).
+
+#### 💵 מספר-האמת של היום (שיטת `T-227`, אומתה שוב עכשיו)
+
+```
+strings TradeActivityLog_2026-09-02_UTC.37138283.data | grep "Closed Trade Profit/Loss"
+→ 23 רשומות · SUM = 602.50   מול   sierra_state.acct_daily_pl = 602.50   → delta 0.00 ✅
+פירוק מצטבר:  ידני 571.25 · 953+955 +162.50 · 963 −137.50 · 968 −70.00 · 971 +76.25
+⇒ תרומת-המערכת ≈ +31.25   מול   הספרים +422.50   ⇒ פער ≈ $391
+```
+
+⚠️ **סייג-חובה:** החשבון משותף עם אתי ⇒ חלוקת-הרשומות היא שחזור-מצטבר, **לא ייחוס-מוכח פר-עסקה**.
+
+**— cowork-dev**
+
+---
+
 ### [2026-09-02 22:40 IL] cowork-scheduled · 🟢 ניטור-RTH 22:40 — **החשבון שטוח ובריא; יום-המסחר נסגר לכניסות ב-22:15 ע"י `eod_entry_cutoff`** · אפס ממצא חדש
 
 **ריצת-22:40 = חובה-1 + חובה-3. קריאה-בלבד.** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה** — איסור-הריסטארט 16:10-23:00 נשמר במלואו.
