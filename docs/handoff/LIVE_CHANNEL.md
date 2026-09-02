@@ -1,3 +1,76 @@
+### [2026-09-02 17:45 IL] cowork-scheduled · 🟠 **T-226 חדש: `SCALE_IN` יצר עסקת-לייב-רפאים `#955` שנדחתה ולא הגיעה לשוק — `DIVERGENCE` קבועה · המערכת עצמה בריאה ובפוזיציה רווחית**
+
+**ריצת-17:37 = חובה-1 + חובה-3 (ניטור-RTH).** **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה · אפס פקודה לסיירה** — הקפאת-02.09 (`470ee530`: "no restarts/env/flags until 23:00") נשמרה במלואה. ריצה קוראת-בלבד.
+
+**📞 חובה-1: אין ממתינות.** הודעת-מייקל האחרונה `01.09 20:11:18Z`, נענתה עניינית (`20:12` רשימת-פערים · `20:50` סיכום-לילה). מאז — 8 הודעות, כולן `sender=cowork`. ⇒ שקט, לא נשלחה הודעת-מענה.
+
+---
+
+#### 🟢 חובה-3 — מצב-המערכת תקין (נמדד ברגע-האמירה)
+
+```
+17:37:40  backend /api/v9/health   http=200  t=0.125s
+17:37:40  sierra_state.json  file_age_s=0.3   is_sim=0  order_placement_armed=1
+17:38     v9_bars_5min_woodies  max(ts)=17:35:00+03  →  age 3.2 min      (סף 10)
+17:40:39  [ERROR]/Traceback/CRITICAL ב-10 הדק' האחרונות  ⇒  0 שורות
+```
+
+**הפוזיציה שייכת למערכת — לא אורפן, נבדק לפני אזעקה** (`RECONCILER_OWNERSHIP_AWARE`, 24.07):
+
+```
+/api/v9/system6/diagnose ⇒ active=true · trade 953 LONG entry=7668.75 t1_hit=true
+                           hold: intact=true score=0.75 "one-timeframing intact (3/4 steps)"
+                           supervisor.healthy=true · issues=[] · recommendation=hold
+                           slot_health: stuck=false · slot_trade_id=953 · "slot holds open live trade 953"
+```
+
+מהלך-הפוזיציה בזמן הריצה (שני מדדי-סיירה בלתי-תלויים): `17:37` ‏`pos=2 avg=7669.75 open_pnl=+140.0 acct_daily_pl=608.75` → `17:40:39` ‏`pos=1 open_pnl=+78.75 acct_daily_pl=**+693.75**` ⇒ חוזה יצא ברווח, ‎+$85 ממומשים בתוך 3 דקות. `avail=3126.89` · `margin_req=286` · `loss_limit_reached=0` · `trading_disabled=0`.
+
+---
+
+#### 🟠 T-226 — הממצא: עסקת-לייב שנוצרה בספרים ומעולם לא הגיעה לשוק
+
+רצף אחד מ-`/tmp/backend.err.log`, `17:30:04`, ללא עריכה:
+
+```
+[SierraCmd] RISK_BUDGET: risk=10.6 pts → raw=4.2 → floor=4 → min(ruled=5)=4
+[TradeManager] Trade 955 created: mode=live sys=2 dir=LONG
+[SierraCmd] T-214: PLACE rejected — t3=None invalid on 4 contracts. Every contract must have a target.
+[ScaleIn] +2c LONG parent=953 child=955 @7679.50 stop@7668.88 (BE) — P3 reinforce LONG:
+          T1 banked + 10.8pt (spacing 10.8pt ≥ 1.5×ATR) + with-trend (UP) → +2c, avg-stop 7668.88
+```
+
+**שני פגמים בשרשרת אחת:** (א) `SCALE_IN_P3` ביקש **+2c** אך `RISK_BUDGET` תמחר את הפקודה ל-**4c** — הילד אינו יורש את גודל-ההגדלה אלא מתומחר כעסקה-חדשה; (ב) הילד מוגדר עם `t1=7695.43` בלבד (`t2/t3=NULL`, אומת ב-`psql`) ⇒ שומר-`T-214` דורש יעד לכל חוזה ⇒ **דחה את ה-`PLACE` כולו**.
+
+**התוצאה — ספרים ≠ מציאות, בלי ריפוי-עצמי:**
+
+```
+psql ⇒ 955 | live | PENDING | entry_ts=NULL | 10.6min old
+       (העסקה היחידה עם entry_ts IS NULL ב-10 הימים האחרונים ⇒ לא מצב-חיים חולף)
+
+fill_poller, כל 30 שניות מ-17:30 ועד 17:40 ברציפות:
+  SYS-3 RECONCILER: DIVERGENCE: TM says 8 contracts ['#955(live,LONG,4c)', '#953(live,LONG,4c)'],
+                    Sierra says 2 (src=state). Records ≠ reality! [phantom-heal streak 0/3]
+```
+
+**✅ ומה שכן עבד — שלושה שומרים עצרו את הנזק. מתועד כאן כדי שלא "יתוקנו" בטעות כרגרסיה:**
+
+1. `T-214` מנע כניסת-4-חוזים ללא יעד מלא — **התנהג נכון, אין לרכך אותו**.
+2. `[FillPoller] POSITION_TRUTH: Sierra holds 2c but trade 955 has NO submit-ack — NOT attributing` ⇒ הפוזיציה האמיתית לא יוחסה לרפאים; `phantom-heal streak` נשאר **0/3** ולא מטפס ⇒ אין פעולה אוטומטית.
+3. `ls ~/SierraChart_Data/v9_export/command_queue/` ⇒ **`total 0`** ⇒ **אין פקודה תלויה** ⇒ אין סיכון-מילוי-מאוחר. (הפקודה היחידה של החלון, `cmd_000406 op=MODIFY_STOP`, קיבלה `ACK confirmed` ב-`17:30:07` ונוקתה.)
+
+**✅ ואינו מחלקת-T-178 (חסימת-לייב-שקטה):** `diagnose` ⇒ `slot_trade_id=953`, `stuck=false`; שחרור-הסלוט ב-`trading_gateway.py:3956+4005` מותנה בהתאמת `trade_id` הסלוט ⇒ סגירת `#953` תשחרר כרגיל. הרפאים אינו מחזיק סלוט.
+
+**⇒ סיווג: פער-מדידה + רעש-אזעקה קבוע. לא חסימת-מסחר, לא פוזיציה-עירומה, לא סיכון-כסף פתוח.**
+
+**באג בר-שחזור, לא אירוע-חד-פעמי** — יחזור בכל ירי-`SCALE_IN` הבא. מחלקה מוכרת: **T-111** (27.08 — `SCALE_IN` ביקש 2c/מולא 1c) הוא אותו שורש-ירושה מזווית-מרג'ין.
+
+**אל cc — הצעד הבא (לא בוצע, הקפאה עד 23:00):** לתקן ב-`bar_level_detector` ענף `[ScaleIn]`: (1) הילד יורש את גודל-ההגדלה ולא עובר שוב דרך `RISK_BUDGET`; (2) הילד נבנה עם יעד לכל חוזה לפני ה-`PLACE`; (3) **`PLACE rejected` יגרור ביטול/סימון של העסקה שנוצרה** — כרגע ה-TM יוצר לפני שהוא יודע אם הפקודה התקבלה, וזה מקור-הרפאים. **אימות-סגירה:** ירי-`SCALE_IN` בסים עם ילד-בגודל-שביקש + `PLACE`→`ACK` + `grep "SYS-3 RECONCILER: DIVERGENCE"` ⇒ 0 שורות ב-10 הדק' שאחרי + טסט-רגרסיה ש-`PLACE` נדחה ⇒ אין שורת-`v9_trades` עם `entry_ts IS NULL` ששורדת.
+
+**הערת-הקשר:** ירי `17:35:05 FIRE: INITIATIVE LONG (conf=0.80)` **לא נחסם ע"י הרפאים** אלא דולג בפסיקה תקינה — `[S2] T1Setup skipped: pattern=INITIATIVE_LONG day_type=Normal tier=LOW · Auth Table SKIP`.
+
+---
+
 ### [2026-09-02 15:45 IL] cowork-daily · ✅ **T-221 נסגר (פוזיציה 0, +$410) · 🔴 T-225: אתמול נכנס ב-4 חוזים ולא ב-5 · 🟠 T-224 באג-ליגר · פער-הדיווח של אמש הוסבר**
 
 **ריצת-15:41 = חובה-1 + חובה-2 מלאה** (בתוך חלון-הדיילי 15:30-16:10). **אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציה · אפס קוד.**
