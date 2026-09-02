@@ -196,44 +196,73 @@ def decide_location(
     _t = _tol((levels or {}).get("ib_width"))
 
     # EDGE_ENTRY_LOCATION_FIX_V1 (Michael 02.09 + candle research 31.08/01.09):
-    # When price is entirely outside yesterday's VA (gap day), the VA-based
-    # zones are meaningless. Both 31.08 and 01.09 had 0 VA events because
-    # the entire day traded below VAL. In a gap-day, redefine the edge zones
-    # using the DEVELOPING BALANCE (IB high/low, session high/low) instead of
-    # yesterday's VA. A short at the day's own ceiling IS an edge trade even
-    # if it's "below_value" in yesterday's terms.
-    # file:line of consumer: THIS function, line ~203 below (zone check).
+    # When TODAY's session is entirely outside YESTERDAY'S VA (gap day), the
+    # VA-based zones are meaningless. Both 31.08 and 01.09 had 0 VA events.
+    # Fix: read YESTERDAY'S VA from the previous RTH session (same SQL as FIX-8),
+    # compare today's session against it. If gap → use developing balance edges.
+    # file:line of consumer: THIS function, line ~235 below (zone check).
     if os.getenv("EDGE_ENTRY_LOCATION_FIX_V1", "0").lower() in ("1", "true", "yes"):
         _lvs = levels or {}
         _ib_h = _lvs.get("ib_high")
         _ib_l = _lvs.get("ib_low")
         _sh = _lvs.get("session_high") or _lvs.get("day_high")
         _sl = _lvs.get("session_low") or _lvs.get("day_low")
-        # Is the entire session below yesterday's VAL?
-        _gap_below = (_sh is not None and float(_sh) < val)
-        # Is the entire session above yesterday's VAH?
-        _gap_above = (_sl is not None and float(_sl) > vah)
-        if _gap_below or _gap_above:
-            # Redefine edges using the developing balance
-            _dev_high = _sh if _sh is not None else (_ib_h if _ib_h else vah)
-            _dev_low = _sl if _sl is not None else (_ib_l if _ib_l else val)
+        # The gateway feeds TODAY's developing VA as vah/val. To detect a gap
+        # we need YESTERDAY's VA — the reference the trade faces.
+        _prev_vah, _prev_val = None, None
+        try:
+            from backend.v9.db.read import read_one as _edge_read
+            _prev = _edge_read(
+                "SELECT vah, val FROM ("
+                "  SELECT vah, val, poc, "
+                "         (ts AT TIME ZONE 'America/New_York')::date as d "
+                "  FROM v9_bars_5min_woodies "
+                "  WHERE (ts AT TIME ZONE 'America/New_York')::date = ("
+                "    SELECT max((ts AT TIME ZONE 'America/New_York')::date) "
+                "    FROM v9_bars_5min_woodies "
+                "    WHERE (ts AT TIME ZONE 'America/New_York')::date < "
+                "          (now() AT TIME ZONE 'America/New_York')::date "
+                "      AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                "      AND (ts AT TIME ZONE 'America/New_York')::time < '16:00'"
+                "  ) ORDER BY ts DESC LIMIT 1"
+                ") sub WHERE vah IS NOT NULL", {})
+            if _prev:
+                _prev_vah = float(_prev["vah"]) if _prev.get("vah") else None
+                _prev_val = float(_prev["val"]) if _prev.get("val") else None
+        except Exception:
+            pass  # fail-open: no previous VA → skip gap check
+        # Also try the TPO previous_session export (more reliable)
+        if _prev_vah is None:
             try:
-                _dev_vah = float(_dev_high)
-                _dev_val = float(_dev_low)
-                if _dev_vah > _dev_val:
-                    z = zone_of(e, _dev_vah, _dev_val,
+                from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+                _tpo = _load_sierra_tpo() or {}
+                _ps = _tpo.get("previous_session") or {}
+                if _ps.get("vah") and _ps.get("val"):
+                    _prev_vah = float(_ps["vah"])
+                    _prev_val = float(_ps["val"])
+            except Exception:
+                pass
+        if _prev_vah is not None and _prev_val is not None:
+            # Gap check: is today's session entirely outside yesterday's VA?
+            _gap_below = (_sh is not None and float(_sh) < _prev_val)
+            _gap_above = (_sl is not None and float(_sl) > _prev_vah)
+            if _gap_below or _gap_above:
+                _dev_high = float(_sh) if _sh is not None else (float(_ib_h) if _ib_h else vah)
+                _dev_low = float(_sl) if _sl is not None else (float(_ib_l) if _ib_l else val)
+                if _dev_high > _dev_low:
+                    z = zone_of(e, _dev_high, _dev_low,
                                 (levels or {}).get("ib_width"))
-                    # Also update the vah/val used for probe check below
-                    vah = _dev_vah
-                    val = _dev_val
+                    vah = _dev_high
+                    val = _dev_low
                     import logging as _eloc_log
                     _eloc_log.getLogger(__name__).info(
                         "[LocationGate] EDGE_FIX: gap day (%s) — "
-                        "using developing balance %.2f/%.2f → zone=%s",
+                        "prev VA %.2f/%.2f, today %.2f/%.2f → developing "
+                        "balance %.2f/%.2f → zone=%s",
                         "below" if _gap_below else "above",
-                        _dev_vah, _dev_val, z)
-            except (TypeError, ValueError):
-                pass  # fail-open: use original zone
+                        _prev_vah, _prev_val,
+                        float(_sh or 0), float(_sl or 0),
+                        _dev_high, _dev_low, z)
 
     # v1: wrong location by VALUE edges → before blocking, check DAY-STRUCTURE
     # edges (Michael ruling 2026-07-22 'מאשר': a day that bases above value
