@@ -502,9 +502,17 @@ class TestWiring:
         assert "load_ceiling_floor(" in src, "thresholds must come from YAML"
 
     def test_method_never_trades(self):
-        """This build detects and reports. It must not route a setup, emit an
-        exit or move a stop — op=EXIT is broken (ruling 07-13) and the three
-        consumers are separate, separately-ruled flags."""
+        """Detection must not touch the exits — and routing is allowed ONLY
+        behind CEILING_FLIP_SHORT_V1.
+
+        History, because this guard flipped once: written when the build was
+        detect-only (07-13 era, op=EXIT broken ⇒ nothing here may execute).
+        On 02.09 Michael ruled T-140 — reverse entry on the confirm bar,
+        second-touch trigger — so `route_setup` moved from forbidden to
+        REQUIRED-to-be-gated. The exits stay forbidden: op=EXIT is still
+        broken and FLATTEN on the shared account has no foreign-contract
+        guard. If route_setup ever appears OUTSIDE the flag gate, the
+        gated-reference assert below fails."""
         from backend.v9.systems.five_min.five_min_system import FiveMinSystem
         # scan the CODE, not the prose — the docstring names these on purpose
         fn = ast.parse(_src_of(FiveMinSystem._maybe_ceiling_floor_state).lstrip()).body[0]
@@ -512,7 +520,12 @@ class TestWiring:
                 and isinstance(fn.body[0].value, ast.Constant)):
             fn.body = fn.body[1:]
         code = ast.dump(ast.Module(body=fn.body, type_ignores=[]))
-        for forbidden in ("route_setup", "_emit_exit", "write_exit",
+        # route_setup is legal ONLY inside the CEILING_FLIP_SHORT_V1 gate
+        if "route_setup" in code:
+            assert "CEILING_FLIP_SHORT_V1" in code, (
+                "route_setup appears without the CEILING_FLIP_SHORT_V1 gate — "
+                "an ungated route from the detector was never ruled")
+        for forbidden in ("_emit_exit", "write_exit",
                           "MODIFY_STOP", "FLATTEN_ACCOUNT"):
             assert forbidden not in code, (
                 f"_maybe_ceiling_floor_state references {forbidden} — this "
