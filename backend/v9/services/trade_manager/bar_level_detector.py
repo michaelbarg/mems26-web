@@ -1590,17 +1590,46 @@ class BarLevelDetector:
                                 elif _se_a_mode != "shadow":
                                     # EXECUTE the action
                                     if _se_result.get("flatten"):
+                                        # Foreign-contract guard: compare our
+                                        # contracts vs Sierra position. If Sierra
+                                        # holds more → someone else's position is
+                                        # in the account. FLATTEN would kill it.
+                                        _flatten_ok = True
                                         try:
-                                            from backend.v9.services.sierra_command import (
-                                                write_flatten_account)
-                                            write_flatten_account(
-                                                trade_id=str(trade.id),
-                                                source="structure_exit_failbreak",
-                                                reason=_se_result["reason"])
-                                        except Exception as _fl_err:
-                                            logger.critical(
-                                                "[StructureExit] FLATTEN FAILED: %s",
-                                                _fl_err)
+                                            from backend.v9.services.sierra_position_reconciler import (
+                                                _sierra_state_qty)
+                                            from backend.v9.services.trade_manager.manager import (
+                                                trade_contract_count)
+                                            _our = trade_contract_count(trade)
+                                            _sq = _sierra_state_qty()
+                                            if _sq is not None and abs(_sq) > _our:
+                                                _flatten_ok = False
+                                                logger.critical(
+                                                    "[StructureExit] FLATTEN BLOCKED: "
+                                                    "foreign contracts — Sierra %d vs "
+                                                    "ours %d. Not flattening.",
+                                                    _sq, _our)
+                                                try:
+                                                    from backend.v9.services.phone_alert import push as _fg_push
+                                                    _fg_push("foreign_flatten_block",
+                                                        "\u26a0 MEMS26: FLATTEN חסום — חוזים זרים",
+                                                        f"Sierra {_sq} vs ours {_our}")
+                                                except Exception:
+                                                    pass
+                                        except Exception:
+                                            pass  # fail-open: can't check → allow
+                                        if _flatten_ok:
+                                            try:
+                                                from backend.v9.services.sierra_command import (
+                                                    write_flatten_account)
+                                                write_flatten_account(
+                                                    trade_id=str(trade.id),
+                                                    source="structure_exit_failbreak",
+                                                    reason=_se_result["reason"])
+                                            except Exception as _fl_err:
+                                                logger.critical(
+                                                    "[StructureExit] FLATTEN FAILED: %s",
+                                                    _fl_err)
                                     else:
                                         # Tighten stop
                                         new_stop = _se_result["new_stop"]
