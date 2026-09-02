@@ -871,6 +871,21 @@ def command_from_setup(
     _c2_target = setup.get("t2")
     _c3_target = setup.get("t3")
 
+    # T-214: t3 belt — a setup without a valid t3 must not PLACE.
+    # 9/27 recent live trades had t3=NULL/0. The DLL sends these contracts
+    # without a target → unprotected runner. Michael ruling 01.09.
+    if os.getenv("T3_REQUIRED_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            _t3_val = float(_c3_target or 0)
+        except (TypeError, ValueError):
+            _t3_val = 0.0
+        if _t3_val <= 0 and _contracts >= 3:
+            logger.warning(
+                "[SierraCmd] T-214: PLACE rejected — t3=%s invalid on %d contracts. "
+                "Every contract must have a target.", _c3_target, _contracts)
+            return {"rejected": True, "reason": "t3_missing",
+                    "detail": f"t3={_c3_target} on {_contracts} contracts"}
+
     # ZLR_MGMT_V1 (Michael 2026-07-14 — ZLR / System-4 ONLY, default OFF): allocate
     # 2 contracts to T1 and 1 to T2, no T3 runner. Each DLL OCO group is a single
     # lot with its OWN target, so 2×T1 + 1×T2 is expressed as the per-contract
