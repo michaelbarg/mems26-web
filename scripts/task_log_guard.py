@@ -213,7 +213,12 @@ def main() -> int:
     args = ap.parse_args()
 
     problems = check()
-    _refresh_readiness()
+    # T-216b: readiness page refresh REMOVED from the guard.
+    # gen_readiness_page writes files that dirty the git tree, which
+    # blocks `git pull` in the pre-open gate — nearly killed the 15:30
+    # gate on 01.09. Display refresh belongs in EOD or a separate script,
+    # not in a guard that runs before every session.
+    # _refresh_readiness()  # ← disabled; run gen_readiness_page.py separately
     age = _last_touched_days()
     n = len(_rows(LOG.read_text(encoding="utf-8"))) if LOG.exists() else 0
 

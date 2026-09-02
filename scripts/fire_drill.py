@@ -263,6 +263,28 @@ def stage_e(no_live=False):
     check("fire_readiness_real", result.returncode == 0, detail)
 
 
+def stage_yaml():
+    """T-168ב: verify RULED_FLAGS.yaml is valid YAML (yaml.safe_load).
+
+    flag_guard uses a regex parser that tolerates broken YAML. But every
+    other tool (gen_flag_index, editors, CI) needs valid YAML. This
+    catches regressions before they reach production.
+    """
+    print("— שלב Y · RULED_FLAGS YAML תקין —")
+    try:
+        import yaml
+        path = os.path.join(ROOT, "config", "RULED_FLAGS.yaml")
+        data = yaml.safe_load(open(path))
+        n = len(data.get("ruled", {}))
+        check("yaml_valid", True, f"RULED_FLAGS.yaml: {n} ruled flags")
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        detail = f"line {mark.line + 1}: {e.problem}" if mark else str(e)[:100]
+        check("yaml_valid", False, detail)
+    except Exception as e:
+        check("yaml_valid", False, str(e)[:100])
+
+
 def stage_guards():
     """Run the trading-behaviour guard tests (guard_tests.sh).
 
@@ -294,6 +316,7 @@ def main():
     stage_a()
     stage_b()
     stage_c()
+    stage_yaml()
     stage_guards()
     if not args.no_live:
         stage_d()

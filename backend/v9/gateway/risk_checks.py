@@ -1,7 +1,7 @@
 """Risk checks per 3-Mode Spec V3 section 5.
 
 Configurable risk caps (env vars with defaults):
-  - Daily loss cap: RISK_DAILY_LOSS_CAP (default $250)
+  - Daily loss cap: RISK_DAILY_LOSS_CAP (default $800 — the ruled value)
   - Max trades/day: RISK_MAX_TRADES_DAY (default 5)
   - Time filter: NO new trades after 14:30 ET
   - Consecutive loss limit: RISK_CONSECUTIVE_LOSS_LIMIT (default 2) → STOP DAY
@@ -31,7 +31,7 @@ def _env_int(key: str, default: int) -> int:
 
 
 # Risk caps — configurable via env vars
-DAILY_LOSS_CAP = _env_float("RISK_DAILY_LOSS_CAP", 250.0)
+DAILY_LOSS_CAP = _env_float("RISK_DAILY_LOSS_CAP", 800.0)  # Michael 07-24: halt_cap=800. The ruling IS the code default (CLAUDE.md standing-decisions) — 250 was never approved
 MAX_TRADES_PER_DAY = _env_int("RISK_MAX_TRADES_DAY", 5)
 MAX_CONTRACTS = 2
 # No-new-live-entries cutoff (ET). Michael ruling 2026-07-19: moved 14:30 → 15:30 ET
@@ -43,7 +43,7 @@ MAX_CONTRACTS = 2
 # Now env-tunable (was hardcoded) so future changes need no code edit — RULED-enforced.
 CUTOFF_HOUR = _env_int("RISK_CUTOFF_HOUR_ET", 15)
 CUTOFF_MINUTE = _env_int("RISK_CUTOFF_MINUTE_ET", 30)
-CONSECUTIVE_LOSS_LIMIT = _env_int("RISK_CONSECUTIVE_LOSS_LIMIT", 2)
+CONSECUTIVE_LOSS_LIMIT = _env_int("RISK_CONSECUTIVE_LOSS_LIMIT", 0)  # Michael 02.09: "לא אישרתי להפסיק אחרי 2 הפסדים". 0=off is the ruled default
 
 
 def passes_strict_checks(setup: dict, mode: str, gateway) -> bool:
