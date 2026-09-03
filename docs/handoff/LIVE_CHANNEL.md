@@ -1,3 +1,82 @@
+### [2026-09-03 17:55 IL] cowork · 🔴 **T-219 `BLOCKED_TWIN_V1` נפסק היום ON — והוא מת ב-100% מהמקרים. שורש: קריאה עם ארגומנט למתודה חסרת-ארגומנטים. תיקון = מילה אחת.**
+
+**ריצת-ניטור-RTH (חובה 3) + מענה-טלפון (חובה 1). לא בוצע שום שינוי-קוד, אין ריסטארט (אסור 16:10-23:00).**
+
+#### הממצא — ראיה גולמית (Rule 5)
+
+`grep` על `/tmp/backend.err.log`, שורות `>= 2026-09-03 15:41` (הריסטארט של היום):
+
+```
+2026-09-03 17:20:02 [WARNING] [backend.v9.gateway.trading_gateway] [Gateway] T-219 shadow_blocked error (non-fatal): _capture_cross_context() takes 1 positional argument but 2 were given
+```
+⇒ **12 מופעים** מאז 15:41 (`awk '/^2026-09-03 1[5-9]:/' | grep -c "T-219 shadow_blocked error"` ⇒ `12`).
+
+**שורש, מהקוד עצמו — לא מהיסק:**
+
+- `backend/v9/gateway/trading_gateway.py:826` ⇒ `_bt_cross = self._capture_cross_context(setup) if hasattr(...)`
+- `backend/v9/gateway/trading_gateway.py:4681` ⇒ `def _capture_cross_context(self) -> dict:` — **אפס פרמטרים**.
+
+⇒ כל קריאה זורקת `TypeError`, ה-`try` בולע, נרשם `WARNING` "non-fatal", והתאום **לא נכתב**. **`non-fatal` נכון לביצוע ושקרי למדידה.**
+
+#### הראיה שסוגרת: אפס שורות, אי-פעם
+
+```
+psql -c "SELECT mode, count(*), max(entry_ts) FROM v9_trades GROUP BY 1 ORDER BY 2 DESC;"
+  mode  | count |              max
+--------+-------+-------------------------------
+ shadow |   672 | 2026-09-03 17:20:02.31114+03
+ live   |   164 | 2026-09-03 17:20:04.46309+03
+ demo   |    29 | 2026-07-21 14:06:32.674655+03
+```
+**אין `shadow_blocked` בכלל** — לא היום ולא אף פעם. היום: `count=0`.
+
+#### למה זה חשוב מעבר לבאג
+
+הדגל **פסוק ודלוק**: `.env:698` ⇒ `BLOCKED_TWIN_V1=shadow` · `config/RULED_FLAGS.yaml:359` ⇒ `expected: 'shadow', ruled_by: 'מייקל', date: '2026-09-03'`.
+כלומר **הפסיקה של היום מיושמת בקוד, מופעלת בקונפיג — ומייצרת אפס נתונים.** `flag_guard` עובר (הדגל אכן במצב הפסוק), ולכן **אף שומר לא תופס את זה**: הדגל דלוק, הפיצ'ר מת.
+זהו בדיוק הפער שבגללו T-219 נפתח מלכתחילה — "מה שנחסם לא נמדד" — ועכשיו הוא נשאר פתוח **מתחת לדגל שנראה סגור**.
+
+היום נחסמו 12 מועמדים (`/api/v9/gateway/decisions` ⇒ 13 החלטות: 7×S4, 6×S2, מהן 12 `outcome=blocked` ואחת `live`), ולאף אחד מהם אין תאום-מדידה.
+
+#### הצעד הבא — למי שיורד לתור-הערב
+
+תיקון בן מילה אחת ב-`trading_gateway.py:826`:
+
+```python
+-  _bt_cross = self._capture_cross_context(setup) if hasattr(
++  _bt_cross = self._capture_cross_context() if hasattr(
+```
+ואז: טסט-רגרסיה שקורא ל-`route_setup` על מועמד-חסום ומאמת `SELECT count(*) FROM v9_trades WHERE mode='shadow_blocked'` ⇒ `≥1` (מבחן-מוטציה: החזרת הארגומנט ⇒ הטסט נכשל). **תקרה `SHADOW_BLOCKED_MAX_PER_DAY=150` כבר בקוד.**
+⛔ **לא נגעתי** — זהו מסלול-ההחלטות, והתיקון דורש ריסטארט שאסור עד 23:00. אין הדלקת-דגל כאן: הדגל כבר פסוק ודלוק, רק המימוש שבור.
+
+#### מצב-המערכת בשעת-הכתיבה (17:47, `sierra_state` גיל 0.1ש')
+
+`position_qty=0` · `working_orders=0` · `orders=[]` · `is_sim=0` · `order_placement_armed=1` · `last_price=7710.75` · `acct_available_funds=3246.84` · `acct_under_margin=0`.
+סלוט-חי פנוי (`system6/diagnose` ⇒ `"live slot is free"`) · בר-woodies אחרון `17:35` (גיל 3.5 דק') · `health` 200 ב-11ms · `ruled_contracts()=5` (‏`.env` נטען מפורשות; בלי טעינה הוא מחזיר `None` — מלכודת ידועה) · שגיאות `ERROR/CRITICAL` מאז 15:41 = **1** (‏16:30 `DAYTYPE_WATCHDOG ESCALATION-3`, נפתר מעצמו: יש שורות `v9_day_type_state` תקינות ב-17:00 ו-17:30).
+
+#### עסקת-הלייב היחידה של היום — ותמחור מהברוקר
+
+`#981` live · S4 · `ZLR` LONG · כניסה `17:20:04 @ 7714` · יציאה `17:34:42` · `exit_reason=MAE_SCRATCH` · **`exit_price=NULL`, `pnl_usd=NULL`** ⇒ מופע נוסף של מחלקת T-160/T-227 (מדידה, לא סיכון). התאום-בצל `#980` נותר `FILLED`.
+
+**גודל 3 ולא 5 — תקין לפי הפסיקה, לא חוסר-מילוי.** הלוג מפורש:
+`[SierraCmd] RISK_BUDGET: risk=13.2 pts → raw=3.4 → floor=3 → min(ruled=5)=3`.
+
+**תמחור מהמקור-הקנוני** (`~/SierraChart/TradeActivityLogs/TradeActivityLog_2026-09-03_UTC.37138283.data`, שדה `Closed Trade Profit/Loss`), מעברי-פוזיציה מלאים:
+`10937 → +5`, `10938 → 0` ⇒ **-62.50** · `10939 → -8`, `10941 → 0` ⇒ **+240.00** (ידני, מייקל) · `10942/10945/10948 → +1/+2/+3`, `10951 → 0` ⇒ **3 × -42.50 = -127.50** (‏`#981`).
+סכום ⇒ **+50.00**, ונוחת **בדיוק** על `sierra_state.acct_daily_pl=50.00`.
+⚠️ שדה שני, `sierra_state.daily_pnl`, מראה **252.50** — **לא נפתר, לא נבחר צד.** יומן-הפעילות מתיישב עם 50.00 לסנט ⇒ זה המספר שנמסר למייקל, והפער נשאר פתוח.
+⚠️ החשבון משותף עם אתי ⇒ `acct_daily_pl` אינו תרומת-המערכת.
+
+#### מענה-טלפון (חובה 1) — בוצע
+
+הודעת-מייקל `2026-09-03T13:45:25Z` (16:45 IL) — *"מה הסטטוס, מתי מערכת 2 צריכה להתחמש?"* — הייתה **ללא מענה עניינית** (ה-`✓ התקבל` הוא קבלה-אוטומטית ואינו נחשב).
+נשלח `14:46:41Z`, **2,654 תווים**, אומת מ-`PHONE_THREAD.jsonl` (ראש+זנב שלמים).
+**התשובה:** S2 **כבר חמושה מהפתיחה** — `live_enabled_systems=[2,4]`, `running=true`, `hydrated=true`, חוצץ 976 ברים, מצב `DAY_TYPE_MODE`, קריאה נוכחית `INITIATIVE_LONG` קונפלואנס 80. אין צעד-חימוש ממתין; היא ייצרה **6 מועמדים** היום וכולם נחסמו בשערי-איכות (`entry_location_quality` ×2 ב-17:05 · `awaiting_release` ב-17:15 · `cont_trend_filter` ב-17:30).
+
+— cowork · 2026-09-03 17:55 IL
+
+---
+
 ### [2026-09-03 16:16 IL] cowork-daily · 🔴 **תיקון לרשומה שמתחת: הייתה ממתינה — מייקל שאל ב-16:10:51, אחרי הקריאה שלי ב-16:08**
 
 **הרשומה שמתחת (אותה ריצה) קובעת "אפס ממתינות". זה לא נכון, ואני מתקן במקום להשאיר.**
