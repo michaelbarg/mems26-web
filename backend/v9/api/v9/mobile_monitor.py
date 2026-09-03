@@ -73,6 +73,74 @@ def _remote_data() -> dict | None:
         return {"_remote_err": str(e)[:60]}
 
 
+# ── Dalton narrative table (opening_type × day_type → Hebrew action) ──
+_DALTON_TABLE = {
+    ("OPEN_DRIVE", "Trend_Normal"): "יום-מגמה — לסחור רק עם הכיוון",
+    ("OPEN_DRIVE", "Trend_DD"): "מגמה כפולה — עם הכיוון, סטופ צמוד",
+    ("OPEN_DRIVE", "Normal"): "נורמלי עם דרייב — לחכות לקצוות",
+    ("OPEN_DRIVE", "Variation"): "ווריאציה — לדהות קצוות אחרי פולבק",
+    ("OPEN_TEST_DRIVE", "Trend_Normal"): "בדיקת-מגמה — לחכות לכישלון/אישור",
+    ("OPEN_TEST_DRIVE", "Normal"): "בדיקת-כיוון — קצוות מאזן",
+    ("OPEN_REJECTION_REVERSE", "Normal"): "דחיית-פתיחה — לסחור נגד הכיוון",
+    ("OPEN_REJECTION_REVERSE", "Neutral_Center"): "ניטרלי — שני הצדדים",
+    ("OPEN_REJECTION_REVERSE", "Neutral_Extreme"): "ניטרלי-קיצון — דהיית-קצוות",
+}
+_DALTON_DEFAULT = "ממתין לזיהוי"
+
+
+def _build_narrator_he(out: dict) -> str:
+    """Build 4-line Hebrew narrative from the payload.
+
+    Lines:
+      🔍 זיהוי: opening_type + conf + day_type + volume
+      📖 דלתון: opening×day_type → action sentence
+      🚫 מועמד אחרון: blocked_by + reason
+      ⏭️ צפי: what's next
+    """
+    lines = []
+    radar = out.get("radar") or {}
+
+    # Line 1: identification
+    opening = radar.get("opening") or {}
+    otype = opening.get("type") or "לא-ידוע"
+    conf = opening.get("conf")
+    conf_str = f" ({conf:.0%})" if conf else ""
+    day_type = radar.get("day_type") or "לא-ידוע"
+    vol = radar.get("volume_vs_median")
+    vol_str = f" · ווליום ×{vol:.1f}" if vol else ""
+    lines.append(f"🔍 {otype}{conf_str} · {day_type}{vol_str}")
+
+    # Line 2: Dalton doctrine
+    _dt_clean = str(day_type).split("(")[0].strip() if day_type else ""
+    dalton = _DALTON_TABLE.get((otype, _dt_clean), _DALTON_DEFAULT)
+    lines.append(f"📖 {dalton}")
+
+    # Line 3: last blocked candidate
+    gate = radar.get("gate") or {}
+    last = gate.get("last") or {}
+    blocked_by = last.get("blocked_by")
+    if blocked_by:
+        pat = last.get("pattern") or "?"
+        reason = last.get("reason") or ""
+        reason_short = reason[:60] + "…" if len(reason) > 60 else reason
+        lines.append(f"🚫 {pat} נחסם: {blocked_by}" + (f" — {reason_short}" if reason_short else ""))
+    else:
+        lines.append("🚫 אין חסימות אחרונות")
+
+    # Line 4: outlook
+    sierra = out.get("sierra") or {}
+    pos_qty = sierra.get("position_qty", 0)
+    if pos_qty and pos_qty != 0:
+        direction = "לונג" if pos_qty > 0 else "שורט"
+        lines.append(f"⏭️ בפוזיציה {direction} ({abs(pos_qty)} חוזים) — ניהול פעיל")
+    elif radar.get("ib_locked"):
+        lines.append("⏭️ IB ננעל — מחכים לפריצה או דהיית-קצוות")
+    else:
+        lines.append("⏭️ בונים IB — ממתינים לכיוון")
+
+    return "\n".join(lines)
+
+
 @router.get("/data")
 async def mobile_data(request: Request):
     if not _key_ok(request):
@@ -353,6 +421,15 @@ async def mobile_data(request: Request):
         out["alerts"] = lines[-3:]
     except Exception:
         out["alerts"] = []
+
+    # ── narrator_he: 4-line Hebrew narrative for the phone ──
+    # Michael: "אני רוצה לראות מה המערכת רואה בעברית"
+    # try/except around everything: missing field → narrator_he=null, page doesn't break.
+    try:
+        out["narrator_he"] = _build_narrator_he(out)
+    except Exception:
+        out["narrator_he"] = None
+
     return out
 
 
