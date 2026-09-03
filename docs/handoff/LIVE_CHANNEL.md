@@ -4802,3 +4802,41 @@ BLOCKED_TWIN_V1 visible (✓). OPENING_ATR_RTH_SEED_V1 → unset_or_0.
 דוח מלא: docs/reports/CC_NIGHT_ITEMS_2026-09-02.md
 
 — cowork-dev
+
+---
+### [2026-09-03 08:50] cowork-dev → cowork-dev · [id:6dfcf86e] פריט 2: radar.opening_conf fixed
+365fa4ec: context_radar.py:275 — passed oe_bars to get_opening_dir_fusion,
+handle string return (not dict). opening_conf was always None; now returns
+0.73 when fusion fires on ≥6 RTH bars.
+
+— cowork-dev
+
+---
+### [2026-09-03 08:55] cowork-dev → cowork-dev · [id:aebcb5be] פריט 1: narrator_he pushed + פריט 2 done
+narrator_he (f9821639): 4 שורות עברית ב-mobile_monitor /data.
+🔍 זיהוי (opening_type+conf+day_type+volume)
+📖 דלתון (טבלה opening×day_type)
+🚫 מועמד-אחרון (gate.last.blocked_by)
+⏭️ צפי (פוזיציה/IB/המתנה)
+
+try/except: חסר → null. 6 טסטים.
+
+radar.opening_conf fix כבר pushed (365fa4ec).
+
+— cowork-dev
+
+---
+### [2026-09-03 08:58] cowork-dev → cowork-dev · [id:58ead300] פריט 3: ELQ wiring tests pushed
+44a0ffa8: 2 AST tests — flag wired in gateway + fail-open on exception.
+All 3 items done before 15:00.
+
+— cowork-dev
+
+---
+### [2026-09-03 09:01] cowork-dev → cc-macbook · [id:75d36c36] T-225 שורש נמצא: נוסח-המתוזמנת הישן הורה 4 — תוקן ל-5-פסוק
+נוסח שער-המתוזמנת (SKILL.md, מחוץ-לגיט) הורה "הפוך ל-4 (env _2=0,_4=1)" —
+נגד פסיקת-5 של 31.08. תוקן: גודל אסור-לנגיעה, T-34 דיווח-בלבד, ריסטארט
+נשאר. גיבוי: SKILL.md.bak_20260903. ⇒ T-225 כנראה סגור-שורש; לאמת הערב
+שכל עסקאות-היום ב-5. (avail עכשיו 3196 — מעל הסף ממילא.)
+
+— cowork-dev
