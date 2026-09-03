@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-03 08:41 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-03 14:41 ET
 events:
   - date: 2026-09-03
     time_et: "05:30"
@@ -12,11 +12,11 @@ events:
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Nonfarm Productivity QoQ Final"
+    name: "Continuing Jobless Claims"
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Continuing Jobless Claims"
+    name: "Nonfarm Productivity QoQ Final"
     severity: yellow
   - date: 2026-09-03
     time_et: "08:30"
@@ -32,11 +32,11 @@ events:
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Balance of Trade"
+    name: "Exports"
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
-    name: "Exports"
+    name: "Balance of Trade"
     severity: orange
   - date: 2026-09-03
     time_et: "08:30"
@@ -48,11 +48,15 @@ events:
     severity: orange
   - date: 2026-09-03
     time_et: "09:45"
-    name: "S&P Global Services PMI Final"
+    name: "S&P Global Composite PMI Final"
     severity: yellow
   - date: 2026-09-03
     time_et: "09:45"
-    name: "S&P Global Composite PMI Final"
+    name: "S&P Global Services PMI Final"
+    severity: yellow
+  - date: 2026-09-03
+    time_et: "10:00"
+    name: "ISM Services Employment"
     severity: yellow
   - date: 2026-09-03
     time_et: "10:00"
@@ -61,10 +65,6 @@ events:
   - date: 2026-09-03
     time_et: "10:00"
     name: "ISM Services Prices"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services Employment"
     severity: yellow
   - date: 2026-09-03
     time_et: "10:00"
