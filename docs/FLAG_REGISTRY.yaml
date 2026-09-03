@@ -1405,6 +1405,12 @@ flags:
   CHASE_MIN_SESSION_BARS:
     category: cascade_gate
     what: "[auto-stub] undocumented — see backend/v9/gateway/trading_gateway.py:1435"
+  ELQ_MIN_SESSION_BARS:
+    category: param
+    what: "entry_location_quality: minimum CLOSED 5-min RTH bars before the two POSITION tests (chaser off the leg, beyond_value off the developing VA) are measured at all. Below it they are skipped (leg/VA passed as None); the expensive-stop test is unaffected."
+    why: "T-242 (03.09): at 09:30:04 the gate blocked ZLR LONG @7704.25 with pos=1.27 — mathematically impossible for an entry inside the leg, proving leg_extreme<entry, i.e. the window was a 4-second BUILDING bar. The only guard was `if L > 0`, and 4 seconds of tick noise is neither None nor <=0. Same doctrine as CHASE_MIN_SESSION_BARS (\"an extreme of a 12-minute session is not an extreme\", 30.07) and as the module docstring (Rule 1: honest missing, never a synthetic block). Default 2 = the first 10 minutes only — deliberately NOT reusing CHASE_MIN_SESSION_BARS=8, which would blank the position tests for 40 minutes."
+    status: live
+    ref: "TASK_LOG T-242 · entry_location_quality.py:80-84"
   CROSS_SOURCE_PRICE_BAND:
     category: misc
     what: "[auto-stub] undocumented — see backend/v9/api/v9/bars.py:94"

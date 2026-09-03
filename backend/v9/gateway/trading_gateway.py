@@ -1804,6 +1804,104 @@ class TradingGateway:
                 # Leg base = session extreme in the opposite direction
                 _elq_leg_base = _elq_sl if direction == "LONG" else _elq_sh
                 _elq_leg_ext = _elq_sh if direction == "LONG" else _elq_sl
+
+                # ── ONE session-bar fetch, two consumers (T-242 + T-236/T-235).
+                # Both need the same today-RTH 5-min bars, so read them once.
+                # `closed` = the bar's 5-min bucket has finished; a bar whose
+                # open ts is younger than 5 minutes is still BUILDING (both the
+                # woodies table and Sierra's tpo.json carry the building bar).
+                _elq_srows, _elq_bars_ok = [], False
+                try:
+                    from backend.v9.db.read import read_all as _elq_read_all
+                    _elq_srows = _elq_read_all(
+                        "SELECT high, low, (ts <= now() - interval '5 minutes') AS closed "
+                        "FROM v9_bars_5min_woodies "
+                        "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                        "(now() AT TIME ZONE 'America/New_York')::date "
+                        "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                        "ORDER BY ts ASC", {}) or []
+                    _elq_bars_ok = True
+                except Exception as _elq_bar_err:
+                    # DB read failed → do NOT widen the gate on a bug. Keep the
+                    # pre-03.09 behaviour (no maturity skip, no pullback exemption).
+                    logger.warning(
+                        "[Gateway] ELQ session-bar read failed (gate unchanged): %s",
+                        _elq_bar_err)
+                _elq_bars = [{"high": float(r["high"]), "low": float(r["low"])}
+                             for r in _elq_srows]
+                _elq_closed_n = sum(1 for r in _elq_srows if r["closed"])
+
+                # ── T-242 (03.09): SESSION MATURITY — at the opening bell there
+                # is no leg to measure, and a 4-second building bar is neither
+                # None nor <= 0, so it walks straight past the `if L > 0` guard
+                # and impersonates a real leg. Raw evidence: 09:30:04 ET
+                # `chaser: pos=1.27 > 0.66` on ZLR LONG entry=7704.25 —
+                # mathematically impossible for an entry INSIDE the leg
+                # (entry_location_quality.py:80-84 bounds pos to [0,1]), which
+                # proves leg_extreme < entry, i.e. the measured window did not
+                # contain the entry price. The CLOSED 09:30 bar is
+                # open=7704.25 low=7704.25 high=7718.00 — so that leg could only
+                # have come from an intermediate state. 7704.25 was the day's VAL
+                # *and* POC; the move from there was 62.00 points.
+                # Same doctrine as the sibling gate extreme_chase_guard
+                # (CHASE_MIN_SESSION_BARS, ~:2251 — "an extreme of a 12-minute
+                # session is not an extreme", Michael 30.07 + the 02.07
+                # opening-window ruling) and as this module's own docstring:
+                # "None on any input → that check is skipped (Rule 1: honest
+                # missing, never a synthetic block)".
+                # Deliberately NOT reusing CHASE_MIN_SESSION_BARS (=8 in .env):
+                # that would blank the position tests for the whole first 40
+                # minutes. 2 closed bars = the first 10 minutes only.
+                _elq_min_bars = int(os.getenv("ELQ_MIN_SESSION_BARS", "2") or 2)
+                _elq_L = (abs(float(_elq_leg_ext) - float(_elq_leg_base))
+                          if _elq_leg_ext is not None and _elq_leg_base is not None
+                          else None)
+                _elq_L_floor = max(1.0, 0.5 * float(_elq_atr)) if _elq_atr else 1.0
+                _elq_immature = False
+                if _elq_bars_ok and _elq_closed_n < _elq_min_bars:
+                    _elq_immature = True
+                    _elq_why = (f"{_elq_closed_n} closed bar(s) < {_elq_min_bars}")
+                elif _elq_L is not None and _elq_L < _elq_L_floor:
+                    _elq_immature = True
+                    _elq_why = (f"leg L={_elq_L:.2f} < floor {_elq_L_floor:.2f}")
+                if _elq_immature:
+                    # Rule 1: propagate missing, never a synthetic block. Both
+                    # position tests (chaser off the leg, beyond_value off the
+                    # developing VA) are measured from the same immature session
+                    # structure; the expensive-stop test uses ATR14 (multi-day)
+                    # and stays live.
+                    logger.warning(
+                        "[Gateway] ELQ SESSION-MATURITY skip: %s — position tests "
+                        "skipped (%s); expensive_stop still applies",
+                        direction, _elq_why)
+                    _elq_leg_base = _elq_leg_ext = None
+                    _elq_vah = _elq_val = None
+
+                # ── T-236/T-235 (03.09): wire has_pullback — the second half of
+                # Michael's 28.08 18:50 ruling ("pos>0.66 בלי פולבק = רודף",
+                # RULED_FLAGS.yaml:361). The exemption exists in the signature
+                # (entry_location_quality.py:63) and in the condition (:90
+                # `and not has_pullback`) but the only production caller never
+                # passed it, so half the ruling has never executed. The signal was
+                # already computed 557 lines later by extreme_chase_guard
+                # (_ecg_has_pb, ~:2377 LONG / ~:2357 SHORT) off the same session
+                # bars — and thrown away. Same formula, same PULLBACK_MIN_PTS,
+                # same last-3-bars window, same LONG/SHORT asymmetry.
+                # NO threshold changes: pos_max=0.66 and PULLBACK_MIN_PTS=3.0
+                # stay exactly as ruled — a true chaser is still blocked.
+                _elq_pb_min = float(os.getenv("PULLBACK_MIN_PTS", "3.0") or "3.0")
+                _elq_has_pb = False
+                if _elq_bars:
+                    _elq_recent = _elq_bars[-3:] if len(_elq_bars) >= 3 else _elq_bars
+                    _elq_pb_sh = max(b["high"] for b in _elq_bars)
+                    _elq_pb_sl = min(b["low"] for b in _elq_bars)
+                    if direction == "LONG":
+                        _elq_has_pb = any(
+                            b["low"] <= _elq_pb_sh - _elq_pb_min for b in _elq_recent)
+                    elif direction == "SHORT":
+                        _elq_has_pb = any(
+                            b["high"] >= _elq_pb_sl + _elq_pb_min for b in _elq_recent)
+
                 if _elq_entry is not None:
                     _elq_result = assess_entry_quality(
                         entry_price=float(_elq_entry),
@@ -1814,6 +1912,7 @@ class TradingGateway:
                         atr=_elq_atr,
                         vah=float(_elq_vah) if _elq_vah else None,
                         val=float(_elq_val) if _elq_val else None,
+                        has_pullback=_elq_has_pb,
                     )
                     if not _elq_result["pass"]:
                         if _elq_mode == "shadow":
