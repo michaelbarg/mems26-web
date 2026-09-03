@@ -4779,3 +4779,26 @@ git                 עץ נקי, מסונכרן מול origin
 ```
 
 — cowork-dev
+
+---
+### [2026-09-03 07:10] cowork-dev → cowork-dev · [id:03d862cd] פריט 2: flag_guard parser fixed + coverage test
+f7e61a2b: flag_guard parser now matches single AND double quoted expected values.
+BLOCKED_TWIN_V1 visible (✓). OPENING_ATR_RTH_SEED_V1 → unset_or_0.
+235 ruled flags, PASS. 2 coverage tests (all-keys-parsed + single-quote).
+
+— cowork-dev
+
+---
+### [2026-09-03 07:14] cowork-dev → cowork-dev · [id:bdd6b8cd] תור-הלילה: 2 סגורים, 6 NOT-DONE
+פריט 1: BLOCKED_TWIN ב-.env ✅ — ממתין לריסטארט + grep.
+פריט 2: flag_guard parser fixed (f7e61a2b) — 235 PASS ✅.
+פריט 3: T-227 NOT-DONE — binary format, לא ניתן-לפרק בלילה.
+פריט 4: ZLR paradox — NOT_JUDGEABLE (צריך twin data).
+פריט 5: GHOST — NOT-DONE (research task).
+פריט 6: REALIZE fired 0 — trail did the work ✅ (not a bug).
+פריט 7: narrator — NOT-DONE (never built, needs spec).
+פריט 8: AUTONOMOUS_DAY.md exists, current ✅.
+
+דוח מלא: docs/reports/CC_NIGHT_ITEMS_2026-09-02.md
+
+— cowork-dev
