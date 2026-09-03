@@ -14,7 +14,9 @@ class V9Trade(Base):
     __tablename__ = "v9_trades"
 
     id = Column(BigIntPK, primary_key=True, autoincrement=True)
-    mode = Column(String(10), nullable=False)              # shadow / demo / live
+    # T-219 (03.09): widened 10→20 — 'shadow_blocked' is 14 chars and silently
+    # failed every INSERT on varchar(10). Migration 026 applies it to live DBs.
+    mode = Column(String(20), nullable=False)              # shadow / demo / live / shadow_blocked
     firing_system = Column(Integer, nullable=False)        # 1, 2, or 4
     direction = Column(String(10), nullable=False)         # LONG / SHORT
     state = Column(String(10), nullable=False, default="PENDING")  # PENDING/FILLED/PARTIAL/CLOSED

@@ -822,7 +822,12 @@ class TradingGateway:
                 _bt_max = int(os.getenv("SHADOW_BLOCKED_MAX_PER_DAY", "150"))
                 _bt_count = getattr(self, "_shadow_blocked_today", 0)
                 if _bt_count < _bt_max:
-                    _bt_cross = self._capture_cross_context(setup) if hasattr(
+                    # T-219 fix (03.09): _capture_cross_context() takes NO args
+                    # (def at ~:4681). The stray `setup` argument raised TypeError
+                    # on every single blocked candidate — swallowed by the except
+                    # below and logged as "non-fatal" → the feature produced 0 rows
+                    # ever (212/212 blocks on 03.09). Correct usage is at :987.
+                    _bt_cross = self._capture_cross_context() if hasattr(
                         self, "_capture_cross_context") else {}
                     _bt_q = {
                         "blocked_by": bb,
