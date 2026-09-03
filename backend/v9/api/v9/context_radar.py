@@ -272,11 +272,23 @@ def radar(request: Request) -> Dict[str, Any]:
     opening: Dict[str, Any] = {"type": ds.get("opening_type"), "dir": None, "conf": None}
     try:
         from backend.v9.services.trade_context import get_opening_dir_fusion
-        fu = get_opening_dir_fusion() or {}
-        if fu.get("direction"):
-            opening["dir"] = fu.get("direction")
-        if fu.get("confidence") is not None:
-            opening["conf"] = fu.get("confidence")
+        from backend.v9.db.read import read_all as _oe_read
+        # T-230: get_opening_dir_fusion requires oe_bars (the first ~6 RTH bars).
+        # The old call passed no args → TypeError → swallowed → conf always None.
+        # Fixed: read RTH bars from DB, same pattern as five_min_system.py:1989.
+        _oe_rows = _oe_read(
+            "SELECT high h, low l, close c, open o FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "(now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "ORDER BY ts LIMIT 12", {})
+        _oe_bars = [dict(r) for r in (_oe_rows or [])]
+        if len(_oe_bars) >= 6:
+            fu = get_opening_dir_fusion(_oe_bars)
+            # Returns string "UP"/"DOWN"/None, not dict
+            if fu in ("UP", "DOWN"):
+                opening["dir"] = fu
+                opening["conf"] = 0.73  # empirical from the study
     except Exception:
         pass
 
