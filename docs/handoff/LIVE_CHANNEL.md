@@ -1,3 +1,69 @@
+### [2026-09-03 18:20 IL] cowork · 🆕 **T-235: `has_pullback` של EntryGuard מעולם לא מועבר בגייטוויי ⇒ השער מחמיר מפסיקת-28.08** · + תמונת-שערים: EntryGuard = 89% מהחלטות-היום
+
+**ריצת-ניטור-RTH (חובה 3) + מענה-טלפון (חובה 1). אפס שינוי-קוד, אפס ריסטארט (אסור 16:10-23:00), אפס נגיעה בדגלים/פוזיציות.**
+
+#### הממצא (T-235) — ראיה גולמית מהקוד, לא מהיסק
+
+הפסיקה (28.08, בראש `entry_location_quality.py`): `pos > 0.66` **בלי תיקון** = רודף. כלומר תיקון-אמיתי מתיר כניסה גם ברום-הרגל.
+
+- `backend/v9/systems/entry_location_quality.py:63` ⇒ `has_pullback: bool = False,` — הפרמטר קיים
+- `backend/v9/systems/entry_location_quality.py:90` ⇒ `if pos is not None and pos > c["pos_max"] and not has_pullback:`
+- `backend/v9/gateway/trading_gateway.py:1803-1812` — הקריאה היחידה בייצור: **לא מעבירה `has_pullback`**
+
+```
+$ grep -rn "has_pullback" backend/ | grep -v pycache
+backend/v9/tests/test_entry_location_quality.py:81:            has_pullback=True)
+backend/v9/systems/entry_location_quality.py:63:    has_pullback: bool = False,
+backend/v9/systems/entry_location_quality.py:90:            if pos is not None and pos > c["pos_max"] and not has_pullback:
+```
+⇒ **הקורא היחיד שמעביר את הפרמטר הוא הטסט.** בייצור הוא נשאר `False` תמיד ⇒ פטור-התיקון הוא קוד-מת.
+
+**למה לא נגעתי:** השער **חוסם-בלבד ולעולם לא מתיר**, ולכן ההחמרה אינה סיכון-מסחר — היא אובדן-הזדמנות. שינוי הוא שינוי בשטח-הסיכון ⇒ פסיקת-מייקל, לא יזמה של סוכן-ניטור. נרשם T-235.
+
+#### תמונת-השערים של 03.09 (סשן מלא, לא חתוך)
+
+`/api/v9/gateway/decisions?limit=2000` ⇒ 62 שורות, הישנה `13:30:04Z` = 09:30:04 ET (הפתיחה עצמה) ⇒ **הסשן במלואו, לא מדגם קטוע** (הפיד חסום ל-200 והחזיר 62 < 200).
+
+```
+   55  entry_location_quality      ← 89% מכל ההחלטות, על 8 תבניות שונות
+    4  awaiting_release
+    1  cont_trend_filter
+    1  direction_compass
+    1  (ROUTED)                    ← ZLR LONG 10:20 ET
+```
+פילוח: `S2_DELTA_DBL_LONG` 47 · `GB100` 2 · `ZLR` 2 · `FAILED_BREAK_SHORT/LONG` · `VA_FADE_SHORT` · `TREND_STEP`.
+**EntryGuard הוא היום שער-היחיד-שמשנה.** T-154 ("בנוי אך יתום — 0 קוראים בייצור") סגור בפועל: הוא חי ודומיננטי.
+
+#### הכי-קרוב-לירי (נמדד 18:13:20, sierra_state בגיל 0.36s)
+
+`S2_DELTA_DBL_LONG` — סדרה רצופה 18:04:17→18:05:05, כניסה 7726.00→7730.25, כולה `entry_location_quality`.
+נתונים חיים: SH 7739.25 · SL 7698.25 (רגל 41) · VAH 7723.50 · VAL 7702.50 (רוחב 21) · מחיר 7738.75.
+
+- שער-chaser עובר בכניסה ≤ **7725.31** · שער-value עובר ≤ 7728.75 ⇒ **המחמיר = chaser**
+- ⇒ נדרשת ירידה של **13.44 נק'**, והסף יושב על ה-VAH ⇒ "כניסה בראש-הערך", לא ויתור על הכיוון
+
+**הדינמיקה שראוי לתעד:** ב-18:04:38 הדרישה הייתה ~8 נק'; ב-18:13 היא 13.4. `leg_extreme = session_high` ⇒ כל שיא חדש מותח את הרגל **ומעלה גם את הסף**. הלונג מתרחק מהירי כשהשוק עולה; הוא נפתח רק בתיקון או ברגל-חדשה-מבסיס-גבוה.
+
+השני-הכי-קרוב: **S4 ZLR LONG** — `awaiting_release`, "structure not turning (1/2 higher lows)". החוסם היחיד שאינו דורש ירידת-מחיר.
+
+#### ⚠️ חזרת-מחלקה: #981 `UNPRICED` (T-160/T-227)
+
+```
+ id  |  mode  | sys | pat | dir  | state  |  et   | exit_reason | pnl_usd | outcome
+ 980 | shadow |   4 | ZLR | LONG | CLOSED | 10:20 | STOP_HIT    | -198.75 | LOSS
+ 981 | live   |   4 | ZLR | LONG | CLOSED | 10:20 | MAE_SCRATCH |         | UNPRICED
+```
+⇒ **הרווח-של-המערכת ל-03.09 לא ניתן לקבוע מהספרים.** `daily_pnl=252.5` ב-`sierra_state` הוא של החשבון, והחשבון משותף עם אתי.
+
+#### בריאות (נמדד עכשיו)
+
+`health=ok` · פיד: בר אחרון בגיל 3.3 דק' · בוט 15:41:33 (קדם-פתיחה) · `[boot] logging OK pid=8299` = ה-pid הרץ ⇒ הלוג רואה · פוזיציה 0 · `working_orders=0` · חמוש (`order_placement_armed=1`, `send_orders=1`, `is_sim=0`) · סלוט-לייב פנוי · אין צינון/cluster/SSV · `chop_state=EXPANDING`.
+**מרג'ין:** `acct_available_funds=3246.84` מול סף-T-34 של 1,595 ⇒ פי-2, `acct_under_margin=0`, `acct_trading_disabled=0`, `acct_loss_limit_reached=0`. ה-🔴 של הבוקר (413.38 ב-11:10) **סגור**.
+
+**הערה קטנה:** `/api/v9/gateway/status` מחזיר `shadow_active_count=1` בעוד ש-`v9_trades` מראה אפס עסקאות פתוחות (כל ה-non-CLOSED הן CANCELLED היסטוריות) ⇒ מונה-בזיכרון שלא התאפס אחרי סגירת #980. פער-מדידה, לא סיכון. לא נפתח T חדש — נכלל כאן לתיעוד.
+
+---
+
 ### [2026-09-03 17:55 IL] cowork · 🔴 **T-219 `BLOCKED_TWIN_V1` נפסק היום ON — והוא מת ב-100% מהמקרים. שורש: קריאה עם ארגומנט למתודה חסרת-ארגומנטים. תיקון = מילה אחת.**
 
 **ריצת-ניטור-RTH (חובה 3) + מענה-טלפון (חובה 1). לא בוצע שום שינוי-קוד, אין ריסטארט (אסור 16:10-23:00).**
