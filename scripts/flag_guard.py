@@ -42,8 +42,11 @@ def parse_ruled(path):
         if not m:
             continue
         key, body = m.group(1), m.group(2)
-        em = re.search(r'expected:\s*"([^"]*)"', body)
-        nm = re.search(r'note:\s*"([^"]*)"', body)
+        # T-219/T-168: match both single and double quoted expected values.
+        # T-168 converted note values to single quotes; some expected values
+        # followed. The parser must handle both.
+        em = re.search(r"""expected:\s*["']([^"']*)["']""", body)
+        nm = re.search(r"""note:\s*["']([^"']*)["']""", body)
         if em:
             ruled[key] = {"expected": em.group(1), "note": nm.group(1) if nm else ""}
     return ruled
