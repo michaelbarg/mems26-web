@@ -358,7 +358,7 @@ ruled:
   RISK_MAX_PTS_HARD: {expected: "30", ruled_by: "מייקל", date: "2026-09-01", note: 'רשת שנייה.' }
   BLOCKED_TWIN_V1: {expected: 'shadow', ruled_by: 'מייקל', date: '2026-09-03', note: 'T-219: shadow_blocked twin for every refused candidate. Runs AFTER gate decision (cannot change it). No slot, no Sierra order, no feedback. Daily cap 150. Only 8% of blocks are judgeable → this is what makes them measurable.' }
   STRUCTURE_EXIT_REALIZE_V1: {expected: 'live', ruled_by: 'מייקל', date: '2026-09-02', note: 'פסיקת 02.09 13:40: כפולה-שנכשלת ⇒ מימוש. אחרי-T1: MODIFY_STOP על כל רגל פתוחה אל מעבר-לבר-החוזר (נעילת-רווח). לפני-T1: אפס פעולה. לא FLATTEN (שומר-זרים). T0-aware via _target_order_key.' }
-  ENTRY_LOCATION_QUALITY_V1: {expected: 'shadow', ruled_by: 'מייקל', date: '2026-08-28', note: 'פסיקת 28.08 18:50: pos>0.66 בלי פולבק = רודף, stop/ATR>1.5 = יקר, (entry-VAH)/VA>0.25 = מעבר-לערך. shadow=לוג בלבד, 1=חוסם. הכל יחסי.' }
+  ENTRY_LOCATION_QUALITY_V1: {expected: '1', ruled_by: 'מייקל', date: '2026-08-28', note: 'פסיקת 28.08 18:50: pos>0.66 בלי פולבק = רודף, stop/ATR>1.5 = יקר, (entry-VAH)/VA>0.25 = מעבר-לערך. shadow=לוג בלבד, 1=חוסם. הכל יחסי.' }
   OPENING_ATR_RTH_SEED_V1: {expected: 'unset_or_0', ruled_by: 'cowork', date: '2026-09-02', note: 'בוטל: משנה ספי-זיהוי (לא סטופ). FIX-8/EARLY_ATR_FLOOR הוא התיקון הנכון לסטופ-הפתיחה. eff80e1f נשאר כבוי.' }
   OPENING_DRIVE_SKIP_V1: {expected: "0", ruled_by: "מייקל", date: "2026-09-01", note: 'פסיקת-מייקל 01.09 14:12: ''לפני שתכבה קודם תתקן''. הודלק ב-13:12 (n=6, 0 ניצחונות) והוסר שעה אחר-כך — הכלל הקבוע הוא ''מערכת שמפסידה לנו בתבנית אנחנו מתקנים ולא מבטלים''. הקוד נשאר; הדגל כבוי. להדליק רק אם תיקוני-הפתיחה ייכשלו במדידה.' }
 
