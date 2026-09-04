@@ -47,9 +47,18 @@ STAIR_ENTRY = 7747.0
 STAIR_DAY_TYPE = "Normal"
 STAIR_LIVE_RISK = 7.25
 STAIR_LIVE_STOP = STAIR_ENTRY - STAIR_LIVE_RISK              # 7739.75
+# T-249 (2026-09-04): the archived live text named c1/c2/c3 as 7754.25 /
+# 7761.5 / 7768.75 — every one of them ABOVE a LONG entry of 7747.0, i.e. on
+# the CORRECT side — as the reason for a wrong-side veto. Those are the
+# R-fallbacks `structural_targets` writes AFTER the verdict; the levels it
+# actually rejected are 7722.0 / 7738.0 / 7742.0, all below the long. The
+# archive faithfully recorded a sentence that was never true, and this constant
+# had frozen it. Kept byte-exact against the CORRECTED text so the archive
+# comparison still does its job.
 STAIR_LIVE_REASON = (
     "ALL structural targets on wrong side of LONG entry=7747.0 "
-    "(c1=7754.25, c2=7761.5, c3=7768.75, day_type=Normal)")
+    "— rejected levels c1=7722.0, c2=7738.0, c3=7742.0 (day_type=Normal); "
+    "the R-fallbacks that replaced them were 7754.25/7761.5/7768.75")
 
 # On a Normal day `_resolve_normal` gives LONG c1=IB-center, c2=VAH, c3=IBH.
 # A stair long stands ABOVE all of them by construction — that IS the geometry.
