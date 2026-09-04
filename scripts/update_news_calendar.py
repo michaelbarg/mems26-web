@@ -100,6 +100,24 @@ def fetch_forexfactory():
     return evs
 
 
+def _body_unchanged(lines: str) -> bool:
+    """True when the on-disk yaml already carries exactly this event body.
+
+    [T-245] Compares only what is downstream of the `events:` marker, so the
+    run-timestamp comment in the header is deliberately ignored — it is the one
+    field that changes on every run regardless of whether anything was learned.
+    Any read/parse problem returns False (write, i.e. today's behaviour): the
+    suppressor must never be the reason a real calendar update is lost.
+    """
+    try:
+        old = CAL.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    marker = "\nevents:\n"
+    _, sep, old_body = old.partition(marker)
+    return bool(sep) and old_body == lines
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -151,6 +169,19 @@ def main() -> int:
     if args.dry_run:
         print("[news_cal] dry-run — not written")
         return 0
+    # [T-245] No-op write suppressor. Until now every run rewrote the file with a
+    # fresh run-timestamp comment even when the event body was byte-identical, so a
+    # generated artifact sat dirty in the tree after each auto-run and blocked
+    # `git pull`/`commit` at the 15:30 pre-open gate's FIRST step (measured 04.09:
+    # 6 of the last 15 commits to the yaml were pure 1+/1- timestamp churn).
+    # Same class as T-231 (generated artifact dirties the tree), different artifact
+    # and a cheaper fix: the repo contract is unchanged — the file stays tracked and
+    # still rewrites whenever the events actually differ.
+    if _body_unchanged(lines):
+        print(f"[news_cal] unchanged — {CAL} left untouched "
+              f"(event body identical; run-timestamp not bumped, T-245)")
+        return 0
+
     src_line = f"# מקור-הריצה האחרונה: {source} · {datetime.now(ET).strftime('%Y-%m-%d %H:%M ET')}"
     CAL.write_text(HEADER.format(source_line=src_line) + lines, encoding="utf-8")
     print(f"[news_cal] wrote {CAL}")
