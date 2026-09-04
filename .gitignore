@@ -25,3 +25,12 @@ docs/spec_authority/source/*.pdf
 
 # phone uploads pulled from Render (durable on this Mac; photos too big for git)
 docs/handoff/phone_uploads/
+
+# T-248 (2026-09-04): run-time artifacts. scripts/ops_log.py appends to
+# docs/reports/OPS_LOG_<trading-day>.md every few seconds while the stack runs,
+# so the tree can never be clean during RTH and `git pull` — the FIRST step of
+# every agent session — fails with "You have unstaged changes". 44 commits in a
+# week were nothing but this log tail, and `git stash` on it truncated 1,843
+# lines on 2026-09-02. The file stays on disk (verify_t17_e2e reads it by glob);
+# only git stops tracking it. History keeps every past version.
+docs/reports/OPS_LOG_*.md
