@@ -4,104 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-03 16:56 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-03 22:56 ET
 events:
-  - date: 2026-09-03
-    time_et: "05:30"
-    name: "Challenger Job Cuts"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Continuing Jobless Claims"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Nonfarm Productivity QoQ Final"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Jobless Claims 4-week Average"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Unit Labour Costs QoQ Final"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Imports"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Exports"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Balance of Trade"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Fed Waller Speech"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "08:30"
-    name: "Initial Jobless Claims"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "09:45"
-    name: "S&P Global Composite PMI Final"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "09:45"
-    name: "S&P Global Services PMI Final"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services Employment"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services Business Activity"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services Prices"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services New Orders"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "10:00"
-    name: "ISM Services PMI"
-    severity: red
-  - date: 2026-09-03
-    time_et: "10:30"
-    name: "EIA Natural Gas Stocks Change"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "11:30"
-    name: "8-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "11:30"
-    name: "4-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "12:00"
-    name: "30-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "12:00"
-    name: "15-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-03
-    time_et: "15:00"
-    name: "Fed Hammack Speech"
-    severity: orange
-  - date: 2026-09-03
-    time_et: "16:30"
-    name: "Fed Balance Sheet"
-    severity: yellow
   - date: 2026-09-04
     time_et: "08:30"
     name: "Manufacturing Payrolls"
@@ -230,3 +134,119 @@ events:
     time_et: "16:30"
     name: "API Crude Oil Stock Change"
     severity: orange
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI Ex Food, Energy and Trade MoM"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI YoY"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "Continuing Jobless Claims"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "Jobless Claims 4-week Average"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI Ex Food, Energy and Trade YoY"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "Core PPI YoY"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "Initial Jobless Claims"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "Core PPI MoM"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI MoM"
+    severity: red
+  - date: 2026-09-10
+    time_et: "10:00"
+    name: "Wholesale Inventories MoM"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "10:00"
+    name: "Existing Home Sales MoM"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "10:00"
+    name: "Existing Home Sales"
+    severity: red
+  - date: 2026-09-10
+    time_et: "10:30"
+    name: "EIA Natural Gas Stocks Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "11:30"
+    name: "8-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "11:30"
+    name: "4-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Heating Oil Stocks Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "15-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "30-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Crude Oil Imports Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Distillate Stocks Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Distillate Fuel Production Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Cushing Crude Oil Stocks Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Gasoline Production Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Refinery Crude Runs Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Gasoline Stocks Change"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Crude Oil Stocks Change"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "13:00"
+    name: "30-Year Bond Auction"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "16:30"
+    name: "Fed Balance Sheet"
+    severity: yellow
