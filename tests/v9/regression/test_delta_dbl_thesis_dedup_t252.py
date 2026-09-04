@@ -125,6 +125,7 @@ def test_bar_level_detector_reports_cost_split_by_mode():
     """
     from backend.v9.services.trade_manager.bar_level_detector import BarLevelDetector
     d = BarLevelDetector.__new__(BarLevelDetector)
+    d._unexec_ops, d._unexec_count = set(), 0      # T-255 fields, same stats dict
     d._bars_processed = 3
     d._mode_secs = {"shadow": 0.020, "live": 0.004}
     d._mode_trades = {"shadow": 40, "live": 2}
@@ -140,6 +141,7 @@ def test_bar_level_detector_reports_cost_split_by_mode():
 def test_timer_reports_none_rather_than_zero_before_any_bar():
     from backend.v9.services.trade_manager.bar_level_detector import BarLevelDetector
     d = BarLevelDetector.__new__(BarLevelDetector)
+    d._unexec_ops, d._unexec_count = set(), 0
     d._bars_processed = 0
     d._mode_secs = {"shadow": 0.0, "live": 0.0}
     d._mode_trades = {"shadow": 0, "live": 0}
