@@ -155,7 +155,15 @@ def main() -> int:
     except Exception:
         pass
 
-    allev = sorted(kept + evs, key=lambda x: (x["date"], x["time_et"]))
+    # [T-245 part 2, 2026-09-04] `name` is a TIEBREAKER, not decoration. Without
+    # it this sort is stable-but-input-ordered, so two events at the same
+    # date+time keep whatever order the fetch happened to return — and the
+    # T-245 no-op suppressor below is defeated because the body genuinely
+    # differs. Measured today: the 08:14 ET and 14:14 ET runs produced the same
+    # events and still left the tree dirty, because "Average Weekly Hours" and
+    # "Government Payrolls" (both 2026-09-04) swapped places. Deterministic
+    # output is what makes "unchanged" mean unchanged.
+    allev = sorted(kept + evs, key=lambda x: (x["date"], x["time_et"], x["name"]))
     lines = ""
     for e in allev:
         nm = e["name"].replace('"', "'")
