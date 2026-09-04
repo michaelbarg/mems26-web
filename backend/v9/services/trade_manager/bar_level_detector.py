@@ -12,6 +12,7 @@ This is the CRITICAL missing piece that makes SHADOW trades close automatically.
 """
 
 import logging
+import time as _perf
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -38,6 +39,17 @@ class BarLevelDetector:
         self._eod_flatten_requested: set = set()  # trade ids already sent an EOD CANCEL
         # F5: one-shot honesty log — RUNNER_TRAIL_V1 is shadowed by DYNAMIC_STRUCT_TRAIL
         self._runner_trail_v1_shadow_warned: bool = False
+        # T-252: in-code cost accounting, split shadow vs demo/live. The
+        # BarRouter's SLOW-handler line only prints above 100ms and reports the
+        # handler as a whole, so the log can neither give a real mean (the
+        # distribution it shows is truncated) nor say which mode paid. Read via
+        # get_stats() / GET /api/v9/system6/diagnose.
+        self._mode_secs = {"shadow": 0.0, "live": 0.0}
+        self._mode_trades = {"shadow": 0, "live": 0}
+        self._loop_ms_total: float = 0.0
+        self._loop_ms_max: float = 0.0
+        self._loop_bars: int = 0
+        self._open_by_mode: dict = {"shadow": 0, "live": 0}
 
     def _trade_still_open(self, trade_id: int) -> bool:
         """T4 helper: is this trade still active in the books?
@@ -818,7 +830,33 @@ class BarLevelDetector:
             except Exception:
                 pass
 
+            # T-252 (2026-09-04) — MEASURE the per-trade cost in code.
+            #
+            # The evening's log-derived attempt ("open shadow trades inflate
+            # on_bar") was refuted by its own data: 19:00 and 20:00 both had 70
+            # open trades and differed 2x (2,579ms vs 1,217ms mean), and 22:00
+            # with 47 open was CHEAPER than 21:00 with 22. The log cannot settle
+            # it, for two reasons: BarRouter only prints a handler's time when
+            # it crosses 100ms (a truncated distribution — the mean of what got
+            # printed is not the mean), and it reports ONE number for the whole
+            # handler, so shadow work and live work are indistinguishable.
+            # This timer splits them, counts every bar rather than the slow
+            # tail, and is reported through get_stats().
+            # The loop below has a dozen `continue`s, so the cost of iteration
+            # k is charged at the TOP of iteration k+1 (and the last one after
+            # the loop). No reindentation of the hot path, no try/finally.
+            _t_loop = _perf.perf_counter()
+            _t_prev, _prev_bucket = _t_loop, None
+
             for trade in active:
+                _t_now = _perf.perf_counter()
+                if _prev_bucket is not None:
+                    self._mode_secs[_prev_bucket] += _t_now - _t_prev
+                    self._mode_trades[_prev_bucket] += 1
+                _t_prev = _t_now
+                _prev_bucket = ("live"
+                                if getattr(trade, "mode", "shadow") in ("demo", "live")
+                                else "shadow")
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
                 if trade.state not in (
                     TradeState.FILLED.value,
@@ -1289,6 +1327,21 @@ class BarLevelDetector:
                         # After T3 (all contracts out): notify gateway to free demo slot
                         if target_name == "T3":
                             self._notify_trade_close(trade, "T3")
+
+            # close out the final iteration + record this bar's totals
+            if _prev_bucket is not None:
+                self._mode_secs[_prev_bucket] += _perf.perf_counter() - _t_prev
+                self._mode_trades[_prev_bucket] += 1
+            _loop_ms = (_perf.perf_counter() - _t_loop) * 1000.0
+            self._loop_ms_total += _loop_ms
+            self._loop_ms_max = max(self._loop_ms_max, _loop_ms)
+            self._loop_bars += 1
+            self._open_by_mode = {
+                "shadow": sum(1 for t in active
+                              if getattr(t, "mode", "shadow") not in ("demo", "live")),
+                "live": sum(1 for t in active
+                            if getattr(t, "mode", "shadow") in ("demo", "live")),
+            }
 
             self._tm._db.commit()
 
@@ -1929,4 +1982,24 @@ class BarLevelDetector:
             logger.warning("[BarLevelDetector] gateway notify failed (non-fatal): %s", e)
 
     def get_stats(self) -> dict:
-        return {"bars_processed": self._bars_processed}
+        """T-252: cost of the per-bar loop, measured in code and split by mode.
+
+        `us_per_trade` is the number that settles "does the shadow book slow
+        the bar processor" — the log could not, because BarRouter prints a
+        handler's time only above 100ms (truncated distribution) and reports
+        one number for shadow and live together.
+        """
+        def _per(mode):
+            n = self._mode_trades[mode]
+            return round(self._mode_secs[mode] / n * 1e6, 1) if n else None
+        return {
+            "bars_processed": self._bars_processed,
+            "loop_bars": self._loop_bars,
+            "loop_ms_mean": (round(self._loop_ms_total / self._loop_bars, 2)
+                             if self._loop_bars else None),
+            "loop_ms_max": round(self._loop_ms_max, 2),
+            "open_by_mode": dict(self._open_by_mode),
+            "trade_visits": dict(self._mode_trades),
+            "us_per_trade": {"shadow": _per("shadow"), "live": _per("live")},
+            "secs_by_mode": {k: round(v, 4) for k, v in self._mode_secs.items()},
+        }

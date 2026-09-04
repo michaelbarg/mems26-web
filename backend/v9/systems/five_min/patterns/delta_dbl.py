@@ -93,6 +93,64 @@ def _swing_high(bars: List[Dict], idx: int) -> bool:
     )
 
 
+#: T-252 (2026-09-04) — one thesis per forming bar, per direction.
+#:
+#: `five_min_system._bar_buffer[-1] = bar` (five_min_system.py:1774) REPLACES
+#: the in-progress bar on every push from the bridge, and `bars.py:197`
+#: publishes a "5min" event on every one of those pushes. So this detector was
+#: re-evaluated every 2-5 seconds against the SAME still-forming bar, and while
+#: the pattern condition held it emitted a fresh setup each time: 129 shadow
+#: trades on 2026-09-04, in 11 distinct minutes, up to 24 in 69 seconds
+#: (#1014..#1037, entries 7721.00-7722.00, identical stop/T1/T2/T3 and P&L).
+#:
+#: A five-minute system can hold at most ONE entry thesis per bar per
+#: direction. The key is therefore the TRIGGER BAR's timestamp — stable for the
+#: whole five minutes — plus the two swing bars that define the double. Keying
+#: on entry price instead (what the gateway's DEDUP_FIRE_GUARD does, +-0.5pt /
+#: 30s) cannot work here: the burst walked a 1.00pt range over 69 seconds, so
+#: it splits one thesis into several "distinct" fires and misses the rest.
+_SEEN_THESES: "list" = []
+_SEEN_CAP = 64
+
+
+def thesis_key(setup: Optional[Dict[str, Any]]) -> Optional[Tuple]:
+    """Identity of the SETUP, independent of which tick re-evaluated it."""
+    if not setup:
+        return None
+    md = setup.get("metadata") or {}
+    return (setup.get("direction"), md.get("trigger_bar_ts"),
+            md.get("t1_bar_ts"), md.get("t2_bar_ts"))
+
+
+def is_new_thesis(setup: Optional[Dict[str, Any]]) -> bool:
+    """True the FIRST time a thesis is seen; False for every re-evaluation.
+
+    Fails OPEN: a setup whose trigger bar carries no usable timestamp is let
+    through rather than silently dropped (Rule 1 — an unknown must not be
+    laundered into a decision).
+    """
+    key = thesis_key(setup)
+    if key is None or not key[1]:
+        return True
+    if key in _SEEN_THESES:
+        return False
+    _SEEN_THESES.append(key)
+    del _SEEN_THESES[:-_SEEN_CAP]
+    return True
+
+
+def reset_theses() -> None:
+    """Test hook / session boundary."""
+    _SEEN_THESES.clear()
+
+
+def _bar_ts(bars: List[Dict], idx: int) -> Optional[str]:
+    try:
+        return str(bars[idx].get("ts") or "") or None
+    except (IndexError, AttributeError, TypeError):
+        return None
+
+
 def detect_delta_dbl(
     bars: List[Dict],
     day_type: Optional[str],
@@ -166,6 +224,11 @@ def detect_delta_dbl(
                     "day_type": day_type,
                     "t1_bar": j,
                     "t2_bar": t2_idx,
+                    # T-252: bar indices slide as the buffer rolls; timestamps
+                    # are what make a thesis identifiable across re-evaluations.
+                    "trigger_bar_ts": _bar_ts(bars, i),
+                    "t1_bar_ts": _bar_ts(bars, j),
+                    "t2_bar_ts": _bar_ts(bars, t2_idx),
                     "delta": round(d, 1),
                     "delta_ratio": round(d / max(ad, 0.1), 2),
                     "neck": round(neck, 2),
@@ -211,6 +274,9 @@ def detect_delta_dbl(
                     "day_type": day_type,
                     "t1_bar": j,
                     "t2_bar": t2_idx,
+                    "trigger_bar_ts": _bar_ts(bars, i),
+                    "t1_bar_ts": _bar_ts(bars, j),
+                    "t2_bar_ts": _bar_ts(bars, t2_idx),
                     "delta": round(d, 1),
                     "delta_ratio": round(abs(d) / max(ad, 0.1), 2),
                     "neck": round(neck, 2),

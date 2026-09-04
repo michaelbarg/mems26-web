@@ -1138,10 +1138,12 @@ async def _startup():
         # ── C1: S2_DELTA_DBL_V1 — delta divergence double bottom/top ──
         # Separate stream (not in slot competition): +$2,254/34 sessions.
         # Conditioned on day_type ∈ {Normal, Trend_Normal, Trend_DD}.
+        _dd_sup = [0]        # T-252 same-thesis suppression counter
+
         async def _delta_dbl_on_bar(event):
             try:
                 from backend.v9.systems.five_min.patterns.delta_dbl import (
-                    enabled as _dd_enabled, detect_delta_dbl,
+                    enabled as _dd_enabled, detect_delta_dbl, is_new_thesis,
                 )
                 if not _dd_enabled():
                     return
@@ -1173,6 +1175,22 @@ async def _startup():
                         _deltas = [0.0] + _cvd["perbar_deltas"]
                 _atr = getattr(_fms, "_current_atr_5m", None)
                 _setup = detect_delta_dbl(_buf, _dt_str, _atr, _deltas)
+                if _setup and not is_new_thesis(_setup):
+                    # T-252 (2026-09-04): the bridge republishes the SAME
+                    # forming 5-min bar every 2-5s, so this handler re-ran and
+                    # re-emitted one thesis dozens of times — 129 shadow trades
+                    # in 11 distinct minutes, 24 of them inside 69 seconds.
+                    # Counted, never silent: a suppression that leaves no trace
+                    # is indistinguishable from a detector that stopped working.
+                    _dd_sup[0] += 1
+                    if _dd_sup[0] % 25 == 1:
+                        _logger.info(
+                            "[DeltaDBL] T-252 same-thesis re-emit suppressed "
+                            "(%s @%s, trigger bar %s) — %d suppressed today",
+                            _setup["direction"], _setup["entry_price"],
+                            (_setup.get("metadata") or {}).get("trigger_bar_ts"),
+                            _dd_sup[0])
+                    return
                 if _setup:
                     _res = _gw.route_setup(_setup, 2)
                     if _res.get("blocked_by"):
