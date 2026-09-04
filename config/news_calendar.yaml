@@ -4,28 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 08:14 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 16:53 ET
 events:
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Manufacturing Payrolls"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Nonfarm Payrolls Private"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Average Weekly Hours"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "U-6 Unemployment Rate"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Government Payrolls"
-    severity: yellow
   - date: 2026-09-04
     time_et: "08:30"
     name: "Average Hourly Earnings MoM"
@@ -36,23 +16,43 @@ events:
     severity: orange
   - date: 2026-09-04
     time_et: "08:30"
-    name: "Participation Rate"
-    severity: orange
+    name: "Average Weekly Hours"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Government Payrolls"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Manufacturing Payrolls"
+    severity: yellow
   - date: 2026-09-04
     time_et: "08:30"
     name: "Non Farm Payrolls"
     severity: red
   - date: 2026-09-04
     time_et: "08:30"
+    name: "Nonfarm Payrolls Private"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "Participation Rate"
+    severity: orange
+  - date: 2026-09-04
+    time_et: "08:30"
+    name: "U-6 Unemployment Rate"
+    severity: yellow
+  - date: 2026-09-04
+    time_et: "08:30"
     name: "Unemployment Rate"
     severity: red
   - date: 2026-09-04
     time_et: "13:00"
-    name: "Baker Hughes Total Rigs Count"
+    name: "Baker Hughes Oil Rig Count"
     severity: yellow
   - date: 2026-09-04
     time_et: "13:00"
-    name: "Baker Hughes Oil Rig Count"
+    name: "Baker Hughes Total Rigs Count"
     severity: yellow
   - date: 2026-09-06
     time_et: "20:00"
@@ -68,11 +68,11 @@ events:
     severity: orange
   - date: 2026-09-08
     time_et: "09:00"
-    name: "Used Car Prices YoY"
+    name: "Used Car Prices MoM"
     severity: yellow
   - date: 2026-09-08
     time_et: "09:00"
-    name: "Used Car Prices MoM"
+    name: "Used Car Prices YoY"
     severity: yellow
   - date: 2026-09-08
     time_et: "11:00"
@@ -80,11 +80,11 @@ events:
     severity: yellow
   - date: 2026-09-08
     time_et: "11:30"
-    name: "6-Month Bill Auction"
+    name: "3-Month Bill Auction"
     severity: yellow
   - date: 2026-09-08
     time_et: "11:30"
-    name: "3-Month Bill Auction"
+    name: "6-Month Bill Auction"
     severity: yellow
   - date: 2026-09-08
     time_et: "13:00"
@@ -100,11 +100,11 @@ events:
     severity: yellow
   - date: 2026-09-09
     time_et: "07:00"
-    name: "MBA Mortgage Applications"
-    severity: yellow
+    name: "MBA 30-Year Mortgage Rate"
+    severity: orange
   - date: 2026-09-09
     time_et: "07:00"
-    name: "MBA Purchase Index"
+    name: "MBA Mortgage Applications"
     severity: yellow
   - date: 2026-09-09
     time_et: "07:00"
@@ -116,8 +116,8 @@ events:
     severity: yellow
   - date: 2026-09-09
     time_et: "07:00"
-    name: "MBA 30-Year Mortgage Rate"
-    severity: orange
+    name: "MBA Purchase Index"
+    severity: yellow
   - date: 2026-09-09
     time_et: "08:55"
     name: "Redbook YoY"
@@ -136,28 +136,12 @@ events:
     severity: orange
   - date: 2026-09-10
     time_et: "08:30"
-    name: "PPI Ex Food, Energy and Trade MoM"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI YoY"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
     name: "Continuing Jobless Claims"
     severity: yellow
   - date: 2026-09-10
     time_et: "08:30"
-    name: "Jobless Claims 4-week Average"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI Ex Food, Energy and Trade YoY"
-    severity: yellow
+    name: "Core PPI MoM"
+    severity: orange
   - date: 2026-09-10
     time_et: "08:30"
     name: "Core PPI YoY"
@@ -168,43 +152,55 @@ events:
     severity: orange
   - date: 2026-09-10
     time_et: "08:30"
-    name: "Core PPI MoM"
-    severity: orange
+    name: "Jobless Claims 4-week Average"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI Ex Food, Energy and Trade MoM"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI Ex Food, Energy and Trade YoY"
+    severity: yellow
   - date: 2026-09-10
     time_et: "08:30"
     name: "PPI MoM"
     severity: red
+  - date: 2026-09-10
+    time_et: "08:30"
+    name: "PPI YoY"
+    severity: yellow
   - date: 2026-09-10
     time_et: "09:20"
     name: "NY Fed Bill Purchases 4 to 12 months"
     severity: yellow
   - date: 2026-09-10
     time_et: "10:00"
-    name: "Wholesale Inventories MoM"
-    severity: yellow
+    name: "Existing Home Sales"
+    severity: red
   - date: 2026-09-10
     time_et: "10:00"
     name: "Existing Home Sales MoM"
     severity: orange
   - date: 2026-09-10
     time_et: "10:00"
-    name: "Existing Home Sales"
-    severity: red
+    name: "Wholesale Inventories MoM"
+    severity: yellow
   - date: 2026-09-10
     time_et: "10:30"
     name: "EIA Natural Gas Stocks Change"
     severity: yellow
   - date: 2026-09-10
     time_et: "11:30"
-    name: "8-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "11:30"
     name: "4-Week Bill Auction"
     severity: yellow
   - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Heating Oil Stocks Change"
+    time_et: "11:30"
+    name: "8-Week Bill Auction"
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
@@ -220,7 +216,11 @@ events:
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
-    name: "EIA Distillate Stocks Change"
+    name: "EIA Crude Oil Stocks Change"
+    severity: orange
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Cushing Crude Oil Stocks Change"
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
@@ -228,7 +228,7 @@ events:
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
-    name: "EIA Cushing Crude Oil Stocks Change"
+    name: "EIA Distillate Stocks Change"
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
@@ -236,16 +236,16 @@ events:
     severity: yellow
   - date: 2026-09-10
     time_et: "12:00"
-    name: "EIA Refinery Crude Runs Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
     name: "EIA Gasoline Stocks Change"
     severity: orange
   - date: 2026-09-10
     time_et: "12:00"
-    name: "EIA Crude Oil Stocks Change"
-    severity: orange
+    name: "EIA Heating Oil Stocks Change"
+    severity: yellow
+  - date: 2026-09-10
+    time_et: "12:00"
+    name: "EIA Refinery Crude Runs Change"
+    severity: yellow
   - date: 2026-09-10
     time_et: "13:00"
     name: "30-Year Bond Auction"
