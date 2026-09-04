@@ -73,9 +73,17 @@ STAIR_T3 = round(STAIR_ENTRY + 1.30 * STAIR_IMPULSE, 2)   # 7774.95
 # c1 = entry-1R => risk 4.5pt.
 ZLR_ENTRY = 7800.75
 ZLR_STOP = ZLR_ENTRY + 4.5                                   # 7805.25
+# T-249 (2026-09-04): this constant used to pin the OLD sentence,
+#   "... (c1=7796.25, c2=7791.75, c3=7787.25, day_type=Variation)"
+# which named three levels BELOW a SHORT entry of 7800.75 — i.e. on the CORRECT
+# side — as the reason for a wrong-side veto. Those were the R-fallbacks
+# `structural_targets` writes AFTER the verdict, not the levels it judged. The
+# veto was right; the sentence was not, and this test had frozen it.
 ZLR_REASON = (
     "ALL structural targets on wrong side of SHORT entry=7800.75 "
-    "(c1=7796.25, c2=7791.75, c3=7787.25, day_type=Variation)")
+    "— rejected levels c1=7810.0, c2=7810.0, c3=7825.0 "
+    "(day_type=Variation); the R-fallbacks that replaced them were "
+    "7796.25/7791.75/7787.25")
 
 # Variation SHORT: c1 = IBL - IBwidth/2, c3 = VAL. A short at the session low
 # has all of them ABOVE it — the mirror image of the stair's geometry.

@@ -272,8 +272,28 @@ def diagnose_trade(
             _sierra_val = _sierra_tgts.get(_tk)
             if _db_val is not None and _sierra_val is not None:
                 if abs(float(_db_val) - float(_sierra_val)) > 0.25:
+                    # T-255 ROOT (2026-09-04): this was classified AUTO, which
+                    # contradicts BOTH the comment four lines above it ("→ ALERT
+                    # + correction via MODIFY_TARGET path") and CLAUDE.md's
+                    # protective-tier contract ("the protective AUTO set emits
+                    # only MODIFY_STOP + advisory DROP_TARGET"). Being AUTO, it
+                    # was handed to bar_level_detector._exec on every scan of
+                    # every bar; _exec has no MODIFY_TARGET branch, so it fell
+                    # through to `correction %s needs manual handling` and was
+                    # rejected 100% of the time — 47,772 WARNING lines, the
+                    # loudest thing in the trading log, drowning real alerts.
+                    #
+                    # NOTE the correction to the T-255 write-up: op=MODIFY_TARGET
+                    # is NOT "an op the DLL does not have" — the DLL implements
+                    # it (MES_AI_DataExport_merged.cpp:3225-3245) and
+                    # TradeManager._emit_modify_target exists. The gap is the
+                    # missing dispatch branch in _exec. Wiring it would START
+                    # moving live targets at the broker = a trading-risk change
+                    # needing Michael's ruling. Restoring the documented ALERT
+                    # tier only REMOVES an attempt that never succeeded, and
+                    # keeps the divergence reported where it belongs.
                     issues.append(Issue(
-                        f"target_divergence_{_tk}", WARN, AUTO,
+                        f"target_divergence_{_tk}", WARN, ALERT,
                         f"DB {_tk}={_db_val} != Sierra {_tk}={_sierra_val} "
                         f"(gap {abs(float(_db_val)-float(_sierra_val)):.2f}pt)",
                         correction={"op": "MODIFY_TARGET", "target": _tk,

@@ -3053,11 +3053,25 @@ class TradingGateway:
                             _st = None
                         else:
                             result["blocked_by"] = "structural_targets_wrong_side"
+                            # T-249 (2026-09-04): quote the levels that were
+                            # REJECTED, not t1_price..t3_price — those are the
+                            # R-fallback replacements structural_targets writes
+                            # after the verdict, and printing them made this
+                            # line contradict itself (17:45:02 named c1/c2/c3
+                            # that all sat on the CORRECT side of the entry).
+                            _rej = (_st.get("rejected_targets") or {}) if isinstance(_st, dict) else {}
+                            _r1 = _rej.get("c1", _st.get("t1_price"))
+                            _r2 = _rej.get("c2", _st.get("t2_price"))
+                            _r3 = _rej.get("c3", _st.get("t3_price"))
+                            result["rejected_targets"] = {"c1": _r1, "c2": _r2, "c3": _r3}
                             result["reason"] = (
                                 f"ALL structural targets on wrong side of {direction} "
                                 f"entry={setup.get('entry_price')} "
-                                f"(c1={_st.get('t1_price')}, c2={_st.get('t2_price')}, "
-                                f"c3={_st.get('t3_price')}, day_type={_st.get('day_type')})"
+                                f"— rejected levels c1={_r1}, c2={_r2}, c3={_r3} "
+                                f"(day_type={_st.get('day_type')}); the R-fallbacks "
+                                f"that replaced them were "
+                                f"{_st.get('t1_price')}/{_st.get('t2_price')}/"
+                                f"{_st.get('t3_price')}"
                             )
                             logger.warning(
                                 "[Gateway] BLOCKED structural_targets_wrong_side: %s",

@@ -550,6 +550,19 @@ def _build_result(
     _ws_count = sum(1 for t in _ws_targets if _is_wrong_side(t))
     _all_wrong_side = len(_ws_targets) > 0 and _ws_count == len(_ws_targets)
 
+    # T-249 (2026-09-04): keep the levels AS REJECTED. Everything below this
+    # point rewrites c1/c2/c3 — `_fix_side` swaps each wrong-side target for an
+    # R-fallback, then monotonicity + grid-snap move them again — so a consumer
+    # reading `t1_price..t3_price` to explain the veto reports the REPLACEMENTS.
+    # That is how 2026-09-04 17:45:02 produced a self-contradicting line:
+    #   "ALL structural targets on wrong side of SHORT entry=7725.0
+    #    (c1=7695.0, c2=7665.0, c3=7635.0)"
+    # — all three of those sit BELOW a short entry, i.e. on the RIGHT side.
+    # They are entry-1R/-2R/-3R (risk 30pt), not structure. The block looked
+    # like a sign bug in the veto and was not; the veto was right and the
+    # sentence describing it was wrong.
+    _rejected = {"c1": c1, "c2": c2, "c3": c3}
+
     if _all_wrong_side:
         logger.warning(
             "[structural_targets] ALL %d targets on wrong side of %s entry=%.2f "
@@ -613,4 +626,8 @@ def _build_result(
         "day_type": day_type,
         "no_trade": _all_wrong_side,
         "all_wrong_side": _all_wrong_side,
+        # T-249: the levels that were actually judged, before R-fallback /
+        # monotonicity / grid-snap rewrote them. Any message explaining the
+        # wrong-side veto must quote THESE, not t1_price..t3_price.
+        "rejected_targets": _rejected,
     }

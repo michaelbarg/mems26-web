@@ -50,6 +50,10 @@ class BarLevelDetector:
         self._loop_ms_max: float = 0.0
         self._loop_bars: int = 0
         self._open_by_mode: dict = {"shadow": 0, "live": 0}
+        # T-255: corrections whose op has no executor here — announced once per
+        # (trade, op, target), counted always, so suppression is not silence.
+        self._unexec_ops: set = set()
+        self._unexec_count: int = 0
 
     def _trade_still_open(self, trade_id: int) -> bool:
         """T4 helper: is this trade still active in the books?
@@ -128,7 +132,23 @@ class BarLevelDetector:
                     # N4 (2026-07-17): was advisory-only (CLAUDE.md: "not wired") even
                     # though protective mode already covers it — completes the wiring.
                     return self._tm._emit_drop_target(trade, correction.get("target"))
-                logger.warning("[System6] correction %s needs manual handling (advisory)", op)
+                # T-255 (2026-09-04): this ran on every scan of every bar and
+                # produced 47,772 identical WARNINGs. "This correction class has
+                # no executor" is a fact about the CODE, not an event — it needs
+                # saying once per (trade, op, target), not once per bar. Second
+                # line of defence: the AUTO/ALERT tier at the source is what
+                # decides whether _exec sees this op at all (see
+                # system6_supervisor invariant-10).
+                _k = (getattr(trade, "id", None), op,
+                      (correction or {}).get("target"))
+                if _k not in self._unexec_ops:
+                    self._unexec_ops.add(_k)
+                    logger.warning(
+                        "[System6] correction %s has no executor here — advisory "
+                        "only (trade %s, target %s). Further identical "
+                        "corrections on this trade are not repeated.",
+                        op, _k[0], _k[2])
+                self._unexec_count += 1
                 return False
 
             # Feed the live reconcile truth in — this is what makes System 6 catch a
@@ -2002,4 +2022,6 @@ class BarLevelDetector:
             "trade_visits": dict(self._mode_trades),
             "us_per_trade": {"shadow": _per("shadow"), "live": _per("live")},
             "secs_by_mode": {k: round(v, 4) for k, v in self._mode_secs.items()},
+            "unexecutable_corrections": self._unexec_count,
+            "unexecutable_ops": sorted({k[1] for k in self._unexec_ops}),
         }
