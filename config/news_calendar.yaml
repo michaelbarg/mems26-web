@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 04:56 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 08:14 ET
 events:
   - date: 2026-09-04
     time_et: "08:30"
@@ -67,10 +67,6 @@ events:
     name: "ADP Employment Change Weekly"
     severity: orange
   - date: 2026-09-08
-    time_et: "08:55"
-    name: "Redbook YoY"
-    severity: yellow
-  - date: 2026-09-08
     time_et: "09:00"
     name: "Used Car Prices YoY"
     severity: yellow
@@ -91,12 +87,12 @@ events:
     name: "3-Month Bill Auction"
     severity: yellow
   - date: 2026-09-08
-    time_et: "11:30"
-    name: "6-Week Bill Auction"
+    time_et: "13:00"
+    name: "3-Year Note Auction"
     severity: yellow
   - date: 2026-09-08
     time_et: "13:00"
-    name: "3-Year Note Auction"
+    name: "6-Week Bill Auction"
     severity: yellow
   - date: 2026-09-08
     time_et: "15:00"
@@ -122,6 +118,10 @@ events:
     time_et: "07:00"
     name: "MBA 30-Year Mortgage Rate"
     severity: orange
+  - date: 2026-09-09
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
   - date: 2026-09-09
     time_et: "11:30"
     name: "17-Week Bill Auction"
@@ -174,6 +174,10 @@ events:
     time_et: "08:30"
     name: "PPI MoM"
     severity: red
+  - date: 2026-09-10
+    time_et: "09:20"
+    name: "NY Fed Bill Purchases 4 to 12 months"
+    severity: yellow
   - date: 2026-09-10
     time_et: "10:00"
     name: "Wholesale Inventories MoM"
