@@ -44,6 +44,9 @@ def _orphan_cooldown_s() -> float:
 # T-43b: contract count mismatch entry blocker. Set True by reconcile_position
 # on mismatch, cleared when match resumes. Gateway checks this before any entry.
 _position_mismatch_block: bool = False
+#: T-254: last set of "active in the books, zero contracts left" trades, so the
+#: stuck-open warning fires on change instead of every 30s scan.
+_last_drained: list = []
 
 def _mismatch_block_enabled() -> bool:
     """‏cowork 29.08 — גידור T-43b לפני יום-שני.
@@ -816,6 +819,7 @@ def reconcile_position(tm, *, fill_poller=None, gateway=None) -> Tuple[bool, str
     # Count TM open contracts (demo + live, not shadow)
     tm_qty = 0
     tm_trades = []
+    _drained = []          # active in the books, zero contracts left per Sierra
     try:
         active = tm.get_active_trades() if hasattr(tm, "get_active_trades") else []
         for t in (active or []):
@@ -827,23 +831,60 @@ def reconcile_position(tm, *, fill_poller=None, gateway=None) -> Tuple[bool, str
                 continue
             direction = str(getattr(t, "direction", "")).upper()
             from backend.v9.services.trade_manager.manager import trade_contract_count
-            n = trade_contract_count(t)
-            # Subtract hit targets
-            for tgt in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts", "t4_hit_ts"):
-                if getattr(t, tgt, None) is not None:
-                    n -= 1
-            n = max(0, n)
+            # T-254 ROOT-FIX (2026-09-04): this used to do `n -= 1` for each of
+            # t1..t4_hit_ts. Two independent errors in five lines:
+            #   * a leg that closed TWO contracts subtracted ONE (the ruled
+            #     ladder at five is 1/2/1/1, at six 1/2/2/1 — only the T0 and
+            #     T3 legs are ever one contract);
+            #   * it iterated t1..t4 while the ladder legs are t0..t3, so the
+            #     T0 scale-out — which has no column, only an exit_fills
+            #     entry — was never subtracted at all.
+            # On #1073 that reported 4 open against Sierra's real 2 and printed
+            # `DIVERGENCE: Records != reality!` 256 times on 2026-09-04, arming
+            # the T-43 live-entry block for 152 minutes of the session against a
+            # condition that was never true. The books were RIGHT; the counter
+            # was wrong. Now sourced from the T-62 exit-fill ledger, which
+            # carries the quantity Sierra actually filled per leg, T0 included.
+            from backend.v9.services.contract_size import open_contracts
+            _q = getattr(t, "quality", None)
+            _q = _q if isinstance(_q, dict) else {}
+            n, _basis = open_contracts(
+                trade_contract_count(t), _q.get("exit_fills"),
+                [getattr(t, k, None) is not None
+                 for k in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts")])
             if direction == "LONG":
                 tm_qty += n
             elif direction == "SHORT":
                 tm_qty -= n
             if n > 0:
-                tm_trades.append(f"#{t.id}({mode},{direction},{n}c)")
+                tm_trades.append(f"#{t.id}({mode},{direction},{n}c/{_basis})")
+            elif _basis == "exit_fills":
+                # A trade the books still hold OPEN whose ledger accounts for
+                # every contract. That is the T-178/T-251 stuck-trade family,
+                # and until today the T-254 miscount was ACCIDENTALLY shouting
+                # about it (as a wrong-numbers divergence). Fixing the count
+                # must not buy silence: name it deliberately, or the correct
+                # counter becomes a new blind spot.
+                _drained.append(f"#{t.id}({mode},{direction})")
     except Exception as e:
         logger.warning("[Reconciler] TM query error: %s", e)
         # T-43b cleanup: TM query failed → can't prove mismatch → clear block
         _position_mismatch_block = False
         return True, f"TM query error: {e}"
+
+    # T-254 (2026-09-04): surfaced on its own channel, never folded into the
+    # contract-count comparison — the counts genuinely DO match (both are zero),
+    # so this is a books/ledger fault, not a position fault, and calling it a
+    # DIVERGENCE is what made the old signal untrustworthy. Rate-limited to one
+    # line per state change; the reconciler runs every 30s.
+    global _last_drained
+    if _drained and _drained != _last_drained:
+        logger.warning(
+            "[Reconciler] T-254 STUCK-OPEN: %s — still ACTIVE in the books but "
+            "the T-62 exit-fill ledger accounts for every contract. Sierra=%s. "
+            "The slot may be held with nothing in the market (T-178/T-251).",
+            ", ".join(_drained), sierra_qty)
+    _last_drained = list(_drained)
 
     global _phantom_flat_streak
     # T-178: the gateway is injected (app.state.trading_gateway); it cannot

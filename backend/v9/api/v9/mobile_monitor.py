@@ -175,6 +175,7 @@ async def mobile_data(request: Request):
         rows = read_all("""
             SELECT id, direction, entry_price, stop, t1, t2, t3,
                    COALESCE((quality->>'t0')::float, NULL) AS t0,
+                   quality->'exit_fills' AS exit_fills,
                    COALESCE((quality->>'contracts')::int, 0) AS contracts,
                    quality->>'pattern' AS pattern, state, mode,
                    pattern_id_at_entry,
@@ -197,7 +198,20 @@ async def mobile_data(request: Request):
             r = dict(r)
             if mid and r.get("entry_price"):
                 sign = 1 if (r.get("direction") or "").upper() == "LONG" else -1
-                r["upnl_usd"] = round(sign * (mid - float(r["entry_price"])) * 5 * (r.get("contracts") or 1), 1)
+                # T-257 (2026-09-04): this multiplied by the ORIGINAL contract
+                # count, so after a T0+T1 scale-out on a 5-lot it priced FIVE
+                # open contracts when TWO were left — a 2.5x overstatement of
+                # the unrealized number. No consumer reads `upnl_usd` today
+                # (the UI renders `total_pnl`), which is precisely why it could
+                # rot unnoticed; fixed at the source rather than deleted, so a
+                # future consumer inherits a correct field.
+                from backend.v9.services.contract_size import open_contracts
+                _open_n, _ = open_contracts(
+                    r.get("contracts") or 1, r.get("exit_fills"),
+                    [r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")])
+                r["upnl_contracts"] = _open_n
+                r["upnl_usd"] = round(
+                    sign * (mid - float(r["entry_price"])) * 5 * _open_n, 1)
 
             # P1.5: per-level Sierra verification (✅/🔴)
             r["sierra_verify"] = _verify_sierra_levels(r, sierra)
@@ -215,15 +229,30 @@ async def mobile_data(request: Request):
             # three legs, and the first one was measured against T1 while that
             # contract really exits at T0. Built from the same ladder the DLL
             # brackets with, so the phone, the desktop and the broker agree.
-            from backend.v9.services.contract_size import target_index_for_contract
+            from backend.v9.services.contract_size import (
+                leg_hits, leg_prices, target_index_for_contract)
             _n = max(r.get("contracts") or 0, 1)
             _lvl = [r.get("t0"), r.get("t1"), r.get("t2"), r.get("t3")]
-            _lvl_hit = [False, r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")]
+            # T-257 ROOT-FIX (2026-09-04): `_lvl_hit[0]` was the literal
+            # `False`, so the T0 contract — which the ladder banks FIRST and
+            # which #1008/#1069/#1073 all closed — was priced as still open at
+            # `mid` for the rest of the trade. Combined with `_n` being the
+            # ORIGINAL size (already-closed legs still enumerated), Michael's
+            # phone read `total_pnl` 69.2 / 65.6 / 65.6 while Sierra's own
+            # open_pnl in the same second was 15.0 / 10.0 / 7.5.
+            # There is no t0_hit column and there never was — the only record
+            # of a T0 scale-out is the T-62 exit-fill ledger, so read it.
+            _lvl_hit = leg_hits(
+                _n, r.get("exit_fills"),
+                [r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")])
+            _lvl_fill = leg_prices(r.get("exit_fills"))
             _contract_specs = []
             for _i in range(_n):
                 _leg = target_index_for_contract(_i, _n)
+                # a banked leg is worth what Sierra PAID, not what we aimed at
+                _px = _lvl_fill[_leg] if _lvl_fill[_leg] else _lvl[_leg]
                 _contract_specs.append(
-                    ("C%d" % (_i + 1), _lvl[_leg], _lvl_hit[_leg]))
+                    ("C%d" % (_i + 1), _px, _lvl_hit[_leg]))
             _contracts = []
             for _cid, _tgt, _hit in _contract_specs:
                 _tv = float(_tgt) if _tgt else 0
