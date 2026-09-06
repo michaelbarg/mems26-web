@@ -277,3 +277,37 @@ CVD אחרון: 2026-08-24 23:55 | לפני 16 שעות
 אותה משפחה כמו *"אפס עסקאות ≠ מערכת מתה"*: **לבדוק את שעון-השוק לפני שקוראים לנתון
 תקוע.** ‏`T-57` ב-`TASK_LOG` טוען "קפוא מ-18.08 20:55" — **לאמת מול חלון-RTH לפני
 שמסתמכים עליו.**
+
+### מלכודת 12 · "אפס ממתינות בטלפון" אינה ראיה עד שמוכח שהרלה חי (06.09)
+
+`docs/handoff/PHONE_THREAD.jsonl` הוא הקובץ שקוראים — אבל **הכותב היחיד** של
+הודעות-מייקל לתוכו הוא `com.mems26.mobile_relay`. כשהרלה מת, הקובץ נשאר ריק
+**בלי קשר** למה שמייקל שלח. ⇒ "אין ממתינות ⇒ שקט" היא **שלילה-כוזבת**.
+
+**הטעות בפועל (cowork, 06.09):** שתי ריצות רצופות (`17:12`, `17:37`) הסיקו "שקט"
+מקובץ שהדוור-המת לא מילא. הרלה נפל בריסטארט של `17:03` ולא עלה 3.5 שעות.
+
+**הבדיקה הנכונה — שתי שורות, לפני שמסיקים שקט:**
+```bash
+launchctl print gui/$UID/com.mems26.mobile_relay | grep -E "state|pid"   # "Could not find service" = לא-מאותחל
+curl -s "$RENDER_MOBILE_URL/instruction/pending?key=$MOBILE_ACCESS_KEY"  # התיבה במקור — peek, לא pop
+```
+`GET /instruction/pending` ו-`GET /cmd/pending` הם **peek** (המחיקה רק ב-`POST
+/instruction/status` / `/cmd/ack`) ⇒ קריאה בטוחה ונטולת-תופעות-לוואי, גם כשהרלה מת.
+**הודעה שנשלחה בזמן שהרלה מת אינה אובדת** — היא ממתינה ב-Render עד ה-ack.
+
+**וההכללה, שהיא העיקר:** `mems26_verify.sh` ו-`fire_drill` בודקים **שירותים**
+(backend/bridge/frontend) ולא **סוכנים**. ב-06.09 הם החזירו ירוק מלא — `health=200`,
+שלושה שירותים, `0 ERROR` — בזמן ששישה LaunchAgents לא עלו כלל **וסיירה לא רצה בכלל**.
+⇒ **ירוק שנמדד על הסט הלא-נכון.** לפני שמדווחים "המערכת תקינה", לספור:
+```bash
+for a in backend bridge frontend mobile_relay export_promoter activity_feed eod_handoff startup_check update_check; do
+  printf "%-16s " "$a"; launchctl print gui/$UID/com.mems26.$a 2>/dev/null | grep -cE "^\s*state = " ; done
+ps aux | grep -i sierra | grep -v grep    # לסיירה אין LaunchAgent — היא לא תעלה לבד אחרי ריסטארט
+```
+
+**התיקון כשמוצאים סוכן שלא עלה:** `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.<name>.plist`
+— אומת 06.09 `20:38` שהוא מחזיק **גם** לסוכנים המסומנים `disallowed` ב-Background
+Task Management. ⚠️ **לפני העלאת `mobile_relay` בלבד:** לוודא `GET /cmd/pending ⇒ null`,
+כי הוא מושך פקודות-חירום ממתינות ומבצע אותן מקומית ⇒ עלייה עיוורת עלולה לירות
+`FLATTEN` ישן. לשאר הסוכנים אין נתיב-ביצוע ⇒ אין סיכון כזה.
