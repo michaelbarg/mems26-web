@@ -1,3 +1,112 @@
+### [2026-09-06 18:45 IL] cowork · 🟠 **T-259 — קבוצה ב' מצטמצמת: `eod_handoff` **לא נכשל היום** — הוא מעולם לא ייצר חבילה מאז שהותקן ב-18.08. תשעה-עשר יום של חבילות-סוף-יום חסרות, ואיש לא ראה, כי אין לו לוג ואף בודק לא מסתכל על התוצר.**
+
+**ריצה:** `18:36`–`18:45`, יום ראשון, שוק סגור. חובה 1 (טלפון) + חובה 3 (ניטור).
+**לא נגעתי בדגלים · לא בפוזיציות · לא ביצעתי ריסטארט · לא העליתי שום שירות.**
+
+---
+
+#### 1 · אימות-עצמאי של טבלת-ה-disposition מריצת-`18:35` — עומדת
+
+מדדתי מחדש, מפקודה עצמאית, ולא ציטטתי את הריצה הקודמת (Rule 2):
+
+```
+log show --last 8h --predicate 'subsystem == "com.apple.backgroundtaskmanagement"' --info \
+  | grep "registerLaunchItem: found existing item" | grep -oE "disposition=\[[^]]*\], identifier=8\.com\.mems26\.[a-z_]+" | sort -u
+
+[enabled, disallowed, visible, not notified]  activity_feed    🔴
+[enabled, allowed,    visible, notified]      backend          ✅ pid 587
+[enabled, allowed,    visible, notified]      bridge           ✅ pid 613
+[enabled, allowed,    visible, not notified]  eod_handoff      🔴
+[enabled, disallowed, visible, notified]      export_promoter  🔴
+[enabled, allowed,    visible, notified]      frontend         ✅ pid 597
+[enabled, disallowed, visible, not notified]  mobile_relay     🔴
+[enabled, allowed,    visible, not notified]  startup_check    🔴
+[enabled, allowed,    visible, not notified]  update_check     🔴
+```
+
+זהה לריצת-`18:35`. **ו-`notified` אינו המבחין** — `export_promoter` הוא `notified` **וגם** `disallowed` ובכל-זאת מת. אין לי ראיה שהאסימון הזה סיבתי, ולכן איני מציע אותו כשורש.
+
+**אי-הרישום אומת בשתי שיטות בלתי-תלויות:** `launchctl list | grep mems26` ⇒ **שלוש שורות בלבד** (`587 backend` · `597 frontend` · `613 bridge`) · `launchctl print gui/501/com.mems26.<x>` ⇒ `Could not find service` לכל אחד מששת האחרים.
+
+---
+
+#### 2 · 🔑 הממצא החדש — קבוצה ב' אינה נפגעת-הריסטארט. לפחות `eod_handoff` מת מלידה.
+
+```
+$ ls data_handoff/מק-1/
+2026-08-13
+
+$ git log --oneline -- data_handoff/
+24c1d5aa eod-handoff(מק-1): 2026-08-13 packet — trades/decisions/fills/state/health
+
+$ git check-ignore -v data_handoff/test   ⇒ (ריק — לא gitignored)
+$ ls -l ~/Library/LaunchAgents/com.mems26.eod_handoff.plist
+-rw-r--r--@ 1 michael staff 1677 Aug 18 11:48
+```
+
+**החבילה היחידה שקיימת אי-פעם היא `2026-08-13` — חמישה ימים לפני שה-LaunchAgent בכלל נוצר** (‏18.08 11:48). היא הריצה-הידנית של יום-הפסיקה, לא תוצר של הסוכן.
+⇒ מאז שהותקן, `com.mems26.eod_handoff` **לא הפיק ולו חבילה אחת** — ‏19 יום, ‏~14 סשנים.
+התיקייה **אינה** ב-gitignore ויש לה בדיוק **קומיט אחד** בהיסטוריה ⇒ אין מסלול שבו החבילות נכתבו ונמחקו.
+
+**ומה שאיני טוען:** אין לי לוג-הרצה לתקופה 18.08–05.09 (‏`eod_handoff.plist` **חסר** `StandardOutPath`/`StandardErrorPath` — וזו בפני עצמה הסיבה שהכישלון היה שקט). לכן הטענה המבוססת היא **"אפס תוצר במשך 19 יום"**, ולא "הסוכן לא ירה מעולם"; לשלול לחלוטין הרצה-שנפלה-לפני-`mkdir` אי-אפשר, אך הסקריפט מריץ `mkdir -p "$OUT"` בשורה 21 לפני כל פעולה שעלולה להיכשל, כך שכמעט-כל הרצה הייתה מותירה תיקייה מתוארכת.
+
+**המשמעות לפסיקת 13.08** (‏"מק-1 צריך גישה לכל המידע שהוא אוסף"): צינור ההנדאוף-לאנליסט **מת מאז שנבנה**. זה משנה את מסגור T-259: קבוצה ב' אינה "ששה שנפלו בריסטארט של היום" — היא תקלה ותיקה שהריסטארט רק **חשף**.
+
+---
+
+#### 3 · הבחנת-סיכון בין הקבוצות — רלוונטית להחלטת מייקל
+
+קראתי את שלושת הסקריפטים של קבוצה ב':
+
+| סוכן | מה עושה | משטח-מסחר |
+|---|---|---|
+| `eod_handoff` | ‏`scripts/eod_data_handoff.sh` — מייצא trades/decisions/fills/state ל-`data_handoff/` וב-git | **אין** (ייצוא-קריאה) |
+| `startup_check` | ‏`mems26_startup_check.sh` — מאמת שרשרת backend↔PG↔bridge↔feed↔frontend, כותב דוח + התראת-macOS. בכותרתו: *"Read-only: never starts/stops a trade, never edits code/flags/.env"* | **אין** |
+| `update_check` | ‏`mems26_update_check.sh` — ‏`git fetch` שקט + התראה אם המכונה מפגרת | **אין** |
+
+⇒ **בניגוד ל-`mobile_relay`** (שמושך `/cmd/pending` ומבצע `FLATTEN/PAUSE/RESUME` מקומית — ולכן העלייה שלו דורשת אימות-תור), לשלושת אלה **אין נתיב-ביצוע כלל**. סכנת "ירי-עיוור" **אינה** קיימת בקבוצה ב'.
+**עדיין לא העליתי אותם** — הפעלת-שירות היא §Service Bring-Up, ולמייקל יש החלטה פתוחה. הבחנת-הסיכון נרשמת כדי שההחלטה תהיה מדויקת, לא כדי לעקוף אותה.
+
+---
+
+#### 4 · ⏰ דדליין הלילה — `23:05`
+
+`eod_handoff` הוא `StartCalendarInterval` **א׳–ו׳ 23:05**. היום ראשון.
+אם לא יירשם עד אז — **חבילת-הלילה של היום היא הפספוס ה-20**. (שוק סגור ⇒ החבילה תהיה דלילה ממילא; מציין את התאריך, לא מנפח את הנזק.)
+
+---
+
+#### 5 · ניטור (חובה 3) — ירוק, ללא שינוי מ-`18:35`
+
+```
+health            200 ב-2.3ms
+launchctl list    backend 587 · frontend 597 · bridge 613
+position_qty      0   ·  is_sim=0  ·  orders_n=0  ·  acct_daily_pl=0.0
+ERROR|CRITICAL    0  (‏/tmp/backend.err.log מאז הבוט 17:03)
+git               עץ נקי · אפס קומיטים לא-דחופים
+sierra_state      גיל 69,136ש' (19.2h) — קפוא על שישי 23:25
+v9_export/*.json  כולם 05.09 23:25
+```
+
+**סיירה עדיין לא רצה ולא תעלה לבד** (אין לה LaunchAgent) — נשאר לשער-הבוקר של יום שני, לפני `fire_drill`.
+
+---
+
+#### 6 · טלפון (חובה 1) — נקרא **במקור**, לא מהקובץ שהדוור-המת ממלא
+
+```
+GET /cmd/pending          ⇒ {"cmd": null}
+GET /instruction/pending  ⇒ {"items": []}          (‏cold-start: נדרשו 2 ניסיונות, 45s)
+GET /upload/pending       ⇒ {"items": []}
+```
+נמדד `18:37`–`18:39`. ⇒ מייקל לא שלח דבר מאז `17:03`; אין פקודה ממתינה. אין ממתינות ⇒ אין חוב-מענה.
+
+---
+
+**הצעד הבא (עדכון ל-T-259):** ‏(א) קבוצה א' (`mobile_relay`/`export_promoter`/`activity_feed`) — **קודם המתג ב-BTM ואז `bootstrap`**, ולאמת `/cmd/pending` שוב ברגע ההעלאה. ‏(ב) קבוצה ב' — השאלה "למה `allowed` ולא-נרשם" **עדיין פתוחה**, אך הצטמצמה: `eod_handoff` מת מ-18.08 ולא מהריסטארט ⇒ לחפש את הסיבה ב**התקנה** (האם `bootstrap` ידני מעולם לא בוצע / לא שרד את ריסטארט 29.08) ולא באירוע-היום. ‏(ג) להוסיף `StandardOutPath`/`StandardErrorPath` ל-`eod_handoff.plist` — היעדרם הוא הסיבה שהכישלון היה שקט 19 יום. ‏(ד) ל-`mems26_verify.sh`: גם "תשעת הסוכנים רשומים", גם "אף אחד אינו `disallowed` ב-BTM", **וגם "חבילת ההנדאוף של אתמול קיימת"** — בדיקת-תוצר, לא בדיקת-תהליך.
+
+— cowork-dev, ‏06.09 ‏18:45
+
 ### [2026-09-06 18:35 IL] cowork · 🟠 **T-259 מתקדם: ה"ששה" הם למעשה *שתי* תקלות שונות — ושלוש מהן חסומות ע"י macOS עצמו (BTM `disallowed`), כך שהפקודה שביקשתי ממייקל לאשר לא הייתה מספיקה. בנוסף: תור-הפקודות ותיבת-ההודעות ב-Render נמדדו ריקים — התנאי-המקדים לתיקון סופק.**
 
 **ריצה:** `18:01`–`18:35`, יום ראשון, שוק סגור. חובה 1 (טלפון) + חובה 3 (ניטור).
