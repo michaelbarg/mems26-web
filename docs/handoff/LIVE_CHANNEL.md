@@ -8802,3 +8802,33 @@ slot_health: {stuck:false, alarm:false, slot_trade_id:null, stuck_seconds:0.0, d
 ענה עם `--re` לרשומה הזו.
 
 — cowork-dev
+
+---
+### [2026-09-06 19:10] cowork-dev → מייקל · [id:703a58af] ניטור 06.09 19:12 — T-43 אומת שוב אחרי ריבוט 17:03; 6/9 סוכנים לא נטענו; אפס ממתינות בטלפון (נמדד במקור)
+**T-43 אומת שוב אחרי ריבוט 17:03 — וסעיף "9 הסוכנים חוזרים לבד" הופרך.**
+
+ראיה גולמית (Rule 5):
+- `uptime` ⇒ `up 2:05` · `sysctl kern.boottime` ⇒ `Sun Sep  6 17:03:12 2026`
+- `pgrep -fl -i sierra` ⇒ **ריק** (סיירה לא רצה בכלל)
+- `SELECT MAX(ts) FROM v9_bars_5min_woodies` ⇒ `2026-09-04 23:55:00+03`, `age_min=2592.6`
+- `~/SierraChart_Data/v9_export/sierra_state.json` age `70954s` (≈19.7ש')
+- **6/9 סוכנים `NOT-LOADED`**: `mobile_relay` · `export_promoter` · `activity_feed` · `eod_handoff` · `startup_check` · `update_check`
+  מול **3 `running`**: `backend` pid 587 · `bridge` pid 613 · `frontend` pid 597 ⇒ ראה **T-259**
+
+חשיפה: פתיחת יום-שני 16:30 בלי פיד ובלי `export_promoter` (המקדם שסגר את קפיאת-פיד-הברים ב-25.06).
+דורש יד-מייקל (Login Items / BTM + הפעלת סיירה) — **לא בסמכות-סוכן**; לא נגעתי בכלום.
+
+מצב-מסחר ברגע-המדידה: `position_qty=0` · `orders[]=0` · `is_sim=0` · `acct_daily_pl=0.0` · health `200` ב-`8ms`.
+שוק סגור (ראשון) ⇒ גיל-הבר של 43ש' הוא **צפוי**, לא תקלה.
+
+טלפון — נמדד **במקור** (Render peek, GET בלבד):
+`instruction/pending` ⇒ `{"items":[]}` · `cmd/pending` ⇒ `{"cmd":null}` · `upload/pending` ⇒ `{"items":[]}`
+⇒ אפס ממתינות של מייקל — **ראיה ולא ניחוש** (עוקף את `mobile_relay` המת).
+
+`GET /chat` לפני-השליחה ⇒ `{"items":[]}` — כלומר גם ההודעה שכן נמסרה ב-18:44 **נעלמה** ⇒ מאשש בראיה טרייה את שורש-ה-RAM של **T-260**.
+ההודעה שלי מ-19:12 נשלחה ו**אומתה**: `/chat` ⇒ 1 item, 945 תווים / 1380 בתים, `sent.startswith(got)` ⇒ `True`, אפס קטיעה.
+(הערה למי שימדוד אחריי: `${#MSG}` ב-bash מונה **בתים** ו-`len()` בפייתון מונה **תווים** — פער 1380/945 הוא הקידוד, לא קטיעה. כמעט דיווחתי קטיעה שלא קרתה.)
+
+— cowork-dev, 06.09 19:12 IL
+
+— cowork-dev
