@@ -1,3 +1,102 @@
+### [2026-09-06 18:35 IL] cowork · 🟠 **T-259 מתקדם: ה"ששה" הם למעשה *שתי* תקלות שונות — ושלוש מהן חסומות ע"י macOS עצמו (BTM `disallowed`), כך שהפקודה שביקשתי ממייקל לאשר לא הייתה מספיקה. בנוסף: תור-הפקודות ותיבת-ההודעות ב-Render נמדדו ריקים — התנאי-המקדים לתיקון סופק.**
+
+**ריצה:** `18:01`–`18:35`, יום ראשון, שוק סגור. חובה 1 (טלפון) + חובה 3 (ניטור).
+**לא נגעתי בדגלים · לא בפוזיציות · לא ביצעתי ריסטארט · לא העליתי שום שירות.**
+
+---
+
+#### 1 · 🔑 השורש: מה שמבדיל בין השלושה שעלו לששה שלא — `disposition` של BTM
+
+ריצת-`17:47` שלי כתבה במפורש "אין לי ראיה **מדוע** שלושה נרשמו וששה לא — לא אבחנתי".
+עכשיו יש ראיה, והיא מפרקת את ה"ששה" לשתי קבוצות **שונות בשורש שלהן**:
+
+```
+log show --start "2026-09-06 17:03:00" --end "2026-09-06 17:12:00" \
+  | grep "registerLaunchItem: found existing item" | grep com.mems26
+
+disposition=[enabled, allowed,    visible, notified]      backend          ✅ רץ (pid 587)
+disposition=[enabled, allowed,    visible, notified]      bridge           ✅ רץ (pid 613)
+disposition=[enabled, allowed,    visible, notified]      frontend         ✅ רץ (pid 597)
+disposition=[enabled, DISALLOWED, visible, not notified]  mobile_relay     🔴 לא נרשם
+disposition=[enabled, DISALLOWED, visible, not notified]  activity_feed    🔴 לא נרשם
+disposition=[enabled, DISALLOWED, visible, notified]      export_promoter  🔴 לא נרשם
+disposition=[enabled, allowed,    visible, not notified]  eod_handoff      🔴 לא נרשם
+disposition=[enabled, allowed,    visible, not notified]  startup_check    🔴 לא נרשם
+disposition=[enabled, allowed,    visible, not notified]  update_check     🔴 לא נרשם
+```
+
+**קבוצה א' (`disallowed`) — `mobile_relay` · `export_promoter` · `activity_feed`:**
+מסומנים **חסומים ברמת מערכת-ההפעלה** ב-Background Task Management (‏macOS Ventura+),
+כלומר במתג של System Settings → General → Login Items → *Allow in the Background*.
+זהו מנגנון **מעל** launchd: `launchctl enable` ו-`print-disabled` אינם רואים אותו —
+ואכן ריצת-`17:47` בדקה בדיוק שם, ראתה `=> enabled`, והסיקה "לא כובו". **הבדיקה הייתה
+בשכבה הלא-נכונה.** ⇒ **המשמעות המעשית: `launchctl bootstrap` לבדו — הפקודה שנתתי
+למייקל לאשר — צפוי שלא יחזיק** עבור שלושת אלה; צריך קודם להחזיר את המתג.
+
+**קבוצה ב' (`allowed` אך לא-רשומים) — `eod_handoff` · `startup_check` · `update_check`:**
+אלה **מותרים** ע"י macOS ובכל זאת לא נרשמו. ⚠️ **את זה עדיין לא אבחנתי, ואיני מנחש.**
+כלומר `disallowed` הוא שורש מוכח לשלושה — **ואינו ההסבר לשלושת האחרים.**
+
+**מה נשלל בדרך (כדי שלא ייבדק שוב):** כל תשעת הפלטים זהים ותקינים —
+`plutil -lint ⇒ OK` בכולם · `-rw-r--r-- michael:staff` בכולם · `xattr ⇒ com.apple.provenance`
+בכולם · `RunAtLoad=true` בכל השמונה הרלוונטיים · ומסד-ה-disabled **על הדיסק**
+(`/var/db/com.apple.xpc.launchd/disabled.501.plist`, נכתב `17:06:20`) נותן `=> 0` לששה,
+כלומר **enabled**. ⇒ הפלטים אינם האשם, וה-disable-DB אינו האשם.
+
+#### 2 · ✅ התנאי-המקדים שביקשתי ממייקל לאשר — סופק במדידה, לא בהנחה
+
+ריצת-`17:47` לא העלתה את הרלה מסיבה נכונה: הרלה מושך `/cmd/pending` ו**מבצע מקומית**
+(`_poll_commands` → `_execute_local` → `POST /api/v9/emergency/{flatten,pause,resume}`),
+⇒ עלייה עיוורת עלולה לירות פקודת-חירום ישנה שתקועה בתור. הצעד-הבא שנרשם היה
+"לוודא מול Render שאין פקודה ממתינה". **ביצעתי — קריאת-`GET` בלבד, ואימתתי בקוד
+שהיא peek ולא pop** (הפריט נמחק רק ב-`POST /cmd/ack` שורות 296-300; ההוראות רק ב-
+`POST /instruction/status` שורות 199-203) ⇒ קריאה נטולת תופעות-לוואי:
+
+```
+GET https://mems26-mobile.onrender.com/cmd/pending?key=***          ⇒ {"cmd": null}
+GET https://mems26-mobile.onrender.com/instruction/pending?key=***  ⇒ {"items": []}
+GET https://mems26-mobile.onrender.com/upload/pending?key=***       ⇒ {"items": []}
+```
+
+**שתי מסקנות:**
+1. **אין פקודת-חירום ממתינה** ⇒ סכנת-ה"ירי-העיוור" **אינה קיימת כרגע** (נמדד `18:22`).
+   התנאי (א) בצעד-הבא של T-259 סופק. ⚠️ תקף לרגע-המדידה בלבד — לאמת שוב לפני ההעלאה.
+2. **ועכשיו "אפס ממתינות בטלפון" *כן* ראיה** — כי קראתי את **התיבה במקור** ולא את הקובץ
+   המקומי שהדוור המת אמור למלא. מייקל **לא שלח דבר** מאז `17:03`; ההודעה האחרונה שלו
+   בת'רד היא `04.09 16:21:48Z`. ⇒ **אין ממתינות ⇒ שקט** — הפעם מבוסס.
+   ומכאן גם: **שום הודעה של מייקל לא אבדה** בשלוש השעות האלה (ניסוח "אם שלחת משהו —
+   הוא אבד" בהודעת-הטלפון שלי מ-`17:47` היה מחמיר-מדי; ההוראות **נשמרות** ב-Render עד
+   `POST /instruction/status`, ולכן היו מגיעות ברגע שהרלה עולה).
+
+#### 3 · ניטור (חובה 3) — ירוק, שוק סגור
+
+```
+GET /api/v9/health                    ⇒ http=200  t=0.0022s
+sierra_state.json                     ⇒ גיל 1120.7 דק' (18.7ש') · position_qty=0 · orders=0 · is_sim=0
+ps aux | grep -i "sierrachart\|wine"  ⇒ 0 תהליכים          (סיירה לא רצה — אין לה LaunchAgent)
+v9_bars_5min_woodies max(ts)          ⇒ 2026-09-04 23:55:00+03  (גיל 39.2ש')
+grep -cE "ERROR|CRITICAL" /tmp/backend.err.log ⇒ 0
+v9_trades: פתוחות ⇒ 41 שורות במצבים CANCELLED/FILLED/PARTIAL (היסטוריות, לא פוזיציה חיה)
+```
+
+יום ראשון, שוק סגור ⇒ פיד קפוא ופוזיציה 0 הם **הצפוי**, לא חריגה. אין דבר שפוספס.
+
+#### 4 · הצעד הבא (מעודכן) — לשער-יום-שני, לפני `fire_drill`
+
+1. **קודם המתג, אחר-כך הפקודה** (לשלושת ה-`disallowed`): להחזיר את
+   `mobile_relay` · `export_promoter` · `activity_feed` ל-*Allow in the Background*
+   (System Settings → General → Login Items), ורק אז
+   `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.<name>.plist`.
+2. **לאמת שוב `GET /cmd/pending` ⇒ `{"cmd": null}`** ברגע ההעלאה (לא לסמוך על המדידה של `18:22`).
+3. **אימות-סגירה — ללא שינוי:** `launchctl print` מחזיר שירות · `/tmp/mobile_relay.log` צומח ·
+   ו**הודעת-בדיקה מהטלפון מגיעה בפועל** ל-`PHONE_THREAD.jsonl`. נוכחות-תהליך אינה ראיה.
+4. **קבוצה ב' (`allowed` ולא-רשומים) — נותרה לא-מאובחנת.** לא לסגור את T-259 עד שיש לה הסבר.
+5. **סיירה** — ללא שינוי מריצת-`17:47`: לא רצה, אין לה LaunchAgent, לא תעלה לבד.
+6. **`scripts/mems26_verify.sh`** — עדיין בודק שירותים ולא סוכנים. הבדיקה שחסרה היא
+   "כל תשעת ה-LaunchAgents רשומים", **ובנוסף** "אף אחד מהם אינו `disallowed` ב-BTM" —
+   השכבה שהפילה אותי היום.
+
+---
 ### [2026-09-06 17:47 IL] cowork · 🔴 **תיקון לריצת-17:12 שלי: "אפס ממתינות בטלפון" הייתה שלילה-כוזבת — ערוץ-הטלפון עצמו מת מאז הריסטארט. וששה LaunchAgents לא חזרו, לא רק סיירה.**
 
 **ריצה:** `17:36`–`17:50`, יום ראשון, שוק סגור. חובה 1 (טלפון) + חובה 3 (ניטור).
