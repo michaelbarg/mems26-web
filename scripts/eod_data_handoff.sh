@@ -10,19 +10,60 @@
 # Runs on WHICHEVER machine trades (LaunchAgent com.mems26.eod_handoff,
 # 23:05 IL Sun-Fri). Output: data_handoff/<MACHINE_TAG>/<YYYY-MM-DD>/
 set -u
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$REPO"
+# T-262 (cowork 2026-09-06 23:10) — REPO must NOT be derived from "$0".
+# The LaunchAgent pipes this file into `bash -s` (script on stdin), so "$0" is
+# the interpreter, not the script. Measured under the exact launchd command:
+#     dollar0=[/bin/bash]   dirname=[/bin]   REPO=[/]   pwd=[<the repo>]
+# `cd /` then SUCCEEDS and every step after it fails silently:
+#     mkdir -p data_handoff/... ⇒ "mkdir: ...: Read-only file system"
+#     git add data_handoff/...  ⇒ "fatal: not a git repository"
+# and because the last statement in the chain is an `echo`, launchd recorded
+# `runs=1 / last exit code = 0` while producing nothing at all. That false
+# green is why data_handoff/ held only 2026-08-13 for 24 days.
+# The plist already sets cwd to the repo ⇒ resolve from $PWD and FAIL LOUD.
+REPO="${MEMS26_REPO:-$PWD}"
+[ -d "$REPO/.git" ] || REPO="/Users/michael/Downloads/mems26_web_git"
+if [ ! -d "$REPO/.git" ]; then
+  echo "[eod-handoff] FATAL: no git repo at '$REPO' (PWD=$PWD) — refusing to run"
+  exit 3
+fi
+cd "$REPO" || exit 3
 
 TAG=$(grep -a "^MACHINE_TAG" .env 2>/dev/null | cut -d= -f2)
 TAG=${TAG:-$(hostname -s)}
 DAY=$(date "+%Y-%m-%d")
 OUT="data_handoff/$TAG/$DAY"
-mkdir -p "$OUT"
+if ! mkdir -p "$OUT"; then
+  echo "[eod-handoff] FATAL: cannot create '$OUT' under '$REPO'"
+  exit 3
+fi
 
 echo "[eod-handoff] $TAG $DAY → $OUT"
 
+# T-262b (cowork 2026-09-06 23:12) — bare `python3` is the WRONG interpreter here.
+# launchd hands this job PATH=/usr/bin:/bin:/usr/sbin:/sbin, so `python3` resolves to
+# /usr/bin/python3, which has no psycopg2. Measured on the first successful run:
+#     trades.json ⇒ 0 bytes
+#     trades.err  ⇒ ModuleNotFoundError: No module named 'psycopg2'
+# i.e. a packet that LOOKS complete (5 fresh files) but is missing the one file the
+# analyst machine actually needs. Pick an interpreter that can reach Postgres.
+PY=""
+for CAND in /usr/local/bin/python3 \
+            /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 \
+            /opt/homebrew/bin/python3 \
+            python3; do
+  if command -v "$CAND" >/dev/null 2>&1 && "$CAND" -c "import psycopg2" >/dev/null 2>&1; then
+    PY="$CAND"; break
+  fi
+done
+if [ -z "$PY" ]; then
+  echo "[eod-handoff] FATAL: no python3 with psycopg2 found — cannot export trades"
+  exit 5
+fi
+echo "[eod-handoff] python=$PY"
+
 # 1. today's trades (live+shadow) from local Postgres
-python3 - << 'PYEOF' > "$OUT/trades.json" 2>"$OUT/trades.err" || echo "[eod-handoff] trades export failed (see trades.err)"
+"$PY" - << 'PYEOF' > "$OUT/trades.json" 2>"$OUT/trades.err" || echo "[eod-handoff] trades export failed (see trades.err)"
 import json, psycopg2
 conn = psycopg2.connect("postgresql://localhost/mems26")
 cur = conn.cursor()
@@ -38,6 +79,16 @@ cols = [d[0] for d in cur.description]
 rows = [dict(zip(cols, (str(v) if v is not None else None for v in r))) for r in cur.fetchall()]
 print(json.dumps(rows, ensure_ascii=False, indent=1))
 PYEOF
+
+# T-262b: a packet whose trades.json is empty LOOKS complete on `ls`. Refuse to
+# call that a good night — record it in the packet and exit non-zero at the end.
+TRADES_OK=1
+if [ ! -s "$OUT/trades.json" ]; then
+  TRADES_OK=0
+  echo "[eod-handoff] ERROR: trades.json is EMPTY — see $OUT/trades.err"
+else
+  rm -f "$OUT/trades.err"
+fi
 
 # 2. today's gateway decisions (the rotated file is today-only by design, F6)
 cp "$HOME/SierraChart_Data/v9_export/gateway_decisions.jsonl" "$OUT/gateway_decisions.jsonl" 2>/dev/null || echo "[]" > "$OUT/gateway_decisions.jsonl"
@@ -78,4 +129,11 @@ elif git commit --quiet -m "eod-handoff($TAG): $DAY packet — trades/decisions/
   fi
 else
   echo "[eod-handoff] commit FAILED — check manually"
+  exit 4   # T-262: never let launchd record a green run on a failed handoff
+fi
+
+# T-262b: the packet shipped, but say so honestly if its core file is empty.
+if [ "$TRADES_OK" != "1" ]; then
+  echo "[eod-handoff] INCOMPLETE — packet pushed but trades.json is empty"
+  exit 6
 fi
