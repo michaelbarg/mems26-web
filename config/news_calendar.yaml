@@ -4,56 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 16:53 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-04 22:53 ET
 events:
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Average Hourly Earnings MoM"
-    severity: orange
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Average Hourly Earnings YoY"
-    severity: orange
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Average Weekly Hours"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Government Payrolls"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Manufacturing Payrolls"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Non Farm Payrolls"
-    severity: red
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Nonfarm Payrolls Private"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Participation Rate"
-    severity: orange
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "U-6 Unemployment Rate"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "08:30"
-    name: "Unemployment Rate"
-    severity: red
-  - date: 2026-09-04
-    time_et: "13:00"
-    name: "Baker Hughes Oil Rig Count"
-    severity: yellow
-  - date: 2026-09-04
-    time_et: "13:00"
-    name: "Baker Hughes Total Rigs Count"
-    severity: yellow
   - date: 2026-09-06
     time_et: "20:00"
     name: "Labor Day"
@@ -254,3 +206,63 @@ events:
     time_et: "16:30"
     name: "Fed Balance Sheet"
     severity: yellow
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "CPI"
+    severity: orange
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "CPI s.a"
+    severity: orange
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "Core Inflation Rate MoM"
+    severity: red
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "Core Inflation Rate YoY"
+    severity: red
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "Inflation Rate MoM"
+    severity: red
+  - date: 2026-09-11
+    time_et: "08:30"
+    name: "Inflation Rate YoY"
+    severity: red
+  - date: 2026-09-11
+    time_et: "10:00"
+    name: "Michigan 5 Year Inflation Expectations Prel"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "10:00"
+    name: "Michigan Consumer Expectations Prel"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "10:00"
+    name: "Michigan Consumer Sentiment Prel"
+    severity: red
+  - date: 2026-09-11
+    time_et: "10:00"
+    name: "Michigan Current Conditions Prel"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "10:00"
+    name: "Michigan Inflation Expectations Prel"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "12:00"
+    name: "WASDE Report"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "13:00"
+    name: "Baker Hughes Oil Rig Count"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "13:00"
+    name: "Baker Hughes Total Rigs Count"
+    severity: yellow
+  - date: 2026-09-11
+    time_et: "14:00"
+    name: "Monthly Budget Statement"
+    severity: orange
