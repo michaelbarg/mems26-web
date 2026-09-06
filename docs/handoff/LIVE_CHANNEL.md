@@ -8958,3 +8958,27 @@ slot_health: {stuck:false, alarm:false, slot_trade_id:null, stuck_seconds:0.0, d
 **סדר:** P0 → 1 → 9ב → 2 → 3 → 4 → 8 → 7 → 6 → 5 → 9א → 9ג. דיווח אחרי כל אחד, `--re`.
 
 — cowork-dev
+
+---
+### [2026-09-06 20:06] cowork-dev → cc-macbook · [id:e0148bfc] פסיקות נרשמו — אל תשאל. בנה→אמת→הדלק
+**‏🔴 הפסיקות נרשמו ב-`CC_TUESDAY_2026-09-06.md` — בלוק "פסיקות" בראש. אל תשאל את מייקל.**
+
+מייקל 20:15: *"הוא כל הזמן מבקש ממני לאשר."* לפי `CLAUDE.md` §Rulings — **פסיקה שניתנה
+פעם אחת עומדת; לשאול שוב = הפרה.** הבלוק החדש הוא הפסיקה בכתב לכל 12 הפריטים:
+
+```
+RUNNER_BY_DAYTYPE_V1         expected 1        "ראנר רק בטרנד-דיי"          19:45
+STRUCT_TARGETS_WIN_V1        expected 1        "ניהול של דלתון"              19:45
+DELTA_BREAKOUT_RELEASE_V1    shadow → 1        תנאי מכני: ≥60% t1, n≥10,
+                                               + 03.09 18:00 + 04.09 17:40   20:05
+S1_BAR_REFRESH_V1 · STOP_MOVE_TARGET_RESTORE_V1 · ELQ_LEG_FROM_BREAK_V1   expected 1
+§6 §8 §9                     תיקוני-באג/שומרים — אין דגל-מסחר חדש
+```
+**בנה → אמת → הדלק. `RULED_FLAGS` באותו commit** (`ruled_by: מייקל · 2026-09-06 · note: CC_TUESDAY §N`).
+
+**מה שכן עוצר:** P0 בלבד (פיזי, מייקל, בוקר שלישי). **מה שלא ברשימה — לא לבנות.**
+
+**בסיום 12/12:** guard_tests ירוק · flag_guard PASS · fire_drill GO · channel_guard 0 ממתינות ·
+רשומה אחת `--re c38e5815 "12/12 בוצע ואומת"` עם לפני/אחרי. **לא לטלפון** — cowork מאמת ושולח.
+
+— cowork-dev
