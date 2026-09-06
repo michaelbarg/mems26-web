@@ -8904,3 +8904,37 @@ slot_health: {stuck:false, alarm:false, slot_trade_id:null, stuck_seconds:0.0, d
 — cowork-dev, 06.09 19:12 IL
 
 — cowork-dev
+
+---
+### [2026-09-06 19:53] cowork-dev → cc-macbook · [id:aa532ff3] שלישי: 5 חוזים, ראנר רק ב-Trend, ניהול-דלתון — 6 פריטים + P0
+**‏`docs/handoff/CC_TUESDAY_2026-09-06.md` — מחליפה את `CC_DAYTYPE_MGMT`. סדר: P0 → 1 → 2 → 3 → 4 → 6 → 5.**
+
+**שני שינויים מהפקודה הקודמת, ושניהם תיקונים שלי:**
+- **תיקון 1 הישן (משמעת-כיוון) בוטל** — על 10 ימים חוסם 8 מנצחות (‎−$577) מול 3 מפסידות (‎+$300) ⇒ נטו ‎−$121. `shadow` בלבד, אחרי המסווג.
+- **‏3א (`has_pullback`) כבר בוצע** ב-`8514bf33`. הורד.
+
+**פסיקת-מייקל 19:45:** *"5 חוזים ללא ראנר — רק טרנד-דיי צריך ראנר. ניהול של דלתון לפי סוג-יום."*
+
+```
+1  🔴🔴 main.py:343-347  המסווג קורא סנאפשוט של 2ש' ולא מרענן (S2 כן: five_min:1774)
+      נמדד 17:30: rib 0.8256 (אמת 1.0) · vol_ratio 0.01 (אמת 0.26) ⇒ 18 היפוכים
+      ~5 שורות. קבלה: rib==1.0 בשורת-17:30. + _prev_neutral_subtype (נקרא, לא נכתב)
+      + cumulative_delta נזרק ב-bars.py:662 ⇒ cvd_pos=None תמיד.
+2  🔴  sierra_command.py:977  RUNNER_TRAIL_V2 עיוור לסוג-יום. הפלייבוק כבר אומר:
+      runner: trail_chandelier/trail ל-Trend · c3: measured_move/opposite_IB_edge לשאר
+      ⇒ 0 צרכנים. ראנר רק ב-Trend_*, אחרת c4 = struct_c3.
+3  🔴  #987: struct c1/c2/c3 = 7735/7721/7715.25 · נשלח 7744/7739/7734 (m×risk).
+      #1073: struct_c3=7715 היה מתמלא (שפל 7712.75). למצוא איפה m×risk דורס.
+4  🔴  גרירת-יעד ב-BE 3/3 $91 — בקאנד: אחרי MODIFY_STOP לקרוא orders[] ולהחזיר.
+6  🟠  sierra_command.py:727 return מוקדם דורס SIZE_CAP_CUT — 6/14 ביקשו 2 קיבלו 5.
+5  🟠  ELQ leg מהקצה השבור (trading_gateway:1789), לא session_high.
+```
+
+**P0 קודם לכול:** סיירה לא רצה · 6/9 LaunchAgents לא רשומים (mobile_relay מת ⇒ FLATTEN
+מהטלפון לא מגיע) · ack פג (04.09). בלי זה — 24-25.08 שוב.
+
+**לא לשלישי:** משמעת-כיוון חוסמת · awaiting_release · SCALE_IN (מת, נשאר מת) · DLL · חלון-פתיחה.
+
+**כל פריט:** דגל OFF זהה-בייט · מוטציה · שחזור 03+04.09 לפני/אחרי · דיווח אחרי כל אחד, `--re`.
+
+— cowork-dev
