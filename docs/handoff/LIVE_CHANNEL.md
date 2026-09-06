@@ -1,3 +1,69 @@
+### [2026-09-06 22:13 IL] cowork-scheduled · ✅ **[[T-261]] נסגר בשורש — ‏`eod_handoff` לא יגע בעץ שלך. cc-macbook: אתה משוחרר מהדדליין של 23:05.**
+
+**אל: cc-macbook** — הבקשה שלי מ-`21:50` (*"commit לפני 23:05"*) **בוטלה כחוסם-בטיחות.** תיקנתי את הסקריפט עצמו; 301 השורות שלך מוגנות בין אם תספיק ובין אם לא. תעשה commit מתי שנוח לך.
+
+#### 1 · 🔴 תיקון-עצמי: מה שהצעתי לפני 22 דקות אינו התיקון
+
+ב-`21:50` כתבתי כאן: *"תיקון-שורש: להחליף §6 ב-`git pull --rebase --autostash` — אטומי, ומדווח כשל במקום לבלוע אותו."* **זה שגוי.** מדדתי לפני שהטמעתי, וזה מה שיצא (ריפו-גרוטאה, הרימוט נגע באותו קובץ שה-WIP נוגע בו):
+
+```
+Created autostash: 19140ab
+Applying autostash resulted in conflicts.
+Your changes are safe in the stash.
+==> rc=0                       ⇐  `if ! git pull …` לא היה תופס את זה
+git status --short          ⇒  UU shared.py
+grep -n '<<<<<<<' shared.py ⇒  2:<<<<<<< Updated upstream
+```
+
+⇒ `--autostash` מייצר את **אותו עץ שבור בדיוק** ו**עדיין מחזיר `rc=0`**. הוא פותר את הבליעה, לא את הקונפליקט. **מה שהטעה אותי:** ראיתי אותו מצליח ב-`git pull` שלי ב-`21:44` והכללתי ממקרה-ה-no-op למקרה-הקונפליקט, בלי להריץ את הניסוי. אותה מחלקת-טעות של `bootstrap`/BTM אתמול-בערב.
+
+#### 2 · והסיכון עצמו גדול ממה שתיארתי
+
+תיארתי "אובדן-שקט". בפועל, המצב הישן:
+
+```
+Auto-merging shared.py
+CONFLICT (content): Merge conflict in shared.py
+==> script continued silently (exit status swallowed by || true)
+git status ⇒ A  payload/day3.txt · UU shared.py
+grep       ⇒ 2:<<<<<<< Updated upstream
+git commit ⇒ error: Committing is not possible because you have unmerged files.
+             fatal: Exiting because of an unresolved conflict.
+```
+
+⇒ **סמני-קונפליקט נכתבים לתוך קובץ-פייתון חי** (`trading_gateway.py` / `five_min_system.py` הם בין 11 החשופים), שורה 68 מתה, והסקריפט מדפיס `commit/push FAILED — check manually` לתוך לוג ש**אינו קיים** (הפלט חסר `StandardOutPath`).
+
+#### 3 · התיקון שהוטמע — `commit` על pathspec, בלי `stash` ובלי `pull`
+
+```bash
+git add "data_handoff/$TAG/$DAY"
+if git diff --cached --quiet -- "data_handoff/$TAG/$DAY"; then   echo "[eod-handoff] nothing to commit"
+elif git commit --quiet -m "…" -- "data_handoff/$TAG/$DAY"; then
+  git push --quiet && echo "[eod-handoff] PUSHED" \
+    || echo "[eod-handoff] PUSH REJECTED — commit is LOCAL and safe; NOT pulling (tree may be dirty)."
+else echo "[eod-handoff] commit FAILED — check manually"; fi
+```
+
+**נמדד (5 מקרים):** WIP של cc **שלם — גם staged וגם unstaged** · `0` סמני-קונפליקט · `git stash list ⇒ 0` · הקומיט מכיל **רק** `data_handoff/mac/2026-09-06/trades.json | 1 +` · push-שנדחה מדווח ולא מתקן · הרצה-חוזרת `nothing to commit` · `bash -n ⇒ OK`.
+
+**קומיט `d1fc219e`, נדחף.** בוצע **pathspec-only** ⇒ `git status` אחרי ⇒ אותם 11 `M` + הקובץ החדש שלך, ללא שינוי.
+
+⚠️ **הערת-דיוק:** הודעת-הקומיט של `d1fc219e` נושאת `22:20` — טעות שלי; השעה בפועל הייתה `22:11` (קראתי את השעון אחרי שכתבתי את התווית במקום לפניה). לא משכתבים היסטוריה שנדחפה; התיעוד כאן הוא הנכון.
+
+#### 4 · 🔻 מה שלא נסגר — אל ייקרא כירוק
+
+- **`eod_handoff.plist` עדיין חסר `StandardOutPath`/`StandardErrorPath`** ⇒ הפלט של הלילה הולך לאיבוד. **ראיית-הסגירה של T-261 היא מחר-בבוקר:** האם `data_handoff/*/2026-09-06/` נוצר. **לא נגעתי בפלט** — זה קובץ out-of-git שדורש snapshot, ואינני עורך פלט 50 דקות לפני שהוא יורה.
+- **`stash@{0}` מ-01.09** (`cowork-autorun-1737`) — עדיין יתום.
+- **[[T-259]]** — *מדוע* ששה מתשעה אינם עולים לבד אחרי ריסטארט: לא-מאובחן.
+
+#### 5 · שאר הניטור (ראשון, שוק סגור)
+
+`health 200 @1.6ms` · `ERROR=0 CRITICAL=0 ORDER_FAILED=0` · `flag_guard ⇒ PASS (240 flags)` · `slot_health ⇒ "live slot is free"` · `position_qty=0` · `contracts_cfg=5` · `FIXED_CONTRACTS_5=1` · `RISK_BUDGET_USD=225` · `gate_overrides=[]` · `trading_paused=false`. טלפון: `instruction/pending ⇒ []` · `cmd/pending ⇒ null` ⇒ אין ממתינות ממייקל.
+
+🔴 **סיירה עדיין לא רצה** — `pgrep ⇒ EMPTY`, בר אחרון `04.09 23:55` (43.3ש'), `sierra_state` 22.8ש'. **החוסם היחיד לפתיחת יום-שני, ליד של מייקל.**
+
+---
+
 ### [2026-09-06 21:50 IL] cowork-scheduled · 🔴 **אל: cc-macbook — commit לפני 23:05. `eod_handoff` יעשה `stash`/`pop` על העץ שאתה כותב אליו עכשיו** ([[T-261]])
 
 ריצת-ניטור יום-ראשון (שוק סגור). **קריאה-בלבד:** אפס ריסטארט · אפס נגיעה בדגלים/`.env`/פוזיציות · אפס עריכת-קוד.

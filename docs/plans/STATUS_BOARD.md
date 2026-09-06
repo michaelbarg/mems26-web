@@ -1,3 +1,56 @@
+[2026-09-06 22:12 IL] **cowork-scheduled · ✅ [[T-261]] תוקן בשורש לפני שירה — `eod_handoff` לא יגע יותר בעץ-העבודה של סוכן אחר. + תיקון-עצמי: `--autostash`, שהצעתי לפני 22 דקות, אינו התיקון.**
+
+**ממצא → תיקון → ראיה:**
+
+1. **ממצא — הסיכון חמור ממה שתיארתי ב-`21:50`.** תיארתי "אובדן-שקט של 301 שורות". המדידה מראה משהו אחר וגרוע יותר: כשהרימוט נגע באותו קובץ ש-cc עורך, `git stash` → `git pull --rebase` → `git stash pop` מותיר **סמני-קונפליקט בתוך קובץ-פייתון חי** ואת העץ ב-`UU`. **ראיה גולמית (Rule 5, ריפו-גרוטאה `/tmp/eodtest_*`):**
+   ```
+   Auto-merging shared.py
+   CONFLICT (content): Merge conflict in shared.py
+   ==> script continued silently (exit status swallowed by || true)
+   git status --short          ⇒  A  payload/day3.txt
+                                  UU shared.py
+   grep -n '<<<<<<<' shared.py ⇒  2:<<<<<<< Updated upstream
+   git commit …                ⇒  error: Committing is not possible because you have unmerged files.
+                                  fatal: Exiting because of an unresolved conflict.
+   ```
+   ⇒ שורה 68 מתה, הסקריפט מדפיס `commit/push FAILED — check manually`, **והעץ נשאר שבור** עם קובץ שלא ייובא. `trading_gateway.py` ו-`five_min_system.py` הם בין 11 הקבצים החשופים.
+
+2. **ממצא (תיקון-עצמי 🔴) — ההצעה שנתתי ב-`21:50` הייתה שגויה.** כתבתי שם: *"התיקון הנכון: `git pull --rebase --autostash` — אטומי, ומדווח כשל במקום לבלוע"*. **הופרך במדידה — הוא מייצר את אותו עץ שבור בדיוק, ועדיין מחזיר `rc=0`:**
+   ```
+   Created autostash: 19140ab
+   Applying autostash resulted in conflicts.
+   Your changes are safe in the stash.
+   ==> rc=0                    ⇐  `if ! git pull …` לא היה תופס את זה
+   git status --short          ⇒  UU shared.py
+   grep -n '<<<<<<<' shared.py ⇒  2:<<<<<<< Updated upstream
+   ```
+   **מה שהטעה אותי:** ראיתי `--autostash` **מצליח** ב-`git pull` שלי ב-`21:44` והכללתי ממקרה-ה-no-op למקרה-הקונפליקט. הוא פותר את הבליעה, לא את הקונפליקט — ובדיוק ההבחנה הזו היא כל התיק.
+
+3. **תיקון — commit על pathspec, בלי `stash` ובלי `pull` כלל.** §6 ב-`scripts/eod_data_handoff.sh`: `git add "$PAYLOAD"` → `git commit -- "$PAYLOAD"` → `git push`; push-שנדחה **מדווח** ולא "מתקן" ע"י מוטציה בעץ של סוכן אחר. **ראיה (5 מקרים בריפו-גרוטאה):**
+   ```
+   -- cc WIP intact (staged AND unstaged) --   M other.py (staged) · M shared.py (unstaged)  ✓
+   -- conflict markers in live file --         0
+   -- unmerged paths --                        [none]
+   -- git stash list --                        0
+   -- what got committed --                    data_handoff/mac/2026-09-06/trades.json | 1 +   (ONLY the packet)
+   -- push rejected branch --                  PUSH REJECTED — commit is LOCAL and safe; NOT pulling
+   -- idempotent re-run --                     [eod-handoff] nothing to commit for mac/2026-09-06
+   bash -n scripts/eod_data_handoff.sh      ⇒  syntax OK
+   ```
+   **קומיט `d1fc219e`, נדחף.** נעשה ב-**pathspec-only** ⇒ `git status` אחרי הקומיט מראה את אותם 11 `M` + הקובץ החדש של cc — **לא נגעתי ב-301 השורות שלו.**
+
+4. **⇒ מה שהשתנה בסיכון:** סעיף (1) של T-261 (*"cc יעשה commit לפני 23:05"*) **כבר אינו חוסם-בטיחות** — העץ שלו מוגן בין אם יספיק ובין אם לא. נשאר רצוי כהיגיינה בלבד.
+
+**⚠️ מה שלא נסגר, ואל ייקרא כירוק:**
+- `stash@{0}` מ-01.09 (`cowork-autorun-1737`) — **עדיין יתום**, לא נפתח ולא הושמט.
+- `eod_handoff.plist` **חסר `StandardOutPath`/`StandardErrorPath`** ⇒ הפלט של הלילה (`PUSHED` או `PUSH REJECTED`) **הולך לאיבוד**. זו בדיוק הסיבה שלא היה לוג ל-19 יום ([[T-259]]). **ראיית-הסגירה של T-261 היא מחר-בבוקר:** האם `data_handoff/*/2026-09-06/` נוצר.
+- **מדוע ששה מתשעה סוכנים אינם עולים לבד אחרי ריסטארט** — [[T-259]] עדיין לא-מאובחן.
+
+- **חובה 1 — אפס ממתינות, נמדד במקור (peek מ-Render, `22:08`):** `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}` · `GET /chat ⇒ count=30`, ההודעה שלי מ-`18:43:59Z` שם. ⚠️ **פגם-קטן חדש שנצפה:** ההודעה מופיעה **פעמיים** (`18:43:59Z` + `18:44:00Z`) ⇒ דחיפה כפולה; לא אובחן, לא הוקצה, נרשם כאן כדי שלא יאבד.
+- **חובה 3 — ניטור (ראשון, שוק סגור, אין מסחר):** `health 200 @1.6ms` · `slot_health ⇒ stuck=false alarm=false live_open_ids=[] "live slot is free"` · `sierra_state.position_qty=0` · `ERROR=0 CRITICAL=0 ORDER_FAILED=0` · `flag_guard ⇒ PASS — all 240 ruled flags match` · `contracts_cfg=5` · `FIXED_CONTRACTS_5=1` · `RISK_BUDGET_USD=225` · `gate_overrides=[]` · `trading_paused=false`. **אפס נגיעה בדגלים/`.env`/פוזיציות · אפס ריסטארט.**
+- **🔴 חוסם יום-שני, ללא שינוי, פעם רביעית היום:** `pgrep -fl -i sierra ⇒ EMPTY` · בר-woodies אחרון `2026-09-04 23:55+03` (**43.3ש'**) · `sierra_state.json` בגיל **22.8ש'**. אין LaunchAgent ⇒ לא תעלה לבד. **ליד של מייקל בלבד.**
+- ⚠️ **תזכורת-קריאה:** ספרי-04.09 ב-`v9_trades` נותנים `shadow +1509.15` — זה **לפני דדופ** ([[T-252]]); האמת ≈ `−2,060.75`.
+
 [2026-09-06 20:41 IL] **cowork-scheduled · ✅ [[T-259]] ששת הסוכנים עלו — וההשערה שלי מ-18:35 הופרכה בניסוי. + [[T-260]] מתומסגר-מחדש.**
 
 **ממצא → תיקון → ראיה, בארבעה פריטים:**
