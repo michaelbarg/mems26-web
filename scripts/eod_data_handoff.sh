@@ -59,11 +59,23 @@ cp "$HOME/SierraChart_Data/v9_export/sierra_state.json" "$OUT/sierra_state_eod.j
 # 5. ops log for the day (if exists)
 cp "docs/reports/OPS_LOG_$DAY.md" "$OUT/" 2>/dev/null || true
 
-# 6. commit + push (pull first per protocol)
+# 6. commit + push — the payload path ONLY.
+# NEVER stash/pull here (T-261, cowork 2026-09-06). This repo is written concurrently by
+# cc-macbook. Measured: stash -> pull --rebase -> stash pop leaves CONFLICT MARKERS inside
+# live .py files (UU state) whenever the remote touched the same file, and `|| true` hides
+# it. `git pull --rebase --autostash` is NOT a fix either: it produces the identical broken
+# tree and still exits 0 ("Applying autostash resulted in conflicts").
+# Committing an explicit pathspec leaves the working tree untouched; a rejected push is
+# REPORTED, never "repaired" by mutating someone else's work.
 git add "data_handoff/$TAG/$DAY"
-git stash --quiet 2>/dev/null || true
-git pull --rebase --quiet 2>/dev/null || true
-git stash pop --quiet 2>/dev/null || true
-git add "data_handoff/$TAG/$DAY"
-git commit -m "eod-handoff($TAG): $DAY packet — trades/decisions/fills/state/health" --quiet && git push --quiet \
-  && echo "[eod-handoff] PUSHED" || echo "[eod-handoff] commit/push FAILED — check manually"
+if git diff --cached --quiet -- "data_handoff/$TAG/$DAY"; then
+  echo "[eod-handoff] nothing to commit for $TAG/$DAY"
+elif git commit --quiet -m "eod-handoff($TAG): $DAY packet — trades/decisions/fills/state/health" -- "data_handoff/$TAG/$DAY"; then
+  if git push --quiet; then
+    echo "[eod-handoff] PUSHED"
+  else
+    echo "[eod-handoff] PUSH REJECTED — remote moved. Commit is LOCAL and safe; NOT pulling (tree may be dirty). Integrate manually with a clean 'git pull --rebase'."
+  fi
+else
+  echo "[eod-handoff] commit FAILED — check manually"
+fi
