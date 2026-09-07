@@ -1804,6 +1804,28 @@ class TradingGateway:
                 # Leg base = session extreme in the opposite direction
                 _elq_leg_base = _elq_sl if direction == "LONG" else _elq_sh
                 _elq_leg_ext = _elq_sh if direction == "LONG" else _elq_sl
+                # §5 ELQ_LEG_FROM_BREAK_V1: use broken IB edge as leg base
+                # instead of session extreme. On extension days the session
+                # extreme stretches with every bar → leg grows → 28 blocks.
+                if os.getenv("ELQ_LEG_FROM_BREAK_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _elq_cls = getattr(getattr(app, "state", None), "_last_cls_result", None)
+                        _elq_ab = _elq_cls.get("accepted_break") if isinstance(_elq_cls, dict) else None
+                        if _elq_ab is not None:
+                            # Broken IB edge from v9_tpo_state or the TPO export
+                            _elq_ib_edge = None
+                            if _elq_ab == "UP" and direction == "LONG":
+                                _elq_ib_edge = _elq_tpo.get("ib_high")
+                            elif _elq_ab == "DOWN" and direction == "SHORT":
+                                _elq_ib_edge = _elq_tpo.get("ib_low")
+                            if _elq_ib_edge is not None:
+                                logger.warning(
+                                    "[Gateway] §5 ELQ_LEG_FROM_BREAK: leg_base %.2f→%.2f "
+                                    "(broken IB edge, break=%s)",
+                                    _elq_leg_base or 0, float(_elq_ib_edge), _elq_ab)
+                                _elq_leg_base = float(_elq_ib_edge)
+                    except Exception:
+                        pass  # fail-open: keep session-based leg_base
 
                 # ── ONE session-bar fetch, two consumers (T-242 + T-236/T-235).
                 # Both need the same today-RTH 5-min bars, so read them once.
@@ -2613,7 +2635,34 @@ class TradingGateway:
                         "session displaced (open %s → %s)",
                         direction, _rg_sess_open, _rg_last)
                 else:
-                    _rg_v = _rg.check_release(_rg_bars, direction)
+                    # §7: pass accepted_break for delta-breakout release path
+                    _rg_ab = None
+                    try:
+                        from backend.v9.services.trade_context import get_live_day_type as _rg_gldt
+                        _rg_cls = getattr(getattr(app, "state", None), "_last_cls_result", None)
+                        if isinstance(_rg_cls, dict):
+                            _rg_ab = _rg_cls.get("accepted_break")
+                    except Exception:
+                        pass
+                    # §7: enrich bars with delta from v9_bars_cumulative_delta
+                    _rg_delta_map = {}
+                    if os.getenv("DELTA_BREAKOUT_RELEASE_V1", "0").lower() in ("1", "shadow", "true", "yes"):
+                        try:
+                            _rg_cd_rows = _rg_read(
+                                "SELECT ts, delta FROM v9_bars_cumulative_delta "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "ORDER BY ts", {})
+                            _rg_delta_map = {str(r["ts"]): float(r["delta"])
+                                             for r in (_rg_cd_rows or []) if r.get("delta") is not None}
+                        except Exception:
+                            pass
+                    if _rg_delta_map:
+                        # Re-build bars with delta
+                        _rg_bars = _rg.bars_from_rows(list(reversed(_rg_rows or [])),
+                                                       delta_map=_rg_delta_map)
+                    _rg_v = _rg.check_release(_rg_bars, direction,
+                                               accepted_break=_rg_ab)
                     if not _rg_v.released:
                         result["blocked_by"] = "awaiting_release"
                         result["reason"] = f"waiting for the zone release — {_rg_v.reason}"
@@ -3308,6 +3357,39 @@ class TradingGateway:
                                 _ssl["t1"], _ssl["t2"], _ssl["t3"])
             except Exception as _ssl_err:
                 logger.warning("[Gateway] step-scaled-ladder errored (fail-open): %s", _ssl_err)
+
+        # ── §3 · STRUCT_TARGETS_WIN_V1 (Michael ruling 06.09: "שהמערכת תדע לזהות
+        #    אפשרויות ולתת להן ניהול של דלתון") ──
+        # When structural targets (from structural_targets.py) exist and day_type
+        # is known, they override the m×risk ladder. m×risk = fallback only.
+        # Applied AFTER step-scaled-ladder so it wins; BEFORE I-61/TP-1 safety guards.
+        if os.getenv("STRUCT_TARGETS_WIN_V1", "0").strip().lower() in ("1", "true", "yes"):
+            _stw_meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+            _stw_sl = _stw_meta.get("spacing_levels") or []
+            _stw_dt = (setup.get("day_type_at_entry")
+                       or _stw_meta.get("day_type")
+                       or setup.get("day_type")
+                       or "")
+            if _stw_sl and _stw_dt:
+                _stw_map = {}
+                for _sn, _sv in _stw_sl:
+                    if _sn.startswith("struct_c") and _sv is not None:
+                        _stw_map[_sn] = round(round(float(_sv) / 0.25) * 0.25, 2)
+                if _stw_map:
+                    _stw_old = (setup.get("t1"), setup.get("t2"), setup.get("t3"))
+                    if "struct_c1" in _stw_map:
+                        setup["t1"] = _stw_map["struct_c1"]
+                    if "struct_c2" in _stw_map:
+                        setup["t2"] = _stw_map["struct_c2"]
+                    if "struct_c3" in _stw_map:
+                        setup["t3"] = _stw_map["struct_c3"]
+                    logger.warning(
+                        "[Gateway] §3 STRUCT_TARGETS_WIN: day_type=%s "
+                        "t1/t2/t3 %.2f/%.2f/%.2f → %.2f/%.2f/%.2f (structural)",
+                        _stw_dt,
+                        float(_stw_old[0] or 0), float(_stw_old[1] or 0), float(_stw_old[2] or 0),
+                        float(setup.get("t1") or 0), float(setup.get("t2") or 0),
+                        float(setup.get("t3") or 0))
 
         # I-61 (Michael 2026-07-02 ~20:1x, trades 279/280): FINAL target-side guard for
         # EVERY setup (S2 has no A7 validator — a LONG went to Sierra with t2/t3 BELOW
