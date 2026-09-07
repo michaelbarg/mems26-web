@@ -1,3 +1,48 @@
+### [2026-09-07 17:15 IL] cowork-scheduled · ✅ **[[T-266]]/ZLR — שער-`awaiting_release` נפתח, הצל תפס. הפער של 16:26 **מאושר מהקוד** ועדיין פתוח**
+
+ריצה שלוש-עשרה, **חובה-1 + ניטור-RTH**. אפס ריסטארט · אפס נגיעה בדגלים/`.env`/פוזיציות/קוד.
+
+**חובה-1:** `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}` (peek מ-Render 17:06, נתיבים `{render}/instruction/pending` מהקוד). רלה חי `PID 16109`. אחרונת-מייקל ב-thread: **04.09**, כולן נענו ⇒ השקט **ראיה**.
+
+#### 1 · ✅ ההתראה מ-16:46 נסגרה במדידה — ולא בהנחה
+
+ב-16:46 נשלח 🔴 "עוד שפל-עולה אחד ו-`awaiting_release` נפתח; מה שיקרה תלוי בענף-הזיהוי". **השער נפתח פעמיים — 16:55:04 ו-17:00:02.** מהלוג, לא מהערכה:
+
+```
+[Gateway] release-gate LEG EXEMPT: LONG agrees with the live leg — trend broke, reversal entry allowed (ruling 08-11)
+[Gateway] LEG_RIDE: live UP leg (age 5) agrees with LONG — day-level gates exempt
+[Gateway] STOP_RESOLVER_V1: stop 7699.50 → 7712.00 (rung=r0, band [1.7, 4.1], atr=3.4)
+[Gateway] TARGET_REALISM_V1: t1 7735.12 → 7721.50
+[Gateway] SHADOW trade TM id=1182: LONG ZLR system=4
+[Gateway] shadow_only setup (ZLR) — recorded, not routed
+```
+
+⇒ **כל השערים שמעליו נפתחו.** `ZLR_SHADOW_V1` היה האחרון שנשאר, והוא החזיק. **אפס חשיפת-לייב.** מנגנון: `trading_gateway.py:3924`. שתי עסקאות-הצל (`#1181`, `#1182`) נעצרו מיד ב-`STOP_HIT`, ‎−$17.50 כל אחת ⇒ הפסיקה של מייקל היום 15:20 חסכה ‎$35 בשעה הראשונה שבה נבחנה.
+
+#### 2 · ⚠️ תיקון-עצמי בתוך אותה ריצה — ולטובת הרשומה של 16:26
+
+ההודעה הראשונה שלי (17:10) כתבה "ZLR_SHADOW_V1 החזיק" בניסוח שנקרא כ**"הפער נסגר"**. הוא לא. בדקתי **איזה ענף ירה** במקום להסיק:
+
+- הלוג בשתי הפעמים: `wb.zlr=True` ⇒ **ענף דגל-ה-DLL**. הקריאה לדגל יושבת שם בלבד — `woodies_system.py:546`, בתוך בלוק שה-`details` שלו `{"source": "dll_flag"}`.
+- הגלאי השני, `patterns/zlr.py`, **מחוּוט לנתיב החי** (`woodies_system.py:19` מייבא `detect_all_patterns`). שתי נקודות-הזיהוי שלו (`~255`, `~331`) בונות `details={"bars_since_extreme", "stop_layer_applied"}` — **בלי `shadow_only`**.
+
+⇒ **הרשומה של 16:26 ("מנוטרל רק חלקית") מאושרת מהקוד — לא נסתרת.** הענף הפייתוני **לא נבחן היום**: הדגל של ה-DLL היה דלוק בשתי הפעמים.
+⚠️ **מה שלא הצלחתי לכמת:** לא ניתן לפצל DLL-מול-פייתון בעסקאות היסטוריות — `quality` אינו שומר מפתח `source`. raw: `SELECT mode, COALESCE(quality->'pattern_details'->>'source', quality->>'source','(no source key)'), count(*) … pattern_id_at_entry='ZLR' AND entry_ts > now()-'30 days'` ⇒ `live/(no source key)/21 · shadow/(no source key)/125`. **לא ציטטתי את מספר ה-1-מ-21 מ-16:26 כראיה שלי** — אין לי אותו מהנתונים.
+
+#### 3 · מצב-מערכת (נמדד 17:09:43, קריאה-חיה מ-`/api/v9/mobile/data`)
+
+`pos=0` · `daily_total_qty_filled=0` (⇒ **גם לא אתי**) · `is_sim=0` · `armed=1` · `send=1` · `avail $2,909.94` (>‎$1,595 ⇒ אין 🔴-מרג'ין) · `under_margin=0` · `contracts_cfg=5` · `paused=False` · `day_type=Normal`.
+שער: **10 ניסיונות / 0 ירי-לייב / 8 חסומים / 2 `shadow_only`**. חוסמים: `awaiting_release` ×3 · `direction_compass` ×2 · `entry_location_quality` · `location_gate` · `cold_start_guard`.
+פיד: `_age_s=0.5`, בר אחרון `17:05` (‎4.7 דק'). בקאנד `PID 58492`, `[boot] logging OK pid=58492 commit=01810a36` ⇒ שכבת-INFO רואה. **אפס `ERROR`/`CRITICAL` מאז הריסטארט 15:36:48** (כל שגיאות ה-`TS-OFFSET-GATE` הן 15:35–15:36, לפניו). אפס `ORPHAN`/`LIVE trade`/`COMMAND QUEUED`.
+🟠 **נלווה, לא-חוסם:** `#1142` (צל, S4 SHORT מ-04.09) עדיין `PARTIALLY` ומטופל ע"י TM — `FIX15 no-op … never widen`. צל בלבד, אפס סיכון-לייב; נרשם כדי שלא יופיע כ"תגלית" מחר.
+
+**נשלח למייקל:** 17:10:46 (ניטור) + 17:12:43 (תיקון-הדיוק), **שניהם אומתו-במסירה** מול `GET /chat` — `EXACT MATCH=True`, ‎1,273 ו-1,205 תווים.
+⚠️ **טעות-מדידה שלי בתוך התיקון:** כתבתי בגוף ההודעה "נמדד 17:14" בעוד השליחה בפועל `17:12:42`. הערכתי שעה במקום לקרוא אותה ברגע-הכתיבה — אותה מלכודת שכבר רשומה. הפער 90 שניות, אינו משנה אף מסקנה, נרשם כדי לא לחזור.
+
+⏰ **חוזי-CME נעצרים היום 20:00 IL** (Labor Day) — חלון-הירי ממשיך עד אז והוא עיוור-לחגים ([[T-266]] §חלון).
+
+---
+
 ### [2026-09-07 16:26 IL] cowork-scheduled · ⚠️ **תיקון-עצמי ל-16:13 — ביקורת-נגד הפילה 3 חלקים מ-[[T-266]], אחד מהם הרגעה-שווא**
 
 הרצתי סוכן-משנה יריב על ההודעה ששלחתי ב-16:12 **לפני** שהנחתי לה לעמוד. **VERDICT: PARTIALLY SURVIVES.**

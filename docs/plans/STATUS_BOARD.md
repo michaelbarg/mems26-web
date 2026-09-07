@@ -1,3 +1,55 @@
+[2026-09-07 17:15 IL] **cowork-scheduled · ✅ [[T-266]] צעד-בדיקה (8) הוכרע: שער-`awaiting_release` נפתח, `ZLR_SHADOW_V1` תפס, אפס חשיפת-לייב — והפער של 16:26 מאושר-מהקוד ונשאר פתוח.**
+
+**ממצא → תיקון/הצעה → ראיה:**
+
+1. **ממצא (א) — ההתראה מ-16:46 התממשה, והתוצאה הפוכה מהחשש.** ב-16:46 נרשם 🔴 "שפל-עולה אחד נוסף והשער נפתח, ומה שיקרה תלוי בענף-הזיהוי". השער נפתח **פעמיים** — `16:55:04` ו-`17:00:02` — וכל השערים שמעליו נפתחו איתו. **ראיה גולמית** (`/tmp/backend.err.log`, רצף אותה שנייה):
+
+   ```
+   [Gateway] release-gate LEG EXEMPT: LONG agrees with the live leg — trend broke, reversal entry allowed (ruling 08-11)
+   [Gateway] LEG_RIDE: live UP leg (age 5) agrees with LONG — day-level gates exempt
+   [Gateway] STOP_RESOLVER_V1: stop 7699.50 → 7712.00 (rung=r0, band [1.7, 4.1], atr=3.4)
+   [Gateway] TARGET_REALISM_V1: t1 7735.12 → 7721.50 (LONG ceiling from session extreme + avg breakout step)
+   [Gateway] SHADOW trade TM id=1182: LONG ZLR system=4
+   [Gateway] shadow_only setup (ZLR) — recorded, not routed
+   ```
+
+   ⇒ **`ZLR_SHADOW_V1` היה החוסם האחרון שנשאר, והוא החזיק. אפס חשיפת-לייב.** מנגנון: `trading_gateway.py:3924`. שתי עסקאות-הצל (`#1181`, `#1182`) נעצרו מיד ב-`STOP_HIT`, `−$17.50` כל אחת ⇒ פסיקת-מייקל מהיום 15:20 ("ZLR לצל לשבוע · מתקנים ולא מבטלים") חסכה `$35` בשעה הראשונה שבה נבחנה.
+
+2. **ממצא (ב) — תשובת צעד-בדיקה (8): הענף הוא ה-DLL, לא הפייתוני.** לא הוסק, נמדד:
+
+   ```
+   $ grep -E "^2026-09-07 (16:55|17:00)" /tmp/backend.err.log | grep ZLR-TRACE
+   16:55:04 [Woodies ZLR-TRACE] wb.zlr=True dir=UP is_new_bar=True buf=50 — detection WILL run
+   17:00:02 [Woodies ZLR-TRACE] wb.zlr=True dir=UP is_new_bar=True buf=50 — detection WILL run
+   ```
+
+   `wb.zlr=True` ⇒ נכנס לענף `woodies_system.py:546` שה-`details` שלו `{"source":"dll_flag"}` — **הענף היחיד שכותב `shadow_only`**.
+
+3. **ממצא (ג) — ולכן הרשומה של 16:26 מאושרת ולא נסתרת; הפער לא נסגר, הוא לא נבחן.** אומת מהקוד ולא מציטוט-סוכן: אתר-הבנייה היחיד של `pattern_id="ZLR"` ב-`woodies_system.py` הוא `:549` (בתוך ענף-ה-DLL). הגלאי השני `patterns/zlr.py` **מחוּוט לנתיב החי** — `woodies_system.py:19 from backend.v9.systems.woodies.pattern_engine import detect_all_patterns` · `patterns/__init__.py:8 from .zlr import detect_zlr, detect as detect_zlr_v2` · `pattern_engine.py:16 from …patterns import zlr, tlb, tt, gb100` — ושתי נקודות-הזיהוי שלו (`~255`, `~331`) בונות `details={"bars_since_extreme", "stop_layer_applied"}` **בלי `shadow_only`** ⇒ ZLR משם **ינותב לייב**. הענף הזה **לא נגע היום** כי דגל-ה-DLL היה דלוק בשתי הפעמים.
+
+4. **הצעה (ל-cc, צעד-בדיקה 9) — יישום של פסיקה קיימת ולא התנהגות חדשה:** לחווט `shadow_only` גם לשתי נקודות-הזיהוי ב-`patterns/zlr.py`, כך שפסיקת-15:20 תחול על **שני** הענפים. לפי כלל "רולינגים הם חד-פעמיים ועומדים" (CLAUDE.md) — ההתנהגות כבר פסוקה, ולכן בנייה → אימות (טסט + סים) → הפעלה בלי אישור שני; מצביע-הפסיקה נרשם ב-`RULED_FLAGS.yaml` באותו קומיט. **cowork לא נגע בקוד.**
+
+5. **⚠️ מה שלא ניתן לכמת ולא צוטט:** לא ניתן לפצל DLL-מול-פייתון בעסקאות היסטוריות — `quality` אינו שומר מפתח `source`:
+
+   ```
+   $ psql -c "SELECT mode, COALESCE(quality->'pattern_details'->>'source', quality->>'source','(no source key)') src, count(*)
+              FROM v9_trades WHERE pattern_id_at_entry='ZLR' AND entry_ts > now() - interval '30 days' GROUP BY 1,2;"
+     live   | (no source key) |    21
+     shadow | (no source key) |   125
+   ```
+
+   ⇒ **מספר ה-`1 מתוך 21` שנרשם ב-16:26 אינו נגזר מהנתונים שברשותי, ואיני חוזר עליו כראיה שלי.**
+
+6. **⚠️ תיקון-עצמי בתוך אותה ריצה (שני באותו יום, ושוב לצד המרגיע):** ההודעה הראשונה לטלפון (`17:10:46`) ניסחה "`ZLR_SHADOW_V1` החזיק" באופן שנקרא כ**"הפער נסגר"**. נתפס בבדיקת-הענף לפני שהונח לעמוד; נשלח תיקון-דיוק `17:12:43`. **שניהם אומתו-במסירה** מול `GET /chat` — `EXACT MATCH=True`, `1,273` ו-`1,205` תווים. ⚠️ ובתיקון עצמו נכתב "נמדד 17:14" בעוד השליחה בפועל `17:12:42` — **הערכת-שעה במקום קריאה ברגע-הכתיבה**, אותה מלכודת שכבר רשומה; פער 90ש', אינו משנה מסקנה, נרשם כדי לא לחזור.
+
+7. **ניטור-RTH נלווה (נמדד `17:09:43`, `/api/v9/mobile/data`) — נקי:** `pos=0` · `daily_total_qty_filled=0` ⇒ **גם אתי לא סחרה** · `is_sim=0` · `armed=1` · `send=1` · `avail $2,909.94` (>`$1,595` ⇒ [[T-34]] עובר, דיווח-בלבד) · `under_margin=0` · `contracts_cfg=5` · `paused=False`. שער: **10 ניסיונות / 0 ירי-לייב / 8 חסומים / 2 `shadow_only`**; חוסמים `awaiting_release`×3 · `direction_compass`×2 · `entry_location_quality` · `location_gate` · `cold_start_guard`. פיד `_age_s=0.5`, בר `17:05` (4.7 דק'). בקאנד `pid=58492` + `[boot] logging OK … pid=58492 commit=01810a36` ⇒ **שכבת-INFO רואה** (השער של §3.9 עבר לפני כל ספירה). **אפס `ERROR`/`CRITICAL` מאז ריסטארט `15:36:48`** — כל `1,566` דחיות ה-`TS-OFFSET-GATE` הן `15:35–15:36`, **לפניו**; אפס `ORPHAN`/`LIVE trade`/`COMMAND QUEUED`.
+
+8. **🟠 נלווה לא-חוסם, נרשם כדי שלא יופיע כ"תגלית" מחר:** `#1142` (צל, S4 `GB100` SHORT מ-`04.09`) עדיין `PARTIAL` ומטופל ע"י TradeManager — `[TradeManager] FIX15 no-op trade=1142: anchor 7721.25 does not tighten stop 7715.00 (SHORT) — never widen`. צל בלבד, אפס סיכון-לייב.
+
+**סטטוס-פריט:** [[T-266]] נשאר **🟡 ממתין-לפסיקה** — צעד-בדיקה (8) נסגר, אך שאלת-הכיסוי של `16:30–17:15` היא של מייקל וטרם נענתה. **אפס נגיעה** בדגלים/`.env`/`RULED_FLAGS.yaml`/פוזיציות/ריסטארט/קוד. `flag_guard ⇒ PASS — all 242 ruled flags match` · `task_log_guard ⇒ ✅ 268 items`.
+
+---
+
 [2026-09-07 14:50 IL] **cowork-scheduled · 🟠 [[T-265]] הוכרע במדידה: תקיעה ולא טעינת-היסטוריה — ‏78 דק' לפני הדדליין שהצבתי. + תיקון-חומרה שלי עצמי: לא נמצא צרכן בנתיב-הירי.**
 
 **ממצא → תיקון/הצעה → ראיה:**
