@@ -69,6 +69,7 @@ class Bar:
     low: float
     close: float
     volume: float
+    delta: Optional[float] = None
 
 
 @dataclass
@@ -80,7 +81,69 @@ class ReleaseVerdict:
     vol_ratio: Optional[float] = None
 
 
-def check_release(bars: Sequence[Bar], direction: str) -> ReleaseVerdict:
+def _delta_breakout_release(
+    bars: Sequence[Bar], direction: str,
+    accepted_break: Optional[str],
+) -> Optional[ReleaseVerdict]:
+    """§7 DELTA_BREAKOUT_RELEASE_V1: release on delta conviction, no structure wait.
+
+    Returns ReleaseVerdict if this path decides; None if it can't (Rule 1).
+    Only runs when the flag is ON and accepted_break is present.
+    """
+    flag = os.getenv("DELTA_BREAKOUT_RELEASE_V1", "0").strip().lower()
+    if flag not in ("1", "shadow", "true", "yes"):
+        return None
+    if not accepted_break:
+        return None
+
+    is_long = str(direction).upper() == "LONG"
+    # Delta must confirm the break direction
+    if (is_long and accepted_break == "DOWN") or (not is_long and accepted_break == "UP"):
+        return None
+
+    # Need bars with delta data
+    bars_with_delta = [(i, b) for i, b in enumerate(bars) if b.delta is not None]
+    if len(bars_with_delta) < 2:
+        return None  # Rule 1: insufficient data → no decision
+
+    # Session max delta (in break direction) and max volume
+    if is_long:
+        max_delta = max(b.delta for _, b in bars_with_delta)
+    else:
+        max_delta = min(b.delta for _, b in bars_with_delta)
+    max_vol = max(b.volume for _, b in bars_with_delta) if bars_with_delta else 0
+
+    # Check the latest bar
+    last_i, last = bars_with_delta[-1]
+    if last.delta is None or max_vol <= 0:
+        return None
+
+    # Conditions: delta ≥ session max AND volume ≥ 0.7 × session max
+    delta_ok = (last.delta >= max_delta) if is_long else (last.delta <= max_delta)
+    vol_ok = last.volume >= 0.7 * max_vol
+    is_shadow = flag == "shadow"
+
+    if delta_ok and vol_ok:
+        buf = _f("RELEASE_STOP_BUFFER_POINTS", 1.0)
+        ext = min(b.low for b in bars) if is_long else max(b.high for b in bars)
+        stop = round((ext - buf) if is_long else (ext + buf), 2)
+        verdict = ReleaseVerdict(
+            True,
+            f"released (delta-breakout): delta={last.delta:.0f} "
+            f"(session {'max' if is_long else 'min'}={max_delta:.0f}), "
+            f"vol={last.volume:.0f} (≥70% of {max_vol:.0f})"
+            + (" [SHADOW]" if is_shadow else ""),
+            structural_stop=stop)
+        if is_shadow:
+            logger.warning("[ReleaseGate] §7 SHADOW: %s", verdict.reason)
+            return None  # shadow: log but don't release
+        return verdict
+
+    return None  # conditions not met → fall through to structure path
+
+
+def check_release(bars: Sequence[Bar], direction: str,
+                  accepted_break: Optional[str] = None) -> ReleaseVerdict:
     """Pure. `bars` are closed 5-min bars, oldest → newest, covering the window
     from the extreme to now. Returns whether price has released from the zone.
 
@@ -94,6 +157,11 @@ def check_release(bars: Sequence[Bar], direction: str) -> ReleaseVerdict:
 
     if not bars or len(bars) < min_hl + vol_window:
         return ReleaseVerdict(False, f"not enough bars ({len(bars)})")
+
+    # §7 DELTA_BREAKOUT_RELEASE_V1: try delta-based release FIRST
+    _dbr = _delta_breakout_release(bars, direction, accepted_break)
+    if _dbr is not None:
+        return _dbr
 
     is_long = str(direction).upper() == "LONG"
     window = list(bars)[-max_bars:]
@@ -177,13 +245,19 @@ def check_release(bars: Sequence[Bar], direction: str) -> ReleaseVerdict:
         structural_stop=stop, higher_lows=hl, vol_ratio=ratio)
 
 
-def bars_from_rows(rows: Sequence[dict]) -> List[Bar]:
-    """Adapt DB rows (high/low/close/volume) — skips anything unusable."""
+def bars_from_rows(rows: Sequence[dict], delta_map: Optional[dict] = None) -> List[Bar]:
+    """Adapt DB rows (high/low/close/volume) — skips anything unusable.
+    delta_map: optional {ts_str: delta_value} for §7 delta-breakout path.
+    """
     out: List[Bar] = []
     for r in rows or []:
         try:
+            _d = None
+            if delta_map and r.get("ts"):
+                _d = delta_map.get(str(r["ts"]))
             out.append(Bar(float(r["high"]), float(r["low"]),
-                           float(r["close"]), float(r.get("volume") or 0.0)))
+                           float(r["close"]), float(r.get("volume") or 0.0),
+                           delta=_d))
         except (KeyError, TypeError, ValueError):
             continue
     return out
