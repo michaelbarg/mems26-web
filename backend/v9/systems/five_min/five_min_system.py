@@ -793,7 +793,11 @@ class FiveMinSystem(BaseV9TradingSystem):
             import os as _t41_os
             _window_min_pct = float(_t41_os.getenv(
                 "CVD_WINDOW_MIN_PCT", "0.9"))
-            _window_min = max(2, int(window * _window_min_pct))
+            # §8: use min(nominal, available) so early-session bars aren't
+            # rejected against the full 20-bar nominal window (CVD unavailable
+            # exactly when it's most needed — until ~17:55).
+            _effective_window = min(window, len(cums)) if len(cums) >= 4 else window
+            _window_min = max(2, int(_effective_window * _window_min_pct))
             if len(cums) < _window_min:
                 # Below minimum threshold — honest failure (Rule 1)
                 if cums:
