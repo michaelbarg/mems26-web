@@ -100,12 +100,25 @@ def _replay_749(mgr, trade, *, with_qty=True):
     # 2. DLL "T3" @7742.25 → remapped to T2
     mgr.on_target_hit(trade.id, "T3", fill_ts=_ts(9), fill_price=7742.25,
                       fill_qty=q(1), order_id=10412)
-    # 3. first stop leg closes the trade
+    # 3. first stop leg — 3 of 4 contracts accounted for
     mgr.on_stop_hit(trade.id, fill_ts=_ts(58), fill_price=7734.75,
                     fill_qty=q(1), order_id=10410)
-    # 4. the fourth contract's stop lands on an already-CLOSED trade
-    mgr.update_closed_trade_pnl(trade.id, 7732.50, exit_reason="STOP_FILL",
-                                fill_qty=q(1), order_id=10416, kind="STOP")
+    # 4. the fourth contract's stop.
+    #    T-251 (2026-09-07) changed WHICH entry point this leg arrives through,
+    #    not the P&L it must produce. With per-leg quantities the first stop no
+    #    longer closes the ladder (ledger 3/4 → PARTIAL, books stay open while
+    #    the 4th contract is still working), so the poller routes this leg back
+    #    into `on_stop_hit` — it only reaches `update_closed_trade_pnl` when the
+    #    row is ALREADY CLOSED (`fill_poller._process_fill` :1146). Dispatch
+    #    exactly like the poller does, so both eras are exercised: with
+    #    `with_qty=False` the legacy path still closes on the first stop and
+    #    this leg still lands on a CLOSED trade.
+    if getattr(trade, "state", "") == "CLOSED":
+        mgr.update_closed_trade_pnl(trade.id, 7732.50, exit_reason="STOP_FILL",
+                                    fill_qty=q(1), order_id=10416, kind="STOP")
+    else:
+        mgr.on_stop_hit(trade.id, fill_ts=_ts(59), fill_price=7732.50,
+                        fill_qty=q(1), order_id=10416)
 
 
 class TestTrade749:
@@ -156,7 +169,13 @@ class TestTrade749:
             "trade's exit fill is what cost #749 $41.25")
 
     def test_two_stop_fills_keep_their_own_prices(self, monkeypatch):
-        """Root 2 in isolation: the later stop must not re-price the earlier."""
+        """Root 2 in isolation: the later stop must not re-price the earlier.
+
+        T-251 (2026-09-07) also moved WHEN the books close: two stop legs on a
+        4-contract ladder account for 2 of 4 contracts, so the trade is still
+        working and stays PARTIAL — which is precisely the #1008 defect this
+        pairs with. The pricing invariant is unchanged and is what is asserted.
+        """
         monkeypatch.setenv("BE_AFTER_REAL_T1_V1", "1")
         trade = _trade_749()
         mgr, _ = _mgr(trade)
@@ -164,17 +183,22 @@ class TestTrade749:
         mgr.on_stop_hit(trade.id, fill_ts=_ts(58), fill_price=7734.75,
                         fill_qty=1, order_id=10410)
         after_first = trade.pnl_usd
-        mgr.update_closed_trade_pnl(trade.id, 7732.50, exit_reason="STOP_FILL",
-                                    fill_qty=1, order_id=10416, kind="STOP")
+        mgr.on_stop_hit(trade.id, fill_ts=_ts(59), fill_price=7732.50,
+                        fill_qty=1, order_id=10416)
 
-        # 1 leg @7734.75 (-2.75) + 3 remaining @7734.75 → -$55.00 …
-        assert after_first == pytest.approx(-55.0)
-        # … then the 4th contract takes its own -5.00 instead of re-pricing all:
-        # 2×(-2.75) + 1×(-5.00) + 1 remaining @7732.50 = -3×2.75… spelled out:
-        expected = ((7734.75 - ENTRY) * 1 + (7732.50 - ENTRY) * 1
-                    + (7732.50 - ENTRY) * 2) * MES
+        # One leg out at its own price, three contracts still working →
+        # realized-only: 1 × (-2.75) × $5 = -$13.75. Booking the three live
+        # contracts at this leg's stop (-$55.00) is the T-251 lie.
+        assert after_first == pytest.approx(-13.75)
+        assert trade.state == "PARTIAL", (
+            "2 of 4 contracts have fills — the ladder is still working")
+        # … and the 4th contract takes its OWN -5.00 instead of re-pricing the
+        # first leg (which would read 2×(-5.00) = -$50.00):
+        expected = ((7734.75 - ENTRY) * 1 + (7732.50 - ENTRY) * 1) * MES
         assert trade.pnl_usd == pytest.approx(expected)
-        assert trade.pnl_usd > -100.0
+        assert trade.pnl_usd == pytest.approx(-38.75)
+        assert sorted(f["price"] for f in trade.quality["exit_fills"]) == [
+            7732.50, 7734.75]
 
     def test_a_replayed_fill_is_never_booked_twice(self, monkeypatch):
         """trade_fills.json is re-read on every mtime bump."""

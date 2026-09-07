@@ -21,6 +21,10 @@ class _FakeTrade:
         self.mode = "demo"
         self.pnl_usd = -142.5
         self.direction = "SHORT"
+        # T-251 (2026-09-07): the poller now asks the row whether the stop
+        # actually CLOSED the trade before it frees the slot, so the fake has
+        # to carry a state like the real V9Trade does.
+        self.state = "FILLED"
 
 
 class _FakeTM:
@@ -32,6 +36,10 @@ class _FakeTM:
     # **_kw absorbs the poller's T-62 per-leg fill_qty/order_id
     def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None, **_kw):
         self.stop_hits.append(trade_id)
+        # This fixture models a FULL close (I-57's subject: the last contract
+        # stops out). T-251 gave the partial case its own path — covered by
+        # backend/v9/tests/test_t251_partial_stop_keeps_books_open.py.
+        self._trade.state = "CLOSED"
 
     def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None, **_kw):
         self.target_hits.append((trade_id, kind))
