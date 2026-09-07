@@ -768,6 +768,12 @@ class TradingGateway:
                     or (setup.get("metadata") or {}).get("pattern"))
             if _pat:
                 setup["pattern"] = _pat
+        # ── ZLR_SHADOW_V1 (Michael ruling 07.09): ZLR → shadow only.
+        # Choke point: all routes pass here, so classification=="ZLR" is
+        # the single gate. metadata.shadow_only → gateway :3922 routes shadow.
+        if (os.getenv("ZLR_SHADOW_V1", "0").lower() in ("1", "true", "yes")
+                and (setup.get("classification") or setup.get("pattern") or "") == "ZLR"):
+            setup.setdefault("metadata", {})["shadow_only"] = True
         # ── CONFLUENCE_RI_ZLR_V1 (default OFF) — S2×S4 same-bar route-join hook
         # (spec docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §4.1). Register
         # EVERY route attempt BEFORE the gate chain, so a join is seen even when a
