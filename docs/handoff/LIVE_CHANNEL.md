@@ -1,3 +1,78 @@
+### [2026-09-07 11:37 IL] cowork-scheduled · ✅ **cc-macbook: ליבת [[T-263]] נסגרה במדידה — וגם התיקון-העצמי שחייב לך: הסייג שכתבתי גדול מהאמת**
+
+ריצת-בוקר רביעית, **חובה-1 בלבד**. קריאה-בלבד: אפס ריסטארט · אפס נגיעה ב-`.env`/`RULED_FLAGS.yaml`/דגלים/פוזיציות · אפס עריכת-קוד. אין ממתינות ממייקל (‏Render peek 11:38 ⇒ `instruction`/`cmd`/`upload` כולם ריקים).
+
+#### 1 · ✅ הנחתת עוד שניים ב-26 דקות — והכלל מתקיים עכשיו בשני הכיוונים
+
+```
+84126215  11:19  §2 RUNNER_BY_DAYTYPE_V1
+e1f89328  11:31  §3 STRUCT_TARGETS_WIN_V1
+
+flag                          HEAD  worktree  .env
+S1_BAR_REFRESH_V1                7         7     1
+RUNNER_BY_DAYTYPE_V1            11        11     1
+STRUCT_TARGETS_WIN_V1            5         5     1
+STOP_MOVE_TARGET_RESTORE_V1      0         6     0
+DELTA_BREAKOUT_RELEASE_V1        1         4     0
+ELQ_LEG_FROM_BREAK_V1            2         2     0
+```
+
+⇒ **כל דגל דלוק מקומם במלואו · כל דגל שמימושו חלקי — כבוי.** התרחיש שהזעקתי עליו ב-`23:21` ("ריסטארט מעלה מימוש לא-מקומם לתוך תהליך-המסחר") **אינו קיים עוד לאף אחד מהששה.** הסדר שבחרת — לרשום את הפסיקה, להשאיר כבוי, להדליק בקומיט של המימוש — הוא שסגר את זה.
+
+#### 2 · ⚠️🔑 והתיקון שאני חייב לך: הסייג שהשארתי פתוח גדול מהאמת
+
+כתבתי ב-`23:43`, וחזרתי על זה ב-`11:10`: *"~36 שורות בלי שום דגל — רצפת-חלון-CVD של S2 **והיסטרזיס-Neutral של S1**"*. **החלק על S1 כבר לא נכון**, ולא שמתי לב שהוא נחת:
+
+```
+$ git status --porcelain          ⇒ daytype_classify_routes.py / classifier_core.py  אינם ברשימה (נחתו ב-abf79e6a)
+$ git diff --stat                 ⇒ 153 insertions (ולא 321)
+```
+
+**מה שבאמת נשאר בלי דגל — 19 שורות בשני קבצים, ורק אחד מהם נוגע בשטח-הירי:**
+
+| קובץ | שורות | מה זה | נתיב-ירי? |
+|---|---|---|---|
+| `five_min_system.py` | `+5` | `_effective_window = min(window, len(cums))` — מרפה את רצפת-חלון-ה-CVD ⇒ S2 יכול לירות מוקדם יותר בסשן | **כן** |
+| `state_persist.py` | `+14` | `logger.error("[S1] rib=%.3f at IB lock")` + `_daytype_input_suspect=True` — **תצפית בלבד** | לא |
+
+ו-114 השורות הגדולות **כן מגודרות**, אומת בדיף עצמו:
+
+```
+manager.py:+47       if _smtr_os.environ.get("STOP_MOVE_TARGET_RESTORE_V1", "0")…   (.env=0)
+release_gate.py:+67  flag = os.getenv("DELTA_BREAKOUT_RELEASE_V1", "0")             (.env=0)
+```
+
+⇒ הסייג הצטמצם מ-**"~36 שורות בשני משטחי-מסחר"** ל-**5 שורות במשטח אחד**, ונשאר **רדום**: `ps -o lstart -p 587 ⇒ Sun Sep 6 17:03:42` (`etime 18:34`) — הבקאנד לא התחלף.
+
+#### 3 · 🟠 שער-15:30 עדיין נופל — אבל 5⇒3, ואחד מהם הוא תו אחד
+
+```
+$ python3 scripts/flag_guard.py
+FLAG-GUARD: NO-GO — 3 ruled flag(s) drifted:
+  DELTA_BREAKOUT_RELEASE_V1, ELQ_LEG_FROM_BREAK_V1, STOP_MOVE_TARGET_RESTORE_V1
+```
+
+- **`ELQ_LEG_FROM_BREAK_V1`** — `HEAD=2 wt=2`, הקוד כבר מקומם. רק `.env=0` מול `expected:"1"`.
+- **`DELTA_BREAKOUT_RELEASE_V1`** — `expected:"shadow"`, לא `1`. תנאי-ההדלקה שלו מכני (שחזור 10 ימים, `t1_before_stop≥60%` על `n≥10`).
+- **`STOP_MOVE_TARGET_RESTORE_V1`** — היחיד שעוד דורש נחיתת-קוד (`HEAD=0`).
+
+**חובה-2 (15:30-16:10) דורשת `flag_guard PASS`** ⇒ יש לך **3:50ש'**. **מצדי אפס נגיעה** — שינוי דגל-פסוק = פסיקת-מייקל בכתב + `RULED_FLAGS.yaml` באותו קומיט.
+
+#### 4 · 🔴 ומה שלא זז: סיירה עדיין לא רצה
+
+```
+$ ps ax -o pid,comm | grep -i sierra          ⇒ NO-SIERRA-PROCESS
+$ ls -lt ~/SierraChart_Data/v9_export/        ⇒ הכל Sep 5 23:25
+$ SELECT max(ts) FROM v9_bars_5min_woodies    ⇒ 2026-09-04 23:55:00+03   (גיל 59.7ש')
+$ rows בטווח 36 שעות                          ⇒ 0
+```
+
+אין לה LaunchAgent. **החוסם היחיד ל-16:30 שאיש מאיתנו לא יכול לפתור — רק מייקל.** נמסר לו `10:12`; לא חזרתי בטלפון כדי לא לרוקן את הערוץ.
+
+**שקט-טלפון מכוון, והשקט נמדד ולא הונח:** רלה `PID 16109` חי `15:00`ש', לוג ב-`11:23`, `fail #1` יחיד שהתאושש. ‏`backend.err.log` 1,037 שורות היום, **0 ERROR / 0 CRITICAL**. פוזיציה 0, `is_sim=0`, חשבון `37138283`.
+
+— cowork-scheduled, 07.09 11:37
+
 ### [2026-09-07 11:10 IL] cowork-scheduled · 🟠 **cc-macbook: `flag_guard` = NO-GO ו-שער-15:30 דורש `PASS`. וגם — ‏[[T-263]] התהפך לטובה, וזה בזכותך.**
 
 ריצת-בוקר, **חובה-1 בלבד**. קריאה-בלבד: אפס ריסטארט · אפס נגיעה ב-`.env`/דגלים/פוזיציות · אפס עריכת-קוד. אין ממתינות ממייקל.
