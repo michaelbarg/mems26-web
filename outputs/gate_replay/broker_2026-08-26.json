@@ -1,0 +1,131 @@
+{
+  "date": "2026-08-26",
+  "account": "37138283",
+  "source": "/Users/michael/SierraChart/TradeActivityLogs/TradeActivityLog_2026-08-26_UTC.37138283.data",
+  "fills": 16,
+  "closed_pnl_records": 9,
+  "broker_day_total": -346.25,
+  "trades": [
+    {
+      "trade_id": 809,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10635,
+      "exit_order_ids": [
+        10633,
+        10634,
+        10636,
+        10637
+      ],
+      "books_entry": 7701.5,
+      "broker_entry": 7698.75,
+      "entry_delta": 2.75,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10634,
+          "price": 7694.0,
+          "qty": 1.0,
+          "broker_pnl": -23.75,
+          "ts": "2026-08-26T14:12:25.943227+00:00"
+        },
+        {
+          "order_id": 10637,
+          "price": 7694.0,
+          "qty": 1.0,
+          "broker_pnl": -23.75,
+          "ts": "2026-08-26T14:12:25.945275+00:00"
+        }
+      ],
+      "books_pnl": -75.0,
+      "pnl_sierra_now": -75.0,
+      "pnl_broker": -47.5,
+      "pnl_reconstructed": -47.5,
+      "recon_agrees": true,
+      "pnl_delta": -27.5
+    },
+    {
+      "trade_id": 812,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10649,
+      "exit_order_ids": [
+        10647,
+        10648,
+        10650,
+        10651
+      ],
+      "books_entry": 7688.75,
+      "broker_entry": 7689.0,
+      "entry_delta": -0.25,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10647,
+          "price": 7695.25,
+          "qty": 1.0,
+          "broker_pnl": 31.25,
+          "ts": "2026-08-26T18:47:01.604358+00:00"
+        }
+      ],
+      "books_pnl": 32.5,
+      "pnl_sierra_now": null,
+      "pnl_broker": 31.25,
+      "pnl_reconstructed": 31.25,
+      "recon_agrees": true,
+      "pnl_delta": 1.25
+    },
+    {
+      "trade_id": 818,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10655,
+      "exit_order_ids": [
+        10653,
+        10654,
+        10656
+      ],
+      "books_entry": 7695.5,
+      "broker_entry": 7695.25,
+      "entry_delta": 0.25,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10653,
+          "price": 7703.75,
+          "qty": 1.0,
+          "broker_pnl": 73.75,
+          "ts": "2026-08-26T19:02:28.139615+00:00"
+        }
+      ],
+      "books_pnl": 41.25,
+      "pnl_sierra_now": null,
+      "pnl_broker": 73.75,
+      "pnl_reconstructed": 42.5,
+      "recon_agrees": false,
+      "pnl_delta": -32.5
+    },
+    {
+      "trade_id": 820,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10660,
+      "exit_order_ids": [
+        10658,
+        10659,
+        10661
+      ],
+      "books_entry": 7703.25,
+      "broker_entry": null,
+      "entry_delta": null,
+      "entry_qty": null,
+      "exit_fills": [],
+      "books_pnl": 0.0,
+      "pnl_sierra_now": null,
+      "pnl_broker": null,
+      "pnl_reconstructed": null,
+      "recon_agrees": false,
+      "pnl_delta": null
+    }
+  ]
+}

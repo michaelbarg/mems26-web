@@ -1,0 +1,175 @@
+{
+  "date": "2026-09-01",
+  "account": "37138283",
+  "source": "/Users/michael/SierraChart/TradeActivityLogs/TradeActivityLog_2026-09-01_UTC.37138283.data",
+  "fills": 30,
+  "closed_pnl_records": 21,
+  "broker_day_total": -226.25,
+  "trades": [
+    {
+      "trade_id": 942,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10853,
+      "exit_order_ids": [
+        10845,
+        10846,
+        10848,
+        10849,
+        10851,
+        10852,
+        10854
+      ],
+      "books_entry": 7660.25,
+      "broker_entry": 7660.75,
+      "entry_delta": -0.5,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10845,
+          "price": 7663.25,
+          "qty": 1.0,
+          "broker_pnl": 67.5,
+          "ts": "2026-09-01T14:22:22.006146+00:00"
+        },
+        {
+          "order_id": 10848,
+          "price": 7667.75,
+          "qty": 1.0,
+          "broker_pnl": 90.0,
+          "ts": "2026-09-01T14:30:31.287753+00:00"
+        },
+        {
+          "order_id": 10852,
+          "price": 7660.5,
+          "qty": 1.0,
+          "broker_pnl": -1.25,
+          "ts": "2026-09-01T14:58:38.073676+00:00"
+        },
+        {
+          "order_id": 10854,
+          "price": 7660.5,
+          "qty": 1.0,
+          "broker_pnl": -1.25,
+          "ts": "2026-09-01T14:58:38.090542+00:00"
+        }
+      ],
+      "books_pnl": 55.0,
+      "pnl_sierra_now": 55.0,
+      "pnl_broker": 155.0,
+      "pnl_reconstructed": 45.0,
+      "recon_agrees": false,
+      "pnl_delta": -100.0
+    },
+    {
+      "trade_id": 948,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10865,
+      "exit_order_ids": [
+        10857,
+        10858,
+        10860,
+        10861,
+        10863,
+        10864,
+        10866
+      ],
+      "books_entry": 7668.75,
+      "broker_entry": 7668.5,
+      "entry_delta": 0.25,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10857,
+          "price": 7671.75,
+          "qty": 1.0,
+          "broker_pnl": 16.25,
+          "ts": "2026-09-01T15:47:08.507526+00:00"
+        },
+        {
+          "order_id": 10861,
+          "price": 7661.25,
+          "qty": 2.0,
+          "broker_pnl": -72.5,
+          "ts": "2026-09-01T16:15:14.401364+00:00"
+        },
+        {
+          "order_id": 10864,
+          "price": 7661.25,
+          "qty": 1.0,
+          "broker_pnl": -36.25,
+          "ts": "2026-09-01T16:15:14.575209+00:00"
+        },
+        {
+          "order_id": 10866,
+          "price": 7661.25,
+          "qty": 1.0,
+          "broker_pnl": -36.25,
+          "ts": "2026-09-01T16:15:14.575508+00:00"
+        }
+      ],
+      "books_pnl": -135.0,
+      "pnl_sierra_now": -135.0,
+      "pnl_broker": -128.75,
+      "pnl_reconstructed": -128.75,
+      "recon_agrees": true,
+      "pnl_delta": -6.25
+    },
+    {
+      "trade_id": 950,
+      "mode": "live",
+      "direction": "SHORT",
+      "entry_order_id": 10876,
+      "exit_order_ids": [
+        10868,
+        10869,
+        10871,
+        10872,
+        10874,
+        10875,
+        10877
+      ],
+      "books_entry": 7643.75,
+      "broker_entry": 7643.75,
+      "entry_delta": 0.0,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10869,
+          "price": 7650.0,
+          "qty": 1.0,
+          "broker_pnl": -187.5,
+          "ts": "2026-09-01T16:41:34.590372+00:00"
+        },
+        {
+          "order_id": 10872,
+          "price": 7650.0,
+          "qty": 2.0,
+          "broker_pnl": -62.5,
+          "ts": "2026-09-01T16:41:34.800339+00:00"
+        },
+        {
+          "order_id": 10875,
+          "price": 7650.0,
+          "qty": 1.0,
+          "broker_pnl": -31.25,
+          "ts": "2026-09-01T16:41:34.800768+00:00"
+        },
+        {
+          "order_id": 10877,
+          "price": 7650.0,
+          "qty": 1.0,
+          "broker_pnl": -31.25,
+          "ts": "2026-09-01T16:41:34.801177+00:00"
+        }
+      ],
+      "books_pnl": -156.25,
+      "pnl_sierra_now": -156.25,
+      "pnl_broker": -312.5,
+      "pnl_reconstructed": -156.25,
+      "recon_agrees": false,
+      "pnl_delta": 156.25
+    }
+  ]
+}

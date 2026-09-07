@@ -1,0 +1,91 @@
+{
+  "date": "2026-09-03",
+  "account": "37138283",
+  "source": "/Users/michael/SierraChart/TradeActivityLogs/TradeActivityLog_2026-09-03_UTC.37138283.data",
+  "fills": 16,
+  "closed_pnl_records": 9,
+  "broker_day_total": -106.25,
+  "trades": [
+    {
+      "trade_id": 981,
+      "mode": "live",
+      "direction": "LONG",
+      "entry_order_id": 10948,
+      "exit_order_ids": [
+        10943,
+        10944,
+        10946,
+        10947,
+        10949,
+        10950
+      ],
+      "books_entry": 7714.0,
+      "broker_entry": 7714.0,
+      "entry_delta": 0.0,
+      "entry_qty": 1.0,
+      "exit_fills": [],
+      "books_pnl": null,
+      "pnl_sierra_now": null,
+      "pnl_broker": null,
+      "pnl_reconstructed": null,
+      "recon_agrees": false,
+      "pnl_delta": null
+    },
+    {
+      "trade_id": 987,
+      "mode": "live",
+      "direction": "SHORT",
+      "entry_order_id": 10961,
+      "exit_order_ids": [
+        10953,
+        10954,
+        10956,
+        10957,
+        10959,
+        10960,
+        10962,
+        10963
+      ],
+      "books_entry": 7749.0,
+      "broker_entry": 7748.5,
+      "entry_delta": 0.5,
+      "entry_qty": 1.0,
+      "exit_fills": [
+        {
+          "order_id": 10954,
+          "price": 7754.75,
+          "qty": 1.0,
+          "broker_pnl": -31.25,
+          "ts": "2026-09-03T17:33:33.442305+00:00"
+        },
+        {
+          "order_id": 10957,
+          "price": 7754.75,
+          "qty": 2.0,
+          "broker_pnl": -62.5,
+          "ts": "2026-09-03T17:33:33.603046+00:00"
+        },
+        {
+          "order_id": 10960,
+          "price": 7754.75,
+          "qty": 1.0,
+          "broker_pnl": -31.25,
+          "ts": "2026-09-03T17:33:33.603392+00:00"
+        },
+        {
+          "order_id": 10963,
+          "price": 7754.75,
+          "qty": 1.0,
+          "broker_pnl": -31.25,
+          "ts": "2026-09-03T17:33:33.603892+00:00"
+        }
+      ],
+      "books_pnl": -143.75,
+      "pnl_sierra_now": null,
+      "pnl_broker": -156.25,
+      "pnl_reconstructed": -156.25,
+      "recon_agrees": true,
+      "pnl_delta": 12.5
+    }
+  ]
+}
