@@ -239,6 +239,7 @@ async def _startup():
         _cls_rth_bars: list = []  # mutable list for closure; reset on new session date
         _cls_session_date = {"value": None}
         _cls_ctx_cache = {"loaded": False}  # one-time context loaded at IB lock
+        _cls_prev_neutral = {"value": None}  # §1(א): hysteresis for Neutral_Extreme↔Center
 
         def _load_previous_day_context_for_startup():
             try:
@@ -257,6 +258,19 @@ async def _startup():
             # (every file-poll mtime change). Skip if bar ts unchanged.
             bar_ts = bar.get("ts")
             if bar_ts is not None and bar_ts == _prev_bar_ts["value"]:
+                # S1_BAR_REFRESH_V1: update developing bar in classifier buffer
+                # (like S2 five_min_system.py:1774 — replace, don't skip)
+                import os as _br_os
+                if (_br_os.environ.get("S1_BAR_REFRESH_V1", "0").lower() in ("1", "true", "yes")
+                        and _cls_rth_bars):
+                    _cls_rth_bars[-1] = {
+                        "o": float(bar.get("open", bar.get("o", 0))),
+                        "h": float(bar.get("high", bar.get("h", 0))),
+                        "l": float(bar.get("low", bar.get("l", 0))),
+                        "c": float(bar.get("close", bar.get("c", 0))),
+                        "v": float(bar.get("volume", bar.get("v", 0))),
+                        "cum": bar.get("cumulative_delta"),
+                    }
                 return
             _prev_bar_ts["value"] = bar_ts
             try:
@@ -340,10 +354,12 @@ async def _startup():
                         # Reset context cache for new day (force re-load at next IB lock)
                         _cls_ctx_cache.clear()
                         _cls_ctx_cache["loaded"] = False
+                        _cls_prev_neutral["value"] = None
                     _cls_rth_bars.append({
                         "o": bar_input.open, "h": bar_input.high,
                         "l": bar_input.low, "c": bar_input.close,
                         "v": bar_input.volume,
+                        "cum": bar.get("cumulative_delta"),
                     })
                     # Expose to gateway for opening-type gate (FIX B)
                     # The gateway reads via system_registry["day_type_machine"]._opening_gate_bars
@@ -489,8 +505,14 @@ async def _startup():
                                 pdl=_cls_ctx_cache.get("pdl"),
                                 poc_now=_poc_now,
                                 poc_at_ib=_cls_ctx_cache.get("poc_at_ib"),
+                                prev_neutral_subtype=_cls_prev_neutral["value"],
                             )
                             _cls_dt_str = _cls_result.get("day_type", "")
+                            # §1(א): track Neutral sub-type for hysteresis
+                            if _cls_dt_str.startswith("Neutral_"):
+                                _cls_prev_neutral["value"] = _cls_dt_str
+                            elif _cls_dt_str not in ("FORMING", ""):
+                                _cls_prev_neutral["value"] = None
                             _cls_status = _cls_result.get("status", "")
 
                             # ── B: S1_STRUCTURAL_BINARY_V1 shadow comparison ──

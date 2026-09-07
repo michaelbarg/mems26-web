@@ -212,6 +212,7 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
 
     timeline: List[Dict[str, Any]] = []
     _conf_prev: Optional[float] = None   # N1 RC#3 smoothing state (per-session, this loop)
+    _prev_neutral_sub: Optional[str] = None  # §1(א): Neutral hysteresis between bars
     for i in range(1, n + 1):
         # progressive IB (no lookahead): 30-min IB until the 60-min IB completes
         if i < 12:
@@ -229,7 +230,14 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
             ib_width_hist=ibmeds, profile_shape=profile_shape, vol_ratio=vol_ratio,
             prior_vah=pvah, prior_val=pval, pdh=pdh, pdl=pdl,
             poc_now=poc_now, poc_at_ib=poc_at_ib, is_eod=(i == n),
+            prev_neutral_subtype=_prev_neutral_sub,
         )
+        # §1(א): track Neutral sub-type for hysteresis across bar iterations
+        _res_dt = res.get("day_type", "")
+        if _res_dt.startswith("Neutral_"):
+            _prev_neutral_sub = _res_dt
+        elif _res_dt not in ("FORMING", ""):
+            _prev_neutral_sub = None
         # N1 RC#3 (S1_CONF_SMOOTH_V1, default OFF → returns raw unchanged): slew-cap the
         # per-bar confidence so it cannot flap 0.12↔1.00 on adjacent bars. Type untouched.
         _craw = res.get("confidence")

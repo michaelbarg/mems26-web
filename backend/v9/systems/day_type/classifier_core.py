@@ -35,6 +35,7 @@ def classify_session(
     poc_now: Optional[float] = None,
     poc_at_ib: Optional[float] = None,
     is_eod: bool = False,
+    prev_neutral_subtype: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Classify the current session from in-memory data. Pure function.
 
@@ -208,6 +209,11 @@ def classify_session(
         "stair_steps_up": rf.stair_steps_up,
         "stair_steps_dn": rf.stair_steps_dn,
     }
+
+    # §1(א): Neutral hysteresis — _prev_neutral_subtype prevents Extreme↔Center
+    # oscillation at zone boundary (daytype_classifier.py:379 reads this).
+    if prev_neutral_subtype is not None:
+        feat["_prev_neutral_subtype"] = prev_neutral_subtype
 
     # ── P1-6 (Michael 2026-07-12; Dalton pp.49, 55): value migration — the developing
     #    70% value-area vs yesterday's. Trend = migrating value; overlap = balance.

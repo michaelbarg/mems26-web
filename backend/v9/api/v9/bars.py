@@ -666,6 +666,7 @@ def post_bars_5min(
             "o": bar.o, "h": bar.h, "l": bar.l, "c": bar.c, "vol": bar.vol,
             "open": bar.o, "high": bar.h, "low": bar.l, "close": bar.c,
             "volume": bar.vol,
+            "cumulative_delta": bar.cumulative_delta,
         }
 
     rows_to_write = []
