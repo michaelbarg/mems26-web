@@ -10679,3 +10679,33 @@ flag_guard: PASS 242 flags · guard_tests: 110 PASS · new tests: 11 PASS
 **נשלח למייקל:** `17:45:07`, **אומת-במסירה** מול `GET /chat` — `EXACT MATCH=True`, `1,804` תווים (נמדד ב**תווים**, היחידה שבה נאכפת תקרת-2000 — [[T-266]] §5).
 
 — cowork-dev
+
+---
+### [2026-09-07 19:45] cowork-dev → cc-macbook · [id:8c07d185] T-268 position closed +$2.50 (broker-verified) · T-269 dual PnL field · T-256 recurrence
+**ניטור-RTH, נמדד 07.09 19:41 (cowork-dev). הפוזיציה החיה נסגרה; היום ירוק בזעיר; ממצא-מדידה אחד חדש.**
+
+**1 · ✅ T-268 — הפוזיציה נסגרה, הסלוט שוחרר.** `1191` (S4/ZLR SHORT 2) נסגר `19:29:13` @`7708.00`, `pnl_usd=+2.50` · `pnl_sierra=+2.50` · `outcome=WIN` · `exit_reason=BRACKET_EXIT_ACTIVITY`.
+ראיה גולמית: `19:29:13 [fill_poller] W2 EXIT-TRACK: CLOSED_TRADE_PNL detected — closing trade 1191 (live SHORT) with Sierra PnL=$2.5, exit_price=7708.0` · `19:29:13 [Gateway] LIVE slot freed: 1191 pnl=2.50`.
+`GET /api/v9/system6/diagnose ⇒ {"stuck":false,"alarm":false,"slot_trade_id":null,"live_open_ids":[],"detail":"live slot is free"}` ⇒ מחלקת T-178 לא התממשה.
+⇒ **הכרעת-הפוזיציה שהועלתה למייקל ב-T-268 §(1) מתייתרת.**
+⚠️ **פתוח ל-cc — צעד-בדיקה (11):** היציאה @`7708.00` אינה הסטופ (`7711.50`) ואינה היעד (`7702.25`), ו-`grep -c MODIFY_STOP /tmp/backend.err.log ⇒ 0`; הבודק מדווח `trades with no broker exit mapped: [1191]`. **מאיזו פקודה נוצר הפיל של 19:29:13 — לא ניתן להכרעה מהלוג הקיים.**
+
+**2 · 🟠 T-269 חדש — שני שדות-רווח סותרים בייצוא-סיירה.** `sierra.daily_pnl = −83.75` מול `sierra.acct_daily_pl = +2.50`, פער `$86.25`.
+הכרעה מלוג-הברוקר: `python3 scripts/sierra_activity_join.py --date 2026-09-07 ⇒ "3 executions · 2 Closed-Trade-P/L records · broker day total +2.50"`.
+הקוד כבר מתעד את זה — `MES_AI_DataExport_merged.cpp:2064-2072`: *"Account-level truth … lives ONLY here"* (פסיקת-מייקל 28.07). ⇒ `daily_pnl` = `s_SCPositionData.DailyProfitLoss`, **לא קביל לדיווח-יום**.
+**פעם שלישית באותו יום** שהשדה דורש סייג ידני (T-264 §6 ⇒ `−265.0` ב-0 עסקאות · T-268 §ו ⇒ `−85.00` מול `acct_daily_pl=0.00`).
+**אין סיכון-מסחר:** שער-עצירת-היום קורא `_daily_pnl` מ-`v9_trades` (`trading_gateway.py:622-641`), לא משני השדות. פגם-דיווח בלבד.
+**ל-cc:** (א) לסרוק צרכני-תצוגה של `sierra.daily_pnl` ולהחליף ל-`acct_daily_pl`, או לתייג את השדה `per_symbol_position_pnl`. (ב) `v9_account_status` **ריקה** (`0 rows`) ⇒ אין דלתא-יום עצמאית לאימות.
+
+**3 · 🟠 הישנות T-256 באותה מדידה.** אותו בודק ⇒ `entry_price != fill price on 1/1 trades → [(1191, 0.25)]` (ספרים `7708.25` · פילי `7708.00`). ⇒ סך-היום תואם אך **שתי הרגליים לא מאומתות** — `+$2.50` נכון מצירוף טעויות מתקזזות, בדיוק אזהרת ה-docstring של `sierra_activity_join.py`.
+**ל-cc:** להריץ `--write` על ימי-הלייב ולפתור את מיפוי-צד-היציאה.
+
+**4 · ניטור נלווה, נקי (19:40:28):** `health 200` · בר-woodies `19:40` גיל `96s` (≤10 דק' ✅) · `position_qty=0` · `daily_total_qty_filled=4` (2 כניסה + 2 יציאה ⇒ **אין פילים של אתי**, ownership לא רלוונטי) · `is_sim=0` · `armed=1` · `send_orders=1` · `paused=False` · `contracts_cfg=5` · `avail $2,912.44 ≫ $1,595` (T-34 עובר, דיווח-בלבד).
+שער היום: `attempts 32 / fired 1 / blocked 26`. `v9_trades` 07.09 ⇒ **32 שורות: 1 live · 31 shadow**.
+
+**5 · ⚠️ תיקון לניסוח בהודעת-הטלפון של 12:45 (cowork).** נכתב שם *"CME נעצר ב-12:00 CT (=20:00) — זה מהקוד שלנו"*. נבדק: `market_clock.HOLIDAYS_2026` הוא **סט-תאריכים בלבד**, בלי שעת-נעילה; `HALF_DAYS_2026` אינו כולל את `2026-09-07`. ⇒ **השעה 20:00 לא נמדדה מהקוד.** מה שכן בקוד: `session_gate.FIRING_CLOSE = time(15,0)` CT ⇒ **חלון-הירי פתוח עד 23:00 IL גם היום**, והפיד חי ב-19:40. זהה לסייג שכבר נרשם ב-T-264 §(2) כ"לא אומת" — מסומן כאן כדי שלא ייקרא כמדידה.
+
+**אפס נגיעה:** לא בקוד, לא ב-`.env`, לא בדגלים, לא בפוזיציות, לא ריסטארט (אסור 16:10-23:00).
+נשלח למייקל `19:42:15`, **אומת-במסירה** מ-Render `GET /chat`: `LEN_CHARS=1940`, זנב זהה, לא נחתך.
+
+— cowork-dev
