@@ -1,3 +1,83 @@
+### [2026-09-07 13:10 IL] cowork-scheduled · ✅ **cc הנחית 2 מתוך 3 — סחיפת `flag_guard` ירדה 3⇐1. נשאר `DELTA_BREAKOUT_RELEASE_V1`, והוא רוצה `shadow` ולא `1`**
+
+ריצה שביעית, **חובה-1 בלבד** (13:06 — מחוץ לחלונות של חובות 2/3/4). קריאה-בלבד: אפס ריסטארט · אפס נגיעה ב-`.env`/`RULED_FLAGS.yaml`/דגלים/פוזיציות/שירותים/קוד.
+
+#### 1 · ✅ שינוי-המצב של הריצה: שני דגלים נחתו ב-12:56/12:57
+
+```
+f2e98027  12:56  §4 STOP_MOVE_TARGET_RESTORE_V1: restore drifted targets after MODIFY_STOP
+8603df05  12:57  §5 ELQ_LEG_FROM_BREAK_V1: leg_base from broken IB edge
+```
+
+`flag_guard` גולמי, עכשיו:
+
+```
+✓ ELQ_LEG_FROM_BREAK_V1:      expected=1  actual=1
+✓ STOP_MOVE_TARGET_RESTORE_V1: expected=1  actual=1
+✗ DELTA_BREAKOUT_RELEASE_V1:   expected=shadow  actual=0
+FLAG-GUARD: NO-GO — 1 ruled flag(s) drifted    (rc=1)
+```
+
+⇒ הסחיפה ירדה **3 ⇐ 1**. **cc — שים לב לפרט שקל לפספס:** הדגל הנותר רוצה **`shadow`, לא `1`**. "להדליק אותו" הוא התיקון השגוי. הפסיקה ב-`RULED_FLAGS.yaml` היא `expected: "shadow"`, עם **תנאי-הדלקה מכני** שטרם הוכח: *שחזור 10 ימים, `t1_before_stop≥60%` על `n≥10` + 03.09 18:00 + 04.09 17:40*.
+
+**ואתה כבר על זה** — לא נגעתי: `git status` מראה `release_gate.py` · `five_min_system.py` · `state_persist.py` · `RULED_FLAGS.yaml` מתוקנים בעץ-העבודה, ועוד `?? backend/v9/tests/test_delta_breakout_release.py` חדש. קימטתי **רק** את שני קבצי-התיעוד שלי.
+
+#### 2 · חובה-1 — אפס ממתינות, והפעם זו ראיה
+
+```
+instruction/pending ⇒ {"items":[]}
+cmd/pending         ⇒ {"cmd":null}
+upload/pending      ⇒ {"items":[]}      (peek מ-Render 13:07, query-auth ?key=)
+```
+
+חיוּת-הרלה נמדדה **לפני** ההכרזה על אפס-ממתינות ([[T-259]]): `pgrep ⇒ PID 16109` · `launchctl ⇒ state = running · runs = 1 · last exit code = (never exited)`. הודעת-מייקל האחרונה בת'רד נותרה `2026-09-04T16:21:48Z`, נענתה עניינית באותו יום ב-16:40.
+
+⇒ **שתיקה מכוונת.** מייקל קיבל היום שש הודעות על אותו חוסם ותיקון-אחד; אין כאן דבר שדורש את ידו שלא נאמר כבר, והפריט הפתוח היחיד הוא של cc. הודעה שביעית הייתה רעש.
+
+#### 3 · אימות עצמאי של "היום Labor Day" — לא הסתמכתי על הרישום של 12:45
+
+הטענה גוררת "אין RTH היום", ולכן בדקתי אותה בעצמי בשני מקורות בלתי-תלויים בקוד (Rule 2):
+
+```
+backend/v9/services/market_clock.py : HOLIDAYS_2026[date(2026,9,7)] = "Labor Day"
+                                      is_market_holiday(2026-09-07) ⇒ True
+                                      is_rth_open(now) ⇒ False · is_rth_open() ⇒ False
+bridge/session_state.py             : _HOLIDAYS_2026 ∋ "2026-09-07"  # Labor Day
+```
+
+**מאושר.** ⇒ **חובה-3 (ניטור-RTH) לא תחול היום בכלל** — אין סשן. החוסם של סיירה אמיתי, ומועדו **מחר שלישי 08.09 16:30**.
+
+⚠️ **תיקון-עצמי לרישום של 12:45:** נכתב שם `NEXT trading day = 2026-09-08 Tuesday` בתוך בלוק המצוטט מ-`market_clock` — **אין ב-`market_clock` פונקציה `next_trading_day`**. הפונקציות הציבוריות שם הן `get_previous_trading_day` · `is_half_day` · `is_ib_window` · `is_market_holiday` · `is_rth_open` · `minutes_since_rth_open` · `get_session_info` ואחרות. המסקנה עצמה נכונה (שני=חג, שלישי=יום-חול רגיל), אבל היא **לא הגיעה מקריאה לפונקציה** כפי שהבלוק רומז.
+
+#### 4 · ⚠️ מלכודת [[T-253]] נתפסה שוב בזמן-אמת — ונרשמת כדי שתיתפס גם בפעם הבאה
+
+השאילתה הראשונה שלי לגיל-הבר החזירה **58.2ש'**. לפני שציטטתי אותה בדקתי טיפוס:
+
+```
+pg_typeof(ts)  ⇒  timestamp with time zone
+max(ts)        ⇒  2026-09-04 23:55:00+03
+now() - max(ts)                        ⇒  61.2h   ← הנכון (aware מול aware)
+(now() AT TIME ZONE 'UTC') - max(ts)   ⇒  58.2h   ← שגוי, מחסיר בדיוק 3.0ש'
+```
+
+הצורה ה-naive מַמְעיטה **בדיוק בהיסט של +03**. שים לב שהכלל אינו "תמיד `now()`" ואינו "תמיד `AT TIME ZONE 'UTC'`" — ב-`v9_day_type_state.ts` העמודה naive ושם דווקא ה-`AT TIME ZONE 'UTC'` הוא הנכון. **`pg_typeof` הוא המכריע, ויש להריץ אותו לפני שמצטטים גיל.** מוצלב מול 12:45 (60.7ש' + 23 דק' שחלפו ≈ 61.2ש' ✅).
+
+#### 5 · מצב-מערכת (נמדד 13:06–13:10)
+
+```
+sierra (pgrep -i sierra | wc -l)  0   🔴 עדיין למטה — החוסם לפתיחת מחר, לא של היום
+newest bar v9_bars_5min_woodies   2026-09-04 23:55:00+03 · timestamptz · גיל 61.2h
+backend health                    200 @ 1.4ms
+system6/diagnose slot_health      stuck=false · alarm=false · live_open_ids=[] · "live slot is free"
+git worktree                      4 קבצים של cc + 2 untracked — לא נגעתי
+```
+
+⚠️ **הערת-שיטה:** `timeout` **אינו קיים ב-macOS** (`/bin/bash: timeout: command not found`) — עטיפת `timeout 120 python3 scripts/flag_guard.py` נכשלה בשקט והחזירה פלט ריק שנראה כמו "הבודק לא אמר כלום". הורץ `python3` חשוף. וכן: הנתיב ל-`market_clock` **נוחש** תחילה כ-`backend.v9.utils`/`backend.v9.core` ושניהם לא קיימים; הנתיב האמיתי `backend/v9/services/market_clock.py` נמצא ב-`find`, לא בניחוש.
+
+**לא נגעתי בכלום:** אפס ריסטארט · אפס `.env` · אפס דגלים · אפס `RULED_FLAGS.yaml` · אפס פוזיציות · אפס שירותים · אפס קוד.
+
+---
+
 ### [2026-09-07 12:45 IL] cowork-scheduled · 🔑 **היום Labor Day — אין פתיחה ב-16:30. תיקון-עצמי לשש הודעות שנתתי היום עם ספירה-לאחור שגויה**
 
 ריצת-צהריים שישית, **חובה-1 בלבד** (12:36 — מחוץ לחלון של חובות 2/3/4). קריאה-בלבד: אפס ריסטארט · אפס נגיעה ב-`.env`/`RULED_FLAGS.yaml`/דגלים/פוזיציות/שירותים/קוד.
