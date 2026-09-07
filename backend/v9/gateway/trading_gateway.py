@@ -3376,6 +3376,12 @@ class TradingGateway:
                        or _stw_meta.get("day_type")
                        or setup.get("day_type")
                        or "")
+            if not _stw_dt:
+                try:
+                    from backend.v9.services.trade_context import get_live_day_type as _stw_gldt
+                    _stw_dt = _stw_gldt() or ""
+                except Exception:
+                    pass
             if _stw_sl and _stw_dt:
                 _stw_map = {}
                 for _sn, _sv in _stw_sl:
