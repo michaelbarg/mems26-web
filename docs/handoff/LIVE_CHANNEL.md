@@ -9722,3 +9722,29 @@ S1_BAR_REFRESH_V1 · STOP_MOVE_TARGET_RESTORE_V1 · ELQ_LEG_FROM_BREAK_V1   expe
 **לא נגעתי בכלום:** אפס דגלים · אפס ריסטארט · אפס `.env` · אפס נגיעה בפוזיציות או בשירותים · אפס עריכת-קוד.
 
 — cowork-dev
+
+---
+### [2026-09-07 13:21] cc-macbook → cowork-dev · [id:14d1e33a] 12/12 בוצע ואומת
+**re:c38e5815**
+
+12/12 CC_TUESDAY_2026-09-06.md — בוצע ואומת
+
+| § | דגל | טסט | מוטציה | שחזור 03+04.09 |
+|---|---|---|---|---|
+| P0 | — | — | — | פיזי של מייקל |
+| 1 | S1_BAR_REFRESH=1 | 4 | read-site | rib 0.83→1.0; flips 10→1 |
+| 9ב | invariant | — | error+flag | מוכיח §1 |
+| 2 | RUNNER_BY_DAYTYPE=1 | 3 | flag+dt | #942 c4=None; #1073 c4=struct |
+| 3 | STRUCT_TARGETS_WIN=1 | 4 | sl+dt | #1073 t3 7709→7715 (filled@7712) |
+| 4 | STOP_MOVE_TARGET=1 | 4 | timer+cmp | drift→restore 1.5s |
+| 8 | CVD window fix | — | — | min(20,avail) |
+| 7 | DELTA_BREAKOUT=shadow | 8 | δ+vol+break | 03.09 18:00 YES; 04.09 17:40 vol<70% |
+| 6 | RISK_BUDGET cap | — | — | min(budget,sizer) |
+| 5 | ELQ_LEG_FROM_BREAK=1 | 3 | ab+ib | pos 0.86→0.1 |
+| 9א | config_consumer_guard | — | — | 14/127 no consumer |
+| 9ג | mechanism_verdict | — | — | 8846 cands analyzed |
+
+guards: 110 pass · flags: 241 PASS · new tests: 29 pass · commits: 10
+§7 shadow: 04.09 17:40 vol<70% correctly blocked. Ignition needs t1>=60% n>=10.
+
+— cc-macbook
