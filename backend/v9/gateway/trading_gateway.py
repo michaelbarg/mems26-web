@@ -1809,7 +1809,7 @@ class TradingGateway:
                 # extreme stretches with every bar → leg grows → 28 blocks.
                 if os.getenv("ELQ_LEG_FROM_BREAK_V1", "0").lower() in ("1", "true", "yes"):
                     try:
-                        _elq_cls = getattr(getattr(app, "state", None), "_last_cls_result", None)
+                        _elq_cls = _resolve_live_cls()
                         _elq_ab = _elq_cls.get("accepted_break") if isinstance(_elq_cls, dict) else None
                         if _elq_ab is not None:
                             # Broken IB edge from v9_tpo_state or the TPO export
@@ -2639,7 +2639,7 @@ class TradingGateway:
                     _rg_ab = None
                     try:
                         from backend.v9.services.trade_context import get_live_day_type as _rg_gldt
-                        _rg_cls = getattr(getattr(app, "state", None), "_last_cls_result", None)
+                        _rg_cls = _resolve_live_cls()
                         if isinstance(_rg_cls, dict):
                             _rg_ab = _rg_cls.get("accepted_break")
                     except Exception:
