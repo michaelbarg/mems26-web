@@ -1,3 +1,48 @@
+### [2026-09-07 23:5x IL] cowork-scheduled · ✅ **[[T-251]] §4.2+§4.3 בוצע — הספרים כבר לא נסגרים על רגל חיה**
+
+השורה שנתפסה ב-23:20 (קוד-בלבד, "עכשיו→01:00" בטבלת §5 של `CC_DLL_MODIFY_SIM_2026-09-07.md`) **הושלמה**. שלושה קומיטים: `71e47cd1` (תיקון) · `a25c82a8` (טסטים) · `a4083b48` (רענון-אינדקס).
+
+**ממצא — נקרא בקוד לפני שנגעתי (לא מהזיכרון):** `TradeManager.on_stop_hit` (`manager.py:1717-1723`) עבר ל-`CLOSED` וכתב `exit_ts/exit_price/exit_reason` **ללא כל תנאי-כמות**, ו-`fill_poller` קרא ל-`_notify_gateway_close` **ללא תנאי** בענף-הסטופ (`:1225`) — בניגוד לענף-היעדים ב-`:1211-1214` שכבר מותנה ב-`state=="CLOSED"`. על `#1008` (לייב, SHORT 5c ‏@7717, ‏04.09): הסטופ של c4 (פקודה 10986) התמלא ב-18:35:42 כשספר-ה-T-62 עמד על **4 מתוך 5**, ⇒ הספרים נסגרו בעוד c3 (‏10983/10984) חיה עוד **32 דקות** · `get_active_trades` השמיט ⇒ `bar_level_detector` הפסיק לסרוק ⇒ **אפס `runner_reversal` בין 18:36 ל-19:08** על שורט הפוך שהסטופ שלו נגרר ל-7724.75 · הטלפון קיבל "נסגר +72.5" בעוד המספר האמיתי היה **+32.50** ב-19:08:02.
+
+**תיקון (§4.2, הקטן-הנכון):** אחרי `_record_exit_fill` — אם יש `fill_qty` **וסכום-הספר קטן מ-`trade_contract_count()`**: `PENDING→FILLED` אם צריך (‏`PENDING→PARTIAL` אסור, `state_machine.py:30`) ואז `→PARTIAL` · `STOP_HIT_PARTIAL` עם `remaining` · `_calculate_pnl` · `flush` · אירוע `stop_hit_partial` · `return`. **לא נכתבים** `exit_ts/exit_price/exit_reason/stop_hit_ts` — וזה בדיוק מה שמשאיר את `_calculate_pnl` ב-`realized_only` (`:2278`). **הסמכות היא הספר, לעולם לא `position_qty`** (החשבון משותף עם אתי). `fill_qty=None` (צל / BarLevelDetector) — **ללא שינוי כלל**. ב-`fill_poller`: `_notify_gateway_close` רק אם השורה `CLOSED` אחרי `on_stop_hit`, בשיקוף ענף-היעדים.
+
+**ראיה גולמית (Rule 5) — פלט, לא הצהרה:**
+
+```
+$ python3 -m pytest backend/v9/tests/test_t251_partial_stop_keeps_books_open.py -q
+..........                                                               [100%]
+10 passed in 1.09s
+
+# מוטציה A — הסרת השער כולו (`if fill_qty:` → `if False:`)
+8 failed, 2 passed in 1.13s
+# מוטציה B — הסרת תנאי-הספר (`_filled < _n_contracts` → `True`)
+4 failed, 6 passed in 1.18s
+   FAILED ...::test_a_five_contract_trade_stays_open_where_a_four_contract_one_closes
+   FAILED ...::test_a_stop_taking_the_whole_position_closes_in_one_leg
+
+# רגרסיה — בסיס לפני-השינוי מול אחרי, אותה בחירה בדיוק (778 טסטים)
+baseline: 67 failed, 711 passed, 3587 deselected in 18.06s
+after   : 67 failed, 721 passed, 3587 deselected in 18.88s
+comm -13 base_ids after_ids   =>  (ריק — אפס כשלים חדשים)
+comm -23 base_ids after_ids   =>  (ריק — אף כשל לא נעלם)
+
+# worktree-בסיס ב-HEAD מול עץ-העבודה, כל 31 קבצי-הטסט שנוגעים ב-
+# on_stop_hit / _notify_gateway_close / _process_fill / STOP_HIT
+BASE : 36 failed, 315 passed in 8.64s
+AFTER: 36 failed, 315 passed in 20.03s
+comm בשני הכיוונים  =>  ריק
+```
+
+⚠️ **שני קבצי-טסט קיימים עודכנו — במכוון, ואני מצהיר על זה:** התיקון משנה **דרך-הניתוב** של רגל-סטופ, ושני קבצים קידדו את הניתוב הישן. **ההנחות שלהם לא שונו, רק המסלול:** (1) `test_pnl_ladder_fills_749.py` — ‏#749 הוא סולם 4-חוזים שנעצר בשתי רגליים, ולכן הרגל הרביעית מגיעה עכשיו דרך `on_stop_hit` ולא `update_closed_trade_pnl` (שה-poller מפעיל רק על שורה שכבר `CLOSED`, `:1146`); ‏`_replay_749` מנתב עכשיו כמו ה-poller. **ערובת-T-62 לא נגעה: אותם ארבעה מימושים עדיין נותנים +$1.25.** (2) `test_slot_release_all_paths.py` — ה-fake של I-57 מדמה סגירה **מלאה**, ולכן `_FakeTrade` קיבל `state` ו-`_FakeTM.on_stop_hit` מציב `CLOSED`. טענת-I-57 עצמה לא שונתה.
+
+**NOT-DONE (במכוון, מחוץ-לסמכות/מחוץ-לחלון):** §2.1 רמה-0 (הגדרת-סיירה) — פסיקת-מייקל · §2.2 רמה-1 (deploy-DLL) — פסיקת-מייקל + לילה נפרד · §3 נוהל-סים — אחרי 01:00 + `is_sim=1` · §2.3 רמה-2 (שער-ביניים ל-`MODIFY_TARGET` + §4 כמאמת) — לא נגעתי. **וגם מתוך §4.2 עצמו: הרגל הרביעית ("ids שלנו נעלמו ×2 + `position_qty==0` ⇒ `SIERRA_FLAT` + `ledger_incomplete`", והרחבת `_sync_position_truth` ל-PARTIAL) לא נבנתה** — היא לא הייתה בהיקף-שנתפס, ולכן גם אין לה טסט. **הקוד הזה טרם רץ** — אפס ריסטארט (זו החלטת-מייקל/cc), כלומר אותה מלכודת של [[T-268]]: "נכתב" ≠ "רץ".
+
+**אפס ריסטארט · אפס דגל · אפס `.env` · אפס DLL · אפס נגיעה בפוזיציות/פקודות.**
+
+— cowork-scheduled
+
+---
+
 ### [2026-09-07 23:20 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה נתפס ע"י cowork (אפס פעילות-cc מ-23:00)**
 
 הפסיקה מ-27.08 ("מבוצע גם בלעדיו ליד המחשב") הופעלה. **מדידה גולמית בשעה 23:20:00:**

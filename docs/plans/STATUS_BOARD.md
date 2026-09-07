@@ -1,3 +1,21 @@
+[2026-09-07 23:5x IL] **cowork-scheduled · 🔁 [[T-251]] נפתח מחדש ותוקן בקוד — הספרים כבר לא נסגרים על רגל חיה (‏§4.2+§4.3; טרם רץ)**
+
+**ממצא → תיקון → ראיה:**
+
+1. **ממצא — "(א) בוטל — התנהגות-תקן" (הניסוח שלי מ-04.09 19:15) שגוי, והוא נופל על מרכיב שלא נבדק אז.** ‏T-43c אכן החזיק את הסלוט נכון ו-P0-2 אכן תימחר בדיעבד — אבל `state=CLOSED` הוציא את השורה מ-`get_active_trades` (`manager.py`, `_ACTIVE_TRADE_STATES`) ⇒ `bar_level_detector` הפסיק לסרוק ⇒ **אפס `runner_reversal` בין 18:36 ל-19:08 על `#1008`**, בעוד השורט הפוך והסטופ נגרר ל-7724.75. "הספרים צודקים בסוף" ≠ "הרגל מפוקחת בזמן שהיא חיה". **השורש נקרא בקוד לפני נגיעה:** `on_stop_hit` (`manager.py:1717-1723`) עבר ל-`CLOSED` וכתב `exit_ts/exit_price/exit_reason` **ללא כל תנאי-כמות**, ו-`fill_poller:1225` קרא `_notify_gateway_close` ללא תנאי — בעוד ענף-היעדים ב-`:1211-1214` כבר מותנה ב-`CLOSED`. ספר-ה-T-62 ידע את האמת (Σ=4 מתוך 5); לוגיקת-המצב פשוט לא שאלה אותו.
+
+2. **תיקון (‏`71e47cd1`):** אחרי `_record_exit_fill` — כשיש `fill_qty` **וסכום-הספר < `trade_contract_count()`**: `PENDING→FILLED` אם צריך (`PENDING→PARTIAL` אסור, `state_machine.py:30`) ואז `→PARTIAL`; ‏`STOP_HIT_PARTIAL` עם `remaining`; ‏`_calculate_pnl`; ‏`flush`; אירוע `stop_hit_partial`; ‏`return`. **לא נכתבים** `exit_ts/exit_price/exit_reason/stop_hit_ts` — וזה מה שמשאיר את `_calculate_pnl` ב-`realized_only` (`:2278`). הסמכות היא הספר, **לעולם לא `position_qty`** (חשבון משותף עם אתי). `fill_qty=None` (צל/BarLevelDetector) — ללא שינוי. ‏`fill_poller`: מודיע לגייטוויי רק אם `CLOSED`. **טסטים (`a25c82a8`):** `backend/v9/tests/test_t251_partial_stop_keeps_books_open.py` — ‏10 טסטים על `TradeManager` אמיתי מול SQLite-בזיכרון (כלומר `get_active_trades` נבדק באמת, לא ממוקק). **אינדקס (`a4083b48`).**
+
+3. **ראיה (Rule 5, פלט גולמי):** `10 passed in 1.09s` · **מוטציה** `if fill_qty:`→`if False:` ⇒ `8 failed, 2 passed` · **מוטציה** `_filled < _n_contracts`→`True` ⇒ `4 failed, 6 passed` · **רגרסיה מול בסיס לפני-השינוי, אותה בחירה בדיוק (778 טסטים):** `67 failed, 711 passed` ⇒ `67 failed, 721 passed`, ו-`comm` על קבוצות-ה-FAILED **ריק בשני הכיוונים** · **worktree-בסיס ב-HEAD** מול עץ-העבודה על כל 31 קבצי-הטסט שנוגעים ב-`on_stop_hit`/`_notify_gateway_close`/`_process_fill`/`STOP_HIT`: `36 failed / 315 passed` בשניהם, `comm` ריק.
+
+4. **מה נשאר פתוח (ולכן 🔴 ולא ✅):** (א) **הקוד טרם רץ** — אפס ריסטארט; מחלקת [[T-268]] ("נכתב" ≠ "רץ"), האימות הוא `ps -o lstart` על PID חדש > שעת-הקומיט. (ב) **הרגל הרביעית של §4.2 לא נבנתה** — `SIERRA_FLAT` + `quality.ledger_incomplete` כשה-ids שלנו נעלמים ×2 ו-`position_qty==0` (הרחבת `_sync_position_truth` ל-PARTIAL בתנאי-בעלות); בלעדיה עסקה שהרגל האחרונה שלה לא דיווחה תישאר `PARTIAL` לנצח. (ג) אימות-סים לפי §4.3 (אחרי 01:00, `is_sim=1`). (ד) הפריט המקורי: `slot_health` באנדפוינט מנותק מהעוגן של הגלאי.
+
+5. **הצהרה — שני קבצי-טסט קיימים עודכנו במכוון:** התיקון משנה את **ניתוב** רגל-הסטופ, ושני קבצים קידדו את הניתוב הישן. ההנחות שלהם לא שונו: `test_pnl_ladder_fills_749.py` (‏#749 מנתב עכשיו כמו ה-poller; ערובת-T-62 של `+$1.25` נשמרת) ו-`test_slot_release_all_paths.py` (ה-fake של I-57 מדמה סגירה מלאה ⇒ מציב `state=CLOSED`).
+
+**אפס ריסטארט · אפס דגל · אפס `.env` · אפס DLL · אפס נגיעה בפוזיציות.**
+
+---
+
 [2026-09-07 17:15 IL] **cowork-scheduled · ✅ [[T-266]] צעד-בדיקה (8) הוכרע: שער-`awaiting_release` נפתח, `ZLR_SHADOW_V1` תפס, אפס חשיפת-לייב — והפער של 16:26 מאושר-מהקוד ונשאר פתוח.**
 
 **ממצא → תיקון/הצעה → ראיה:**
