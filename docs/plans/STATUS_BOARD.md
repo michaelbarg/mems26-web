@@ -1,3 +1,61 @@
+[2026-09-07 13:45 IL] **cowork-scheduled · ✅ [[T-263]] נסגר — cc קימט הכל, ועץ-העבודה זהה ל-HEAD ⇒ `flag_guard PASS` הוא סוף-סוף אמת-HEAD. + סיירה עלתה (מייקל, 13:17). + 🟠 נפתח [[T-265]].**
+
+**ממצא → תיקון → ראיה:**
+
+1. **ממצא — [[T-263]] היה: שישה דגלי-מסחר דלוקים ב-`.env` בזמן שהמימוש אינו ב-`HEAD`**, ו-`KeepAlive{SuccessfulExit=false}` על פלט-הבקאנד אומר שכל קריסה מרימה uvicorn מול **עץ-העבודה** — כלומר החשיפה לא הייתה מותנית בהחלטת-אדם. **ליבת-הפגם הנלווית:** `flag_guard` אוכף אתר-קריאה-בייצור, אבל סורק את **עץ-העבודה**, ולכן החזיר `PASS` בדיוק כשהקוד לא היה מקומם — "ירוק שנמדד על הסט הלא-נכון", מחלקת [[T-259]]/[[T-230]].
+
+2. **תיקון — לא שלי.** cc-macbook הנחית 7 קומיטים בין `13:14` ל-`13:21`:
+   ```
+   316056b0 13:14  §7 DELTA_BREAKOUT_RELEASE_V1: delta-based release path (shadow)
+   1fc98113 13:15  §8 CVD window fix: use available bars, not nominal 20
+   1486bc2b 13:15  §9b invariant: rib must be ~1.0 at IB lock (B2)
+   bf8a1f9c 13:15  §9a config_consumer_guard: YAML fields must have code consumers
+   154024ce 13:15  RULED_FLAGS: add 6 new flags from CC_TUESDAY_2026-09-06.md
+   fa79481e 13:19  §9c mechanism_verdict: daily gate-by-gate verdict
+   bb5619f4 13:21  channel: --re c38e5815 — 12/12 בוצע ואומת
+   ```
+   מצדי: **אפס נגיעה** בקוד, ב-`.env`, ב-`RULED_FLAGS.yaml`, בדגלים, בפוזיציות ובשירותים.
+
+3. **ראיה (Rule 5, גולמי, נמדד 13:37–13:45).** הראיה המכרעת אינה ה-`PASS` אלא **שהעץ ריק** — רק אז `PASS` מעיד על `HEAD`:
+   ```
+   git status --porcelain | wc -l   ⇒  0
+   git diff --shortstat HEAD        ⇒  (ריק)
+   python3 scripts/flag_guard.py    ⇒  FLAG-GUARD: PASS — all 241 ruled flags match
+                                       ✓ BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0
+                                       ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+   ```
+   שלושת הדגלים שהיו `HEAD=0` בבוקר, אתרי-קריאה ב-`HEAD` עכשיו:
+   ```
+   DELTA_BREAKOUT_RELEASE_V1    ⇒ 3 קבצים  trading_gateway.py:2649 · release_gate.py:88,93
+   ELQ_LEG_FROM_BREAK_V1        ⇒ 2 קבצים  trading_gateway.py:1807,1810 (+טסט)
+   STOP_MOVE_TARGET_RESTORE_V1  ⇒ 2 קבצים  manager.py:361,366 (+טסט)
+   .env ⇒ DELTA_BREAKOUT_RELEASE_V1=shadow     (ולא "1" — התיקון הנכון לפי הפסיקה)
+   ```
+
+4. **⚠️ הסתייגות, כדי לא להגזים.** הבקאנד הרץ הוא עדיין `PID 587` מ-ראשון `17:03` ⇒ **הקוד החדש טרם רץ**. "נסגר" = **החשיפה** נסגרה (ריסטארט יטעין קוד מקומם, פסוק, מגובה-טסטים), **לא** "המימוש הוכח בריצה". אימות-סים לששת הדגלים נשאר חוב פתוח לשער-חובה-2 של **מחר 08.09**.
+
+5. **✅ ובנוסף — סיירה עלתה. מייקל פתח אותה ב-`13:17`.** ⚠️ **ומלכודת-מדידה חדשה שנתפסה כאן:** `pgrep -i sierra ⇒ 0` **גם עכשיו כשהיא רצה** — הבינארי חי תחת CrossOver/wine ולכן השם לא נתפס:
+   ```
+   ps aux | grep -i sierra ⇒ michael 46604 … SierraChart_64 (Y_SierraChart).app/Contents/MacOS/Menu Helper  START 1:17PM
+   live_price.json         ⇒ {"price":7715.00,"ts":1788777726,"bid":7717.75,"ask":7718.00}
+   v9_bars_5min_woodies    ⇒ pg_typeof=timestamptz · max(ts)=2026-09-07 13:40:00+03 · גיל 0.05ש' · 55 ברים/24ש'
+   ```
+   ⇒ **שבע פעמים היום דיווחתי "סיירה למטה" על סמך `pgrep`.** הדיווחים היו נכונים, אבל **הכלי אינו קביל כראיה-שלילית לבדו** — לאפליקציית-wine צריך `ps aux | grep`. נרשם כמלכודת.
+
+6. **🟠 ונפתח [[T-265]] — ממצא חדש שלא היה קיים בבוקר.** ייצוא-ה-RTH `5min.json` תקוע על שישי בזמן שהפיד חי, ושער-הקליטה דוחה כל אצווה:
+   ```
+   [bars/5min] TS-OFFSET-GATE REJECTED batch: newest bar ts 222222s behind now (> 900s)
+               while feed advances (1786368600 -> 1788555300) — live-but-mislabeled TS
+   ראשונה 13:18:57 (דקה אחרי עליית סיירה) · אחרונה 13:38:42 · ERROR 0⇒470 תוך 20 דק' · CRITICAL=0
+   5min.json         ⇒ n=601 · max(ts)=2026-09-04 15:55 UTC · גיל 66.8ש' · 3 דגימות (13:43:25/32/38) זהות
+   5min_continuous   ⇒ max(ts)=2026-09-07 05:30 UTC · גיל 5.2ש'   ← הרציף כן התקדם
+   v9_bars_5min      ⇒ max(ts)=2026-09-04 23:55+03 · גיל 61.8ש'   ← מול woodies בן 3 דק'
+   ```
+   **השער אינו הבאג — הוא האזעקה:** `TS_OFFSET_INGEST_GATE_V1` מונע ברים-מתויגים-כחיים מלזהם את ה-DB, בדיוק כמתוכנן. **⚠️ ומה שאינו ניתן להכרעה ואיני מנחש:** האם זו טעינת-היסטוריה בתהליך (סיירה עלתה לפני 26 דק' אחרי 2.5 ימי-השבתה) או תקיעה. אינדיקציה לטעינה: חלון-601-הברים **ירד לאחור** (`20:55 UTC` ב-13:18 ⇒ `15:55 UTC` ב-13:41) = נבנה מחדש. **הכרעה תגיע מניטור, לא מהשערה** — אם עד `~16:00` לא התיישר, זו תקיעה שחוסמת את פתיחת מחר.
+   **⚠️ ומה שבדקתי כדי לא להגזים:** `atr.py` — `atr_5min`/`atr_daily` הן **פונקציות טהורות שמקבלות `bars_5min` כארגומנט**, לא שואלות טבלה; ה-docstring מזכיר `v9_bars_5min` אך זה תיעוד. ⇒ **איני טוען ש-ATR מושפע.**
+
+---
+
 [2026-09-06 22:12 IL] **cowork-scheduled · ✅ [[T-261]] תוקן בשורש לפני שירה — `eod_handoff` לא יגע יותר בעץ-העבודה של סוכן אחר. + תיקון-עצמי: `--autostash`, שהצעתי לפני 22 דקות, אינו התיקון.**
 
 **ממצא → תיקון → ראיה:**
