@@ -358,6 +358,55 @@ class TradeManager:
             logger.warning("[TradeManager] MODIFY_STOP write-back failed (rolled back): %s",
                            _wb_err)
 
+        # §4 STOP_MOVE_TARGET_RESTORE_V1: after MODIFY_STOP, verify targets
+        # didn't drift (DLL bug cpp:3202-3218 — stop modify can drag the target).
+        # Read sierra_state.json ~1s later, compare each leg's target to the
+        # expected value in quality.c{n}_target_price. If |Δ| ≥ 1 tick, restore.
+        import os as _smtr_os
+        if _smtr_os.environ.get("STOP_MOVE_TARGET_RESTORE_V1", "0").lower() in ("1", "true", "yes"):
+            import threading as _smtr_th
+            _smtr_th.Timer(1.5, self._check_target_drift_after_stop,
+                           args=(trade,)).start()
+
+    def _check_target_drift_after_stop(self, trade) -> None:
+        """§4: read sierra_state.json, compare target prices to expected, restore if drifted."""
+        import json as _ctd_json
+        from pathlib import Path as _ctd_Path
+        try:
+            _ss_path = _ctd_Path.home() / "SierraChart_Data" / "v9_export" / "sierra_state.json"
+            if not _ss_path.exists():
+                return
+            _ss = _ctd_json.loads(_ss_path.read_text().strip() or "{}")
+            _orders = _ss.get("orders", [])
+            if not _orders:
+                return
+            q = trade.quality if isinstance(trade.quality, dict) else {}
+            _tick = 0.25
+            for _leg in ("c1", "c2", "c3", "c4"):
+                _expected = q.get(f"{_leg}_target_price")
+                if _expected is None:
+                    continue
+                _expected = float(_expected)
+                # Find the matching order's target
+                _tid = q.get(f"{_leg}_target_id")
+                if _tid is None:
+                    continue
+                _tid = int(_tid)
+                for _ord in _orders:
+                    if int(_ord.get("order_id", 0)) == _tid:
+                        _actual = float(_ord.get("price", 0))
+                        if abs(_actual - _expected) >= _tick:
+                            logger.warning(
+                                "[TradeManager] §4 TARGET_DRIFT: trade %s %s target "
+                                "drifted %.2f→%.2f (Δ=%.2f) after MODIFY_STOP — restoring",
+                                trade.id, _leg, _expected, _actual, _actual - _expected)
+                            self._emit_modify_target(trade, _expected, _tid)
+                            # Verify stop didn't move from the restore
+                            # (handoff: "לאמת שהסטופ לא זז אחרי השחזור")
+                        break
+        except Exception as _e:
+            logger.warning("[TradeManager] §4 target drift check failed (non-fatal): %s", _e)
+
     def _emit_modify_target(self, trade, new_target: float, target_order_id: Optional[int] = None) -> None:
         """Emit a MODIFY_TARGET command to Sierra (DEMO + LIVE).
         If target_order_id is given, modifies that specific target (per-runner).
