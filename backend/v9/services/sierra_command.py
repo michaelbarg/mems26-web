@@ -720,6 +720,23 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
                         _risk_pts, _n, _min_c)
                     return 0  # reject
                 _rb_result = min(_n, _rb_rc)
+                # §6: the sizer's judgment (metadata.sizing_contracts/sizing)
+                # must not be overridden — "הזהיר גובר"
+                _meta_sz = (setup.get("metadata") or {})
+                _sizing_n = (_meta_sz.get("sizing_contracts")
+                             or _meta_sz.get("sizing")
+                             if isinstance(_meta_sz, dict) else None)
+                if _sizing_n is not None:
+                    try:
+                        _sizing_n = int(_sizing_n)
+                        if 0 < _sizing_n < _rb_result:
+                            logger.warning(
+                                "[SierraCmd] §6 RISK_BUDGET capped by sizer: "
+                                "budget=%d, sizer=%d → using %d (הזהיר גובר)",
+                                _rb_result, _sizing_n, _sizing_n)
+                            _rb_result = _sizing_n
+                    except (TypeError, ValueError):
+                        pass
                 logger.info(
                     "[SierraCmd] RISK_BUDGET: risk=%.1f pts → raw=%.1f → "
                     "floor=%d → min(ruled=%d)=%d",
@@ -958,6 +975,43 @@ def command_from_setup(
                 # Trend: t4 = same as T3 (4R). Runner until 15:45 flatten.
                 _c4_target = _c3_target  # the shifted C3 (was old T2)
             # unknown/missing day_type: stays None → stop-only (honest)
+
+    # ── §2 · RUNNER_BY_DAYTYPE_V1 (Michael ruling 06.09: "5 חוזים ללא ראנר —
+    #    יש רק סוג-יום אחד שצריך ראנר וזה טרנד-דיי") ──
+    # Placed BEFORE RUNNER_TRAIL_V2 so the daytype-based decision is the frame.
+    # Trend: runner (c4=None) — like today.  Neutral_Center/Nontrend: no runner (c4=t3).
+    # Variation/Normal/Neutral_Extreme: c4 = struct_c3 (from spacing_levels), fallback t3.
+    # Unknown/None/conf<0.25: no change (Rule 1: no decision → no change).
+    if (os.getenv("RUNNER_BY_DAYTYPE_V1", "0").strip().lower() in ("1", "true", "yes")
+            and _contracts >= 4 and not _is_zlr_setup(setup)):
+        try:
+            from backend.v9.services.trade_context import get_live_day_type as _rbd_gldt
+            _rbd_dt = _rbd_gldt()
+        except Exception:
+            _rbd_dt = None
+        if _rbd_dt is not None:
+            if _rbd_dt.startswith("Trend"):
+                pass  # runner stays (c4=None is set by RUNNER_TRAIL_V2 below)
+            elif _rbd_dt in ("Neutral_Center", "Nontrend"):
+                # No runner: c4 = t3 (m×risk) always
+                if _c3_target is not None:
+                    _c4_target = _c3_target
+                logger.warning(
+                    "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
+                    "no runner, c4=%s (t3/m×risk)", trade_id, _rbd_dt, _c4_target)
+            else:
+                # Variation/Normal/Neutral_Extreme: c4 = struct_c3, fallback t3
+                _rbd_meta = setup.get("metadata") or {}
+                _rbd_struct_c3 = None
+                for _sn, _sv in (_rbd_meta.get("spacing_levels") or []):
+                    if _sn == "struct_c3" and _sv is not None:
+                        _rbd_struct_c3 = round(round(float(_sv) / 0.25) * 0.25, 2)
+                        break
+                _c4_target = _rbd_struct_c3 if _rbd_struct_c3 else _c3_target
+                logger.warning(
+                    "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
+                    "c4=%s (%s)", trade_id, _rbd_dt, _c4_target,
+                    "struct_c3" if _rbd_struct_c3 else "t3/m×risk fallback")
 
     # ── F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE_STUDY §5 R-A) ──
     # THE half of F5 that actually holds. A stop-trail cannot keep a position past
