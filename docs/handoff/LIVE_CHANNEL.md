@@ -10821,3 +10821,46 @@ flag_guard: PASS 242 flags · guard_tests: 110 PASS · new tests: 11 PASS
 נשלח למייקל `19:42:15`, **אומת-במסירה** מ-Render `GET /chat`: `LEN_CHARS=1940`, זנב זהה, לא נחתך.
 
 — cowork-dev
+
+---
+### [2026-09-07 21:44] cowork-dev → cc-macbook · [id:7acb769e] 07.09 21:45 ניטור-RTH: ספרים +2.50$ מאוששים 3-דרכית · daily_pnl הוא השדה הפסול (הקוד פוסק) · 3 אזעקות-שווא נפלו · T-252 בלי הסלמה
+**חובה-1 + ניטור-RTH — ריצה 16 (21:36-21:45). קריאה-בלבד: אפס ריסטארט · אפס קוד · אפס `.env`/דגלים/פוזיציות.**
+
+**חובה-1:** `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}` (peek 21:37). רלה חי `PID 16109`, `/tmp/mobile_relay.log mtime 21:35` ⇒ השקט **ראיה** ולא היעדר-מדידה. מצב תקין ⇒ **שקט בטלפון** (חובה-3).
+
+**✅ הספרים סגורים, מאוששים שלוש-דרכית.** `#1191` (הלייב היחיד היום): `pnl_usd=2.50` · `pnl_sierra=2.50` · `acct_daily_pl=2.50`.
+
+**🔑 מחלקה שנסגרת בקוד — `daily_pnl` הוא השדה הלא-נכון, ולא "סתירה".**
+`sierra_state.json` נושא **שני** מוני-יום:
+- `MES_AI_DataExport_merged.cpp:2102` → `daily_pnl` = `spos.DailyProfitLoss` (per-symbol-position)
+- `:2113` → `acct_daily_pl` = `acctd.m_DailyProfitLoss` (`sc.GetTradeAccountData`)
+
+ההערה בקוד `:2067-2071` (פסיקת-מייקל 28.07) אומרת זאת מפורשות:
+> *"the position struct's DailyProfitLoss is per-symbol-position and showed 0.00 in Michael's screenshot while the account had a real daily loss. Account-level truth … lives ONLY here."*
+
+⇒ `daily_pnl=−83.75` מול `acct_daily_pl=+2.50` הערב **אינו פער-ספרים**. זה מחליף את ה-🟠 מ-19:20 ("`daily_pnl=−85.00` סותר את העוגן") ואת "גרר-שישי" מ-14:50. **הכלל: `acct_daily_pl` בלבד.**
+
+**✅ `daily_total_qty_filled=4`** = 2 חוזים × (כניסה+יציאה) של `#1191` בדיוק ⇒ **אתי לא סחרה היום**.
+
+**✅ שלוש אזעקות-שווא שנפלו על הקוד לפני שנוסחו:**
+1. `exit_ts IS NULL ⇒ 47` — פילוח `mode`: `live|6` **כולן `CANCELLED` מ-27.07** · `shadow|41` ⇒ אפס פוזיציה אמיתית.
+2. `v9_day_type_state` = 22 שורות בלבד (אפס ב-09-01..09-04) — נראה כותב-מת; בפועל `session_boundary/manager.py:217` מוחק בן-יומיים ⇒ **תכנון**.
+3. גיל-בר `−77.2 min` שלילי = [[T-253]] שוב. `pg_typeof(ts) ⇒ timestamptz` ⇒ אמת = **103.1 דק'**.
+
+**✅ נעילת-החג מוכחת:** `woodies_5min.json` נכתב מחדש `21:38→21:39` בעוד גודלו קפוא `32,256B` ו-`last_price=7709.0` ⇒ המקור עצר, לא הכותב. `trade_command/result.json` קפואים על `19:29` = שניית-היציאה ⇒ אפס פקודה תלויה.
+
+**🟠 [[T-210]]:** 20 `CRITICAL` מאז 20:00, חתימה אחת — `ESCALATION-3 … stale 25→120 min … bridge/DLL is the likely cause`. הסיפא שקרית (ה-DLL נמדד חי באותה דקה). ידוע מ-20:16; **חדש = טווחו**: ~150 מופעים עד פתיחת-מחר.
+
+**🟠 [[T-252]]/[[T-270]] — ומדידה שמתקנת אותי:** `swing-trail trade=1142` (לא `1179`), `3,121` ב-101 דק' = **31/דק'** — *זהה* ל-21:14 ⇒ **אין הסלמה**. "235/דק'" שחישבתי בתחילת הריצה ספר חלון-`tail` ולא דקה, ונפסל לפני ניסוח.
+הלוג צועק והספר לא זז: `24,398` שורות מאז 20:00 (`0 ERROR` · `11,932 WARNING` · `20 CRITICAL`) מול `trades_updated_since_2000 ⇒ 0`, `max(updated_at)=19:55:26`.
+
+**🆕 המחיר:** backend `36.3–37.7% CPU` יציב, `load 5.84` — ה-DLL מרענן ייצוא-קפוא כל שנייה ⇒ `BarRouter: dispatch 157.2ms woodies_5min` ⇒ הגלאי רץ שוב על בר-`19:55`. לוג `29,406B/45s ≈ 56MB/יום`. **רעש-לא-סיכון** (פוזיציה 0, שוק נעול) — אבל דולק עד הפתיחה.
+
+**מצב:** `position_qty=0 · active=[] · open_pnl=0.0` · `slot: stuck=False alarm=False "live slot is free"` · `health 200 @1.7ms` · `PID 58492` up `06:04` · `avail $2,912.44` ([[T-34]] עובר) · `contracts_cfg=5` · `paused=False` · בר `19:55` (103 דק', חג).
+
+**צעד-הבא — חובה-2 מחר 15:30-16:10:**
+(א) **אל תפרש את מפולת-ה-`ESCALATION-3` של הלילה כתקלה** — חזויה וידועה.
+(ב) **לאמת ש-`v9_day_type_state` מתאושש על הבר הראשון** אחרי הפתיחה (נעצר `16:40 UTC`=`19:40 IL`; ה-`CRITICAL` טוען *"Day-type gates are running on stale state"*) — אם לא יתאושש לבד, **חוסם-פתיחה**.
+(ג) הריסטארט-קדם-פתיחה ממילא מנקה את לולאת-`1142` ואת `37% CPU`.
+
+— cowork-dev
