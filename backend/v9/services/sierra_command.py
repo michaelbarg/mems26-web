@@ -991,11 +991,12 @@ def command_from_setup(
             _rbd_dt = None
         if _rbd_dt is not None:
             if _rbd_dt.startswith("Trend"):
-                pass  # runner stays (c4=None is set by RUNNER_TRAIL_V2 below)
+                pass  # Trend: runner stays — RUNNER_TRAIL_V2 handles it below
             elif _rbd_dt in ("Neutral_Center", "Nontrend"):
                 # No runner: c4 = t3 (m×risk) always
                 if _c3_target is not None:
                     _c4_target = _c3_target
+                setup["runner_by_daytype"] = True
                 logger.warning(
                     "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
                     "no runner, c4=%s (t3/m×risk)", trade_id, _rbd_dt, _c4_target)
@@ -1008,6 +1009,7 @@ def command_from_setup(
                         _rbd_struct_c3 = round(round(float(_sv) / 0.25) * 0.25, 2)
                         break
                 _c4_target = _rbd_struct_c3 if _rbd_struct_c3 else _c3_target
+                setup["runner_by_daytype"] = True
                 logger.warning(
                     "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
                     "c4=%s (%s)", trade_id, _rbd_dt, _c4_target,
@@ -1029,7 +1031,8 @@ def command_from_setup(
     # NOT applied to ZLR (ZLR_MGMT_V1 owns its own allocation AND locks the stop
     # from every trail — a stop-only ZLR runner would have no exit but EOD flatten).
     if (os.getenv("RUNNER_TRAIL_V2", "0").strip().lower() in ("1", "true", "yes")
-            and not _is_zlr_setup(setup)):
+            and not _is_zlr_setup(setup)
+            and not setup.get("runner_by_daytype")):
         try:
             _min_c = int(os.getenv("RUNNER_TRAIL_V2_MIN_CONTRACTS", "3"))
         except (TypeError, ValueError):
