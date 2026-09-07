@@ -1,3 +1,53 @@
+[2026-09-07 14:50 IL] **cowork-scheduled · 🟠 [[T-265]] הוכרע במדידה: תקיעה ולא טעינת-היסטוריה — ‏78 דק' לפני הדדליין שהצבתי. + תיקון-חומרה שלי עצמי: לא נמצא צרכן בנתיב-הירי.**
+
+**ממצא → תיקון/הצעה → ראיה:**
+
+1. **ממצא (א) — ייצוא-ה-RTH `5min.json` קפוא, ולא "בתהליך טעינה".** ברישום 13:45 השארתי את זה בלתי-מוכרע במפורש ותליתי הכרעה בניטור עד 16:00. ההכרעה הגיעה מהלוג עצמו ולא מדגימת-קובץ — וזו הראיה החזקה יותר, כי היא מודדת **קצב** ולא **רגע**:
+
+   ```
+   $ grep "^2026-09-07.*TS-OFFSET-GATE REJECTED" /tmp/backend.err.log   # + פירוק ב-python
+   FIRST: 2026-09-07 13:18:57  behind=221038s
+   LAST : 2026-09-07 14:38:31  behind=225812s
+   wall-clock elapsed = 4774s   |   'behind' grew by = 4774s
+   ratio grew/wall = 1.000  ->  implied newest-bar-ts advance in that window = 0s
+   total gate rejections today: 1579        (ERROR=1566 · CRITICAL=0)
+   ```
+
+   יחס `1.000` ⇒ `max(ts)` ב-`5min.json` התקדם **אפס שניות ב-80 דקות**. טעינת-היסטוריה הייתה מייצרת יחס `<1` (ה-`behind` היה גדל לאט משעון-הקיר). ⇒ **תקיעה. מוכרע.**
+
+2. **ממצא (ב) — ותיקון-חומרה של הרישום שלי מ-13:45.** שם כתבתי שאם זו תקיעה היא **"חוסמת את פתיחת מחר 08.09 16:30"**. סרקתי את נתיב-הירי ולא מצאתי קורא שנפגע:
+
+   ```
+   $ curl -s http://localhost:8000/api/v9/key_levels
+   globex = None None None        # כבר עכשיו, ללא קשר לתקיעה
+   ib_source = None | ib_status = pre_open | ib_high/low = 7751.0 7729.5
+   $ grep -rn "globex" --include=*.py backend/ | grep -v test
+   → key_levels_routes.py (יצרן+צרכן יחיד) · day_type/state_machine.py:380-381 (מחשב globex_h/globex_l
+     בעצמו מ-bar.high/bar.low של הזרם שהוא מוזן) · status.py (is_globex, מסווג-סשן)
+   ```
+
+   כלומר: `key_levels.globex_*` **אין לו צרכן-מסחר**; מנוע-סוג-היום אינו נשען עליו אלא מחשב globex משלו מזרם-הברים החי (`woodies`, בן 2.7 דק'). `daytype_classify_routes.direction_now` מסומן בקוד `DISPLAY ONLY — does not affect any trading decision` עם fallback מפורש ל-`v9_bars_5min_woodies`. `key_levels` IB = `tpo.json` של סיירה **ראשי** ו-`v9_bars_5min` רק fallback (אישור-מייקל 28.05), ומאוכלס כרגע. `atr.py` — נרשם כבר ב-13:45 שהוא פונקציה-טהורה ואינו שואל טבלה.
+
+   ⇒ **הניסוח המתוקן: הנזק המוכח הוא (1) זרם-אזהרות ~20/דק' שהוא 100% משגיאות היום — מחלקת [[T-255]] (96,297 אזהרות-שווא), ו-(2) `v9_bars_5min` קפוא על `2026-09-04 23:55+03`. חסימת-פתיחה — לא הוכחה.** ⚠️ וסייג שאני מציין במפורש: זו **סריקה** ולא הוכחה-שלילית מלאה; היא מורידה חומרה, לא סוגרת פריט.
+
+3. **🔑 מלכודת-מדידה שנתפסה לפני שנכנסה לדיווח — היסט 5 שעות בייצוא הגולמי.** `datetime.fromtimestamp(max ts of 5min.json)` מרנדר `2026-09-04 18:55`, בעוד השורה המקבילה ב-DB היא `2026-09-04 23:55+03`. ההפרש **5 שעות בדיוק**. והשער עצמו מדווח `behind=225,812s = 62.72ש'` — שהוא הגיל **האמיתי** מ-`23:55` ועד `14:38` ⇒ **נתיב-הקליטה כבר מנרמל את ההיסט, והשער מודד נכון.** מי שידגום את הקובץ הגולמי ויצטט את הרינדור ידווח 5 שעות-שווא. אותה משפחה כמו שורש-הברים `5h-skew` מ-29.07. (אותה מדידה גם מאשרת שוב שהתקיעה אמיתית: `5min_continuous.json` ו-`woodies_5min.json` מרנדרים `09-07 09:30/09:40` = `14:30/14:40` אמיתיים ⇒ **טריים**; רק `5min.json` נשאר על שישי.)
+
+4. **הצעד-הבא ב-[[T-265]] מצטמצם לשניים** (נרשם ל-cc-macbook ב-`LIVE_CHANNEL`, `id:2c2c99d1`): **(א) אבחון-סיירה** — האם תרשים-ה-RTH מחובר לשירות-הנתונים ומוריד היסטוריה, או שה-DLL מייצא מ-array ישן/ריק. **(ב) rate-limit לשער** — `ERROR` פר-אצווה ביום-מסחר יטביע אזעקות אמיתיות. **⛔ ולא לכבות את `TS_OFFSET_INGEST_GATE_V1`** כדי "לעצור את הרעש": הוא דגל-פסוק (`flag_guard ✓ expected=1 actual=1`) וכיבויו יזרים ברים-מתויגים-כחיים ל-DB — נגיעה במשטח-סיכון.
+
+5. **מצב-מערכת בעת המדידה (14:37–14:47), קריאה-בלבד.** 🟢 סיירה **רצה** — מדידה קבילה ולא `pgrep` ([[מלכודת-13]]): `ps aux | grep -i sierra` ⇒ `CrossOver/SierraChart_64` + `wine64-preloader`. פיד: `v9_bars_5min_woodies max(ts)=2026-09-07 14:35:00+03` גיל **2.7 דק'** · `live_price.json` `bid/ask=7706.00/7706.25` `mtime=14:37:42` · כל 11 קבצי-הייצוא נכתבו ב-`14:37`. `health 200 @7ms` · `sierra_state ⇒ is_sim=0 · position_qty=0 · trade_account=37138283` · `mobile/data ⇒ radar.trading.armed=1 · trading_paused=false · gate_overrides=[] · contracts_cfg=5 · today={n:0,pnl:0}` · `ruled_contracts() ⇒ 5` (עם טעינת-`.env` — [[§3.9]]) · `slot_health ⇒ stuck=false · alarm=false · live_open_ids=[] · "live slot is free"` · `flag_guard PASS 241` · `task_log_guard ✅ 267`. `v9_trades`: **0 לייב היום**; 2 non-terminal הן `shadow/PARTIAL` מ-04.09 (`#1142` GB100 SHORT · `#1006` INITIATIVE_SHORT) ⇒ **אפס חשיפה חיה**.
+
+   ⚠️ **ולא לצטט כ"היום":** `sierra_state.daily_pnl=-265.0` ו-`daily_total_qty_filled=50` הם **מונים שאריתיים משישי** (‏50 = 5 עסקאות × 5 חוזים × כניסה+יציאה) בזמן ש-`acct_daily_pl=0.0` — חג, לא נפתח סשן חדש. מחלקת §3.5 ב-`COWORK_DAILY_READ`.
+
+   ⚠️ **סוכנים:** `backend · bridge · frontend · mobile_relay · export_promoter · activity_feed ⇒ state=running`; `eod_handoff · startup_check · update_check ⇒ not running` — **צפוי**, מופעלי-טריגר (`eod_handoff` ל-23:05), לא ממצא.
+
+6. **חובה-1 (מענה-טלפון) — אפס ממתינות, וזו ראיה.** `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}` (peek מ-Render, `?key=` מאומת, 14:39). **חיוּת-הרלה נמדדה לפני ההכרזה** ([[T-259]]/מלכודת-12): `launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running` · `ps ⇒ PID 16109`. הודעת-מייקל האחרונה בת'רד נותרה `2026-09-04T16:21:48Z` ונענתה. ⇒ **נשלחה הודעה ביודעין ולא כמענה**, כי היא מכריעה שאלה שהבטחתי לו תשובה עליה ומתקנת חומרה שאני עצמי נתתי. **אומת-במסירה** ([[T-260]] — `"ok"` אינו ראיה): `GET /chat ⇒ items=30`, האחרון `sender=cowork ts=2026-09-07T11:47:58Z len=1565`, `CONTENT MATCH = True`; `1565 תווים / 2486 בתים` — מתחת לתקרת-**2000 התווים**, בעוד בדיקת-בתים הייתה פוסלת אותה כוזבת.
+
+7. **⏸️ פתוח אצל מייקל, לא חוזר עליו:** ההכרעה מ-14:12 — פירוק-זרוע לחג מול הרצה על סשן-חג דליל ([[T-264]]: `session_gate` עיוור-לחגים, שומר-החג חיווט-מת). פסיקה נשאלת פעם אחת.
+
+**NOT-DONE במכוון:** אפס ריסטארט · אפס `.env` · אפס דגלים · אפס `RULED_FLAGS.yaml` · אפס פוזיציות · אפס שירותים · אפס עריכת-קוד · לא נגעתי בקבצים הלא-מעוקבים של cc (`docs/reports/REPLAY_AFTER_FIXES_2026-09-07.md`, `PM_1077/1081/1121.md`, `outputs/gate_replay/`) — הקומיט pathspec-בלבד.
+
+---
+
 [2026-09-07 13:45 IL] **cowork-scheduled · ✅ [[T-263]] נסגר — cc קימט הכל, ועץ-העבודה זהה ל-HEAD ⇒ `flag_guard PASS` הוא סוף-סוף אמת-HEAD. + סיירה עלתה (מייקל, 13:17). + 🟠 נפתח [[T-265]].**
 
 **ממצא → תיקון → ראיה:**
