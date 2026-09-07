@@ -59,6 +59,21 @@ def persist_state_row(
         import time as _hb_time
         app_state._daytype_writer_heartbeat = _hb_time.time()
 
+        # §9ב invariant: at IB lock (B2), rib must be ~1.0 (bars span the IB).
+        # rib < 1.0 at lock means the classifier read stale bar snapshots.
+        _stage_val = state.stage.value if hasattr(state.stage, "value") else str(state.stage)
+        if _stage_val == "B2" and last_cls_result is not None:
+            _rib_check = last_cls_result.get("rib") if isinstance(last_cls_result, dict) else None
+            if _rib_check is None:
+                # Try to extract from features or measured sub-dict
+                _m = last_cls_result.get("measured", {}) if isinstance(last_cls_result, dict) else {}
+                _rib_check = _m.get("rib") if isinstance(_m, dict) else None
+            if _rib_check is not None and abs(float(_rib_check) - 1.0) > 0.01:
+                logger.error(
+                    "[S1] rib=%.3f at IB lock — input is not a closed bar",
+                    float(_rib_check))
+                app_state._daytype_input_suspect = True
+
         cur_sig = compute_sig(state)
         if getattr(app_state, "_last_dts_sig", None) == cur_sig:
             return SKIPPED
