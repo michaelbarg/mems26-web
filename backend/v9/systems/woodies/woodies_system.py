@@ -537,13 +537,21 @@ class WoodiesSystem(BaseV9TradingSystem):
                     _zlr_t1 = wb.close + (4 * 0.25 if _zlr_dir == "LONG" else -4 * 0.25)
                     # T3: guard against stop=None → PatternResult crash (pydantic ValidationError)
                     if _zlr_stop is not None and _zlr_stop > 0:
+                        # §4/ZLR_SHADOW_V1 (Michael ruling 07.09): ZLR → shadow
+                        # (metadata.shadow_only=True → gateway routes to shadow
+                        # only, no demo/live). "מתקנים ולא מבטלים" → measure
+                        # without bleeding. Mechanism at gateway:3922.
+                        import os as _zlr_os
+                        _zlr_details = {"source": "dll_flag", "zlr_direction": wb.zlr_direction}
+                        if _zlr_os.environ.get("ZLR_SHADOW_V1", "0").lower() in ("1", "true", "yes"):
+                            _zlr_details["shadow_only"] = True
                         patterns.append(PatternResult(
                             detected=True, pattern_id="ZLR", direction=_zlr_dir,
                             confidence=0.65, raw_confidence=0.65,
                             entry_price=wb.close, stop=_zlr_stop, targets=[_zlr_t1],
                             group="CONTINUATION", cci_at_signal=wb.cci_14,
                             bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
-                            details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
+                            details=_zlr_details,
                         ))
                     else:
                         logger.warning("[Woodies] DLL ZLR skipped: stop=%s (None/0 — T3 guard)", _zlr_stop)
@@ -1291,6 +1299,9 @@ class WoodiesSystem(BaseV9TradingSystem):
                     _gw_t1 = fire_setup["t1_price"] if fire_setup else (best.targets or [0])[0]
                     _gw_t2 = fire_setup.get("t2_price") if fire_setup else None
                     _gw_meta = {"pattern": best.pattern_id, "sizing": sizing}
+                    # ZLR_SHADOW_V1: propagate shadow_only from pattern details
+                    if isinstance(best.details, dict) and best.details.get("shadow_only"):
+                        _gw_meta["shadow_only"] = True
                     # the number, not the bucket — see the note at the V2 sizing
                     # call site. `contracts` takes precedence downstream.
                     _gw_n = getattr(self, "_last_v2_contracts", None)

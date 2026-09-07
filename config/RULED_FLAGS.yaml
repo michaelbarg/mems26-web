@@ -66,9 +66,11 @@ ruled:
   S1_BAR_REFRESH_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §1: תיקון-באג — המסווג קרא ברים בהופעה ראשונה ולא עדכן (rib 0.83→1.0 בנעילת-IB). S1_NEW_CLASSIFIER=1 כבר פסוק' }
   RUNNER_BY_DAYTYPE_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §2: פסיקת-מייקל 06.09 19:45 — ''5 חוזים ללא ראנר — יש רק סוג-יום אחד שצריך ראנר וזה טרנד-דיי''. ראנר רק ב-Trend; אחרת c4=struct_c3 או t3' }
   STRUCT_TARGETS_WIN_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §3: פסיקת-מייקל 06.09 19:45 — ''שהמערכת תדע לזהות אפשרויות ולתת להן ניהול של דלתון''. יעדים מבניים גוברים על m×risk כש-spacing_levels קיים' }
-  STOP_MOVE_TARGET_RESTORE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §4: תיקון-באג — DLL cpp:3202 גורר יעד כשסטופ זז. BE reads sierra_state 1.5s after MODIFY_STOP and restores drifted targets' }
+  # STOP_MOVE_TARGET_RESTORE_V1: superseded 07.09 — see below (expected: "0", ממתין לסים)
   DELTA_BREAKOUT_RELEASE_V1: {expected: "shadow", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §7: שחרור-על-דלתא — מסלול שני ב-release_gate. תנאי-הדלקה מכני: שחזור 10 ימים, t1_before_stop≥60% על n≥10 + 03.09 18:00 + 04.09 17:40' }
   ELQ_LEG_FROM_BREAK_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §5: פסיקת 28.08 — הפלייבוק ref_points: [broken_IB_edge,...]. leg_base=broken IB edge, לא session extreme' }
+  ZLR_SHADOW_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-09-07", note: 'פסיקת-מייקל 15:20: ZLR n=12 Σ−385 ברוקר. צל לשבוע, GATE_REPLAY_2026-09-07. מתקנים ולא מבטלים' }
+  STOP_MOVE_TARGET_RESTORE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-09-07", note: 'CC_FIX_DEAD_2026-09-07 §3: ממתין לסים. c{n}_target_price לא נכתב, DLL key=id לא order_id. =0 במוצהר עד אימות-סים' }
   PATTERN_RISK_CAPS:      {expected: "1", ruled_by: "מייקל", date: "2026-06-12", note: 'תקרות סיכון פר-תבנית' }
   DAYTYPE_PLAYBOOK:       {expected: "1", ruled_by: "מייקל", date: "2026-06-19", note: 'פלייבוק תבנית×יום; 07-08 חסם counter-trend נכון' }
   DAYTYPE_PATTERN_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-06-30", note: 'שער-משפחה מודע-תבנית' }
