@@ -1711,6 +1711,69 @@ class TradeManager:
             self._record_exit_fill(trade, "STOP", fill_price, qty=fill_qty,
                                    order_id=order_id, ts=hit_ts)
 
+        # T-251 ROOT-FIX (2026-09-07): ONE leg of a ladder stopping out is NOT
+        # the trade closing. This method transitioned to CLOSED with no
+        # condition on quantity, so on **#1008** (SHORT 5c, 2026-09-04) the c4
+        # stop at 18:35:42 closed the books while c3 (Sierra orders
+        # 10983/10984) was still working — and stayed working for 32 minutes.
+        # CLOSED drops the row out of `get_active_trades` (:1860,
+        # `_ACTIVE_TRADE_STATES` :33) → `bar_level_detector` stopped scanning
+        # it: **zero `runner_reversal` checks 18:36-19:08** on an inverted
+        # short whose stop had been dragged to 7724.75, the phone was told
+        # "closed +72.5", and `[StuckSlot] LIVE PATH BLOCKED` alarmed on a
+        # trade the books said was gone. The T-62 ledger already knew the
+        # truth — Σqty = 4 of 5 — the state logic simply never asked it.
+        #
+        # The LEDGER is the authority, never `position_qty` (the account is
+        # shared with Eti — an account-level quantity cannot attribute a leg).
+        # `fill_qty=None` is the legacy path (shadow twins / BarLevelDetector):
+        # it reports no per-leg quantity, which honestly means "everything left
+        # goes at this fill", and is left byte-identical below.
+        if fill_qty:
+            _n_contracts = trade_contract_count(trade)
+            _filled = sum(int(f.get("qty") or 0)
+                          for f in self._exit_fill_ledger(trade))
+            if _filled < _n_contracts:
+                # PENDING→PARTIAL is not a legal transition
+                # (state_machine.py:30); an ENTRY line that never arrived
+                # leaves the machine in PENDING. FILLED→PARTIAL is legal (:31).
+                if machine.state == TradeState.PENDING:
+                    machine.transition(TradeState.FILLED)
+                if machine.state != TradeState.PARTIAL:
+                    machine.transition(TradeState.PARTIAL)
+                trade.state = TradeState.PARTIAL.value
+                # Deliberately NOT written: exit_ts / exit_price / exit_reason
+                # / stop_hit_ts. A working trade has no exit, and an empty
+                # exit_reason is exactly what keeps `_calculate_pnl` in
+                # `realized_only` mode (:2278) — otherwise the contracts still
+                # in the market would be booked at this leg's stop price.
+                self._log_management(trade_id, "STOP_HIT_PARTIAL", {
+                    "ts": hit_ts.isoformat(),
+                    "order_id": order_id,
+                    "qty": fill_qty,
+                    "fill_price": fill_price,
+                    "remaining": _n_contracts - _filled,
+                })
+                self._calculate_pnl(trade)
+                self._db.flush()
+                # No silent failures: a partial stop is a risk event, not noise.
+                logger.warning(
+                    "[TradeManager] T-251 partial stop: trade %s leg %sc @ %s "
+                    "(order=%s) — ledger %d/%d, %d contract(s) STILL LIVE → "
+                    "books stay OPEN (PARTIAL), System-6 keeps scanning",
+                    trade_id, fill_qty, fill_price, order_id, _filled,
+                    _n_contracts, _n_contracts - _filled)
+                self._emitter.emit("stop_hit_partial", trade_id, {
+                    "ts": hit_ts.isoformat(),
+                    "state": TradeState.PARTIAL.value,
+                    "order_id": order_id,
+                    "qty": fill_qty,
+                    "fill_price": fill_price,
+                    "remaining": _n_contracts - _filled,
+                    "pnl_usd": trade.pnl_usd,
+                })
+                return
+
         # Capture cross-system snapshot at stop hit (per spec Section 2.2)
         self._append_snapshot(trade, "stop_hit")
 

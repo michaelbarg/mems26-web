@@ -1222,7 +1222,16 @@ class FillPoller:
                 # Full close via Sierra stop → free slot + count the stop (I-57:
                 # this path previously bypassed on_trade_close → stuck demo slot
                 # + cooldown blind to stops. Trades 271/272, 2026-07-02.)
-                self._notify_gateway_close(trade_id, "STOP")
+                # T-251 (2026-09-07): only when the trade ACTUALLY closed. One
+                # leg of a ladder stopping out now leaves the trade PARTIAL
+                # (manager.on_stop_hit), and notifying the gateway there would
+                # free the slot, book the day's P&L and push "trade closed" to
+                # the phone while our own contracts are still working — exactly
+                # what #1008 did on 2026-09-04. Mirrors the target branch above.
+                _get = getattr(self._tm, "_get_trade", None)
+                _t = _get(trade_id) if callable(_get) else None
+                if _t is not None and getattr(_t, "state", "") == "CLOSED":
+                    self._notify_gateway_close(trade_id, "STOP")
 
             else:
                 logger.warning("[FillPoller] unknown fill kind: %s", kind)
