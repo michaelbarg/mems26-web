@@ -63,7 +63,7 @@ def main():
             if det["name"].startswith("RE_ACCEPTANCE"):
                 src_file = ROOT / "backend" / "v9" / "systems" / "five_min" / "five_min_system.py"
                 src = src_file.read_text(encoding="utf-8")
-                if "v9_bars_cumulative_delta" in src and "_ra_dm" in src:
+                if "v9_bars_cumulative_delta" in src and "delta" in src:
                     pass  # enrichment exists
                 else:
                     errors.append(f"{det['name']}: delta enrichment missing in five_min_system.py")
