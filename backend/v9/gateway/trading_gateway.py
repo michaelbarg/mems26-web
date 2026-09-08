@@ -2596,7 +2596,7 @@ class TradingGateway:
             if _rg.enabled() and not _opening_gate_exempt(setup, "awaiting_release"):
                 from backend.v9.db.read import read_all as _rg_read
                 _rg_rows = _rg_read(
-                    "SELECT high, low, close, volume FROM v9_bars_5min_woodies "
+                    "SELECT ts, high, low, close, volume FROM v9_bars_5min_woodies "
                     "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
                     "(now() AT TIME ZONE 'America/New_York')::date "
                     "ORDER BY ts DESC LIMIT 30", {})
