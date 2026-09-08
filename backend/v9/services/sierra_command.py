@@ -989,31 +989,25 @@ def command_from_setup(
             _rbd_dt = _rbd_gldt()
         except Exception:
             _rbd_dt = None
-        if _rbd_dt is not None:
-            if _rbd_dt.startswith("Trend"):
-                pass  # Trend: runner stays — RUNNER_TRAIL_V2 handles it below
-            elif _rbd_dt in ("Neutral_Center", "Nontrend"):
-                # No runner: c4 = t3 (m×risk) always
-                if _c3_target is not None:
-                    _c4_target = _c3_target
-                setup["runner_by_daytype"] = True
-                logger.warning(
-                    "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
-                    "no runner, c4=%s (t3/m×risk)", trade_id, _rbd_dt, _c4_target)
-            else:
-                # Variation/Normal/Neutral_Extreme: c4 = struct_c3, fallback t3
-                _rbd_meta = setup.get("metadata") or {}
-                _rbd_struct_c3 = None
-                for _sn, _sv in (_rbd_meta.get("spacing_levels") or []):
-                    if _sn == "struct_c3" and _sv is not None:
-                        _rbd_struct_c3 = round(round(float(_sv) / 0.25) * 0.25, 2)
-                        break
-                _c4_target = _rbd_struct_c3 if _rbd_struct_c3 else _c3_target
-                setup["runner_by_daytype"] = True
-                logger.warning(
-                    "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
-                    "c4=%s (%s)", trade_id, _rbd_dt, _c4_target,
-                    "struct_c3" if _rbd_struct_c3 else "t3/m×risk fallback")
+        if _rbd_dt is not None and _rbd_dt.startswith("Trend"):
+            pass  # Trend: runner stays — RUNNER_TRAIL_V2 handles it below
+        else:
+            # Non-trend OR None: c4 = struct_c3, fallback t3 (no runner).
+            # Michael 06.09: "רק טרנד-דיי צריך ראנר". None = unknown day
+            # type → the cautious default is NO runner (14/39 live trades
+            # had None and got a stop-only runner leg; only 3 were Trend).
+            _rbd_meta = setup.get("metadata") or {}
+            _rbd_struct_c3 = None
+            for _sn, _sv in (_rbd_meta.get("spacing_levels") or []):
+                if _sn == "struct_c3" and _sv is not None:
+                    _rbd_struct_c3 = round(round(float(_sv) / 0.25) * 0.25, 2)
+                    break
+            _c4_target = _rbd_struct_c3 if _rbd_struct_c3 else _c3_target
+            setup["runner_by_daytype"] = True
+            logger.warning(
+                "[SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade %s day_type=%s → "
+                "c4=%s (%s) — no runner", trade_id, _rbd_dt, _c4_target,
+                "struct_c3" if _rbd_struct_c3 else "t3/m×risk fallback")
 
     # ── F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE_STUDY §5 R-A) ──
     # THE half of F5 that actually holds. A stop-trail cannot keep a position past
