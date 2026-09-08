@@ -2178,7 +2178,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                             # OPENING_DRIVE_SKIP_V1 (Michael 01.09: 6 trades, 0 wins).
                             # Skips DRIVE only — not ORR, not TEST_DRIVE.
                             if (_trig
-                                    and _trig.get("type") == "OPENING_DRIVE"
+                                    and _trig.get("type") == "DRIVE"
                                     and os.getenv("OPENING_DRIVE_SKIP_V1", "0").lower()
                                     in ("1", "true", "yes")):
                                 logger.info(
