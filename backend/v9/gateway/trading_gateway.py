@@ -2422,7 +2422,7 @@ class TradingGateway:
                         try:
                             from backend.v9.services.trade_context import (
                                 get_live_day_type as _ecg_gldt)
-                            _ecg_dt = str((_ecg_gldt() or {}).get("day_type") or "")
+                            _ecg_dt = str(_ecg_gldt() or "")
                             # 11.08 (same session): the label oscillates
                             # Trend_DD ↔ Variation on a one-sided day; both are
                             # directional in our taxonomy (Variation = one-sided
