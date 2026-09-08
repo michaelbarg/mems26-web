@@ -5,6 +5,13 @@ Usage: python3 scripts/phone_reply.py <sender> "<text>"
 Writes docs/handoff/PHONE_THREAD.jsonl (the source of truth the relay pushes
 to Render every cycle) and best-effort POSTs /reply for instant display.
 Display-only; never touches trading.
+
+{NOW} token (added 08.09, cowork): any occurrence of {NOW} in <text> is replaced
+at SEND time with the local wall clock (HH:MM). Agents compose the message body
+before the send call and had been estimating "נמדד HH:MM" forward by a few
+minutes — it happened three times in two days (07.09 15:50, 07.09 19:15,
+08.09 11:09). Writing "נמדד {NOW}" makes the stamp a measurement instead of a
+guess. No behaviour change when the token is absent.
 """
 import json, os, sys, time, urllib.request
 
@@ -16,6 +23,8 @@ def main():
     text = sys.argv[-1].strip()
     if not text:
         sys.exit("empty text")
+    # Stamp the clock at send time, not at compose time (see module docstring).
+    text = text.replace("{NOW}", time.strftime("%H:%M", time.localtime()))
     item = {"sender": sender, "text": text,
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "status": ""}
     with open(P, "a", encoding="utf-8") as f:
