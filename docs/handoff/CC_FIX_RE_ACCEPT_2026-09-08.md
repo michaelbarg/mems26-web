@@ -56,6 +56,57 @@ detect(real buffer shape) -> None
 טבלת 11-ימים.** ‏אם עדיין 1/11 — **הסף בדיעבד היה מכויל-יתר, וזה בדיוק מה שהצל נועד לגלות.**
 **‏`shadow` נשאר `shadow` בכל מקרה.** בלי כיול-לאחור לספים כדי "להגיע ל-4".
 
+### 1א · התיקון המדויק — החלף את `:2343-2348`
+
+```python
+                        # The buffer carries {ts,o,h,l,c,v} ONLY. detect() needs
+                        # delta (Rule 1 → None) and vol/volume (→ max_vol<=0 → None).
+                        from backend.v9.db.read import read_all as _ra_read
+                        _ra_dm = {}
+                        try:
+                            _ra_dm = {_canon_bar_ts(r["ts"]): float(r["delta"])
+                                      for r in (_ra_read(
+                                          "SELECT ts, delta FROM v9_bars_cumulative_delta "
+                                          "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                          "(now() AT TIME ZONE 'America/New_York')::date "
+                                          "ORDER BY ts", {}) or [])
+                                      if r.get("delta") is not None}
+                        except Exception as _ra_dberr:
+                            logger.warning("[RE_ACCEPTANCE] delta read failed: %s", _ra_dberr)
+                        _ra_bars = []
+                        for _rb in _det_buf:
+                            _rd = dict(_rb)
+                            _rd["delta"] = _ra_dm.get(_canon_bar_ts(_rb.get("ts")))
+                            if _rd.get("vol") is None:
+                                _rd["vol"] = _rb.get("v", _rb.get("volume"))
+                            _ra_bars.append(_rd)
+                        _ra_hit = sum(1 for b in _ra_bars if b.get("delta") is not None)
+                        if _ra_hit == 0:
+                            # No silent failure: a dead enrichment must SAY it is dead.
+                            logger.warning(
+                                "[RE_ACCEPTANCE] 0/%d bars got delta (map=%d) — detector inert",
+                                len(_ra_bars), len(_ra_dm))
+```
+**‏`_canon_bar_ts` (‏`five_min_system.py:49`) בשני הצדדים — לא `str()`.** ‏hydration כותב
+`"2026-09-07 16:30:00+03:00"`, נתיב-האגרגטור כותב `...T16:30...` — **אותה מחלקה בדיוק ש-F2 תיקנה
+ב-12.08** (‏בר נספר פעמיים כי `str` השוואה נכשלה). ‏`str()` יעבוד היום ויתפרק בריסטארט הבא.
+
+**שורת-ה-`_ra_hit == 0` היא העיקר.** בלעדיה הכשל הבא שקוף שוב. **גם ל-`FAILED_RE_IB`
+ול-§7 (`:2658`)** — כל העשרה מצהירה כמה הצמידה.
+
+### 1ב · מניעת-המחלקה — זה המופע החמישי
+
+‏§2 · §4 · §5 · §7 · עכשיו §3. **כולם עברו `flag_guard`** — כי הוא מוכיח *אתר-קריאה*, לא שהקריאה
+עושה משהו. **שתי תוספות, שתיהן קטנות:**
+
+1. **‏`detector_contract_guard.py`** (ל-`guard_tests.sh`, חוסם): לכל גלאי — לבנות buffer בצורת
+   `_bar_buffer` **מה-DB** (`{ts,o,h,l,c,v}`), להריץ את נתיב-ההעשרה של הגלאי, ולוודא
+   `all(required_keys ⊆ enriched_keys)`. **הטסט שלך היה עובר את הבאג** כי הזנת `delta`+`vol` ידנית;
+   זה לא יעבור.
+2. **חוק-קבלה חדש: גלאי אינו "בוצע" עד שירה פעם אחת על נתונים אמיתיים דרך הנתיב האמיתי.**
+   ‏`RULED_FLAGS.note` של כל גלאי חדש נושא **שורת-ריפליי**: `replay: N ימים, F ירי, Σ±Xpt`.
+   אין שורה ⇒ הפריט **NOT-DONE**, גם אם הטסטים ירוקים. (‏`RE_ACCEPTANCE_V1` היום: `11/1/+14.25`.)
+
 ## 3 · ‏`FAILED_RE_IB_V1` — מחווט נכון (מחירים בלבד), לא נבדק בריפליי
 
 ‏`:2299-2328` תקין: `_load_sierra_tpo` ⇒ `ib_high/ib_low` ⇒ `detect_failed_break(_det_buf, ...)`

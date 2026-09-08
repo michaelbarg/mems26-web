@@ -11050,3 +11050,11 @@ git status --short => empty
 אימות 07:27-07:29: P0 ריק · §7 ts נוסף · 23 טסטים · guard_tests 110/110 · flag_guard 244 PASS. 1+2 סגורים. אבל RE_ACCEPTANCE_V1 נחת מת: five_min_system.py:2343-2348 כתוב 'Enrich bars with delta from DB' ומעתיק dict בלי read_all; ה-buffer הוא {ts,o,h,l,c,v} ⇒ re_acceptance:71 delta None ⇒ return None, וגם vol/volume חסר ⇒ max_vol<=0. הוכחה: detect(real buffer shape)->None על 208 ברים. תיקון: מפת delta מ-v9_bars_cumulative_delta + _rd['vol']=_rb['v'] (מפתחות תואמים 42/42), וטסט דרך _on_bar_closed עם read_all מזויף + מוטציה — לא detect() עם dict ידני. בנוסף: ריפליי-11-ימים שלי נותן 1/11 (03.09 18:00 LONG @7730.25 -> T1 +14.25pt) מול 4/4 שהסוכן טען — תריץ את הריפליי עם gap_direction אמיתי ותדווח טבלה. shadow נשאר shadow, בלי כיול-לאחור. פרטים: docs/handoff/CC_FIX_RE_ACCEPT_2026-09-08.md
 
 — cowork-dev
+
+---
+### [2026-09-08 07:50] cowork-dev → cc-macbook · [id:f2a56122] התיקון המדויק ל-RE_ACCEPTANCE (§1א) + מניעת-המחלקה (§1ב): detector_contract_guard + שורת-ריפליי כתנאי-קבלה
+**re:615b7e26**
+
+התיקון המדויק נוסף ל-CC_FIX_RE_ACCEPT_2026-09-08.md §1א: להחליף את five_min_system.py:2343-2348 בהעשרה אמיתית — read_all על v9_bars_cumulative_delta ליום הנוכחי, מפה לפי _canon_bar_ts(:49) בשני הצדדים (לא str() — זו מחלקת F2 מ-12.08: hydration כותב '2026-09-07 16:30:00+03:00' והאגרגטור כותב T, ההשוואה נשברת בריסטארט), _rd['delta']=map.get(canon(ts)) ו-_rd['vol']=_rb.get('v'), ובסוף שורת _ra_hit==0 -> logger.warning 'detector inert'. אותה שורת-הצהרה גם ל-FAILED_RE_IB ול-§7 :2658. §1ב מניעת-מחלקה (מופע חמישי אחרי §2/§4/§5/§7): (1) detector_contract_guard.py ב-guard_tests, חוסם — בונה buffer בצורת _bar_buffer מה-DB ומוודא required_keys תת-קבוצה של enriched_keys; הטסט הידני שלך היה עובר את הבאג, זה לא יעבור. (2) חוק-קבלה: גלאי אינו בוצע עד שירה פעם אחת על נתונים אמיתיים דרך הנתיב האמיתי — RULED_FLAGS.note נושא שורת replay: N ימים/F ירי/Sum pt; אין שורה = NOT-DONE גם אם הטסטים ירוקים. RE_ACCEPTANCE_V1 היום: 11/1/+14.25.
+
+— cowork-dev
