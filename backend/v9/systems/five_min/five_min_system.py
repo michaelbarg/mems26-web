@@ -1511,6 +1511,123 @@ class FiveMinSystem(BaseV9TradingSystem):
         except Exception as _de_err:
             logger.warning("[DaltonEdge] failed (non-fatal): %s", _de_err)
 
+    def _maybe_failed_re_ib(self) -> None:
+        """FAILED_RE_IB_V1: failed break on IB edges (Dalton p.98/106).
+
+        Same cadence as _maybe_dalton_edge: all-session, every new closed bar.
+        Target = IB-mid. Shadow only. Basis: DALTON_EARLY_ENTRY family III.
+        """
+        if not os.getenv("FAILED_RE_IB_V1", "0").lower() in ("1", "true", "yes", "shadow"):
+            return
+        if not self._gateway:
+            return
+        try:
+            from backend.v9.systems.failed_break import (
+                detect_failed_break, build_failed_break_setup)
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            tpo = _load_sierra_tpo() or {}
+            ibh = float(tpo.get("ib_high") or 0) or None
+            ibl = float(tpo.get("ib_low") or 0) or None
+            if not ibh or not ibl:
+                return
+            if not hasattr(self, "_fb_ib_fired"):
+                self._fb_ib_fired = set()
+            trig = detect_failed_break(
+                self._bar_buffer, ibh, ibl,
+                edge_label="IB", already_fired=self._fb_ib_fired)
+            if not trig:
+                return
+            self._fb_ib_fired.add(trig["type"])
+            setup = build_failed_break_setup(trig)
+            # Override target to IB-mid (Dalton p.98)
+            ib_mid = round((ibh + ibl) / 2.0, 2)
+            entry = float(trig["entry"])
+            direction = trig["direction"]
+            # Guard: IB-mid must be on the correct side of entry (failed_break.py:137-138)
+            if (direction == "LONG" and ib_mid <= entry) or (direction == "SHORT" and ib_mid >= entry):
+                risk = abs(entry - float(trig["stop"]))
+                sign = 1.0 if direction == "LONG" else -1.0
+                ib_mid = round(entry + sign * 1.0 * risk, 2)
+            setup["t1"] = ib_mid
+            setup["classification"] = "FAILED_RE_IB"
+            setup["pattern"] = "FAILED_RE_IB"
+            setup["metadata"]["source"] = "failed_re_ib_v1"
+            logger.warning(
+                "[FailedBreak-IB] %s %s @%.2f (IBH=%.2f IBL=%.2f "
+                "extreme=%.2f t1=%.2f) → gateway",
+                direction, trig["type"], entry, ibh, ibl,
+                trig.get("failed_extreme", 0), ib_mid)
+            self._gateway.route_setup(setup, 2)
+        except Exception as e:
+            logger.warning("[FailedBreak-IB] failed (non-fatal): %s", e)
+
+    def _maybe_re_acceptance(self) -> None:
+        """RE_ACCEPTANCE_V1: bar-of-acceptance detector (Dalton p.84/88).
+
+        Same cadence as _maybe_dalton_edge: all-session, every new closed bar.
+        Shadow only. Enriches buffer with delta from DB and vol from v key.
+        """
+        from backend.v9.systems.re_acceptance import enabled as _ra_enabled
+        if not _ra_enabled() or not self._gateway:
+            return
+        try:
+            from backend.v9.systems.re_acceptance import detect as _ra_detect, build_setup as _ra_build
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            from backend.v9.db.read import read_all as _ra_read
+            tpo = _load_sierra_tpo() or {}
+            # Enrich buffer with delta from v9_bars_cumulative_delta
+            dm = {}
+            try:
+                dm = {_canon_bar_ts(r["ts"]): float(r["delta"])
+                      for r in (_ra_read(
+                          "SELECT ts, delta FROM v9_bars_cumulative_delta "
+                          "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                          "(now() AT TIME ZONE 'America/New_York')::date "
+                          "ORDER BY ts", {}) or [])
+                      if r.get("delta") is not None}
+            except Exception as dberr:
+                logger.warning("[RE_ACCEPTANCE] delta read failed: %s", dberr)
+            bars = []
+            for rb in self._bar_buffer:
+                rd = dict(rb) if isinstance(rb, dict) else {
+                    "ts": getattr(rb, "ts", None), "o": getattr(rb, "open", None),
+                    "h": getattr(rb, "high", None), "l": getattr(rb, "low", None),
+                    "c": getattr(rb, "close", None), "v": getattr(rb, "volume", None),
+                }
+                rd["delta"] = dm.get(_canon_bar_ts(rd.get("ts")))
+                if rd.get("vol") is None:
+                    rd["vol"] = rd.get("v", rd.get("volume"))
+                bars.append(rd)
+            hit = sum(1 for b in bars if b.get("delta") is not None)
+            if hit == 0:
+                logger.warning(
+                    "[RE_ACCEPTANCE] 0/%d bars got delta (map=%d) — detector inert",
+                    len(bars), len(dm))
+            trig = _ra_detect(
+                bars,
+                ib_high=float(tpo.get("ib_high") or 0) or None,
+                ib_low=float(tpo.get("ib_low") or 0) or None,
+                vah=float(tpo.get("vah") or 0) or None,
+                val=float(tpo.get("val") or 0) or None,
+                open_price=float(tpo.get("session_open") or
+                                 (bars[0].get("o") if bars else 0) or 0) or None,
+            )
+            if trig:
+                if not hasattr(self, "_ra_fired"):
+                    self._ra_fired = False
+                if not self._ra_fired:
+                    self._ra_fired = True
+                    setup = _ra_build(trig)
+                    logger.warning(
+                        "[RE_ACCEPTANCE] %s @%.2f edge=%s delta_frac=%.2f "
+                        "vol_frac=%.2f → gateway (shadow)",
+                        trig["direction"], trig["entry"],
+                        trig.get("edge"), trig.get("delta_frac", 0),
+                        trig.get("vol_frac", 0))
+                    self._gateway.route_setup(setup, 2)
+        except Exception as e:
+            logger.warning("[RE_ACCEPTANCE] failed (non-fatal): %s", e)
+
     def _maybe_ceiling_floor_state(self) -> None:
         """CEILING_FLOOR_STATE_V1 (Michael 2026-08-28, ב-1 of CC_SUNDAY_BUILD):
         detect a double ceiling / double floor that FAILED TO ADVANCE.
@@ -2288,113 +2405,12 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _fb_err:
                     logger.warning("[FailedBreak] failed (non-fatal): %s", _fb_err)
 
-                # FAILED_RE_IB_V1: variant on IB edges (not VA) + gap-direction filter.
-                # Dalton p.98/106: "two periods fail to extend → one-timeframe".
-                # Target = IB-mid. Shadow only. Basis: DALTON_EARLY_ENTRY n=5/5 t1.
-                try:
-                    if (os.getenv("FAILED_RE_IB_V1", "0").lower() in ("1", "true", "yes", "shadow")
-                            and self._gateway):
-                        from backend.v9.systems.failed_break import (
-                            detect_failed_break as _fb_ib_detect,
-                            build_failed_break_setup as _fb_ib_build)
-                        _fb_ibh = _fb_ibl = None
-                        try:
-                            _fb_ib_tpo = _load_sierra_tpo() or {}
-                            _fb_ibh = float(_fb_ib_tpo.get("ib_high") or 0) or None
-                            _fb_ibl = float(_fb_ib_tpo.get("ib_low") or 0) or None
-                        except Exception:
-                            pass
-                        if _fb_ibh and _fb_ibl:
-                            if not hasattr(self, "_fb_ib_fired"):
-                                self._fb_ib_fired = set()
-                            _fb_ib_trig = _fb_ib_detect(
-                                _det_buf, _fb_ibh, _fb_ibl,
-                                edge_label="IB", already_fired=self._fb_ib_fired)
-                            if _fb_ib_trig:
-                                self._fb_ib_fired.add(_fb_ib_trig["type"])
-                                _fb_ib_setup = _fb_ib_build(_fb_ib_trig)
-                                # Override target to IB-mid (Dalton p.98)
-                                _fb_ib_mid = round((_fb_ibh + _fb_ibl) / 2.0, 2)
-                                _fb_ib_setup["t1"] = _fb_ib_mid
-                                _fb_ib_setup["classification"] = "FAILED_RE_IB"
-                                _fb_ib_setup["pattern"] = "FAILED_RE_IB"
-                                _fb_ib_setup["metadata"]["source"] = "failed_re_ib_v1"
-                                logger.warning(
-                                    "[FailedBreak-IB] %s %s @%.2f (IBH=%.2f IBL=%.2f "
-                                    "extreme=%.2f t1=IB-mid %.2f) → gateway",
-                                    _fb_ib_trig["direction"], _fb_ib_trig["type"],
-                                    _fb_ib_trig["entry"], _fb_ibh, _fb_ibl,
-                                    _fb_ib_trig.get("failed_extreme", 0), _fb_ib_mid)
-                                self._gateway.route_setup(_fb_ib_setup, 2)
-                except Exception as _fb_ib_err:
-                    logger.warning("[FailedBreak-IB] failed (non-fatal): %s", _fb_ib_err)
-
-                # RE_ACCEPTANCE_V1: "bar of acceptance" detector (Dalton p.84/88).
-                # Shadow only. |delta|≥0.7×max ∧ vol≥0.7×max ∧ close extreme ∧ crosses edge ∧ with gap.
-                try:
-                    from backend.v9.systems.re_acceptance import (
-                        enabled as _ra_enabled, detect as _ra_detect, build_setup as _ra_build)
-                    if _ra_enabled() and self._gateway:
-                        _ra_tpo = {}
-                        try:
-                            _ra_tpo = _load_sierra_tpo() or {}
-                        except Exception:
-                            pass
-                        # Enrich bars with delta from DB (the buffer carries
-                        # {ts,o,h,l,c,v} ONLY — detect() needs delta and vol).
-                        from backend.v9.db.read import read_all as _ra_read
-                        _ra_dm = {}
-                        try:
-                            _ra_dm = {_canon_bar_ts(r["ts"]): float(r["delta"])
-                                      for r in (_ra_read(
-                                          "SELECT ts, delta FROM v9_bars_cumulative_delta "
-                                          "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
-                                          "(now() AT TIME ZONE 'America/New_York')::date "
-                                          "ORDER BY ts", {}) or [])
-                                      if r.get("delta") is not None}
-                        except Exception as _ra_dberr:
-                            logger.warning("[RE_ACCEPTANCE] delta read failed: %s", _ra_dberr)
-                        _ra_bars = []
-                        for _rb in _det_buf:
-                            _rd = dict(_rb)
-                            _rd["delta"] = _ra_dm.get(_canon_bar_ts(_rb.get("ts")))
-                            if _rd.get("vol") is None:
-                                _rd["vol"] = _rb.get("v", _rb.get("volume"))
-                            _ra_bars.append(_rd)
-                        _ra_hit = sum(1 for b in _ra_bars if b.get("delta") is not None)
-                        if _ra_hit == 0:
-                            logger.warning(
-                                "[RE_ACCEPTANCE] 0/%d bars got delta (map=%d) — detector inert",
-                                len(_ra_bars), len(_ra_dm))
-                        _ra_trig = _ra_detect(
-                            _ra_bars,
-                            ib_high=float(_ra_tpo.get("ib_high") or 0) or None,
-                            ib_low=float(_ra_tpo.get("ib_low") or 0) or None,
-                            vah=float(_ra_tpo.get("vah") or 0) or None,
-                            val=float(_ra_tpo.get("val") or 0) or None,
-                            open_price=float(_ra_tpo.get("session_open") or
-                                             (_det_buf[0].get("o") if _det_buf else 0) or 0) or None,
-                        )
-                        if _ra_trig:
-                            if not hasattr(self, "_ra_fired"):
-                                self._ra_fired = False
-                            if not self._ra_fired:
-                                self._ra_fired = True
-                                _ra_setup = _ra_build(_ra_trig)
-                                logger.warning(
-                                    "[RE_ACCEPTANCE] %s @%.2f edge=%s delta_frac=%.2f "
-                                    "vol_frac=%.2f → gateway (shadow)",
-                                    _ra_trig["direction"], _ra_trig["entry"],
-                                    _ra_trig.get("edge"), _ra_trig.get("delta_frac", 0),
-                                    _ra_trig.get("vol_frac", 0))
-                                self._gateway.route_setup(_ra_setup, 2)
-                except Exception as _ra_err:
-                    logger.warning("[RE_ACCEPTANCE] failed (non-fatal): %s", _ra_err)
-
         # ── DALTON_EDGE_V1 (T-118, Michael a65f13aa 28.08): Dalton-termination
         # reversal — all-session (FIRST_HOUR + DAY_TYPE modes), every new
         # closed bar, before the Nontrend skip. See _maybe_dalton_edge.
         self._maybe_dalton_edge()
+        self._maybe_failed_re_ib()
+        self._maybe_re_acceptance()
 
         # ── CEILING_FLOOR_STATE_V1 (Michael 28.08, CC_SUNDAY_BUILD ב-1):
         # double-ceiling / double-floor failure state. Detection + reporting

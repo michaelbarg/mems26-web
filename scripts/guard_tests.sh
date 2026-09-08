@@ -42,6 +42,8 @@ GUARDS=(
   tests/v9/regression/test_stuck_live_slot_alarm.py
   # ── patterns ──
   tests/v9/regression/test_ceiling_floor_state.py
+  # ── detector enrichment contract ──
+  backend/v9/tests/test_re_acceptance_pipeline.py
 )
 
 present=(); missing=()
