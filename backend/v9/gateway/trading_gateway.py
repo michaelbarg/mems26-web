@@ -3427,6 +3427,28 @@ class TradingGateway:
                     )
                     setup[_tk] = None
 
+        # #1191 monotonic-ordering guard: t2 must be farther from entry than t1,
+        # t3 farther than t2. An inverted ladder sends duplicate targets to the
+        # DLL (broker received 2×T1). Drop the closer leg to None (honest).
+        if _tg_entry:
+            _tg_dir = str(direction).upper()
+            _prev_dist = 0.0
+            for _mk in ("t1", "t2", "t3"):
+                _mv = setup.get(_mk)
+                if _mv is None:
+                    continue
+                try:
+                    _mdist = abs(float(_mv) - float(_tg_entry))
+                except (TypeError, ValueError):
+                    continue
+                if _mdist <= _prev_dist:
+                    logger.warning(
+                        "[Gateway] #1191 monotonic guard: %s=%.2f dist=%.2f <= prev=%.2f → None",
+                        _mk, float(_mv), _mdist, _prev_dist)
+                    setup[_mk] = None
+                else:
+                    _prev_dist = _mdist
+
         # TP-1 (Michael 2026-07-08, trade 310): targets live inside the day
         # structure — clamp beyond-IB targets to the IB edge unless the day
         # type travels (Neutral_*/Trend_*). Flag TARGET_STRUCTURE_CLAMP_V1
