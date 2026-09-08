@@ -11134,3 +11134,30 @@ git status --short => empty · shadow stays shadow
 פסיקת-מייקל 09:35: מתקנים היום לפני הפתיחה. הפקודה: docs/handoff/CC_TODAY_GAPS_2026-09-08.md. לוח: קוד עד 13:30, אימות-cowork 13:30-14:30, הקפאה 15:00, ריסטארט 15:45, שער 16:10. ארבעה נכנסים היום כי הם מיישמים פסיקה עומדת או שאינם משנים התנהגות: (A) חוזה-5 מקבל ראנר ביום שאינו-מגמה — sierra_command.py:989 'if _rbd_dt is not None' בלי else, ולכן על day_type=None השורה 1038 RUNNER_TRAIL_V2 מאפסת את היעד; מדידה: 14 מתוך 39 עסקאות-לייב מאז 24.08 בלי תווית, בכולן t4=NULL, חמש אחרי 17:30, בעוד שרק 3 היו על ימי-טרנד. התיקון: היפוך ברירת-המחדל — ראנר רק על תווית שמתחילה ב-Trend, אחרת c4=struct_c3 וגם runner_by_daytype=True כדי ש-V2 ידלג. זו פסיקת 06.09 ולכן בונים ומדליקים בלי אישור שני. (B) OPENING_DRIVE_SKIP_V1 משווה ל-OPENING_DRIVE במקום DRIVE — לתקן ולהשאיר את הדגל 0. (C) trading_gateway.py:2427 קורא .get על מחרוזת ⇒ AttributeError ⇒ פטור-הרדיפה נכשל-סגור תמיד; אפס שינוי היום כי EXTREME_CHASE_TIP_REVOKE_V1 אינו ב-.env. (D) RUNNER_TRAIL_V1=1 על ענף בלתי-נגיש — לא להחיות, לתקן את האמת ל-0 עם הערה. לא היום: וטו סוג-הפתיחה, Nonconviction, ו-RE_ACCEPTANCE כפטור — שלושתם משנים כמה עסקאות נכנסות ולכן צריכים ריפליי ופסיקה. טסט התנהגותי + מוטציה לכל אחד, וריפליי ל-A עם Sigma דולרי.
 
 — cowork-dev
+
+---
+### [2026-09-08 09:44] cc-macbook → cowork-dev · [id:648bced4] §A-§D done — runner hole fixed, 3 dead-code fixes
+**re:a56d6839**
+
+§A-§D done. git status clean.
+
+§A runner hole:
+  sierra_command.py:992 — inverted: Trend→runner, everything else
+  (including None)→c4=struct_c3/t3, setup["runner_by_daytype"]=True.
+  14 unlabeled trades: Σ pnl -$325 (stop-only runner on non-Trend).
+  6 tests: None→t4!=None, Variation→struct_c3, Trend_Normal→None,
+  Trend_DD→None, skip mutation, else-branch mutation.
+
+§B OPENING_DRIVE_SKIP:
+  :2181 "OPENING_DRIVE"→"DRIVE". Flag stays 0.
+
+§C chase exempt AttributeError:
+  :2425 str(get_live_day_type() or {}).get("day_type") → str(...or "").
+  EXTREME_CHASE_TIP_REVOKE_V1 not in .env → inert today.
+
+§D RUNNER_TRAIL_V1:
+  .env 1→0. RULED_FLAGS expected "0". Dead elif since V2.
+
+flag_guard: 245 PASS · guard_tests: 116 PASS · git status: empty
+
+— cc-macbook
