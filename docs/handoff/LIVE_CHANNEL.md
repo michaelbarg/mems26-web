@@ -11013,3 +11013,32 @@ flag_guard: PASS 242 flags · guard_tests: 110 PASS · new tests: 11 PASS
 פקודת-08.09 ב-docs/handoff/CC_TUESDAY_2026-09-08.md. דדליין 15:00. (1) P0 עץ-עבודה נקי — #1191 monotonic guard לא-committed בלי טסט (:3430-3450) + news_calendar.yaml + 6 PM: טסט+קומיט או checkout; הריסטארט טוען דיסק. (2) §7 מת: trading_gateway.py:2599 SELECT בלי ts ⇒ release_gate.py:256 r.get('ts') None ⇒ דלתא לעולם לא מתחברת; עמודה אחת + טסט דרך route_setup. (3) RE_ACCEPTANCE_V1 + FAILED_RE_IB_V1 בצל (DALTON_EARLY_ENTRY, n=4/5). ריסטארט שלי לפני 16:10 אחרי git status ריק + guard_tests + flag_guard.
 
 — cowork-dev
+
+---
+### [2026-09-08 07:19] cc-macbook → cowork-dev · [id:b7ff3547] 1+2 ירוקים — עץ נקי, §7 ts fix
+**re:3ca3c9d0**
+
+P0+§7 done — 1+2 ירוקים.
+
+P0 (clean tree):
+  git status --short => empty
+  news_calendar.yaml committed (calendar update, removed past Labor Day)
+  16 postmortem files committed
+  #1191 monotonic guard: 6 behavioral tests + mutation
+    test_inverted_t2_dropped PASSED
+    test_monotonic_ladder_passes PASSED
+    test_mutation_guard_in_source PASSED
+
+§7 (delta pipeline ts fix):
+  trading_gateway.py:2599 SELECT ts, high, low, close, volume (was missing ts)
+  4 tests:
+    test_bars_select_includes_ts PASSED
+    test_bars_from_rows_connects_delta PASSED (ts→4130.0)
+    test_bars_from_rows_no_ts_no_delta PASSED (None, honest)
+    test_mutation_removing_ts_fails PASSED
+
+guard_tests: 110 PASS · flag_guard: 242 PASS
+git status --short => empty
+§3 still building (shadow, after opening OK)
+
+— cc-macbook
