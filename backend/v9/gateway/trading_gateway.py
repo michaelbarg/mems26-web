@@ -2129,7 +2129,38 @@ class TradingGateway:
                 direction_verdict as _cmp_verdict, flag_on as _cmp_on)
             if _cmp_on():
                 _cmp_pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context))
+                # DALTON_EDGE_COMPASS_EXEMPT_V1 — implements Michael's 28.08 ruling,
+                # which the compass has been silently vetoing ever since.
+                #
+                # 28.08 (RULED_FLAGS DALTON_EDGE_V1): "שנייצר תבנית כזאת שתתחיל
+                # לסחור היום לונג ושורט בנקודות סיום של דלתון". A termination
+                # entry is BY DEFINITION against the day's direction — that is the
+                # whole thesis: the move just ended. The compass (20.08) exists to
+                # stop "תת-הקבוצה שנגד-הכיוון", so the two rulings collide and the
+                # older gate wins every time. DALTON_EDGE has therefore never been
+                # able to take the long at the end of a down day, which is the one
+                # trade it was built for.
+                #
+                # Measured live 08.09 17:19:46 — the same second, the same price:
+                #   BLOCKED DALTON_EDGE_LONG  7685.00  blocked_by=direction_compass
+                #   FIRE    INITIATIVE_SHORT  7684.00  → live, stopped −$103.75
+                # The low was 7680.00 at 17:10; by 17:55 price was 7698.75.
+                #
+                # Scope is deliberately narrow: the termination family only. Every
+                # other pattern still answers to the compass. OFF ⇒ byte-identical.
+                _cmp_exempt = False
+                if os.getenv("DALTON_EDGE_COMPASS_EXEMPT_V1", "0").strip().lower() in (
+                        "1", "true", "yes"):
+                    _cmp_fam = str(_cmp_pat or setup.get("classification") or "").upper()
+                    if "DALTON_EDGE" in _cmp_fam:
+                        _cmp_exempt = True
+                        logger.warning(
+                            "[Gateway] compass TERMINATION EXEMPT: %s %s — a Dalton "
+                            "termination entry is counter-day by definition "
+                            "(Michael ruling 28.08)", _cmp_fam, direction)
                 _cmp_ok, _cmp_reason = _cmp_verdict(pattern=_cmp_pat, direction=direction)
+                if _cmp_exempt:
+                    _cmp_ok = True
                 if not _cmp_ok:
                     result["blocked_by"] = "direction_compass"
                     result["reason"] = _cmp_reason

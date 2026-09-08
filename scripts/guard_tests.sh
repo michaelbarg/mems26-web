@@ -55,6 +55,7 @@ GUARDS=(
   # P0 08.09: a rejected PLACE must never be announced as a trade,
   # and an opening setup must carry a full ladder (T3_REQUIRED_V1).
   tests/v9/regression/test_opening_ladder_and_reject.py
+  tests/v9/regression/test_dalton_edge_compass_exempt.py
 )
 
 present=(); missing=()
