@@ -83,6 +83,21 @@ P = dict(
     REQUIRE_LSMA_SIDE=0,  # price must not have retraced through LSMA
     VOL_RATIO_MAX=1.10,   # pause volume must not exceed impulse volume
     REQUIRE_EXHAUST=0,    # entry bar must fail to extend the retrace
+    ENTRY_ON_BREAK=0,     # 1 = enter on the bar that CLOSES beyond the pause
+                          # extreme, not on the pause bar itself. The whole
+                          # point: Dalton's expansion happens on the bar AFTER
+                          # the pause, so a detector that enters at the pause
+                          # close can never require it (and VOL_RATIO_MAX<=1.10
+                          # vs VOL_EXP_MIN>=1.15 are then contradictory on a
+                          # 1-bar pause — measured 08.09: n=0 at every setting).
+    PAUSE_BODY_MAX=0.0,   # Michael 08.09 — pause bars must be indecisive:
+                          # |close-open| <= this fraction of the bar range.
+                          # 0 = OFF (baseline). The detector never read `o`.
+    VOL_EXP_MIN=0.0,      # signal bar volume / mean pause volume must be >=
+                          # this. 0 = OFF. Dalton: the pause dries, the
+                          # continuation expands — never measured before.
+    CLOSE_POS_MAX=0.35,   # with VOL_EXP_MIN on: the signal bar must close in
+                          # its own extreme quarter in the trade direction.
     STOP_BUF_FRAC=0.10,   # stop = pause extreme + 0.10*impulse
     STOP_MIN=2.5,         # pt — clamp so a 1-tick pause cannot make a 0.5pt stop
     STOP_MAX=9.0,         # pt — hard risk ceiling per contract
@@ -233,26 +248,38 @@ def detect_trend_step(bars: List[Dict], i: int, p: Dict[str, Any]) -> Optional[D
         #        on a stair-step day, proximity to the session extreme IS the setup.
         if p["SESSION_EXT_TOL"] >= 0 and not (p.get("STAIR_OR_SESSION") and stair):
             if direction == "SHORT":
-                sess = min(bars[j]["l"] for j in range(0, i + 1))
+                sess = min(bars[j]["l"] for j in range(0, (i - 1 if int(p.get("ENTRY_ON_BREAK", 0)) else i) + 1))
                 if ext_p > sess + p["SESSION_EXT_TOL"]:
                     continue
             else:
-                sess = max(bars[j]["h"] for j in range(0, i + 1))
+                sess = max(bars[j]["h"] for j in range(0, (i - 1 if int(p.get("ENTRY_ON_BREAK", 0)) else i) + 1))
                 if ext_p < sess - p["SESSION_EXT_TOL"]:
                     continue
 
         # ── 3. pause geometry
-        pause_bars = i - ext_i
+        _brk = int(p.get("ENTRY_ON_BREAK", 0))
+        _last_pause = (i - 1) if _brk else i
+        if _brk and _last_pause <= ext_i:
+            continue
+        pause_bars = _last_pause - ext_i
         if not (p["PAUSE_MIN"] <= pause_bars <= p["PAUSE_MAX"]):
             continue
         if direction == "SHORT":
-            pause_ext = max(bars[j]["h"] for j in range(ext_i, i + 1))
+            pause_ext = max(bars[j]["h"] for j in range(ext_i, _last_pause + 1))
             retr = (pause_ext - ext_p) / imp
         else:
-            pause_ext = min(bars[j]["l"] for j in range(ext_i, i + 1))
+            pause_ext = min(bars[j]["l"] for j in range(ext_i, _last_pause + 1))
             retr = (ext_p - pause_ext) / imp
         if not (p["RETR_MIN"] <= retr <= p["RETR_MAX"]):
             continue
+        if _brk:
+            # The continuation bar: it closes back through the impulse extreme,
+            # i.e. the pause is over and the leg resumed. (Closing beyond the
+            # PAUSE's own extreme is the pause itself and selects nothing.)
+            if direction == "SHORT" and bars[i]["c"] >= ext_p:
+                continue
+            if direction == "LONG" and bars[i]["c"] <= ext_p:
+                continue
 
         # ── 4. trend agreement: LSMA slope + price still on the trend side of LSMA
         l_now, l_prev = bars[i]["lsma"], bars[max(0, i - 3)]["lsma"]
@@ -288,6 +315,45 @@ def detect_trend_step(bars: List[Dict], i: int, p: Dict[str, Any]) -> Optional[D
 
         # ── 7. prices.  Entry = the signal bar's close, optionally degraded by
         #      SLIP_TICKS in the ADVERSE direction to model the ~5 s live lag.
+        # ── 5b. Michael 08.09: candle structure AND volume with price ─────────
+        # Measured that day: the ZZ_REV sweep is negative out-of-sample at every
+        # value (-$977.50 .. -$280.00), so the zigzag threshold is not the missing
+        # calibration. What the detector never had is these two inputs. Both OFF
+        # by default ⇒ byte-identical baseline.
+        _pause_rng = [bars[j2] for j2 in range(ext_i + 1, _last_pause + 1)]
+        if p["PAUSE_BODY_MAX"] > 0 and _pause_rng:
+            _bad = False
+            for _b in _pause_rng:
+                _o = _b.get("o")
+                if _o is None:
+                    _bad = True
+                    break
+                _rng = float(_b["h"]) - float(_b["l"])
+                if _rng <= 0:
+                    continue
+                if abs(float(_b["c"]) - float(_o)) / _rng > p["PAUSE_BODY_MAX"]:
+                    _bad = True
+                    break
+            if _bad:
+                continue
+        if p["VOL_EXP_MIN"] > 0:
+            _pv2 = [float(b.get("v") or 0) for b in _pause_rng] if _brk else \
+                   [float(b.get("v") or 0) for b in _pause_rng[:-1]]
+            if not _pv2:                       # 1-bar pause: compare to the impulse
+                _pv2 = [float(bars[j2].get("v") or 0)
+                        for j2 in range(org_i + 1, ext_i + 1)]
+            _mean_pv = (sum(_pv2) / len(_pv2)) if _pv2 else 0.0
+            _v_now = float(bars[i].get("v") or 0)
+            if _mean_pv <= 0 or (_v_now / _mean_pv) < p["VOL_EXP_MIN"]:
+                continue
+            _rng_now = float(bars[i]["h"]) - float(bars[i]["l"])
+            if _rng_now > 0:
+                _cpos = (float(bars[i]["c"]) - float(bars[i]["l"])) / _rng_now
+                if direction == "SHORT" and _cpos > p["CLOSE_POS_MAX"]:
+                    continue
+                if direction == "LONG" and _cpos < (1.0 - p["CLOSE_POS_MAX"]):
+                    continue
+
         entry = bars[i]["c"] + (-1 if direction == "SHORT" else 1) * p["SLIP_TICKS"] * TICK
         buf = max(2 * TICK, p["STOP_BUF_FRAC"] * imp)
         if direction == "SHORT":
