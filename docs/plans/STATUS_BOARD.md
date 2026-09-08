@@ -1,3 +1,42 @@
+[2026-09-08 15:45 IL] **cowork-daily · 🟢 שער-היום GO — הריסטארט-קדם-פתיחה הכניס את תיקון [[T-268]] לזיכרון-התהליך, ואיתו נסגרת מחלקת "נכתב ≠ רץ"**
+
+**ממצא → תיקון → ראיה:**
+
+1. **ממצא — הקוד של אתמול רץ, ולא הקוד של היום.** `[boot] logging OK … pid=58492 commit=01810a36` נכתב ב-`2026-09-07 15:36:48`, ו-`pgrep -f "uvicorn backend.main:app"` החזיר את אותו `58492` היום ב-15:36 — כלומר התהליך רץ ברציפות 24 שעות על קוד של אתמול, בעוד `git log` מונה 34 קומיטים חדשים היום. **בראשם `716c7dfe` — תיקון [[T-268]]**, הפער שהתממש בלייב אתמול ב-17:55:53 (‏`#1191` ZLR SHORT נכנס חי אף שהפסיקה חייבה צל). זהו בדיוק דפוס-הכשל שדווח למייקל פעמיים היום ("נכתב ≠ רץ").
+
+2. **תיקון — הריסטארט המתוכנן, בפוזיציה-0 מאומתת ברגע-הפעולה.** `git pull` (Already up to date, `HEAD=2118957a`, עץ נקי) → מדידת-שטיחות → `launchctl kickstart -k gui/$UID/com.mems26.backend`. אפס שינוי בקוד/דגלים/`.env`/פוזיציות; הריסטארט **טוען** קוד קיים ואינו משנה שטח-סיכון בעצמו — למעט העובדה שכעת `ZLR_SHADOW_V1` (פסיקת-מייקל 07.09 15:20) **אכן** אוכף.
+
+3. **ראיה (כלל 5, פלט גולמי):**
+   ```
+   PRE-RESTART 15:40:28 · position_qty 0 | working_orders 0 | is_sim 0 · FLAT-OK
+   launchctl kickstart -k gui/$UID/com.mems26.backend
+   pid 58492 → 31106
+   2026-09-08 15:40:39 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=31106 commit=2118957a stream=stderr
+   health: http=200 time=0.008137s   {"status":"ok","version":"v9.0.0"}
+
+   git merge-base --is-ancestor 716c7dfe HEAD ⇒ YES
+   trading_gateway.py:771-776  (בתוך route_setup:759, לפני שרשרת-השערים)
+       if ZLR_SHADOW_V1 on and (classification or pattern) == "ZLR":
+           setup.setdefault("metadata", {})["shadow_only"] = True
+   trading_gateway.py:3961-3965 (_route_setup_inner) — metadata.shadow_only ⇒ record + return, לעולם לא נותב
+   python3 -m pytest backend/v9/tests/test_zlr_shadow.py -q ⇒ 6 passed in 0.19s
+
+   fire_drill.py     ⇒ 🟢 GO — כל שרשרת ההחלטה כשרה לירי
+                       ✓ effective_contracts == 5 — got 5 · ✓ feed טרי age=743ms
+                       ✓ live_slot פנוי slot=None · ✓ live_enabled == [2,4] · ✓ guard_tests 122 passed
+   flag_guard.py     ⇒ FLAG-GUARD: PASS — all 245 ruled flags match
+   task_log_guard.py ⇒ ✅ current, structured, and the only one (277 items)
+   ruled_contracts() ⇒ 5 · FIXED_CONTRACTS_5=1 · FIXED_CONTRACTS_6/4/3/2 = 0 0 0 0
+   acct_available_funds = 3599.94  (סף T-34 = 1,595 ⇒ 🟢 דיווח-בלבד, .env לא נגעתי)
+   config/manual_position_ack.json ⇒ date="2026-09-08" = היום
+   ```
+   **ההבדל מ-`flag_guard`:** הבודק מאמת ש**קיים ≥1 אתר-קריאה** לדגל — הוא היה מחזיר `PASS` גם אתמול, כשהחנק ישב על ענף-היצרן שהמסלול של 17:55 עקף. הראיה שמעל היא **מיקום** החנק (נקודה שכל מסלול עובר בה) ועדים שמכשילים אותו — ולכן היא קבילה שם ש-`PASS` אינו.
+
+4. **מה נשאר פתוח (ולכן זו שורת-שער ולא סגירת-משימה):** (א) **[[T-268]] אינו ✅ עד אימות-בשטח** — ה-ZLR הראשון של היום חייב להירשם `shadow_only setup … recorded, not routed` ולא להיכנס; זה נמדד רק אחרי 16:30. (ב) **ליגר-כותב: לא ניתן לקבוע** — `gateway_decisions.jsonl` שורה אחרונה `07.09 19:55:29`, אפס שורות היום; טרום-פתיחה, לא תקלה. (ג) **[[T-233]]** `RESOLVED 0/30 (0.0%)` ו-**[[T-224]]** (5 מ-7 שורות `ROUTED` עם `trade_id: true` בוליאני) ו-**[[T-247]]** (30 מועמדים בליגר מול 34 עסקאות ב-DB) — כולם נמדדו שוב ב-07.09 ולא נבנו; תור-לילה. (ד) **[[T-265]]** אפס דחיות היום (`REJECTED=0` מול 2,737 אתמול) אך `5min.json` עדיין על נעילת-החג — המבחן הוא אחרי 16:30. (ה) **חוב-ניקיון חדש שלא נפתח כפריט:** ~20k שורות `TS-OFFSET-GATE … pass but logged` ליום.
+
+5. **⚠️ הערת-שטח-מסחר שאינה באג:** `ZLR_SHADOW_V1=1` מוציא מהלייב את **22 מ-68 עסקאות-הלייב של 30 הימים האחרונים (32%)** ואת 50 מ-91 שורות-הליגר של אתמול. זו פסיקת-מייקל ("צל לשבוע"), והיא **מכוונת** — נרשמת כאן כדי שאיש לא יקרא את הצטמצמות-הירי של השבוע כתקלה. ובאותה נשימה, הצדקה למה הפסיקה נשענה על הברוקר: הספרים מראים ZLR `+$122.50` ל-30 יום, הברוקר `−$385` — ו-**14 מ-22 השורות `exit_price IS NULL`** ⇒ מחלקת [[T-160]]/[[T-240]], הברוקר הוא האמת.
+
+---
 [2026-09-07 23:5x IL] **cowork-scheduled · 🔁 [[T-251]] נפתח מחדש ותוקן בקוד — הספרים כבר לא נסגרים על רגל חיה (‏§4.2+§4.3; טרם רץ)**
 
 **ממצא → תיקון → ראיה:**
