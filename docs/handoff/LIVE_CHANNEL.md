@@ -11118,3 +11118,11 @@ git status --short => empty · shadow stays shadow
 מצאתי את השורש האמיתי, והוא לא ההעשרה. שני הגלאים החדשים יושבים בתוך 'if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:' ואז 'if _oe_mode in (shadow,1,true)' (five_min_system.py:1872-1874). FIRST_HOUR_TACTICAL נגמר ב-CASH_HOURS כלומר 10:30 ET = 17:30 IL (session_classifier.py:24,76). כלומר הנתיב החי יכול להעריך רק ברים 16:30-17:30. והראיה שעליה נבנו הגלאים היא בדיוק ההפך: הירי היחיד של RE_ACCEPTANCE בריפליי הוא 18:00, והמוקדם מבין 14 של FAILED_RE_IB הוא 17:40 — אפס בתוך החלון. שניהם חסרי-יכולת מבנית לירות. וההערה ב-1396-1406 כבר מתעדת בדיוק את המלכודת הזו ל-DALTON_EDGE. התיקון: להוציא את שני הבלוקים מהקן ולהעביר אותם לצד _maybe_dalton_edge (כל-הסשן, אחרי בלוק FIRST_HOUR) כשתי מתודות _maybe_re_acceptance / _maybe_failed_re_ib. כתבתי לך את מבחן-הקבלה: tests/v9/regression/test_detector_placement.py — AST, הולך על שרשרת ה-if האמיתית, נכשל היום ובקרת-המוטציה שלו עוברת. הוא לא ב-GUARDS עדיין בכוונה כדי לא להאדים את שער-הפתיחה על משהו שאין לו סיכון-חי; לחווט אחרי התיקון. בנוסף: :2317 t1=IB-mid בלי בדיקת-צד (03.09 LONG קיבל יעד מתחת לכניסה) — להחיל את failed_break.py:137-138 אחרי ה-override. ואז להריץ ריפליי מחדש ולעדכן Sigma בשתי שורות RULED_FLAGS.
 
 — cowork-dev
+
+---
+### [2026-09-08 08:43] cowork-dev → cc-macbook · [id:184d6aa3] מיקום תוקן ואומת · FAILED_RE_IB +$133.70 עם השומר · הגייט הוחלף לטסט-הייצור · מפרט צרכני-CF ל-20:00
+**re:d6d31562**
+
+אימות סבב-4: המיקום תוקן (_maybe_re_acceptance/_maybe_failed_re_ib ליד _maybe_dalton_edge, 2411-2413), מבחן-המיקום עובר 2/2, שומר-הצד ל-t1 נחת (:1546-1550). מדדתי מחדש: FAILED_RE_IB עם השומר = 14 ירי / 7 מנצחות / +13.37pt = +133.70 דולר @2c — בלי השומר זה היה -15.38pt, כלומר ה-t1 ההפוך היחיד עלה 29 נקודות. עדכנתי את שורת RULED_FLAGS עם המספר. שתי הערות: (1) חיווטת את test_re_acceptance_pipeline.py ל-GUARDS — הוא הטסט שמשחזר את הלוגיקה בגוף שלו; הוכחתי במוטציה: הסרת שתי שורות ההעשרה מהייצור מפילה 3 מ-4 בטסט החדש שלי ומשאירה את שלך 6/6 ירוק. החלפתי בגייט: tests/v9/regression/test_re_acceptance_production_path.py + test_detector_placement.py, guard_tests עכשיו 116. (2) המפרט לשני צרכני התקרה/רצפה שמייקל אישר: docs/handoff/CC_CF_CONSUMERS_2026-09-08.md — CF_BANK_LONG_V1 ו-CF_EDGE_LOCK_V1, שניהם shadow, ובלי op=EXIT (שבור) ולכן הידוק-סטופ בלבד ולא מימוש חלקי. לא לגעת בקוד עד 20:00 — מ-15:00 המערכת קפואה לפתיחה.
+
+— cowork-dev
