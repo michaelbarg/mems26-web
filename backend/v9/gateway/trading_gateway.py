@@ -3425,6 +3425,12 @@ class TradingGateway:
                         _stw_map[_sn] = round(round(float(_sv) / 0.25) * 0.25, 2)
                 if _stw_map:
                     _stw_old = (setup.get("t1"), setup.get("t2"), setup.get("t3"))
+                    # Keep what the producer shipped. RR_NO_SELF_INFLICTED_V1 reads
+                    # this: a setup must never be refused on a ratio that OUR own
+                    # override created (08.09 18:20, R:R 0.27 out of 10 points of
+                    # reward cut to 2).
+                    if _stw_old[0] and not setup.get("t1_pre_struct"):
+                        setup["t1_pre_struct"] = float(_stw_old[0])
                     if "struct_c1" in _stw_map:
                         setup["t1"] = _stw_map["struct_c1"]
                     if "struct_c2" in _stw_map:
@@ -3653,6 +3659,52 @@ class TradingGateway:
                             _rr_hard_floor = 0.3
                         if _stop_dist > 0:
                             _rr_actual = _t1_dist / _stop_dist
+                            # RR_NO_SELF_INFLICTED_V1 (Michael ruling 08.09 18:45,
+                            # item 2 of the fix plan). Law 1: a gate may REJECT a
+                            # setup, never rewrite it and then reject its own
+                            # rewrite.
+                            #
+                            # Measured live 08.09 18:20:04 — DOUBLE_BOTTOM_EE_LONG,
+                            # conf 0.85, tier HIGH, 5 contracts:
+                            #   S2 emitted     entry 7701.25  stop 7676.00  t1 7711.12
+                            #   STOP ARBITRATION cut the stop  7676.00 -> 7693.75
+                            #   §3 STRUCT_TARGETS_WIN cut t1   7707.50 -> 7703.25
+                            #   BLOCKED rr_hard_floor: R:R 0.27
+                            # Ten points of reward became two, and the trade was
+                            # then refused for the ratio the chain had just made.
+                            #
+                            # So before blocking, ask what the ratio was on the
+                            # target the PRODUCER shipped. If that clears the
+                            # floor, the setup was never the problem — restore it
+                            # and let the rest of the chain judge it. Only a setup
+                            # that fails on its OWN economics is blocked here.
+                            if (_rr_actual < _rr_hard_floor
+                                    and os.getenv("RR_NO_SELF_INFLICTED_V1", "0")
+                                        .strip().lower() in ("1", "true", "yes")):
+                                _orig = None
+                                for _k in ("t1_pre_struct", "t1_pre_realism",
+                                           "t1_original"):
+                                    _v = (setup.get(_k)
+                                          or (setup.get("metadata") or {}).get(_k))
+                                    if _v:
+                                        _orig = float(_v)
+                                        break
+                                if _orig is not None:
+                                    _od = (_orig - _rr_e) if _rr_dir == "LONG" \
+                                        else (_rr_e - _orig)
+                                    if _od > 0 and (_od / _stop_dist) >= _rr_hard_floor:
+                                        logger.warning(
+                                            "[Gateway] RR_NO_SELF_INFLICTED: R:R %.2f "
+                                            "came from OUR cut (t1 %.2f); the producer's "
+                                            "t1 %.2f gives %.2f — restoring it instead "
+                                            "of blocking",
+                                            _rr_actual, float(_rr_t1), _orig,
+                                            _od / _stop_dist)
+                                        setup["t1"] = _orig
+                                        result["t1"] = _orig
+                                        _rr_t1 = _orig
+                                        _t1_dist = _od
+                                        _rr_actual = _od / _stop_dist
                             if _rr_actual < _rr_hard_floor:
                                 result["blocked_by"] = "rr_hard_floor"
                                 result["reason"] = (

@@ -56,6 +56,7 @@ GUARDS=(
   # and an opening setup must carry a full ladder (T3_REQUIRED_V1).
   tests/v9/regression/test_opening_ladder_and_reject.py
   tests/v9/regression/test_dalton_edge_compass_exempt.py
+  tests/v9/regression/test_rr_no_self_inflicted.py
 )
 
 present=(); missing=()

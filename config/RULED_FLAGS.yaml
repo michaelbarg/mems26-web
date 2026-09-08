@@ -56,6 +56,7 @@ ruled:
 
   # ── שערי מסחר שנפסקו דלוקים ──
   CONT_TREND_FILTER:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: 'שוחזר בפסיקה מפורשת; 07-08 חסך 2 סטופים' }
+  RR_NO_SELF_INFLICTED_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-08", note: 'פסיקת 08.09 18:45 (''מאשר את פריט 2''), חוק-1 בתוכנית-התיקון: שער רשאי לדחות ולא לכתוב-מחדש-ואז-לדחות. ראיה חיה 08.09 18:20:04 — DOUBLE_BOTTOM_EE_LONG conf 0.85 tier HIGH 5 חוזים: S2 נתן כניסה 7701.25 / סטופ 7676.00 / t1 7711.12; STOP ARBITRATION חתך סטופ ל-7693.75 ו-§3 STRUCT_TARGETS_WIN חתך t1 ל-7703.25 ⇒ rr_hard_floor חסם על 0.27 שהשרשרת עצמה יצרה. המימוש: STRUCT_TARGETS_WIN שומר t1_pre_struct, ולפני חסימה הרצפה בודקת את יעד-היצרן — אם הוא עובר, הוא משוחזר; אם לא, החסימה עומדת. אינו עוקף את הרצפה, מתקן נזק-עצמי.' }
   RR_ENTRY_GATE_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-03", note: 'R:R בכניסה' }
   S4_ENTRY_CONFIRM_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: 'בר-אישור; מ-07-08 עם סובלנות יחסית-ל-ATR' }
   STOP_RESOLVER_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: 'רזולבר סטופים מבני' }
