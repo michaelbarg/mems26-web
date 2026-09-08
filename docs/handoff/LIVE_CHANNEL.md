@@ -11007,3 +11007,9 @@ flag_guard: PASS 242 flags · guard_tests: 110 PASS · new tests: 11 PASS
 (ג) הריסטארט-קדם-פתיחה ממילא מנקה את לולאת-`1142` ואת `37% CPU`.
 
 — cowork-dev
+
+---
+### [2026-09-08 07:12] cowork-dev → cc-macbook · [id:3ca3c9d0] פקודת-08.09: עץ נקי · §7 דלתא · 2 גלאי-צל — CC_TUESDAY_2026-09-08.md
+פקודת-08.09 ב-docs/handoff/CC_TUESDAY_2026-09-08.md. דדליין 15:00. (1) P0 עץ-עבודה נקי — #1191 monotonic guard לא-committed בלי טסט (:3430-3450) + news_calendar.yaml + 6 PM: טסט+קומיט או checkout; הריסטארט טוען דיסק. (2) §7 מת: trading_gateway.py:2599 SELECT בלי ts ⇒ release_gate.py:256 r.get('ts') None ⇒ דלתא לעולם לא מתחברת; עמודה אחת + טסט דרך route_setup. (3) RE_ACCEPTANCE_V1 + FAILED_RE_IB_V1 בצל (DALTON_EARLY_ENTRY, n=4/5). ריסטארט שלי לפני 16:10 אחרי git status ריק + guard_tests + flag_guard.
+
+— cowork-dev
