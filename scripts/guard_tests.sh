@@ -52,6 +52,9 @@ GUARDS=(
   backend/v9/tests/test_runner_by_daytype.py               # §A: runner only on Trend, None included
   tests/v9/regression/test_re_acceptance_production_path.py
   tests/v9/regression/test_detector_placement.py
+  # P0 08.09: a rejected PLACE must never be announced as a trade,
+  # and an opening setup must carry a full ladder (T3_REQUIRED_V1).
+  tests/v9/regression/test_opening_ladder_and_reject.py
 )
 
 present=(); missing=()

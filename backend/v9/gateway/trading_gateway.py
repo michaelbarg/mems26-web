@@ -4680,6 +4680,25 @@ class TradingGateway:
                                    trade_id, _ce)
                 return None
 
+            # P0 (08.09, #1220): the same second failure shape as the live path —
+            # command_from_setup RETURNS {"rejected": True, ...} (the T-214 t3
+            # belt, sierra_command.py:903) instead of raising, so the ValueError
+            # arm above never sees it and a rejected PLACE gets announced as a
+            # real trade while nothing is written.
+            if isinstance(command, dict) and command.get("rejected"):
+                _rj = str(command.get("reason") or "place_rejected")
+                logger.error(
+                    "[Gateway] DEMO PLACE REJECTED (%s: %s) — cancelling trade %s; "
+                    "no order was written", _rj, command.get("detail"), trade_id)
+                try:
+                    self._trade_manager.close_trade(
+                        trade_id, reason=_rj, outcome_override="CANCELLED")
+                    self._trade_manager._db.commit()
+                except Exception as _rce:
+                    logger.warning("[Gateway] cancel of rejected demo trade %s failed: %s",
+                                   trade_id, _rce)
+                return None
+
             logger.info(
                 "[Gateway] DEMO trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f",
                 trade_id, tm_setup["direction"], setup.get("classification", ""),
@@ -4859,6 +4878,29 @@ class TradingGateway:
                 except Exception as _ce:
                     logger.warning("[Gateway] cancel of zero-size live trade %s failed: %s",
                                    trade_id, _ce)
+                return None
+
+            # P0 (08.09, trade #1220): command_from_setup has a SECOND failure
+            # shape — it returns {"rejected": True, ...} (sierra_command.py:903,
+            # the T-214 t3 belt) instead of raising. The ValueError arm above
+            # never saw it, so the gateway logged "LIVE trade", pushed the phone
+            # notification and held the live slot while NOTHING was written to
+            # Sierra; POSITION_TRUTH then healed it 20s later as if it were
+            # stale bookkeeping. Six sessions of silent non-trading.
+            if isinstance(command, dict) and command.get("rejected"):
+                _rj = str(command.get("reason") or "place_rejected")
+                self._last_live_abort = ("place_rejected", _rj)
+                logger.error(
+                    "[Gateway] LIVE PLACE REJECTED (%s: %s) — cancelling trade %s "
+                    "and freeing the slot; no order was written",
+                    _rj, command.get("detail"), trade_id)
+                try:
+                    self._trade_manager.close_trade(
+                        trade_id, reason=_rj, outcome_override="CANCELLED")
+                    self._trade_manager._db.commit()
+                except Exception as _rce:
+                    logger.warning("[Gateway] cancel of rejected live trade %s failed: %s",
+                                   trade_id, _rce)
                 return None
 
             logger.warning(

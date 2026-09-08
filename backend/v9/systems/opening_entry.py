@@ -281,6 +281,32 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
         except (TypeError, ValueError):
             _t1r = 1.0
     t1 = entry + _t1r * risk if direction == "LONG" else entry - _t1r * risk
+
+    # OPENING_LADDER_V1 (Michael ruling 2026-09-08 16:52 "לתקן ואני מאשר").
+    # Until today every opening setup shipped t2=None/t3=None, and T3_REQUIRED_V1
+    # (his own 01.09 ruling: every contract carries a target) rejected the PLACE
+    # whenever contracts>=3 — which RISK_MIN_CONTRACTS=3 makes always true. Result:
+    # 100% of opening entries were rejected from 02.09 on, silently, because the
+    # gateway read the rejection dict as a success (P0 08.09, trade #1220).
+    # This does NOT invent structure: it uses the same m×risk fallback ladder the
+    # rest of the system already uses, and the gateway's own machinery
+    # (TARGET_REALISM_V1, TARGET_STRUCTURE_CLAMP_V1, STRUCT_TARGETS_WIN_V1) then
+    # cuts it back to real structure wherever structure exists.
+    # OFF ⇒ byte-identical to the old None/None behaviour.
+    _os_mod = __import__("os")
+    _t2 = _t3 = None
+    if _os_mod.getenv("OPENING_LADDER_V1", "0").strip().lower() in ("1", "true", "yes"):
+        def _r_mult(name: str, default: float) -> float:
+            try:
+                return float(_os_mod.getenv(name, str(default)) or default)
+            except (TypeError, ValueError):
+                return default
+        _t2r = _r_mult("OPENING_T2_R", 2.5)
+        _t3r = _r_mult("OPENING_T3_R", 4.0)
+        _sign = 1.0 if direction == "LONG" else -1.0
+        _t2 = round(entry + _sign * _t2r * risk, 2)
+        _t3 = round(entry + _sign * _t3r * risk, 2)
+
     return {
         "firing_system": 2,
         "direction": direction,
@@ -289,8 +315,8 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
         "entry_price": entry,
         "stop": stop,
         "t1": round(t1, 2),
-        "t2": None,
-        "t3": None,
+        "t2": _t2,
+        "t3": _t3,
         "metadata": {
             "opening_entry": trigger["type"],
             "shadow_only": bool(shadow_only),
