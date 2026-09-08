@@ -43,7 +43,14 @@ GUARDS=(
   # ── patterns ──
   tests/v9/regression/test_ceiling_floor_state.py
   # ── detector enrichment contract ──
-  backend/v9/tests/test_re_acceptance_pipeline.py
+  # The production-path pair (cowork 08.09). Proven mutation-sensitive: strip
+  # the two enrichment lines from five_min_system.py and these fail 3/4, while
+  # backend/v9/tests/test_re_acceptance_pipeline.py stays 6/6 green — it
+  # rebuilds the enrichment inside the test body (its own line 55 says
+  # "Simulate the enrichment logic"), so it is not evidence about production
+  # and is deliberately NOT the gate.
+  tests/v9/regression/test_re_acceptance_production_path.py
+  tests/v9/regression/test_detector_placement.py
 )
 
 present=(); missing=()
