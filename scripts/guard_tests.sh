@@ -49,6 +49,7 @@ GUARDS=(
   # rebuilds the enrichment inside the test body (its own line 55 says
   # "Simulate the enrichment logic"), so it is not evidence about production
   # and is deliberately NOT the gate.
+  backend/v9/tests/test_runner_by_daytype.py               # §A: runner only on Trend, None included
   tests/v9/regression/test_re_acceptance_production_path.py
   tests/v9/regression/test_detector_placement.py
 )
