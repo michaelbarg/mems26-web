@@ -53,3 +53,505 @@
 - **‏`::date = ANY(:list)`** נכשל ב-`date = text` ומחזיר **0 שורות בשקט**.
 
 <!-- generated candidates below — hand-written rows stay above -->
+- `2026-09-08` [PM_1233.md](PM_1233.md) — Post-Mortem: Trade #1233
+- `2026-09-08` [PM_1225.md](PM_1225.md) — Post-Mortem: Trade #1225
+- `2026-09-08` [PM_1224.md](PM_1224.md) — Post-Mortem: Trade #1224
+- `2026-09-08` [PM_1222.md](PM_1222.md) — Post-Mortem: Trade #1222
+- `2026-09-08` [PM_1216.md](PM_1216.md) — Post-Mortem: Trade #1216
+- `2026-09-08` [PM_1215.md](PM_1215.md) — Post-Mortem: Trade #1215
+- `2026-09-08` [PM_1209.md](PM_1209.md) — Post-Mortem: Trade #1209
+- `2026-09-08` [PM_1208.md](PM_1208.md) — Post-Mortem: Trade #1208
+- `2026-09-08` [PM_1207.md](PM_1207.md) — Post-Mortem: Trade #1207
+- `2026-09-08` [PM_1206.md](PM_1206.md) — Post-Mortem: Trade #1206
+- `2026-09-08` [PM_1205.md](PM_1205.md) — Post-Mortem: Trade #1205
+- `2026-09-08` [PM_1204.md](PM_1204.md) — Post-Mortem: Trade #1204
+- `2026-09-08` [PM_1199.md](PM_1199.md) — Post-Mortem: Trade #1199
+- `2026-09-08` [PM_1194.md](PM_1194.md) — Post-Mortem: Trade #1194
+- `2026-09-08` [PM_1193.md](PM_1193.md) — Post-Mortem: Trade #1193
+- `2026-09-08` [PM_1184.md](PM_1184.md) — Post-Mortem: Trade #1184
+- `2026-09-08` [PM_1183.md](PM_1183.md) — Post-Mortem: Trade #1183
+- `2026-09-08` [PM_1180.md](PM_1180.md) — Post-Mortem: Trade #1180
+- `2026-09-08` [PM_1179.md](PM_1179.md) — Post-Mortem: Trade #1179
+- `2026-09-08` [PM_1178.md](PM_1178.md) — Post-Mortem: Trade #1178
+- `2026-09-08` [PM_1177.md](PM_1177.md) — Post-Mortem: Trade #1177
+- `2026-09-08` [PM_1176.md](PM_1176.md) — Post-Mortem: Trade #1176
+- `2026-09-08` [AUDIT_VALUE_RETURN_REQUEST_2026-09-08.md](AUDIT_VALUE_RETURN_REQUEST_2026-09-08.md) — AUDIT — "the first move toward the belly" (A) and "price is searching for a new place" (B)
+- `2026-09-07` [ZLR_WHY_2026-09-07.md](ZLR_WHY_2026-09-07.md) — ZLR_WHY 07.09.2026 — למה 12 עסקאות-ZLR-לייב (24.08→04.09) הפסידו ‎−$385, ומה זה **לא**
+- `2026-09-07` [REPLAY_AFTER_FIXES_2026-09-07.md](REPLAY_AFTER_FIXES_2026-09-07.md) — ריפליי-נגדי אחרי תיקוני 07.09 — 10 ימי-הלייב 24.08→04.09 (חשבון 37138283)
+- `2026-09-07` [PM_1196.md](PM_1196.md) — Post-Mortem: Trade #1196
+- `2026-09-07` [PM_1182.md](PM_1182.md) — Post-Mortem: Trade #1182
+- `2026-09-07` [PM_1181.md](PM_1181.md) — Post-Mortem: Trade #1181
+- `2026-09-07` [PM_1121.md](PM_1121.md) — Post-Mortem: Trade #1121
+- `2026-09-07` [PM_1081.md](PM_1081.md) — Post-Mortem: Trade #1081
+- `2026-09-07` [PM_1077.md](PM_1077.md) — Post-Mortem: Trade #1077
+- `2026-09-07` [OPS_LOG_2026-09-07.md](OPS_LOG_2026-09-07.md) — OPS LOG — 2026-09-07
+- `2026-09-07` [DAILY_VERDICT.md](DAILY_VERDICT.md) — DAILY_VERDICT — mechanism-level gate analysis
+- `2026-09-05` [PM_2.md](PM_2.md) — Post-Mortem: Trade #2
+- `2026-09-05` [PM_1163.md](PM_1163.md) — Post-Mortem: Trade #1163
+- `2026-09-05` [PM_1162.md](PM_1162.md) — Post-Mortem: Trade #1162
+- `2026-09-05` [PM_1161.md](PM_1161.md) — Post-Mortem: Trade #1161
+- `2026-09-05` [PM_1160.md](PM_1160.md) — Post-Mortem: Trade #1160
+- `2026-09-05` [PM_1159.md](PM_1159.md) — Post-Mortem: Trade #1159
+- `2026-09-05` [PM_1158.md](PM_1158.md) — Post-Mortem: Trade #1158
+- `2026-09-05` [PM_1157.md](PM_1157.md) — Post-Mortem: Trade #1157
+- `2026-09-05` [PM_1156.md](PM_1156.md) — Post-Mortem: Trade #1156
+- `2026-09-05` [PM_1155.md](PM_1155.md) — Post-Mortem: Trade #1155
+- `2026-09-05` [PM_1154.md](PM_1154.md) — Post-Mortem: Trade #1154
+- `2026-09-05` [PM_1153.md](PM_1153.md) — Post-Mortem: Trade #1153
+- `2026-09-05` [PM_1152.md](PM_1152.md) — Post-Mortem: Trade #1152
+- `2026-09-05` [PM_1151.md](PM_1151.md) — Post-Mortem: Trade #1151
+- `2026-09-05` [PM_1150.md](PM_1150.md) — Post-Mortem: Trade #1150
+- `2026-09-05` [PM_1149.md](PM_1149.md) — Post-Mortem: Trade #1149
+- `2026-09-05` [PM_1148.md](PM_1148.md) — Post-Mortem: Trade #1148
+- `2026-09-05` [PM_1147.md](PM_1147.md) — Post-Mortem: Trade #1147
+- `2026-09-05` [PM_1146.md](PM_1146.md) — Post-Mortem: Trade #1146
+- `2026-09-05` [PM_1145.md](PM_1145.md) — Post-Mortem: Trade #1145
+- `2026-09-05` [PM_1144.md](PM_1144.md) — Post-Mortem: Trade #1144
+- `2026-09-05` [PM_1143.md](PM_1143.md) — Post-Mortem: Trade #1143
+- `2026-09-05` [PM_1141.md](PM_1141.md) — Post-Mortem: Trade #1141
+- `2026-09-05` [PM_1140.md](PM_1140.md) — Post-Mortem: Trade #1140
+- `2026-09-05` [PM_1139.md](PM_1139.md) — Post-Mortem: Trade #1139
+- `2026-09-05` [PM_1080.md](PM_1080.md) — Post-Mortem: Trade #1080
+- `2026-09-05` [PM_1079.md](PM_1079.md) — Post-Mortem: Trade #1079
+- `2026-09-05` [PM_1078.md](PM_1078.md) — Post-Mortem: Trade #1078
+- `2026-09-05` [PM_1071.md](PM_1071.md) — Post-Mortem: Trade #1071
+- `2026-09-05` [PM_1070.md](PM_1070.md) — Post-Mortem: Trade #1070
+- `2026-09-05` [PM_1068.md](PM_1068.md) — Post-Mortem: Trade #1068
+- `2026-09-05` [PM_1012.md](PM_1012.md) — Post-Mortem: Trade #1012
+- `2026-09-05` [PM_1011.md](PM_1011.md) — Post-Mortem: Trade #1011
+- `2026-09-05` [PM_1010.md](PM_1010.md) — Post-Mortem: Trade #1010
+- `2026-09-05` [PM_1007.md](PM_1007.md) — Post-Mortem: Trade #1007
+- `2026-09-05` [PM_1.md](PM_1.md) — Post-Mortem: Trade #1
+- `2026-09-04` [PM_999.md](PM_999.md) — Post-Mortem: Trade #999
+- `2026-09-04` [PM_998.md](PM_998.md) — Post-Mortem: Trade #998
+- `2026-09-04` [PM_997.md](PM_997.md) — Post-Mortem: Trade #997
+- `2026-09-04` [PM_996.md](PM_996.md) — Post-Mortem: Trade #996
+- `2026-09-04` [PM_995.md](PM_995.md) — Post-Mortem: Trade #995
+- `2026-09-04` [PM_994.md](PM_994.md) — Post-Mortem: Trade #994
+- `2026-09-04` [PM_993.md](PM_993.md) — Post-Mortem: Trade #993
+- `2026-09-04` [PM_991.md](PM_991.md) — Post-Mortem: Trade #991
+- `2026-09-04` [PM_1009.md](PM_1009.md) — Post-Mortem: Trade #1009
+- `2026-09-04` [PM_1002.md](PM_1002.md) — Post-Mortem: Trade #1002
+- `2026-09-04` [PM_1001.md](PM_1001.md) — Post-Mortem: Trade #1001
+- `2026-09-04` [OPS_LOG_2026-09-03.md](OPS_LOG_2026-09-03.md) — OPS LOG — 2026-09-03
+- `2026-09-04` [OPS_LOG_2026-09-02.md](OPS_LOG_2026-09-02.md) — OPS LOG — 2026-09-02
+- `2026-09-04` [OPS_LOG_2026-08-25.md](OPS_LOG_2026-08-25.md) — OPS LOG — 2026-08-25
+- `2026-09-04` [OPS_LOG_2026-08-24.md](OPS_LOG_2026-08-24.md) — OPS LOG — 2026-08-24
+- `2026-09-04` [OPS_LOG_2026-08-21.md](OPS_LOG_2026-08-21.md) — OPS LOG — 2026-08-21
+- `2026-09-04` [OPS_LOG_2026-08-20.md](OPS_LOG_2026-08-20.md) — OPS LOG — 2026-08-20
+- `2026-09-04` [OPS_LOG_2026-08-19.md](OPS_LOG_2026-08-19.md) — OPS LOG — 2026-08-19
+- `2026-09-04` [OPS_LOG_2026-08-18.md](OPS_LOG_2026-08-18.md) — OPS LOG — 2026-08-18
+- `2026-09-04` [OPS_LOG_2026-08-17.md](OPS_LOG_2026-08-17.md) — OPS LOG — 2026-08-17
+- `2026-09-04` [OPS_LOG_2026-08-13.md](OPS_LOG_2026-08-13.md) — OPS LOG — 2026-08-13
+- `2026-09-04` [OPS_LOG_2026-08-12.md](OPS_LOG_2026-08-12.md) — OPS LOG — 2026-08-12
+- `2026-09-04` [OPS_LOG_2026-07-29.md](OPS_LOG_2026-07-29.md) — OPS LOG — 2026-07-29
+- `2026-09-04` [OPS_LOG_2026-07-28.md](OPS_LOG_2026-07-28.md) — OPS LOG — 2026-07-28
+- `2026-09-04` [OPS_LOG_2026-07-27.md](OPS_LOG_2026-07-27.md) — OPS LOG — 2026-07-27
+- `2026-09-04` [OPS_LOG_2026-07-22.md](OPS_LOG_2026-07-22.md) — OPS LOG — 2026-07-22
+- `2026-09-04` [OPS_LOG_2026-07-21.md](OPS_LOG_2026-07-21.md) — OPS LOG — 2026-07-21
+- `2026-09-04` [OPS_LOG_2026-07-20.md](OPS_LOG_2026-07-20.md) — OPS LOG — 2026-07-20
+- `2026-09-04` [OPS_LOG_2026-07-19.md](OPS_LOG_2026-07-19.md) — OPS LOG — 2026-07-19
+- `2026-09-04` [OPS_LOG_2026-07-17.md](OPS_LOG_2026-07-17.md) — OPS LOG — 2026-07-17
+- `2026-09-03` [PM_988.md](PM_988.md) — Post-Mortem: Trade #988
+- `2026-09-03` [PM_987.md](PM_987.md) — Post-Mortem: Trade #987
+- `2026-09-03` [PM_986.md](PM_986.md) — Post-Mortem: Trade #986
+- `2026-09-03` [PM_985.md](PM_985.md) — Post-Mortem: Trade #985
+- `2026-09-03` [PM_984.md](PM_984.md) — Post-Mortem: Trade #984
+- `2026-09-03` [PM_983.md](PM_983.md) — Post-Mortem: Trade #983
+- `2026-09-03` [PM_982.md](PM_982.md) — Post-Mortem: Trade #982
+- `2026-09-03` [PM_980.md](PM_980.md) — Post-Mortem: Trade #980
+- `2026-09-02` [PM_975.md](PM_975.md) — Post-Mortem: Trade #975
+- `2026-09-02` [PM_974.md](PM_974.md) — Post-Mortem: Trade #974
+- `2026-09-02` [PM_973.md](PM_973.md) — Post-Mortem: Trade #973
+- `2026-09-02` [PM_972.md](PM_972.md) — Post-Mortem: Trade #972
+- `2026-09-02` [PM_969.md](PM_969.md) — Post-Mortem: Trade #969
+- `2026-09-02` [PM_967.md](PM_967.md) — Post-Mortem: Trade #967
+- `2026-09-02` [PM_966.md](PM_966.md) — Post-Mortem: Trade #966
+- `2026-09-02` [PM_965.md](PM_965.md) — Post-Mortem: Trade #965
+- `2026-09-02` [PM_964.md](PM_964.md) — Post-Mortem: Trade #964
+- `2026-09-02` [PM_962.md](PM_962.md) — Post-Mortem: Trade #962
+- `2026-09-02` [PM_961.md](PM_961.md) — Post-Mortem: Trade #961
+- `2026-09-02` [PM_960.md](PM_960.md) — Post-Mortem: Trade #960
+- `2026-09-02` [PM_959.md](PM_959.md) — Post-Mortem: Trade #959
+- `2026-09-02` [PM_958.md](PM_958.md) — Post-Mortem: Trade #958
+- `2026-09-02` [PM_957.md](PM_957.md) — Post-Mortem: Trade #957
+- `2026-09-02` [PM_956.md](PM_956.md) — Post-Mortem: Trade #956
+- `2026-09-02` [EXECUTION_AUDIT_2026-09-02.md](EXECUTION_AUDIT_2026-09-02.md) — ביקורת-ביצוע 31.08–02.09 (צהריים) — מה cowork ו-cc באמת ביצעו
+- `2026-09-02` [EOD_2026-09-02.md](EOD_2026-09-02.md) — EOD 2026-09-02 — אבחון שש-השאלות
+- `2026-09-02` [CANDLE_RESEARCH_3108_0109.md](CANDLE_RESEARCH_3108_0109.md) — מחקר-נרות 31.08 + 01.09 — "איפה המערכת הייתה צריכה לפעול" (דלתון, מהברים בלבד)
+- `2026-09-01` [PM_950.md](PM_950.md) — Post-Mortem: Trade #950
+- `2026-09-01` [PM_949.md](PM_949.md) — Post-Mortem: Trade #949
+- `2026-09-01` [PM_948.md](PM_948.md) — Post-Mortem: Trade #948
+- `2026-09-01` [PM_947.md](PM_947.md) — Post-Mortem: Trade #947
+- `2026-09-01` [PM_946.md](PM_946.md) — Post-Mortem: Trade #946
+- `2026-09-01` [PM_945.md](PM_945.md) — Post-Mortem: Trade #945
+- `2026-09-01` [PM_944.md](PM_944.md) — Post-Mortem: Trade #944
+- `2026-09-01` [PM_943.md](PM_943.md) — Post-Mortem: Trade #943
+- `2026-09-01` [PM_938.md](PM_938.md) — Post-Mortem: Trade #938
+- `2026-09-01` [PM_937.md](PM_937.md) — Post-Mortem: Trade #937
+- `2026-09-01` [PM_936.md](PM_936.md) — Post-Mortem: Trade #936
+- `2026-09-01` [PM_935.md](PM_935.md) — Post-Mortem: Trade #935
+- `2026-09-01` [PEER_REVIEW_2026-09-01.md](PEER_REVIEW_2026-09-01.md) — בקשת-ביקורת · ממצאי MEMS26 · 01.09.2026
+- `2026-09-01` [OPEN_ITEMS_SINCE_THU_2026-09-01.md](OPEN_ITEMS_SINCE_THU_2026-09-01.md) — כל המשימות הפתוחות מיום חמישי (27.08) — 01.09 12:15
+- `2026-09-01` [DIAG_DALTON_2026-09-01.md](DIAG_DALTON_2026-09-01.md) — אבחון · למה המערכת פספסה את הדלתון אתמול — S2/S4 בלבד
+- `2026-09-01` [AUDIT_WHAT_SHIPPED_2026-09-01.md](AUDIT_WHAT_SHIPPED_2026-09-01.md) — ביקורת: מה בוצע באמת ומה לא — 31.08 → 01.09 09:47
+- `2026-09-01` [AUDIT_RESPONSE_2026-09-01.md](AUDIT_RESPONSE_2026-09-01.md) — תשובת-ביקורת · ‏ג4 אינו סתירה, הוא ארטיפקט — וסדר-העדיפויות שנגזר
+- `2026-09-01` [AUDIT_2026-09-01.md](AUDIT_2026-09-01.md) — בדק-בית מלא · 01.09.2026
+- `2026-08-31` [PM_934.md](PM_934.md) — Post-Mortem: Trade #934
+- `2026-08-31` [PM_933.md](PM_933.md) — Post-Mortem: Trade #933
+- `2026-08-31` [PM_932.md](PM_932.md) — Post-Mortem: Trade #932
+- `2026-08-31` [PM_931.md](PM_931.md) — Post-Mortem: Trade #931
+- `2026-08-31` [PM_930.md](PM_930.md) — Post-Mortem: Trade #930
+- `2026-08-31` [PM_929.md](PM_929.md) — Post-Mortem: Trade #929
+- `2026-08-31` [PM_928.md](PM_928.md) — Post-Mortem: Trade #928
+- `2026-08-31` [PM_927.md](PM_927.md) — Post-Mortem: Trade #927
+- `2026-08-31` [PM_926.md](PM_926.md) — Post-Mortem: Trade #926
+- `2026-08-31` [PM_925.md](PM_925.md) — Post-Mortem: Trade #925
+- `2026-08-31` [PM_924.md](PM_924.md) — Post-Mortem: Trade #924
+- `2026-08-31` [PM_923.md](PM_923.md) — Post-Mortem: Trade #923
+- `2026-08-31` [PM_922.md](PM_922.md) — Post-Mortem: Trade #922
+- `2026-08-31` [PM_921.md](PM_921.md) — Post-Mortem: Trade #921
+- `2026-08-31` [PM_920.md](PM_920.md) — Post-Mortem: Trade #920
+- `2026-08-31` [PM_919.md](PM_919.md) — Post-Mortem: Trade #919
+- `2026-08-31` [PM_918.md](PM_918.md) — Post-Mortem: Trade #918
+- `2026-08-31` [PM_917.md](PM_917.md) — Post-Mortem: Trade #917
+- `2026-08-31` [PM_916.md](PM_916.md) — Post-Mortem: Trade #916
+- `2026-08-31` [PM_915.md](PM_915.md) — Post-Mortem: Trade #915
+- `2026-08-31` [PM_914.md](PM_914.md) — Post-Mortem: Trade #914
+- `2026-08-31` [PM_913.md](PM_913.md) — Post-Mortem: Trade #913
+- `2026-08-31` [PM_912.md](PM_912.md) — Post-Mortem: Trade #912
+- `2026-08-31` [PM_911.md](PM_911.md) — Post-Mortem: Trade #911
+- `2026-08-31` [PM_910.md](PM_910.md) — Post-Mortem: Trade #910
+- `2026-08-31` [PM_909.md](PM_909.md) — Post-Mortem: Trade #909
+- `2026-08-31` [PM_908.md](PM_908.md) — Post-Mortem: Trade #908
+- `2026-08-31` [PM_907.md](PM_907.md) — Post-Mortem: Trade #907
+- `2026-08-31` [PM_906.md](PM_906.md) — Post-Mortem: Trade #906
+- `2026-08-31` [PM_905.md](PM_905.md) — Post-Mortem: Trade #905
+- `2026-08-31` [PM_904.md](PM_904.md) — Post-Mortem: Trade #904
+- `2026-08-31` [PM_903.md](PM_903.md) — Post-Mortem: Trade #903
+- `2026-08-31` [PM_902.md](PM_902.md) — Post-Mortem: Trade #902
+- `2026-08-31` [PM_901.md](PM_901.md) — Post-Mortem: Trade #901
+- `2026-08-31` [PM_900.md](PM_900.md) — Post-Mortem: Trade #900
+- `2026-08-31` [PM_899.md](PM_899.md) — Post-Mortem: Trade #899
+- `2026-08-31` [PM_898.md](PM_898.md) — Post-Mortem: Trade #898
+- `2026-08-31` [PM_897.md](PM_897.md) — Post-Mortem: Trade #897
+- `2026-08-31` [PM_896.md](PM_896.md) — Post-Mortem: Trade #896
+- `2026-08-31` [PM_895.md](PM_895.md) — Post-Mortem: Trade #895
+- `2026-08-31` [PM_894.md](PM_894.md) — Post-Mortem: Trade #894
+- `2026-08-31` [PM_893.md](PM_893.md) — Post-Mortem: Trade #893
+- `2026-08-31` [PM_892.md](PM_892.md) — Post-Mortem: Trade #892
+- `2026-08-31` [PM_891.md](PM_891.md) — Post-Mortem: Trade #891
+- `2026-08-31` [PM_890.md](PM_890.md) — Post-Mortem: Trade #890
+- `2026-08-31` [PM_889.md](PM_889.md) — Post-Mortem: Trade #889
+- `2026-08-31` [PM_888.md](PM_888.md) — Post-Mortem: Trade #888
+- `2026-08-31` [PM_887.md](PM_887.md) — Post-Mortem: Trade #887
+- `2026-08-31` [PM_886.md](PM_886.md) — Post-Mortem: Trade #886
+- `2026-08-31` [PM_885.md](PM_885.md) — Post-Mortem: Trade #885
+- `2026-08-31` [PM_882.md](PM_882.md) — Post-Mortem: Trade #882
+- `2026-08-31` [PM_880.md](PM_880.md) — Post-Mortem: Trade #880
+- `2026-08-31` [PM_875.md](PM_875.md) — Post-Mortem: Trade #875
+- `2026-08-31` [PM_874.md](PM_874.md) — Post-Mortem: Trade #874
+- `2026-08-31` [PM_872.md](PM_872.md) — Post-Mortem: Trade #872
+- `2026-08-30` [WAIT_BARS_STUDY_2026-08-26.md](WAIT_BARS_STUDY_2026-08-26.md) — מחקר ההמתנה — "לתת ל-1-2 ברים לענות" (רעיון מייקל)
+- `2026-08-30` [VARIATION_STUDY_2026-08-25.md](VARIATION_STUDY_2026-08-25.md) — מחקר ימי-Variation — המספרים למודל של מייקל
+- `2026-08-30` [THRESHOLD_STUDY_2026-08-30.md](THRESHOLD_STUDY_2026-08-30.md) — מחקר-הסף — "כמה תנועה צריך כדי לדעת שהמחיר ממשיך?"
+- `2026-08-30` [SHADOW_INSIGHTS_WEEK_2026-08-24.md](SHADOW_INSIGHTS_WEEK_2026-08-24.md) — תובנות מהצל — שבוע 24-28.08 · **גרסה מתוקנת** (cowork, 30.08)
+- `2026-08-30` [RELATIVE_THRESHOLD_STUDY_2026-08-30.md](RELATIVE_THRESHOLD_STUDY_2026-08-30.md) — מחקר-הסף היחסי — "האם 3.5 הנקודות היו שרירותיות?"
+- `2026-08-29` [UX_AUDIT_DASHBOARD_2026-08-29.md](UX_AUDIT_DASHBOARD_2026-08-29.md) — ביקורת-UX / פרונטאנד — דשבורד MEMS26
+- `2026-08-29` [PM_865.md](PM_865.md) — Post-Mortem: Trade #865
+- `2026-08-29` [PM_864.md](PM_864.md) — Post-Mortem: Trade #864
+- `2026-08-29` [PM_863.md](PM_863.md) — Post-Mortem: Trade #863
+- `2026-08-29` [PM_860.md](PM_860.md) — Post-Mortem: Trade #860
+- `2026-08-29` [PM_849.md](PM_849.md) — Post-Mortem: Trade #849
+- `2026-08-29` [PM_847.md](PM_847.md) — Post-Mortem: Trade #847
+- `2026-08-29` [PM_846.md](PM_846.md) — Post-Mortem: Trade #846
+- `2026-08-29` [PM_845.md](PM_845.md) — Post-Mortem: Trade #845
+- `2026-08-29` [PM_844.md](PM_844.md) — Post-Mortem: Trade #844
+- `2026-08-29` [PM_843.md](PM_843.md) — Post-Mortem: Trade #843
+- `2026-08-29` [PM_842.md](PM_842.md) — Post-Mortem: Trade #842
+- `2026-08-29` [PM_841.md](PM_841.md) — Post-Mortem: Trade #841
+- `2026-08-29` [COWORK_SELF_AUDIT_2026-08-29.md](COWORK_SELF_AUDIT_2026-08-29.md) — ביקורת בלתי-תלויה על עבודת `cowork-dev`, 26–29.08.2026
+- `2026-08-28` [PM_836.md](PM_836.md) — Post-Mortem: Trade #836
+- `2026-08-28` [PM_835.md](PM_835.md) — Post-Mortem: Trade #835
+- `2026-08-28` [PM_834.md](PM_834.md) — Post-Mortem: Trade #834
+- `2026-08-28` [PM_826.md](PM_826.md) — Post-Mortem: Trade #826
+- `2026-08-28` [PM_825.md](PM_825.md) — Post-Mortem: Trade #825
+- `2026-08-28` [PM_822.md](PM_822.md) — Post-Mortem: Trade #822
+- `2026-08-28` [PM_821.md](PM_821.md) — Post-Mortem: Trade #821
+- `2026-08-28` [PM_810.md](PM_810.md) — Post-Mortem: Trade #810
+- `2026-08-28` [PM_809.md](PM_809.md) — Post-Mortem: Trade #809
+- `2026-08-28` [PM_808.md](PM_808.md) — Post-Mortem: Trade #808
+- `2026-08-28` [PM_807.md](PM_807.md) — Post-Mortem: Trade #807
+- `2026-08-28` [PM_805.md](PM_805.md) — Post-Mortem: Trade #805
+- `2026-08-28` [PM_804.md](PM_804.md) — Post-Mortem: Trade #804
+- `2026-08-28` [PM_803.md](PM_803.md) — Post-Mortem: Trade #803
+- `2026-08-28` [PM_802.md](PM_802.md) — Post-Mortem: Trade #802
+- `2026-08-28` [PM_801.md](PM_801.md) — Post-Mortem: Trade #801
+- `2026-08-28` [PM_798.md](PM_798.md) — Post-Mortem: Trade #798
+- `2026-08-28` [PM_797.md](PM_797.md) — Post-Mortem: Trade #797
+- `2026-08-28` [PM_796.md](PM_796.md) — Post-Mortem: Trade #796
+- `2026-08-28` [PM_795.md](PM_795.md) — Post-Mortem: Trade #795
+- `2026-08-28` [PM_794.md](PM_794.md) — Post-Mortem: Trade #794
+- `2026-08-28` [PM_788.md](PM_788.md) — Post-Mortem: Trade #788
+- `2026-08-28` [PM_787.md](PM_787.md) — Post-Mortem: Trade #787
+- `2026-08-28` [PM_786.md](PM_786.md) — Post-Mortem: Trade #786
+- `2026-08-28` [PM_785.md](PM_785.md) — Post-Mortem: Trade #785
+- `2026-08-28` [PM_783.md](PM_783.md) — Post-Mortem: Trade #783
+- `2026-08-28` [PM_782.md](PM_782.md) — Post-Mortem: Trade #782
+- `2026-08-28` [PM_781.md](PM_781.md) — Post-Mortem: Trade #781
+- `2026-08-28` [PM_780.md](PM_780.md) — Post-Mortem: Trade #780
+- `2026-08-28` [PM_779.md](PM_779.md) — Post-Mortem: Trade #779
+- `2026-08-28` [PM_778.md](PM_778.md) — Post-Mortem: Trade #778
+- `2026-08-28` [PM_777.md](PM_777.md) — Post-Mortem: Trade #777
+- `2026-08-28` [PM_776.md](PM_776.md) — Post-Mortem: Trade #776
+- `2026-08-28` [EOD_2026-08-28.md](EOD_2026-08-28.md) — דוח-EOD · יום-מסחר 2026-08-28 (שישי) — cowork-night Phase-A
+- `2026-08-26` [COWORK_POSITIVE_MAP_2026-08-26.md](COWORK_POSITIVE_MAP_2026-08-26.md) — המפה החיובית — "ממתי ואיך זה כן עובד" · תקרה/רצפה-כפולה × סוג-יום × צד-S1
+- `2026-08-26` [CC_VA_FADE_SECTION_D_2026-08-26.md](CC_VA_FADE_SECTION_D_2026-08-26.md) — §D VA_FADE — 26 Variation Days · 2026-08-26
+- `2026-08-26` [CC_VA_FADE_CALIBRATION_2026-08-26.md](CC_VA_FADE_CALIBRATION_2026-08-26.md) — VA_FADE Calibration — All Variants Negative · 2026-08-26
+- `2026-08-26` [CC_PHASE2_QUEUE_2026-08-26.md](CC_PHASE2_QUEUE_2026-08-26.md) — Phase 2 Queue Report — 2026-08-26
+- `2026-08-26` [CC_PHASE2_FULL_2026-08-26.md](CC_PHASE2_FULL_2026-08-26.md) — Phase 2 Full Report — 2026-08-26
+- `2026-08-26` [CC_PHASE1_2026-08-26.md](CC_PHASE1_2026-08-26.md) — Phase 1 Report — 2026-08-26
+- `2026-08-26` [CC_FAILED_BREAK_2026-08-26.md](CC_FAILED_BREAK_2026-08-26.md) — FAILED_BREAK §D — 33 Sessions (Variation+Normal+Neutral) · 2026-08-26
+- `2026-08-26` [CC_EXIT_STUDY_2026-08-26.md](CC_EXIT_STUDY_2026-08-26.md) — מחקר-מימושים FAILED_BREAK · E0-E5 — 2026-08-26
+- `2026-08-25` [SYSTEM_MAP_S1_S2_S4_2026-08-25.md](SYSTEM_MAP_S1_S2_S4_2026-08-25.md) — מפת המערכת · S1 · S2 · S4 — מה מרוויח, מה מפסיד, ואיפה התיקון
+- `2026-08-25` [SHADOW_FORENSICS_S1_ROLE_3CONTRACTS.md](SHADOW_FORENSICS_S1_ROLE_3CONTRACTS.md) — פורנזיקת-הצל · תפקידו של S1 · הכנה ל-3 חוזים — 2026-08-25
+- `2026-08-25` [SCID_DIFF_RCA_2026-08-25.md](SCID_DIFF_RCA_2026-08-25.md) — DB ↔ SCID diff report + RCA — 34 סשני-לייב 2026-07-07..08-21
+- `2026-08-25` [REPLAY_TOOL_INVENTORY_2026-08-24.md](REPLAY_TOOL_INVENTORY_2026-08-24.md) — MEMS26 Replay Tool Inventory — Stage 0A (2026-08-24)
+- `2026-08-25` [GAP_VS_CURSOR_PLAN_2026-08-25.md](GAP_VS_CURSOR_PLAN_2026-08-25.md) — מה יש בפועל · מה הפערים מול תוכנית קורסור
+- `2026-08-25` [FORENSICS_BREAK_2026-08-19.md](FORENSICS_BREAK_2026-08-19.md) — פורנזיקה · השבר של 19.08 — מה זה לא, ומה כן
+- `2026-08-25` [FLAG_AUDIT_2026-08-25.md](FLAG_AUDIT_2026-08-25.md) — ביקורת-אמת של 204 הדגלים הפסוקים — 2026-08-25
+- `2026-08-25` [CC_3FIX_DIRECTION_2026-08-25.md](CC_3FIX_DIRECTION_2026-08-25.md) — 3FIX Direction — Build Report · 2026-08-25
+- `2026-08-24` [CURSOR_MAXIMIZED_OPPORTUNITY_SYSTEM_2026-08-23.md](CURSOR_MAXIMIZED_OPPORTUNITY_SYSTEM_2026-08-23.md) — Cursor — מערכת-מקסום הזדמנויות + רפליי נגד-עובדתי (2026-08-23)
+- `2026-08-23` [EXTREME_DETECTION_AND_BIAS_AUDIT.md](EXTREME_DETECTION_AND_BIAS_AUDIT.md) — Extreme Detection & Bias Audit — CC_NEXT_2026-08-23D
+- `2026-08-22` [WEEK_REPLAY_AFTER_FIXES_2026-08-23.md](WEEK_REPLAY_AFTER_FIXES_2026-08-23.md) — רפליי-שבוע אחרי חבילת-התיקונים — כמה עסקאות רווחיות היו על כסף אמיתי · 2026-08-23
+- `2026-08-22` [UNKNOWN_GAPS_2026-08-23.md](UNKNOWN_GAPS_2026-08-23.md) — פערים שאיש לא דיווח עליהם — ציד שיטתי · 2026-08-23
+- `2026-08-22` [TREND_STEP_FIX_PROPOSAL.md](TREND_STEP_FIX_PROPOSAL.md) — TREND_STEP Fix Proposal — Why It Broke OOS (2026-08-24)
+- `2026-08-22` [SIM_DALTON_CONTEXT_WEEK.md](SIM_DALTON_CONTEXT_WEEK.md) — Dalton Context Simulation V2 — 08-10..08-21 (10 sessions, 6 contracts)
+- `2026-08-22` [REPLAY_EXIT_SIZE_2026-08-22.md](REPLAY_EXIT_SIZE_2026-08-22.md) — REPLAY — כל שינוי-יציאה ושינוי-גודל שהוצע, נמדד (X1–X4) · 2026-08-22
+- `2026-08-22` [REPLAY_ENTRY_SIDE_2026-08-22.md](REPLAY_ENTRY_SIDE_2026-08-22.md) — REPLAY · ENTRY-SIDE — E1 / E2 / E3 על כל סשני-הלייב (2026-08-22)
+- `2026-08-22` [PM_775.md](PM_775.md) — Post-Mortem: Trade #775
+- `2026-08-22` [PM_773.md](PM_773.md) — Post-Mortem: Trade #773
+- `2026-08-22` [PM_772.md](PM_772.md) — Post-Mortem: Trade #772
+- `2026-08-22` [PM_771.md](PM_771.md) — Post-Mortem: Trade #771
+- `2026-08-22` [PM_770.md](PM_770.md) — Post-Mortem: Trade #770
+- `2026-08-22` [PM_768.md](PM_768.md) — Post-Mortem: Trade #768
+- `2026-08-22` [PM_767.md](PM_767.md) — Post-Mortem: Trade #767
+- `2026-08-22` [PM_765.md](PM_765.md) — Post-Mortem: Trade #765
+- `2026-08-22` [GOOD_PATTERNS_FIX_2026-08-22.md](GOOD_PATTERNS_FIX_2026-08-22.md) — GOOD PATTERNS · למה התבניות-הטובות לא יורות מספיק — ואיך פותרים — 2026-08-22
+- `2026-08-22` [EOD_DIAGNOSIS_2026-08-21.md](EOD_DIAGNOSIS_2026-08-21.md) — EOD DIAGNOSIS — 2026-08-21 (LIVE)
+- `2026-08-22` [DEAD_SYSTEMS_AUDIT_2026-08-22.md](DEAD_SYSTEMS_AUDIT_2026-08-22.md) — DEAD / INERT SYSTEMS AUDIT — 2026-08-22
+- `2026-08-22` [DEAD_PATTERNS_REVIVAL_2026-08-22.md](DEAD_PATTERNS_REVIVAL_2026-08-22.md) — DEAD PATTERNS · אבחון-פר-תבנית + שווי-החייאה מדוד — 2026-08-22
+- `2026-08-22` [CVD_EFFORT_RESULT_2026-08-22.md](CVD_EFFORT_RESULT_2026-08-22.md) — CVD · מאמץ-מול-תוצאה — הקריאה של מייקל מול המספרים — 2026-08-22
+- `2026-08-21` [REPLAY_TARGET_SPACING_2026-08-21.md](REPLAY_TARGET_SPACING_2026-08-21.md) — TARGET_MIN_SPACING_V1 — רפליי + מדידה
+- `2026-08-21` [REPLAY_S6_MAE_SCRATCH_ATR_2026-08-21.md](REPLAY_S6_MAE_SCRATCH_ATR_2026-08-21.md) — REPLAY — S6_MAE_SCRATCH_ATR_V1 (ATR-relative MAE scratch)
+- `2026-08-21` [PM_763.md](PM_763.md) — Post-Mortem: Trade #763
+- `2026-08-21` [PM_762.md](PM_762.md) — Post-Mortem: Trade #762
+- `2026-08-21` [PM_761.md](PM_761.md) — Post-Mortem: Trade #761
+- `2026-08-21` [MISSED_DOUBLE_BOTTOM_2026-08-21.md](MISSED_DOUBLE_BOTTOM_2026-08-21.md) — MISSED DOUBLE BOTTOM — 2026-08-21 (LIVE, market open)
+- `2026-08-20` [TODAY_TRADER_TABLE_2026-08-20.md](TODAY_TRADER_TABLE_2026-08-20.md) — 2026-08-20 · הטבלה של הסוחר — איך היה צריך לסחור את היום הזה
+- `2026-08-20` [RETRO_BACKTEST_2026-08-20.md](RETRO_BACKTEST_2026-08-20.md) — רטרו-בקטסט — המערכת הנוכחית (20.08.2026) על 10 הסשנים האחרונים
+- `2026-08-20` [PM_757.md](PM_757.md) — Post-Mortem: Trade #757
+- `2026-08-20` [PM_755.md](PM_755.md) — Post-Mortem: Trade #755
+- `2026-08-20` [PM_754.md](PM_754.md) — Post-Mortem: Trade #754
+- `2026-08-20` [PM_753.md](PM_753.md) — Post-Mortem: Trade #753
+- `2026-08-20` [PM_751.md](PM_751.md) — Post-Mortem: Trade #751
+- `2026-08-20` [PM_750.md](PM_750.md) — Post-Mortem: Trade #750
+- `2026-08-20` [PM_749.md](PM_749.md) — Post-Mortem: Trade #749
+- `2026-08-20` [PM_743.md](PM_743.md) — Post-Mortem: Trade #743
+- `2026-08-20` [PM_742.md](PM_742.md) — Post-Mortem: Trade #742
+- `2026-08-20` [PM_740.md](PM_740.md) — Post-Mortem: Trade #740
+- `2026-08-20` [PM_739.md](PM_739.md) — Post-Mortem: Trade #739
+- `2026-08-20` [PM_737.md](PM_737.md) — Post-Mortem: Trade #737
+- `2026-08-20` [PM_736.md](PM_736.md) — Post-Mortem: Trade #736
+- `2026-08-20` [PM_734.md](PM_734.md) — Post-Mortem: Trade #734
+- `2026-08-20` [PM_731.md](PM_731.md) — Post-Mortem: Trade #731
+- `2026-08-20` [PM_729.md](PM_729.md) — Post-Mortem: Trade #729
+- `2026-08-20` [PM_727.md](PM_727.md) — Post-Mortem: Trade #727
+- `2026-08-20` [PM_725.md](PM_725.md) — Post-Mortem: Trade #725
+- `2026-08-20` [ORACLE_STUDY_2026-08-20.md](ORACLE_STUDY_2026-08-20.md) — מחקר-האורקל — בר-אחר-בר על כל סשן: איפה הייתה הכניסה הנכונה, וכמה היום יכול היה לתת (2026-08-20)
+- `2026-08-20` [MONEY_RESEARCH_2026-08-20.md](MONEY_RESEARCH_2026-08-20.md) — מחקר-הכסף המלא — כמה עשינו, איפה, ולמה (2026-08-20)
+- `2026-08-20` [MAX_DAYS_2026-08-20.md](MAX_DAYS_2026-08-20.md) — ימים-ממוקסמים — חבילת-התיקונים המלאה על כל סשני-הלייב (2026-08-20)
+- `2026-08-20` [HOWTO_TRADE_0819_0820.md](HOWTO_TRADE_0819_0820.md) — איך היה **צריך** לסחור את 19.08 ואת 20.08 — בר-אחר-בר, עם הסיבה לכל כישלון (2026-08-20)
+- `2026-08-20` [DAILY_EXTREMES_PLAYBOOK_2026-08-20.md](DAILY_EXTREMES_PLAYBOOK_2026-08-20.md) — פלייבוק-הקיצונים וסוגי-היום — יום-אחר-יום על כל סשן, ואיך ממקסמים כל צורת-יום (2026-08-20)
+- `2026-08-19` [EOD_2026-08-18.md](EOD_2026-08-18.md) — EOD 2026-08-18 — ביקורת יום מלאה
+- `2026-08-18` [STAIR_PATTERN_GAP_2026-08-18.md](STAIR_PATTERN_GAP_2026-08-18.md) — STAIR PATTERN GAP — "התבנית החסרה של המדרגות"
+- `2026-08-18` [SIZING_GAP_2026-08-18.md](SIZING_GAP_2026-08-18.md) — SIZING_GAP — למה מערכת-4 סחרה על 2 ב-17.08 (ולא על 3 או 4)
+- `2026-08-18` [PM_697.md](PM_697.md) — Post-Mortem: Trade #697
+- `2026-08-18` [MISSED_AND_FLAGS_2026-08-18.md](MISSED_AND_FLAGS_2026-08-18.md) — עסקאות שהוחמצו + דגלים שלא הודלקו — סשן 2026-08-17
+- `2026-08-18` [FRONTEND_AND_INDEX_2026-08-18.md](FRONTEND_AND_INDEX_2026-08-18.md) — FRONTEND (scale-in) + INDEX — 2026-08-18
+- `2026-08-17` [STOP_AND_REALIZE_AUDIT_2026-08-17.md](STOP_AND_REALIZE_AUDIT_2026-08-17.md) — ביקורת סטופ + מימוש — 2026-08-17 (טרום-פתיחה)
+- `2026-08-17` [SCALE_IN_READINESS_2026-08-17.md](SCALE_IN_READINESS_2026-08-17.md) — SCALE_IN_V1 — מוכנות לירי + הגדלת-עסקה, 2026-08-17
+- `2026-08-17` [REVIEW_SINCE_FRIDAY_2026-08-17.md](REVIEW_SINCE_FRIDAY_2026-08-17.md) — Adversarial review — `aa5b6af9..32e42558` (2026-08-14 → 2026-08-17)
+- `2026-08-17` [PM_678.md](PM_678.md) — Post-Mortem: Trade #678
+- `2026-08-17` [PM_677.md](PM_677.md) — Post-Mortem: Trade #677
+- `2026-08-17` [PM_676.md](PM_676.md) — Post-Mortem: Trade #676
+- `2026-08-17` [PM_675.md](PM_675.md) — Post-Mortem: Trade #675
+- `2026-08-17` [MISSED_AND_LATE_2026-08-17.md](MISSED_AND_LATE_2026-08-17.md) — פספוס-עסקאות מול כניסה-מאוחרת — ביקורת לפני פתיחת 2026-08-17
+- `2026-08-15` [PM_686.md](PM_686.md) — Post-Mortem: Trade #686
+- `2026-08-15` [AUDIT_S7_2026-08-15.md](AUDIT_S7_2026-08-15.md) — AUDIT — System 7 (confluence scoring layer)
+- `2026-08-15` [AUDIT_S6_2026-08-15.md](AUDIT_S6_2026-08-15.md) — AUDIT — System 6 (trade supervisor / management layer)
+- `2026-08-14` [PM_687.md](PM_687.md) — Post-Mortem: Trade #687
+- `2026-08-14` [PM_685.md](PM_685.md) — Post-Mortem: Trade #685
+- `2026-08-14` [PM_684.md](PM_684.md) — Post-Mortem: Trade #684
+- `2026-08-14` [PM_683.md](PM_683.md) — Post-Mortem: Trade #683
+- `2026-08-14` [PM_681.md](PM_681.md) — Post-Mortem: Trade #681
+- `2026-08-14` [PM_679.md](PM_679.md) — Post-Mortem: Trade #679
+- `2026-08-14` [PM_674.md](PM_674.md) — Post-Mortem: Trade #674
+- `2026-08-14` [PM_668.md](PM_668.md) — Post-Mortem: Trade #668
+- `2026-08-14` [PM_667.md](PM_667.md) — Post-Mortem: Trade #667
+- `2026-08-14` [FORENSIC_TREND_STEP_ENTRY_2026-08-14.md](FORENSIC_TREND_STEP_ENTRY_2026-08-14.md) — FORENSIC — TREND_STEP entry, trade #668 (2026-08-14)
+- `2026-08-14` [FORENSIC_S2_DEAD_2026-08-14.md](FORENSIC_S2_DEAD_2026-08-14.md) — FORENSIC — "System 2 is not functioning on BOTH machines" (2026-08-14)
+- `2026-08-14` [FORENSIC_OPENING_MISS_2026-08-14.md](FORENSIC_OPENING_MISS_2026-08-14.md) — FORENSIC — "why did neither machine trade the opening?" (2026-08-14)
+- `2026-08-14` [FORENSIC_MAC2_PARITY_2026-08-14.md](FORENSIC_MAC2_PARITY_2026-08-14.md) — FORENSIC — mac-2 ⇄ mac-1 decision parity, candidate by candidate (2026-08-14)
+- `2026-08-14` [FORENSIC_MAC2_NOFIRE_2026-08-14.md](FORENSIC_MAC2_NOFIRE_2026-08-14.md) — FORENSIC — mac-2 produced 0 trades while mac-1 traded (2026-08-14)
+- `2026-08-14` [EOD_2026-08-14.md](EOD_2026-08-14.md) — EOD — mac-1 (LIVE trader) — 2026-08-14
+- `2026-08-13` [FIREPATH_PROOF_2026-08-12.md](FIREPATH_PROOF_2026-08-12.md) — FIREPATH PROOF — רפליי 35 האיתותים של 08-11 תחת הקונפיג החי של 08-12
+- `2026-08-12` [REPLAY_G1G2_OPENING_ENTRY_2026-08-12.md](REPLAY_G1G2_OPENING_ENTRY_2026-08-12.md) — G1+G2 Replay: Opening Entry Engine Fuse + OR Threshold (2026-08-12)
+- `2026-08-11` [REPLAY_ACCEPTANCE_C2_C3_C4_E2_2026-08-11.md](REPLAY_ACCEPTANCE_C2_C3_C4_E2_2026-08-11.md) — REPLAY ACCEPTANCE — C2 / C3 / C4 / E2 (2026-08-11)
+- `2026-08-11` [PM_654.md](PM_654.md) — Post-Mortem: Trade #654
+- `2026-08-11` [LEG_EXEMPTION_REPLAY_2026-08-11.md](LEG_EXEMPTION_REPLAY_2026-08-11.md) — LEG-EXEMPTION — quantification across ALL gates (replay, 2026-08-11)
+- `2026-08-09` [REPLAY_ACCEPTANCE_K3_K5_K6_2026-08-09.md](REPLAY_ACCEPTANCE_K3_K5_K6_2026-08-09.md) — דוח Replay-קבלה — K3/K5/K6 (3 דגלים חדשים) · 2026-08-09
+- `2026-08-09` [PM_651.md](PM_651.md) — Post-Mortem: Trade #651
+- `2026-08-09` [PM_650.md](PM_650.md) — Post-Mortem: Trade #650
+- `2026-08-09` [PM_649.md](PM_649.md) — Post-Mortem: Trade #649
+- `2026-08-09` [PM_648.md](PM_648.md) — Post-Mortem: Trade #648
+- `2026-08-09` [PM_647.md](PM_647.md) — Post-Mortem: Trade #647
+- `2026-08-09` [PM_641.md](PM_641.md) — Post-Mortem: Trade #641
+- `2026-08-09` [PM_639.md](PM_639.md) — Post-Mortem: Trade #639
+- `2026-08-09` [PM_635.md](PM_635.md) — Post-Mortem: Trade #635
+- `2026-08-06` [TARGET_APPROACH_REALIZE_REPLAY.md](TARGET_APPROACH_REALIZE_REPLAY.md) — S6 Target Approach Realize Replay
+- `2026-08-06` [EXTREMES_AWARE_REALIZE_REPLAY.md](EXTREMES_AWARE_REALIZE_REPLAY.md) — Extremes-Aware Realize Replay (Dalton Step 1)
+- `2026-08-05` [S7_REPLAY_ACCEPTANCE_2026-08-05.md](S7_REPLAY_ACCEPTANCE_2026-08-05.md) — S7 Replay Acceptance (2026-08-05, Task #4 M3b)
+- `2026-08-05` [S6_REVIEW_2026-08-03_04.md](S6_REVIEW_2026-08-03_04.md) — M1 — ביקורת מימושי System-6 על עסקאות 03-04.08.2026
+- `2026-08-05` [PM_610.md](PM_610.md) — Post-Mortem: Trade #610
+- `2026-08-05` [PM_608.md](PM_608.md) — Post-Mortem: Trade #608
+- `2026-08-05` [PM_607.md](PM_607.md) — Post-Mortem: Trade #607
+- `2026-08-05` [PM_606.md](PM_606.md) — Post-Mortem: Trade #606
+- `2026-08-05` [PM_599.md](PM_599.md) — Post-Mortem: Trade #599
+- `2026-08-05` [PM_598.md](PM_598.md) — Post-Mortem: Trade #598
+- `2026-08-05` [PM_591.md](PM_591.md) — Post-Mortem: Trade #591
+- `2026-08-04` [EDGE_FADE_TRUTH_REPLAY_2026-08-02.md](EDGE_FADE_TRUTH_REPLAY_2026-08-02.md) — EDGE_FADE Truth Replay (N1, 2026-08-02)
+- `2026-08-02` [MAE_CALIBRATION_2026-08-02.md](MAE_CALIBRATION_2026-08-02.md) — כיול-MAE (שיטת Sweeney) — הבסיס הכמותי ל"מערכת-6 חכמה" (DEV_PLAN §P3.1)
+- `2026-08-02` [GONOGO_AUDIT_2026-08-02.md](GONOGO_AUDIT_2026-08-02.md) — ביקורת GO/NO-GO לקראת מסחר 03.08 (בוצעה ע"י cowork בהוראת-מייקל, בתקן-קורסור)
+- `2026-08-02` [DALTON_GAP_AUDIT_2026-08-02.md](DALTON_GAP_AUDIT_2026-08-02.md) — ביקורת פערי-דלתון — כל ימי-הלייב 15.07–01.08 (2026-08-02)
+- `2026-07-30` [CURSOR_PROFIT_FIRE_AUDIT_2026-07-30.md](CURSOR_PROFIT_FIRE_AUDIT_2026-07-30.md) — CURSOR — ביקורת "מזהה רווחיות וגם יורה" (2026-07-30)
+- `2026-07-30` [CC_NIGHT_2026-07-29_REPORT.md](CC_NIGHT_2026-07-29_REPORT.md) — CC Night Report 2026-07-29→30
+- `2026-07-29` [PATTERN_EOD_2026-07-15.md](PATTERN_EOD_2026-07-15.md) — MEMS26 · דוח EOD מאוחד — 2026-07-15 (יום שלישי · **יום-ה-LIVE-הראשון בכסף-אמת** · תקרית-פיד+תקרית-סכמה)
+- `2026-07-29` [MISSED_TRADES_2026-07-16.md](MISSED_TRADES_2026-07-16.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-16 (EOD · Cowork autonomous)
+- `2026-07-29` [MISSED_TRADES_2026-07-15.md](MISSED_TRADES_2026-07-15.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-15 (EOD · Cowork autonomous) — **יום-ה-LIVE-הראשון**
+- `2026-07-29` [MEMS26_ISSUES_REGISTER.md](MEMS26_ISSUES_REGISTER.md) — MEMS26 · רשימת-בעיות חיה (Issues Register)
+- `2026-07-28` [PREOPEN_2026-07-28.md](PREOPEN_2026-07-28.md) — פרה-אופן 2026-07-28 · 16:07–16:15 IL (פתיחה 16:30) — READ-ONLY
+- `2026-07-28` [PATTERN_EOD_2026-07-22.md](PATTERN_EOD_2026-07-22.md) — PATTERN EOD — 2026-07-22 (Cowork, אוטונומי · יום-SIM אחרי-cutover)
+- `2026-07-28` [PATTERN_EOD_2026-07-20.md](PATTERN_EOD_2026-07-20.md) — MEMS26 · דוח EOD מאוחד — 2026-07-20 (יום שני · **יום-LIVE-אמת על ה-MacBook** · Variation-DOWN · הפסד על סטופים
+- `2026-07-28` [PATTERN_EOD_2026-07-17.md](PATTERN_EOD_2026-07-17.md) — MEMS26 · דוח EOD מאוחד — 2026-07-17 (יום שישי · **יום-LIVE-אמת על ה-MacBook** · Normal · רוטציה-סוערת)
+- `2026-07-28` [MISSED_TRADES_2026-07-22.md](MISSED_TRADES_2026-07-22.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-22 (EOD · Cowork autonomous · Missed-Trades Investigator)
+- `2026-07-28` [MISSED_TRADES_2026-07-20.md](MISSED_TRADES_2026-07-20.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-20 (EOD · Cowork autonomous)
+- `2026-07-28` [MISSED_TRADES_2026-07-17.md](MISSED_TRADES_2026-07-17.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-17 (EOD · Cowork autonomous)
+- `2026-07-28` [EXIT_REVIEW_2026-07-22.md](EXIT_REVIEW_2026-07-22.md) — Exit Review — 2026-07-22 (לולאת-הלמידה הלילית)
+- `2026-07-28` [EXIT_REVIEW_2026-07-17.md](EXIT_REVIEW_2026-07-17.md) — Exit Review — 2026-07-17 (לולאת-הלמידה הלילית)
+- `2026-07-28` [DESIGNS_2026-07-22.md](DESIGNS_2026-07-22.md) — MEMS26 · טיוטות-עיצוב — 2026-07-22
+- `2026-07-28` [DESIGNS_2026-07-20.md](DESIGNS_2026-07-20.md) — MEMS26 · טיוטות-עיצוב — 2026-07-20
+- `2026-07-28` [DESIGNS_2026-07-17.md](DESIGNS_2026-07-17.md) — MEMS26 · טיוטות-עיצוב — 2026-07-17
+- `2026-07-28` [BRIEF_2026-07-17.md](BRIEF_2026-07-17.md) — בריפינג בוקר · 2026-07-17 (לייב-אמת יום-1 על ה-MacBook)
+- `2026-07-28` [ALERTS_LIVE.md](ALERTS_LIVE.md) — ALERTS_LIVE — MEMS26 מפקח-חי
+- `2026-07-27` [CURSOR_V3_VERIFICATION_2026-07-27.md](CURSOR_V3_VERIFICATION_2026-07-27.md) — CURSOR — V3 אימות בלתי-תלוי (07-27, לפני-פתיחה) — דוח מלא
+- `2026-07-25` [CURSOR_DALTON_GAPS_2026-07-26.md](CURSOR_DALTON_GAPS_2026-07-26.md) — CURSOR — דלתון-מחדש מול המערכת החיה (משימה E, סופ"ש 07-25/26)
+- `2026-07-24` [CURSOR_VERIFY_PNL_269_2026-07-23_REPORT.md](CURSOR_VERIFY_PNL_269_2026-07-23_REPORT.md) — CURSOR — דוח-אימות: הפסד-יומי ‑$269 (2026-07-23) — 5 AC
+- `2026-07-24` [CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md](CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md) — Cursor Day Review Insights — 2026-07-23 (written 07-24)
+- `2026-07-17` [S6_EOD_2026-07-17.md](S6_EOD_2026-07-17.md) — מערכת 6 — דוח סוף-יום · 2026-07-17 (שישי)
+- `2026-07-15` [PATTERN_EOD_2026-07-13.md](PATTERN_EOD_2026-07-13.md) — MEMS26 · דוח EOD מאוחד — 2026-07-13 (יום שני · יום-מסחר-מלא · יום-שורט/ירידה)
+- `2026-07-15` [MISSED_TRADES_2026-07-13.md](MISSED_TRADES_2026-07-13.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-13 (EOD · Cowork autonomous)
+- `2026-07-15` [EXIT_REVIEW_2026-07-13.md](EXIT_REVIEW_2026-07-13.md) — Exit Review — 2026-07-13 (לולאת-הלמידה הלילית)
+- `2026-07-15` [DESIGNS_2026-07-13.md](DESIGNS_2026-07-13.md) — MEMS26 · טיוטות-עיצוב — 2026-07-13
+- `2026-07-13` [SIM_PROOF_2026-07-13_MORNING.md](SIM_PROOF_2026-07-13_MORNING.md) — הוכחת-סים בוקר 07-13 (לפי בקשת מייקל, במקום 01:15 שלא דיווח)
+- `2026-07-13` [MONDAY_CHECKLIST_2026-07-13.md](MONDAY_CHECKLIST_2026-07-13.md) — רשימת שני-בבוקר — 2026-07-13 (סיכום 07-08 → 07-10 + פתוחים)
+- `2026-07-12` [STALL_EXIT_BACKTEST_V2_2026-07-12.md](STALL_EXIT_BACKTEST_V2_2026-07-12.md) — STALL_EXIT v2 — drawdown-gated backtest (2026-07-12)
+- `2026-07-11` [STALL_EXIT_BACKTEST_2026-07-11.md](STALL_EXIT_BACKTEST_2026-07-11.md) — STALL_EXIT Backtest — 2026-07-11
+- `2026-07-11` [PATTERN_EOD_2026-07-09.md](PATTERN_EOD_2026-07-09.md) — MEMS26 · דוח EOD מאוחד — 2026-07-09 (יום חמישי · יום-מסחר-מלא · יום-ראלי)
+- `2026-07-11` [MORNING_BRIEF_2026-07-10.md](MORNING_BRIEF_2026-07-10.md) — בריפינג-בוקר — שישי 2026-07-10 (ריצת 15:10, Cowork)
+- `2026-07-11` [MISSED_TRADES_2026-07-09_COWORK.md](MISSED_TRADES_2026-07-09_COWORK.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-09 (EOD · Cowork autonomous)
+- `2026-07-11` [DESIGNS_2026-07-09.md](DESIGNS_2026-07-09.md) — MEMS26 · טיוטות-עיצוב — 2026-07-09
+- `2026-07-09` [TARGET_PROPOSAL_2026-07-10.md](TARGET_PROPOSAL_2026-07-10.md) — הצעת-יעדים לפסיקת-בוקר — 2026-07-10
+- `2026-07-09` [PATTERN_EOD_2026-07-08.md](PATTERN_EOD_2026-07-08.md) — MEMS26 · דוח EOD מאוחד — 2026-07-08 (יום רביעי · יום-מסחר-מלא)
+- `2026-07-09` [MISSED_TRADES_2026-07-08.md](MISSED_TRADES_2026-07-08.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-08 (EOD · Cowork autonomous)
+- `2026-07-08` [trade_310_reconcile.md](trade_310_reconcile.md) — Trade 310 P&L Reconciliation — Sierra TradeActivityLog vs DB
+- `2026-07-08` [PATTERN_EOD_2026-07-06.md](PATTERN_EOD_2026-07-06.md) — MEMS26 · דוח EOD מאוחד — 2026-07-06 (יום שני · יום-מסחר-מלא)
+- `2026-07-05` [PATTERN_EOD_2026-07-03.md](PATTERN_EOD_2026-07-03.md) — MEMS26 · דוח EOD מאוחד — 2026-07-03 (יום שישי · חצי-יום-חג)
+- `2026-07-05` [MEMS26_EXECUTION_REVIEW_2026-07-05.md](MEMS26_EXECUTION_REVIEW_2026-07-05.md) — MEMS26 · סקירת-ביצוע מלאה — נכון ליום ראשון 2026-07-05
+- `2026-07-05` [BACKTEST_EXIT_SIGNALS_2026-07-05.md](BACKTEST_EXIT_SIGNALS_2026-07-05.md) — Backtest — System 6 exit signals on real trades (2026-07-05)
+- `2026-07-02` [PATTERN_FIRE_READINESS_2026-06-30.md](PATTERN_FIRE_READINESS_2026-06-30.md) — Pattern Fire-Readiness Audit — 2026-06-30
+- `2026-07-02` [PATTERN_EOD_2026-07-02.md](PATTERN_EOD_2026-07-02.md) — MEMS26 · דוח EOD מאוחד — 2026-07-02 (יום חמישי)
+- `2026-07-02` [PATTERN_EOD_2026-07-01.md](PATTERN_EOD_2026-07-01.md) — MEMS26 · דוח EOD מאוחד — 2026-07-01 (יום רביעי)
+- `2026-07-02` [PATTERN_EOD_2026-06-29.md](PATTERN_EOD_2026-06-29.md) — MEMS26 · דוח EOD מאוחד — 2026-06-29 (יום שני)
+- `2026-07-02` [PATTERN_EOD_2026-06-26.md](PATTERN_EOD_2026-06-26.md) — MEMS26 · דוח EOD מאוחד — 2026-06-26 (יום שישי)
+- `2026-07-02` [PATTERN_EOD_2026-06-25.md](PATTERN_EOD_2026-06-25.md) — MEMS26 · דוח EOD מאוחד — 2026-06-25 (יום חמישי)
+- `2026-07-02` [MISSED_TRADES_2026-07-02.md](MISSED_TRADES_2026-07-02.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-02 (EOD · Cowork autonomous)
+- `2026-07-02` [MISSED_TRADES_2026-07-01.md](MISSED_TRADES_2026-07-01.md) — ניתוח עסקאות-שלא-בוצעו · 2026-07-01 (EOD · Cowork autonomous)
+- `2026-07-02` [MISSED_TRADES_2026-06-29.md](MISSED_TRADES_2026-06-29.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-29 (EOD · Cowork autonomous)
+- `2026-07-02` [MISSED_TRADES_2026-06-26.md](MISSED_TRADES_2026-06-26.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-26 (EOD · Cowork autonomous)
+- `2026-07-02` [MISSED_TRADES_2026-06-25.md](MISSED_TRADES_2026-06-25.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-25 (EOD · Cowork autonomous)
+- `2026-07-02` [DESIGNS_2026-07-01.md](DESIGNS_2026-07-01.md) — MEMS26 · טיוטות-עיצוב — 2026-07-01
+- `2026-07-02` [DESIGNS_2026-06-26.md](DESIGNS_2026-06-26.md) — MEMS26 · טיוטות-עיצוב — 2026-06-26
+- `2026-07-02` [DESIGNS_2026-06-25.md](DESIGNS_2026-06-25.md) — MEMS26 · טיוטות-עיצוב — 2026-06-25
+- `2026-06-25` [S2_RISK_MGMT_2026-06-24.md](S2_RISK_MGMT_2026-06-24.md) — S2 (five_min) Risk-Management Audit — 2026-06-24
+- `2026-06-25` [S2_FIRED_ANALYSIS_2026-06-24.md](S2_FIRED_ANALYSIS_2026-06-24.md) — S2 (five_min) Fired-Pattern Analysis — Why the Shadow Trades Lost
+- `2026-06-25` [MISSED_TRADES_2026-06-24.md](MISSED_TRADES_2026-06-24.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-24 (EOD · Cowork autonomous)
+- `2026-06-25` [DESIGNS_2026-06-24.md](DESIGNS_2026-06-24.md) — MEMS26 · טיוטות-עיצוב — 2026-06-24
+- `2026-06-24` [TRADES_TODAY_2026-06-22.md](TRADES_TODAY_2026-06-22.md) — Trades Today — 2026-06-22 (Central Time) — SHADOW mode
+- `2026-06-24` [SYSTEM_FAULT_AUDIT_2026-06-22.md](SYSTEM_FAULT_AUDIT_2026-06-22.md) — MEMS26 — Full System Check / Fault List (2026-06-22)
+- `2026-06-24` [SIM_NEW_STACK_2026-06-21.md](SIM_NEW_STACK_2026-06-21.md) — SIM — NEW #68 Stack vs ACTUAL (read-only historical simulation)
+- `2026-06-24` [PATTERN_EOD_2026-06-24.md](PATTERN_EOD_2026-06-24.md) — MEMS26 · דוח EOD מאוחד — 2026-06-24 (יום רביעי)
+- `2026-06-24` [PATTERN_EOD_2026-06-23.md](PATTERN_EOD_2026-06-23.md) — MEMS26 · דוח EOD מאוחד — 2026-06-23 (יום שלישי)
+- `2026-06-24` [PATTERN_EOD_2026-06-22.md](PATTERN_EOD_2026-06-22.md) — MEMS26 · דוח EOD מאוחד — 2026-06-22 (יום שני)
+- `2026-06-24` [PATTERN_EOD_2026-06-19.md](PATTERN_EOD_2026-06-19.md) — MEMS26 · דוח EOD מאוחד — 2026-06-19
+- `2026-06-24` [MISSED_TRADES_2026-06-23.md](MISSED_TRADES_2026-06-23.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-23 (EOD · Cowork autonomous)
+- `2026-06-24` [MISSED_TRADES_2026-06-22.md](MISSED_TRADES_2026-06-22.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-22 (EOD · Cowork autonomous)
+- `2026-06-24` [MISSED_TRADES_2026-06-19.md](MISSED_TRADES_2026-06-19.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-19 (EOD · Cowork autonomous)
+- `2026-06-24` [DESIGNS_2026-06-23.md](DESIGNS_2026-06-23.md) — MEMS26 · טיוטות-עיצוב — 2026-06-23
+- `2026-06-24` [DESIGNS_2026-06-22.md](DESIGNS_2026-06-22.md) — MEMS26 · טיוטות-עיצוב — 2026-06-22
+- `2026-06-24` [DESIGNS_2026-06-19.md](DESIGNS_2026-06-19.md) — MEMS26 · טיוטות-עיצוב — 2026-06-19
+- `2026-06-24` [CASCADE_AUDIT_S1_S2_S4_2026-06-23.md](CASCADE_AUDIT_S1_S2_S4_2026-06-23.md) — Cascade Audit — S1 → S2/S4 → Targets (2026-06-23)
+- `2026-06-19` [PATTERN_EOD_2026-06-18.md](PATTERN_EOD_2026-06-18.md) — MEMS26 · דוח EOD מאוחד — 2026-06-18
+- `2026-06-19` [PATTERN_EOD_2026-06-16.md](PATTERN_EOD_2026-06-16.md) — MEMS26 · דוח EOD מאוחד — 2026-06-16
+- `2026-06-19` [PATTERN_EOD_2026-06-15.md](PATTERN_EOD_2026-06-15.md) — MEMS26 · דוח EOD מאוחד — 2026-06-15
+- `2026-06-19` [MISSED_TRADES_2026-06-18.md](MISSED_TRADES_2026-06-18.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-18 (EOD · Cowork autonomous)
+- `2026-06-19` [MISSED_TRADES_2026-06-16.md](MISSED_TRADES_2026-06-16.md) — ניתוח עסקאות-שלא-בוצעו · 2026-06-16 (EOD · Cowork autonomous)
+- `2026-06-19` [DESIGNS_2026-06-18.md](DESIGNS_2026-06-18.md) — MEMS26 · טיוטות-עיצוב — 2026-06-18
+- `2026-06-19` [DESIGNS_2026-06-16.md](DESIGNS_2026-06-16.md) — MEMS26 · טיוטות-עיצוב — 2026-06-16
+- `2026-06-19` [DESIGNS_2026-06-15.md](DESIGNS_2026-06-15.md) — MEMS26 · טיוטות-עיצוב — 2026-06-15
+- `2026-06-15` [MARKER_INTEGRATION_2026-06-15.md](MARKER_INTEGRATION_2026-06-15.md) — MEMS26 · שילוב כלי-הסימון + חידוד-תבניות + מוכנות — 2026-06-15
+- `2026-06-12` [TRADE_AUDIT_S2_S4_2026-06-11.md](TRADE_AUDIT_S2_S4_2026-06-11.md) — Trade Audit · S2 Silence · S4 Deep · 2026-06-11
+- `2026-06-12` [TRADE_ANALYSIS_RECOMMENDATIONS_2026-06-11.md](TRADE_ANALYSIS_RECOMMENDATIONS_2026-06-11.md) — ניתוח עסקאות + המלצות נקודתיות — S2/S4 (2026-06-11)
+- `2026-06-12` [SIM_0611_ANCHOR_TRIAL_2026-06-12.md](SIM_0611_ANCHOR_TRIAL_2026-06-12.md) — סימולציית 06-11 — שלוש תצורות (BASE / CAPS / CAPS+T2) · 2026-06-12 02:00
+- `2026-06-12` [S2_WHY_NOT_FIRED_REPLAY_2026-06-11.md](S2_WHY_NOT_FIRED_REPLAY_2026-06-11.md) — למה כל תבנית S2 לא ירתה — Replay אנליטי על הברים האמיתיים של 06-11
+- `2026-06-12` [PATTERN_EOD_2026-06-12.md](PATTERN_EOD_2026-06-12.md) — MEMS26 · דוח EOD מאוחד — 2026-06-12
+- `2026-06-12` [PATTERN_EOD_2026-06-11.md](PATTERN_EOD_2026-06-11.md) — MEMS26 · דוח EOD מאוחד — 2026-06-11
+- `2026-06-12` [PATTERN_EOD_2026-06-10.md](PATTERN_EOD_2026-06-10.md) — MEMS26 · דוח EOD מאוחד — 2026-06-10
+- `2026-06-12` [PATTERN_DIAG_2026-06-10.md](PATTERN_DIAG_2026-06-10.md) — MEMS26 · Pattern Firing Diagnostics — 2026-06-10
+- `2026-06-12` [NIGHT_2026-06-12.md](NIGHT_2026-06-12.md) — Night Report — 2026-06-12
+- `2026-06-12` [MORNING_PREP_2026-06-12.md](MORNING_PREP_2026-06-12.md) — Morning Prep — Anchor Trial 2026-06-12
+- `2026-06-12` [INSIGHTS_UNIFIED_2026-06-11.md](INSIGHTS_UNIFIED_2026-06-11.md) — איחוד כל התובנות — יום העבודה 2026-06-11 + מפת מסמכים
+- `2026-06-12` [DESIGNS_2026-06-10.md](DESIGNS_2026-06-10.md) — MEMS26 · טיוטות-עיצוב — 2026-06-10
+- `2026-06-10` [PATTERN_EOD_2026-06-09.md](PATTERN_EOD_2026-06-09.md) — MEMS26 · דוח EOD מאוחד — 2026-06-09
+- `2026-06-10` [PATTERN_DIAG_2026-06-09.md](PATTERN_DIAG_2026-06-09.md) — MEMS26 Pattern Diagnostics — 2026-06-09
+- `2026-06-10` [DESIGNS_2026-06-09.md](DESIGNS_2026-06-09.md) — MEMS26 · טיוטות-עיצוב — 2026-06-09
+- `2026-06-09` [S1_S2_ATR_NORMALIZATION_RESEARCH_2026-05-31.md](S1_S2_ATR_NORMALIZATION_RESEARCH_2026-05-31.md) — מחקר — המרת ספים מוחלטים ליחסיים (ATR) במערכת MES 5‑דק'
+- `2026-06-09` [RESEARCH_02_S2_PATTERNS_ATR_2026-05-31.md](RESEARCH_02_S2_PATTERNS_ATR_2026-05-31.md) — RESEARCH 02 — כיול ספי S2 (תבניות/stops) ליחסי ATR
+- `2026-06-09` [PATTERN_EOD_2026-06-08.md](PATTERN_EOD_2026-06-08.md) — PATTERN EOD · 2026-06-08 (יום שני) — דוח סוף-יום מאוחד
+- `2026-06-09` [PATTERN_DIAG_2026-06-08.md](PATTERN_DIAG_2026-06-08.md) — PATTERN_DIAG — 2026-06-08
+- `2026-06-09` [PATTERN_DIAG_2026-06-05.md](PATTERN_DIAG_2026-06-05.md) — Pattern Firing Diagnostics — 2026-06-05 (RTH 08:30–15:00 CT)
+- `2026-06-09` [FULL_PATH_MEGA_TABLE_2026-05-31.md](FULL_PATH_MEGA_TABLE_2026-05-31.md) — סט# MEMS26 Full Path Mega Table — Code vs Spec End-to-End Audit
+- `2026-06-09` [EOD_FIRE_ANALYSIS_2026-06-03.md](EOD_FIRE_ANALYSIS_2026-06-03.md) — EOD Fire Analysis — 2026-06-03 (Agent B, SHADOW)
+- `2026-06-09` [DESIGNS_2026-06-08.md](DESIGNS_2026-06-08.md) — טיוטות-עיצוב — 2026-06-08
+- `2026-06-09` [CALIBRATION_MATRIX_CURRENT_VS_RECOMMENDED_2026-05-31.md](CALIBRATION_MATRIX_CURRENT_VS_RECOMMENDED_2026-05-31.md) — טבלה מאוחדת — מצב קיים מול המלצה (S1/S2/S3 + CVD/ATR)
+- `2026-06-07` [T1_LADDER_RESEARCH_2026-06-07.md](T1_LADDER_RESEARCH_2026-06-07.md) — מחקר: מיקום T1 כפונקציה של גודל-הסטופ (סולם יורד) — 2026-06-07
+- `2026-05-31` [GAP4_MAX_CONTRACTS_AUDIT_2026-05-31.md](GAP4_MAX_CONTRACTS_AUDIT_2026-05-31.md) — GAP-4: MAX_CONTRACTS Enforcement — Audit Report
+- `2026-05-31` [GAP3_RR_SELECTION_AUDIT_2026-05-31.md](GAP3_RR_SELECTION_AUDIT_2026-05-31.md) — GAP-3: R:R Fire Selection — Audit Report
+- `2026-05-29` [END_OF_DAY_TRADING_REPORT_2026-05-29.md](END_OF_DAY_TRADING_REPORT_2026-05-29.md) — End of Day Trading Report · 2026-05-29
+- `2026-05-29` [DIAGNOSIS_IB_GROUND_TRUTH_DIVERGENCE_2026-05-28.md](DIAGNOSIS_IB_GROUND_TRUTH_DIVERGENCE_2026-05-28.md) — DIAGNOSIS — Initial Balance Ground Truth Divergence (2026-05-28)
+- `2026-05-23` [PROMPT_P31_JOURNAL_PNL_AND_S2.md](PROMPT_P31_JOURNAL_PNL_AND_S2.md) — P31 — Journal P&L (range / MFE / MAE / legs) + S2 Five-Min
+- `2026-05-23` [P30_L4_RISK_AUDIT.md](P30_L4_RISK_AUDIT.md) — P30 L4 — Risk Surface Audit (#14)
+- `2026-05-18` [SYSTEM_COMPLETION_CONTROL_BOARD.md](SYSTEM_COMPLETION_CONTROL_BOARD.md) — System Completion Control Board
+- `2026-05-18` [PROMPT_LIST_TO_LIVE.md](PROMPT_LIST_TO_LIVE.md) — **Status:** living document — update as the project advances
+- `2026-05-18` [NEXT_CHAT_PROMPT_2026-05-17.md](NEXT_CHAT_PROMPT_2026-05-17.md) — **Status:** living document — supersedes `NEXT_CHAT_PROMPT.md` for sessions on/after 2026-05-17
+- `2026-05-18` [GANTT_TO_LIVE.md](GANTT_TO_LIVE.md) — **Status:** living document — update as the project advances
