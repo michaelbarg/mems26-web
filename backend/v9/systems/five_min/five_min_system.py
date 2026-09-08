@@ -2340,11 +2340,32 @@ class FiveMinSystem(BaseV9TradingSystem):
                             _ra_tpo = _load_sierra_tpo() or {}
                         except Exception:
                             pass
-                        # Enrich bars with delta from DB
+                        # Enrich bars with delta from DB (the buffer carries
+                        # {ts,o,h,l,c,v} ONLY — detect() needs delta and vol).
+                        from backend.v9.db.read import read_all as _ra_read
+                        _ra_dm = {}
+                        try:
+                            _ra_dm = {_canon_bar_ts(r["ts"]): float(r["delta"])
+                                      for r in (_ra_read(
+                                          "SELECT ts, delta FROM v9_bars_cumulative_delta "
+                                          "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+                                          "(now() AT TIME ZONE 'America/New_York')::date "
+                                          "ORDER BY ts", {}) or [])
+                                      if r.get("delta") is not None}
+                        except Exception as _ra_dberr:
+                            logger.warning("[RE_ACCEPTANCE] delta read failed: %s", _ra_dberr)
                         _ra_bars = []
                         for _rb in _det_buf:
-                            _rd = {k: v for k, v in _rb.items()}
+                            _rd = dict(_rb)
+                            _rd["delta"] = _ra_dm.get(_canon_bar_ts(_rb.get("ts")))
+                            if _rd.get("vol") is None:
+                                _rd["vol"] = _rb.get("v", _rb.get("volume"))
                             _ra_bars.append(_rd)
+                        _ra_hit = sum(1 for b in _ra_bars if b.get("delta") is not None)
+                        if _ra_hit == 0:
+                            logger.warning(
+                                "[RE_ACCEPTANCE] 0/%d bars got delta (map=%d) — detector inert",
+                                len(_ra_bars), len(_ra_dm))
                         _ra_trig = _ra_detect(
                             _ra_bars,
                             ib_high=float(_ra_tpo.get("ib_high") or 0) or None,

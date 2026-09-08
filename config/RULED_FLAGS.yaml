@@ -70,8 +70,8 @@ ruled:
   DELTA_BREAKOUT_RELEASE_V1: {expected: "shadow", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §7: שחרור-על-דלתא — מסלול שני ב-release_gate. תנאי-הדלקה מכני: שחזור 10 ימים, t1_before_stop≥60% על n≥10 + 03.09 18:00 + 04.09 17:40' }
   ELQ_LEG_FROM_BREAK_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-09-06", note: 'CC_TUESDAY_2026-09-06.md §5: פסיקת 28.08 — הפלייבוק ref_points: [broken_IB_edge,...]. leg_base=broken IB edge, לא session extreme' }
   ZLR_SHADOW_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-09-07", note: 'פסיקת-מייקל 15:20: ZLR n=12 Σ−385 ברוקר. צל לשבוע, GATE_REPLAY_2026-09-07. מתקנים ולא מבטלים' }
-  RE_ACCEPTANCE_V1:        {expected: "shadow", ruled_by: "מייקל", date: "2026-09-06", note: '06.09: נעזרים בקולמטיב/ווליום כדי להיכנס בזמן · 07.09: תבניות ושלבי-כניסה לפי דלתון · DALTON_EARLY_ENTRY n=4/5 ⇒ צל 20 יום' }
-  FAILED_RE_IB_V1:         {expected: "shadow", ruled_by: "מייקל", date: "2026-09-07", note: 'DALTON_EARLY_ENTRY family III n=5/5 t1 · failed-break וריאנט על IB edges + gap-direction · צל 20 יום' }
+  RE_ACCEPTANCE_V1:        {expected: "shadow", ruled_by: "מייקל", date: "2026-09-06", note: '06.09: נעזרים בקולמטיב/ווליום כדי להיכנס בזמן · 07.09: תבניות ושלבי-כניסה לפי דלתון · DALTON_EARLY_ENTRY n=4/5 ⇒ צל 20 יום. replay: 11 days / 1 fire / +14.25pt (03.09 18:00 LONG@7730.25 IBH)' }
+  FAILED_RE_IB_V1:         {expected: "shadow", ruled_by: "מייקל", date: "2026-09-07", note: 'DALTON_EARLY_ENTRY family III n=5/5 t1 · failed-break וריאנט על IB edges + gap-direction · צל 20 יום. replay: 11 days / 13 fires' }
   STOP_MOVE_TARGET_RESTORE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-09-07", note: 'CC_FIX_DEAD_2026-09-07 §3: ממתין לסים. c{n}_target_price לא נכתב, DLL key=id לא order_id. =0 במוצהר עד אימות-סים' }
   PATTERN_RISK_CAPS:      {expected: "1", ruled_by: "מייקל", date: "2026-06-12", note: 'תקרות סיכון פר-תבנית' }
   DAYTYPE_PLAYBOOK:       {expected: "1", ruled_by: "מייקל", date: "2026-06-19", note: 'פלייבוק תבנית×יום; 07-08 חסם counter-trend נכון' }

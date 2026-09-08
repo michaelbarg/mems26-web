@@ -2667,6 +2667,11 @@ class TradingGateway:
                         # Re-build bars with delta
                         _rg_bars = _rg.bars_from_rows(list(reversed(_rg_rows or [])),
                                                        delta_map=_rg_delta_map)
+                    elif os.getenv("DELTA_BREAKOUT_RELEASE_V1", "0").lower() in ("1", "shadow", "true", "yes"):
+                        _rg_hit = sum(1 for b in _rg_bars if getattr(b, 'delta', None) is not None)
+                        if _rg_hit == 0:
+                            logger.warning("[ReleaseGate] §7 0/%d bars got delta (map=%d) — detector inert",
+                                           len(_rg_bars), len(_rg_delta_map))
                     _rg_v = _rg.check_release(_rg_bars, direction,
                                                accepted_break=_rg_ab)
                     if not _rg_v.released:
