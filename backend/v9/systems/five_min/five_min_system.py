@@ -2288,6 +2288,88 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _fb_err:
                     logger.warning("[FailedBreak] failed (non-fatal): %s", _fb_err)
 
+                # FAILED_RE_IB_V1: variant on IB edges (not VA) + gap-direction filter.
+                # Dalton p.98/106: "two periods fail to extend → one-timeframe".
+                # Target = IB-mid. Shadow only. Basis: DALTON_EARLY_ENTRY n=5/5 t1.
+                try:
+                    if (os.getenv("FAILED_RE_IB_V1", "0").lower() in ("1", "true", "yes", "shadow")
+                            and self._gateway):
+                        from backend.v9.systems.failed_break import (
+                            detect_failed_break as _fb_ib_detect,
+                            build_failed_break_setup as _fb_ib_build)
+                        _fb_ibh = _fb_ibl = None
+                        try:
+                            _fb_ib_tpo = _load_sierra_tpo() or {}
+                            _fb_ibh = float(_fb_ib_tpo.get("ib_high") or 0) or None
+                            _fb_ibl = float(_fb_ib_tpo.get("ib_low") or 0) or None
+                        except Exception:
+                            pass
+                        if _fb_ibh and _fb_ibl:
+                            if not hasattr(self, "_fb_ib_fired"):
+                                self._fb_ib_fired = set()
+                            _fb_ib_trig = _fb_ib_detect(
+                                _det_buf, _fb_ibh, _fb_ibl,
+                                edge_label="IB", already_fired=self._fb_ib_fired)
+                            if _fb_ib_trig:
+                                self._fb_ib_fired.add(_fb_ib_trig["type"])
+                                _fb_ib_setup = _fb_ib_build(_fb_ib_trig)
+                                # Override target to IB-mid (Dalton p.98)
+                                _fb_ib_mid = round((_fb_ibh + _fb_ibl) / 2.0, 2)
+                                _fb_ib_setup["t1"] = _fb_ib_mid
+                                _fb_ib_setup["classification"] = "FAILED_RE_IB"
+                                _fb_ib_setup["pattern"] = "FAILED_RE_IB"
+                                _fb_ib_setup["metadata"]["source"] = "failed_re_ib_v1"
+                                logger.warning(
+                                    "[FailedBreak-IB] %s %s @%.2f (IBH=%.2f IBL=%.2f "
+                                    "extreme=%.2f t1=IB-mid %.2f) → gateway",
+                                    _fb_ib_trig["direction"], _fb_ib_trig["type"],
+                                    _fb_ib_trig["entry"], _fb_ibh, _fb_ibl,
+                                    _fb_ib_trig.get("failed_extreme", 0), _fb_ib_mid)
+                                self._gateway.route_setup(_fb_ib_setup, 2)
+                except Exception as _fb_ib_err:
+                    logger.warning("[FailedBreak-IB] failed (non-fatal): %s", _fb_ib_err)
+
+                # RE_ACCEPTANCE_V1: "bar of acceptance" detector (Dalton p.84/88).
+                # Shadow only. |delta|≥0.7×max ∧ vol≥0.7×max ∧ close extreme ∧ crosses edge ∧ with gap.
+                try:
+                    from backend.v9.systems.re_acceptance import (
+                        enabled as _ra_enabled, detect as _ra_detect, build_setup as _ra_build)
+                    if _ra_enabled() and self._gateway:
+                        _ra_tpo = {}
+                        try:
+                            _ra_tpo = _load_sierra_tpo() or {}
+                        except Exception:
+                            pass
+                        # Enrich bars with delta from DB
+                        _ra_bars = []
+                        for _rb in _det_buf:
+                            _rd = {k: v for k, v in _rb.items()}
+                            _ra_bars.append(_rd)
+                        _ra_trig = _ra_detect(
+                            _ra_bars,
+                            ib_high=float(_ra_tpo.get("ib_high") or 0) or None,
+                            ib_low=float(_ra_tpo.get("ib_low") or 0) or None,
+                            vah=float(_ra_tpo.get("vah") or 0) or None,
+                            val=float(_ra_tpo.get("val") or 0) or None,
+                            open_price=float(_ra_tpo.get("session_open") or
+                                             (_det_buf[0].get("o") if _det_buf else 0) or 0) or None,
+                        )
+                        if _ra_trig:
+                            if not hasattr(self, "_ra_fired"):
+                                self._ra_fired = False
+                            if not self._ra_fired:
+                                self._ra_fired = True
+                                _ra_setup = _ra_build(_ra_trig)
+                                logger.warning(
+                                    "[RE_ACCEPTANCE] %s @%.2f edge=%s delta_frac=%.2f "
+                                    "vol_frac=%.2f → gateway (shadow)",
+                                    _ra_trig["direction"], _ra_trig["entry"],
+                                    _ra_trig.get("edge"), _ra_trig.get("delta_frac", 0),
+                                    _ra_trig.get("vol_frac", 0))
+                                self._gateway.route_setup(_ra_setup, 2)
+                except Exception as _ra_err:
+                    logger.warning("[RE_ACCEPTANCE] failed (non-fatal): %s", _ra_err)
+
         # ── DALTON_EDGE_V1 (T-118, Michael a65f13aa 28.08): Dalton-termination
         # reversal — all-session (FIRST_HOUR + DAY_TYPE modes), every new
         # closed bar, before the Nontrend skip. See _maybe_dalton_edge.
