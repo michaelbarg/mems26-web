@@ -1628,6 +1628,62 @@ class FiveMinSystem(BaseV9TradingSystem):
         except Exception as e:
             logger.warning("[RE_ACCEPTANCE] failed (non-fatal): %s", e)
 
+    def _maybe_va_fade(self) -> None:
+        """VA_FADE_V1: value-area rotation generator — ALL SESSION.
+
+        T-285 (cc-macbook 09.09 20:43) found this detector had produced
+        **0 decisions in every archive**. It was not broken and not blocked:
+        it was wired INSIDE the FIRST_HOUR_TACTICAL block, and by the time a
+        value area is established the first hour is over — so the code could
+        never run on a bar that could satisfy it. Extracted here on the same
+        cadence as _maybe_dalton_edge / _maybe_failed_re_ib /
+        _maybe_re_acceptance: all-session, once per newly closed bar.
+
+        Shadow regardless of flag value: `build_va_fade_setup` (va_fade.py:170)
+        forces `metadata.shadow_only=True`, locked by
+        tests/v9/regression/test_va_fade_shadow_only.py. Moving the CALL SITE
+        therefore cannot route a live order — it only lets the detector be
+        MEASURED for the first time. Live is a separate Michael ruling.
+        """
+        if os.getenv("VA_FADE_V1", "0").lower() not in ("1", "true", "yes", "shadow"):
+            return
+        if not self._gateway:
+            return
+        try:
+            from backend.v9.systems.va_fade import (
+                detect_va_fade, build_va_fade_setup)
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            tpo = _load_sierra_tpo() or {}
+            vah = float(tpo.get("vah") or 0) or None
+            val = float(tpo.get("val") or 0) or None
+            if not (vah and val):
+                return
+            # Same live-day-type resolution the nested call site used.
+            _vf_dt = self.current_day_type
+            try:
+                from backend.v9.systems.day_type.live_day_type import get_live_day_type
+                _live = get_live_day_type()
+                if _live:
+                    _vf_dt = _live
+            except Exception:
+                pass
+            # T-252: never re-run the detector on the still-building bar.
+            _buf = (self._bar_buffer[:-1]
+                    if len(self._bar_buffer) >= 8 else self._bar_buffer)
+            if not hasattr(self, "_vf_fired"):
+                self._vf_fired = set()
+            trig = detect_va_fade(_buf, _vf_dt, vah, val,
+                                  already_fired=self._vf_fired)
+            if trig:
+                self._vf_fired.add(trig["type"])
+                setup = build_va_fade_setup(trig)
+                logger.warning(
+                    "[VA_FADE] %s %s @%.2f (VAH=%.2f VAL=%.2f) → gateway (shadow)",
+                    trig["direction"], trig["type"], trig["entry"], vah, val)
+                self._gateway.route_setup(setup, 2)
+        except Exception as e:
+            logger.warning("[VA_FADE] failed (non-fatal): %s", e)
+
     def _maybe_ceiling_floor_state(self) -> None:
         """CEILING_FLOOR_STATE_V1 (Michael 2026-08-28, ב-1 of CC_SUNDAY_BUILD):
         detect a double ceiling / double floor that FAILED TO ADVANCE.
@@ -2337,40 +2393,15 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _ef_err:
                     logger.warning("[FiveMin] edge-fade failed (non-fatal): %s", _ef_err)
 
-                # ── VA_FADE_V1 (Phase 2): value-area rotation generator ──
-                # Dalton doctrine: on balance days, buy VAL rejection, sell VAH
-                # rejection, target the middle. 25.08 anchor: 4 rotations, zero
-                # doctrine-fires. This is the GENERATOR, not a filter.
-                try:
-                    if (os.getenv("VA_FADE_V1", "0").lower() in ("1", "true", "yes", "shadow")
-                            and self._gateway):
-                        from backend.v9.systems.va_fade import (
-                            detect_va_fade, build_va_fade_setup)
-                        # Get VAH/VAL from TPO
-                        _vf_vah = _vf_val = None
-                        try:
-                            _vf_tpo = _load_sierra_tpo() or {}
-                            _vf_vah = float(_vf_tpo.get("vah") or 0) or None
-                            _vf_val = float(_vf_tpo.get("val") or 0) or None
-                        except Exception:
-                            pass
-                        if _vf_vah and _vf_val:
-                            if not hasattr(self, "_vf_fired"):
-                                self._vf_fired = set()
-                            _vf_trig = detect_va_fade(
-                                _det_buf, _s2_det_dt,
-                                _vf_vah, _vf_val,
-                                already_fired=self._vf_fired)
-                            if _vf_trig:
-                                self._vf_fired.add(_vf_trig["type"])
-                                _vf_setup = build_va_fade_setup(_vf_trig)
-                                logger.warning(
-                                    "[VA_FADE] %s %s @%.2f (VAH=%.2f VAL=%.2f) → gateway",
-                                    _vf_trig["direction"], _vf_trig["type"],
-                                    _vf_trig["entry"], _vf_vah, _vf_val)
-                                self._gateway.route_setup(_vf_setup, 2)
-                except Exception as _vf_err:
-                    logger.warning("[VA_FADE] failed (non-fatal): %s", _vf_err)
+                # ── VA_FADE_V1 — MOVED OUT of this block (T-285, cowork 09.09) ──
+                # This is where the value-area rotation generator used to be
+                # called. Nested under FIRST_HOUR_TACTICAL it produced 0
+                # decisions in every archive ever recorded: a value area is not
+                # established until well after the first hour, so the detector
+                # could never see a bar that satisfied it. It now runs
+                # all-session in `_maybe_va_fade()`, called next to
+                # _maybe_dalton_edge. Do not re-nest a detector here — see
+                # tests/v9/regression/test_detector_placement.py.
 
                 # ── FAILED_BREAK_VA_V1: entry after failed attempt to break VA edge ──
                 # Michael 26.08: "לזהות מתי המחיר לא מצליח לעבור קיצון ואז חוזר חזרה"
@@ -2411,6 +2442,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self._maybe_dalton_edge()
         self._maybe_failed_re_ib()
         self._maybe_re_acceptance()
+        self._maybe_va_fade()   # T-285: was nested under FIRST_HOUR → 0 decisions ever
 
         # ── CEILING_FLOOR_STATE_V1 (Michael 28.08, CC_SUNDAY_BUILD ב-1):
         # double-ceiling / double-floor failure state. Detection + reporting

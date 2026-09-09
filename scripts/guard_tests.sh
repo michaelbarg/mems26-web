@@ -60,6 +60,11 @@ GUARDS=(
   tests/v9/regression/test_opening_ladder_and_reject.py
   tests/v9/regression/test_dalton_edge_compass_exempt.py
   tests/v9/regression/test_rr_no_self_inflicted.py
+  # T-284 (09.09, twice — 12:14 and 16:31): a bridge handler that holds an ORM
+  # session across a loop while safe_execute borrows from the SAME pool stops
+  # ingestion for hours, and a restart only resets the clock. This guard covers
+  # the CLASS (every post_ handler in bars.py), not just the handler that fired.
+  backend/v9/tests/test_t284_cvd_no_held_session.py
 )
 
 present=(); missing=()

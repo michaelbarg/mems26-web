@@ -851,40 +851,54 @@ def post_footprint(
 @router.post("/volume_profile")
 def post_volume_profile(
     payload: VolumeProfilePayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
     """Enrich latest 5-min bars with VP POC/VAH/VAL **and** persist the full
     per-price-level profile to ``v9_bars_volume_profile`` for backtest replay.
 
     DB Root Fix (2026-06-03): enrichment UPDATEs and dedicated-table INSERTs
-    go through safe_execute.  ORM db.query kept for READ-ONLY positional match.
+    go through safe_execute.
+
+    T-284 sibling (cowork 09.09 night-repair): this handler had the SAME
+    held-ORM-session shape that wedged the backend twice today (12:14 and
+    16:31) through ``post_cumulative_delta`` — ``Depends(get_db)`` plus a
+    ``db.query(V9Bar5Min)`` whose first SELECT autobegins a transaction and
+    pins its pool connection ``idle in transaction`` for the WHOLE request,
+    while each ``safe_execute`` in the two loops below borrows a SECOND
+    connection from the same pool.  The bridge abandons the HTTP call after
+    15 s and re-POSTs 2 s later, so handlers overlap without bound and the
+    5 + 10 pool is exhausted.  The positional match now goes through
+    ``read_all`` on the AUTOCOMMIT read engine: the rows are materialised
+    up-front into plain tuples, nothing is held across the loops.
+    Fixed sibling: 09928b03.  Evidence: docs/reports/T284_LEAK_SITE_2026-09-09.md.
     """
+    from backend.v9.db.read import read_all  # T-284: AUTOCOMMIT read, no held session
     profiles = payload.profiles or payload.bars
     updated = 0
     skipped = 0
     inserted = 0
 
     if profiles:
-        # READ-ONLY: positional match via ORM (no writes through ORM).
-        latest_bars = (
-            db.query(V9Bar5Min)
-            .order_by(V9Bar5Min.ts.desc())
-            .limit(len(profiles))
-            .all()
+        # READ-ONLY positional match (T-284: autocommit read, materialised
+        # immediately — no ORM session, no transaction held across the loops).
+        _vp_rows = read_all(
+            "SELECT id, poc_vol, vah, val FROM v9_bars_5min "
+            "ORDER BY ts DESC LIMIT :lim",
+            {"lim": len(profiles)},
         )
-        latest_bars = list(reversed(latest_bars))
+        latest_bars = list(reversed([dict(r._mapping) if hasattr(r, "_mapping")
+                                     else dict(r) for r in _vp_rows]))
 
         offset = max(0, len(latest_bars) - len(profiles))
         for i, prof in enumerate(profiles[-len(latest_bars):]) if latest_bars else enumerate([]):
             row = latest_bars[i + offset] if i + offset < len(latest_bars) else None
             if row is not None:
-                new_poc = prof.get("poc_vol", row.poc_vol)
-                new_vah = prof.get("vah", row.vah)
-                new_val = prof.get("val", row.val)
+                new_poc = prof.get("poc_vol", row["poc_vol"])
+                new_vah = prof.get("vah", row["vah"])
+                new_val = prof.get("val", row["val"])
                 safe_execute(
                     "UPDATE v9_bars_5min SET poc_vol=?, vah=?, val=? WHERE id=?",
-                    (new_poc, new_vah, new_val, row.id),
+                    (new_poc, new_vah, new_val, row["id"]),
                 )
                 updated += 1
             else:
@@ -1255,10 +1269,16 @@ def _sticky_zlr(ts_iso: str, zlr_flag: int, zlr_dir):
 @router.post("/woodies_5min")
 def post_woodies_5min(
     payload: Woodies5MinPayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
     """D-074: Woodies 5-min bars — primary S4 data path.
+
+    T-284 sibling (cowork 09.09 night-repair): the `db: Session = Depends(get_db)`
+    parameter was **dead** — 280 lines and not one use of it (the reads already
+    go through `read_one` on the AUTOCOMMIT engine). It still cost a pooled
+    connection per request on the single hottest ingest path in the system
+    (`v9_bars_5min_woodies` is the live source of truth), competing with the
+    `safe_execute` writes in the same body for the same 5+10 pool. Removed.
 
     Same payload shape as /woodies (legacy 30-min) but persisted to
     v9_bars_5min_woodies and routed as topic 'woodies_5min'.
