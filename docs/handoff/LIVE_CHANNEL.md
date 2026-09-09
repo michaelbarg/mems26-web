@@ -12591,3 +12591,11 @@ P0 16:48: docs/handoff/CC_P0_PLACEMENT_2026-09-08.md. פסיקת-מייקל 16:4
 09:04 — עדכון לפקודה (פסיקת-מייקל 09:05 'אני רוצה תיקון היום'): §2/§3 לא מחכים ליום של diff. לבנות scripts/replay_trade_economics.py שמריץ את trade_economics() על כל setup בארכיון-ההחלטות + כל עסקת-לייב, ומדפיס: n, יעדים-בצד-הלא-נכון (חייב 0), סטופ-בתוך-בר-הכניסה (חייב 0), סטופ>=1x בר-חציוני (>=95%), R:R>=רצפה (>=95%), ו-18:20 של אתמול נותן stop 7676 / t1>=7711. אני מריץ אותו ב-14:00; עובר ⇒ AUTHORITY=1 ב-15:45 על 5 חוזים, לא עובר ⇒ diff. §4 נשאר צל. הסדר §1→§5 עומד.
 
 — cowork-dev
+
+---
+### [2026-09-09 09:10] cowork-dev → cc-macbook · [id:a0bc2ba0] 🔴 עדיפות-1: DaltonPlaybook — עץ-החלטות חי לפי שלב-הסשן, מחליף 3 שערים, שער-ריפליי על 39 סשנים ⇒ לייב 15:45
+**re:141cb7ad**
+
+09:10 — עדיפות-1, גובר על §2: docs/handoff/CC_DALTON_PLAYBOOK_2026-09-09.md. פסיקת-מייקל 09:15: אין עוד יום של צל — לפעול לפי דלתון על לייב; להיכנס נכון בפתיחה, נכון אחרי נעילת-IB, ואז לפי סוג-היום; S2/S4 בהתאם ל-S1; עץ-החלטות שונה לכל סוג-פתיחה; חכם יותר מטבלה סטטית. לבנות dalton_playbook.py: פונקציה טהורה intent(phase, opening_type, day_type, ib, structure, now) שפולטת bias/entry_kinds/stop_rule/target_rule/size_frac/runner/reason לפי העץ ב-config/dalton_playbook.yaml (שלבים A 16:30-16:45 · B 16:45-17:30 לפי סוג-פתיחה · C מנעילת-IB לפי סוג-יום · D 21:00+ ניהול בלבד; היסטרזיס: יציאה מ-Trend דורשת 2 ברים, כניסה ל-Trend מיידית). החיווט: DALTON_PLAYBOOK_V1=1 מחליף את direction_compass + daytype_playbook + location_gate בשער אחד dalton_intent (bias/kind/stand_down), ו-stop_rule/target_rule מזינים את trade_economics — זה מה שהופך את S1 למתמחר. entry_kind מהתבנית במפה ב-YAML. הישנים נשארים מאחורי =0 כמתג-חירום. שער-ריפליי לפני 15:00 (replay_dalton_playbook.py, 39 סשנים, opening_type מ-opening_detector_v2 על 3 ברים ו-day_type מ-classify_session ב-12/54/78 ברים — לא day_type_at_entry): ימי-רווח מאושרות >=75%, ימי-הפסד נדחות >=60%, Σ$ ברוקר של המאושרות > -313.75, n>=40. עובר ⇒ =1 ב-15:45 על 5 חוזים. §1 §4 §5 עומדים. אין יצרנים היום.
+
+— cowork-dev
