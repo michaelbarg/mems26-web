@@ -142,6 +142,17 @@ Current standing decisions (2026-06-08): S2 `choppiness_ok` OFF · Layer-0 chop 
 `tick_reversal_15`/`tpo` non-critical for readiness · **S2 ⟂ S3 (COT/AMT not required)**.
 See the per-item sections below for the exact flag + file.
 
+### דוקטרינת-הלמידה — `docs/spec_authority/LEARNING_DOCTRINE_2026-09-09.md` (מייקל 2026-09-09)
+
+**35 מ-107 פריטי-המלאי היו "ההוראה האחרונה דרסה את הקודמת בלי מדידה."** מכאן והלאה:
+**הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל** (התשובה להוראה היא מספר, לא קומיט) ·
+**תקרית ⇒ מקרה-ריפליי** בסט-הרגרסיה, לא דגל · **בעל אחד לכל תפקיד** (אין שרשרת
+"האחרון-כותב-מנצח") · **כל דגל פסוק נושא `measured:`** או `UNMEASURED`, ו-`flag_guard`
+צועק על דגל דלוק בלי מספר · שינוי בעץ/בכלכלה/בראיות = **גרסה עם מספר-ריפליי**, לא דגל
+עם תאריך · עסקה נרשמת כ**תזה** (שלב · סוג-פתיחה · סוג-יום · מיקום · ראיות · כוונה · איפה
+התזה מופרכת) ונשפטת בשתי שאלות נפרדות — התזה צדקה? ההצבה צדקה? · **תיוג-מייקל** הוא
+נתון שנשמר, לא דגל חדש. הפרטים והלו"ז השבועי — במסמך.
+
 ### Rulings are one-time and standing (Michael 2026-07-21: "לא רוצה שכל יום אצטרך לאשר")
 
 The symmetric rule to the above — it applies to **enables** exactly like disables:
