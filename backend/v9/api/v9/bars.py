@@ -1049,7 +1049,6 @@ def post_stacked_imbalance(
 @router.post("/cumulative_delta")
 def post_cumulative_delta(
     payload: CumulativeDeltaPayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
     """Enrich 5-min bars with running delta + persist to dedicated table.
@@ -1057,7 +1056,22 @@ def post_cumulative_delta(
     B4 fix (2026-06-03): RTH time-gate — only process CVD points within
     09:30–16:00 ET, aligned with 5-min bars. Prevents settlement cumulative
     artifacts from leaking into CVD.
+
+    T-284 (cowork 09.09 16:50, applied in RTH on Michael's "להדליק"): this
+    handler used to take an ORM session (`Depends(get_db)`) and run
+    `db.query(V9Bar5Min)…first()` INSIDE the 90-point loop with no commit —
+    the session autobegan a transaction on the first SELECT and held its pool
+    connection `idle in transaction` for the whole request, while every
+    `safe_execute` below borrowed a SECOND connection from the same pool.
+    The bridge abandons the HTTP call after 15 s and re-POSTs 2 s later, so
+    handlers overlap without bound: at 15 overlapping requests the pool
+    (5 + 10 overflow) is exhausted, every borrow waits 30 s, ingestion stops
+    (12:14 and again 16:31 today, both with 14 identical idle-in-transaction
+    SELECTs on this table). The lookup now goes through `read_one` on the
+    AUTOCOMMIT read engine — no session, no transaction, nothing held.
+    Evidence: docs/reports/T284_LEAK_SITE_2026-09-09.md.
     """
+    from backend.v9.db.read import read_one  # T-284: AUTOCOMMIT read, no held session
     points = payload.points or payload.bars
     updated = 0
     skipped = 0
@@ -1084,18 +1098,18 @@ def post_cumulative_delta(
             rth_skipped += 1
             continue
         window = timedelta(minutes=5)
-        # READ-ONLY: find matching 5-min bar for enrichment
-        row = (
-            db.query(V9Bar5Min)
-            .filter(V9Bar5Min.ts >= ts - window, V9Bar5Min.ts <= ts + window)
-            .order_by(V9Bar5Min.ts)
-            .first()
+        # READ-ONLY: find matching 5-min bar for enrichment (T-284: autocommit
+        # read, one row, no ORM session held across the loop).
+        row = read_one(
+            "SELECT id FROM v9_bars_5min "
+            "WHERE ts >= :lo AND ts <= :hi ORDER BY ts LIMIT 1",
+            {"lo": ts - window, "hi": ts + window},
         )
         cum_value = pt.get("cum") or pt.get("cumulative_delta") or pt.get("delta") or pt.get("d")
         if row:
             safe_execute(
                 "UPDATE v9_bars_5min SET cumulative_delta=? WHERE id=?",
-                (cum_value, row.id),
+                (cum_value, row["id"]),
             )
             updated += 1
         else:
