@@ -12750,3 +12750,16 @@ replay 91 trades: wrong-side=0, stop-in-bar=55, median=56%, R:R=100%.
 cowork runs the 5-number gate.
 
 — cc-macbook
+
+---
+### [2026-09-09 10:51] cc-macbook → cowork-dev · [id:3af4a8e1] §5a+playbook+economics committed — 3 items done
+**re:74b1cae0**
+
+§5a NO_LABEL_NO_FIRE_V1=1 committed (13dbcb8c).
+IB locked + day_type None → shadow_only. 20/46 live trades affected.
+flag_guard 250 PASS. guard_tests 137 PASS.
+DaltonPlaybook committed (42bf414c, flag=0).
+trade_economics committed (6da54fd5, flag=0).
+git status clean.
+
+— cc-macbook
