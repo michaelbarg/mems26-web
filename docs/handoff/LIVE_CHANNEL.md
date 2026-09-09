@@ -1,3 +1,102 @@
+### [2026-09-09 20:25 IL] cowork-scheduled · 🟠 **ניטור-RTH 20:06-20:25 — פוזיציה זרה 6 חוזים בלי הגנה; בריאות ירוקה; אפס חסימה בפועל**
+
+**חובה-1:** אפס ממתינות, **מוכח** — `peek` ישיר מ-Render: `/instruction/pending` ⇒ `{"items":[]}` ·
+`/cmd/pending` ⇒ `{"cmd":null}` · רלה `PID 16109` חי (‏`ps -o lstart` ⇒ `Sun Sep 6 20:38:50`).
+הודעת-מייקל האחרונה בת'רד היא מ-**08.09 15:56Z** ונענתה ב-16:11Z. **אפס ריסטארט מצדי ·
+אפס שינוי `.env`/דגל/קוד · אפס נגיעה בפוזיציה.**
+
+---
+
+**1 · בריאות — ירוקה, T-284 מחזיק**
+
+```
+backend            pid 16477   up Wed Sep  9 18:32:46   (pgrep -f, לא lsof)
+health             http=200    time=0.0015s
+ERROR מ-19:00      0
+QueuePool מ-18:32  0            (אחרון אי-פעם 16:51:58 — שש שניות לפני הריסטארט)
+בר-ווּדיס אחרון    20:05        גיל 4.5 דק'   (timestamptz ⇒ now() חשוף)
+sierra_state.json  mtime = רגע-המדידה   live_price.json ⇒ אותו דבר
+flag_guard         PASS — all 250 ruled flags match
+task_log_guard     ✅ current, structured, and the only one
+```
+
+הגייטוויי חי ועובד: 1,520 שורות-לוג מ-20:00, `BarLevelDetector` מעדכן `T1 HIT` בזמן-אמת.
+
+---
+
+**2 · הממצא — פוזיציה ידנית 6 חוזים LONG, בלי שום פקודת-הגנה** ⚠️ **T-287 (חדש)**
+
+```
+position_qty 6   avg_price 7648.00   working_orders 0   orders []
+open_pnl -45.00 (היה -262 ב-20:01)   acct_daily_pl +322.50   daily_total_qty_filled 82
+```
+
+**בעלות הוכחה ולא הוסקה, בתקן T-273** — `strings TradeActivityLog_2026-09-09_UTC.37138283.data`:
+
+| מקור-פקודה | ספירה |
+|---|---|
+| `Auto-trade` | 6 |
+| `MES AI Data Export` | 6 |
+| `Trade DOM/User order entry` | **18** |
+
+ששת ה-`Auto-trade` הן **אירוע אחד** — `BuyEntry` בבר `11:05:00` `Last: 7643`, כלומר
+עסקת-הלייב שלנו `#1328` (הפער 5 שעות = סטיית-הייצוא של T-265). השורה **האחרונה** בלוג:
+`#2 | Trade DOM/User order entry | Last: 7648 | AOE=false | AOU=false`, ומסלול-הפוזיציה
+מסתיים ב-`Updated Internal Position Quantity to 6. Previous: 0`.
+⇒ **ה-6 נפתחו ידנית מה-DOM ב-7648.**
+⚠️ שם-המשתמש הוא לוגין-סיירה המשותף (`MichaelBarg`×7 / `MichaelBargi`×19) ⇒ **אינו מבחין
+בין מייקל לאתי**; לא טוענים מי.
+
+**ספרינו נקיים — שלושה עוגנים בלתי-תלויים:**
+`v9_trades` live פתוחות (`exit_ts IS NULL AND state NOT IN ('CANCELLED')`) ⇒ **0** ·
+`system6/diagnose` ⇒ `live_open_ids=[]`, `slot_trade_id=null`, `alarm=false`, `"live slot is free"` ·
+`grep "LIVE trade TM id"` היום ⇒ **שורה אחת** (`#1328` 19:05:04 → 19:07:48 STOP ‎−$40) ·
+`Reconcile AGREED_FLAT position_qty=0` ב-**19:07:47** ⇒ הפוזיציה נולדה אחרי שיצאנו.
+
+**מפריד מבני:** ‏6 > 5 — `FIXED_CONTRACTS_5=1` וברקט-ACSIL חסום ל-5 ⇒ המערכת **אינה יכולה**
+לפתוח 6.
+
+---
+
+**3 · שתי הכרזות-חסימה, ואף אחת אינה נאכפת — הכלל של T-205/T-223 הופעל הפעם**
+
+| הכרזה בלוג | הדגל | הצרכן | בפועל |
+|---|---|---|---|
+| `T-43 … BLOCKING new entries` (19:50:42) | `POSITION_MISMATCH_BLOCK_V1=0` (`.env:631`, ‏`RULED_FLAGS:385 expected "0"`) | `trading_gateway.py:4241` נכנס רק אם דלוק | `grep -c "blocking LIVE entry"` ⇒ **0** |
+| `Cooldown … until 17:32Z` (31 הדלקות היום) | `COOLDOWN_2STOP_V1` לא-מוגדר | `cooldown.py:is_blocked()` ⇒ `False` (פסיקת-מייקל 02.07) | `grep -c "blocked_by=cooldown"` ⇒ **0** |
+
+⇒ **הלייב לא היה חסום באף רגע.** לא דיווחתי "חסום" — זו בדיוק מחלקת-הטעות של T-223.
+
+**ומה שפעל נכון:** `ORPHAN_AUTO_FLATTEN_V1` אינו ב-`.env` (`grep -c` ⇒ 0) וברירת-המחדל
+בקוד `"0"` (`:545-550`) ⇒ הלוג עצמו כותב `NOT flattening (ruling 07-28)`. **אפס נגיעה
+בפוזיציה.**
+
+**הפגם שנפתח כ-T-287:** ‏`sierra_position_reconciler.py:1134-1139` מקבע בהודעה
+`"no manual trading per ruling 08-24"` **בלי** להתייעץ ב-`RECONCILER_OWNERSHIP_AWARE_V1`
+(`.env:422`=**1**) ⇒ ב-20:01:46 יצא `CRITICAL ORPHAN STOP BREACHED` על פוזיציה זרה,
+עם כיוון-חקירה שקרי ("היציאה שלנו לא בוצעה"). **הצעד הבא ל-cc** רשום ב-T-287.
+
+---
+
+**4 · מרג'ין (T-34) — דיווח בלבד, לא שיניתי דבר**
+
+`acct_available_funds=1953.95` **מעל** סף $1,595, אך הפוזיציה הזרה כובלת
+`acct_margin_req=1718.64` ⇒ כרית של **~$359** בלבד לפני חצייה. אם ה-6 יזוזו ~1.2 נק' נגד,
+הסף נחצה. לא נגעתי ב-`.env` (כנדרש: דיווח בלבד).
+
+---
+
+**5 · ספרים היום (חלקי — RTH פתוח)**
+
+לייב: **עסקה אחת**, `#1328` VEGAS LONG 19:05:06 @7643.25 → 19:07:48 @7639.25 `STOP_HIT`,
+‎**−$40** (‏`pnl_sierra` ריק). צל: **37**. ‏`acct_daily_pl` **+$322.50** — הפער מול ספרינו
+הוא המסחר-הידני; לא מצטט פיצול מדויק (‏`Closed Trade Profit/Loss` מופיע כפול בבינארי,
+ולא אימתתי סכימה — T-227).
+
+**— cowork-scheduled, 2026-09-09 20:25 IL**
+
+---
+
 ### [2026-09-09 18:46 IL] cowork-scheduled · 🟠 **ניטור-RTH 18:36-18:50 — ריסטארט שלא שלי בתוך החלון-האסור, ופיגור שני-ברים בין סוג-היום לשער**
 
 **חובה-1:** אפס ממתינות, מוכח — peek ישיר מ-Render: `/instruction/pending` ⇒ `{"items":[]}` ·
