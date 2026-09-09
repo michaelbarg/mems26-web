@@ -65,6 +65,9 @@ GUARDS=(
   # ingestion for hours, and a restart only resets the clock. This guard covers
   # the CLASS (every post_ handler in bars.py), not just the handler that fired.
   backend/v9/tests/test_t284_cvd_no_held_session.py
+  # G-71 class: a restart during the IB window must not resurrect
+  # yesterday's locked IB (09.09 16:54:52 hydrated 08.09's 7717.75/7680).
+  tests/v9/regression/test_tpo_ib_sanity_on_hydrate.py
 )
 
 present=(); missing=()

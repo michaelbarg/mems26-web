@@ -81,6 +81,36 @@ class TPOSystem(BaseV9TradingSystem):
     def subscribed_bar_types(self) -> List[str]:
         return ["5min"]
 
+    def _first12_rth_extremes(self):
+        """(low, high) of today's first 12 RTH 5-min bars, or None.
+
+        Returns None — never a guess — when the session has fewer than 12 RTH
+        bars, so a restart BEFORE the IB window completes leaves the stored
+        value alone (there is nothing yet to sanity it against). The window is
+        pinned to 09:30-10:30 America/New_York and the comparison is done in
+        that timezone explicitly, per CLAUDE.md Rule 4 (no assumed-UTC).
+        """
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT high, low FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = "
+            "      (:today)::date "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time <  '10:30' "
+            "ORDER BY ts LIMIT 12",
+            {"today": et_today().isoformat()},
+        ) or []
+        if len(rows) < 12:
+            return None
+        highs, lows = [], []
+        for r in rows:
+            d = dict(r._mapping) if hasattr(r, "_mapping") else dict(r)
+            if d.get("high") is None or d.get("low") is None:
+                return None
+            highs.append(float(d["high"]))
+            lows.append(float(d["low"]))
+        return (min(lows), max(highs))
+
     def hydrate(self) -> HydrationResult:
         self.current_state["running"] = True
         self.current_state["hydrated"] = True
@@ -97,6 +127,56 @@ class TPOSystem(BaseV9TradingSystem):
                 if r.get("ib_high") is not None and r.get("ib_low") is not None:
                     self.ib_high = float(r["ib_high"])
                     self.ib_low = float(r["ib_low"])
+                    # ── IB SANITY AT THE TPO LAYER (cowork 09.09 night-repair) ──
+                    # Incident, 2026-09-09 16:54:52, 24 minutes after the open:
+                    #   [TPO] Hydrated IB from DB: H=7717.75 L=7680.00 locked=True
+                    # That is YESTERDAY's initial balance (08.09's true first-12
+                    # bars were exactly 7680.00/7717.75). Today's were
+                    # 7644.25/7663.75. The restart landed while today's IB row
+                    # still carried the previous session's values with
+                    # ib_locked=1, and because `locked` short-circuits every
+                    # re-computation the stale range would have stood for the
+                    # rest of the session; it was only corrected because a
+                    # LATER restart (18:32:50) re-hydrated after the real lock.
+                    #
+                    # S1_IB_SANITY_V1 already solved this class — but only
+                    # inside the day-type classifier (classifier_core.py:64-93),
+                    # so every OTHER IB consumer (BEYOND_IB_EDGE stops, `rib`,
+                    # the StopResolver's `35% of IB` floor) still read the lie.
+                    # One truthful IB is the standing ruling; this is the same
+                    # check at the layer that actually serves the value.
+                    #
+                    # Rule-1 compatible: this validates ALREADY-INGESTED bars
+                    # against the stored row — it does not synthesize an IB
+                    # where none exists. If the bars are unavailable or the
+                    # window is not complete, the stored value stands untouched.
+                    try:
+                        _b12 = self._first12_rth_extremes()
+                    except Exception as _ibe:
+                        _b12 = None
+                        logger.warning("[TPO] IB sanity read failed: %s", _ibe)
+                    if _b12:
+                        _b12_l, _b12_h = _b12
+                        _tick = 0.25
+                        # (a) bars poke beyond the claimed IB — impossible if it
+                        #     really were this session's first hour; (b) the
+                        #     claimed IB is >2pt wider than the bars on a side —
+                        #     the stale/carried-over symptom.
+                        _poke = ((_b12_h - self.ib_high > 2 * _tick) or
+                                 (self.ib_low - _b12_l > 2 * _tick))
+                        _too_wide = ((self.ib_high - _b12_h > 2.0) or
+                                     (_b12_l - self.ib_low > 2.0))
+                        if (_poke or _too_wide) and _b12_h > _b12_l:
+                            logger.warning(
+                                "[TPO] IB SANITY: stored IB H=%.2f L=%.2f is "
+                                "inconsistent with today's first 12 RTH bars "
+                                "(H=%.2f L=%.2f) — re-basing to the bars "
+                                "(poke=%s too_wide=%s)",
+                                self.ib_high, self.ib_low, _b12_h, _b12_l,
+                                _poke, _too_wide)
+                            self.ib_high, self.ib_low = _b12_h, _b12_l
+                            self.current_state["ib_source"] = (
+                                "bars_fallback_stored_inconsistent")
                     if r.get("ib_locked"):
                         self.ib_locked = True
                         self._ib_width = self.ib_high - self.ib_low
