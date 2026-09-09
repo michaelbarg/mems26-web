@@ -2933,6 +2933,35 @@ class TradingGateway:
             except Exception as _ddd_err:
                 logger.debug("[Gateway] day-direction doctrine errored (fail-open): %s", _ddd_err)
 
+        # ── TRADE_ECONOMICS_AUTHORITY_V1=diff: log what the authority WOULD set,
+        # without changing the setup. =1 (not today) would write + skip the chain.
+        try:
+            from backend.v9.services.trade_economics import enabled as _te_enabled, is_diff as _te_diff, economics as _te_econ
+            if _te_enabled() and _dalton_intent:
+                _te_res = _te_econ(
+                    setup,
+                    intent_stop_rule=_dalton_intent.stop_rule,
+                    intent_target_rule=_dalton_intent.target_rule,
+                    day_type=_dp_dt if "_dp_dt" in dir() else "",
+                    cross_context=cross_context,
+                )
+                _te_chain = {
+                    "stop": setup.get("stop"), "t1": setup.get("t1"),
+                    "t2": setup.get("t2"), "t3": setup.get("t3"),
+                }
+                _te_auth = {
+                    "stop": _te_res.stop, "t1": _te_res.t1,
+                    "t2": _te_res.t2, "t3": _te_res.t3,
+                    "n": _te_res.contracts, "reject": _te_res.reject_reason,
+                    "stop_rule": _te_res.stop_rule, "target_rule": _te_res.target_rule,
+                }
+                logger.warning(
+                    "[ECON-DIFF] trade=%s chain: %s | authority: %s",
+                    setup.get("classification") or setup.get("pattern") or "?",
+                    _te_chain, _te_auth)
+        except Exception as _te_err:
+            logger.debug("[ECON-DIFF] errored (non-fatal): %s", _te_err)
+
         # Item-4: structural stop resolver (STOP_RESOLVER_V1, default OFF).
         # Single choke point covering S2 + S4: re-derive the stop from a REAL
         # bar-extreme rung ladder within the ATR band, replacing a financed
