@@ -1,3 +1,99 @@
+### [2026-09-09 18:46 IL] cowork-scheduled · 🟠 **ניטור-RTH 18:36-18:50 — ריסטארט שלא שלי בתוך החלון-האסור, ופיגור שני-ברים בין סוג-היום לשער**
+
+**חובה-1:** אפס ממתינות, מוכח — peek ישיר מ-Render: `/instruction/pending` ⇒ `{"items":[]}` ·
+`/cmd/pending` ⇒ `{"cmd":null}` · רלה PID 16109 חי (‏`/tmp/mobile_relay.log` נכתב 18:32).
+הודעת-מייקל האחרונה בת'רד היא מ-08.09 15:56Z ונענתה ב-16:11Z. **אפס ריסטארט מצדי · אפס
+שינוי `.env`/דגל/קוד · אפס נגיעה בפוזיציה.**
+
+---
+
+**1 · הבקאנד עלה מחדש 18:32:46 — לא על ידי, וזו לא קריסה**
+
+```
+backend.err.log 18:32:46   INFO: Shutting down
+                           [Shutdown] WAL checkpoint complete — clean exit
+                           INFO: Finished server process [9239]
+                18:32:48   INFO: Started server process [16477]   (PPID 1)
+launchctl list             16477   -15   com.mems26.backend      ← מינוס-15 = SIGTERM
+plist                      KeepAlive{SuccessfulExit:false}        ← ההחזרה האוטומטית
+```
+
+מסלול-הכיבוי נקי (WAL checkpoint, בלי traceback) ⇒ **לא קריסה, אלא SIGTERM מבחוץ.**
+
+**מה נשלל, כל אחד בראיה ולא ברושם:**
+- **לא אני** — הסשן שלי התחיל 18:36:48, ארבע דקות *אחרי*.
+- **לא cc דרך קומיט** — `git log` האחרון 18:17:46, אין קומיט מאז.
+- **לא `update_check` השעתי** — הסקריפט לא מכיל `launchctl`/`kill`/`restart` (grep ⇒ 0),
+  ו-‏`/tmp/mems26_update_check.err.log` נכתב לאחרונה 17:45.
+- **לא סקריפטי-הריסטארט של הריפו** — `atime` של `MEMS26_RESTART.command` /
+  `MEMS26_CONTROL.command` / `mems26_verify.sh` הוא מ-08-17/08-27.
+
+**מה נשאר (השערה מסומנת ככזו):** פקודה ידנית מטרמינל פתוח — `~/.bash_history` נכתב
+לאחרונה 09:14, אבל היסטוריית-bash נשטפת רק בסגירת החלון, ולכן חלון-פתוח **אינו** נשלל.
+כלומר מייקל או cc ליד המקלדת. נשאל בטלפון; לא נחקר מעבר לזה.
+
+**נזק — אפס, נמדד אחרי העלייה:**
+`ERROR` מאז 16477 ⇒ **0** · `QueuePool` מאז 16477 ⇒ **0** (T-284 מחזיק) · שורת-האתחול
+זהה לקודמתה (303 משתנים, אותם דגלים) · `.env`: `FIXED_CONTRACTS_5=1`,
+`RISK_BUDGET_USD=225`, `RISK_MIN_CONTRACTS=3` — לא זזו.
+
+---
+
+**2 · פיגור שני-ברים בין `v9_day_type_state` לשער-הפלייבוק — T-286 (חדש)**
+
+`DALTON_PLAYBOOK_V1` נדלק 16:51 (קומיט `09928b03`, פסיקת-מייקל 11:15). מאז ועד 18:20:
+**12 חסימות `dalton_intent:kind`**, כולן עם `bias=BOTH`, עשר מהן על `entry_kind=BREAK`.
+
+```
+17:46 17:50 17:50 17:55 18:01 18:01 18:05 18:05 18:05   cond=day_type == Normal   ← נכון
+18:15 18:20                                             cond=day_type == Normal   ← מפגר
+v9_day_type_state:  17:30-18:05 Normal   |   18:10+ Variation
+config/dalton_playbook.yaml:128  "day_type in [Variation, Normal_Variation]"
+                                 entry_kinds: [BREAK, VALUE_RETURN]   ← BREAK מותר
+config/dalton_playbook.yaml:135  "day_type == Normal"
+                                 entry_kinds: [EDGE_FADE, VALUE_RETURN]  ← BREAK אסור
+grep "cond=day_type in [Variation" backend.err.log  ⇒  0   (שורת-Variation לא נבחרה מעולם)
+```
+
+**מה זה כן אומר:** מ-18:10 הרשומה הקנונית אומרת `Variation`, והשער עדיין בחר את
+**שורת-`Normal`** — כלומר תווית בת ~10 דקות. המנגנון הסביר הוא ה-antiflap שבשרשרת
+`get_live_day_type` (‏`manual override → live machine → prelock → antiflap`), אולי בכוונה;
+ההיסטרזיס שב-`trading_gateway.py:1069-1091` **אינו** ההסבר — הוא מחזיק רק במעבר
+`Trend→other`, ו-`Normal→Variation` נופל ל-`else` שמעדכן מיידית.
+
+**מה זה לא אומר:** ש-11 העסקאות היו נכנסות. `kind` הוא **החוסם הראשון** ואחריו עוד שערים
+(היום גם `stand_down`×7, `rr_entry_gate`×2, `extreme_chase_guard`×2, `entry_location_quality`,
+`cold_start_guard`). לא מגלגלים חוסם-ראשון להזדמנות-שהוחמצה.
+
+**סייג-מדידה שאני מסמן בעצמי:** קריאת `/api/v9/day_type/live ⇒ Variation` נעשתה **אחרי**
+הריסטארט של 18:32, ולכן אינה ראיה לְמה שהשער ראה ב-18:15. הראיה לפיגור היא ההצמדה בין
+שורות-הלוג המתוארכות לבין `v9_day_type_state`, לא האנדפוינט.
+
+---
+
+**3 · מצב-חי (18:44-18:46)**
+
+| מה | ערך | ראיה |
+|---|---|---|
+| פוזיציה | 0 ברוקר · 0 בספרים | `position_qty=0`, `working_orders=0`, `orders=[]` · `mode='live'` היום = 0 |
+| בר | 18:40, גיל 4.4 דק' | `v9_bars_5min_woodies`, `now()` מול `max(ts)` (שניהם `timestamptz`) |
+| בקאנד | health 200 ב-0.42ש' · 0 ERROR | curl + awk מנקודת-האתחול |
+| חימוש | `armed=1` `send_orders=1` `is_sim=0` | `/api/v9/mobile/data` |
+| **בעלוּת** | **60 חוזים מולאו — אפס שלנו** | `daily_total_qty_filled=60` מול 0 עסקאות-לייב ⇒ הכל של אתי, וגם `acct_daily_pl=+467.50` שלה |
+| ספרי-היום | לייב 0 · צל 24, **−$811.25** על 15 המתומחרות | 9 בלי `exit_price` — לא נכללות (מחלקת T-160) |
+| T-268 | מחזיק | 18:42:01 ‏`shadow_only setup (ZLR) — recorded, not routed` |
+
+⚠️ מלכודת-מדידה שנפלתי בה ותוקנה תוך-כדי: `now() AT TIME ZONE 'UTC'` מול עמודת
+`timestamptz` נתן **גיל-בר שלילי (−177 דק')**. `v9_bars_5min_woodies.ts` הוא `timestamptz`
+(בניגוד ל-`v9_day_type_state.ts` שהוא naive-UTC, T-253) — להשוות עם `now()` חשוף.
+
+**נשלח לטלפון 18:46:33, מסירה אומתה במקור** (`/chat` ב-Render: 1,197 תווים, ראש+זנב שלמים)
+— לא מ-`ok` של הסקריפט.
+
+— cowork-scheduled
+
+---
+
 ### [2026-09-09 18:17 IL] cowork-scheduled · 🟢 **תוספת ל-18:11 — פוזיציה זרה נפתחה בחשבון; בעלוּת נפתרה לפני אזעקה, ושתי "הסכנות" הופרכו במדידה**
 
 **מה קרה:** שלוש דקות אחרי ההודעה "פוזיציה 0" (18:11) נפתחה פוזיציה על 37138283.
