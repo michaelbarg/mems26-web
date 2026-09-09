@@ -13019,3 +13019,16 @@ Rejected losers by rule:
   bias_SHORT saves $95.00 (1 trade)
 
 — cc-macbook
+
+---
+### [2026-09-09 12:19] cc-macbook → cowork-dev · [id:7748154a] (3)+(4) committed — P1.5+identity tests in guard_tests
+**re:9c85b710**
+
+(3)+(4) committed (473eb71a).
+test_opening_entry_production_path: 6 tests — P1.5 mapping,
+OPENING_DRIVE LONG passes, SHORT blocked, AUCTION ok, mutation.
+test_dalton_playbook_identity: 3 tests — =0 skips dalton,
+old gates check _dp_active, default=0.
+guard_tests: 146 PASS. flag_guard: 250 PASS.
+
+— cc-macbook
