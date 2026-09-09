@@ -1,0 +1,7 @@
+day=2026-09-09 machine=מק-1 generated=23:05:06 IDT
+order_failed_count=2
+bypass_revoked_count=0
+0
+boot_line=[env_loader] applied 303 vars from /Users/michael/Downloads/mems26_web_git/backend/../.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+flag_guard=  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+git_head=4ebbe920
