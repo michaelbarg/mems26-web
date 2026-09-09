@@ -1055,6 +1055,57 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
             return result
 
+        # ── DALTON_PLAYBOOK_V1 (Michael ruling 09.09): session-phase decision tree.
+        # Replaces compass/playbook/location_gate with one gate. Flag OFF → byte-identical.
+        _dalton_intent = None
+        if os.getenv("DALTON_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.dalton_playbook import (
+                    intent as _dp_intent, evaluate_gate as _dp_eval,
+                    entry_kind_for as _dp_ek)
+                from backend.v9.services.trade_context import get_live_day_type as _dp_gldt
+                _dp_dt = _dp_gldt() or ""
+                # Opening type from the state machine
+                _dp_ot = "UNKNOWN"
+                try:
+                    _dp_dtm = (cross_context.get("day_type_machine")
+                               if isinstance(cross_context, dict) else None)
+                    if _dp_dtm and hasattr(_dp_dtm, "opening"):
+                        _ot = _dp_dtm.opening.opening_type
+                        _dp_ot = _ot.value if hasattr(_ot, "value") else str(_ot)
+                except Exception:
+                    pass
+                # IL time
+                from backend.v9.services.market_clock import now_et
+                _dp_et = now_et()
+                from datetime import timezone as _dp_tz
+                from zoneinfo import ZoneInfo as _dp_ZI
+                _dp_il = _dp_et.astimezone(_dp_ZI("Asia/Jerusalem"))
+                _dp_il_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
+                # Direction hint from trend/opening
+                _dp_dir_hint = None
+                try:
+                    _dp_cls = _resolve_live_cls()
+                    if isinstance(_dp_cls, dict):
+                        _dp_d = _dp_cls.get("direction")
+                        if _dp_d in ("UP", "LONG"):
+                            _dp_dir_hint = "LONG"
+                        elif _dp_d in ("DOWN", "SHORT"):
+                            _dp_dir_hint = "SHORT"
+                except Exception:
+                    pass
+                _dalton_intent = _dp_intent(
+                    opening_type=_dp_ot, day_type=_dp_dt,
+                    now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
+                _dp_block = _dp_eval(setup, _dalton_intent)
+                if _dp_block:
+                    result["blocked_by"] = _dp_block["blocked_by"]
+                    result["reason"] = _dp_block["reason"]
+                    logger.info("[Gateway] BLOCKED by dalton_intent: %s", _dp_block["reason"])
+                    return result
+            except Exception as _dp_err:
+                logger.warning("[Gateway] dalton_playbook failed (fail-open): %s", _dp_err)
+
         # A2: COLD_START_GUARD_V1 (default OFF) — no firing until the system
         # has processed enough bars after startup/restart. Case #655 (2026-08-10):
         # trade fired 8 seconds after restart with bars_processed_today=0,

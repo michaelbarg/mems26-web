@@ -1,0 +1,165 @@
+# config/dalton_playbook.yaml — DaltonPlaybook decision tree
+# Michael 09.09: "כל סוג-פתיחה צריך להיכנס לעץ-החלטות אחר"
+#
+# Phase A: 16:30-16:45 IL (first 3 bars)
+# Phase B: 16:45-17:30 IL (pre-IB lock)
+# Phase C: 17:30+ (IB locked, day_type known)
+# Phase D: 21:00+ (management only, no new entries)
+#
+# entry_kind mapping from pattern classification:
+entry_kind_map:
+  OPENING_DRIVE: WITH_DRIVE
+  OPENING_TEST_DRIVE: WITH_DRIVE
+  OPENING_ORR: REVERSAL
+  EXTREME_REJECT: REVERSAL
+  DALTON_EDGE: REVERSAL
+  CEILING_FLIP: REVERSAL
+  FAILED_BREAK_SHORT: EDGE_FADE
+  FAILED_BREAK_LONG: EDGE_FADE
+  FAILED_RE_IB: EDGE_FADE
+  REACTIVE_LONG: EDGE_FADE
+  REACTIVE_SHORT: EDGE_FADE
+  VA_FADE_LONG: EDGE_FADE
+  VA_FADE_SHORT: EDGE_FADE
+  EDGE_FADE: EDGE_FADE
+  PULLBACK_CONT: PULLBACK
+  TREND_STEP: PULLBACK
+  INITIATIVE_LONG: BREAK
+  INITIATIVE_SHORT: BREAK
+  GB100: BREAK
+  TLB: BREAK
+  DOUBLE_BOTTOM: BREAK
+  DOUBLE_TOP: BREAK
+  DOUBLE_TOP_AA: BREAK
+  DOUBLE_BOTTOM_AA: BREAK
+  GHOST: BREAK
+  VEGAS: BREAK
+  FAMIR: BREAK
+  S2_DELTA_DBL: BREAK
+  RE_ACCEPTANCE: VALUE_RETURN
+  ZLR: BREAK
+
+# Phase rules (first match wins within phase)
+phases:
+  A:
+    start_il: "16:30"
+    end_il: "16:45"
+    rules:
+      - condition: "opening_type == OPEN_DRIVE"
+        bias: drive_direction
+        entry_kinds: [WITH_DRIVE]
+        stop_rule: BEYOND_OPEN
+        target_rule: MEASURED_MOVE
+        size_frac: 0.5
+        runner: true
+      - condition: default
+        bias: NONE
+        entry_kinds: []
+        stop_rule: null
+        target_rule: null
+        size_frac: 0.0
+        runner: false
+
+  B:
+    start_il: "16:45"
+    end_il: "17:30"
+    rules:
+      - condition: "opening_type == OPEN_DRIVE"
+        bias: drive_direction
+        entry_kinds: [WITH_DRIVE, PULLBACK]
+        stop_rule: BEYOND_OPEN
+        target_rule: MEASURED_MOVE
+        size_frac: 1.0
+        runner: true
+      - condition: "opening_type == OPEN_TEST_DRIVE"
+        bias: drive_direction
+        entry_kinds: [WITH_DRIVE, PULLBACK]
+        stop_rule: BEYOND_FAILED_SIDE
+        target_rule: MEASURED_MOVE
+        size_frac: 1.0
+        runner: true
+      - condition: "opening_type == OPEN_REJECTION_REVERSE"
+        bias: reversal_direction
+        entry_kinds: [REVERSAL, PULLBACK]
+        stop_rule: BEYOND_REJECTED_EXTREME
+        target_rule: OPPOSITE_EDGE
+        size_frac: 1.0
+        runner: false
+      - condition: "opening_type in [OPEN_AUCTION_IN, OPEN_AUCTION_OUT]"
+        bias: BOTH
+        entry_kinds: [EDGE_FADE]
+        stop_rule: BEYOND_IB_EDGE
+        target_rule: POC
+        size_frac: 0.5
+        runner: false
+      - condition: default
+        bias: NONE
+        entry_kinds: []
+        stop_rule: null
+        target_rule: null
+        size_frac: 0.0
+        runner: false
+
+  C:
+    start_il: "17:30"
+    end_il: "21:00"
+    rules:
+      - condition: "day_type in [Trend_Normal, Trend_DD]"
+        bias: trend_direction
+        entry_kinds: [PULLBACK, BREAK]
+        stop_rule: BEYOND_LEG_EXTREME
+        target_rule: S1_TABLE
+        size_frac: 1.0
+        runner: true
+      - condition: "day_type in [Variation, Normal_Variation]"
+        bias: extension_direction_once_then_BOTH
+        entry_kinds: [BREAK, VALUE_RETURN]
+        stop_rule: BEYOND_LEG_EXTREME
+        target_rule: POC
+        size_frac: 1.0
+        runner: false
+      - condition: "day_type == Normal"
+        bias: BOTH
+        entry_kinds: [EDGE_FADE, VALUE_RETURN]
+        stop_rule: BEYOND_IB_EDGE
+        target_rule: POC
+        size_frac: 1.0
+        runner: false
+      - condition: "day_type in [Neutral_Center, Neutral_Extreme]"
+        bias: BOTH
+        entry_kinds: [EDGE_FADE]
+        stop_rule: BEYOND_IB_EDGE
+        target_rule: CENTER
+        size_frac: 1.0
+        runner: false
+      - condition: "day_type in [Nontrend, Nonconviction]"
+        bias: NONE
+        entry_kinds: []
+        stop_rule: null
+        target_rule: null
+        size_frac: 0.0
+        runner: false
+      - condition: default
+        bias: NONE
+        entry_kinds: []
+        stop_rule: null
+        target_rule: null
+        size_frac: 0.0
+        runner: false
+
+  D:
+    start_il: "21:00"
+    end_il: "23:00"
+    rules:
+      - condition: default
+        bias: NONE
+        entry_kinds: []
+        stop_rule: null
+        target_rule: null
+        size_frac: 0.0
+        runner: false
+
+# Hysteresis: Trend→other requires 2 closed bars; other→Trend is immediate
+hysteresis:
+  trend_to_other_bars: 2
+  other_to_trend_bars: 0
