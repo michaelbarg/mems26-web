@@ -187,8 +187,12 @@ def evaluate_gate(setup: Dict[str, Any], it: Intent) -> Optional[Dict[str, str]]
         cfg = load_config()
         _kinds_policy = cfg.get("kinds_apply_to", "all")
         if _kinds_policy == "counter_bias_only":
-            # WITH the bias direction → any kind allowed
-            if it.bias in ("BOTH", direction):
+            # WITH a DIRECTIONAL bias → any kind allowed (Dalton: trade with the
+            # drive). Under bias=BOTH the kinds list STILL applies — that is where
+            # BREAK on rotation days loses (replay 09.09: −$392 / −$323 by rule).
+            # cowork 09.09 12:30: `it.bias in ("BOTH", direction)` had turned this
+            # into kinds-advisory-for-everyone (79 approved, Σ +60 instead of +607).
+            if it.bias in ("LONG", "SHORT") and it.bias == direction:
                 pass  # allowed — kinds list only blocks counter
             else:
                 return {

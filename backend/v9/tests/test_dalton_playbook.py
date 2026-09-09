@@ -171,6 +171,20 @@ class TestPolicyKeys(unittest.TestCase):
         self.assertIsNone(block,
                            "WITH-bias direction should pass any kind under counter_bias_only")
 
+    def test_counter_bias_only_still_applies_kinds_under_both(self):
+        """cowork 09.09: under bias=BOTH the kinds list MUST still veto.
+
+        Normal day (bias BOTH, kinds [EDGE_FADE, VALUE_RETURN]): a BREAK (ZLR)
+        must be blocked. The 11:35 build let it through (`bias in ("BOTH",
+        direction)`), which is the kinds-advisory variant — replay Σ +60 instead
+        of +607.50 and losers-rejected 31% instead of 57%.
+        """
+        it = intent(day_type="Normal", now_il_hhmm="18:00")
+        self.assertEqual(it.bias, "BOTH")
+        block = evaluate_gate({"direction": "SHORT", "classification": "ZLR"}, it)
+        self.assertIsNotNone(block, "BREAK under bias=BOTH must still be vetoed by the kinds list")
+        self.assertEqual(block["blocked_by"], "dalton_intent:kind")
+
     def test_counter_bias_only_blocks_counter_wrong_kind(self):
         """Counter-direction + wrong kind → blocked."""
         it = intent(day_type="Trend_Normal", now_il_hhmm="18:00",
