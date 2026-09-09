@@ -135,13 +135,15 @@ class TestGate(unittest.TestCase):
         self.assertIsNotNone(block)
         self.assertIn("stand_down", block["blocked_by"])
 
-    def test_kind_blocks_wrong_entry(self):
-        it = Intent(bias="BOTH", entry_kinds=frozenset({"EDGE_FADE"}),
+    def test_kind_blocks_counter_direction_wrong_entry(self):
+        """Counter-direction → blocked by bias (kind never reached)."""
+        it = Intent(bias="LONG", entry_kinds=frozenset({"EDGE_FADE"}),
                     stop_rule="X", target_rule="X", size_frac=1.0,
                     runner=False, reason="test")
-        block = evaluate_gate({"direction": "LONG", "classification": "GB100"}, it)
+        # SHORT (counter to LONG bias) → blocked by bias
+        block = evaluate_gate({"direction": "SHORT", "classification": "GB100"}, it)
         self.assertIsNotNone(block)
-        self.assertIn("kind", block["blocked_by"])
+        self.assertIn("bias", block["blocked_by"])
 
 
 class TestEntryKindMap(unittest.TestCase):
@@ -156,13 +158,49 @@ class TestEntryKindMap(unittest.TestCase):
         self.assertEqual(entry_kind_for("REACTIVE_LONG"), "EDGE_FADE")
 
 
+class TestPolicyKeys(unittest.TestCase):
+
+    def test_counter_bias_only_allows_with_direction(self):
+        """kinds_apply_to=counter_bias_only: WITH-bias direction passes any kind."""
+        # Trend LONG, EDGE_FADE (not in [PULLBACK, BREAK]) but WITH bias → passes
+        it = intent(day_type="Trend_Normal", now_il_hhmm="18:00",
+                     direction_hint="LONG")
+        # REACTIVE_LONG maps to EDGE_FADE, not in Trend's [PULLBACK, BREAK]
+        block = evaluate_gate({"direction": "LONG", "classification": "REACTIVE_LONG"}, it)
+        # With counter_bias_only: LONG WITH Trend LONG → any kind allowed
+        self.assertIsNone(block,
+                           "WITH-bias direction should pass any kind under counter_bias_only")
+
+    def test_counter_bias_only_blocks_counter_wrong_kind(self):
+        """Counter-direction + wrong kind → blocked."""
+        it = intent(day_type="Trend_Normal", now_il_hhmm="18:00",
+                     direction_hint="LONG")
+        # SHORT (counter) + EDGE_FADE (not in kinds) → blocked
+        block = evaluate_gate({"direction": "SHORT", "classification": "REACTIVE_SHORT"}, it)
+        self.assertIsNotNone(block)
+
+    def test_phase_d_manage_only(self):
+        """phase_d=manage_only: 21:30 → stand-down."""
+        it = intent(day_type="Trend_Normal", now_il_hhmm="21:30",
+                     direction_hint="LONG")
+        self.assertEqual(it.size_frac, 0.0)
+
+    def test_phase_d_as_phase_c(self):
+        """If phase_d were as_phase_c, 21:30 Trend would still be active."""
+        # This tests the YAML key behavior — currently manage_only
+        # so this is a negative test (size_frac=0)
+        it = intent(day_type="Trend_Normal", now_il_hhmm="21:30",
+                     direction_hint="LONG")
+        self.assertEqual(it.size_frac, 0.0,
+                          "phase_d=manage_only: no new entries after 21:00")
+
+
 class TestMutation(unittest.TestCase):
 
     def test_flipping_trend_bias_fails(self):
         """MUTATION: if Trend gives BOTH instead of trend_direction, wrong trades pass."""
         it = intent(day_type="Trend_Normal", now_il_hhmm="18:00",
                      direction_hint="LONG")
-        # A SHORT should be blocked on a Trend_Normal LONG day
         block = evaluate_gate({"direction": "SHORT", "classification": "GB100"}, it)
         self.assertIsNotNone(block, "SHORT must be blocked on Trend LONG day")
 

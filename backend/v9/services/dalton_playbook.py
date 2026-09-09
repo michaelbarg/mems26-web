@@ -56,7 +56,7 @@ def entry_kind_for(classification: str) -> str:
     return m.get(classification, m.get(classification.upper(), "BREAK"))
 
 
-def _resolve_phase(now_il_hhmm: str) -> str:
+def _resolve_phase(now_il_hhmm: str, cfg: Optional[Dict] = None) -> str:
     """Determine session phase from IL time HH:MM."""
     try:
         h, m = int(now_il_hhmm[:2]), int(now_il_hhmm[3:5])
@@ -70,6 +70,9 @@ def _resolve_phase(now_il_hhmm: str) -> str:
     if mins < 17 * 60 + 30:
         return "B"
     if mins < 21 * 60:
+        return "C"
+    # phase_d policy: manage_only (default) or as_phase_c
+    if cfg and cfg.get("phase_d") == "as_phase_c":
         return "C"
     return "D"
 
@@ -133,7 +136,7 @@ def intent(
         direction_hint: LONG/SHORT from the opening or trend direction
     """
     cfg = load_config()
-    phase = _resolve_phase(now_il_hhmm)
+    phase = _resolve_phase(now_il_hhmm, cfg)
     phase_cfg = cfg.get("phases", {}).get(phase)
     if not phase_cfg:
         return Intent(bias="NONE", entry_kinds=frozenset(), stop_rule=None,
@@ -179,9 +182,23 @@ def evaluate_gate(setup: Dict[str, Any], it: Intent) -> Optional[Dict[str, str]]
         }
 
     if it.entry_kinds and ek not in it.entry_kinds:
-        return {
-            "blocked_by": "dalton_intent:kind",
-            "reason": f"entry_kind={ek} not in {sorted(it.entry_kinds)} ({it.reason})",
-        }
+        # kinds_apply_to policy: counter_bias_only means the kinds list
+        # vetoes only COUNTER-direction entries; WITH-bias entries pass.
+        cfg = load_config()
+        _kinds_policy = cfg.get("kinds_apply_to", "all")
+        if _kinds_policy == "counter_bias_only":
+            # WITH the bias direction → any kind allowed
+            if it.bias in ("BOTH", direction):
+                pass  # allowed — kinds list only blocks counter
+            else:
+                return {
+                    "blocked_by": "dalton_intent:kind",
+                    "reason": f"counter-bias entry_kind={ek} not in {sorted(it.entry_kinds)} ({it.reason})",
+                }
+        else:
+            return {
+                "blocked_by": "dalton_intent:kind",
+                "reason": f"entry_kind={ek} not in {sorted(it.entry_kinds)} ({it.reason})",
+            }
 
     return None  # allowed

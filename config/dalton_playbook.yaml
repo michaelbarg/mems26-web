@@ -6,6 +6,20 @@
 # Phase C: 17:30+ (IB locked, day_type known)
 # Phase D: 21:00+ (management only, no new entries)
 #
+# ── Policy keys (Michael rulings 09.09 11:15) ──
+# kinds_apply_to: all | counter_bias_only
+#   all: entry_kinds list vetoes any kind not listed (original behavior)
+#   counter_bias_only: directional bias ⇒ any kind IN that direction is allowed;
+#     the kinds list vetoes only COUNTER-direction entries. Dalton: "trade WITH the drive."
+#     Σ +$607.50 vs +$372.50 (Σ all=counter_bias_only - Σ all).
+# phase_d: manage_only | as_phase_c
+#   manage_only: 21:00+ stand-down (no new entries). +$400 edge on the sample
+#     (10 losers/4 winners after 21:00). Michael: "מאשר" — overrides
+#     "לא מגבילים שעות" FOR PHASE D ONLY.
+#   as_phase_c: 21:00+ keeps phase-C rules (no hour restriction).
+kinds_apply_to: counter_bias_only
+phase_d: manage_only
+#
 # entry_kind mapping from pattern classification:
 entry_kind_map:
   OPENING_DRIVE: WITH_DRIVE
