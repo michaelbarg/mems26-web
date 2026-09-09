@@ -1,3 +1,60 @@
+### [2026-09-09 11:38 IL] cowork-scheduled · 🟢 **חובה-1 בלבד: אפס ממתינות (מוכח)** · קריאה-בלבד · לא נגעתי בריצה המקבילה
+
+ריצה `11:36-11:40`. מחוץ לחלונות חובה-2/3/4 (שער 15:30-16:10 · RTH 16:30-23:00 · תור-לילה 23:00-23:30).
+**אפס שינוי בדגלים/קוד/`.env`/פוזיציות/שירותים · אפס ריסטארט · לא נשלחה הודעת-טלפון.**
+
+**1 · חובה-1 — אפס ממתינות, הרלה מוכח-חי ברגע-המדידה** [[T-259]]
+```
+peek 11:37:34 (ישירות מ-Render, peek ולא pop):
+  GET {RENDER}/instruction/pending ⇒ {"items":[]}  http=200 t=0.32s
+  GET {RENDER}/cmd/pending         ⇒ {"cmd":null}  http=200 t=0.31s
+  GET {RENDER}/upload/pending      ⇒ {"items":[]}  http=200 t=0.32s
+relay PID 16109 חי וה-curl הצליח באותו רגע ⇒ אפס-ממתינות הוא ראיה, לא היעדר-ראיה.
+GET {RENDER}/chat ⇒ 30 פריטים, האחרון ts=2026-09-08T18:23:29Z sender=cowork — זהה בדיוק לזנב המקומי ⇒ אפס הודעה שאבדה.
+הודעת-מייקל אחרונה 2026-09-08T15:56:22Z, נענתה ע"י cowork 16:11:15Z ⇒ אין הודעה בלי תשובה עניינית ⇒ שקט.
+```
+**פסיקות-הבוקר (08:40/09:05/09:15/10:20/10:40/11:15) הגיעו פנים-אל-פנים מול cc, לא דרך התור** — לא לחצתי עליו לחזור עליהן. [[feedback_empty_queue_is_not_no_ruling]]
+
+**2 · ריצת-cc/cowork מקבילה פעילה עכשיו — לא נגעתי בכלום**
+```
+git log ⇒ 20 קומיטים היום; האחרון bad09284 11:35 "DaltonPlaybook: kinds_apply_to=counter_bias_only + phase_d=manage_only"
+         = יישום פסיקת-11:15 של מייקל (c949d761 11:19), בן 3 דקות ברגע-המדידה
+find -newermt "-15 min" ⇒ config/dalton_playbook.yaml · config/RULED_FLAGS.yaml ·
+         backend/v9/services/dalton_playbook.py · .../tests/test_dalton_playbook.py ·
+         backend/v9/gateway/trading_gateway.py · LIVE_CHANNEL.md
+```
+**לא תפסתי משימה, לא כתבתי claim, לא פתחתי קובץ-משימות מתחרה, לא קומיטתי את עץ-העבודה שלהם** (קומיט זה = `LIVE_CHANNEL.md` בלבד).
+
+**3 · ניטור קריאה-בלבד — ארבעה צירים נקיים** (נמדד 11:37-11:38)
+```
+בקאנד   PID 48888 · lstart Tue Sep 8 18:42:39 ⇒ אותו lstart שנמדד 10:06/11:06 ⇒ אפס ריסטארט ✅
+        health 200 ב-42 מ"ש   (זיהוי ב-pgrep -f + ps -o lstart=, לא lsof [[feedback_lsof_port_returns_clients]])
+פיד     max(ts) v9_bars_5min_woodies = 2026-09-09 11:35:00+03 · גיל 3.2 דק' ✅
+        tz-בטוח: pg_typeof(ts) ⇒ timestamptz ⇒ now() חשוף, בלי AT TIME ZONE [[T-253]]
+ספרים   v9_trades mode=live AND exit_ts IS NULL AND state NOT IN ('CANCELLED') ⇒ 0 [[T-251]]
+        עסקאות-לייב היום ⇒ 0
+מצב     radar.trading.armed=1 · is_sim=0 ⇒ לייב+חמוש (אמת-חיה מ-/api/v9/mobile/data, לא ps eww)
+```
+
+**4 · פוזיציה ידנית ‎−8 — מוסברת, לא אורפן · וממוגנת** [[project_account_shared_with_eti]]
+```
+/api/v9/mobile/data 11:37: position_qty=-8 @7684.25 · open_pnl=+50.00 · last=7683.00
+  orders = [{id:11066, bs:1(buy), price:7693.00, qty:8}] ⇒ הפוזיציה הידנית נושאת סטופ. אין רגל חשופה.
+  daily_total_qty_filled=40 בעוד ספרינו 0 עסקאות-לייב היום ⇒ כל 40 החוזים ידניים [[feedback_daily_pnl_is_the_wrong_field]]
+  acct_daily_pl=-80.00 ⇒ זה הידני, לא רווח-מערכת.
+config/manual_position_ack.json: date=2026-09-09 (היום) · max_abs_qty=10 · owner=michael ⇒ |−8| ≤ 10 ✅
+```
+**🟠 נתון מותנה לשער 15:30 (T-34, דיווח-בלבד — לא שיניתי `.env`):** `acct_available_funds = 1,113.57` עדיין מתחת לסף 1,595, אך **עלה** מ-953.57 ב-11:09 — הפרש של 160 שהוא בדיוק תנועת ה-`open_pnl` (‎−70 → +50). `acct_margin_req = 2,291.52` נעול ע"י ה-8 הידניים · `acct_cash_balance = 3,315.09` · `acct_under_margin = 0`.
+**המסקנה לא השתנתה: זה נפתר מעצמו כשהפוזיציה הידנית תיסגר.** אם היא פתוחה ב-15:30 — השער יראה avail<סף ⇒ דיווח-טלפון 🔴 בלבד, בלי נגיעה ב-`.env`.
+
+**5 · פתוח וממתין-לפסיקת-מייקל — לא חזרתי לשאול** (נשאל פעם אחת, נשמר)
+`T-279` (CONFLUENCE_RI_ZLR עוקף את צל-ה-ZLR; דלוק ללייב מ-17.07; לא ירה, אפס מופעים) — הועלה 08.09 21:23, עדיין 🔴.
+**מקומו הנכון הוא סיכום-שער-היום 15:30**, לא הודעה נוספת עכשיו. [[Rulings are one-time and standing]]
+
+— cowork-dev (scheduled 11:36)
+
+---
+
 ### [2026-09-09 11:10 IL] cowork-scheduled · 🟢 **חובה-1 בלבד: אפס ממתינות (מוכח)** · קריאה-בלבד · לא נגעתי בריצה המקבילה
 
 ריצה `11:06-11:12`. מחוץ לחלונות חובה-2/3/4. **אפס שינוי בדגלים/קוד/`.env`/פוזיציות/שירותים · אפס ריסטארט · לא נשלחה הודעת-טלפון.**
