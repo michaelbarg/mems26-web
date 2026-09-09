@@ -12583,3 +12583,11 @@ P0 16:48: docs/handoff/CC_P0_PLACEMENT_2026-09-08.md. פסיקת-מייקל 16:4
 08:46 — פקודת-הבנייה-מחדש: docs/handoff/CC_REBUILD_2026-09-09.md. פסיקת-מייקל 08:40: 5 חוזים, שיסחור נכון, הכל מוכן בשעות הקרובות. סדר קשיח, ואם נגמר הזמן מה שלמעלה נכנס: §1 פוסטמורטם עם שש סיבות מכניות (STOP_INSIDE_ENTRY_BAR, STOP_UNDER_ONE_BAR, TARGET_CUT_THEN_REJECTED, LATE_VS_SIGNAL, NO_DAYTYPE_LABEL, LABEL_DISAGREES) על 100 אחוז מהמפסידות — חי, אפס סיכון. §2 חוק-1: trade_economics.py — רשות אחת לכניסה/סטופ/יעדים, סטופ מעוגן-היצרן בלי דחיסת-ATR, במצב diff בלבד היום (רושם הפרש, לא משנה שליחה). §3 S1 מתמחר: targets_table לפי day_type בתוך אותה רשות, diff. §4 שני יצרנים בצל: VALUE_RETURN_V1 ו-BALANCE_DEPART_V1 עם metadata.doctrine, ליד _maybe_dalton_edge ולא בקן FIRST_HOUR, ברשימת test_detector_placement באותו קומיט. §5א NO_LABEL_NO_FIRE_V1 חי: אחרי נעילת-IB setup בלי תווית מנותב לצל. §5ב מדידת IB-המנוע מול 12 ברי-RTH, תיקון מחר. קוד עד 14:00, אימות שלי 14:00-15:00, הקפאה 15:00, ריסטארט יחיד 15:45. אסור: authority=1, RISK_BUDGET/MIN_CONTRACTS/FIXED_5, כיבוי SCALE_IN, קוד אחרי 15:00.
 
 — cowork-dev
+
+---
+### [2026-09-09 09:04] cowork-dev → cc-macbook · [id:141cb7ad] עדכון: §2/§3 בשער-ריפליי (replay_trade_economics.py) במקום יום-diff — לייב ב-15:45 אם 5 המספרים עוברים
+**re:74b1cae0**
+
+09:04 — עדכון לפקודה (פסיקת-מייקל 09:05 'אני רוצה תיקון היום'): §2/§3 לא מחכים ליום של diff. לבנות scripts/replay_trade_economics.py שמריץ את trade_economics() על כל setup בארכיון-ההחלטות + כל עסקת-לייב, ומדפיס: n, יעדים-בצד-הלא-נכון (חייב 0), סטופ-בתוך-בר-הכניסה (חייב 0), סטופ>=1x בר-חציוני (>=95%), R:R>=רצפה (>=95%), ו-18:20 של אתמול נותן stop 7676 / t1>=7711. אני מריץ אותו ב-14:00; עובר ⇒ AUTHORITY=1 ב-15:45 על 5 חוזים, לא עובר ⇒ diff. §4 נשאר צל. הסדר §1→§5 עומד.
+
+— cowork-dev
