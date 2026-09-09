@@ -1058,13 +1058,39 @@ class TradingGateway:
         # ── DALTON_PLAYBOOK_V1 (Michael ruling 09.09): session-phase decision tree.
         # Replaces compass/playbook/location_gate with one gate. Flag OFF → byte-identical.
         _dalton_intent = None
-        if os.getenv("DALTON_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes"):
+        _dp_active = os.getenv("DALTON_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes")
+        if _dp_active:
             try:
                 from backend.v9.services.dalton_playbook import (
                     intent as _dp_intent, evaluate_gate as _dp_eval,
                     entry_kind_for as _dp_ek)
                 from backend.v9.services.trade_context import get_live_day_type as _dp_gldt
-                _dp_dt = _dp_gldt() or ""
+                _dp_dt_raw = _dp_gldt() or ""
+                # Hysteresis: Trend→other requires 2 bars with new label;
+                # other→Trend is immediate (Michael 09.09, 08-04 19:16).
+                if not hasattr(self, "_dp_hyst"):
+                    self._dp_hyst = {"label": None, "bars": 0}
+                _dp_is_trend = _dp_dt_raw.startswith("Trend") if _dp_dt_raw else False
+                _dp_was_trend = (self._dp_hyst["label"] or "").startswith("Trend")
+                if _dp_is_trend and not _dp_was_trend:
+                    # other→Trend: immediate
+                    self._dp_hyst = {"label": _dp_dt_raw, "bars": 0}
+                    _dp_dt = _dp_dt_raw
+                elif not _dp_is_trend and _dp_was_trend:
+                    # Trend→other: need 2 bars with new label
+                    if _dp_dt_raw == self._dp_hyst.get("pending_label"):
+                        self._dp_hyst["bars"] += 1
+                    else:
+                        self._dp_hyst["pending_label"] = _dp_dt_raw
+                        self._dp_hyst["bars"] = 1
+                    if self._dp_hyst["bars"] >= 2:
+                        self._dp_hyst = {"label": _dp_dt_raw, "bars": 0}
+                        _dp_dt = _dp_dt_raw
+                    else:
+                        _dp_dt = self._dp_hyst["label"]  # hold Trend
+                else:
+                    self._dp_hyst["label"] = _dp_dt_raw
+                    _dp_dt = _dp_dt_raw
                 # Opening type from the state machine
                 _dp_ot = "UNKNOWN"
                 try:
@@ -1104,7 +1130,11 @@ class TradingGateway:
                     logger.info("[Gateway] BLOCKED by dalton_intent: %s", _dp_block["reason"])
                     return result
             except Exception as _dp_err:
-                logger.warning("[Gateway] dalton_playbook failed (fail-open): %s", _dp_err)
+                # fail-CLOSED: a gate that replaces three and crashes ⇒ zero gates
+                result["blocked_by"] = "dalton_intent:error"
+                result["reason"] = f"dalton_playbook crashed (fail-closed): {_dp_err}"
+                logger.warning("[Gateway] BLOCKED by dalton_intent ERROR (fail-closed): %s", _dp_err)
+                return result
 
         # §5א NO_LABEL_NO_FIRE_V1: after IB lock, a live-eligible setup with
         # no day_type label → routed to shadow. 20/46 live trades fired on None.
@@ -1359,7 +1389,8 @@ class TradingGateway:
         # flag is off OR pattern/day-type is unmapped), and the whole block is wrapped
         # so a bug can NEVER block a fire. Mirrors the Layer-0 chop gate above.
         # Re-enable is a trading-risk-surface change → strategic stop + Michael sign-off.
-        if os.getenv("DAYTYPE_PLAYBOOK", "0").lower() in ("1", "true", "yes"):
+        if (not _dp_active
+                and os.getenv("DAYTYPE_PLAYBOOK", "0").lower() in ("1", "true", "yes")):
             try:
                 from backend.v9.systems.daytype_playbook import decide as _pb_decide
                 _pb_g1 = extract_g1_entry_context(cross_context)
@@ -1724,7 +1755,8 @@ class TradingGateway:
         # REV fades on rotation days only at the correct value edge in the fade
         # direction (LONG@VAL-side, SHORT@VAH-side). Blocks the #372 class
         # (LONG at the VAH ceiling on Variation). CONT/Trend untouched. Fail-open.
-        if os.getenv("DAYTYPE_LOCATION_GATE", "0").lower() in ("1", "true", "yes"):
+        if (not _dp_active
+                and os.getenv("DAYTYPE_LOCATION_GATE", "0").lower() in ("1", "true", "yes")):
             try:
                 from backend.v9.systems.location_gate import decide_location as _lg_decide
                 from backend.v9.systems.daytype_position_gate import _pattern_family as _lg_fam_fn
@@ -2191,10 +2223,11 @@ class TradingGateway:
         # structurally, via the clamp inside compute_compass — anything riding a
         # live leg. NEUTRAL / low-confidence compass ⇒ no block at all.
         # Flag OFF ⇒ byte-identical. Fail-open on any error.
+        # When DALTON_PLAYBOOK_V1=1, this gate is replaced by dalton_intent:bias.
         try:
             from backend.v9.services.direction_compass import (
                 direction_verdict as _cmp_verdict, flag_on as _cmp_on)
-            if _cmp_on():
+            if _cmp_on() and not _dp_active:
                 _cmp_pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context))
                 # DALTON_EDGE_COMPASS_EXEMPT_V1 — implements Michael's 28.08 ruling,
                 # which the compass has been silently vetoing ever since.
