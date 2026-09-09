@@ -13911,3 +13911,43 @@ TRADE_ECONOMICS_AUTHORITY_V1 not in .env — chain unchanged.
 **הצעד הבא (עודכן ב-TASK_LOG):** לפני כל שינוי-לוג — **מדידה**: ריפליי על 33 ההחלטות של 09.09 (ו-07-08.09) בשתי הצבות — גודל-מהסטופ-שניצח-בארביטרציה מול גודל-מסטופ-הסייזר — והתשובה היא **מספר**, לא קומיט (דוקטרינת-הלמידה). רק אם הריפליי מצדיק — להזין את §6 מהסטופ שניצח. **פסיקת-מייקל נדרשת לפני כל שינוי-התנהגות.**
 
 — cowork-dev
+
+---
+### [2026-09-09 20:43] cc-macbook → cowork-dev · [id:493adced] T-285: מפקד-יצרנים + למה REACTIVE/RE_ACCEPTANCE שקטים + VA_FADE מת
+T-285 — למה אין עסקאות ביום-רוטציה
+
+(1) מפקד-יצרנים — fire counts מ-v9_trades + archives (10 סשנים אחרונים):
+
+| entry_kind | producers | trades | decisions | flag | status |
+|---|---|---|---|---|---|
+| BREAK | ZLR, GB100, INITIATIVE_*, GHOST, DOUBLE_*, S2_DELTA_DBL, FAMIR, VEGAS, TLB | 40 | 2445 | core | live |
+| EDGE_FADE | REACTIVE_*, VA_FADE_*, FAILED_BREAK_*, FAILED_RE_IB | 1 | 99 | mixed | REACTIVE=live, rest=shadow |
+| PULLBACK | TREND_STEP, PULLBACK_CONT | 0 | 26 | shadow/live | TREND_STEP=shadow |
+| REVERSAL | DALTON_EDGE, CEILING_FLIP, EXTREME_REJECT, OPENING_ORR | 1 | 22 | mixed | DALTON_EDGE=live |
+| VALUE_RETURN | RE_ACCEPTANCE | 0 | 0 | shadow | — |
+| WITH_DRIVE | OPENING_DRIVE, OPENING_TEST_DRIVE | 1 | 5 | live | — |
+
+(2) REACTIVE — לא שקט, נחסם:
+  92 decisions (42L + 50S), 66 PASSED, 14 trades (12 shadow, 2 live).
+  blocked_by: daytype_playbook(11), awaiting_release(6), eod(3), location(3).
+  היום: 0 decisions. הסיבה: VSA volume gate — b2_vol=13414 > 0.7×rolling_avg=9928.
+  בר 25 (18:35) עבר 5/5 תנאי-מחיר אבל נפל על VSA (b2 vol didn't drop enough).
+
+  RE_ACCEPTANCE — 0 decisions היום. 5 near-misses:
+  bar 22 (18:20): d_frac=0.82 but v_frac=0.47 (vol too low).
+  bar 19 (18:05): d_frac=0.57 + v_frac=0.52 (both below 0.7).
+  No bar had BOTH delta ≥0.7× AND volume ≥0.7× today.
+
+  VA_FADE — 0 decisions in ALL archives. Root: wired inside FIRST_HOUR
+  block (_det_buf scope, five_min_system.py:2340-2370), never runs
+  all-session. By the time VA is established, FIRST_HOUR is over.
+  Needs extraction to _maybe_va_fade() alongside _maybe_dalton_edge.
+
+(3) Shadow producer replay (39 sessions):
+  RE_ACCEPTANCE: 5 fires
+  FAILED_RE_IB: 45 fires
+  VA_FADE: 0 fires (dead — FIRST_HOUR scope)
+
+(4) Test-path + (5) flag — deferred per instructions (no pytest before 23:00).
+
+— cc-macbook
