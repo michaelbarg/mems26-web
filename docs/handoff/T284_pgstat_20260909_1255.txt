@@ -1,0 +1,259 @@
+### T-284 forensic capture — taken BEFORE any restart
+captured_at 2026-09-09 12:54:30 IDT
+
+--- pg_stat_activity FULL (mems26) ---
+-[ RECORD 1 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98846
+state           | idle in transaction
+backend_start   | 2026-09-09 12:13:24.229958+03
+xact_start      | 2026-09-09 12:40:16.971013+03
+query_start     | 2026-09-09 12:54:19.118908+03
+xact_age        | 00:14:13.461219
+query_age       | 00:00:11.313324
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_trades.id AS v9_trades_id, v9_trades.mode AS v9_trades_mode, v9_trades.firing_system AS v9_trades_firing_system, v9_trades.direction AS v9_trades_direction, v9_trades.state AS v9_trades_state, v9_trades.entry_ts AS v9_trades_entry_ts, v9_trades.entry_price AS v9_trades_entry_price, v9_trad
+-[ RECORD 2 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1585
+state           | idle in transaction
+backend_start   | 2026-09-09 12:47:38.404354+03
+xact_start      | 2026-09-09 12:47:44.477297+03
+query_start     | 2026-09-09 12:54:16.039049+03
+xact_age        | 00:06:45.954935
+query_age       | 00:00:14.393183
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 3 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1591
+state           | idle in transaction
+backend_start   | 2026-09-09 12:47:39.202159+03
+xact_start      | 2026-09-09 12:47:51.641955+03
+query_start     | 2026-09-09 12:54:01.601704+03
+xact_age        | 00:06:38.790277
+query_age       | 00:00:28.830528
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 4 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98773
+state           | idle in transaction
+backend_start   | 2026-09-09 12:12:52.487703+03
+xact_start      | 2026-09-09 12:48:11.164917+03
+query_start     | 2026-09-09 12:53:30.803035+03
+xact_age        | 00:06:19.267315
+query_age       | 00:00:59.629197
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 5 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1627
+state           | idle in transaction
+backend_start   | 2026-09-09 12:47:59.652143+03
+xact_start      | 2026-09-09 12:48:17.221054+03
+query_start     | 2026-09-09 12:54:18.220004+03
+xact_age        | 00:06:13.211178
+query_age       | 00:00:12.212228
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 6 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1706
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:24.659703+03
+xact_start      | 2026-09-09 12:48:41.057436+03
+query_start     | 2026-09-09 12:54:08.052532+03
+xact_age        | 00:05:49.374796
+query_age       | 00:00:22.3797
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 7 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1724
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:46.938951+03
+xact_start      | 2026-09-09 12:48:56.205268+03
+query_start     | 2026-09-09 12:53:31.088993+03
+xact_age        | 00:05:34.226964
+query_age       | 00:00:59.343239
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 8 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1726
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:48.973262+03
+xact_start      | 2026-09-09 12:48:56.637992+03
+query_start     | 2026-09-09 12:53:30.88569+03
+xact_age        | 00:05:33.79424
+query_age       | 00:00:59.546542
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 9 ]---+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1704
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:24.608266+03
+xact_start      | 2026-09-09 12:49:40.079217+03
+query_start     | 2026-09-09 12:54:29.081785+03
+xact_age        | 00:04:50.353015
+query_age       | 00:00:01.350447
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 10 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1714
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:30.648212+03
+xact_start      | 2026-09-09 12:50:19.104813+03
+query_start     | 2026-09-09 12:53:28.159994+03
+xact_age        | 00:04:11.327419
+query_age       | 00:01:02.272238
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 11 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1708
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:24.784626+03
+xact_start      | 2026-09-09 12:50:19.506939+03
+query_start     | 2026-09-09 12:50:19.507268+03
+xact_age        | 00:04:10.925293
+query_age       | 00:04:10.924964
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 12 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98711
+state           | idle in transaction
+backend_start   | 2026-09-09 12:12:01.372329+03
+xact_start      | 2026-09-09 12:50:23.374536+03
+query_start     | 2026-09-09 12:53:31.104871+03
+xact_age        | 00:04:07.057696
+query_age       | 00:00:59.327361
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 13 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98823
+state           | idle in transaction
+backend_start   | 2026-09-09 12:13:17.298089+03
+xact_start      | 2026-09-09 12:50:24.759017+03
+query_start     | 2026-09-09 12:50:24.759473+03
+xact_age        | 00:04:05.673215
+query_age       | 00:04:05.672759
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 14 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1629
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:00.55186+03
+xact_start      | 2026-09-09 12:50:25.112568+03
+query_start     | 2026-09-09 12:53:30.362584+03
+xact_age        | 00:04:05.319664
+query_age       | 00:01:00.069648
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 15 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 1719
+state           | idle in transaction
+backend_start   | 2026-09-09 12:48:38.940192+03
+xact_start      | 2026-09-09 12:51:31.376445+03
+query_start     | 2026-09-09 12:51:31.37685+03
+xact_age        | 00:02:59.055787
+query_age       | 00:02:59.055382
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volu
+-[ RECORD 16 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 2447
+state           | active
+backend_start   | 2026-09-09 12:54:30.351306+03
+xact_start      | 2026-09-09 12:54:30.432232+03
+query_start     | 2026-09-09 12:54:30.432232+03
+xact_age        | 00:00:00
+query_age       | 00:00:00
+wait_event_type | 
+wait_event      | 
+query           | select pid, state, backend_start, xact_start, query_start, now()-xact_start as xact_age, now()-query_start as query_age, wait_event_type, wait_event, left(regexp_replace(query,'\s+',' ','g'),300) as query from pg_stat_activity where datname='mems26' order by xact_start nulls last;
+-[ RECORD 17 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 2392
+state           | idle
+backend_start   | 2026-09-09 12:54:01.639983+03
+xact_start      | 
+query_start     | 2026-09-09 12:54:30.271476+03
+xact_age        | 
+query_age       | 00:00:00.160756
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT open, high, low, close FROM v9_bars_5min_woodies WHERE (ts AT TIME ZONE 'America/New_York')::date = (now() AT TIME ZONE 'America/New_York')::date AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30:00' ORDER BY ts
+-[ RECORD 18 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98841
+state           | idle
+backend_start   | 2026-09-09 12:13:21.14575+03
+xact_start      | 
+query_start     | 2026-09-09 12:54:30.365504+03
+xact_age        | 
+query_age       | 00:00:00.066728
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT * FROM v9_tpo_sessions WHERE trading_date='2026-09-08' AND session_type='CASH' ORDER BY id DESC LIMIT 1
+-[ RECORD 19 ]--+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+pid             | 98848
+state           | idle
+backend_start   | 2026-09-09 12:13:25.035245+03
+xact_start      | 
+query_start     | 2026-09-09 12:54:30.325922+03
+xact_age        | 
+query_age       | 00:00:00.10631
+wait_event_type | Client
+wait_event      | ClientRead
+query           | SELECT ts, poc, vah, val FROM v9_tpo_history WHERE poc IS NOT NULL ORDER BY ts DESC LIMIT 26
+
+--- locks ---
+ pid  |  locktype  |      mode       | granted |          relname          
+------+------------+-----------------+---------+---------------------------
+ 1585 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1585 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1585 | virtualxid | ExclusiveLock   | t       | 
+ 1585 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1585 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1591 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1591 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1591 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1591 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1591 | virtualxid | ExclusiveLock   | t       | 
+ 1627 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1627 | virtualxid | ExclusiveLock   | t       | 
+ 1627 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1627 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1627 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1629 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1629 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1629 | virtualxid | ExclusiveLock   | t       | 
+ 1629 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1629 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1704 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1704 | virtualxid | ExclusiveLock   | t       | 
+ 1704 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1704 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1704 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1706 | virtualxid | ExclusiveLock   | t       | 
+ 1706 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1706 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1706 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1706 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1708 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+ 1708 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1708 | virtualxid | ExclusiveLock   | t       | 
+ 1708 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1708 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1714 | relation   | AccessShareLock | t       | v9_bars_5min_pkey
+ 1714 | relation   | AccessShareLock | t       | ux_v9_bars_5min_ts_symbol
+ 1714 | virtualxid | ExclusiveLock   | t       | 
+ 1714 | relation   | AccessShareLock | t       | v9_bars_5min
+ 1714 | relation   | AccessShareLock | t       | ix_v9_bars_5min_ts
+(40 rows)
+
