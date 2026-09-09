@@ -4,44 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-08 09:56 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-08 23:42 ET
 events:
-  - date: 2026-09-08
-    time_et: "06:00"
-    name: "NFIB Business Optimism Index"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "09:00"
-    name: "Used Car Prices MoM"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "09:00"
-    name: "Used Car Prices YoY"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "11:00"
-    name: "Consumer Inflation Expectations"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "11:30"
-    name: "3-Month Bill Auction"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "11:30"
-    name: "6-Month Bill Auction"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "13:00"
-    name: "3-Year Note Auction"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "13:00"
-    name: "6-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-08
-    time_et: "15:00"
-    name: "Consumer Credit Change"
-    severity: yellow
   - date: 2026-09-09
     time_et: "07:00"
     name: "MBA 30-Year Mortgage Rate"
@@ -270,3 +234,31 @@ events:
     time_et: "11:30"
     name: "6-Month Bill Auction"
     severity: yellow
+  - date: 2026-09-15
+    time_et: "08:15"
+    name: "ADP Employment Change Weekly"
+    severity: orange
+  - date: 2026-09-15
+    time_et: "08:30"
+    name: "NY Empire State Manufacturing Index"
+    severity: orange
+  - date: 2026-09-15
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
+  - date: 2026-09-15
+    time_et: "11:30"
+    name: "6-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-15
+    time_et: "12:00"
+    name: "NOPA Crush Report"
+    severity: yellow
+  - date: 2026-09-15
+    time_et: "13:00"
+    name: "20-Year Bond Auction"
+    severity: yellow
+  - date: 2026-09-15
+    time_et: "16:30"
+    name: "API Crude Oil Stock Change"
+    severity: orange

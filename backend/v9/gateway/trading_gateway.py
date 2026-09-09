@@ -1106,6 +1106,22 @@ class TradingGateway:
             except Exception as _dp_err:
                 logger.warning("[Gateway] dalton_playbook failed (fail-open): %s", _dp_err)
 
+        # §5א NO_LABEL_NO_FIRE_V1: after IB lock, a live-eligible setup with
+        # no day_type label → routed to shadow. 20/46 live trades fired on None.
+        if os.getenv("NO_LABEL_NO_FIRE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _nl_tpo = (cross_context.get("tpo_system")
+                           if isinstance(cross_context, dict) else None) or {}
+                _nl_ib_locked = bool(_nl_tpo.get("ib_locked"))
+                if _nl_ib_locked:
+                    from backend.v9.services.trade_context import get_live_day_type as _nl_gldt
+                    _nl_dt = _nl_gldt()
+                    if not _nl_dt:
+                        setup.setdefault("metadata", {})["shadow_only"] = True
+                        logger.warning("[Gateway] §5a NO_LABEL: IB locked, day_type=None → shadow")
+            except Exception:
+                pass  # fail-open
+
         # A2: COLD_START_GUARD_V1 (default OFF) — no firing until the system
         # has processed enough bars after startup/restart. Case #655 (2026-08-10):
         # trade fired 8 seconds after restart with bars_processed_today=0,
