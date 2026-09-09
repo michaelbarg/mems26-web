@@ -1101,6 +1101,28 @@ class TradingGateway:
                         _dp_ot = _ot.value if hasattr(_ot, "value") else str(_ot)
                 except Exception:
                     pass
+                # P1.5: when machine is UNKNOWN/NA and setup is OPENING_*,
+                # derive opening_type + direction_hint from the producer.
+                # The opening producer IS the opening-type detector on those bars.
+                _dp_classification = (setup.get("classification") or
+                                       setup.get("pattern") or "")
+                if _dp_ot in ("UNKNOWN", "NA", "") and _dp_classification.startswith("OPENING_"):
+                    _P15_MAP = {
+                        "OPENING_DRIVE": "OPEN_DRIVE",
+                        "OPENING_TEST_DRIVE": "OPEN_TEST_DRIVE",
+                        "OPENING_ORR": "OPEN_REJECTION_REVERSE",
+                        "OPENING_PULLBACK_CONT": "OPEN_DRIVE",
+                    }
+                    _dp_p15_ot = _P15_MAP.get(_dp_classification)
+                    if _dp_p15_ot:
+                        _dp_ot = _dp_p15_ot
+                        # Direction from the setup itself
+                        _dp_setup_dir = (setup.get("direction") or "").upper()
+                        if _dp_setup_dir in ("LONG", "SHORT"):
+                            # For ORR the drive direction is opposite
+                            if _dp_p15_ot == "OPEN_REJECTION_REVERSE":
+                                pass  # intent() handles reversal_direction
+                            # direction_hint set below from setup
                 # IL time
                 from backend.v9.services.market_clock import now_et
                 _dp_et = now_et()
@@ -1120,6 +1142,11 @@ class TradingGateway:
                             _dp_dir_hint = "SHORT"
                 except Exception:
                     pass
+                # P1.5 fallback: if no direction from classify, use setup direction
+                if _dp_dir_hint is None and _dp_classification.startswith("OPENING_"):
+                    _dp_setup_dir = (setup.get("direction") or "").upper()
+                    if _dp_setup_dir in ("LONG", "SHORT"):
+                        _dp_dir_hint = _dp_setup_dir
                 _dalton_intent = _dp_intent(
                     opening_type=_dp_ot, day_type=_dp_dt,
                     now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
