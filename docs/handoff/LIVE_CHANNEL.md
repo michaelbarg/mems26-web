@@ -1,3 +1,75 @@
+### [2026-09-09 20:22 IL] cowork-scheduled · 🔴🔴 **תיקון להודעת 20:16 — הלייב **כן** חסום מ-20:15:08. הפוזיציה הזרה חוסמת מבנית את ריפוי-הפנטום (T-288)**
+
+**התיקון, ובו אני פותח:** בהודעת-הטלפון של 20:16 כתבתי *"הלייב לא היה חסום באף רגע"*.
+זה היה **נכון עד 20:15:07** ונשען על ראיית-צרכן אמיתית (T-43 ⇒ 0, cooldown ⇒ 0). שנייה
+אחת אחר-כך המצב התהפך מסיבה **אחרת לגמרי**, ולא ידעתי זאת בזמן-הכתיבה. מתקן מיד.
+
+---
+
+**1 · מה קרה ב-20:15, לפי הסדר**
+
+```
+20:15:07  Gateway  LIVE trade TM id=1337: LONG DOUBLE_BOTTOM_EE_LONG system=2
+          SierraCmd RISK_BUDGET: risk=4.8 pts → raw=9.5 → floor=9 → min(ruled=5)=5
+          SierraCmd COMMAND QUEUED #405 (op=PLACE)
+20:15:08  FillPoller POSITION_TRUTH: Sierra holds 6c but trade 1337 has NO submit-ack
+                     — NOT attributing (manual/not-ours position?)          ← נכון!
+20:15:08  FillPoller ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED)
+20:15:08  FillPoller CRITICAL ... RETRYING once  + COMMAND QUEUED #406
+20:15:19→ Reconciler TM says 5c ['#1337(live,LONG,5c/assumed_open)'], Sierra says 6
+```
+
+הסיזינג היה **תקין** (‏5 = התקרה הפסוקה). ‏`POSITION_TRUTH` עשה את שלו ולא ייחס לנו
+את ה-6 הזרים.
+
+**2 · העסקה מעולם לא התמלאה — מונה-המילויים, לא הרושם**
+
+```
+daily_total_qty_filled   82 ב-20:08 · 82 ב-20:15 · 82 ב-20:19   ← לא זז
+position_qty             6 (ללא שינוי)      avg_price 7648.00 (ללא שינוי)
+working_orders           0
+v9_trades#1337           state=PENDING · entry_ts ריק · is_synthetic=0
+```
+
+**ובכל זאת הסלוט תפוס:** `system6/diagnose` ⇒ `active=true`, `slot_trade_id=1337`,
+`live_open_ids=[1337]`, `"slot holds open live trade 1337"`.
+
+**3 · השורש — תנאי-סף שהפוזיציה הזרה מפרה** (`sierra_position_reconciler.py:919`)
+
+```python
+if (_heal_on or _cancel_detect) and src == "state" and sierra_qty == 0 \
+   and _working == 0 and tm_qty != 0:
+```
+
+‏`sierra_qty` הוא **6** (הפוזיציה הידנית של T-287) ⇒ התנאי לעולם אינו מתקיים ⇒
+`phantom-heal streak` תקוע **0/3** בשבע דגימות רצופות (20:15:19→20:18:50) ⇒
+`PHANTOM_HEAL_V1=1` (פסיקת-מייקל 13.07) **דלוק ובכל זאת בלתי-נגיש**.
+⇒ **הסלוט לא ישוחרר לבד כל עוד הפוזיציה הזרה יושבת.**
+
+**וגם האזעקה לא תתריע:** `stuck_seconds=0.0` מול `threshold_seconds=600` — המונה אינו
+מתקדם, ולכן גם בעוד 10 דקות לא תצא התרעת-סלוט-תקוע. שקט, לא ירוק.
+
+**4 · מה נצפה ומה תחזית — ההבחנה שלא אטשטש**
+
+`grep -c "live_slot_occupied"` ⇒ **0**. מאז 20:15:07 **טרם צץ מועמד-לייב חדש**, ולכן
+**אין עדיין חסימה נצפית**. המנגנון (מתועד בהערת T-178 באותו קובץ `:930-945`) יבלום את
+**המועמד הבא**. אני מדווח על מנגנון מוכח-בקוד, לא על תצפית שלא קרתה.
+
+**5 · פגם-נלווה, מחלקת T-205** — `entry_guard.py:226` מחזיר את המחרוזת הקבועה
+`"account flat (pos=0, working=0) — clear to send 5"` **גם** כשהמסלול עבר דרך ענף-הבעלות
+(`existing position +6 is ownership-explained`) ⇒ ה-CRITICAL של 20:15:08 מצטט "pos=0"
+כשבפועל 6. ההחלטה (להתיר) תקינה; המספרים בהודעה שקריים.
+
+**6 · מה שלא הוכח ולא אנחש:** מדוע סיירה החזירה `error=-1` על `op=PLACE`. חשוד-ראשון —
+6 חוזים ידניים מול תקרת-`MaximumPositionAllowed` — **לא אומת**, ואין לצטט כסיבה.
+
+**פעולה:** אפס. לא נגעתי בסלוט, בפוזיציה, בדגלים או ב-`.env`, ולא עשיתי ריסטארט
+(חלון-איסור 16:10-23:00). ‏**T-288** נפתח עם הצעדים ל-cc; ההכרעה על השחרור היא של מייקל.
+
+**— cowork-scheduled, 2026-09-09 20:22 IL**
+
+---
+
 ### [2026-09-09 20:25 IL] cowork-scheduled · 🟠 **ניטור-RTH 20:06-20:25 — פוזיציה זרה 6 חוזים בלי הגנה; בריאות ירוקה; אפס חסימה בפועל**
 
 **חובה-1:** אפס ממתינות, **מוכח** — `peek` ישיר מ-Render: `/instruction/pending` ⇒ `{"items":[]}` ·
