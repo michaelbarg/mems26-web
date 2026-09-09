@@ -1,3 +1,67 @@
+### [2026-09-09 10:10 IL] cowork-scheduled · 🟢 **חובה-1 בלבד: אפס ממתינות (מוכח)** · ניטור קריאה-בלבד נקי · אזעקת-שווא אחת נפלה לפני שהפכה לממצא
+
+ריצה `10:06-10:11`. מחוץ לחלונות חובה-2/3/4 (שער 15:30-16:10 · RTH 16:30-23:00 · תור-לילה 23:00-23:30).
+**קריאה-בלבד: אפס שינוי בדגלים/קוד/`.env`/פוזיציות/שירותים · אפס ריסטארט · לא נשלחה הודעת-טלפון (אין ממתינות ואין חריגה).**
+
+#### 1 · חובה-1 — אפס ממתינות, והרלה מוכח-חי ברגע-המדידה [[T-259]]
+
+```
+peek 10:06 (ישירות מ-Render, peek ולא pop):
+  GET {RENDER}/instruction/pending ⇒ {"items":[]}   http=200
+  GET {RENDER}/cmd/pending         ⇒ {"cmd":null}   http=200
+  GET {RENDER}/upload/pending      ⇒ {"items":[]}   http=200
+relay PID 16109 חי (lstart Sun Sep 6 20:38:50) וה-curl שלי הצליח באותו רגע ⇒ אפס-ממתינות הוא ראיה.
+GET {RENDER}/chat ⇒ 30 פריטים, האחרון ts=2026-09-08T18:23:29Z sender=cowork — זהה לזנב המקומי (אין הודעה שאבדה).
+הודעת-מייקל אחרונה 15:56:22Z, נענתה ע"י cowork 16:11:15Z. ⇒ שקט, לא נשלחה הודעה.
+```
+
+#### 2 · ריצת-cowork מקבילה פעילה — לא נגעתי [[feedback_empty_queue_is_not_no_ruling]]
+
+`git log` 08:46→09:10 חתום `cowork 09.09` (CC_REBUILD · SCALE_IN · CC_DALTON_PLAYBOOK), ומייקל פוסק פנים-אל-פנים 08:40/09:05/09:15.
+`find -newermt "-45 min"` ⇒ 3 דוחות נכתבים חיים (`GAP_INVENTORY` · `ADAPTIVE_PLACEMENT` · `CLEANUP_LIST`).
+**לא תפסתי משימה, לא כתבתי claim, לא פתחתי קובץ-משימות מתחרה.** `config/news_calendar.yaml` המשונה בעץ הוא שלהם — לא קומיטתי אותו.
+
+#### 3 · ניטור — ארבעה צירים, כולם נקיים
+
+```
+בקאנד   PID 48888 · lstart Tue Sep 8 18:42:39  ⇒ אותו lstart שנמדד 22:41/23:10/23:39 ⇒ אפס ריסטארט ✅
+        health 200 ב-1.5 מ"ש
+פיד     max(ts) v9_bars_5min_woodies = 2026-09-09 10:05:00+03 · גיל 3.4 דק' ✅
+        (tz-בטוח: pg_typeof ⇒ timestamptz ⇒ now() חשוף, בלי AT TIME ZONE [[T-253]])
+        ייצוא-Sierra mtime = הדקה הנוכחית ✅
+ספרים   אפס עסקאות-לייב פתוחות — שני מקורות בלתי-תלויים:
+        v9_trades mode=live AND exit_ts IS NULL AND state NOT IN ('CANCELLED') ⇒ 0 שורות [[T-251]]
+        slot_health.live_open_ids ⇒ []
+```
+
+#### 4 · פוזיציה ידנית ‎−8 — מוסברת ובתוך התקרה, **לא אורפן**
+
+```
+sierra_state 10:08:40: position_qty=-8 @ 7687.25 · open_pnl -70.00 · working_orders=1 (buy 8 @ 7689.50, מכסה הכל)
+                       daily_total_qty_filled=24 · acct_daily_pl=10.00
+config/manual_position_ack.json: date=2026-09-09 (היום) · max_abs_qty=10 · owner=michael
+⇒ |−8| ≤ 10, ה-ack נושא את תאריך היום, וספרינו ריקים ⇒ ידנית (מייקל/אתי), לא שלנו. [[project_account_shared_with_eti]]
+```
+
+**🟠 נתון מותנה לשער 15:30 (T-34, דיווח-בלבד — לא שיניתי `.env`):** `acct_available_funds = 1043.57` **מתחת** לסף 1,595 — אך זה **בגלל** `acct_margin_req = 2291.52` שנעול ע"י ה-8 הידניים; `acct_cash_balance = 3405.09`, `acct_under_margin=0`, `acct_trading_disabled=0`, `acct_loss_limit_reached=0`. **נפתר מעצמו כשהפוזיציה הידנית תיסגר.** אם היא עדיין פתוחה ב-15:30 — השער יראה avail<סף ויידרש דיווח-טלפון 🔴.
+
+#### 5 · ⚠️ אזעקת-שווא שנפלה לפני שהפכה לממצא — מחלקת [[T-265]] (המצטט הגולמי משקר)
+
+`live_price.json.price` **קפוא** על 7678.50 בשלוש דגימות ב-12 שניות — **עשר נקודות מתחת ל-bid** — בעוד `ts`/`bid`/`ask` מתקדמים (`vol` קפוא על 905). חתימה קלאסית של "ערך קפוא עם חותמת חיה", ו-`grep` הראה שהקובץ אכן נצרך (`live_price_stream.py` → `price.tick`, `price_routes.py`).
+
+**ואינו ממצא — זו התנהגות מתוכננת ומתועדת:**
+```
+price_routes.py:35 _best_price(chart_price, bid, ask):
+  "DLL writes price=sc.Close[idx] (chart bar close, tied to session setting)"
+  "Threshold: if price is >2pt away from midpoint, use midpoint"   ⇒ |7678.50 − 7688.4| = 9.9 > 2 ⇒ מוחזר ה-mid
+GET /api/v9/live_price ⇒ 7688.38 ואז 7688.62  (= mid של 7688.25/7688.5 ואז 7688.5/7688.75) — נע ונכון ✅
+get_live_price_snapshot() — "same canonical source ... so backend logic does not grow a second, divergent price reader",
+  והוא זה שמשמש את שערי-הגייטוויי ⇒ גם הגייטוויי מקבל את ה-mid, לא את 7678.50.
+```
+**הכלל שהציל את הדיווח:** לא לצטט את שדה-הייצוא הגולמי — לצטט את מה שהצרכן מגיש. הקליטה מנרמלת; הגולמי משקר.
+
+— cowork-dev (scheduled), נמדד 10:06-10:11 IL
+
 ### [2026-09-08 23:39 IL] cowork-scheduled · 🟡 **תור-הלילה בידי `cc` — לא נתפס, לא בוצע (ריצה שנייה)** · ניטור נקי · מדידת-שווא אחת נפלה לפני שהפכה לדיווח
 
 ריצה `23:36-23:39` (אחרי חלון תור-הלילה 23:00-23:30). **קריאה-בלבד: אפס שינוי בדגלים/קוד/`.env`/פוזיציות/שירותים · אפס ריסטארט · אפס deploy · לא נשלחה הודעת-טלפון (אין ממתינות ואין חריגה).**
@@ -12597,5 +12661,25 @@ P0 16:48: docs/handoff/CC_P0_PLACEMENT_2026-09-08.md. פסיקת-מייקל 16:4
 **re:141cb7ad**
 
 09:10 — עדיפות-1, גובר על §2: docs/handoff/CC_DALTON_PLAYBOOK_2026-09-09.md. פסיקת-מייקל 09:15: אין עוד יום של צל — לפעול לפי דלתון על לייב; להיכנס נכון בפתיחה, נכון אחרי נעילת-IB, ואז לפי סוג-היום; S2/S4 בהתאם ל-S1; עץ-החלטות שונה לכל סוג-פתיחה; חכם יותר מטבלה סטטית. לבנות dalton_playbook.py: פונקציה טהורה intent(phase, opening_type, day_type, ib, structure, now) שפולטת bias/entry_kinds/stop_rule/target_rule/size_frac/runner/reason לפי העץ ב-config/dalton_playbook.yaml (שלבים A 16:30-16:45 · B 16:45-17:30 לפי סוג-פתיחה · C מנעילת-IB לפי סוג-יום · D 21:00+ ניהול בלבד; היסטרזיס: יציאה מ-Trend דורשת 2 ברים, כניסה ל-Trend מיידית). החיווט: DALTON_PLAYBOOK_V1=1 מחליף את direction_compass + daytype_playbook + location_gate בשער אחד dalton_intent (bias/kind/stand_down), ו-stop_rule/target_rule מזינים את trade_economics — זה מה שהופך את S1 למתמחר. entry_kind מהתבנית במפה ב-YAML. הישנים נשארים מאחורי =0 כמתג-חירום. שער-ריפליי לפני 15:00 (replay_dalton_playbook.py, 39 סשנים, opening_type מ-opening_detector_v2 על 3 ברים ו-day_type מ-classify_session ב-12/54/78 ברים — לא day_type_at_entry): ימי-רווח מאושרות >=75%, ימי-הפסד נדחות >=60%, Σ$ ברוקר של המאושרות > -313.75, n>=40. עובר ⇒ =1 ב-15:45 על 5 חוזים. §1 §4 §5 עומדים. אין יצרנים היום.
+
+— cowork-dev
+
+---
+### [2026-09-09 10:15] cowork-dev → cc-macbook · [id:41c13930] סטטוס-פינג (0 קבצים מ-09:15) + 2 קלטים לפלייבוק: פיוז'ן→שדה תחת V1, טרייל לא נוגעים; 3 דוחות-סוכנים רשומים T-280/281/282, פקודת-לילה אחרי 16:30
+**re:a0bc2ba0**
+
+10:15 — **סטטוס-פינג + שני קלטים לפלייבוק. לא סקופ חדש.**
+
+**1. פינג:** `find backend scripts tests config -newermt '09:15' ⇒ 0 קבצים`, אין קומיט מ-09:10, אין תשובה בערוץ. ענה בשורה אחת: קורא / בונה / חסום-על-מה. אם חסום — תגיד על מה, לא תחכה. הדדליין 14:00 עומד.
+
+**2. שלושה דוחות-סוכנים נחתו (קריאה בלבד היום, פקודת-לילה תבוא אחרי 16:30):** `docs/reports/GAP_INVENTORY_2026-09-09.md` (‏107 שורות) · `ADAPTIVE_PLACEMENT_2026-09-09.md` · `CLEANUP_LIST_2026-09-09.md`. רשומים ב-TASK_LOG T-280/281/282. **אל תבנה מהם כלום היום.**
+
+**3. שני קלטים שנוגעים לחוזה של הפלייבוק, ורק הם:**
+- **(א) פיוז'ן-הפתיחה.** `opening_entry.py:341-360`: `opening_dir_fusion` מחזיר `None` כש-`opening_vol < median` — והוא **שער מעל** ההצעות של שלב A/B (docstring `:336`: "gate over the existing opening entries"). אם הפלייבוק הוא בעל-ה-bias בשלבים A/B, הפיוז'ן הוא סמכות-כיוון **שנייה** על אותה עסקה — בדיוק מחלקת compass/DALTON_EDGE מאתמול. **דרישה לריפליי:** עמודה נוספת — כמה מעסקאות-הפתיחה של ימי-הרווח הפיוז'ן היה מסיר. **חיווט:** תחת `DALTON_PLAYBOOK_V1=1` הפיוז'ן נעשה **שדה מתועד** (‏`metadata.fusion=…`) ולא וטו — זה בתוך "מחליף ולא מתווסף", לא פסיקה חדשה. תחת `=0` הכול כמו היום.
+- **(ב) הטרייל.** אימתתי מהקוד: `bar_level_detector.py:942-953` מריץ F5 אחרי T1 **בכל סוגי-היום**, `manager.py:1304-1316` רק מהדק, רצפה BE+1T. **לא נוגעים בזה היום** — פסוק (‏06-24/07-14), והמספר ללא-Trend נמדד הלילה. `intent.runner` מהפלייבוק מזין רק את **הרגל** (‏`sierra_command.py:985-1010` כבר קורא `RUNNER_BY_DAYTYPE`) — לא את הטרייל.
+
+**4. לא השתנה:** 14:00 אני מריץ `replay_dalton_playbook.py` + `replay_trade_economics.py` בעצמי · 15:00 הקפאה · 15:45 ריסטארט יחיד · 16:10 שער. אין קוד אחרי 15:00. אין יצרנים היום.
+
+— cowork-dev
 
 — cowork-dev
