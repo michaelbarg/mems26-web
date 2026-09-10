@@ -1,0 +1,158 @@
+START 14:40:54 HEAD=ff1bfb1f
+=== 2026-08-03 14:40:54 ===
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-03T19:45:00+00:00', 'p1': 'MES', 'p2': 7632.5, 'p3': 7632.5, 'p4': 7632.5, 'p5': 7632.5, 'p6': 57, 'p7': -41.32, 'p8': -127.5, 'p9': 7635.24, 'p10': -138.8, 'p11': 20.0, 'p12': 7627.31, 'p13': 'GRAY', 'p14': -90.45, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-03 22:50:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-03T19:50:00+00:00', 'p1': 'MES', 'p2': 7633.25, 'p3': 7633.25, 'p4': 7633.25, 'p5': 7633.25, 'p6': 139, 'p7': -32.47, 'p8': -58.59, 'p9': 7634.95, 'p10': -106.49, 'p11': 22.0, 'p12': 7627.63, 'p13': 'GRAY', 'p14': -23.62, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-03 22:55:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-03T19:55:00+00:00', 'p1': 'MES', 'p2': 7629.0, 'p3': 7629.0, 'p4': 7629.0, 'p5': 7629.0, 'p6': 217, 'p7': -128.89, 'p8': -115.9, 'p9': 7634.09, 'p10': -136.7, 'p11': 6.0, 'p12': 7627.82, 'p13': 'RED', 'p14': -225.32, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-03 22:55:03,000 WARNING mems26.systems.five_min [CeilingFloor] CEILING_FAILED edge=VAH(7637.00) P1=7638.50 P2=7637.50 confirm_level=7632.00 confirm_close=7629.25 confirm_bar_extreme=7627.75 bars_between=5 bars_to_confirm=5 atr=4.16 tol=1.04 ts=1785786600.000000 (SHADOW)
+2026-08-03 22:55:03,000 WARNING mems26.systems.five_min [CeilingFlip] CEILING_FAILED → SHORT entry=7629.25 stop=7635.49 t1=7611.50 (SHADOW)
+2026-08-03 22:55:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=2 pattern=CEILING_FLIP_SHORT dir=SHORT entry=7629.25 blocked_by=dalton_intent:stand_down ot=OPEN_DRIVE hint=LONG bias=NONE kinds=[] il=22:55
+2026-08-03 22:55:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=2 pattern=CEILING_FLIP_SHORT dir=SHORT entry=7629.25 blocked_by=dalton_intent:stand_down
+[fwd] 2026-08-03 head push=firstpush routes=38 blocked=20 live_cmds=1 -> /tmp/hv/2026-08-03.json
+=== 2026-08-04 14:41:07 ===
+2026-08-04 19:45:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-04T16:45:00+00:00', 'p1': 'MES', 'p2': 7752.25, 'p3': 7752.25, 'p4': 7752.25, 'p5': 7752.25, 'p6': 72, 'p7': 153.85, 'p8': 121.32, 'p9': 7750.25, 'p10': 18.8, 'p11': 123.0, 'p12': 7720.94, 'p13': 'BLUE', 'p14': 165.47, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-04 19:50:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-04T16:50:00+00:00', 'p1': 'MES', 'p2': 7754.25, 'p3': 7754.25, 'p4': 7754.25, 'p5': 7754.25, 'p6': 24, 'p7': 159.32, 'p8': 136.49, 'p9': 7752.11, 'p10': 12.38, 'p11': 124.0, 'p12': 7722.81, 'p13': 'BLUE', 'p14': 164.78, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-04 19:50:03,000 WARNING mems26.systems.five_min [FiveMin] DB persist error: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_five_min_setups (ts, pattern, direction, entry_price, stop_price, t1_price, t2_price, time_stop_min, confidence, day_type_at_fire, killzone_at_fire, pattern_type, setup_kind, bar_stage, cot_at_fire, amt_at_fire, variant_tag, variants_passed) VALUES (%(ts)s, %(pattern)s, %(direction)s, %(entry_price)s, %(stop_price)s, %(t1_price)s, %(t2_price)s, %(time_stop_min)s, %(confidence)s, %(day_type_at_fire)s, %(killzone_at_fire)s, %(pattern_type)s, %(setup_kind)s, %(bar_stage)s, %(cot_at_fire)s, %(amt_at_fire)s, %(variant_tag)s, %(variants_passed)s) RETURNING v9_five_min_setups.id, v9_five_min_setups.created_at]
+[parameters: {'ts': FakeDatetime(2026, 8, 4, 19, 45, tzinfo=datetime.timezone(datetime.timedelta(seconds=10800))), 'pattern': 'INITIATIVE_LONG', 'direction': 'LONG', 'entry_price': 7754.5, 'stop_price': 7729.25, 't1_price': None, 't2_price': None, 'time_stop_min': None, 'confidence': 0.8, 'day_type_at_fire': None, 'killzone_at_fire': None, 'pattern_type': 'INITIATIVE_LONG', 'setup_kind': 'INITIATIVE', 'bar_stage': 4, 'cot_at_fire': 15906.0, 'amt_at_fire': 13637.0, 'variant_tag': '', 'variants_passed': ''}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+2026-08-04 19:50:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] §5 ELQ_LEG_FROM_BREAK: leg_base 7656.00→7706.25 (broken IB edge, break=UP)
+2026-08-04 19:50:03,000 WARNING backend.v9.systems.entry_location_quality [ELQ] expensive_stop SHADOW: rr=3.75 > 1.50 (stop 25.2 vs ATR 6.7) — would block, logging only
+2026-08-04 19:50:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=2 pattern=INITIATIVE_LONG dir=LONG entry=7754.5 blocked_by=entry_location_quality
+[fwd] 2026-08-04 head push=firstpush routes=20 blocked=16 live_cmds=1 -> /tmp/hv/2026-08-04.json
+=== 2026-09-09 14:41:15 ===
+             reasoning, session, created_at,
+             czi_state, swi_state, persistence_bars,
+             signal_type_core, signal_confidence, is_synthetic)
+            VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s)]
+[parameters: {'p0': '2026-09-09T19:54:58+00:00', 'p1': None, 'p2': -180.7, 'p3': None, 'p4': 'ZLR', 'p5': 'SHORT', 'p6': 2, 'p7': 'ZLR SHORT conf=0.65 CCI=-180.7 trend=RED', 'p8': 'RTH', 'p9': '2026-09-09T19:54:58+00:00', 'p10': 'TREND_ZONE', 'p11': 'NORMAL', 'p12': 50, 'p13': 'ZLR', 'p14': 0.65, 'p15': 0}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_woodies_signals
+            (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+            
+2026-09-09 22:55:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-09T19:55:00+00:00', 'p1': 'MES', 'p2': 7644.75, 'p3': 7644.75, 'p4': 7644.75, 'p5': 7644.75, 'p6': 239, 'p7': -180.7, 'p8': -134.39, 'p9': 7649.27, 'p10': -105.77, 'p11': -15.0, 'p12': 7648.68, 'p13': 'RED', 'p14': -265.6, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-09-09 22:55:03,000 WARNING mems26.systems.five_min [FiveMin] DB persist error: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_five_min_setups (ts, pattern, direction, entry_price, stop_price, t1_price, t2_price, time_stop_min, confidence, day_type_at_fire, killzone_at_fire, pattern_type, setup_kind, bar_stage, cot_at_fire, amt_at_fire, variant_tag, variants_passed) VALUES (%(ts)s, %(pattern)s, %(direction)s, %(entry_price)s, %(stop_price)s, %(t1_price)s, %(t2_price)s, %(time_stop_min)s, %(confidence)s, %(day_type_at_fire)s, %(killzone_at_fire)s, %(pattern_type)s, %(setup_kind)s, %(bar_stage)s, %(cot_at_fire)s, %(amt_at_fire)s, %(variant_tag)s, %(variants_passed)s) RETURNING v9_five_min_setups.id, v9_five_min_setups.created_at]
+[parameters: {'ts': FakeDatetime(2026, 9, 9, 22, 50, tzinfo=datetime.timezone(datetime.timedelta(seconds=10800))), 'pattern': 'DOUBLE_TOP_AA_SHORT', 'direction': 'SHORT', 'entry_price': 7644.75, 'stop_price': 7658.25, 't1_price': None, 't2_price': None, 'time_stop_min': None, 'confidence': 1.0, 'day_type_at_fire': None, 'killzone_at_fire': None, 'pattern_type': 'DOUBLE_TOP_AA_SHORT', 'setup_kind': 'DOUBLE_TOP_AA', 'bar_stage': 3, 'cot_at_fire': 3669.0, 'amt_at_fire': 2859.222222222222, 'variant_tag': '', 'variants_passed': ''}]
+(Background on this error at: https://sqlalche.me/e/20/2j85)
+2026-09-09 22:55:03,000 WARNING backend.v9.shared.pre_fire_validator [pre_fire] RR_BREAKOUT_MM: capped-t2 R:R 0.44 rescued by spec multiplier (risk=13.50 t2_reward=5.92 mm_reward=20.25)
+2026-09-09 22:55:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=2 pattern=DOUBLE_TOP_AA_SHORT dir=SHORT entry=7644.75 blocked_by=dalton_intent:stand_down ot=OPEN_AUCTION_OUT hint=SHORT bias=NONE kinds=[] il=22:55
+2026-09-09 22:55:03,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=2 pattern=DOUBLE_TOP_AA_SHORT dir=SHORT entry=7644.75 blocked_by=dalton_intent:stand_down
+[fwd] 2026-09-09 head push=firstpush routes=49 blocked=43 live_cmds=1 -> /tmp/hv/2026-09-09.json
+=== 2026-09-02 14:41:31 ===
+2026-09-02 22:45:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-02T19:45:00+00:00', 'p1': 'MES', 'p2': 7679.75, 'p3': 7679.75, 'p4': 7679.75, 'p5': 7679.75, 'p6': 49, 'p7': 49.99, 'p8': -36.13, 'p9': 7678.68, 'p10': -20.24, 'p11': 10.0, 'p12': 7677.28, 'p13': 'BLUE', 'p14': 82.65, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-09-02 22:50:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-02T19:50:00+00:00', 'p1': 'MES', 'p2': 7680.0, 'p3': 7680.0, 'p4': 7680.0, 'p5': 7680.0, 'p6': 114, 'p7': 72.01, 'p8': 66.62, 'p9': 7678.83, 'p10': 16.43, 'p11': 11.0, 'p12': 7677.43, 'p13': 'BLUE', 'p14': 94.04, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-09-02 22:55:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-02T19:55:00+00:00', 'p1': 'MES', 'p2': 7678.75, 'p3': 7678.75, 'p4': 7678.75, 'p5': 7678.75, 'p6': 227, 'p7': 23.17, 'p8': -58.82, 'p9': 7678.79, 'p10': 5.84, 'p11': 5.0, 'p12': 7677.49, 'p13': 'BLUE', 'p14': -25.67, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+[fwd] 2026-09-02 head push=firstpush routes=48 blocked=40 live_cmds=3 -> /tmp/hv/2026-09-02.json
+=== 2026-09-01 14:41:48 ===
+2026-09-01 22:45:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-01T19:45:00+00:00', 'p1': 'MES', 'p2': 7637.75, 'p3': 7637.75, 'p4': 7637.75, 'p5': 7637.75, 'p6': 108, 'p7': 29.84, 'p8': -75.63, 'p9': 7635.0, 'p10': -36.56, 'p11': -14.0, 'p12': 7641.04, 'p13': 'GRAY', 'p14': 30.26, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-09-01 22:50:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-01T19:50:00+00:00', 'p1': 'MES', 'p2': 7639.75, 'p3': 7639.75, 'p4': 7639.75, 'p5': 7639.75, 'p6': 140, 'p7': 57.36, 'p8': 41.27, 'p9': 7635.9, 'p10': 17.32, 'p11': -5.0, 'p12': 7640.94, 'p13': 'BLUE', 'p14': 84.87, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-09-01 22:55:03,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-09-01T19:55:00+00:00', 'p1': 'MES', 'p2': 7636.5, 'p3': 7636.5, 'p4': 7636.5, 'p5': 7636.5, 'p6': 396, 'p7': 0.89, 'p8': -87.19, 'p9': 7635.97, 'p10': -28.53, 'p11': -17.0, 'p12': 7640.69, 'p13': 'GRAY', 'p14': -55.57, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+[fwd] 2026-09-01 head push=firstpush routes=36 blocked=32 live_cmds=2 -> /tmp/hv/2026-09-01.json
+=== 2026-08-28 14:42:01 ===
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-28 22:59:58,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=4 pattern=ZLR dir=LONG entry=7722.75 blocked_by=dalton_intent:stand_down ot=OPEN_AUCTION_IN hint=LONG bias=NONE kinds=[] il=22:59
+2026-08-28 22:59:58,000 WARNING backend.v9.gateway.trading_gateway [Gateway] BLOCKED system=4 pattern=ZLR dir=LONG entry=7722.75 blocked_by=dalton_intent:stand_down
+2026-08-28 22:59:58,000 WARNING backend.v9.systems.woodies.woodies_system [Woodies] Gateway blocked: dalton_intent:stand_down
+2026-08-28 22:59:58,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction) VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s, %(p16)s) ON CONFLICT (ts, symbol) DO UPDATE SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low, close = EXCLUDED.close, volume = EXCLUDED.volume, cci_14 = EXCLUDED.cci_14, cci_6_tcci = EXCLUDED.cci_6_tcci, lsma_value = EXCLUDED.lsma_value, swi_value = EXCLUDED.swi_value, czi_value = EXCLUDED.czi_value, ema_34 = EXCLUDED.ema_34, trend_state = EXCLUDED.trend_state, predictor_next_cci = EXCLUDED.predictor_next_cci, zlr_detected = EXCLUDED.zlr_detected, zlr_direction = EXCLUDED.zlr_direction]
+[parameters: {'p0': '2026-08-28T19:55:00+00:00', 'p1': 'MES', 'p2': 7723.25, 'p3': 7728.25, 'p4': 7719.5, 'p5': 7722.75, 'p6': 33256, 'p7': 59.02, 'p8': -5.23, 'p9': 7722.07, 'p10': -72.81, 'p11': -6.0, 'p12': 7724.27, 'p13': 'BLUE', 'p14': 52.14, 'p15': 0, 'p16': 'NONE'}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_bars_5min_woodies (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_valu
+2026-08-28 22:59:58,000 WARNING backend.v9.db.safe_writer [safe_writer] execute failed: (psycopg2.errors.ReadOnlySqlTransaction) cannot execute INSERT in a read-only transaction
+
+[SQL: INSERT INTO v9_woodies_signals
+            (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+             reasoning, session, created_at,
+             czi_state, swi_state, persistence_bars,
+             signal_type_core, signal_confidence, is_synthetic)
+            VALUES (%(p0)s, %(p1)s, %(p2)s, %(p3)s, %(p4)s, %(p5)s, %(p6)s, %(p7)s, %(p8)s, %(p9)s, %(p10)s, %(p11)s, %(p12)s, %(p13)s, %(p14)s, %(p15)s)]
+[parameters: {'p0': '2026-08-28T19:59:58+00:00', 'p1': None, 'p2': 59.02, 'p3': None, 'p4': 'ZLR', 'p5': 'LONG', 'p6': 2, 'p7': 'ZLR LONG conf=0.65 CCI=59.0 trend=BLUE', 'p8': 'RTH', 'p9': '2026-08-28T19:59:58+00:00', 'p10': 'CZI', 'p11': 'NORMAL', 'p12': 50, 'p13': 'ZLR', 'p14': 0.65, 'p15': 0}]
+(Background on this error at: https://sqlalche.me/e/20/2j85) — sql: INSERT INTO v9_woodies_signals
+            (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+            
+[fwd] 2026-08-28 head push=firstpush routes=64 blocked=61 live_cmds=0 -> /tmp/hv/2026-08-28.json
+END 14:42:23
