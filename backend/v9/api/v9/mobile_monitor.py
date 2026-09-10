@@ -374,6 +374,64 @@ async def mobile_data(request: Request):
         out["day_type"] = get_live_day_type()
     except Exception:
         out["day_type"] = None
+    # DaltonPlaybook display block — read-only, no trading path
+    try:
+        from backend.v9.services.dalton_playbook import intent as _dp_intent, load_config as _dp_cfg
+        from backend.v9.gateway.trading_gateway import _resolve_live_cls
+        _dp_cls = _resolve_live_cls() or {}
+        _dp_ot = str(_dp_cls.get("opening_type") or "UNKNOWN")
+        _dp_dt = out.get("day_type") or ""
+        # IL time
+        from zoneinfo import ZoneInfo as _dp_ZI
+        from backend.v9.services.market_clock import now_et
+        _dp_il = now_et().astimezone(_dp_ZI("Asia/Jerusalem"))
+        _dp_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
+        # Direction hint: dir_bias then IB extension
+        _dp_hint = None
+        _dp_db = _dp_cls.get("dir_bias")
+        if _dp_db in ("UP", "LONG"):
+            _dp_hint = "LONG"
+        elif _dp_db in ("DOWN", "SHORT"):
+            _dp_hint = "SHORT"
+        # IB extension
+        _dp_ext_up = _dp_ext_dn = 0.0
+        _dp_tpo_d = {}
+        try:
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            _dp_tpo_d = _load_sierra_tpo() or {}
+        except Exception:
+            pass
+        _dp_ibh = float(_dp_tpo_d.get("ib_high") or 0)
+        _dp_ibl = float(_dp_tpo_d.get("ib_low") or 0)
+        _dp_sh = float(_dp_tpo_d.get("session_high") or _dp_tpo_d.get("rth_high") or 0)
+        _dp_sl = float(_dp_tpo_d.get("session_low") or _dp_tpo_d.get("rth_low") or 0)
+        if _dp_ibh > 0 and _dp_ibl > 0:
+            _dp_ext_up = round(max(0, _dp_sh - _dp_ibh), 2)
+            _dp_ext_dn = round(max(0, _dp_ibl - _dp_sl), 2)
+            if _dp_hint is None:
+                if _dp_ext_up > _dp_ext_dn and _dp_ext_up > 0:
+                    _dp_hint = "LONG"
+                elif _dp_ext_dn > _dp_ext_up and _dp_ext_dn > 0:
+                    _dp_hint = "SHORT"
+        _dp_ot_src = "canonical" if _dp_ot not in ("UNKNOWN", "NA", "") else "unknown"
+        _dp_it = _dp_intent(opening_type=_dp_ot, day_type=_dp_dt,
+                             now_il_hhmm=_dp_hhmm, direction_hint=_dp_hint)
+        out["dalton"] = {
+            "phase": _dp_hhmm,
+            "opening_type": _dp_ot,
+            "opening_source": _dp_ot_src,
+            "day_type": _dp_dt or None,
+            "bias": _dp_it.bias,
+            "ext_dir": _dp_hint,
+            "ext_up_pts": _dp_ext_up,
+            "ext_dn_pts": _dp_ext_dn,
+            "kinds_allowed": sorted(_dp_it.entry_kinds) if _dp_it.entry_kinds else [],
+            "last_intent_reason": _dp_it.reason,
+            "size_frac": _dp_it.size_frac,
+            "runner": _dp_it.runner,
+        }
+    except Exception as _dp_err:
+        out["dalton"] = {"error": str(_dp_err)[:80]}
     try:
         # request.app = ה-app הרץ בפועל (backend/main.py הוא ה-entrypoint —
         # לא backend.v9.app; ייבוא-מודול נותן instance אחר וריק)
