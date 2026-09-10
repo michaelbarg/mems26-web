@@ -1,3 +1,71 @@
+[2026-09-10 17:10] cowork-dev (מתוזמנת, חובה-1 + חובה-3) · **[[T-302]] ✅ נסגר — התווית הגיעה מעצמה ב-17:00:05 · [[T-303]] נפתח: יום-הלייב הראשון של הפלייבוק, 8/9 חסומים**
+
+**ממצא (1) — `day_type` לא היה תקוע, הוא רק טרם נקבע; והמבחן שקבעתי לעצמי ל-17:30 היה מבוסס על הנחה שגויה.** T-302 ניסח מבחן בינארי ל-`17:30` ("נעילת-IB, שם המסווג פרסם תווית ראשונה בכל יום קודם"). התווית הגיעה ב-**17:00:05**, חצי שעה מוקדם — ובבדיקה חוזרת מתברר שהראיה הסותרת כבר ישבה בתוך T-302 עצמו: הוא רשם ש-08.09 התווית הראשונה היא `14:00:04Z`, שהוא **17:00:04 IDT**. ‏`S1-NEW-CLS` ב-`17:30:0x` הוא שורת-נעילת-IB, לא התווית הראשונה — שתי שורות-זמן שונות שאיחדתי בטעות.
+
+**תיקון:** אין. הענף (א) התממש — התכנון הפסוק עבד, לא נדרש שינוי קוד/דגל/`.env`. מה שתוקן הוא הניסוח: הפריט מציין עכשיו שהתווית נקבעת בבר **10:00 ET** ולא בנעילת-IB.
+
+**ראיה (Rule 5, פלט גולמי, נמדד 17:04-17:06):**
+```
+$ psql … -c "SELECT ts::date d, min(ts) FILTER (WHERE day_type<>'UNKNOWN') first_labeled,
+             to_char(min(ts) FILTER (WHERE day_type<>'UNKNOWN') + interval '3 hours','HH24:MI:SS') idt,
+             count(*) rows, count(*) FILTER (WHERE day_type<>'UNKNOWN') labeled
+             FROM v9_day_type_state WHERE ts >= '2026-09-04' GROUP BY 1 ORDER BY 1;"
+ 2026-09-08 | 2026-09-08 14:00:04.482653 | 17:00:04 |  31 | 27
+ 2026-09-09 | 2026-09-09 02:02:03.196192 | 05:02:03 |  25 | 22
+ 2026-09-10 | 2026-09-10 14:00:05.618085 | 17:00:05 |   4 |  1
+
+$ psql … -c "SELECT to_char(ts + interval '3 hours','HH24:MI:SS'), day_type, confidence
+             FROM v9_day_type_state WHERE ts::date='2026-09-10' ORDER BY ts;"
+ 15:53:17 | UNKNOWN      | 0
+ 16:30:07 | UNKNOWN      | 0
+ 16:40:06 | UNKNOWN      | 0
+ 17:00:05 | Trend_Normal | 0.35
+
+$ grep -a '^2026-09-10' /tmp/backend.err.log | grep -aE 'DayType|current_day_type'
+ 2026-09-10 17:00:05 [INFO] [backend.v9.systems.day_type.consumer] DayTypeConsumer upserted: date=2026-09-10 type=Trend_Normal prob=0.35
+ 2026-09-10 17:00:05 [INFO] [mems26] [DayType] Classification changed: UNKNOWN -> Trend_Normal (conf=0.35)
+ 2026-09-10 17:00:05 [INFO] [mems26.systems.five_min] [FiveMin] current_day_type: UNKNOWN → Trend_Normal
+
+$ grep -a '^2026-09-10 1[7-9]' /tmp/backend.err.log | grep -c 'NO_LABEL'
+ 0
+```
+(‏`pg_typeof(ts) ⇒ timestamp without time zone` — נאיבי-UTC, מלכודת [[T-253]] לא הונחה: ה-`+3h` אומת מול שורת-הלוג באותה שנייה.)
+
+**ממצא (2) — "0 לייב" לא השתנה, החוסם רק זז מ-`§5a` לפלייבוק.** המועמד הראשון אחרי התווית נחסם ע"י `dalton_intent:kind`. פילוח מלא של 9 החלטות-השער היום: `stand_down` ×6 · `bias` ×1 · `kind` ×1 · `§5a shadow_only` ×1 ⇒ **8 מ-9 נחסמו ע"י הפלייבוק**. התאומים-בצל של הנחסמים = **−$636.25** (‏`#1406` עדיין פתוחה); היחידה שהפלייבוק התיר (`#1404`) ⇒ −$106.25; סך-הצל −$742.50 על 9.
+
+**תיקון:** אין — מדידה בלבד. הדגל פסוק (מייקל 09.09 11:15, `RULED_FLAGS:75`). נפתח [[T-303]] לצבירת המדד על פני שבוע, עם `measured:` ב-`RULED_FLAGS` כפי שדורשת `LEARNING_DOCTRINE_2026-09-09`.
+
+**ראיה (Rule 5):**
+```
+$ curl -s "http://localhost:8000/api/v9/gateway/decisions?limit=200"   # 9 שורות היום
+ 13:30:03Z sys2 RE_ACCEPTANCE      LONG  7648.00  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:30:04Z sys4 FAMIR              LONG  7600.25  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:31:12Z sys4 FAMIR              LONG  7596.75  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:35:05Z sys4 ZLR                SHORT 7595.00  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:35:12Z sys2 FAILED_BREAK_SHORT SHORT 7596.75  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:35:13Z sys4 ZLR                SHORT 7597.50  blocked_by=dalton_intent:stand_down  phase=A cond=default bias=NONE
+ 13:45:02Z sys4 ZLR                SHORT 7600.25  blocked_by=None   outcome=shadow_only          (§5a NO_LABEL)
+ 13:45:05Z sys2 OPENING_ORR        LONG  7601.00  blocked_by=dalton_intent:bias  bias=SHORT rejects LONG (ot=ORR)
+ 14:05:06Z sys4 TREND_STEP         SHORT 7592.00  blocked_by=dalton_intent:kind  counter-bias entry_kind=PULLBACK not in ['EDGE_FADE']
+
+$ grep -a '^2026-09-10 17:05' /tmp/backend.err.log | grep -a Gateway
+ 17:05:06 [WARNING] [Gateway] BLOCKED system=4 pattern=TREND_STEP dir=SHORT entry=7592.0 blocked_by=dalton_intent:kind ot=OPEN_AUCTION_IN hint=LONG bias=BOTH kinds=['EDGE_FADE'] il=17:05
+ 17:05:06 [INFO]    [Gateway] T-219 shadow_blocked: SHORT TREND_STEP blocked_by=dalton_intent:kind → twin #1406 (8/150 today)
+
+$ psql … v9_trades 10.09 ⇒ 9 שורות, כולן mode=shadow, Σ pnl_usd = -742.50, 2 עדיין פתוחות
+```
+**גודל-הצל אומת זהה ללייב** ⇒ הדולרים בר-השוואה: `−162.50 = 6.5pt × 5c × $5` · `−218.75 = 8.75pt × 5c × $5` · `−81.25 = 3.25pt × 5c × $5` — תואם `FIXED_CONTRACTS_5`.
+
+**⚠️ מה המספר הזה איננו:** הימנעות-הפסד בחצי-יום אחד אינה תוחלת-שער. הצד השני הוא שהשער חסם **100%** מהמועמדים — ו-[[T-296]] כבר מדד שהפלייבוק נכשל בשער-הקבלה של עצמו (`58 approved · Σ+430 · 63%/55% מול ספים 75%/60% ⇒ GATE FAIL`). שני המספרים חייבים לשבת זה ליד זה לפני פסיקה.
+
+**בריאות באותה ריצה (חובה-3, ירוק):** `pid 47565` מ-`15:53:13` על `commit=b2a3f46d` · `health 200` ב-`3.5ms` · בר-ווּדיס `17:00` בגיל **2.6 דק'** · `live_price.json` בן שנייה · `position_qty=0 · working_orders=0 · live_slot=None · live_enabled=[2,4]` · `flag_guard PASS 251/251` · **אפס `[ERROR]` היום**.
+
+**בעלות — 16 המילויים בחשבון היום אינם שלנו, ונקבע במדידה ולא בהנחה:** `grep -c 'COMMAND QUEUED'` על `^2026-09-10` ⇒ **0** (וגם `LIVE trade TM id ⇒ 0`) ⇒ לפי כלל-הבעלות (`COWORK_DAILY_READ §3.5`) שום fill היום אינו של המערכת, ולכן גם לא `acct_daily_pl=+83.75`. ‏4 שורות `CRITICAL ORPHAN STOP BREACHED` (10:46-11:01, טרום-RTH) הן הפוזיציה הזרה של הבוקר — **`NOT flattening (ruling 07-28)`**, התנהגות פסוקה ותקינה; הפוזיציה נסגרה ו-`position_qty=0`.
+
+**פער ידוע שנשאר פתוח (לא נגעתי):** `HEAD=deec60c8` מול בקאנד-חי `b2a3f46d` — 4 קומיטים, כולל אבחון [[T-297]]. **אין ריסטארט ב-RTH** (איסור 16:10-23:00) ⇒ התיקון לחלון-הלילה.
+
+---
+
 [2026-09-10 15:55] cowork-dev (מתוזמנת `mems26-preopen-restart-1009`) · **🟢 GO — הריסטארט הקדם-פתיחה בוצע 15:53:13 · [[T-301]] נפתח ונסגר תוך 3 דקות · [[T-299]]+[[T-300]] נסגרו כתופעת-לוואי**
 
 **ממצא:** `guard_tests` חזר **אדום 159/160** בשער הקדם-ריסטארט ⇒ עצרתי את הריסטארט ודיווחתי NO-GO (טלפון 15:48, אומת-מסירה). הכושל היחיד: `test_entry_location_quality.py::TestIndividualChecks::test_expensive_stop` ⇒ `assert any("expensive_stop" in reason for reason in r["reasons"]) ⇒ assert False`. **האבחנה — בדיקה מיושנת ולא רגרסיה:** הלוג של אותה ריצה אמר `[ELQ] expensive_stop SHADOW: rr=1.88 > 1.50 — would block, logging only`; `git log -S'expensive_stop SHADOW'` ⇒ `9a612826` (10-09 **14:25**), בעוד קובץ-הבדיקה לא נגע מאז `affc3a0d` (**08-30**), וההתנהגות כבר אושרה בערוץ ב-14:44. **השורש שמאחורי הממצא:** בין 14:25 ל-15:45 **איש לא הריץ `guard_tests`** — ההארנס אישר את ההתנהגות אבל סט-הרגרסיה נשאר אדום 80 דקות ואיש לא ידע.
