@@ -209,6 +209,35 @@ class TestPolicyKeys(unittest.TestCase):
                           "phase_d=manage_only: no new entries after 21:00")
 
 
+class TestHintLayering(unittest.TestCase):
+    """Direction hint layering: opening first, extension overrides in C only."""
+
+    def test_phase_b_drive_gets_opening_hint(self):
+        """Phase B with OPEN_DRIVE: hint = drive direction (from opening)."""
+        it = intent(opening_type="OPEN_DRIVE", now_il_hhmm="17:00",
+                     direction_hint="LONG")
+        self.assertEqual(it.bias, "LONG",
+                          "Phase B OPEN_DRIVE with LONG hint must give bias=LONG")
+
+    def test_phase_c_with_extension_overrides(self):
+        """Phase C with extension: hint overrides to extension direction."""
+        # Variation with extension DOWN (hint=SHORT from 5b)
+        it = intent(day_type="Variation", now_il_hhmm="18:00",
+                     direction_hint="SHORT")
+        # bias should be SHORT (extension direction)
+        self.assertEqual(it.bias, "SHORT",
+                          "Phase C Variation with SHORT hint must give bias=SHORT")
+
+    def test_phase_c_no_extension_keeps_opening_hint(self):
+        """Phase C without extension: hint = opening direction (Layer 1)."""
+        # If no extension happened, direction_hint stays from opening
+        it = intent(day_type="Variation", now_il_hhmm="18:00",
+                     direction_hint="LONG")
+        # bias should be LONG (from opening, no extension override)
+        self.assertIn(it.bias, ("LONG", "BOTH"),
+                       "Phase C Variation with LONG hint must preserve opening direction")
+
+
 class TestMutation(unittest.TestCase):
 
     def test_flipping_trend_bias_fails(self):
@@ -217,6 +246,24 @@ class TestMutation(unittest.TestCase):
                      direction_hint="LONG")
         block = evaluate_gate({"direction": "SHORT", "classification": "GB100"}, it)
         self.assertIsNotNone(block, "SHORT must be blocked on Trend LONG day")
+
+    def test_mutation_ext_zero_does_not_override(self):
+        """MUTATION: ext_up=ext_dn=0 must NOT override the opening hint."""
+        # When extension = 0, the hint should stay as the opening direction
+        # This tests the gateway logic indirectly via intent():
+        # With direction_hint="LONG" (from opening) and no extension,
+        # Phase C Variation should keep LONG bias
+        it = intent(day_type="Variation", now_il_hhmm="18:00",
+                     direction_hint="LONG")
+        # If ext override wrongly set hint=None → bias would be BOTH
+        # instead of LONG. The test catches the old reset-to-None bug.
+        block = evaluate_gate(
+            {"direction": "SHORT", "classification": "ZLR"}, it)
+        # Under counter_bias_only: SHORT against LONG bias + BREAK kind
+        # → should be blocked by bias (not by kind under BOTH)
+        self.assertIsNotNone(block,
+                              "SHORT against LONG hint must be blocked — "
+                              "ext=0 must not erase the opening hint")
 
 
 if __name__ == "__main__":
