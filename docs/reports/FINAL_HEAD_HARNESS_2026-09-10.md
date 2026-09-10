@@ -352,3 +352,126 @@ both carry their own separate, now-diverged copies of the hint logic.
 ---
 
 ## HARNESS: FAIL — real production-path harness shows 2 golden `must_approve` regressions (#593 08-03, #612 08-04, both now blocked) and 4/6 sessions worse than this morning's HEAD+fixes $ baseline (08-28 −107.50, 08-03 −75.00, 08-04 −427.50, 09-01 −266.25); the 09-09 must-block fix works (0 exceptions, #1328/#1343 correctly blocked with bias=SHORT), but no test or replay tool guards the regression it introduced elsewhere — `forward_gate.py`'s "PASS 6/6" and `replay_dalton_playbook.py`'s clean re-run both come from independent reimplementations that never call the actual `trading_gateway.py` code path, so neither would have caught this before a restart.
+
+---
+
+# ADDENDUM — re-run on `1fb61375` "layered direction hints" · 2026-09-10 13:13–13:35
+
+Run by: cowork agent (this session), via Desktop Commander against the real Mac shell (`MacBarg.local`,
+darwin — confirmed before starting: the Cowork Linux sandbox has no path to Postgres,
+`(echo>/dev/tcp/127.0.0.1/5432)` → connection refused, and no `fastapi`/`asyncpg` installed, matching this
+morning's finding). Live tree read-only throughout: `git status --short` empty both before and after, `HEAD`
+unchanged at `12b6a14562ab9356a99be2fc38ef36b7e73ca372` ("channel: condition (b) of 3bd97d30 not met" — 2
+docs-only commits on top of `1fb61375`; `git diff --stat 1fb61375 HEAD -- backend/ scripts/` empty, zero
+code delta, so testing HEAD = testing `1fb61375`). No `.env` edit, no restart, no flag change.
+
+## TASK A — six-session harness on the new HEAD
+
+Worktree `git worktree add /tmp/mems26_final2 HEAD` → `12b6a145`; harness copied to
+`/tmp/mems26_final2/scripts/fwd_harness.py`; `fwd_apply_fixes.py` **not** run (HEAD already has the fix).
+Env: `set -a && . .env && set +a` + `export DALTON_PLAYBOOK_V1=1 DAYTYPE_RECLASS_STABILITY_V1=1`,
+`--stability 1 --push-mode firstpush` per session (`--variant newhead`). A synchronous single-session probe
+hit the same Desktop-Commander round-trip cap this morning's run hit (tool reported "Request timed out"
+after ~60s); confirmed via polling `/tmp/fwd_out_new/` that the underlying process kept running and finished
+(`.json`+`.log` written, exit visible via driver log) — not assumed. Remaining 5 sessions run as one
+backgrounded (`nohup … & disown`) sequential loop for the same reason; all 6 completed `exit=0`, all 6
+`.json` structurally valid (`session`/`routes`/`trades`/`flags` checked), `flags.DALTON_PLAYBOOK_V1=1` and
+`flags.DAYTYPE_RECLASS_STABILITY_V1=1` confirmed on every file.
+
+### T1 — verdict table (push=firstpush, stability=1, $=harness tape score 5$/pt)
+
+| session | routes | fires/T1-first/$ (new HEAD `12b6a145`) | HEAD+fixes this morning (s=1) | Δ | must-rule | verdict |
+|---|---|---|---|---|---|---|
+| 2026-08-28 | 64 | 0/0/**$0.00** | 1/1/+107.50 | **−107.50 WORSE** | phase_a_standaside | PASS rule, $ **WORSE** |
+| 2026-08-03 | 38 | 3/3/**+257.50** | 1/1/+332.50 | **−75.00 WORSE** | must_approve #593 | **FAIL — still blocked** |
+| 2026-09-02 | 49 | 1/1/**+70.00** | 3/0/−180.00 | +250.00 better | phase_a_standaside | PASS |
+| 2026-08-04 | 20 | 0/0/**$0.00** | 1/1/+427.50 | **−427.50 WORSE** | must_approve #612 + refuse BREAK | **approve FAIL — still blocked; refuse-BREAK PASS** |
+| 2026-09-09 | 49 | 0/0/**$0.00** | 3/0/−290.00 | +290.00 better | must_block #1328+#1343 | **PASS** (bias=SHORT both) |
+| 2026-09-01 | 36 | 1/1/**+60.00** | 3/2/+110.00 | **−50.00 WORSE** | phase_a_standaside | PASS rule, $ **WORSE** |
+
+**4 of 6 sessions still score worse than the morning HEAD+fixes $ baseline** (08-28, 08-03, 08-04, 09-01) —
+same 4 sessions as this morning's FAIL, magnitudes changed (09-01 was −266.25 this morning, now −50.00;
+still WORSE). Phase-A stand-aside confirmed 6/6 (zero `LIVE→CMD`/approved routes with `il<16:45` in any of
+the six JSONs). Exception scan (`Traceback|dalton_playbook failed|fail-closed|dalton_intent:error
+|ImportError|KeyError|TypeError`) = **0 on all 6 logs** (grep exit=1 each, log line counts 1695/1006/1449/
+607/1579/1203 — consistent with this morning's 1695/1006/1449/607/1581/1216).
+
+### #593 / #612 — still blocked, same symptom, different (deeper) mechanism
+
+```
+08-03  17:10:03 S2 REACTIVE_LONG LONG ot=OPEN_DRIVE dt=Trend_Normal hint=None bias=BOTH
+  kinds=['PULLBACK','WITH_DRIVE'] | blocked_by=dalton_intent:kind
+  reason=counter-bias entry_kind=EDGE_FADE not in ['PULLBACK','WITH_DRIVE'] (phase=B…)   <- golden #593, BLOCKED
+
+08-04  17:05:03 S2 REACTIVE_LONG LONG ot=OPEN_DRIVE dt=Trend_Normal hint=None bias=BOTH
+  kinds=['PULLBACK','WITH_DRIVE'] | blocked_by=dalton_intent:kind
+  reason=counter-bias entry_kind=EDGE_FADE not in ['PULLBACK','WITH_DRIVE'] (phase=B…)   <- golden #612, BLOCKED
+```
+`hint=None`/`bias=BOTH` — byte-identical to this morning's FAIL signature. Read directly from
+`/tmp/mems26_final2/backend/v9/gateway/trading_gateway.py:1152-1169` (current HEAD): 1fb61375's Layer 1 has
+exactly two sources — (1) `dir_bias` from `_resolve_live_cls()`/`classify_session`, generally unavailable
+before IB lock (~17:30 IL; confirmed `None` at 17:05/17:10 both sessions), and (2) the P1.5 fallback, gated
+`if _dp_dir_hint is None and _dp_classification.startswith("OPENING_")`. **#593 and #612 are both classified
+`REACTIVE_LONG`, not `OPENING_*`** — P1.5 never fires for them, so Layer 1 has nothing to give. The
+*ordering* bug 1fb61375's commit message describes (Layer 1 erased before Layer 2) is genuinely fixed — but
+Layer 1 itself was never wired to reach non-`OPENING_*` producers for the with-drive/edge-fade setups #593
+and #612 actually are. Same observable symptom, different root cause than this morning's.
+
+08-04 BREAK-kind refusal (independent of the #612 failure, and this part holds): 3 BREAK-classified routes
+(`INITIATIVE_LONG`×2 17:10/17:20, `DOUBLE_BOTTOM_EE_LONG`×1 17:45) all correctly blocked
+(`entry_kind=BREAK not in […]`) — **PASS** on "refuses BREAKs" specifically.
+
+09-09 must-block detail (holds, unchanged mechanism): `#1328` (VEGAS LONG 19:05) and `#1343`
+(BULL_FLAG_LONG 20:55) both blocked `dalton_intent:bias bias=SHORT rejects LONG`, `bias=SHORT` present on
+both — **PASS**.
+
+### Why `forward_gate.py` still diverges (read from source; not re-run here as evidence)
+
+`scripts/forward_gate.py:119-120` on this same HEAD (the commit that shipped 1fb61375 also touched this
+file, "same fix applied to forward_gate.py"): `if dir_hint is None and ot_dir: dir_hint = "LONG" if
+ot_dir in (…) else (…)` — applies the opening-type detector's direction **unconditionally**, for any
+classification, not gated to `_dp_classification.startswith("OPENING_")` the way `trading_gateway.py`'s real
+P1.5 is. A materially more permissive reimplementation, not actually "the same fix" — confirms the
+divergence this morning's report and `12b6a145`'s own channel post already flagged ("forward_gate.py still
+does not call route_setup"), now shown as a subtler logic mismatch rather than only a missing import.
+
+---
+
+## TASK B — does the new test bite?
+
+Fresh worktree `/tmp/mems26_mut2` (`12b6a145`). Mutation applied by exact-string Python replacement
+(anchor-match count verified = 1 before writing), inserted immediately after Layer 1's last statement and
+immediately before the Layer-2 comment — reproducing the literal bug 1fb61375 fixed:
+```python
+                        else:
+                            _dp_dir_hint = _dp_setup_dir
+                _dp_dir_hint = None  # MUTATION TEST 2026-09-10: erase Layer 1 hint before Layer 2 (reintroduces the 5b bug)
+                # Layer 2 (5b): IB extension direction — OVERRIDES only in phase C
+```
+`py_compile` OK (confirmed indentation correct via `repr()` line dump, not just visual diff).
+
+```
+$ python3 -m pytest -q backend/v9/tests/test_dalton_playbook.py tests/v9/regression/test_opening_entry_production_path.py
+mutated  (/tmp/mems26_mut2):   38 passed, 2 warnings in 0.76s   exit=0
+baseline (/tmp/mems26_final2): 38 passed, 2 warnings in 0.61s   exit=0
+```
+**Identical pass count — 0 new failures. The mutation does not bite.** Confirmed by reading, not only by
+running: neither the 3 new `TestHintLayering` tests, `test_mutation_ext_zero_does_not_override`, nor any
+test in `test_opening_entry_production_path.py` calls `TradingGateway.route_setup`/`_route_setup_inner`.
+Every one calls `backend.v9.services.dalton_playbook.intent()`/`evaluate_gate()` **directly**, passing
+`direction_hint=` as a hand-supplied literal — the exact value the mutated code fails to compute is handed
+in by the test itself, so the computation is structurally invisible to them. The only two references to
+`_route_setup_inner` in either file (`test_p15_mapping_in_gateway_source`, `test_mutation_removing_p15`) are
+`inspect.getsource(...)` string-containment checks, also blind to this mutation (the diff removes no
+`"P15_MAP"`/`"OPENING_DRIVE"` literal text).
+
+**TASK B verdict: expected ≥1 failure; got 0. The tests still do not exercise the gateway** — same finding
+as this morning's TASK C, now against the tests the task named as the intended guard.
+
+Both worktrees removed (`git worktree remove --force`, confirmed via `git worktree list`); live tree
+unchanged (`git status --short` empty, `HEAD` still `12b6a14562ab9356a99be2fc38ef36b7e73ca372`) before and
+after this run.
+
+---
+
+## HARNESS: FAIL — `1fb61375` fixes the Layer-1/Layer-2 *ordering* bug but does not restore #593/#612 (still `hint=None`/`bias=BOTH`, blocked — P1.5 only reaches `OPENING_*`-classified setups, and #593/#612 are `REACTIVE_LONG`); 4/6 sessions still worse than the morning $ baseline (08-28 −107.50, 08-03 −75.00, 08-04 −427.50, 09-01 −50.00); 09-09 must-block and phase-A stand-aside hold 6/6, 0 exceptions across all 6 logs, BREAK-kind correctly refused on 08-04; the 4 new hint-layering/mutation tests added in `1fb61375` pass identically (38/38) on the mutated and unmutated tree — they call `dalton_playbook.intent()/evaluate_gate()` directly and never reach `trading_gateway.py`, so they provide zero protection against this exact regression. No condition for the 15:45 restart is met by this run.
