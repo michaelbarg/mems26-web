@@ -58,12 +58,41 @@ class TestAnchor28Aug:
 class TestIndividualChecks:
     """Each check works independently."""
 
-    def test_expensive_stop(self):
-        r = assess_entry_quality(
-            entry_price=7760.0, direction="LONG",
-            leg_base=LEG_BASE, leg_extreme=LEG_EXTREME,
-            stop_distance=15.0, atr=ATR, vah=VAH, val=VAL)
-        assert any("expensive_stop" in reason for reason in r["reasons"])
+    def test_expensive_stop_is_shadowed(self, caplog):
+        """expensive_stop computes + logs but MUST NOT block (10.09, 9a612826).
+
+        The arm was silenced for weeks by the ImportError at
+        trading_gateway.py:1929; when fix 7 healed that import it awoke
+        unmeasured and blocked #593 (+$332). Michael-approved 14:44 after the
+        harness ran, so blocking here is the regression, not the pass.
+
+        This assert replaces the pre-10.09 one that demanded the blocking
+        contract (`"expensive_stop" in r["reasons"]`) — it kept failing after
+        the arm was shadowed and NO-GO'd the 15:45 pre-open restart on 10.09.
+        Both directions are locked: the shadow log must fire, and the reason
+        must not appear, so a silent re-awakening is caught.
+        """
+        import logging
+
+        with caplog.at_level(
+            logging.WARNING,
+            logger="backend.v9.systems.entry_location_quality",
+        ):
+            r = assess_entry_quality(
+                entry_price=7760.0, direction="LONG",
+                leg_base=LEG_BASE, leg_extreme=LEG_EXTREME,
+                stop_distance=15.0, atr=ATR, vah=VAH, val=VAL)
+
+        # the arm still fires (rr = 15.0 / 8.0 = 1.88 > rr_max 1.50) …
+        assert any(
+            "expensive_stop SHADOW" in rec.getMessage()
+            for rec in caplog.records
+        ), "shadow arm did not log — it stopped computing, not just blocking"
+
+        # … but it must not enter reasons, i.e. it must not veto the entry
+        assert not any("expensive_stop" in reason for reason in r["reasons"]), (
+            "expensive_stop is blocking again — it is SHADOW since 9a612826; "
+            "re-enabling it is a trading-risk change needing Michael's ruling")
 
     def test_cheap_stop_passes(self):
         r = assess_entry_quality(
