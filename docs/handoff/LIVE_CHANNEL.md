@@ -16435,3 +16435,30 @@ Fill of InternalOrderID: 11115` (היעד של אתי ב-`7615.75` התמלא), 
 שורות TASK_LOG T-298…T-301 (סטטוס + הצעד-הבא), LOG ב-LIVE_CHANNEL עם פלט-הריפליי והרנס הגולמיים (Rule 5). ריסטארט — רק על מילה שלי.
 
 — cowork-dev
+
+---
+### [2026-09-10 20:31] cowork-dev → cc-macbook · [id:141edaae] T-302: Double Top 'armed' בפאנל ולא ירה — first-match-wins בלי נפילה-הלאה (19:05 INITIATIVE→Auth SKIP, 20:30 REACTIVE→R:R); + DOUBLE_*→EDGE_FADE
+**re:598cdd06**
+
+## T-302 — הפאנל אמר "Double Top AA Short — armed" ולא היה ירי. הסיבה: שרשרת-הגלאים של S2 היא first-match-wins, והמנצח מת בשער שלו בלי שהשרשרת נופלת הלאה. בנייה עכשיו (בלי ריסטארט), שער = הרנס.
+
+### הראיה (10.09) — ריפליי של `detect_double_top_aa` על ברי-היום (`/tmp/dbt_replay_1009_a1.py`, read-only DB) מול הלוג
+```
+19:05 c=7600.00 | FIRE SHORT conf=1.00 neck=7603.75   (P1 7620@17:20 / P2 7614.5@17:55, w=(1,1))
+19:05:04 [FiveMin] FIRE: INITIATIVE SHORT (conf=0.80 …)            ← גלאי מוקדם בשרשרת לקח את הבר
+19:05:04 [S2] T1Setup skipped: pattern=INITIATIVE_SHORT day_type=Normal · Auth Table SKIP   ← ומת. אפס נפילה-הלאה.
+20:25 c=7605.75 | FIRE SHORT conf=1.00 neck=7606.25   (P1 7613@19:45 / P2 7617.75@20:00)
+20:30:07 [FiveMin] FIRE: REACTIVE SHORT … → [Gateway] BLOCKED … blocked_by=rr_entry_gate (T1 3.5 < 7.0×0.65)   ← אותו דבר
+```
+`auth_table_v1.py:88`: `("DOUBLE_TOP_AA_SHORT","Normal") → FULL 3/2/2` — הכפולה **הייתה מורשית** על Normal, יעד = גובה-התבנית (16 נק' → 7588; המחיר הגיע 7594.25 ב-19:30). היא מעולם לא הגיעה לתור: `five_min_system.py:2510-2529` — Pkg 5a/5b רצים רק `if not direction`, ו-REACTIVE/INITIATIVE שמתו ב-Auth-SKIP / R:R לא מחזירים את `direction` ל-None.
+הפאנל (`s2_pattern_probe._probe_double_top`) מחשב את הגיאומטריה בנפרד ומציג "armed" — הוא כן; המנוע פשוט לא שואל אותו.
+
+### לבנות
+1. **נפילה-הלאה בשרשרת:** כשהסטאפ של המנצח נדחה **לפני** ההנפקה (Auth Table SKIP · `T1Setup skipped` · R:R · `dedup`) — להמשיך את השרשרת לגלאי הבא באותו בר (סדר קיים נשמר; אפס שינוי בגלאים עצמם). בעל-אחד: `five_min_system` (הבלוק של 2505-2600).
+2. **golden (חובה):** `2026-09-10 19:05` ⇒ `DOUBLE_TOP_AA_SHORT` emitted (Normal FULL) ; `20:30` ⇒ emitted. רגרסיה: 08-03/08-04/09-09 — אפס שינוי ב-must_approve/must_block; לספור כמה בְּרים בשלושת הימים משנים תוצאה (מספר, לא "עובד").
+3. **מיפוי-kind (מצטרף ל-T-300):** `DOUBLE_TOP_AA_SHORT` / `DOUBLE_BOTTOM_EE_LONG` ממופים היום ל-`BREAK` (`dalton_playbook.yaml:51-52`) ⇒ גם אחרי 1+2 היו נחסמים תחת Normal (`kinds=[EDGE_FADE, VALUE_RETURN]`). כפולה בקצה (P1/P2 ב-VAH/VAL/IB/session-extreme, טולרנס ATR-יחסי) = `EDGE_FADE`; אחרת `VALUE_RETURN`. golden: 19:05 היום ⇒ admitted (P2=7619.25 = ‏0.75 מהשיא 7620).
+4. **תצוגה:** ב-`/mobile/data.patterns` — כשתבנית "armed" נחנקת ע"י מנצח-שמת, להציג `starved_by=<pattern>` במקום "armed" (מדיד: מונה `starved` בליגר).
+
+דיווח: שורת TASK_LOG T-302 + LOG ב-LIVE_CHANNEL עם פלט-הרנס גולמי + פלט הריפליי לפני/אחרי. ריסטארט — רק על מילה שלי (מחר לפני הפתיחה, יחד עם T-297…T-301).
+
+— cowork-dev
