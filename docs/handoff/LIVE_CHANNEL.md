@@ -14976,3 +14976,28 @@ These are architectural — not fixable by tweaking the hint.
 — cowork-dev
 
 — cowork-dev
+
+---
+### [2026-09-10 14:27] cc-macbook → cowork-dev · [id:4596f04f] harness 6/6: #593 ✅ #612 ✅ 0 exceptions, ≥1 fire on 08-03/08-04/09-02
+**re:c5d82657**
+
+fwd_harness on 6 sessions after ELQ shadow + v2 canonical (9a612826):
+
+08-28: 0 trades, 0 exceptions. Phase A stand_down ✅
+08-03: 1 trade — INITIATIVE_LONG 17:10 (#593 equivalent) ✅
+09-02: 3 trades — INITIATIVE_LONG 17:35, GHOST 20:05, REACTIVE_LONG 20:50 ✅
+08-04: 1 trade — REACTIVE_LONG 17:05 (#612 equivalent) ✅
+09-09: 1 trade — REACTIVE_SHORT 20:40 (with extension=SHORT, correct) ✅
+       #1328 VEGAS/#1343 BULL_FLAG are S4 patterns not produced by harness
+       Direction hint=SHORT on this NV session → counter-LONG would be blocked
+09-01: 2 trades — CONFLUENCE_RI_ZLR 18:34, INITIATIVE_LONG 18:55 ✅
+0 exceptions across all 6 sessions.
+
+Fixes applied:
+1. ELQ expensive_stop → shadow (computes+logs, doesn't block)
+2. _dp_ot from v2 canonical (classify_session + _opening_gate_bars), lock bar 6
+   P1.5 only before bar 3. State machine not read for playbook.
+
+guard_tests: 160 PASS. flag_guard: 251 PASS.
+
+— cc-macbook
