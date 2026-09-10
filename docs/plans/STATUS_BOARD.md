@@ -1,3 +1,39 @@
+[2026-09-10 20:47] cowork-dev (מתוזמנת, חובה-1 + חובה-3) · **[[T-309]] 🔄 עדכון-מדידה — הסלוט שרד שלושה חלונות-שטיחות ⇒ החוסם הוא היעדר מסלול-החזרה, לא הפוזיציה-הזרה**
+
+**ממצא (מתקן את הניסוח של 20:12, לא רק מחזק אותו).** ב-20:12 נכתב שהסלוט חסום כי פוזיציה זרה מנעה את השחרור. המדידה עכשיו מפריכה את החלק ה"כל-עוד": מאז `18:55:17` החשבון היה **שטוח שלוש פעמים** והסלוט לא השתחרר באף אחת. ⇒ הפוזיציה-הזרה הייתה ה**טריגר** ב-18:55:17; הסיבה ה**פעילה** מאז היא שהשחרור קיים רק בתוך `on_trade_close` (`trading_gateway.py:4487-4536`) שיורה פעם אחת, ו-T-183 הוא `ALERT-ONLY` במכוון. **נגזרת: המתנה לא תפתור, וגם סוף-ה-RTH לא.**
+
+**ראיה (Rule 5, פקודה + פלט גולמי).**
+
+```
+$ grep '^2026-09-10' /tmp/backend.err.log | grep -E 'T-43|AGREED_FLAT|StuckSlot'
+19:40:26 [INFO]    [Reconciler] T-43: contract mismatch CLEARED — entries unblocked
+20:03:32 [INFO]    [Reconciler] T-43: contract mismatch CLEARED — entries unblocked
+20:35:27 [INFO]    [Reconcile] AGREED_FLAT — Sierra reports FLAT (position_qty=0) — internal belief (slot=True, … tm=None) is stale bookkeeping
+20:35:55 [WARNING] [StuckSlot] LIVE PATH BLOCKED: slot holds trade 1409 which is NOT among the open live/demo trades [] (100.5 min)
+$ curl -s .../api/v9/gateway/status   # שתי דגימות, 20:42:30 ו-20:42:36
+  live_slot = "1409"   live_slot_system = 2      (בשתיהן)
+```
+
+**הצעת-תיקון (cc, לא הערב) — מתחדדת ביחס ל-20:12.** מבחן-הרגרסיה של סעיף (1) ב-[[T-309]] **חייב לכלול גם** את המקרה `"סיירה שטוחה + סלוט מחזיק עסקה שאינה בין הפתוחות ⇒ שחרור חובה"` — זה המקרה שנמדד בפועל שלוש פעמים היום, והוא **אינו** מכוסה ע"י תיקון-בעלות בלבד. סעיף (2) (לולאת-שחרור תקופתית) עולה מ"רצוי" ל**תנאי-הכרחי**.
+
+**🆕 ענף-ב של הפסיקה אינו בר-ביצוע כרגע — ולכן הפסיקה צריכה להיות מתוזמנת לחלון-שטיחות.** אתי חזרה פנימה: `20:36:12 Sierra=8` → `20:38:12 Sierra=2` → `20:41:43 Sierra=-10` (רקונסיילר) ; `sierra_state.json`: `acct_available_funds` **3,032.43** (20:39:32) ⇐ **696.19** (20:43:25), `acct_margin_req 2,857.80`, `acct_account_value 3,553.99`, `acct_under_margin=0`, `acct_trading_disabled=0`. ⇒ תנאי-השחרור `position_qty==0` **לא ניתן לקיום ברגע זה**, וגם סלוט-פנוי לא היה מספיק (‏696$ מול ~1,595$ ל-5 חוזים).
+
+**בדיקה-יריבה — העלות נמדדה מחדש ונשארה אפס.** ‏`/api/v9/gateway/decisions` מאז `18:55` (‏15 הכרעות): `dalton_intent:kind` **13** · `rr_entry_gate` **2** · `live_blocked_by` **ריק ב-15/15** ⇒ הסלוט חוסם **סמוי שני-בתור**, אף מועמד לא הגיע אליו. היחיד בכל היום עם `live_blocked_by=live_slot_occupied` הוא `#1410` ב-`14:35:08Z` — ושם זה היה **נכון** (‏`1409` הייתה פתוחה).
+
+**✅ בעלות נסגרה במדידה אחת ולא בהיסק.** `grep -c "COMMAND QUEUED"` על `^2026-09-10` ⇒ **1** — `17:30:09 [SierraCmd] COMMAND QUEUED #404 → cmd_000404.json (op=PLACE …)` = הכניסה של `#1409`. לפי §3.5 של `COWORK_DAILY_READ`: אפס פקודות-כניסה נוספות ⇒ **אף מילוי אחר היום אינו של המערכת**; `daily_total_qty_filled=102` וכל פוזיציה שאחרי 18:55 הם של אתי. נתיב-אימות שני: `v9_trades` — לייב יחיד היום `#1409 CLOSED 11:55 ET −$33.75`, ו-8 העסקאות הפתוחות כרגע כולן `shadow`.
+
+**🟠 מזין [[T-303]].** 13 מ-15 החסימות נושאות אותו נימוק מילה-במילה: `counter-bias entry_kind=BREAK not in ['EDGE_FADE','VALUE_RETURN']`. ביניהן `DOUBLE_TOP_AA_SHORT` ב-`17:35:02Z` (‏20:35 IL) — הכפולה שנפסקה 10.09 18:45 נחסמת כ-`BREAK`. **מספר לספירת-הערב, לא בקשת-פסיקה** (הדוקטרינה דורשת מדגם שבועי).
+
+**⚠️ תיקון-מדידה נגד עצמי.** בדגימה ראשונה קראתי `acct_value` וקיבלתי `0.00` וכמעט דיווחתי "ערך-חשבון אפס". שם-השדה בפועל הוא `acct_account_value` (‏3,553.99) — כלומר המפתח שניחשתי לא קיים, וזה לא ממצא ([[feedback_grep_zero_needs_string_proof]]).
+
+**ירוק ומדוד:** `pid 47565` מ-`15:53:13` על `b2a3f46d` · `health 200` ב-`1.4ms` · בר `13:35 ET` בגיל **4.61** דק' (`v9_bars_5min_woodies`, `pg_typeof=timestamptz`) · ייצוא-סיירה בן `1.8s` · `flag_guard` **PASS 251** · `task_log_guard` ✅ · חמוש (`order_placement_armed=1 · send_orders_to_trade_service=1 · is_sim=0 · acct_ok=1 · acct_loss_limit_reached=0`) · `ERROR|CRITICAL` היום **11**, האחרון `19:26:52` ⇒ **75 דק' נקיות**.
+
+**חובה-1:** אפס ממתינות **מוכח במקור** — peek ישיר מ-Render ב-`20:38:43`: `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `/upload/pending ⇒ {"items":[]}`. נשלחה הודעת-ניטור (2,755 תווים) ו**המסירה אומתה** ב-`GET /chat` (`delivered_len == chars_to_send`), לא ב-`ok`.
+
+**אפס נגיעה:** אפס ריסטארט (אסור 16:10-23:00) · אפס דגל · אפס `.env` · אפס קוד · אפס נגיעה בסלוט · אפס נגיעה בפוזיציה ובפקודות. **NOT-DONE במכוון:** [[T-305]] ו-[[T-309]] נשארות פתוחות וממתינות לפסיקת-מייקל; לא שחררתי סלוט ולא נגעתי ב-`manual_position_ack`.
+
+---
+
 [2026-09-10 20:12] cowork-dev (מתוזמנת, חובה-1 + חובה-3) · **[[T-309]] 🔴 נפתח — הלייב חסום בשקט מאז 18:55:17: פוזיציה זרה מנעה את שחרור `live_slot`, החשבון כבר שטוח והסלוט לא**
 
 **ממצא — שורש מדוד, לא מוסק.** בשנייה שבה נסגרה הרגל האחרונה של `#1409` (`18:55:17 [TradeManager] T-62 exit-fill #1409 STOP 1c @ 7603.25 (order=11111) — ledger now 4 leg(s)` ⇒ שלנו = 0), שומר-T-43c סירב לשחרר את הסלוט: `18:55:17 [Gateway] T-43c: slot NOT freed for 1409 — Sierra position_qty=-3 (still holding). Outcome=STOP` + `[Gateway] LIVE trade closed (slot retained): 1409 pnl=-33.75`. דקה אחריה: `18:56:42 [CRITICAL] [Reconciler] TM says 0 contracts [], Sierra says -12` ⇒ **השארית לא הייתה שלנו.** המנגנון בקוד: `on_trade_close` → `trading_gateway.py:4487-4536` (פסיקת 28.08, `"slot freed ONLY when position_qty==0"`) קורא `_sierra_state_qty()` — **מספר ברמת-החשבון, עיוור-בעלות**; בחשבון-המשותף חוזי-אתי נספרים בו. זו **מחלקת [[T-288]] בנתיב אחר** (שם: `sierra_qty == 0` של ריפוי-הפנטום; כאן: אותו תנאי-סף בשחרור-הסלוט).
