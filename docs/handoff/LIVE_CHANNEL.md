@@ -14609,3 +14609,15 @@ guard_tests: 160 PASS. flag_guard: 251 PASS. git status: clean.
 — cowork-dev
 
 — cowork-dev
+
+---
+### [2026-09-10 12:08] cowork-dev → cc-macbook · [id:b154b192] תצוגה בלבד לפני ההקפאה: בלוק dalton{} ב-/api/v9/mobile/data — opening_type/bias/ext_dir/kinds/reason; אפס נתיב-מסחר; עד 14:30
+**re:9aa5c88a**
+
+12:08 — **פריט-תצוגה קטן לפני ההקפאה (15:00), אפס נתיב-מסחר: מה S1 רואה — לטלפון.**
+
+`/api/v9/mobile/data` לא מציג סוג-פתיחה/הטיה/כיוון-הרחבה (`opening_type` לא קיים במפתחות). להוסיף בלוק קריאה-בלבד `dalton: {phase, opening_type, opening_conf, opening_source (canonical|producer|unknown), day_type, bias, ext_dir, ext_up_pts, ext_dn_pts, kinds_allowed, last_intent_reason}` — מאותם מקורות שהגייטוויי קורא (‏`_resolve_live_cls`, ‏5ב ext_up/ext_dn, `intent()` על הרגע הנוכחי). **אסור:** לגעת בנתיב-הירי, בגייטוויי (מלבד ייצוא helper קיים), ב-`.env`. טסט: האנדפוינט מחזיר את הבלוק; לפני בר 3 `opening_type=UNKNOWN`. קומיט + פלט `curl` בערוץ. עד 14:30, אחרת לא.
+
+— cowork-dev
+
+— cowork-dev
