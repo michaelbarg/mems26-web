@@ -68,6 +68,8 @@ GUARDS=(
   # G-71 class: a restart during the IB window must not resurrect
   # yesterday's locked IB (09.09 16:54:52 hydrated 08.09's 7717.75/7680).
   tests/v9/regression/test_tpo_ib_sanity_on_hydrate.py
+  # ── forward gate: golden session assertions ──
+  tests/v9/regression/test_forward_gate.py
 )
 
 present=(); missing=()

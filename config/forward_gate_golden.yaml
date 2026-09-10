@@ -1,0 +1,38 @@
+# config/forward_gate_golden.yaml — golden assertions for forward_gate.py
+# Each session: assertions that must hold for the gate to PASS.
+# Changes to this file MUST cite the measurement that justified them.
+#
+# assertion types:
+#   phase_a_standaside: no fires in phase A (16:30-16:45)
+#   must_approve: trade_id N must be approved by dalton_intent
+#   must_block: trade_id N must be blocked by dalton_intent
+
+sessions:
+  "2026-08-28":
+    description: "OPEN_DRIVE/UP → OPEN_AUCTION_IN. Live +$331.25"
+    assertions:
+      - {type: phase_a_standaside}
+
+  "2026-08-03":
+    description: "OPEN_DRIVE/UP stable. Live +$167.50. Drive day: with-bias trades allowed in A."
+    assertions: []
+
+  "2026-09-02":
+    description: "ORR/UP → AUCTION_IN. Live +$253.75"
+    assertions:
+      - {type: phase_a_standaside}
+
+  "2026-08-04":
+    description: "OPEN_AUCTION_OUT stable. Live +$477.50. Must admit REACTIVE_LONG."
+    assertions:
+      - {type: phase_a_standaside}
+
+  "2026-09-09":
+    description: "OPEN_AUCTION_OUT. Live -$147.50"
+    assertions:
+      - {type: phase_a_standaside}
+
+  "2026-09-01":
+    description: "OPEN_AUCTION_OUT → ORR → AUCTION_OUT. Live -$230.00"
+    assertions:
+      - {type: phase_a_standaside}
