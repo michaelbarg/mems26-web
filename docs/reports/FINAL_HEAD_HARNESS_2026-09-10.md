@@ -475,3 +475,50 @@ after this run.
 ---
 
 ## HARNESS: FAIL — `1fb61375` fixes the Layer-1/Layer-2 *ordering* bug but does not restore #593/#612 (still `hint=None`/`bias=BOTH`, blocked — P1.5 only reaches `OPENING_*`-classified setups, and #593/#612 are `REACTIVE_LONG`); 4/6 sessions still worse than the morning $ baseline (08-28 −107.50, 08-03 −75.00, 08-04 −427.50, 09-01 −50.00); 09-09 must-block and phase-A stand-aside hold 6/6, 0 exceptions across all 6 logs, BREAK-kind correctly refused on 08-04; the 4 new hint-layering/mutation tests added in `1fb61375` pass identically (38/38) on the mutated and unmutated tree — they call `dalton_playbook.intent()/evaluate_gate()` directly and never reach `trading_gateway.py`, so they provide zero protection against this exact regression. No condition for the 15:45 restart is met by this run.
+
+---
+
+## 2026-09-10 ~14:32-14:39 IL — cowork independent-verification attempt (Cowork sandbox, HEAD ff1bfb1f)
+
+**Could NOT independently execute TASK A or TASK C in this sandbox — do not treat cc-macbook's 14:27
+LIVE_CHANNEL.md self-report ("harness 6/6: #593 ✅ #612 ✅ 0 exceptions") as verified.** That report also
+self-admits it did not inject/test the required 09-09 S4 setups (#1328 VEGAS / #1343 BULL_FLAG) — it only
+asserts "counter-LONG would be blocked" with no shown run, and gives no per-session $ P&L, so the required
+Δ-vs-morning-baseline check was not done by either agent.
+
+Environment found this session (all checked live, raw):
+- No network egress: `/dev/tcp/8.8.8.8/53` → "Network is unreachable".
+- Postgres unreachable: `localhost:5432` / `127.0.0.1:5432` → "Connection refused" (DATABASE_URL=postgresql://localhost/mems26).
+- `pip3 list`: only numpy/pandas/psycopg2-binary present. fastapi, sqlalchemy, uvicorn, pydantic, httpx,
+  websockets, redis, PyYAML all absent. No `venv/` in repo.
+- `git worktree add /tmp/mems26_probe HEAD` partially succeeded (files checked out) but this mount refuses
+  to unlink git lock files ("Operation not permitted" on `.git/index.lock` and
+  `.git/worktrees/mems26_probe/locked`) — worktree got stuck "locked", could not be removed via
+  `worktree remove -f -f` / `unlock` / `prune`. Working dir removed manually (`rm -rf /tmp/mems26_probe`);
+  the admin entry `.git/worktrees/mems26_probe` is still registered (stale, harmless — no tracked files
+  touched, `git status` unaffected) and needs `rm -rf .git/worktrees/mems26_probe && git worktree prune`
+  run natively on the Mac to clear. No further worktrees were attempted after this, to avoid leaving more.
+
+Given no DB, no deps, no network, and no clean worktree path: TASK A (6-session harness) and TASK C
+(mutation) were **not run**. Fabricating a session/$ table here would be exactly the synthetic-value move
+CLAUDE.md Rule 1 forbids, on a report that gates a real restart before a real 16:30 open.
+
+TASK B (genuinely executed, read-only, live tree):
+- B1 boot-import: **FAIL** — `ModuleNotFoundError: No module named 'fastapi'` (missing dep, not a code defect).
+- B2 py_compile (trading_gateway.py, dalton_playbook.py, entry_location_quality.py): **PASS**, exit 0.
+- B3 flag_guard.py: **INCOMPLETE** — real run, first 10/~251 flags all ✓, paced ~2s/flag (~8min total,
+  blew the time budget) — killed at 20s, never reached final summary line.
+- B4 `git status --short | grep -v PHONE_THREAD | wc -l` = **1** (not 0) — pre-existing untracked
+  `.claude/settings.local.json`, present before this session touched anything; not a trading-logic change.
+- Static-only (not runtime-verified): `grep expensive_stop` → `entry_location_quality.py:103`:
+  `"[ELQ] expensive_stop SHADOW: rr=%.2f > %.2f"` — text is consistent with the shadow-only claim; did not
+  trace whether any path still sets `blocked_by` from it (out of time).
+
+TASK C: not attempted (no basis to mutation-test a harness that cannot run here at all).
+
+**HARNESS: FAIL — no independent verification obtained this session (sandbox lacks DB/network/deps);
+cc-macbook's self-reported 6/6 remains unconfirmed and self-admits skipping the required 09-09 S4-injection
+check. Do not green-light the 15:45 restart on this alone — re-run TASK A/B/C from an agent with real
+Mac/Postgres access before 15:30.**
+
+— cowork (sandbox session, no DB/network access)
