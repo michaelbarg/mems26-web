@@ -1149,19 +1149,60 @@ class TradingGateway:
                 # The old code reset _dp_dir_hint=None at :1150 before Layer 2,
                 # which erased Layer 1 → phase B lost the opening direction →
                 # 08-03 #593 and 08-04 #612 were blocked (HARNESS FAIL).
+                # Direction hint — layered sources. Before IB lock (bar 12),
+                # last_cls_result is None so we need the state machine's
+                # opening direction from the registry (set at bar 3).
                 _dp_dir_hint = None
-                # Layer 1: dir_bias from classify_session
-                try:
-                    _dp_cls = _resolve_live_cls()
-                    if isinstance(_dp_cls, dict):
-                        _dp_d = _dp_cls.get("dir_bias")
-                        if _dp_d in ("UP", "LONG"):
+                # Source A: classify result (available after IB lock)
+                if isinstance(_dp_cls_ot, dict):
+                    for _hint_key in ("open_dir", "dir_bias", "direction"):
+                        _hv = _dp_cls_ot.get(_hint_key)
+                        if _hv in ("UP", "LONG"):
                             _dp_dir_hint = "LONG"
-                        elif _dp_d in ("DOWN", "SHORT"):
+                            break
+                        elif _hv in ("DOWN", "SHORT"):
                             _dp_dir_hint = "SHORT"
-                except Exception:
-                    pass
-                # P1.5: opening producer fallback for A/B
+                            break
+                # Source B: state machine opening direction (available from bar 3)
+                if _dp_dir_hint is None:
+                    try:
+                        _dp_dtm_obj = (self._system_registry.get("day_type_machine")
+                                       if hasattr(self, "_system_registry") else None)
+                        if _dp_dtm_obj and hasattr(_dp_dtm_obj, "opening"):
+                            _dp_sm_ot = _dp_dtm_obj.opening
+                            if hasattr(_dp_sm_ot, "direction"):
+                                _dp_sm_d = _dp_sm_ot.direction
+                                _dp_sm_dv = _dp_sm_d.value if hasattr(_dp_sm_d, "value") else str(_dp_sm_d)
+                                if _dp_sm_dv in ("UP", "LONG"):
+                                    _dp_dir_hint = "LONG"
+                                elif _dp_sm_dv in ("DOWN", "SHORT"):
+                                    _dp_dir_hint = "SHORT"
+                    except Exception:
+                        pass
+                # Source C: opening_gate_bars direct detection (bar 3+)
+                if _dp_dir_hint is None:
+                    try:
+                        _dp_dtm_obj2 = (self._system_registry.get("day_type_machine")
+                                        if hasattr(self, "_system_registry") else None)
+                        _dp_ogb = getattr(_dp_dtm_obj2, "_opening_gate_bars", None)
+                        if _dp_ogb and len(_dp_ogb) >= 3:
+                            from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type as _dp_v2
+                            _dp_v2r = _dp_v2(
+                                [{"o": b.get("o",0), "h": b.get("h",0),
+                                  "l": b.get("l",0), "c": b.get("c",0),
+                                  "v": b.get("v",0)} for b in list(_dp_ogb)[:6]],
+                                _dp_ogb[0].get("o", 0))
+                            _dp_v2d = _dp_v2r.get("direction")
+                            if _dp_v2d in ("UP", "LONG"):
+                                _dp_dir_hint = "LONG"
+                            elif _dp_v2d in ("DOWN", "SHORT"):
+                                _dp_dir_hint = "SHORT"
+                            # Also set _dp_ot if still UNKNOWN
+                            if _dp_ot in ("UNKNOWN", "NA", ""):
+                                _dp_ot = str(_dp_v2r.get("opening_type") or "UNKNOWN")
+                    except Exception:
+                        pass
+                # P1.5: OPENING_* producer as last fallback (machine UNKNOWN)
                 if _dp_dir_hint is None and _dp_classification.startswith("OPENING_"):
                     _dp_setup_dir = (setup.get("direction") or "").upper()
                     if _dp_setup_dir in ("LONG", "SHORT"):
@@ -1196,7 +1237,13 @@ class TradingGateway:
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]
-                    logger.info("[Gateway] BLOCKED by dalton_intent: %s", _dp_block["reason"])
+                    logger.warning("[Gateway] BLOCKED system=%s pattern=%s dir=%s entry=%s "
+                                   "blocked_by=%s ot=%s hint=%s bias=%s kinds=%s il=%s",
+                                   system_id, setup.get("classification"),
+                                   setup.get("direction"), setup.get("entry_price"),
+                                   _dp_block["blocked_by"], _dp_ot, _dp_dir_hint,
+                                   _dalton_intent.bias, sorted(_dalton_intent.entry_kinds),
+                                   _dp_il_hhmm)
                     return result
             except Exception as _dp_err:
                 # fail-CLOSED: a gate that replaces three and crashes ⇒ zero gates

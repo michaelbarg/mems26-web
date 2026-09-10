@@ -315,6 +315,8 @@ def classify_session(
     result["ib_source"] = ib_source
     result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
     result["ib_low_used"] = ib_low        # (== Sierra unless the S1_IB_SANITY_V1 fallback replaced it)
+    result["opening_type"] = feat.get("opening_type")  # propagate for dalton_playbook
+    result["open_dir"] = feat.get("open_dir")          # opening detector's direction
     result["measured"] = {
         "sides": feat["sides"], "rib": feat["rib"], "one_tf": feat["one_tf"],
         "close_pos": feat["close_pos"], "cvd_pos": feat["cvd_pos"],
