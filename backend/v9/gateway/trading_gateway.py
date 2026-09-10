@@ -1091,14 +1091,24 @@ class TradingGateway:
                 else:
                     self._dp_hyst["label"] = _dp_dt_raw
                     _dp_dt = _dp_dt_raw
-                # Opening type from the state machine
+                # Opening type from the canonical source (classify_session result
+                # via _resolve_live_cls, not the old state machine dict).
+                # Fix 1 (10.09): cross_context stores a dict; reading .opening.opening_type
+                # as attribute always gave UNKNOWN. Lock at bar 6 (30min, staging ruling).
                 _dp_ot = "UNKNOWN"
                 try:
-                    _dp_dtm = (cross_context.get("day_type_machine")
-                               if isinstance(cross_context, dict) else None)
-                    if _dp_dtm and hasattr(_dp_dtm, "opening"):
-                        _ot = _dp_dtm.opening.opening_type
-                        _dp_ot = _ot.value if hasattr(_ot, "value") else str(_ot)
+                    _dp_cls_ot = _resolve_live_cls()
+                    if isinstance(_dp_cls_ot, dict):
+                        _dp_ot = str(_dp_cls_ot.get("opening_type") or "UNKNOWN")
+                    if _dp_ot in ("UNKNOWN", "NA", "None", ""):
+                        # Fallback: cross_context dict
+                        _dp_dtm = (cross_context.get("day_type_machine")
+                                   if isinstance(cross_context, dict) else None)
+                        if isinstance(_dp_dtm, dict):
+                            _dp_ot = str(_dp_dtm.get("opening_type") or "UNKNOWN")
+                        elif _dp_dtm and hasattr(_dp_dtm, "opening"):
+                            _ot = _dp_dtm.opening.opening_type
+                            _dp_ot = _ot.value if hasattr(_ot, "value") else str(_ot)
                 except Exception:
                     pass
                 # P1.5: when machine is UNKNOWN/NA and setup is OPENING_*,
@@ -1112,6 +1122,7 @@ class TradingGateway:
                         "OPENING_TEST_DRIVE": "OPEN_TEST_DRIVE",
                         "OPENING_ORR": "OPEN_REJECTION_REVERSE",
                         "OPENING_PULLBACK_CONT": "OPEN_DRIVE",
+                        "OPENING_EXTREME_REJECT": "OPEN_REJECTION_REVERSE",
                     }
                     _dp_p15_ot = _P15_MAP.get(_dp_classification)
                     if _dp_p15_ot:
@@ -1131,22 +1142,34 @@ class TradingGateway:
                 _dp_il = _dp_et.astimezone(_dp_ZI("Asia/Jerusalem"))
                 _dp_il_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
                 # Direction hint from trend/opening
+                # Fix 5 (10.09): direction_hint for phase C must come from dir_bias
+                # (LONG/SHORT/None), not "direction" which is a strategy string
+                # like "with_extension" — that made bias=BOTH on 14/14 decisions.
                 _dp_dir_hint = None
                 try:
                     _dp_cls = _resolve_live_cls()
                     if isinstance(_dp_cls, dict):
-                        _dp_d = _dp_cls.get("direction")
+                        _dp_d = _dp_cls.get("dir_bias")
+                        if not _dp_d:
+                            _dp_d = _dp_cls.get("direction")
                         if _dp_d in ("UP", "LONG"):
                             _dp_dir_hint = "LONG"
                         elif _dp_d in ("DOWN", "SHORT"):
                             _dp_dir_hint = "SHORT"
                 except Exception:
                     pass
-                # P1.5 fallback: if no direction from classify, use setup direction
+                # P1.5 fallback: if no direction from classify, use setup direction.
+                # Fix 2 (10.09): for ORR, direction_hint = the DRIVE direction (opposite
+                # of setup direction), because _resolve_bias("reversal_direction") flips
+                # it again. Passing setup direction = double-inversion.
                 if _dp_dir_hint is None and _dp_classification.startswith("OPENING_"):
                     _dp_setup_dir = (setup.get("direction") or "").upper()
                     if _dp_setup_dir in ("LONG", "SHORT"):
-                        _dp_dir_hint = _dp_setup_dir
+                        if _dp_ot == "OPEN_REJECTION_REVERSE":
+                            # ORR: hint = drive direction = OPPOSITE of reversal setup
+                            _dp_dir_hint = "SHORT" if _dp_setup_dir == "LONG" else "LONG"
+                        else:
+                            _dp_dir_hint = _dp_setup_dir
                 _dalton_intent = _dp_intent(
                     opening_type=_dp_ot, day_type=_dp_dt,
                     now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
@@ -1903,7 +1926,7 @@ class TradingGateway:
                 # ATR from the live system
                 _elq_atr = None
                 try:
-                    from backend.v9.shared.atr import current_atr14
+                    from backend.v9.systems.target_spacing import current_atr14
                     _elq_atr = current_atr14()
                 except Exception:
                     pass

@@ -340,7 +340,7 @@ ruled:
   LEGACY_CONF_GATES: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-08-26", note: 'Rollback flag: =1 restores all conf-percentage gates. Default OFF = binary gates per ruling 25-26.08. Use only for emergency rollback.' }
 
   # ── פסיקת-מייקל 27.08 ~18:20 ("תבדוק איזה דגלים הורסים לנו ותבטל אותם - לא רק להיום") ──
-  DAYTYPE_RECLASS_STABILITY_V1: {expected: "0", ruled_by: "מייקל", date: "2026-08-27", note: 'בוטל בפסיקת 27.08 (דגלים-הורסים). ראיה: 17:45-18:05 החזיק פרסום Normal בזמן ש-Trend_DD פנימי ⇒ ZLR-conform נחסם-פלייבוק על רגל +40 נק'', ו-trend_bypass של release-gate לא חל (קסקדה). הוקם 08-19 (T-47/F6) נגד ריצוד; הביטול מחזיר פרסום מיידי. אם ריצוד יחזור — פסיקה חדשה, לא שחזור שקט.' }
+  DAYTYPE_RECLASS_STABILITY_V1: {expected: "1", ruled_by: "מייקל", date: "2026-09-10", note: 'מוחזר 10.09 (fwd_harness: stability מונע 2 ירי-ביניים 09-09, 0 fires שונים). פסיקת-מקור 19-20.08 (T-47/F6, 21 טסטים, N=2). ביטול 27.08 היה בלי מדידה; fwd_harness 10.09 מכריע' }
   STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-27", note: 'נשאר דלוק אך הוחרג-בקוד ביום-מגמה מפורסם (פסיקת דגלים-הורסים 27.08): בכניסת-המשך בקצה כל המבנה מאחור בהגדרה — הווטו הרג DOUBLE_BOTTOM_EE_LONG @7734 ביום-ריצה (17:50). ביום לא-מגמתי נשאר (שומר #655 −$63.75). trading_gateway ~:2686.' }
   # פלייבוק-ZLR: Normal SKIP→REDUCED — אותה פסיקה; ראיות בהערת ה-yaml עצמו.
 
