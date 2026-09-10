@@ -1091,32 +1091,47 @@ class TradingGateway:
                 else:
                     self._dp_hyst["label"] = _dp_dt_raw
                     _dp_dt = _dp_dt_raw
-                # Opening type from the canonical source (classify_session result
-                # via _resolve_live_cls, not the old state machine dict).
-                # Fix 1 (10.09): cross_context stores a dict; reading .opening.opening_type
-                # as attribute always gave UNKNOWN. Lock at bar 6 (30min, staging ruling).
+                # Opening type + direction from the canonical v2 detector.
+                # Source 1: _resolve_live_cls() → classify_session result (after bar 12)
+                # Source 2: v2 on _opening_gate_bars (bar 3+, before IB lock)
+                # Source 3: P1.5 from setup classification (before bar 3)
                 _dp_ot = "UNKNOWN"
-                try:
-                    _dp_cls_ot = _resolve_live_cls()
-                    if isinstance(_dp_cls_ot, dict):
-                        _dp_ot = str(_dp_cls_ot.get("opening_type") or "UNKNOWN")
-                    if _dp_ot in ("UNKNOWN", "NA", "None", ""):
-                        # Fallback: cross_context dict
-                        _dp_dtm = (cross_context.get("day_type_machine")
-                                   if isinstance(cross_context, dict) else None)
-                        if isinstance(_dp_dtm, dict):
-                            _dp_ot = str(_dp_dtm.get("opening_type") or "UNKNOWN")
-                        elif _dp_dtm and hasattr(_dp_dtm, "opening"):
-                            _ot = _dp_dtm.opening.opening_type
-                            _dp_ot = _ot.value if hasattr(_ot, "value") else str(_ot)
-                except Exception:
-                    pass
-                # P1.5: when machine is UNKNOWN/NA and setup is OPENING_*,
-                # derive opening_type + direction_hint from the producer.
-                # The opening producer IS the opening-type detector on those bars.
+                _dp_v2_dir = None
+                _dp_cls_ot = _resolve_live_cls()
                 _dp_classification = (setup.get("classification") or
                                        setup.get("pattern") or "")
-                if _dp_ot in ("UNKNOWN", "NA", "") and _dp_classification.startswith("OPENING_"):
+                # Source 1: classify_session result
+                if isinstance(_dp_cls_ot, dict):
+                    _dp_ot = str(_dp_cls_ot.get("opening_type") or "UNKNOWN")
+                    _dp_v2d = _dp_cls_ot.get("open_dir")
+                    if _dp_v2d in ("UP", "LONG"):
+                        _dp_v2_dir = "LONG"
+                    elif _dp_v2d in ("DOWN", "SHORT"):
+                        _dp_v2_dir = "SHORT"
+                # Source 2: v2 on _opening_gate_bars (bar 3+)
+                if _dp_ot in ("UNKNOWN", "NA", "None", ""):
+                    try:
+                        _dp_dtm_obj = (self._system_registry.get("day_type_machine")
+                                       if hasattr(self, "_system_registry") else None)
+                        _dp_ogb = list(getattr(_dp_dtm_obj, "_opening_gate_bars", None) or [])
+                        if len(_dp_ogb) >= 3:
+                            from backend.v9.systems.day_type.opening_detector_v2 import (
+                                detect_opening_type as _dp_v2_detect)
+                            _dp_v2r = _dp_v2_detect(
+                                [{"o": b.get("o",0), "h": b.get("h",0),
+                                  "l": b.get("l",0), "c": b.get("c",0),
+                                  "v": b.get("v",0)} for b in _dp_ogb[:6]],
+                                _dp_ogb[0].get("o", 0))
+                            _dp_ot = str(_dp_v2r.get("opening_type") or "UNKNOWN")
+                            _dp_v2d2 = _dp_v2r.get("direction")
+                            if _dp_v2d2 in ("UP", "LONG"):
+                                _dp_v2_dir = "LONG"
+                            elif _dp_v2d2 in ("DOWN", "SHORT"):
+                                _dp_v2_dir = "SHORT"
+                    except Exception:
+                        pass
+                # Source 3: P1.5 from OPENING_* classification (before bar 3)
+                if _dp_ot in ("UNKNOWN", "NA", "None", "") and _dp_classification.startswith("OPENING_"):
                     _P15_MAP = {
                         "OPENING_DRIVE": "OPEN_DRIVE",
                         "OPENING_TEST_DRIVE": "OPEN_TEST_DRIVE",
@@ -1127,13 +1142,6 @@ class TradingGateway:
                     _dp_p15_ot = _P15_MAP.get(_dp_classification)
                     if _dp_p15_ot:
                         _dp_ot = _dp_p15_ot
-                        # Direction from the setup itself
-                        _dp_setup_dir = (setup.get("direction") or "").upper()
-                        if _dp_setup_dir in ("LONG", "SHORT"):
-                            # For ORR the drive direction is opposite
-                            if _dp_p15_ot == "OPEN_REJECTION_REVERSE":
-                                pass  # intent() handles reversal_direction
-                            # direction_hint set below from setup
                 # IL time
                 from backend.v9.services.market_clock import now_et
                 _dp_et = now_et()
@@ -1141,67 +1149,17 @@ class TradingGateway:
                 from zoneinfo import ZoneInfo as _dp_ZI
                 _dp_il = _dp_et.astimezone(_dp_ZI("Asia/Jerusalem"))
                 _dp_il_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
-                # Direction hint from trend/opening
-                # Direction hint — layered, NOT reset between layers:
-                # Layer 1 (A/B): opening direction from canonical v2 or P1.5
-                # Layer 2 (C): IB extension direction OVERRIDES only when ext > 0
-                #              Otherwise falls back to Layer 1 (opening hint).
-                # The old code reset _dp_dir_hint=None at :1150 before Layer 2,
-                # which erased Layer 1 → phase B lost the opening direction →
-                # 08-03 #593 and 08-04 #612 were blocked (HARNESS FAIL).
-                # Direction hint — layered sources. Before IB lock (bar 12),
-                # last_cls_result is None so we need the state machine's
-                # opening direction from the registry (set at bar 3).
-                _dp_dir_hint = None
-                # Source A: classify result (available after IB lock)
-                if isinstance(_dp_cls_ot, dict):
-                    for _hint_key in ("open_dir", "dir_bias", "direction"):
-                        _hv = _dp_cls_ot.get(_hint_key)
-                        if _hv in ("UP", "LONG"):
-                            _dp_dir_hint = "LONG"
-                            break
-                        elif _hv in ("DOWN", "SHORT"):
-                            _dp_dir_hint = "SHORT"
-                            break
-                # Source B: state machine opening direction (available from bar 3)
-                if _dp_dir_hint is None:
-                    try:
-                        _dp_dtm_obj = (self._system_registry.get("day_type_machine")
-                                       if hasattr(self, "_system_registry") else None)
-                        if _dp_dtm_obj and hasattr(_dp_dtm_obj, "opening"):
-                            _dp_sm_ot = _dp_dtm_obj.opening
-                            if hasattr(_dp_sm_ot, "direction"):
-                                _dp_sm_d = _dp_sm_ot.direction
-                                _dp_sm_dv = _dp_sm_d.value if hasattr(_dp_sm_d, "value") else str(_dp_sm_d)
-                                if _dp_sm_dv in ("UP", "LONG"):
-                                    _dp_dir_hint = "LONG"
-                                elif _dp_sm_dv in ("DOWN", "SHORT"):
-                                    _dp_dir_hint = "SHORT"
-                    except Exception:
-                        pass
-                # Source C: opening_gate_bars direct detection (bar 3+)
-                if _dp_dir_hint is None:
-                    try:
-                        _dp_dtm_obj2 = (self._system_registry.get("day_type_machine")
-                                        if hasattr(self, "_system_registry") else None)
-                        _dp_ogb = getattr(_dp_dtm_obj2, "_opening_gate_bars", None)
-                        if _dp_ogb and len(_dp_ogb) >= 3:
-                            from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type as _dp_v2
-                            _dp_v2r = _dp_v2(
-                                [{"o": b.get("o",0), "h": b.get("h",0),
-                                  "l": b.get("l",0), "c": b.get("c",0),
-                                  "v": b.get("v",0)} for b in list(_dp_ogb)[:6]],
-                                _dp_ogb[0].get("o", 0))
-                            _dp_v2d = _dp_v2r.get("direction")
-                            if _dp_v2d in ("UP", "LONG"):
-                                _dp_dir_hint = "LONG"
-                            elif _dp_v2d in ("DOWN", "SHORT"):
-                                _dp_dir_hint = "SHORT"
-                            # Also set _dp_ot if still UNKNOWN
-                            if _dp_ot in ("UNKNOWN", "NA", ""):
-                                _dp_ot = str(_dp_v2r.get("opening_type") or "UNKNOWN")
-                    except Exception:
-                        pass
+                # Direction hint: from v2 detector (already resolved above as _dp_v2_dir),
+                # then P1.5 for OPENING_* before bar 3, then IB extension for phase C.
+                _dp_dir_hint = _dp_v2_dir  # from Source 1 or Source 2 above
+                # P1.5 fallback for OPENING_* setups before bar 3
+                if _dp_dir_hint is None and _dp_classification.startswith("OPENING_"):
+                    _dp_setup_dir = (setup.get("direction") or "").upper()
+                    if _dp_setup_dir in ("LONG", "SHORT"):
+                        if _dp_ot == "OPEN_REJECTION_REVERSE":
+                            _dp_dir_hint = "SHORT" if _dp_setup_dir == "LONG" else "LONG"
+                        else:
+                            _dp_dir_hint = _dp_setup_dir
                 # P1.5: OPENING_* producer as last fallback (machine UNKNOWN)
                 if _dp_dir_hint is None and _dp_classification.startswith("OPENING_"):
                     _dp_setup_dir = (setup.get("direction") or "").upper()

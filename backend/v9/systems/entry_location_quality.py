@@ -92,13 +92,18 @@ def assess_entry_quality(
                     f"chaser: pos={pos:.2f} > {c['pos_max']:.2f} "
                     f"(top {100*(1-c['pos_max']):.0f}% of leg, no pullback)")
 
-    # 2. Expensive stop
+    # 2. Expensive stop — SHADOW (10.09): this arm was silenced for weeks by
+    # the ImportError at trading_gateway.py:1929 (fix 7); it awoke without
+    # measurement and blocked #593 (+$332). Shadow: compute + log, don't block.
     if stop_distance is not None and atr is not None and atr > 0:
         rr = stop_distance / atr
         if rr > c["rr_max"]:
-            reasons.append(
-                f"expensive_stop: rr={rr:.2f} > {c['rr_max']:.2f} "
-                f"(stop {stop_distance:.1f} vs ATR {atr:.1f})")
+            import logging as _elq_log
+            _elq_log.getLogger(__name__).warning(
+                "[ELQ] expensive_stop SHADOW: rr=%.2f > %.2f "
+                "(stop %.1f vs ATR %.1f) — would block, logging only",
+                rr, c["rr_max"], stop_distance, atr)
+            # reasons.append(...) — SHADOWED, not blocking
 
     # 3. Beyond value
     if vah is not None and val is not None:
