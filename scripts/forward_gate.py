@@ -113,8 +113,21 @@ def run_session(day, golden_entry=None):
         il_hhmm = f"{entry_ts.hour:02d}:{entry_ts.minute:02d}" if hasattr(entry_ts, "hour") else "17:00"
 
         dir_hint = None
-        if il_hhmm >= "17:30" and dt_dir:
-            dir_hint = "LONG" if dt_dir in ("UP", "LONG") else ("SHORT" if dt_dir in ("DOWN", "SHORT") else None)
+        if il_hhmm >= "17:30":
+            if dt_dir and dt_dir in ("UP", "LONG", "DOWN", "SHORT"):
+                dir_hint = "LONG" if dt_dir in ("UP", "LONG") else "SHORT"
+            # 5b: IB extension direction
+            if dir_hint is None and bar_idx >= 12:
+                _ib_h = max(float(r["h"]) for r in bars[:12])
+                _ib_l = min(float(r["l"]) for r in bars[:12])
+                _s_h = max(float(r["h"]) for r in bars[:bar_idx + 1])
+                _s_l = min(float(r["l"]) for r in bars[:bar_idx + 1])
+                _eu = max(0, _s_h - _ib_h)
+                _ed = max(0, _ib_l - _s_l)
+                if _eu > _ed and _eu > 0:
+                    dir_hint = "LONG"
+                elif _ed > _eu and _ed > 0:
+                    dir_hint = "SHORT"
         elif ot_dir:
             dir_hint = "LONG" if ot_dir in ("UP", "LONG") else ("SHORT" if ot_dir in ("DOWN", "SHORT") else None)
 

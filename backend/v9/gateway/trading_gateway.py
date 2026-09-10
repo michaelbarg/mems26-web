@@ -1142,22 +1142,41 @@ class TradingGateway:
                 _dp_il = _dp_et.astimezone(_dp_ZI("Asia/Jerusalem"))
                 _dp_il_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
                 # Direction hint from trend/opening
-                # Fix 5 (10.09): direction_hint for phase C must come from dir_bias
-                # (LONG/SHORT/None), not "direction" which is a strategy string
-                # like "with_extension" — that made bias=BOTH on 14/14 decisions.
+                # Fix 5+5b (10.09): direction_hint for phase C.
+                # Primary: dir_bias from classify_session (LONG/SHORT/None).
+                # Fallback 5b: IB extension direction — the side that extended
+                # more since IB lock. Needed because Normal_Variation (74% of C)
+                # has dir_bias=None, which gave BOTH and let #1328/#1343 through.
                 _dp_dir_hint = None
                 try:
                     _dp_cls = _resolve_live_cls()
                     if isinstance(_dp_cls, dict):
                         _dp_d = _dp_cls.get("dir_bias")
-                        if not _dp_d:
-                            _dp_d = _dp_cls.get("direction")
                         if _dp_d in ("UP", "LONG"):
                             _dp_dir_hint = "LONG"
                         elif _dp_d in ("DOWN", "SHORT"):
                             _dp_dir_hint = "SHORT"
                 except Exception:
                     pass
+                # 5b: IB extension direction when dir_bias is empty
+                if _dp_dir_hint is None:
+                    try:
+                        _dp_tpo = (cross_context.get("tpo_system")
+                                   if isinstance(cross_context, dict) else None) or {}
+                        if isinstance(_dp_tpo, dict):
+                            _dp_ibh = float(_dp_tpo.get("ib_high") or 0)
+                            _dp_ibl = float(_dp_tpo.get("ib_low") or 0)
+                            _dp_sh = float(_dp_tpo.get("session_high") or _dp_tpo.get("rth_high") or 0)
+                            _dp_sl = float(_dp_tpo.get("session_low") or _dp_tpo.get("rth_low") or 0)
+                            if _dp_ibh > 0 and _dp_ibl > 0:
+                                _dp_ext_up = max(0, _dp_sh - _dp_ibh)
+                                _dp_ext_dn = max(0, _dp_ibl - _dp_sl)
+                                if _dp_ext_up > _dp_ext_dn and _dp_ext_up > 0:
+                                    _dp_dir_hint = "LONG"
+                                elif _dp_ext_dn > _dp_ext_up and _dp_ext_dn > 0:
+                                    _dp_dir_hint = "SHORT"
+                    except Exception:
+                        pass
                 # P1.5 fallback: if no direction from classify, use setup direction.
                 # Fix 2 (10.09): for ORR, direction_hint = the DRIVE direction (opposite
                 # of setup direction), because _resolve_bias("reversal_direction") flips

@@ -1,21 +1,22 @@
 # config/forward_gate_golden.yaml — golden assertions for forward_gate.py
-# Each session: assertions that must hold for the gate to PASS.
-# Changes to this file MUST cite the measurement that justified them.
+# Each session: assertions that must hold. Changes MUST cite measurements.
 #
 # assertion types:
-#   phase_a_standaside: no fires in phase A (16:30-16:45)
+#   phase_a_standaside: no fires in phase A (16:30-16:45) except on drive days
 #   must_approve: trade_id N must be approved by dalton_intent
 #   must_block: trade_id N must be blocked by dalton_intent
+#   max_fires: at most N trades approved
 
 sessions:
   "2026-08-28":
-    description: "OPEN_DRIVE/UP → OPEN_AUCTION_IN. Live +$331.25"
+    description: "OPEN_DRIVE/UP → OPEN_AUCTION_IN. Live +$331.25. fwd_harness 10.09"
     assertions:
       - {type: phase_a_standaside}
 
   "2026-08-03":
-    description: "OPEN_DRIVE/UP stable. Live +$167.50. Drive day: with-bias trades allowed in A."
-    assertions: []
+    description: "OPEN_DRIVE/UP stable. Live +$167.50. Must admit with-drive LONG 17:10."
+    assertions:
+      - {type: must_approve, trade_id: 593, note: "INITIATIVE_LONG 17:10 with-drive, T1 first +332.50"}
 
   "2026-09-02":
     description: "ORR/UP → AUCTION_IN. Live +$253.75"
@@ -23,14 +24,17 @@ sessions:
       - {type: phase_a_standaside}
 
   "2026-08-04":
-    description: "OPEN_AUCTION_OUT stable. Live +$477.50. Must admit REACTIVE_LONG."
+    description: "OPEN_AUCTION_OUT stable. Live +$477.50. Must admit REACTIVE_LONG 17:05."
     assertions:
       - {type: phase_a_standaside}
+      - {type: must_approve, trade_id: 612, note: "REACTIVE_LONG 17:05 EDGE_FADE under AUCTION, T1 first +427.50"}
 
   "2026-09-09":
-    description: "OPEN_AUCTION_OUT. Live -$147.50"
+    description: "OPEN_AUCTION_OUT. Live -$147.50. Must block #1328 and #1343 (counter-bias on NV)."
     assertions:
       - {type: phase_a_standaside}
+      - {type: must_block, trade_id: 1328, note: "VEGAS SHORT against extension, NV day extended down"}
+      - {type: must_block, trade_id: 1343, note: "BULL_FLAG LONG against extension, NV day extended down"}
 
   "2026-09-01":
     description: "OPEN_AUCTION_OUT → ORR → AUCTION_OUT. Live -$230.00"

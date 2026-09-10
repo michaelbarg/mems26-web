@@ -181,11 +181,24 @@ def main():
             # IL time from entry_ts
             il_hhmm = f"{entry_ts.hour:02d}:{entry_ts.minute:02d}" if hasattr(entry_ts, "hour") else "17:00"
 
-            # Direction hint from classify_session direction
+            # Direction hint: phase A/B from opening, phase C from dir_bias + IB extension
             dir_hint = None
             phase = "C" if il_hhmm >= "17:30" else ("B" if il_hhmm >= "16:45" else "A")
-            if phase == "C" and dt_dir:
-                dir_hint = "LONG" if dt_dir in ("UP", "LONG") else ("SHORT" if dt_dir in ("DOWN", "SHORT") else None)
+            if phase == "C":
+                if dt_dir and dt_dir in ("UP", "LONG", "DOWN", "SHORT"):
+                    dir_hint = "LONG" if dt_dir in ("UP", "LONG") else "SHORT"
+                # 5b fallback: IB extension direction
+                if dir_hint is None and bar_idx >= 12:
+                    ib_h = max(float(r["h"]) for r in bars[:12])
+                    ib_l = min(float(r["l"]) for r in bars[:12])
+                    sess_h = max(float(r["h"]) for r in bars[:bar_idx + 1])
+                    sess_l = min(float(r["l"]) for r in bars[:bar_idx + 1])
+                    ext_up = max(0, sess_h - ib_h)
+                    ext_dn = max(0, ib_l - sess_l)
+                    if ext_up > ext_dn and ext_up > 0:
+                        dir_hint = "LONG"
+                    elif ext_dn > ext_up and ext_dn > 0:
+                        dir_hint = "SHORT"
             elif phase in ("A", "B") and ot_dir:
                 dir_hint = "LONG" if ot_dir in ("UP", "LONG") else ("SHORT" if ot_dir in ("DOWN", "SHORT") else None)
 
