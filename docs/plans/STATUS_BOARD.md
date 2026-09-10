@@ -1,3 +1,15 @@
+[2026-09-10 15:55] cowork-dev (מתוזמנת `mems26-preopen-restart-1009`) · **🟢 GO — הריסטארט הקדם-פתיחה בוצע 15:53:13 · [[T-301]] נפתח ונסגר תוך 3 דקות · [[T-299]]+[[T-300]] נסגרו כתופעת-לוואי**
+
+**ממצא:** `guard_tests` חזר **אדום 159/160** בשער הקדם-ריסטארט ⇒ עצרתי את הריסטארט ודיווחתי NO-GO (טלפון 15:48, אומת-מסירה). הכושל היחיד: `test_entry_location_quality.py::TestIndividualChecks::test_expensive_stop` ⇒ `assert any("expensive_stop" in reason for reason in r["reasons"]) ⇒ assert False`. **האבחנה — בדיקה מיושנת ולא רגרסיה:** הלוג של אותה ריצה אמר `[ELQ] expensive_stop SHADOW: rr=1.88 > 1.50 — would block, logging only`; `git log -S'expensive_stop SHADOW'` ⇒ `9a612826` (10-09 **14:25**), בעוד קובץ-הבדיקה לא נגע מאז `affc3a0d` (**08-30**), וההתנהגות כבר אושרה בערוץ ב-14:44. **השורש שמאחורי הממצא:** בין 14:25 ל-15:45 **איש לא הריץ `guard_tests`** — ההארנס אישר את ההתנהגות אבל סט-הרגרסיה נשאר אדום 80 דקות ואיש לא ידע.
+
+**תיקון:** cc-macbook כתב `b2a3f46d` ב-15:52 (3 דק' אחרי פוסט-הערוץ) — ה-assert החדש נועל את **שני** הכיוונים: הצל חייב לרשום (`"expensive_stop SHADOW" in caplog`) **וגם** הסיבה אסור שתופיע ב-`reasons` ⇒ התעוררות-שקטה של הזרוע תיתפס. cowork לא נגע בקוד.
+
+**ראיה:** `guard_tests ⇒ 160 passed` · `fire_drill ⇒ 🟢 GO` · `lsof -nP -iTCP:8000 -sTCP:LISTEN -t ⇒ 47565`, `ps -o lstart= ⇒ Thu Sep 10 15:53:13 2026` · `[mems26.boot] pid=47565 commit=**b2a3f46d**` == HEAD-בזמן-הריסטארט (‏`f50f20b4` שאחריו **docs-only**, `git diff --stat` מאשר) · `health 200/1.6ms` · `QueuePool limit` **4123 לפני = 4123 אחרי** · `idle in transaction = 1` · `flag_guard PASS 251` · `forward_gate PASS 6 sessions` + שער-הזהב **4/4** (`#593`/`#612` מאושרות, `#1328`/`#1343` חסומות), Σ **+$597.50** · `wire_guard 56` · `task_log_guard 303`. סנאפשוט לפני: `~/mems26_snapshots/20260910T125306Z_preopen-restart-1009`.
+
+**✅ [[T-299]] נסגר** — `gateway/status ⇒ daily_pnl=0.0 · trades_today=0 · consecutive_losses=0` (היה `−141.25/3/1` של אתמול) ⇒ תקציב-ההפסד היום **מלא −$800** ולא −$658.75, בדיוק כפי שהצעד-הבא של T-299 חזה. **✅ [[T-300]] נסגר** — `[env_loader] applied 304 vars` בבוט 15:53 ⇒ `DAYTYPE_RECLASS_STABILITY_V1=1` ו-`TRADE_ECONOMICS_AUTHORITY_V1=diff` בתהליך-החי לראשונה מאז עריכת-ה-`.env` ב-11:27.
+
+**🟠 נרשם ולא-נסגר:** `[TPO] Hydrated IB from DB: H=7663.75 L=7644.25 locked=True W=19.5` — **IB של אתמול** (‏RTH היום נפתח 16:30) ⇒ הריבייס של `1bb6879b` חייב להשתלט ב-17:30; אם ב-17:35 ה-IB עדיין `7663.75/7644.25` — תקלה. `day_type ⇒ UNKNOWN conf=0.0` מיד אחרי הבוט = צפוי לפני RTH, לא ממצא. **מה שלא אימתתי בעצמי:** זוג-הריפליי `+577.50` מול `−491.25` — מהארנס של הצהריים, לא נמדד בריצה הזו; נמסר למייקל ככזה. **אין ריסטארט נוסף היום** (אחרי 16:30 ⇒ `honest skip today`).
+
 [2026-09-10 15:47] cowork-daily · **דיילי-09.09 + שער-10.09 🟢 · הריסטארט נמסר לבעליו · ack חודש · שלושה ממצאים**
 
 **קריאה-בלבד על המסחר:** אפס ריסטארט · אפס דגל · אפס `.env` · אפס דגלי-גודל · אפס קוד · אפס נגיעה בפוזיציה.
