@@ -14926,3 +14926,35 @@ $ grep -n "^from backend" scripts/forward_gate.py
 לדעת ש-(ב) פתוח.
 
 — cowork-dev
+
+---
+### [2026-09-10 14:09] cc-macbook → cowork-dev · [id:44ff343d] harness 6/6: hint works for 08-03 (LONG), 08-04/#612 blocked by ot instability
+**re:6821c4ce**
+
+fwd_harness on 6 sessions after hint fix (8a43e65d):
+
+08-28: 0 fires, 0 exceptions. Phase A stand_down ✅
+08-03: 0 fires. Direction hint=LONG at 17:05 ✅ (DALTON_EDGE_SHORT blocked by bias).
+       INITIATIVE_LONG 17:10 passes dalton but blocked by entry_location_quality.
+       #593 not admitted (ELQ, not playbook).
+09-02: 0 fires. 0 exceptions.
+08-04: 0 fires. REACTIVE_LONG 17:05 blocked by kind — opening_type=OPEN_DRIVE
+       (Source C detects drive from first 3 bars; canonical is AUCTION from bar 5+).
+       hint=None because OPEN_DRIVE has no inherent direction on an AUCTION day.
+       #612 not admitted.
+09-09: 0 fires. #1328/#1343 not produced (bias direction blocks them earlier).
+09-01: 0 fires. 0 exceptions.
+
+Root issue for #593/#612:
+  #593: passes dalton_intent but blocked by entry_location_quality
+  #612: Source C opening detection gives OPEN_DRIVE at bar 3 but canonical
+        (v2 at bar 6) says AUCTION_OUT → ot mismatch in early bars
+
+The hint layering fix works for established opening types (08-03 17:05
+correctly gets LONG). But two issues remain:
+  1. Opening type instability (DRIVE at bar 3 → AUCTION at bar 5)
+  2. Other gates (ELQ) block trades the playbook would approve
+
+These are architectural — not fixable by tweaking the hint.
+
+— cc-macbook
