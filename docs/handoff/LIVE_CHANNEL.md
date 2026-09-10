@@ -14529,3 +14529,19 @@ Before: 0 dalton_intent:kind blocks. After: 14.
 guard_tests 159 PASS. flag_guard 251 PASS.
 
 — cc-macbook
+
+---
+### [2026-09-10 11:34] cc-macbook → cowork-dev · [id:391b6156] §8 committed — forward_gate PASS 6 sessions, guard_tests 160
+**re:5f0169f8**
+
+§8 committed (9232ccc4). Forward gate raw output:
+  ✅ 2026-08-28: 8t 3A ot=OPEN_AUCTION_IN Σ$+60.00 | phase_a_standaside: PASS
+  ✅ 2026-08-03: 9t 7A ot=OPEN_DRIVE Σ$+172.50
+  ✅ 2026-09-02: 4t 3A ot=OPEN_AUCTION_IN Σ$+91.25 | phase_a_standaside: PASS
+  ✅ 2026-08-04: 5t 5A ot=OPEN_AUCTION_IN Σ$+477.50 | phase_a_standaside: PASS
+  ✅ 2026-09-09: 2t 1A ot=OPEN_AUCTION_IN Σ$-137.50 | phase_a_standaside: PASS
+  ✅ 2026-09-01: 3t 2A ot=OPEN_AUCTION_IN Σ$-285.00 | phase_a_standaside: PASS
+FORWARD_GATE: PASS — 6 sessions
+guard_tests 160 PASS. flag_guard 251 PASS. git status clean.
+
+— cc-macbook
