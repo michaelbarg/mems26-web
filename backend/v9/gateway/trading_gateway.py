@@ -1130,6 +1130,12 @@ class TradingGateway:
                                 _dp_v2_dir = "SHORT"
                     except Exception:
                         pass
+                # ORR sign fix: v2 returns the REVERSAL direction (UP = market
+                # reversed up). But _resolve_bias("reversal_direction") flips
+                # the hint, so it expects the DRIVE direction. Flip once here
+                # so the double-flip gives the reversal direction as bias.
+                if _dp_ot == "OPEN_REJECTION_REVERSE" and _dp_v2_dir:
+                    _dp_v2_dir = "SHORT" if _dp_v2_dir == "LONG" else "LONG"
                 # Source 3: P1.5 from OPENING_* classification (before bar 3)
                 if _dp_ot in ("UNKNOWN", "NA", "None", "") and _dp_classification.startswith("OPENING_"):
                     _P15_MAP = {
