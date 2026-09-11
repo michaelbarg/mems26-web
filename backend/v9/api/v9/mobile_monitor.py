@@ -416,10 +416,22 @@ async def mobile_data(request: Request):
         _dp_ot_src = "canonical" if _dp_ot not in ("UNKNOWN", "NA", "") else "unknown"
         _dp_it = _dp_intent(opening_type=_dp_ot, day_type=_dp_dt,
                              now_il_hhmm=_dp_hhmm, direction_hint=_dp_hint)
+        # T-314: opening_locked_at / negated_at from the machine
+        _dp_dtm = None
+        try:
+            import sys as _dp_sys
+            _dp_main = _dp_sys.modules.get("backend.main")
+            if _dp_main:
+                _dp_dtm = getattr(getattr(_dp_main, "app", None), "state", None)
+                _dp_dtm = getattr(_dp_dtm, "day_type_machine", None)
+        except Exception:
+            pass
         out["dalton"] = {
             "phase": _dp_hhmm,
             "opening_type": _dp_ot,
             "opening_source": _dp_ot_src,
+            "opening_locked_at": getattr(_dp_dtm, "_opening_locked_at", None) if _dp_dtm else None,
+            "negated_at": getattr(_dp_dtm, "_opening_negated_at", None) if _dp_dtm else None,
             "day_type": _dp_dt or None,
             "bias": _dp_it.bias,
             "ext_dir": _dp_hint,

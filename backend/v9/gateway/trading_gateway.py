@@ -1092,44 +1092,55 @@ class TradingGateway:
                     self._dp_hyst["label"] = _dp_dt_raw
                     _dp_dt = _dp_dt_raw
                 # Opening type + direction from the canonical v2 detector.
-                # Source 1: _resolve_live_cls() → classify_session result (after bar 12)
-                # Source 2: v2 on _opening_gate_bars (bar 3+, before IB lock)
-                # Source 3: P1.5 from setup classification (before bar 3)
+                # T-314: Use the LOCKED opening type when available (frozen at bar 3
+                # or at IB lock for AUCTION types). Falls back to live detection
+                # when not yet locked.
                 _dp_ot = "UNKNOWN"
                 _dp_v2_dir = None
-                _dp_cls_ot = _resolve_live_cls()
+                _dp_dtm_obj = (self._system_registry.get("day_type_machine")
+                               if hasattr(self, "_system_registry") else None)
                 _dp_classification = (setup.get("classification") or
                                        setup.get("pattern") or "")
-                # Source 1: classify_session result
-                if isinstance(_dp_cls_ot, dict):
-                    _dp_ot = str(_dp_cls_ot.get("opening_type") or "UNKNOWN")
-                    _dp_v2d = _dp_cls_ot.get("open_dir")
-                    if _dp_v2d in ("UP", "LONG"):
+                # T-314: prefer locked opening type
+                if (_dp_dtm_obj is not None
+                        and getattr(_dp_dtm_obj, "_opening_type_locked", False)):
+                    _dp_ot = str(getattr(_dp_dtm_obj, "_opening_locked_val", "UNKNOWN"))
+                    _dp_locked_dir = getattr(_dp_dtm_obj, "_opening_locked_dir", None)
+                    if _dp_locked_dir in ("UP", "LONG"):
                         _dp_v2_dir = "LONG"
-                    elif _dp_v2d in ("DOWN", "SHORT"):
+                    elif _dp_locked_dir in ("DOWN", "SHORT"):
                         _dp_v2_dir = "SHORT"
-                # Source 2: v2 on _opening_gate_bars (bar 3+)
-                if _dp_ot in ("UNKNOWN", "NA", "None", ""):
-                    try:
-                        _dp_dtm_obj = (self._system_registry.get("day_type_machine")
-                                       if hasattr(self, "_system_registry") else None)
-                        _dp_ogb = list(getattr(_dp_dtm_obj, "_opening_gate_bars", None) or [])
-                        if len(_dp_ogb) >= 3:
-                            from backend.v9.systems.day_type.opening_detector_v2 import (
-                                detect_opening_type as _dp_v2_detect)
-                            _dp_v2r = _dp_v2_detect(
-                                [{"o": b.get("o",0), "h": b.get("h",0),
-                                  "l": b.get("l",0), "c": b.get("c",0),
-                                  "v": b.get("v",0)} for b in _dp_ogb[:6]],
-                                _dp_ogb[0].get("o", 0))
-                            _dp_ot = str(_dp_v2r.get("opening_type") or "UNKNOWN")
-                            _dp_v2d2 = _dp_v2r.get("direction")
-                            if _dp_v2d2 in ("UP", "LONG"):
-                                _dp_v2_dir = "LONG"
-                            elif _dp_v2d2 in ("DOWN", "SHORT"):
-                                _dp_v2_dir = "SHORT"
-                    except Exception:
-                        pass
+                else:
+                    # Pre-lock: live detection (Sources 1-3)
+                    _dp_cls_ot = _resolve_live_cls()
+                    # Source 1: classify_session result
+                    if isinstance(_dp_cls_ot, dict):
+                        _dp_ot = str(_dp_cls_ot.get("opening_type") or "UNKNOWN")
+                        _dp_v2d = _dp_cls_ot.get("open_dir")
+                        if _dp_v2d in ("UP", "LONG"):
+                            _dp_v2_dir = "LONG"
+                        elif _dp_v2d in ("DOWN", "SHORT"):
+                            _dp_v2_dir = "SHORT"
+                    # Source 2: v2 on _opening_gate_bars (bar 3+)
+                    if _dp_ot in ("UNKNOWN", "NA", "None", ""):
+                        try:
+                            _dp_ogb = list(getattr(_dp_dtm_obj, "_opening_gate_bars", None) or [])
+                            if len(_dp_ogb) >= 3:
+                                from backend.v9.systems.day_type.opening_detector_v2 import (
+                                    detect_opening_type as _dp_v2_detect)
+                                _dp_v2r = _dp_v2_detect(
+                                    [{"o": b.get("o",0), "h": b.get("h",0),
+                                      "l": b.get("l",0), "c": b.get("c",0),
+                                      "v": b.get("v",0)} for b in _dp_ogb[:6]],
+                                    _dp_ogb[0].get("o", 0))
+                                _dp_ot = str(_dp_v2r.get("opening_type") or "UNKNOWN")
+                                _dp_v2d2 = _dp_v2r.get("direction")
+                                if _dp_v2d2 in ("UP", "LONG"):
+                                    _dp_v2_dir = "LONG"
+                                elif _dp_v2d2 in ("DOWN", "SHORT"):
+                                    _dp_v2_dir = "SHORT"
+                        except Exception:
+                            pass
                 # ORR sign fix: v2 returns the REVERSAL direction (UP = market
                 # reversed up). But _resolve_bias("reversal_direction") flips
                 # the hint, so it expects the DRIVE direction. Flip once here
