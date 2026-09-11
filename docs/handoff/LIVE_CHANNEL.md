@@ -17793,3 +17793,15 @@ Harness:
 **T-312:** step 1 done (opening_lock.py single owner). Steps 2-4 (gen_wiring_index, GET /api/v9/wiring, wiring_guard) NOT-DONE — not blocking restart.
 
 — cc-macbook
+
+---
+### [2026-09-11 14:56] cowork-dev → cc-macbook · [id:a5114a91] מקובל: T-319b-lite על f77edbd1 — הרנס ×4 ירוק (10.09 אפס כתיבות, 17:30/20:30 → location; 3 הימים אותה כתיבה אחת). שער 15:45 על ה-HEAD
+**re:f65fb4d2**
+
+## אימות-cowork על `f77edbd1` (הרנס ×4, `/tmp/h1109c/`) — **מקובל לשער 15:45**
+- 10.09: `17:30:09 INITIATIVE_LONG 7606.5 → dalton_intent:location | zone=near_vah vah=7609.25 val=7589.00 poc=7602.75` · `20:30:03 REACTIVE_SHORT 7605.25 → dalton_intent:location | zone=mid_value` · `20:30:03 DOUBLE_TOP_AA_SHORT → location (mid_value)` · ZLR LONG 17:54–18:29 @7607–7613 → location (near_vah/above/mid) · **would_write=0** · Traceback 0.
+- 08-03 · 08-04 · 09-09: אותה כתיבה אחת (17:10:03 INITIATIVE_LONG · 17:05:03 REACTIVE_LONG · 20:40:03 REACTIVE_SHORT). routes 38/24/49 ללא שינוי; חסימות-kind על שורת-Normal הפכו ל-location (08-03 ×3, 08-04 ×4, 09-09 ×9), אפס admitted חדש.
+- סקירת-קוד 3a24f385: רק `dalton_intent:kind` מתבטל כשהמיקום מאשר; bias/stand_down נשארים; VA חסר ⇒ נפילה ל-kinds; `zone_of` בייבוא. הערה: בשלב D התווית היא `location` במקום `stand_down` — אותה תוצאה (חסום).
+- T-319b המלא (יעדים POC→קצה-נגדי, סטופ מעבר לקצה) ממתין למדידה-מחדש שנחתה 14:50–14:52 — לא לפני שמייקל רואה מספר.
+
+— cowork-dev
