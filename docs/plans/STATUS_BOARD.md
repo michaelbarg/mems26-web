@@ -1,3 +1,63 @@
+[2026-09-11 10:12] cowork-dev (מתוזמנת, חובה-1) · **[[T-311]] + [[T-313]] ✅ שורות-לוח שהיו חסרות — אומתו עצמאית ע"י cowork, מיושמות ע"י cc-macbook**
+
+**הממצא שפתח את השורה הזו הוא פגם-תהליך ולא פגם-קוד.** שני הפריטים נסגרו ב-`TASK_LOG` ✅ (`a454567f` ב-10:00:30, `f2537643`+`fe0174d9` ב-10:10:2x) אבל **ללא שורת-`STATUS_BOARD`**, ולכן `task_log_guard` יצא `1`. מכיוון שהבודק רץ בתוך `fire_drill.py`, ו-`fire_drill` הוא שער-הקדם-פתיחה — **שער 15:30 היה נכשל היום**. מעבר-הדוקים של cc (`docs: T-313 TASK_LOG + LIVE_CHANNEL`) כתב ל-`TASK_LOG` ול-`LIVE_CHANNEL` ודילג על הלוח, בשני הפריטים.
+
+**ראיה (Rule 5, פקודה + פלט גולמי).**
+
+```
+$ python3 scripts/task_log_guard.py ; echo exit=$?
+  • T-313 is marked ✅ but has no line in STATUS_BOARD.md — 'done' without a finding and a verification is not allowed
+  • T-311 is marked ✅ but has no line in STATUS_BOARD.md — 'done' without a finding and a verification is not allowed
+exit=1
+$ grep -c "T-311" docs/plans/STATUS_BOARD.md   ⇒ 0
+$ grep -c "T-313" docs/plans/STATUS_BOARD.md   ⇒ 0
+```
+
+**[[T-311]] — שחרור `live_slot` מול פוזיציה-זרה. אומת עצמאית, לא הועתק מטענת-cc.**
+
+ממצא (cc): `on_trade_close` → שומר T-43c קרא `_sierra_state_qty()` — מספר ברמת-**החשבון**, עיוור-בעלות. בחשבון-המשותף חוזי-אתי נספרו בו ⇒ הסלוט נתקע 191+ דק' ב-10.09 ([[T-309]]). תיקון: `position_is_foreign()` (השוואת `POSITION_CHANGE.order_id` מול sierra_order_ids של העסקה) + שחרור ב-T-43c כשהשארית מוכחת-זרה + `_selfheal_live_slot()` — לולאת-שחרור תקופתית, שהיא **התנאי-ההכרחי** שזוהה ב-20:47 אתמול (שחרור חד-פעמי בתוך `on_trade_close` אינו מספיק).
+
+```
+$ python3 -m pytest backend/v9/tests/test_t311_foreign_slot_release.py -q
+....... [100%]
+7 passed in 0.08s
+$ git grep -c "_selfheal_live_slot" HEAD -- backend/v9/gateway/trading_gateway.py      ⇒ 2
+$ git grep -c "position_is_foreign" HEAD -- backend/v9/gateway/trading_gateway.py      ⇒ 5
+$ git grep -c "position_is_foreign" HEAD -- backend/v9/services/sierra_position_reconciler.py ⇒ 1
+$ curl -s localhost:8000/api/v9/gateway/status   # 10:09
+  live_slot = None   live_slot_system = None   demo_slot = None
+```
+
+⚠️ **אי-דיוק בשורת-`TASK_LOG` שתטעה את החקירה הבאה:** הנתיב הרשום שם הוא `tests/v9/regression/test_t311_foreign_slot_release.py` — **הקובץ אינו שם**. הוא ב-`backend/v9/tests/`. המבחן קיים ועובר; רק הנתיב שגוי.
+
+⚠️ **ומה שלא אומת:** `live_slot=None` כרגע הוא **תוצר הריסטארט של 09:21:19** ולא ראיה שהנתיב-החדש ירה. המבחנים מוכיחים את הלוגיקה ביחידה; הוכחת-שדה דורשת סגירת-עסקה-חיה מול פוזיציה-זרה, ואין כזו היום.
+
+**[[T-313]] — מסירת-תווית בנעילת-IB. שלוש השכבות אומתו נוכחות ב-HEAD.**
+
+ממצא (cc): בנעילת-IB (בר 12) הסיווג של S1 לא דרס את התווית הפרוביזורית, כי שלוש שכבות-היסטרזיס עצרו אותו. תיקון: `force_immediate` ב-`label_stability.py` בסיווג-הראשון אחרי נעילה · איפוס `_dp_hyst` בגייטוויי · איפוס `_ANTIFLAP_STATE` ב-`trade_context`. היסטרזיס נשמרת על `locked→locked` (בר 13+).
+
+```
+$ git grep -n "force_immediate" HEAD -- backend/
+  backend/main.py:645 · backend/v9/systems/day_type/label_stability.py:109,148
+$ git grep -n "_ANTIFLAP_STATE" HEAD -- backend/
+  backend/main.py:634-636 (reset at IB lock) · backend/v9/services/trade_context.py:487,625
+$ git grep -n "_dp_hyst" HEAD -- backend/v9/gateway/trading_gateway.py   ⇒ 1071-1081
+$ git show --stat f2537643
+  backend/main.py | 24 ++++ · scripts/fwd_harness.py | 13 ++++ · 2 files changed, 37 insertions(+)
+$ python3 scripts/flag_guard.py | tail -2
+  FLAG-GUARD: PASS — all 251 ruled flags match.
+```
+
+⚠️ **גם כאן, מה שלא אומת:** אין קובץ-מבחן ל-T-313 (`find . -name "test_t313*"` ⇒ ריק). הראיה של cc היא ריפליי-golden של 10.09 17:30:09, ואני לא הרצתי אותו מחדש. מה שמדדתי הוא **נוכחות שלוש השכבות ב-HEAD ו-+37 שורות תוספת-בלבד (אפס מחיקות, אפס נגיעה ב-`.env`/דגלים)** — לא התנהגות.
+
+**מה שעשיתי ומה שלא.** הוספתי את שתי שורות-הלוח בלבד (פעולת-לוגים, בסמכות חובה-1) כדי לשחרר את `fire_drill` לפני 15:30. **לא** נגעתי ב-`TASK_LOG` — cc פעיל וקומיט ב-10:10:52, ושורת-`TASK_LOG` לא-מקומטת שלו הייתה פתוחה ברגע-המדידה. **אפס** קוד · **אפס** דגל · **אפס** `.env` · **אפס** ריסטארט · **אפס** נגיעה בפוזיציה/סלוט/פקודות.
+
+**מצב-המערכת ברגע-הריצה (ירוק, מדוד 10:06-10:12).** 9/9 סוכנים רשומים (`eod_handoff` רשום וממתין 23:05; `startup_check`/`update_check` רצו ויצאו) · backend pid `568`, `health 200` ב-`1.9ms` · בר-ווּדיס `10:05:00+03` בגיל **4.30** דק' (`pg_typeof=timestamptz`, חיובי) · ייצוא-סיירה בן **1** שנ' (`sierra_state.json` 10:09:27) · חשבון שטוח: `position_qty=0 · working_orders=0 · orders=[]` · `acct_available_funds 3,649.69 · acct_margin_req 0 · acct_ok=1 · acct_under_margin=0 · acct_trading_disabled=0 · acct_loss_limit_reached=0` · חמוש: `order_placement_armed=1 · send_orders_to_trade_service=1 · is_sim=0` · `acct_daily_pl 0.00` (השדה ב-`sierra_state.json` בשם `daily_pnl=-63.75` הוא הפסול לפי-symbol — מתעלם ממנו) · `flag_guard` **PASS 251**.
+
+**[[T-259]] — הרלה מושך בפועל, ולא מפני שכתוב `running`.** החלון `10:00-23:30` נפתח; `/tmp/mobile_relay.log` שותק מ-09:50:48, וזו **התנהגות-תקן** (בתוך-החלון אין שורה-לפולינג; כשל היה כותב `[relay] fail #1`). המפריד שמדד פולינג בפועל הוא **זמן-CPU**: `0:06.73` → `0:06.95` על pid `2006` ב-20 שנ' קיר ⇒ ‏0.22 שנ'/20 שנ'. אימות-סדר-גודל: 7.5 דק' בתוך-החלון באותו קצב ≈ 4.9 שנ' + ~31 דק' סרק ≈ 2 שנ' = 6.9 שנ' מול `6:95` מדודים. **אבל** ראיית-הסגירה האמיתית של [[T-259]] נשארת הודעת-בדיקה ממייקל שמגיעה בפועל — היא טרם נשלחה, ולכן הפריט פתוח.
+
+**תיבת-הטלפון ריקה במקור.** peek ישיר מ-Render ב-10:07:16 (GET, peek-ולא-pop): `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}`. ⇒ חובה-1 = שקט, אין למה לענות.
+
 [2026-09-10 20:47] cowork-dev (מתוזמנת, חובה-1 + חובה-3) · **[[T-309]] 🔄 עדכון-מדידה — הסלוט שרד שלושה חלונות-שטיחות ⇒ החוסם הוא היעדר מסלול-החזרה, לא הפוזיציה-הזרה**
 
 **ממצא (מתקן את הניסוח של 20:12, לא רק מחזק אותו).** ב-20:12 נכתב שהסלוט חסום כי פוזיציה זרה מנעה את השחרור. המדידה עכשיו מפריכה את החלק ה"כל-עוד": מאז `18:55:17` החשבון היה **שטוח שלוש פעמים** והסלוט לא השתחרר באף אחת. ⇒ הפוזיציה-הזרה הייתה ה**טריגר** ב-18:55:17; הסיבה ה**פעילה** מאז היא שהשחרור קיים רק בתוך `on_trade_close` (`trading_gateway.py:4487-4536`) שיורה פעם אחת, ו-T-183 הוא `ALERT-ONLY` במכוון. **נגזרת: המתנה לא תפתור, וגם סוף-ה-RTH לא.**
