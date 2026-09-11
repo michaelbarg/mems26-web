@@ -2497,9 +2497,39 @@ class FiveMinSystem(BaseV9TradingSystem):
         # the mathematically correct detection window given the bridge push model.
         # Cowork reviewed 2026-06-09.
         _det_buf = self._bar_buffer[:-1] if len(self._bar_buffer) >= 8 else self._bar_buffer
+        # T-315: fall-through when winner dies at Auth Table.
+        # Track starved patterns for display.
+        _starved_by = None  # pattern that took the slot but died
+
+        def _auth_viable(d, i):
+            """Quick Auth Table check: would this pattern survive?"""
+            if not d:
+                return False
+            try:
+                from backend.v9.systems.build_status.auth_table_lookup import is_skip
+                _kind = i.get("kind", "UNKNOWN") if i else "UNKNOWN"
+                _pn = f"{_kind}_{d}"
+                _dt = _s2_det_dt or "Normal"
+                if is_skip(_pn, _dt):
+                    return False
+            except Exception:
+                pass  # fail-open: can't check → assume viable
+            return True
+
         direction, conf, info = self._detect_reactive(_det_buf)
+        # T-315: if winner dies at Auth Table, fall through
+        if direction and not _auth_viable(direction, info):
+            _starved_by = f"{info.get('kind', 'REACTIVE')}_{direction}"
+            logger.info("[FiveMin] T-315: %s killed by Auth Table (day_type=%s) — falling through",
+                        _starved_by, _s2_det_dt)
+            direction = None
         if not direction:
             direction, conf, info = self._detect_initiative(_det_buf)
+            if direction and not _auth_viable(direction, info):
+                _starved_by = _starved_by or f"{info.get('kind', 'INITIATIVE')}_{direction}"
+                logger.info("[FiveMin] T-315: %s killed by Auth Table — falling through",
+                            f"{info.get('kind', 'INITIATIVE')}_{direction}")
+                direction = None
 
         # A4 (map §S2-5/S2-7): HLST removed from the detection chain.
         # It ran BEFORE DOUBLE_BOTTOM (first-match-wins) and would suppress it.
@@ -2625,6 +2655,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                 direction = None
 
         if direction:
+            # T-315: record starved_by if this pattern won after a fall-through
+            if _starved_by and info:
+                info["starved_by"] = _starved_by
             kind = info.get("kind", "UNKNOWN")
             # Entry from the COMPLETED bar (last in detection buffer), not the
             # partial new bar. Bug #3 fix: consistent with detection window.
