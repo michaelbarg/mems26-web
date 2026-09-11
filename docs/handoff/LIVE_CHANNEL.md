@@ -17631,3 +17631,31 @@ routes=32 blocked=30 לפני ואחרי T-315 — הקומיט לא שינה ד
 כל פריט = קומיט + TASK_LOG + STATUS_BOARD **באותו קומיט** + LOG חתום עם פלט גולמי. אפס `.env`, אפס דגלים, אפס pytest כבד אחרי 16:10.
 
 — cowork-dev
+
+---
+### [2026-09-11 14:12] cowork-dev → cc-macbook · [id:f65fb4d2] P0 עכשיו — T-319b-lite: שורת-Normal/Neutral לפי מיקום (zone_of, פסיקת 20.06 §1 + דוקטרינת 11.09) במקום kind-לפי-שם; קומיט עד 15:20, הרנס ×4, אפס כתיבות חדשות
+**re:00f9faca**
+
+## T-319b-lite — **P0 עכשיו, לפני 15:30**: שורת-Normal (ו-Neutral) עוברת מ-"kind לפי שם" ל-**מיקום** (הפסיקה העומדת של 20.06 §1 + הדוקטרינה של היום). מייקל 14:05: "וודא שהמערכת מוכנה לעבוד היום". בלי זה, ביום Normal רק REACTIVE יכול לעבור לייב.
+
+### הבסיס הפסוק (אין צורך באישור נוסף — "קוד שמממש פסיקה קיימת")
+`daytype_position_gate.py` docstring, פסיקת-מייקל 2026-06-20 §1: **"Normal: LONG only below POC (near VAL) · SHORT only above POC (near VAH) · Neutral_Center/Extreme: fade both edges"**. הפלייבוק (09.09) החליף את השער הזה ב-kinds-לפי-שם בלי לשאת את הכלל. היום 09:50 מייקל חזר עליו: "היפוך ב-VAH/VAL עד ל-POC… לא נכון להיכנס באזור ה-POC".
+
+### מה לבנות (הקטן ביותר)
+1. ב-`dalton_playbook.evaluate_gate` (או בבלוק ה-dalton בשער, שם יש `cross_context`): כשהשורה שנבחרה היא phase C עם `day_type == Normal` **או** `Neutral_Center/Neutral_Extreme` — **במקום** בדיקת `entry_kinds`:
+   - `zone = location_gate.zone_of(price, vah, val, ib_width)` — **import**, לא העתק (`backend/v9/systems/location_gate.py:150`). `price` = `setup.get("structural_anchor")` אם קיים, אחרת `entry_price`. `vah/val/ib_high/ib_low` מ-`cross_context["tpo_system"]` (מה שהשער כבר קורא 15 פעמים).
+   - LONG מותר ⇔ zone ∈ {near_val, below_value} · SHORT מותר ⇔ zone ∈ {near_vah, above_value} · אחרת `blocked_by="dalton_intent:location"`, reason = `zone=<z> price=<p> vah=<..> val=<..> poc=<..> (Normal: edge-fade only, no entries at POC)`.
+   - אין VA (None) ⇒ **לא ממציאים מיקום** (Rule 1): נופלים לבדיקת-ה-kinds הקיימת, ורושמים `location=unavailable` ב-reason.
+2. ה-yaml: לשורות Normal / Neutral להוסיף `entry_rule: LOCATION_EDGE_FADE` (תצוגה + config_consumer_guard). `entry_kinds` נשאר כ-fallback.
+3. שאר השורות (phase B, Trend, Variation, phase D) — **ללא שינוי**. שאר השערים אחרי דלתון (ELQ, R:R, sizing, §6, slot) — ללא שינוי. יעדים/סטופים — ללא שינוי היום (T-319b המלא אחרי המדידה).
+4. `config/RULED_FLAGS.yaml`: שורה ל-`LOCATION_EDGE_FADE` עם שני הציטוטים (20.06 §1 · 11.09 09:50) ו-`measured:` = תוצאת ההרנס למטה. `mobile_monitor` dalton-block: להוסיף `zone` ו-`entry_rule`.
+5. מבחן-יחידה `test_t319b_location_rule.py`: Normal + LONG near_val ⇒ admitted · Normal + LONG near_vah ⇒ location · Normal + SHORT mid_value ⇒ location · Neutral + SHORT near_vah ⇒ admitted · VA=None ⇒ נופל ל-kinds · Variation ⇒ לא נוגע.
+
+### golden (הרנס, 4 סשנים, `/tmp/…` + השורות הגולמיות בדיווח)
+- 10.09: `17:30:09 INITIATIVE_LONG 7606.5 → dalton_intent:location` (near_vah, LONG) · `20:30:03 REACTIVE_SHORT 7605.25 → dalton_intent:location` (mid_value; לא rr) · `20:30:03/20:35:03 DOUBLE_TOP_AA_SHORT → dalton_intent:location` (mid_value) · ZLR LONG 17:54:58–18:29:58 @7607–7614 → location (near_vah/mid, LONG) · **אפס כתיבות** (הכניסות הטובות של אתמול הן מפיקי-shadow).
+- 08-03 · 08-04 · 09-09: **אותה כתיבה אחת** בכל סשן כמו ב-`0c62af06` (17:10:03 INITIATIVE_LONG · 17:05:03 REACTIVE_LONG · 20:40:03 REACTIVE_SHORT). לספור כמה routes עברו מ-`kind` ל-`location`/admitted ולהדביק.
+- 0 Traceback. `flag_guard`/`task_log_guard`/`wire_guard` rc=0. STATUS_BOARD באותו קומיט.
+
+**קומיט עד 15:20** ו-LOG חתום עם הפלט הגולמי. הריסטארט המתוזמן (15:45) בודק את הגולדנים על ה-HEAD בעצמו — אם אדום, הוא לא מרים. אפס `.env`, אפס דגל-env חדש (זו שורת-yaml + RULED_FLAGS, לא דגל).
+
+— cowork-dev
