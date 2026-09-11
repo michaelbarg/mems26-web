@@ -202,16 +202,30 @@ def check_live_entry(direction: Optional[str], contracts: int) -> Tuple[bool, st
         warns.append(f"existing position {pos:+d} is ownership-explained — entry allowed")
 
     if working > 0:
-        _reason = (
-            f"{working} working order(s) on a FLAT account — stray brackets present "
-            "(no manual trading per ruling 2026-08-21 → anomaly). Blocked pre-send"
-        )
+        # T-310: distinguish stray brackets (pos==0) from foreign position
+        # with legitimate brackets (pos!=0, shared account with Eti).
+        if pos == 0:
+            _reason = (
+                f"{working} working order(s) on a FLAT account — stray brackets "
+                "(orphan orders). Blocked pre-send"
+            )
+            _alert_key = "entry_guard_stray_orders"
+            _alert_msg = f"{working} הוראות על חשבון שטוח — אורפן. ירי-לייב חסום."
+        else:
+            _reason = (
+                f"{working} working order(s) with foreign position {pos:+d} — "
+                "shared account brackets (legitimate). Blocked pre-send"
+            )
+            _alert_key = "entry_guard_foreign_brackets"
+            _alert_msg = (f"{working} הוראות עבודה על פוזיציה זרה ({pos:+d}). "
+                          f"ירי-לייב חסום (חשבון משותף).")
         try:
             from backend.v9.services.phone_alert import push as _eg_push
-            _eg_push("entry_guard_stray_orders",
-                     "\U0001f534 MEMS26: הוראות-עבודה תקועות",
-                     f"{working} הוראות על חשבון שטוח — אורפן. ירי-לייב חסום.",
-                     priority=1)
+            _eg_push(_alert_key,
+                     "\U0001f534 MEMS26: הוראות-עבודה תקועות" if pos == 0
+                     else "\U0001f7e0 MEMS26: ברקט זר על החשבון",
+                     _alert_msg,
+                     priority=1 if pos == 0 else 0)
         except Exception:
             pass
         return False, _reason, warns
