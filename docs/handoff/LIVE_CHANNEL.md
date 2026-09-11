@@ -1,3 +1,109 @@
+### [2026-09-11 23:55 IL] cowork-scheduled · 🟠 **[[T-344]] — מועמד-לייב שעבר את *כל* שערי-דלתון מת על פוזיציה זרה, והשוק ענה שזו הייתה טובה (`−1R` בצל)** · 🟢 **מפקד-שגיאות: 6,602 = 6,600 שומר-עובד + 2 אמיתיות**
+
+המשך-הריצה של ה-CLAIM מ-`23:20` (אותו סוכן, אותו לילה). **חובה-1 — אין ממתינות ממייקל:** peek ישיר מ-Render ב-`23:37:29` ⇒ `instruction/pending {"items":[]}` · `cmd/pending {"cmd":null}` · `upload/pending {"items":[]}`. ⇒ **שקט, לפי חובה-1.**
+
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · אפס ריסטארט · אפס נגיעה בפוזיציה/סלוט/פקודות. קריאות DB/לוג/JSONL/HTTP/git בלבד.
+
+---
+
+#### 1 · 🔑 **הממצא של הלילה — ושהשוק הפך אותו לפני שנשלח**
+
+`19:30:11`, השורה היחידה מסוגה היום (`grep -c "UNMANAGED POSITION" ⇒ 1`):
+
+```
+[CRITICAL] [Gateway] LIVE fire BLOCKED pre-send: UNMANAGED POSITION -10 on the account
+(live slot was free → not TM-managed). ... Blocked pre-send — SHORT DOUBLE_TOP_AA_SHORT sys=2
+```
+
+**והליגר מראה מה בדיוק מת שם:**
+
+```
+16:30:11Z ROUTED | DOUBLE_TOP_AA_SHORT | sys 2 | outcome shadow_only
+          | blocked_by None | live_blocked_by pre_send_entry_guard
+```
+
+⇒ **`blocked_by = None`** — אפס שערי-דלתון חסמו אותו. זה היה מועמד-הלייב שעבר **הכול**, והוא נפל בצעד האחרון בלבד. ו**הבעלות מוכחת ולא מוערכת** ([[feedback_ownership_by_position_change_order_id]]): ה-`−10` נסגר ב-`16:35:14Z` ע"י `order_id 11160`, ו-`grep -c "11160" /tmp/backend.err.log ⇒ **0**` ⇒ הפקודה אינה שלנו ⇒ רובד-אתי ([[T-337]]/[[T-342]]).
+
+**🟢 וכאן השוק ענה.** כמעט כתבתי "הפסדנו את תבנית-השבוע לפוזיציה של אתי" — התאום-בצל אומר את ההפך:
+
+```
+#1508 | shadow | SHORT 7667.25 | stop 7674.75 | STOP_HIT 20:00:00 | LOSS | pnl_r = −1R
+```
+
+⇒ **הפוזיציה הזרה חסמה עסקה מפסידה. העלות המדודה היום חיובית: `+1R` נחסך.** [[feedback_market_answers_not_predict]] במלוא מובנו.
+
+**⚠️ ומה שבמפורש אינו נטען:** ש-`pre_send_entry_guard` הוא הגנה טובה. הוא **עיוור לכיוון ולאיכות** — היום חסם מפסידה, מחר יחסום מרוויחה. **המנגנון נשאר פגם** (הכרעה שעברה את כל המערכת מתה על ארטיפקט של חשבון-משותף), אבל **מדגם של אחד אינו מצדיק שינוי לשום כיוון.** ו-`pnl_usd=−150` **לא צוטט**: `7.5` נק' × `$5` × `5c` = `$187.50` ≠ `$150` ⇒ גודל משתמע `4c` = ציר-הדולרים הפגום של [[T-343]]. **`−1R` הוא המספר הנקי.**
+
+---
+
+#### 2 · 🟢 **מפקד-שגיאות — ולמה "6,602 שגיאות" היה כותרת שקרית**
+
+`uniq -c` על השדה, לא `grep` על מילה שניחשתי ([[feedback_level_census_not_guessed_grep]]). **מכנה מוצהר: `100,191` שורות מתאריך `2026-09-11` ב-`backend.err.log`.**
+
+```
+רמה:   INFO 64,120 · WARNING 29,483 · ERROR 6,602 · CRITICAL 2
+פילוח 6,602 ה-ERROR:
+   6,599  [bars/5min]     TS-OFFSET-GATE REJECTED batch (newest bar <N>s behind now, >900s)
+       1  [woodies_5min]  TS-OFFSET-GATE REJECTED batch
+       2  [TradeManager]  T-227 TARGET_LADDER_INVALID #1498 LONG (T3-fill, T0-fill)
+                                                              SUM = 6,602 == 6,602 ✓
+```
+
+**ופילוח-השעות של 6,600 שומר-הברים מסתכם במכנה שלו** ([[feedback_histogram_must_sum_to_denominator]]):
+
+```
+09→679 · 10→1,183 · 11→1,173 · 12→1,187 · 13→1,190 · 14→1,151 · 15→37     SUM = 6,600 ✓
+```
+
+⇒ **`0` מהן אחרי `15:00`, כלומר `0` בכל שעות-המסחר `16:30-23:00`.** אלה בריחות של ברים בני 11 שעות שנדחו **נכון** לפני הפתיחה — **שומר עובד, לא תקלה.** התוכן האמיתי הוא `2` שורות (‏`T-227` על `#1498`, המחלקה המוכרת).
+
+**ושני ה-CRITICAL, שניהם אמיתיים:** `16:30:04 DAYTYPE_WATCHDOG ESCALATION-3: day_type_state stale 34 min ... the 5min feed is ALIVE` (מחלקת [[T-286]]/[[T-253]], **בפתיחה עצמה**) · `19:30:11` = §1 לעיל.
+
+---
+
+#### 3 · ✅ **בדיקות-מצב לקראת הפתיחה — כולן נקיות, וכולן גולמיות**
+
+```
+gateway/status ⇒ live_slot: null · demo_slot: null          ← אפס תקיעה ([[T-342]] נסגר הלילה)
+psql v9_trades ⇒ live 11.09: 1498 CLOSED · 1512 CLOSED      ← אפס live/demo פתוחות
+                  exit_ts IS NULL & state≠CANCELLED ⇒ 12, כולן shadow
+v9_bars_5min_woodies ⇒ max_ts 23:35:00+03, age 5 דק'        ← פיד חי
+flag_guard.py ⇒ rc=0 · "PASS — all 252 ruled flags match"
+health ⇒ {"status":"ok","version":"v9.0.0"}
+git status -sb ⇒ ## branch...origin/branch  (אפס ahead/behind)
+```
+
+**🔑 ו-`cooldown: consecutive_stops 36 · cooldown_active false` — נבדק ואינו רגרסיה.** `cooldown.py:44-46`: `is_blocked()` מחזיר `False` אלא אם `COOLDOWN_2STOP_V1=1`, עם הערת-הפסיקה בקוד — *"Michael 2026-07-02: cooldown BLOCK default-OFF (counting stays for observability)"*. ⇒ **החסימה כבויה בפסיקה, הספירה נמשכת בכוונה.** זו בדיוק האזהרה ב-CLAUDE.md §Standing Decisions ("do NOT treat a disabled gate as a regression") — **ואיני מציע להדליק.** ⚠️ תת-הערה בלבד: מכיוון ש-`is_blocked()` הוא גם מי שמאפס את המונה והוא חוזר מוקדם, `36` הוא "סטופים רצופים מאז הסגירה הלא-סטופ האחרונה, בתוך התהליך" — **לא מספר-של-היום**, אותה מחלקה כמו `daily_total_qty_filled`.
+
+---
+
+#### 4 · 🟢 **קוד-T-328 הלא-מקומיט — נמדד, ו*אינו* סכנה לריסטארט של מחר**
+
+זה היה ה-NOT-DONE הראשון של השורה מ-`23:20`, והוא נסגר כמדידה:
+
+```
+$ stat -f '%Sm %N'  ⇒  20:19:29 five_min_system.py   (+170 שורות)
+                       20:12:40 ceiling_touch2.py    (חדש)
+$ ps -eo pid,lstart  ⇒  39331  Fri Sep 11 18:29:18 2026  uvicorn backend.main:app  (בלי --reload)
+$ grep -n CEILING_FLIP_TOUCH2 .env                 ⇒ rc=1  (לא קיים)
+$ grep -n CEILING_FLIP_TOUCH2 config/RULED_FLAGS.yaml ⇒ rc=1  (לא קיים)
+```
+
+⇒ **(א)** שני הקבצים שונו `~1:45` שעות **אחרי** שהתהליך עלה ובלי `--reload` ⇒ **הקוד לא רץ היום, ולא רץ עכשיו.** **(ב)** הוא עטוף כולו ב-`os.getenv("CEILING_FLIP_TOUCH2_V1", "0")`, והדגל **אינו ב-`.env`** ⇒ **גם אחרי ריסטארט-קדם-הפתיחה של מחר הוא נטען-ואינרטי.** ⇒ **הריסטארט בטוח.** **ואזהרת-שווא שנמנעה:** `route_setup(_t2_setup, 2)` — ה-`2` הוא `system_id` (`def route_setup(self, setup, system_id)`, ו-woodies=`4`/footprint=`3`), **לא גודל-חוזים**. אין הפרה של [[project_sizing_ruled_five_contracts]].
+
+---
+
+#### 5 · מה שלא נעשה, במפורש (NOT-DONE)
+
+1. **`five_min_system.py` + `ceiling_touch2.py` נשארו לא-מקומיטים** — אותה הכרעה של `23:20` ואיני הופך אותה: קוד-מסחר שלא אומת בהרנס אינו מועמד לקומיט-לילי. **כעת עם המדידה מ-§4 זו החלטה זולה** (הקוד אינרטי בלי הדגל). ⚠️ אך הסיכון שנותר הוא **אובדן**: `170` שורות עבודת-T-328 יושבות רק בעץ-העבודה.
+2. **‏`CEILING_FLIP_TOUCH2_V1` אינו ב-`RULED_FLAGS.yaml`** ⇒ `flag_guard` **עיוור לו** (הוא עובר PASS דווקא מפני שהדגל אינו קיים בשני המקומות). דגל-מסחר חדש שנכנס לקוד בלי רישום הוא פער-רישום, לא פער-בטיחות — כל עוד הוא כבוי.
+3. **אין קובץ-ערב `CC_EVENING_PROMPT_2026-09-11.md`** ⇒ סדר-התור המלא לא הורץ ממרשם; הורצו הפריטים שכן היו פסוקים (DB · שערים · מצב-מערכת · EOD).
+4. **אפס דגלים, אפס `.env`, אפס ריסטארט, אפס נגיעה בפוזיציה/סלוט.**
+
+— cowork-scheduled, נמדד `23:36–23:58`
+
+---
+
 ### [2026-09-11 23:20 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה 11.09** · 🔑 **T-303 נמדד: ציר-הספירה תקף (57 חסימות, 49 דלתון = 86%) · ציר-הדולרים נפסל בשער-התקֵפות של עצמו**
 
 חובה-1 + חובה-4. **אין ממתינות ממייקל** — peek ישיר מ-Render ב-`23:07:53`: `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}`. ההודעה האחרונה של מייקל (`20:24`, "מחיר הטוב ביותר") כבר קיבלה מענה ענייני ב-`20:45` ונרשמה כ-[[T-339]]. ⇒ **שקט, לפי חובה-1.**
