@@ -1,3 +1,73 @@
+### [2026-09-11 21:47 IL] cowork · 🟠 ניטור-RTH — `1512` נסגרה בסטופ, **הסלוט נתקע `13:32` דק'**, ו**המערכת שלחה `FLATTEN_ACCOUNT` שאיש לא ביקש** (על חשבון שכבר היה שטוח)
+
+ניטור-RTH (חובה-1 + חובה-3). **אין ממתינות ממייקל** — peek ישיר מ-Render ב-`21:37:17`: `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}`. הודעת-מייקל האחרונה (`20:24:48`) נענתה עניינית ב-`20:45:33`, והשאלה שנשאלה שם עדיין ממתינה לו — זו החלטתו ואין מה להזכיר.
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · אפס ריסטארט · **אפס נגיעה בפוזיציה, בסלוט ובפקודות.** קריאות בלבד.
+
+## 1 · `1512` נסגרה `21:20:08` — ו**זה מכריע את [[T-340]]: הסטופ שירה הוא זה שעל הספר, לא זה שהמערכת האמינה בו**
+
+```
+21:20:08 [TradeManager] T-62 exit-fill #1512 STOP 1c @ 7672.00 (order=11166 col=None) — ledger now 2 leg(s)
+v9_trades 1512 | entry 7672 | stop(אמונה) 7677 | exit_price 7672 | pnl_usd 38.75 | STOP_HIT | WIN | 19:45:08→21:20:08
+```
+
+**‏`order=11166` הוא בדיוק הפקודה ש-[[T-340]] מדד על הספר ב-`7672.25`** — כלומר הפער שדיווחתי ב-`20:45` **התממש**, ולא נשאר תיאורטי. **העלות מדודה ולא משוערת:** אילו הסטופ אכן היה על `7677`, הוא היה נוגע כבר ב-`20:35` (`low 7675.50`) ⇒ יציאה `+5.00` נק' = **`+$25.00`**; בפועל היציאה ב-`7672.00` = **`$0`** על החוזה הנותר. ⇒ **‏`$25.00` שלא נכנסו.** (ב-`20:45` העריכתי `$23.75` לפי `7677−7672.25`; ההפרש `$1.25` הוא הסליפג' `7672.25→7672.00`.)
+⚠️ **מה שעדיין אינו מוכרע** — **למה** `#408` לא הגיע לספר. זה נשאר הצעד-הבא של [[T-340]], והיום רק הוסיף לו מספר.
+⚠️ **וסתירת-ספרים קטנה שאיני מיישב:** סיירה רשמה על סגירת `11166` ‏`CLOSED_TRADE_PNL = −7.50`, בעוד הספרים שלנו רושמים `pnl_usd = +38.75` (T1 בלבד, ראנר באפס). `pnl_sierra` בשורה הוא `NULL` ⇒ **אין לי אימות-צולב, ואיני ממציא עמלות.**
+
+## 2 · 🟠 **הסלוט נתקע `13` דק' ו-`32` שנ' — והעלות המדודה היא אפס מועמדים** ⇒ [[T-342]]
+
+```
+21:20:08 [Gateway] T-43c: slot NOT freed for 1512 — Sierra position_qty=8 (still holding, ownership=ours). Outcome=STOP
+21:30:11 [StuckSlot] LIVE PATH BLOCKED: slot holds trade 1512 which is NOT among the open live/demo trades [] (10.0 min)
+21:33:40 [Gateway] T-311 SELF-HEAL: live_slot trade 1512 is CLOSED in DB and account is flat (qty=0, working=0) → freeing slot
+21:33:40 [StuckSlot] T-311: slot freed by self-heal (foreign ownership proven)
+```
+
+**שתי טעויות בשורה אחת של `T-43c`:** (א) `ownership=ours` על `position_qty=8` — ו-8 החוזים האלה הם **בדיוק רובד-אתי** של [[T-337]] (‏`11167/11168/11170`), כלומר **ייחוס-בעלות הפוך**; (ב) **הצילום היה בייש תוך `26` שניות** — `trade_activity_events.jsonl` מראה באותה סריקה (`scan_ts 18:20:34Z = 21:20:34 IL`) ‏`POSITION_CHANGE prev_qty 8 → new_qty 0 (order_id 11171)` ‏+ `CLOSED_TRADE_PNL −140.00` ⇒ **רובד-אתי נסגר כמעט יחד עם הסטופ שלנו.**
+🔑 **ולכן הסלוט נשאר תפוס `13:32` דק' על מצב שכבר לא היה קיים** — כי **אין לולאת-שחרור**, רק `on_trade_close` (בדיוק השורש של [[project_0910_t309_foreign_pos_holds_live_slot]]). **🟢 ומה שכן עבד והוא חדש:** `T-311 SELF-HEAL` **סגר את זה לבד** — אתמול הסלוט בלע את שארית-היום, היום `13.5` דק'.
+
+**‏🔑 העלות — מדודה עם מכנה, לא מוערכת** ([[feedback_only_blocker_needs_path_census]]): בחלון `21:20:08→21:33:40` היו בליגר **בדיוק `2` הכרעות** — `18:25:04Z` ו-`18:30:02Z`, שתיהן `system=4 FAMIR`, ושתיהן `blocked_by = dalton_intent:stand_down` עם `live_blocked_by = None` ⇒ **שתיהן מתו בשער מוקדם ומעולם לא הגיעו לבדיקת-הסלוט.** ⇒ **עלות = אפס מועמדים.**
+**והמפריד שזה לא סתם "לא היה כלום":** `live_blocked_by = live_slot_occupied` מופיע היום **פעמיים** — `17:20:05Z` (`4/GHOST`) ו-`17:25:06Z` (`2/DOUBLE_BOTTOM_EE_LONG`) — **שתיהן בזמן ש-`1512` באמת הייתה פתוחה**, כלומר חסימה **נכונה**. ⇒ אפס מהן בחלון-התקיעה.
+
+## 3 · 🔴 **הממצא החדש: `FLATTEN_ACCOUNT` שאיש לא ביקש, `21:33:37`** ⇒ [[T-341]]
+
+```
+21:33:22/23/24/28/31/32/33  [Reconcile] AGREED_FLAT — Sierra reports FLAT (position_qty=0)
+21:33:37  [Reconcile] AGREED_FLAT — Sierra reports FLAT (position_qty=0)
+21:33:37  [SierraCmd] COMMAND QUEUED #409 → cmd_000409.json (op=FLATTEN_ACCOUNT, pending_before=0, fast_path=True)
+21:33:38  [SierraCmd] ACK confirmed for cmd_000409.json — removed from queue
+```
+
+**‏🟢 ההרגעה קודם, והיא מדודה:** החשבון היה **שטוח כבר `15` שניות לפחות** לפני הפקודה (שמונה שורות `AGREED_FLAT` רצופות), והוא נשאר שטוח אחריה — `sierra_state.json` ב-`21:37:53`: `position_qty 0 · working_orders 0 · margin_req 0`. ⇒ **הפקודה הייתה no-op; אף חוזה, שלנו או של אתי, לא נגעה בו.** **הוֹ, ואילו רובד-אתי עוד היה פתוח — היא הייתה סוגרת אותו**, כי `FlattenAndCancelAllOrders` הוא ברמת-החשבון ([[T-339]] §א-ב). זהו בדיוק [[project_0909_t289_eod_t10_flattens_foreign]], הפעם **`13` דק' לפני הזמן ובלי טריגר ידוע**.
+
+**⚠️⚠️ מה שבמפורש אינו נטען — מי שלח אותה.** שורת-`COMMAND QUEUED` **אינה נושאת `source`/`reason`**, ול-`write_flatten_account` יש **6 קוראים** בקומיט-הרץ `650107c6`: `mobile_monitor.py:607` (‏`source="mobile_manual"`) · `exit_verifier.py:212` · `bar_level_detector.py:592` (=`_eod_close_t10`) · `:1125` · `:1246` (`MAE`) · `:1781` · `:1839`. **‏`grep` על `mobile_manual` / `pressed FLATTEN` / `exit_verifier` / `MAE_SCRATCH` / `NAKED` / `orphan` בחלון `21:30-21:34` ⇒ `0` שורות בכל אחד**, ו-`command_queue/` ריקה (`archived_stale/` עוצרת ב-`cmd_000403`) ⇒ **גוף-הפקודה אינו ניתן לשחזור.** ⇒ **הקורא אינו מזוהה, ואיני מנחש אותו.**
+**ושלילה אחת שכן מדודה:** זה **אינו** `_eod_close_t10` — הקוד הרץ חוסם `if et_time < 15:50 or >= 16:00: return`, ו-`21:33 IL = 14:33 ET`.
+
+## 4 · [[T-338]]/[[T-337]] — החשיפה של `22:50` **אינה דרוכה כרגע**, והתנאי נקרא מהקוד הרץ
+
+`git show 650107c6:…/bar_level_detector.py` ⇒ `_eod_close_t10`: הדגל → חלון `15:50-16:00 ET` → **`live_active = [t for t in active if t.mode in ("demo","live")]` ; `if not live_active: return`**.
+עכשיו: `live_slot = None` · `v9_trades` אפס עסקאות-לייב פתוחות · חשבון שטוח ⇒ **`live_active` ריק ⇒ T-10 לא יורה ב-`22:50`.** ⚠️ **התנאי ולא התוצאה:** אם תיפתח עסקת-לייב חדשה ותהיה פתוחה ב-`22:50`, החשיפה חוזרת **כפי שהיא** — `359bc3c3` עדיין **אינו** בתהליך הרץ (`merge-base --is-ancestor ⇒ NO`).
+**[[T-334]] ירד מאדום:** `acct_available_funds = 3,025.94` מול סף `$1,595` ⇒ **פי `1.9` מעל**, `margin_req 0`. **דיווח-בלבד, `.env` לא נגעתי.**
+
+## 5 · שלושת צירי-חובה-3, נמדדו `21:37`-`21:44`
+
+```
+בר       max(ts) v9_bars_5min_woodies = 21:35:00 ⇒ גיל 3.7 דק' · 12 ברים/שעה
+         ואומת בתוכן ולא בחותמת: close(21:35)=7670.50 מול live_price bid 7670.75 (age_ms=148)
+בקאנד    PID 39331 · lstart 18:29:18 · health 200 ב-1.7ms · commit 650107c6 (ללא שינוי)
+בעלות    position_qty 0 · working_orders 0 ⇒ אין פוזיציה ⇒ אין שאלת-בעלות מול אתי
+שומרים   flag_guard "FLAG-GUARD: PASS — all 252 ruled flags match" · task_log_guard PASS (329 פריטים)
+ליגר     63 הכרעות היום · האחרונה 21:35:03 ⇒ המנוע מעריך
+```
+
+**ספירת-לוג לפי רמה עם מכנה מוצהר** ([[feedback_level_census_not_guessed_grep]] + [[feedback_histogram_must_sum_to_denominator]]): `backend.err.log` = **`72,193`** שורות · `INFO 41,807` + `WARNING 21,204` + `ERROR 6,602` + `CRITICAL 2` + `שורות-המשך 2,578` ⇒ **הסכום `72,193` שווה **בדיוק** למכנה.** **‏`ERROR`+`CRITICAL` מאז `21:00` ⇒ `0`.** כל `6,600` מתוך `6,602` שייכות לתהליך המת (אחרונה `15:56:17`), והשתיים הנוספות הן `T-227` על `1498` ב-`18:43`.
+**פילוח-חוסמים, מכנה `63`:** `kind 16 · location 13 · ללא-חוסם 10 · stand_down 8 · bias 8 · rr_entry_gate 5 · cold_start 1 · cont_trend 1 · extreme_chase 1` ⇒ **סכום `63`.**
+**ספרים היום:** לייב `2` — `1498` `UNPRICED` (נסגרה ביד, [[project_0911_t331_hand_touch_on_live_trade]]) ו-`1512` `+$38.75 WIN`. ⚠️ `acct_daily_pl = −623.75` הוא **החשבון-המשותף**, לא המערכת ([[feedback_daily_pnl_is_the_wrong_field]]) — הפרש `−116.25` מ-`19:52` כולל `−140.00` של רובד-אתי. ⚠️ `gateway/status` מציג `daily_pnl 47.5 · trades_today 3` — **שדה ידוע כנושא-אתמול** ([[feedback_gateway_status_daily_pnl_is_yesterday]]), לא לצטט.
+
+— cowork-dev, `21:47 IL`
+
+---
+
 ### [2026-09-11 21:14 IL] cowork · 🟢 ניטור-RTH — שלושת הצירים ירוקים, שתיקת-טלפון · **המדידה היחידה שחדשה: המרחק בין שני הענפים של `22:50` הוא `1.5` נקודות**
 
 ניטור-RTH (חובה-1 + חובה-3). **אין ממתינות ממייקל** — peek ישיר מ-Render ב-`21:08:51`: `instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}`. הודעת-מייקל האחרונה (`20:24:48`) כבר נענתה עניינית ב-`20:45:33` ⇒ אין למה לענות.
