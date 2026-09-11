@@ -1,3 +1,111 @@
+### [2026-09-11 09:35 IL] cowork · **ריסטארט-מק שני ⇒ [[T-259]] חזר בדיוק כפי שנחזה — כפתור-החירום של מייקל היה מת 6 דקות; ששת הסוכנים הועלו**
+
+ריצת `09:24-09:35` (**חובה-1 בלבד** — מחוץ לחלונות חובה-2/3/4). **אפס ריסטארט-שירות · אפס דגל ·
+אפס `.env` · אפס קוד-ייצור · אפס נגיעה בפוזיציה, בסלוט ובפקודות.** כתיבה: השורה הזו + עדכון
+[[T-259]] ב-`TASK_LOG` + קומיט-ארטיפקט `f7c12d7d` + הודעת-טלפון אחת (`1,774` תווים, **מסירה
+מאומתת** ב-`GET /chat` — `ts 2026-09-11T06:30:57Z`, `delivered_len == chars_to_send`).
+
+---
+
+## 1 · טלפון — שקט מוכח **במקור**, ובמפורש לא מהקובץ המקומי
+
+peek ישיר מ-Render `09:25:34` ושוב `09:28:59`: `/instruction/pending ⇒ {"items":[]}` (‏`HTTP 200`,
+`size_download=12` — כלומר גוף אמיתי ולא בליעה שקטה) · `/cmd/pending ⇒ {"cmd":null}` ·
+`/upload/pending ⇒ {"items":[]}`. **ההבחנה קריטית הפעם**: הרלה לא רץ בכלל כשקראתי, ולכן
+`PHONE_THREAD.jsonl` המקומי היה **חסר-עדכון מעצם-הגדרתו** — אילו הייתי קורא אותו הייתי מדווח
+שלילה-כוזבת, בדיוק כשל-הריצות של 06.09 `17:12`/`17:37`.
+
+---
+
+## 2 · 🔴 הממצא — ששה מתוך תשעת ה-LaunchAgents לא נרשמו, פעם שנייה, אותה רשימה
+
+```
+09:21:19  sysctl kern.boottime            ⇒ Fri Sep 11 09:21:19 2026   (uptime ⇒ up 5 mins ב-09:26)
+09:27     launchctl list | grep mems26    ⇒ 568 backend · 578 frontend · 595 bridge   ← שלוש בלבד
+09:27     launchctl print .../mobile_relay ⇒ Could not find service ... user gui: 501 ← לא-מאותחל
+09:27     ps aux | grep mobile_relay      ⇒ ריק        · /tmp/mobile_relay.log ⇒ No such file
+09:27     launchctl print-disabled        ⇒ ששתם "enabled"   ← שוב השכבה הלא-נכונה
+```
+
+הששה זהים לרשימת 06.09 אחד-לאחד: `mobile_relay` · `export_promoter` · `activity_feed` ·
+`eod_handoff` · `startup_check` · `update_check`. **המשמעות המעשית שדורגה ראשונה:** `mobile_relay`
+הוא **המבצע היחיד** של `/cmd/pending` ⇒ `FLATTEN/PAUSE/RESUME` מהטלפון של מייקל **לא היו מגיעים
+למק**, ואין נתיב-עוקף. ⇒ **המסגור מתחדד: זו התנהגות-קבע של הכניסה-למערכת, לא תקרית.**
+
+---
+
+## 3 · ✅ מה בוצע — צעד (א) של [[T-259]], עם התנאי-המקדים **נמדד ברגע-הפעולה**
+
+```
+09:28:59  cmd/pending={"cmd":null} · instruction={"items":[]} · position_qty=0 · working_orders=0
+09:28:59  for a in mobile_relay export_promoter activity_feed eod_handoff startup_check update_check;
+            do launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.$a.plist; done   ⇒ rc=0 ×6
+09:29:31  9/9 רשומים · mobile_relay running pid=2006 · export_promoter pid=2008 · activity_feed pid=2010
+            שלושתם last exit code = (never exited)   ← לא עלו-וקרסו
+          eod_handoff not running / never exited ⇒ רשום וממתין ל-23:05
+          startup_check · update_check ⇒ exit 0 (חד-פעמיים, כמצופה)
+          /tmp/mobile_relay.log (172B) + /tmp/v9_export_promoter.log (172B) + .err.log (0B) נוצרו
+```
+
+הפוזיציה הייתה `0` ו-`working_orders=0` לכל אורך הפעולה ⇒ אפס סכנת ירי-עיוור של פקודה ישנה.
+**ו-[[T-261]] כבר אינו חוסם את `eod_handoff`** — אומת **בקובץ-הייצור** ולא מהלוג:
+`grep -n "stash\|pull --rebase" scripts/eod_data_handoff.sh` ⇒ אפס בנתיב-הביצוע (רק הערות 114-118),
+והנתיב החי הוא `git add <pathspec>` → `git commit -- <pathspec>` → `git push`.
+
+---
+
+## 4 · 🆕 מפריד חדש ל-`cc-macbook`/`cc-imac`/`phone-claude`: "הרלה running" ≠ "הרלה מושך"
+
+`/tmp/mobile_relay.log` בשתי שורות:
+
+```
+[relay] start → https://mems26-mobile.onrender.com (interval 5s, cmd relay enabled, window=10:00-23:30)
+[relay] outside active window — idling (free-tier hours budget)
+```
+
+⇒ בין `09:29` ל-`10:00` הרלה **רשום, חי, ולא מושך דבר**. שלוש השלכות: (1) `launchctl print ⇒ running`
+**אינו** ראיה שהערוץ פעיל — הבדיקה חייבת לכלול את חלון-השעות; (2) כל ריצת-סוכן לפני `10:00` חייבת
+לקרוא את התיבה ב-peek-ישיר מ-Render; (3) הודעה שמייקל שולח לפני `10:00` **אינה אובדת** — ממתינה
+ב-Render עד ה-`POST` ותימסר כשהרלה מתעורר.
+
+---
+
+## 5 · 🟢 [[T-309]] נוקה מאליו בריסטארט — והלייב פנוי להיום
+
+`09:29  /api/v9/gateway/status ⇒ live_slot=null · live_slot_system=null · trades_today=0 ·
+daily_pnl=0.0 · live_enabled_systems=[2,4] · chop_state=EXPANDING · cooldown_active=false`.
+מול `live_slot=1409` בדגימת `22:07:57` אמש (‏~191 דק' אחרי `exit_ts=18:55:17`, פעם רביעית באותו יום).
+⚠️ **זו הסרת-מצב ולא תיקון-שורש** — לולאת-השחרור שסעיף (2) של [[T-309]] דורש עדיין חסרה, והבאג
+יחזור בסגירה הבאה שתתרחש מול פוזיציה זרה. אין לסגור את T-309 על סמך השורה הזו.
+
+---
+
+## 6 · ירוק, ומדוד (‏09:27-09:30)
+
+`health 200` ב-`0.13s` · שורת-boot **תואמת ל-PID החי**: `09:22:38 [boot] logging OK level=INFO
+pid=568 commit=e72133ff` ⇒ שכבת-INFO נטענה, ספירות-לוג אינן עיוורות · סיירה חיה תחת CrossOver
+(PIDs 912-960) ומייצאת — `mtime 09:28`, `sierra_state age=0.7s` · `v9_bars_5min_woodies` max
+`09:25:00+03` בגיל **4.8 דק'** (‏`v9_bars_5min` הישן `674.8` דק' — stale כצפוי, אינו מקור-האמת) ·
+חשבון **שטוח**: `position_qty=0` · `working_orders=0` · `acct_margin_req=0.0` ·
+`acct_available_funds=3,649.69` · `is_sim=0` · `acct_daily_pl=0.0` (⚠️ `daily_pnl=-63.75` הוא
+השדה-הפסול per-symbol — לא נלקח) · **[[T-245]] חזר וטופל בצעד הראשון:** `config/news_calendar.yaml`
+היה `M` מריצת-אוטו `02:22 ET` (‏+89/−121) וחסם `git pull --rebase` ⇒ קומיט `f7c12d7d`, ואז
+`pull ⇒ up to date`.
+
+---
+
+## 7 · 🔴 אל `cc-macbook` — שני פריטים, לפני הריסטארט הבא
+
+1. **שורש [[T-259]] (‏ב1):** `log show --predicate 'eventMessage CONTAINS "registerLaunchItem"'
+   --start "2026-09-11 09:21"` ולהשוות `disposition` של הששה מול השלושה שכן עלו. יש עכשיו **שתי**
+   דגימות-בוט (06.09 `17:03`, 11.09 `09:21`) עם רשימה זהה ⇒ אפשר להשוות ולא רק לתאר.
+2. **מעקף-קבע (ב2), עד שהשורש נמצא:** `scripts/mems26_bootstrap_agents.sh` אידמפוטנטי לתשעת
+   הפלטים, קרוא מ-`start_all.sh` ומ-`fire_drill.py`. **ההצדקה מדודה:** בשתי הפעמים כפתור-החירום
+   של מייקל היה מת עד שסוכן הבחין במקרה — `09:21:19` → `09:27` היום, `17:03` → `17:37` ב-06.09.
+   וכן סעיף (ג): `mems26_verify.sh` בודק **שירותים** ולא **סוכנים**, ולכן יחזיר ירוק מלא על מצב זה.
+
+---
+
 ### [2026-09-10 22:09 IL] cowork · **חלון-השחרור נפתח והסלוט לא זז — הראיה הנקייה ביותר היום ל-[[T-309]]**
 
 ריצת `22:03-22:09` (חובה-1 + חובה-3, בתוך RTH). **אפס ריסטארט** (אסור 16:10-23:00) · **אפס דגל ·
