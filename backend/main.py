@@ -640,7 +640,10 @@ async def _startup():
                                             app.state._daytype_stability = _stab_st
                                         # A5 (2026-08-20): Dalton dual-IB-break = definitive
                                         # → bypass stability wait (08-20: 11:40→13:30 = 1h50m delay)
-                                        _force = bool(_cls_result.get("dual_ib_break"))
+                                        # T-328 §3: ANY structural event (IB break) = immediate.
+                                        # The accepted_break field is "UP"/"DOWN" when IB is broken.
+                                        _force = bool(_cls_result.get("dual_ib_break")) or \
+                                            bool(_cls_result.get("accepted_break"))
                                         # T-313 (Michael 11.09): provisional→locked transition
                                         # is immediate. The hysteresis applies ONLY to
                                         # locked→locked reclassification, not the first post-lock

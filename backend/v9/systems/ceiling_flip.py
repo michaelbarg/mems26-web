@@ -5,7 +5,7 @@ Michael ruling T-140 (02.09 12:25): "כניסה הפוכה על סגירת הנ�
 
 When CEILING_FAILED fires at an edge:
   → SHORT entry at the confirm bar close
-  → Stop above max(P1, P2) + 0.2×ATR (cap 1.5×ATR)
+  → Stop above max(P1, P2) + 1 tick (structural, no ATR cap — B8)
   → T1 = POC, T2 = opposite edge (VAL for ceiling, VAH for floor)
 
 FLOOR_FAILED is the exact mirror → LONG.
@@ -22,6 +22,8 @@ import logging
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+TICK = 0.25  # MES tick size
 
 
 def build_flip_setup(
@@ -67,18 +69,17 @@ def build_flip_setup(
         direction = "SHORT"
         entry = confirm_close
         extreme = max(p1, p2)
-        stop_raw = extreme + 0.2 * atr
-        stop_cap = entry + 1.5 * atr
-        stop = round(min(stop_raw, stop_cap), 2)
+        # B8 / T-327a: structural stop beyond peaks + 1 tick (no ATR cap).
+        # The cap (1.5×ATR) contradicts "stop = structural anchor" (A6).
+        # n (contracts) is derived from risk, n < 3 → rejected by sizing.
+        stop = round(extreme + TICK, 2)
         t1 = round(float(poc), 2) if poc is not None else round(entry - 1.0 * abs(entry - stop), 2)
         t2 = round(float(opposite_edge), 2) if opposite_edge is not None else round(entry - 2.0 * abs(entry - stop), 2)
     else:  # FLOOR_FAILED
         direction = "LONG"
         entry = confirm_close
         extreme = min(p1, p2)
-        stop_raw = extreme - 0.2 * atr
-        stop_cap = entry - 1.5 * atr
-        stop = round(max(stop_raw, stop_cap), 2)
+        stop = round(extreme - TICK, 2)
         t1 = round(float(poc), 2) if poc is not None else round(entry + 1.0 * abs(entry - stop), 2)
         t2 = round(float(opposite_edge), 2) if opposite_edge is not None else round(entry + 2.0 * abs(entry - stop), 2)
 

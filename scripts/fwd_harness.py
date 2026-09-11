@@ -829,7 +829,8 @@ def s1_on_bar(bar: dict):
                         _stab_st = getattr(APP.state, "_daytype_stability", None)
                         if not isinstance(_stab_st, dict):
                             _stab_st = {}; APP.state._daytype_stability = _stab_st
-                        _force = bool(_cls_result.get("dual_ib_break"))
+                        _force = bool(_cls_result.get("dual_ib_break")) or \
+                            bool(_cls_result.get("accepted_break"))
                         # T-313: first post-lock classification bypasses stability
                         # + reset gateway Trend→other hysteresis for IB lock handoff
                         if not _stab_st.get("_first_lock_done"):
