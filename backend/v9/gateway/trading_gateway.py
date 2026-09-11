@@ -1281,6 +1281,50 @@ class TradingGateway:
                 if _dp_block and _dp_location_checked:
                     if _dp_block.get("blocked_by") == "dalton_intent:kind":
                         _dp_block = None  # location approved → kinds check skipped
+                # T-329 (Michael 11.09 18:25 — "missed 2 big trades the system
+                # must know how to trade"): a CONFIRMED double ceiling/floor
+                # sitting ON the extension extreme is, in Dalton terms, the
+                # extension FAILING — responsive activity at the extreme and
+                # price back toward the IB. That is the event that negates the
+                # extension bias (same logic as the opening-lock negation), so
+                # the flip is exempt from the bias/kind block. 11.09 18:20:07:
+                # FLOOR_FAILED P1=7653.25=session_low (IB low 7659.75, ext 6.5)
+                # → CEILING_FLIP_LONG 7671.5 was blocked `kind`/`bias`.
+                # Only CEILING_FLIP (a confirmed double at an edge) qualifies;
+                # a plain counter-extension REACTIVE/ZLR stays blocked (T-295).
+                if _dp_block and _dp_block.get("blocked_by") in (
+                        "dalton_intent:bias", "dalton_intent:kind"):
+                    try:
+                        _fx_cls = str(setup.get("classification") or "")
+                        _fx_dir = (setup.get("direction") or "").upper()
+                        _fx_anchor = (setup.get("structural_anchor")
+                                      or (setup.get("metadata") or {}).get("structural_anchor"))
+                        _fx_tpo = (cross_context.get("tpo_system")
+                                   if isinstance(cross_context, dict) else None) or {}
+                        _fx_ibh = float(_fx_tpo.get("ib_high") or 0)
+                        _fx_ibl = float(_fx_tpo.get("ib_low") or 0)
+                        _fx_sh = float(_fx_tpo.get("session_high") or _fx_tpo.get("rth_high") or 0)
+                        _fx_sl = float(_fx_tpo.get("session_low") or _fx_tpo.get("rth_low") or 0)
+                        if (_fx_cls.startswith("CEILING_FLIP") and _fx_anchor is not None
+                                and _fx_ibh > 0 and _fx_ibl > 0 and _fx_sh > 0 and _fx_sl > 0):
+                            _fx_anchor = float(_fx_anchor)
+                            _fx_tol = min(max(0.25 * (_fx_ibh - _fx_ibl), 1.0), 4.0)
+                            _fx_failed = (
+                                (_fx_dir == "LONG" and _fx_sl < _fx_ibl
+                                 and abs(_fx_anchor - _fx_sl) <= _fx_tol)
+                                or (_fx_dir == "SHORT" and _fx_sh > _fx_ibh
+                                    and abs(_fx_anchor - _fx_sh) <= _fx_tol))
+                            if _fx_failed:
+                                logger.warning(
+                                    "[Gateway] T-329 FAILED_EXTENSION exempt: %s %s anchor=%.2f "
+                                    "session_low=%.2f session_high=%.2f ib=[%.2f,%.2f] tol=%.2f — "
+                                    "confirmed double at the extension extreme negates bias "
+                                    "(was %s)", _fx_cls, _fx_dir, _fx_anchor, _fx_sl, _fx_sh,
+                                    _fx_ibl, _fx_ibh, _fx_tol, _dp_block.get("blocked_by"))
+                                _dp_block = None
+                    except Exception as _fx_err:
+                        logger.warning("[Gateway] T-329 failed-extension check failed "
+                                       "(keeping block): %s", _fx_err)
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]
