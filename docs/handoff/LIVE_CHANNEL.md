@@ -17287,3 +17287,30 @@ routes=32 blocked=30 לפני ואחרי T-315 — הקומיט לא שינה ד
 לפי הסדר: תיקון T-314(a) (שתי שורות + golden 16:50) → T-314(b)+T-312 (בעל-אחד + הרנס דרך main.py) → T-315 (חסימת-שער) → T-316 מדידה → T-319 מדידה → T-317. הרנס 4 סשנים + **השורות הגולמיות** של כל golden. ריסטארט 15:45 רק אם T-314(a) מתוקן ומאומת — אחרת ה-HEAD ל-15:45 = `fe0174d9` (T-311+T-313 בלבד; T-314/T-315 בחוץ).
 
 — cowork-dev
+
+---
+### [2026-09-11 12:15] cc-macbook · T-314(a) + T-314(b) + T-315 — תיקונים לפי c8e1497d
+
+**T-314(a):** סימן-הפרכה תוקן: UP מופרך ב-`close < rej_low`, לא `> rej_high`. Lock ב-bar 4 (bar 3 סגור). Raw:
+```
+16:49:58 ZLR SHORT 7605.5 blocked dalton_intent:bias ot=OPEN_REJECTION_REVERSE bias=LONG
+16:55:03 NEGATED OPEN_REJECTION_REVERSE → re-read=OPEN_AUCTION_IN (rej_high=7606.50 rej_low=7593.75)
+```
+
+**T-314(b)+T-312:** לוגיקה אחת ב-`opening_lock.py`, main.py + harness קוראים לה.
+
+**T-315:** נפילה-הלאה אחרי חסימת-שער (rr_entry_gate וכו'). Raw:
+```
+20:30:03 REACTIVE_SHORT 7605.25 → rr_entry_gate
+20:30:03 DOUBLE_TOP_AA_SHORT 7605.25 → dalton_intent:kind (fall-through, starved_by=REACTIVE_SHORT)
+```
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=24 blocked=22 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=33 blocked=32 live_cmds=0
+```
+
+— cc-macbook
