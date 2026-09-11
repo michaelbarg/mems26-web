@@ -615,6 +615,30 @@ async def _startup():
                                         # A5 (2026-08-20): Dalton dual-IB-break = definitive
                                         # → bypass stability wait (08-20: 11:40→13:30 = 1h50m delay)
                                         _force = bool(_cls_result.get("dual_ib_break"))
+                                        # T-313 (Michael 11.09): provisional→locked transition
+                                        # is immediate. The hysteresis applies ONLY to
+                                        # locked→locked reclassification, not the first post-lock
+                                        # classification. Track with a flag in _stab_st.
+                                        # Also resets the gateway's own Trend→other hysteresis
+                                        # (_dp_hyst) so the first label isn't held there either.
+                                        if not _stab_st.get("_first_lock_done"):
+                                            _force = True
+                                            _stab_st["_first_lock_done"] = True
+                                            # Reset gateway hysteresis for the IB lock handoff
+                                            _gw = getattr(app.state, "gateway", None)
+                                            if _gw is not None and hasattr(_gw, "_dp_hyst"):
+                                                _gw._dp_hyst = {"label": None, "bars": 0}
+                                            # Reset trade_context antiflap so the IB lock
+                                            # label reaches the gates immediately
+                                            try:
+                                                from backend.v9.services.trade_context import _ANTIFLAP_STATE
+                                                _ANTIFLAP_STATE["stable"] = None
+                                                _ANTIFLAP_STATE["pending"] = None
+                                            except Exception:
+                                                pass
+                                            _logger.info(
+                                                "[S1-NEW-CLS] T-313: first post-lock classification "
+                                                "— bypassing stability (provisional→locked)")
                                         _publish = _stab_confirm(
                                             _stab_st, _old_val, _new_dt.value,
                                             _stab_n, now_et().date().isoformat(),

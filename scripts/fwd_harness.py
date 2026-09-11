@@ -816,6 +816,19 @@ def s1_on_bar(bar: dict):
                         if not isinstance(_stab_st, dict):
                             _stab_st = {}; APP.state._daytype_stability = _stab_st
                         _force = bool(_cls_result.get("dual_ib_break"))
+                        # T-313: first post-lock classification bypasses stability
+                        # + reset gateway Trend→other hysteresis for IB lock handoff
+                        if not _stab_st.get("_first_lock_done"):
+                            _force = True
+                            _stab_st["_first_lock_done"] = True
+                            if hasattr(gw, "_dp_hyst"):
+                                gw._dp_hyst = {"label": None, "bars": 0}
+                            # Reset trade_context antiflap
+                            try:
+                                _tc_mod._ANTIFLAP_STATE["stable"] = None
+                                _tc_mod._ANTIFLAP_STATE["pending"] = None
+                            except Exception:
+                                pass
                         _publish = _stab_mod.confirm_label(_stab_st, _old_val, _new_dt.value, _stab_n,
                                                            SESSION, force_immediate=_force)
                         if not _publish and _new_dt != state.day_type:
