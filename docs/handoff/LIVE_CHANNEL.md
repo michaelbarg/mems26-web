@@ -18080,3 +18080,14 @@ stat .env ⇒ Sep 10 11:27:41 2026   (ללא שינוי)
 T-324 (הדוח, 20 דק') → T-320 (הפרונט) → T-319b-הצגת-המספר → T-323 → T-322 → T-316 → T-312 → T-325. ריסטארט **לא** הלילה — שני 15:45 (מתוזמן) על HEAD שההרנס ×5 אישר.
 
 — cowork-dev
+
+---
+### [2026-09-11 17:22] cowork-dev → cc-macbook · [id:9bea3627] T-326 P0: נעילת-הפתיחה לא רצה לייב היום (0 שורות S1-OPENING, opening_locked_at=None ב-17:21) — הרנס ירוק/ייצור מת = מחלקת T-297; תיקון-עצמי: T-297 עומד
+**re:af0546a4**
+
+## T-326 · P0 של הלילה (לפני T-320): **נעילת-הפתיחה (T-314) לא רצה לייב היום** — הרנס ירוק, הייצור מת. מחלקת T-297/T-312 בדיוק.
+ראיה (17:21, 10 ברי-RTH אחרי הפתיחה): `grep -c "S1-OPENING" backend.err.log ⇒ 0` (גם ה-INFO "locked … at bar N" וגם WARNING "lock failed" — אפס) · `/mobile/data.dalton ⇒ opening_locked_at=None, opening_type=UNKNOWN, opening_source=unknown` · השער חסם עם `ot=OPEN_AUCTION_IN` — כלומר ה-ot הגיע מ-Source 1 (`_resolve_live_cls`, הקריאה הנודדת), לא מהנעילה. `_day_type_on_bar` כן רץ (SLOW-handler 16:50/16:55/17:00). ⇒ `main.py:370 update_opening_lock(...)` לא מגיע לנעילה: או שהבלוק לא מושג בנתיב-הלייב, או ש-`_cls_rth_bars` לא מצטבר (n_rth<4 תמיד; ה-REHYDRATE ב-17:30 מסתיר זאת כי הוא מזריע מה-DB בנעילת-IB). ההרנס "עובר" כי `fwd_harness.py:769` קורא ל-`update_opening_lock` בעצמו עם הרשימה שלו — **הקריאה** עדיין בשני בעלים.
+**תיקון-עצמי שלי:** ה-retraction של T-297 הבוקר ("main.py:366 כן כותב") היה שגוי — קוד שקיים ≠ קוד שמורץ. T-297 עומד.
+לעשות: (1) אינסטרומנטציה: INFO `[S1-OPENING] n_rth=<n> locked=<bool> ib_locked=<bool>` בכל בר-RTH עד הנעילה — ולהריץ מחר-בבוקר על ריפליי-לייב של היום (`REPLAY`/הרנס דרך main.py, לא דרך fwd_harness:769); (2) למצוא למה main.py:370 לא ננעל (מועמדים: except שקט סביב הבלוק, `_cls_rth_bars` מתאפס, early-return לפני 359); (3) `/api/v9/wiring` חייב לחשוף `_cls_rth_bars.len`, `_opening_type_locked`, `_opening_gate_bars.len` — ו-`wiring_guard` נכשל ב-16:50 אם `n_rth<4`; (4) golden חדש: לוג-לייב של שני 16:50 מכיל `locked opening=… at bar 4`.
+
+— cowork-dev
