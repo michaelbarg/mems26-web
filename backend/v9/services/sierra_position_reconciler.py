@@ -507,8 +507,9 @@ def _read_flatten_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool
 # {(qty, entry): {"stop": float, "side": str, "set_ts": float}}
 _virtual_stop: dict = {}
 
-# MES tick value: $12.50 per point per contract
-_MES_DOLLAR_PER_POINT = 12.50
+# T-308(a): MES = $5 per point per contract (0.25 tick × $1.25/tick).
+# Was $12.50 (ES value) — caused ×2.5 overstatement in CRITICAL logs.
+_MES_DOLLAR_PER_POINT = 5.0
 def _orphan_max_loss_usd() -> float:
     return float(os.getenv("ORPHAN_MAX_LOSS_USD", "200"))
 
@@ -1229,17 +1230,18 @@ def reconcile_position(tm, *, fill_poller=None, gateway=None) -> Tuple[bool, str
             # order map still holds today's history the ambiguity is named
             # explicitly instead of being resolved by guess.
             _had_history = bool(_omap) if _fp is not None else False
-            # Michael ruling 2026-08-24: "אין יותר מסחר ידני" — a position
-            # not in books is ALWAYS an anomaly (missed exit, orphan, desync).
+            # T-308(b): ownership-aware wording. The position may be foreign
+            # (shared account with Eti) or a system desync. Don't assume
+            # "system exit never executed" when we don't know whose it is.
             _manual_msg = (
-                f"🔴 DESYNC: Sierra {sierra_qty}c, no open system trade "
-                f"→ ANOMALY (no manual trading per ruling 08-24). "
-                f"Likely: system exit never executed."
+                f"🔴 DESYNC: Sierra {sierra_qty}c, no open system trade. "
+                f"Possible causes: foreign position (shared account), "
+                f"orphan bracket, or missed system exit."
             )
             if _had_history:
                 _manual_msg += (
-                    " Order history exists — check fills journal for the "
-                    "exit that didn't execute."
+                    " Order history exists — check POSITION_CHANGE.order_id "
+                    "against trade sierra_order_ids to determine ownership."
                 )
             msg += f" \u2139\ufe0f {_manual_msg}"
             # MANUAL_POSITION_GUARD_V1 (Michael ruling 07-25 "התראה-בלבד"):
