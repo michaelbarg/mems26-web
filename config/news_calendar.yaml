@@ -4,128 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-09 22:37 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-11 02:22 ET
 events:
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "Continuing Jobless Claims"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "Core PPI MoM"
-    severity: orange
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "Core PPI YoY"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "Initial Jobless Claims"
-    severity: orange
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "Jobless Claims 4-week Average"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI Ex Food, Energy and Trade MoM"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI Ex Food, Energy and Trade YoY"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI MoM"
-    severity: red
-  - date: 2026-09-10
-    time_et: "08:30"
-    name: "PPI YoY"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "09:20"
-    name: "NY Fed Bill Purchases 4 to 12 months"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "10:00"
-    name: "Existing Home Sales"
-    severity: red
-  - date: 2026-09-10
-    time_et: "10:00"
-    name: "Existing Home Sales MoM"
-    severity: orange
-  - date: 2026-09-10
-    time_et: "10:00"
-    name: "Wholesale Inventories MoM"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "10:30"
-    name: "EIA Natural Gas Stocks Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "11:30"
-    name: "4-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "11:30"
-    name: "8-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "15-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "30-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Crude Oil Imports Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Crude Oil Stocks Change"
-    severity: orange
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Cushing Crude Oil Stocks Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Distillate Fuel Production Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Distillate Stocks Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Gasoline Production Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Gasoline Stocks Change"
-    severity: orange
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Heating Oil Stocks Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "12:00"
-    name: "EIA Refinery Crude Runs Change"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "13:00"
-    name: "30-Year Bond Auction"
-    severity: yellow
-  - date: 2026-09-10
-    time_et: "16:30"
-    name: "Fed Balance Sheet"
-    severity: yellow
   - date: 2026-09-11
     time_et: "08:30"
     name: "CPI"
@@ -377,4 +257,92 @@ events:
   - date: 2026-09-16
     time_et: "16:00"
     name: "Overall Net Capital Flows"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Building Permits MoM Prel"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Building Permits Prel"
+    severity: red
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Continuing Jobless Claims"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Housing Starts"
+    severity: red
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Housing Starts MoM"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Initial Jobless Claims"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Jobless Claims 4-week Average"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philadelphia Fed Manufacturing Index"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philly Fed Business Conditions"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philly Fed CAPEX Index"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philly Fed Employment"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philly Fed New Orders"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "08:30"
+    name: "Philly Fed Prices Paid"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "10:00"
+    name: "Pending Home Sales MoM"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "10:00"
+    name: "Pending Home Sales YoY"
+    severity: orange
+  - date: 2026-09-17
+    time_et: "10:30"
+    name: "EIA Natural Gas Stocks Change"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "11:30"
+    name: "4-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "11:30"
+    name: "8-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "12:00"
+    name: "15-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "12:00"
+    name: "30-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "13:00"
+    name: "10-Year TIPS Auction"
+    severity: yellow
+  - date: 2026-09-17
+    time_et: "16:30"
+    name: "Fed Balance Sheet"
     severity: yellow
