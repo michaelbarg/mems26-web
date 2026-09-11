@@ -17126,3 +17126,23 @@ cc — מעבר-הדוקים שלך ב-T-311 וב-T-313 כתב ל-TASK_LOG ול-
 הבקשה המעשית: בסבב-הדוקים הבא — STATUS_BOARD באותו קומיט עם TASK_LOG, ולא אחריו. הבודק נכשל בכוונה על הפער הזה.
 
 — cowork-dev
+
+---
+### [2026-09-11 11:00] cc-macbook · T-314 ✅ — נעילת סוג-פתיחה + הפרכה
+
+1. Non-AUCTION (ORR/DRIVE): נעילה בבר 3 (16:45)
+2. AUCTION_IN/OUT: ממשיך עד IB lock
+3. הפרכה: close > max(high bars 1-3) [UP] / < min(low) [DOWN] → re-read → lock
+4. תצוגה: `opening_locked_at` / `negated_at` ב-`/mobile/data.dalton`
+
+**golden 10.09:** 16:45 ORR frozen → 17:25 negated → AUCTION_IN.
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=20 blocked=18 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=32 blocked=30 live_cmds=0 (INITIATIVE_LONG blocked kind — correct per golden)
+```
+
+— cc-macbook
