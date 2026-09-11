@@ -31,6 +31,7 @@ def build_flip_setup(
     poc: Optional[float] = None,
     opposite_edge: Optional[float] = None,
     contracts: int = 3,
+    shadow_only: bool = True,
 ) -> Optional[Dict[str, Any]]:
     """Build a gateway-routable setup for the reverse entry.
 
@@ -40,6 +41,11 @@ def build_flip_setup(
         poc: POC price for T1 target.
         opposite_edge: VAL (for ceiling flip) or VAH (for floor flip) for T2.
         contracts: from effective_contracts.
+        shadow_only: True keeps the setup a shadow twin (default — the
+            pre-T-328 behaviour). The caller passes False only when
+            CEILING_FLIP_SHORT_V1 is "1"/"true" (Michael ruling 28.08:
+            "בהינתן הטריגר, אני רוצה עסקה של שורט"; promoted 11.09 18:00
+            after two correct live-day fires: 10.09 17:20, 11.09 17:45).
 
     Returns setup dict or None if inputs are insufficient.
     """
@@ -95,14 +101,21 @@ def build_flip_setup(
         "t1": t1,
         "t2": t2,
         "t3": None,
+        # T-328 §1: the pattern's anchor is the failed extreme (the ceiling /
+        # floor itself), not the confirm-bar entry — the gateway's location
+        # rule must judge the pattern by where it formed (VAH/VAL), not by
+        # the late entry 10+ pts away (11.09 17:45: entry 7657.25 was judged
+        # `below_value` while the ceiling sat on VAH).
+        "structural_anchor": extreme,
         "metadata": {
             "pattern": pat,
             "source": "ceiling_flip_v1",
             "ceiling_floor_state": state,
             "p1": p1,
             "p2": p2,
+            "structural_anchor": extreme,
             "edge_source": ceiling_floor.get("edge_source"),
             "confirm_level": ceiling_floor.get("confirm_level"),
-            "shadow_only": True,  # always shadow until promoted
+            "shadow_only": bool(shadow_only),
         },
     }

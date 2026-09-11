@@ -269,6 +269,17 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
     a 0.0 T3 is treated by active_trade_manager as a phantom (unreachable)
     target on the C3 leg.
     """
+    # T-328 §1 (Michael 11.09 18:00): the pattern's structural anchor (double
+    # top/bottom peak, H&S head, flag pole) travels with the setup so the
+    # gateway's location rule (T-319b-lite) judges WHERE THE PATTERN IS, not
+    # where the late neckline entry is. 11.09 17:40: DOUBLE_TOP_AA_SHORT
+    # entry=7660.25 was blocked `location zone=near_val` while its peaks sat
+    # on VAH (7678.75 vs VAH 7677.75). None when the detector has no anchor.
+    _anchor = info.get("structural_anchor") if isinstance(info, dict) else None
+    try:
+        _anchor = float(_anchor) if _anchor is not None else None
+    except (TypeError, ValueError):
+        _anchor = None
     return {
         "firing_system": 2,
         "direction": t1_setup.direction,
@@ -279,12 +290,14 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
         "t1": t1_setup.t1_price or 0.0,
         "t2": t1_setup.t2_price or 0.0,
         "t3": t1_setup.t3_price,  # None when trail/no-T3; real price for TN/TDD
+        "structural_anchor": _anchor,
         "metadata": {
             "pattern": t1_setup.pattern_name,
             "sizing": t1_setup.sizing_contracts,
             "variant": info.get("variant"),  # D-RVX: A_VSA/B_RVOL/C_STRICT
             "variants_passed": info.get("variants_passed"),
             "candidate_id": info.get("candidate_id"),
+            "structural_anchor": _anchor,
         },
     }
 
@@ -1842,11 +1855,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                             _flip_opp = _cf_lvl("vah") or _cf_hi
                     except Exception:
                         pass
+                    # T-328 §2 (Michael 11.09 18:00 — "I want the system to
+                    # trade today"): "1"/"true" now really promotes the flip
+                    # to live. Before this, build_flip_setup hard-coded
+                    # shadow_only=True, so the flag could never go live.
                     _flip_setup = build_flip_setup(
                         ceiling_floor=_cf_st,
                         atr=_cf_atr(_cf_bars, period=14) or 7.0,
                         poc=_flip_poc,
                         opposite_edge=_flip_opp,
+                        shadow_only=(_flip_mode == "shadow"),
                     )
                     if _flip_setup and self._gateway:
                         if _flip_mode == "shadow":
