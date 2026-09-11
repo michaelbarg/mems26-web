@@ -1847,6 +1847,107 @@ class BarLevelDetector:
             except Exception as _se_b_err:
                 logger.debug("[StructureExit] grade-B error: %s", _se_b_err)
 
+        # ── T-317: PRE-T1 realize on confirmed double ceiling/floor ──
+        # STRUCTURE_EXIT_REALIZE_PRE_T1_V1 (Michael 11.09 T-317):
+        # "realize on confirmed double before T1" — if CEILING_FAILED fires
+        # against LONG (or FLOOR_FAILED against SHORT) while t1_hit_ts is
+        # None AND open_pnl > 0, pull ALL open target legs to confirm_close
+        # (rounded one tick toward entry) and move stop to BE (entry_price).
+        # Never FLATTEN, never op=EXIT. Idempotent via SE_R_PRE_{trade.id}.
+        # Consumer file:line: THIS block (_maybe_structure_exit).
+        _pre_t1_on = _se_os.getenv(
+            "STRUCTURE_EXIT_REALIZE_PRE_T1_V1", "0").lower() in (
+            "1", "true", "live")
+        if _pre_t1_on and trade.t1_hit_ts is None:
+            try:
+                if not hasattr(self, "_se_fired"):
+                    self._se_fired = set()
+                _pre_key = f"SE_R_PRE_{trade.id}"
+                if _pre_key not in self._se_fired:
+                    # Read ceiling/floor state — same published source as
+                    # grade-B (five_min_system.ceiling_floor_state).
+                    _pt_cfs = None
+                    try:
+                        from backend.v9.services.trade_context import (
+                            get_ceiling_floor_state)
+                        _pt_cfs = get_ceiling_floor_state()
+                    except Exception:
+                        pass
+
+                    if _pt_cfs is not None:
+                        _pt_state = _pt_cfs.get("state", "")
+                        _pt_against = (
+                            (_pt_state == "CEILING_FAILED"
+                             and direction == "LONG")
+                            or
+                            (_pt_state == "FLOOR_FAILED"
+                             and direction == "SHORT")
+                        )
+
+                        if _pt_against:
+                            # open_pnl > 0 guard (MES $5/point)
+                            _pt_ep = float(trade.entry_price)
+                            _pt_dir_sign = 1.0 if direction == "LONG" else -1.0
+                            _pt_open_pnl = (
+                                (bar_close - _pt_ep) * _pt_dir_sign * 5.0)
+                            if _pt_open_pnl > 0:
+                                # Target = confirm_close rounded one tick
+                                # toward entry (conservative, not aggressive)
+                                _pt_cc = float(
+                                    _pt_cfs.get("confirm_close", bar_close))
+                                _tick = 0.25
+                                if direction == "LONG":
+                                    _pt_target = round(
+                                        round(_pt_cc / _tick) * _tick, 2)
+                                    if _pt_target >= _pt_cc:
+                                        _pt_target = round(
+                                            _pt_target - _tick, 2)
+                                else:
+                                    _pt_target = round(
+                                        round(_pt_cc / _tick) * _tick, 2)
+                                    if _pt_target <= _pt_cc:
+                                        _pt_target = round(
+                                            _pt_target + _tick, 2)
+
+                                # Mark idempotent key BEFORE emitting (so a
+                                # mid-emit exception still prevents re-fire)
+                                self._se_fired.add(_pre_key)
+                                logger.warning(
+                                    "[StructureExit] REALIZE-PRE-T1 "
+                                    "trade=%d %s state=%s "
+                                    "confirm_close=%.2f target=%.2f "
+                                    "open_pnl=%.2f",
+                                    trade.id, direction, _pt_state,
+                                    _pt_cc, _pt_target, _pt_open_pnl)
+
+                                # MODIFY_TARGET all open (un-hit) legs.
+                                # T1=c1, T2=c2, T3=c3, T4=c4 ladder convention.
+                                _pt_q = trade.quality if isinstance(
+                                    trade.quality, dict) else {}
+                                _tgt_map = {
+                                    "t1": "c1_target_id",
+                                    "t2": "c2_target_id",
+                                    "t3": "c3_target_id",
+                                    "t4": "c4_target_id",
+                                }
+                                for _tf, _qk in _tgt_map.items():
+                                    if getattr(trade,
+                                               f"{_tf}_hit_ts", None) is not None:
+                                        continue  # already banked
+                                    _toid = _pt_q.get(_qk)
+                                    self._tm._emit_modify_target(
+                                        trade, _pt_target,
+                                        target_order_id=(
+                                            int(_toid)
+                                            if _toid is not None else None),
+                                    )
+
+                                # MODIFY_STOP to BE (entry_price)
+                                self._tm._emit_modify_stop(trade, _pt_ep)
+            except Exception as _pre_t1_err:
+                logger.debug("[StructureExit] pre-T1 realize error: %s",
+                             _pre_t1_err)
+
     def _maybe_trend_upgrade_add(self, trade, bar_high, bar_low) -> None:
         """TREND_UPGRADE_ADD_V1 (Michael ruling 27.08 19:55 §12; doctrine
         ~19:10 "כל תווית חדשה = סט-הזדמנויות חדש שנפתח מיד"). When the
