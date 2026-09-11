@@ -55,6 +55,8 @@ ap.add_argument("--oe-closed", action="store_true",
                 help="counterfactual: let the opening engine evaluate CLOSED RTH bars instead of the "
                      "first-seconds developing bar it sees live (five_min_system.py:2139/2149/2190)")
 ap.add_argument("--quiet", action="store_true")
+ap.add_argument("--restart-at", default=None,
+                help="IL HH:MM — simulate cold restart at this time (clear state, re-seed from DB)")
 args = ap.parse_args()
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1140,9 +1142,49 @@ def _inject_due(upto):
 
 
 prev_row = PRE[-1] if PRE else None
+_restart_done = False
+_restart_at_hhmm = args.restart_at  # IL HH:MM or None
 for i, b in enumerate(BARS):
     _BAR_INDEX["i"] = i
     ts = b["ts"]
+    # T-330 cold-restart simulation: at --restart-at HH:MM, clear all
+    # in-memory state as if the process restarted. The DB-based seeds
+    # (T-330 session extremes, T-330b opening lock) should then kick in.
+    if _restart_at_hhmm and not _restart_done:
+        _bar_il = ts.astimezone(IL).strftime("%H:%M")
+        if _bar_il >= _restart_at_hhmm:
+            _restart_done = True
+            LOG.warning("[fwd] COLD RESTART simulated at %s IL (bar %d)", _bar_il, i)
+            # Clear TPO session extremes → T-330 seed will fire
+            tpo.current_state["session_high"] = None
+            tpo.current_state["session_low"] = None
+            tpo.current_state["rth_high"] = None
+            tpo.current_state["rth_low"] = None
+            # Clear opening lock → T-330b should restore
+            dtm._opening_type_locked = False
+            dtm._opening_locked_val = None
+            dtm._opening_locked_dir = None
+            dtm._opening_locked_at = None
+            dtm._opening_negated = False
+            dtm._opening_negated_at = None
+            # Clear day_type stability first-lock flag
+            _stab_st = getattr(APP.state, "_daytype_stability", None)
+            if isinstance(_stab_st, dict):
+                _stab_st.pop("_first_lock_done", None)
+            # Clear S2 state (cold start)
+            fms._bar_buffer.clear()
+            fms.buffer_size = 0
+            # Clear _cls_rth_bars but keep it → will be rehydrated
+            _cls_rth_bars.clear()
+            # Clear antiflap
+            try:
+                _tc_mod._ANTIFLAP_STATE["stable"] = None
+                _tc_mod._ANTIFLAP_STATE["pending"] = None
+            except Exception:
+                pass
+            # Clear gateway hysteresis
+            if hasattr(gw, "_dp_hyst"):
+                gw._dp_hyst = {"label": None, "bars": 0}
     if args.push_mode == "firstpush":
         dev = {"ts": ts, "open": b["open"], "high": b["open"], "low": b["open"], "close": b["open"],
                "volume": max(1, int((b["volume"] or 0) * 0.01))}
