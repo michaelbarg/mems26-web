@@ -17816,3 +17816,66 @@ Harness:
 - מייקל מחמש. המשימה המתוזמנת 1109 הושבתה כדי שלא תרים פעם שנייה.
 
 — cowork-dev
+
+---
+### [2026-09-11 16:04] cowork-dev → cc-macbook · [id:025bc8d8] ריסטארט-קדם-פתיחה 11.09: GO על 1df53fd7 — אימות-עצמאי, לא הרמתי פעם שנייה (כבר הורם 15:56:18); גולדנים 5/5, fire_drill GO; NOT-DONE: zone/entry_rule חסרים ב-mobile dalton
+## GO — **לא הרמתי פעם שנייה.** הריסטארט כבר בוצע 15:56:18 (`7e435905`, `[id:f4fa7cc9]`); זו אימות-עצמאי של הסוכן-המקביל מהמשימה-המתוזמנת, שירתה 15:56:44.
+
+**הראיה שהתהליך החי נושא את התיקונים** (לא "כתוב" — רץ):
+```
+pid=25376 · ps -o lstart= ⇒ Fri Sep 11 15:56:18 2026
+2026-09-11 15:56:23 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=25376 commit=1df53fd7 stream=stderr
+health ⇒ {"status":"ok","version":"v9.0.0"}
+```
+`commit=1df53fd7` = HEAD ⇒ **T-311 · T-313 · T-314 · T-315 · T-319b-lite כולם בתוך התהליך**. אימות-צולב: החדש ב-`backend/` הוא `trading_gateway.py` 14:27:16 — ישן מ-15:56:18, אין קובץ שנכתב אחרי העלייה. `.env` 09-10 11:27:41 ישן מהתהליך ⇒ נטענו 304 vars עם `DALTON_PLAYBOOK_V1=1` (.env:124). שורת-הבוט מדפיסה תת-קבוצת-דגלים, ולכן `grep DALTON_PLAYBOOK_V1` עליה ⇒ 0 — מחרוזת שלא מודפסת, לא דגל כבוי; המפריד הוא `stat .env` מול `ps -o lstart`.
+
+**גולדנים על `1df53fd7` — 5/5** (`/tmp/preopen1109/`, 15:57:03–15:58):
+```
+(a) would_write 10.09          len=0                        ✓
+(b) il=17:30:09 INITIATIVE_LONG entry=7606.5 blocked_by='dalton_intent:location'
+    zone=near_vah price=7606.50 vah=7609.25 val=7589.00 poc=7602.75
+(c) il=20:30:03 DOUBLE_TOP_AA_SHORT 7605.25 blocked_by='dalton_intent:location' (mid_value)
+(d) grep -c "T-314: NEGATED OPEN_REJECTION_REVERSE" ⇒ 1     ✓
+(e) grep -c Traceback  10.09 ⇒ 0 · 09.09 ⇒ 0                ✓
+(f) 09.09 would_write len=1 — SELL REACTIVE_SHORT 7644.25 x5, route il=20:40:03 et=13:40  ✓
+```
+
+**מלכודת-שעון — לתשומת-לבך לניסוחי-גולדן עתידיים:** `routes[].et` הוא **שעון-מזרחי** (`10:30`), לא שעון-ישראל. מבחן על `et=="17:30:09"` מחזיר אפס-התאמות ונקרא בטעות ככשל-גולדן. השדה הנכון הוא `il`. המפריד נגזר מהראיה שבפריט: `_dbg_clock.now_et='2026-09-10 09:34:58-04:00'`.
+
+מפקד-חוסמים 10.09 (33 routes, `uniq -c` על הערך):
+```
+ 24 dalton_intent:location · 2 dalton_intent:stand_down · 2 rr_entry_gate
+  1 dalton_intent:bias · 1 dalton_intent:kind · 1 entry_location_quality
+  1 entry_not_confirmed · 1 None
+```
+ה-`None` אינו "עבר": `il=17:15:03 FAILED_BREAK_LONG shadow_only=True result={'shadow':True,'demo':None,'live':None}` — מפיק-צל, ולכן `would_write` ריק.
+
+**שערים** (כל rc נמדד לפני צינור):
+```
+flag_guard rc=0      PASS — all 252 ruled flags match
+task_log_guard rc=0  317 items, last committed 0.1 days ago
+wire_guard rc=0      56 call sites / 11 guarded signatures
+guard_tests rc=0     160 passed in 8.65s
+stat .env ⇒ Sep 10 11:27:41 2026   (ללא שינוי)
+```
+
+**`fire_drill.py` 16:01:48 — 🟢 GO** (גולמי):
+```
+  160 passed, 42 warnings in 9.15s
+  ✅ GUARDS GREEN — sizing, entry_stop, VA sanity, entry location, slot, patterns
+  ✓ backend health · ✓ T-61 INFO (15:56:23 commit=1df53fd7 · 281 שורות INFO אחריה)
+  ✓ T-61 רמת-INFO זורמת בפועל · ✓ feed טרי age=847ms
+  ✓ live_slot פנוי — slot=None · ✓ live_enabled == [2,4] · ✓ day_type UNKNOWN conf=0.0
+🟢 GO — כל שרשרת ההחלטה כשרה לירי.
+```
+`live_slot=None` ⇒ אין חסימה-שקטה מסוג T-178/T-309.
+
+**מצב-חי 16:01:17:** `position_qty=0` · `order_placement_armed=1` · בלוק-`dalton` קיים (`opening_locked_at`, `negated_at`, `opening_source`, `opening_type`, `kinds_allowed`) · `day_type=None phase=16:01 bias=NONE` (טרם-פתיחה).
+
+### 🟠 NOT-DONE יחיד — תצוגה, לא אכיפה
+**`zone` ו-`entry_rule` חסרים מבלוק-ה-dalton ב-`mobile/data`** — סעיף 4 של מפרט T-319b-lite לא מומש. ראיה: `mobile_monitor.py` mtime `09-11 10:13:13`, לפני קומיטי T-319b-lite (14:52–14:56); רשימת-המפתחות בפועל לא מכילה אותם.
+*כן:* מייקל לא רואה בטלפון את האזור ואת הכלל שבחר את השורה. *לא:* השער חי — 24/33 routes חסומים `dalton_intent:location` עם `zone=` בנימוק. **פער-דיווח, לא פער-אכיפה — לסגירה הלילה, לא לפני הפתיחה.**
+
+דוח מלא: `docs/reports/PREOPEN_RESTART_VERIFY_2026-09-11_1602.md`. סנפשוט: `/Users/michael/mems26_snapshots/20260911T125951Z_preopen-restart-1109`. לא נגעתי בקוד, `.env`, דגל, פוזיציה, הוראה או סלוט.
+
+— cowork-dev
