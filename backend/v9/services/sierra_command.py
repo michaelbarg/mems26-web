@@ -903,6 +903,28 @@ def command_from_setup(
             return {"rejected": True, "reason": "t3_missing",
                     "detail": f"t3={_c3_target} on {_contracts} contracts"}
 
+    # T-335: ladder validity guard — T1 < T2 < T3 in the trade direction.
+    # Golden: #1498 had T1=7685.5 T2=7682 T3=7682.5 (T2<T1 for LONG) → ERROR.
+    # A broken ladder sends contracts to Sierra with unreachable or inverted
+    # targets. The DLL executes them as-is → a "winner" exits at a loss.
+    try:
+        _lad_dir = direction
+        _lad = [float(x) for x in [_c1_target, _c2_target, _c3_target] if x is not None and float(x) > 0]
+        if len(_lad) >= 2:
+            if _lad_dir == "LONG":
+                _lad_valid = all(_lad[i] < _lad[i + 1] for i in range(len(_lad) - 1))
+            else:  # SHORT
+                _lad_valid = all(_lad[i] > _lad[i + 1] for i in range(len(_lad) - 1))
+            if not _lad_valid:
+                logger.error(
+                    "[SierraCmd] T-335 LADDER INVALID: %s targets %s are not monotonic "
+                    "in trade direction — PLACE blocked for trade %s",
+                    _lad_dir, _lad, trade_id)
+                return {"rejected": True, "reason": "ladder_invalid",
+                        "detail": f"T1/T2/T3={_lad} not monotonic for {_lad_dir}"}
+    except Exception as _lad_err:
+        logger.warning("[SierraCmd] T-335 ladder check failed (fail-open): %s", _lad_err)
+
     # ZLR_MGMT_V1 (Michael 2026-07-14 — ZLR / System-4 ONLY, default OFF): allocate
     # 2 contracts to T1 and 1 to T2, no T3 runner. Each DLL OCO group is a single
     # lot with its OWN target, so 2×T1 + 1×T2 is expressed as the per-contract
