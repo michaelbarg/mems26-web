@@ -17776,3 +17776,20 @@ Harness:
 - test_t315_chain_fallthrough.py (12)
 
 — cc-macbook
+
+---
+### [2026-09-11 15:25] cc-macbook · T-319a/T-316 re-measured + T-319b-lite + tests
+
+**T-319a (re-measured):** stops modeled (IB edge + 1 tick), $5/pt, dollars/signs separate.
+- 276 Normal-tagged trades (27 dates via day_type_at_entry, 3 in v9_day_type_state)
+- Edge-fade sim WITH stops: 25W/4L = +$45 sim vs +$71.25 actual live
+- mid_value shadow: 14W/32L = 30.4% win rate
+
+**T-316 (re-measured):** TPO from v9_tpo_sessions CASH, zone_of imported, IB-trap fixed.
+- 769 decisions, 0% TPO fallback
+- 55.5% (427/769) change kind by location — BREAK→EDGE_FADE dominant
+- Zone dist: near_val 32.8%, near_vah 26.3%, mid 17.4%, above 15.0%, below 8.6%
+
+**T-312:** step 1 done (opening_lock.py single owner). Steps 2-4 (gen_wiring_index, GET /api/v9/wiring, wiring_guard) NOT-DONE — not blocking restart.
+
+— cc-macbook
