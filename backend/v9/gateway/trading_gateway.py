@@ -1224,11 +1224,26 @@ class TradingGateway:
                         if _dp_loc_ibh > 0 and _dp_loc_ibl > 0:
                             _dp_loc_ibw = _dp_loc_ibh - _dp_loc_ibl
                         if _dp_loc_vah > 0 and _dp_loc_val > 0:
-                            from backend.v9.systems.location_gate import zone_of as _dp_zone_of
-                            _dp_loc_price = float(
-                                setup.get("structural_anchor")
-                                or (setup.get("metadata") or {}).get("structural_anchor")
-                                or setup.get("entry_price") or 0)
+                            from backend.v9.systems.location_gate import zone_of as _dp_zone_of, _tol as _dp_loc_tol
+                            _dp_loc_entry = float(setup.get("entry_price") or 0)
+                            _dp_loc_anchor = (setup.get("structural_anchor")
+                                              or (setup.get("metadata") or {}).get("structural_anchor"))
+                            # T-328 §1 + chase guard (11.09 18:15, harness):
+                            # the pattern's anchor decides WHERE the pattern
+                            # is — but only while the entry is still near it.
+                            # Judged by the anchor alone, 10.09 17:40
+                            # DOUBLE_BOTTOM_EE_LONG (troughs 7585.5, entry
+                            # 7612.5 = 27 pts later, on VAH) was admitted and
+                            # lost −$200 in the harness. Beyond 2×tol from the
+                            # anchor the entry is a chase → judge the entry.
+                            _dp_loc_price = _dp_loc_entry
+                            try:
+                                if _dp_loc_anchor is not None and _dp_loc_entry > 0:
+                                    _dp_loc_anchor = float(_dp_loc_anchor)
+                                    if abs(_dp_loc_entry - _dp_loc_anchor) <= 2.0 * _dp_loc_tol(_dp_loc_ibw):
+                                        _dp_loc_price = _dp_loc_anchor
+                            except (TypeError, ValueError):
+                                pass
                             _dp_zone = _dp_zone_of(_dp_loc_price, _dp_loc_vah,
                                                     _dp_loc_val, _dp_loc_ibw)
                             _dp_loc_dir = (setup.get("direction") or "").upper()
