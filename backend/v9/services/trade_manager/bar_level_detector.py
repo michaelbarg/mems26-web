@@ -585,9 +585,28 @@ class BarLevelDetector:
                           if getattr(t, "mode", "shadow") in ("demo", "live")]
             if not live_active:
                 return
-            from backend.v9.services.sierra_command import write_flatten_account
+            from backend.v9.services.sierra_command import (
+                write_flatten_account, account_has_foreign_contracts)
             for trade in live_active:
                 if trade.id in self._eod_flatten_requested:
+                    continue
+                # T-289/T-333: do NOT flatten if foreign contracts exist.
+                # FLATTEN_ACCOUNT closes the NET position = Eti's contracts too.
+                _trade_contracts = getattr(trade, "contracts", None)
+                if not _trade_contracts:
+                    try:
+                        _q = trade.quality if isinstance(trade.quality, dict) else {}
+                        _trade_contracts = _q.get("contracts")
+                    except Exception:
+                        pass
+                _has_foreign = account_has_foreign_contracts(_trade_contracts)
+                if _has_foreign is True or _has_foreign is None:
+                    logger.warning(
+                        "[T-10] T-289: EOD CLOSE SKIPPED for trade %d — "
+                        "foreign contracts detected (has_foreign=%s). "
+                        "FLATTEN_ACCOUNT would close Eti's position.",
+                        trade.id, _has_foreign)
+                    self._eod_flatten_requested.add(trade.id)
                     continue
                 write_flatten_account(
                     trade_id=str(trade.id),
