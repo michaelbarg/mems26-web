@@ -779,7 +779,28 @@ class BarLevelDetector:
             self._last_stuck_slot = st
 
             if not st.alarm:
+                # T-311: even when not alarming, run the release loop
+                # to catch cases where on_trade_close missed the release
+                if self._gateway is not None and hasattr(self._gateway, "_selfheal_live_slot"):
+                    try:
+                        self._gateway._selfheal_live_slot()
+                    except Exception:
+                        pass
                 return st
+            # T-311: alarm is active — try the release loop FIRST,
+            # which may resolve the stuck slot by proving foreign ownership
+            if self._gateway is not None and hasattr(self._gateway, "_selfheal_live_slot"):
+                try:
+                    self._gateway._selfheal_live_slot()
+                    # Re-check: did the heal free the slot?
+                    if self._gateway.live_slot is None:
+                        logger.info("[StuckSlot] T-311: slot freed by self-heal "
+                                    "(foreign ownership proven)")
+                        self._stuck_slot_since = None
+                        return gather_stuck_slot(
+                            self._gateway, None)
+                except Exception:
+                    pass
             # rate-limit: one line per 5 min while the condition persists
             _last = getattr(self, "_stuck_slot_logged_at", 0.0)
             if _ss_t.time() - _last >= 300.0:

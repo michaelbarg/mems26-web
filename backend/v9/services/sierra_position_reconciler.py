@@ -140,6 +140,105 @@ def _sierra_state_orders() -> Optional[list]:
         return None
 
 
+def _our_sierra_order_ids(trade_quality: Optional[dict]) -> set:
+    """Extract the set of all Sierra order IDs our trade owns.
+
+    Reads sierra_order_id + c1..c6 target/stop IDs from trade.quality.
+    Returns a set of ints; empty if no quality data.
+    """
+    if not trade_quality or not isinstance(trade_quality, dict):
+        return set()
+    ids = set()
+    oid = trade_quality.get("sierra_order_id")
+    if oid is not None:
+        try:
+            ids.add(int(oid))
+        except (ValueError, TypeError):
+            pass
+    for i in range(1, 7):
+        for side in ("target", "stop"):
+            cid = trade_quality.get(f"c{i}_{side}_id")
+            if cid is not None:
+                try:
+                    ids.add(int(cid))
+                except (ValueError, TypeError):
+                    pass
+    return ids
+
+
+def position_is_foreign(trade_quality: Optional[dict]) -> Optional[bool]:
+    """T-311: Is the remaining Sierra position foreign (not ours)?
+
+    Compares the working orders on Sierra against our trade's known order IDs.
+    Returns True (position is foreign — all working orders are unknown to us),
+    False (at least one working order is ours), or None (can't determine).
+
+    Also checks: if position_qty != 0 but ALL recent POSITION_CHANGE order_ids
+    are foreign → the position itself is foreign.
+    """
+    our_ids = _our_sierra_order_ids(trade_quality)
+    if not our_ids:
+        return None  # can't determine — no order IDs on trade
+
+    # Check 1: working orders — are any of them ours?
+    orders = _sierra_state_orders()
+    if orders is not None:
+        working_ours = any(
+            int(o.get("id", 0)) in our_ids
+            for o in orders
+            if o.get("id") is not None
+        )
+        if working_ours:
+            return False  # we still have working orders → position is (partly) ours
+
+    # Check 2: position_qty from sierra_state — if flat, nothing is foreign
+    qty = _sierra_state_qty()
+    if qty is not None and qty == 0:
+        return False  # account flat → no foreign position
+
+    # Check 3: look at POSITION_CHANGE events — walk backwards to find which
+    # order_ids built the current position. If all order_ids since the last
+    # zero-crossing are foreign, the position is foreign.
+    if qty is not None and qty != 0:
+        try:
+            if EVENTS_FILE.exists():
+                # Read all POSITION_CHANGE events, find the last zero-crossing,
+                # and collect order_ids since then.
+                changes = []
+                with open(EVENTS_FILE, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line)
+                            if ev.get("type") == "POSITION_CHANGE":
+                                changes.append(ev)
+                        except json.JSONDecodeError:
+                            continue
+
+                # Walk backwards to find last time position was 0
+                since_flat_oids = []
+                for ev in reversed(changes):
+                    prev = ev.get("prev_qty")
+                    oid = ev.get("order_id")
+                    if oid is not None:
+                        since_flat_oids.append(int(oid))
+                    if prev is not None and int(prev) == 0:
+                        break  # found the zero-crossing
+
+                if since_flat_oids:
+                    all_foreign = all(oid not in our_ids for oid in since_flat_oids)
+                    if all_foreign:
+                        return True  # every order since flat is foreign
+                    else:
+                        return False  # at least one is ours
+        except Exception:
+            pass  # fail-safe — can't determine
+
+    return None  # inconclusive
+
+
 def _has_protective_stop(qty: int, orders: Optional[list],
                          avg_price: Optional[float]) -> Optional[bool]:
     """MANUAL_POSITION_GUARD_V1: does a working order protect this position?

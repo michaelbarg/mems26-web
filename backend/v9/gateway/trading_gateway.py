@@ -4245,6 +4245,9 @@ class TradingGateway:
         # path that bypassed on_trade_close — e.g. Sierra-driven FillPoller close,
         # I-57 trades 271/272), free it HERE so a stuck slot can never block trading.
         self._selfheal_demo_slot()
+        # T-311: release loop for live slot — same principle as demo self-heal.
+        # Frees the slot if trade is CLOSED and remaining position is foreign.
+        self._selfheal_live_slot()
 
         # ── shadow_only setups (07-22, opening-entry SHADOW phase): the setup
         # explicitly asks to be recorded-only. Shadow execution already ran
@@ -4443,6 +4446,77 @@ class TradingGateway:
         except Exception as e:  # fail-open — never break routing on a heal attempt
             logger.warning("[Gateway] demo_slot self-heal check failed (slot kept): %s", e)
 
+    def _selfheal_live_slot(self) -> None:
+        """T-311: Free the live slot when our trade is closed and remaining
+        position is foreign.
+
+        Release loop — runs periodically (called from bar_level_detector's
+        stuck-slot check). Does NOT rely solely on on_trade_close, which
+        can miss the release when Sierra position_qty != 0 due to a foreign
+        position (Eti). Fail-open: any error keeps the slot untouched.
+
+        Conditions for release:
+        1. live_slot is occupied
+        2. The trade in the slot is CLOSED in DB
+        3. Either account is flat (position_qty==0) OR the remaining
+           position is proven foreign via order_id ownership check
+        """
+        if self.live_slot is None:
+            return
+        trade_id = self.live_slot.get("trade_id")
+        if not trade_id:
+            return
+        try:
+            from backend.v9.db.read import read_one
+            row = read_one(
+                "SELECT state, quality FROM v9_trades WHERE id = :tid",
+                {"tid": int(trade_id)},
+            )
+            if row is None:
+                return
+            state = str(row.get("state", "")).upper()
+            if state not in ("CLOSED", "CANCELLED"):
+                return  # trade still open — slot is legitimately held
+
+            # Trade is closed. Check if we can free the slot.
+            from backend.v9.services.sierra_position_reconciler import (
+                _sierra_state_qty, _sierra_state_working, position_is_foreign)
+
+            _sq = _sierra_state_qty()
+            _sw = _sierra_state_working()
+
+            # Easy case: account flat → free
+            if _sq is not None and _sq == 0 and (_sw is None or _sw == 0):
+                logger.warning(
+                    "[Gateway] T-311 SELF-HEAL: live_slot trade %s is %s in DB "
+                    "and account is flat (qty=0, working=0) → freeing slot",
+                    trade_id, state)
+                self.live_slot = None
+                return
+
+            # Hard case: account not flat — check ownership
+            _q_raw = row.get("quality")
+            _trade_quality = None
+            if isinstance(_q_raw, str):
+                import json as _json
+                _trade_quality = _json.loads(_q_raw)
+            elif isinstance(_q_raw, dict):
+                _trade_quality = _q_raw
+
+            _foreign = position_is_foreign(_trade_quality)
+            if _foreign is True:
+                logger.warning(
+                    "[Gateway] T-311 SELF-HEAL: live_slot trade %s is %s in DB "
+                    "and remaining position (qty=%s, working=%s) is FOREIGN "
+                    "→ freeing slot",
+                    trade_id, state, _sq, _sw)
+                self.live_slot = None
+                return
+            # else: can't prove foreign, or position is ours → keep slot
+        except Exception as e:
+            logger.warning("[Gateway] T-311 live_slot self-heal check failed "
+                           "(slot kept): %s", e)
+
     def on_trade_close(self, trade: dict) -> None:
         """Handle trade closure — free slots, update daily stats, update risk filters."""
         trade_id = trade.get("trade_id")
@@ -4489,47 +4563,89 @@ class TradingGateway:
             # AND zero protective orders. A partial fill (T1 hit on a parent with
             # SCALE_IN child still open) must NOT release the slot — the broker
             # still holds a position.
+            # T-311 (Michael 11.09): ownership-aware — if the remaining position
+            # is foreign (Eti's), free the slot anyway. The separator is
+            # POSITION_CHANGE.order_id vs our trade's sierra_order_ids.
             # CANCELLED/ORDER_FAILED always free immediately (no position exists).
             _force_free = outcome in ("CANCELLED", "ORDER_FAILED") or \
                 outcome.startswith("ORDER_FAILED:")
             if not _force_free:
                 try:
                     from backend.v9.services.sierra_position_reconciler import (
-                        _sierra_state_qty, _sierra_state_working)
+                        _sierra_state_qty, _sierra_state_working,
+                        position_is_foreign)
                     _sq = _sierra_state_qty()
                     _sw = _sierra_state_working()
+                    # T-311: get our trade's quality for ownership check
+                    _trade_quality = self.live_slot.get("quality")
+                    if _trade_quality is None:
+                        try:
+                            from backend.v9.db.read import read_one
+                            _trow = read_one(
+                                "SELECT quality FROM v9_trades WHERE id = :tid",
+                                {"tid": int(trade_id)})
+                            if _trow:
+                                _q_raw = _trow.get("quality")
+                                if isinstance(_q_raw, str):
+                                    import json as _json
+                                    _trade_quality = _json.loads(_q_raw)
+                                elif isinstance(_q_raw, dict):
+                                    _trade_quality = _q_raw
+                        except Exception:
+                            pass
                     if _sq is not None and _sq != 0:
-                        logger.info(
-                            "[Gateway] T-43c: slot NOT freed for %s — Sierra "
-                            "position_qty=%d (still holding). Outcome=%s",
-                            trade_id, _sq, outcome)
-                        # Still count the PnL/trades but keep the slot occupied
-                        if outcome not in ("CANCELLED",):
-                            self._daily_trades += 1
-                            self._daily_pnl += pnl
-                            if pnl < 0:
-                                self._consecutive_losses += 1
-                            else:
-                                self._consecutive_losses = 0
-                        logger.info("[Gateway] LIVE trade closed (slot retained): "
-                                    "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
-                        return
+                        # T-311: check ownership — if position is foreign, free
+                        _foreign = position_is_foreign(_trade_quality)
+                        if _foreign is True:
+                            logger.warning(
+                                "[Gateway] T-311: slot freed for %s — Sierra "
+                                "position_qty=%d but ALL position is FOREIGN "
+                                "(not our order IDs). Outcome=%s",
+                                trade_id, _sq, outcome)
+                            # fall through to free the slot
+                        else:
+                            logger.info(
+                                "[Gateway] T-43c: slot NOT freed for %s — Sierra "
+                                "position_qty=%d (still holding%s). Outcome=%s",
+                                trade_id, _sq,
+                                ", ownership=ours" if _foreign is False
+                                else ", ownership=unknown",
+                                outcome)
+                            if outcome not in ("CANCELLED",):
+                                self._daily_trades += 1
+                                self._daily_pnl += pnl
+                                if pnl < 0:
+                                    self._consecutive_losses += 1
+                                else:
+                                    self._consecutive_losses = 0
+                            logger.info("[Gateway] LIVE trade closed (slot retained): "
+                                        "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
+                            return
                     # position_qty==0 but working orders remain: also hold
+                    # T-311: unless the working orders are all foreign
                     if _sw is not None and _sw > 0 and _sq == 0:
-                        logger.info(
-                            "[Gateway] T-43c: slot NOT freed for %s — Sierra "
-                            "working_orders=%d (protective orders pending)",
-                            trade_id, _sw)
-                        if outcome not in ("CANCELLED",):
-                            self._daily_trades += 1
-                            self._daily_pnl += pnl
-                            if pnl < 0:
-                                self._consecutive_losses += 1
-                            else:
-                                self._consecutive_losses = 0
-                        logger.info("[Gateway] LIVE trade closed (slot retained): "
-                                    "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
-                        return
+                        _foreign_w = position_is_foreign(_trade_quality)
+                        if _foreign_w is True:
+                            logger.warning(
+                                "[Gateway] T-311: slot freed for %s — Sierra "
+                                "working_orders=%d but all FOREIGN",
+                                trade_id, _sw)
+                            # fall through to free
+                        else:
+                            logger.info(
+                                "[Gateway] T-43c: slot NOT freed for %s — Sierra "
+                                "working_orders=%d (protective orders pending)",
+                                trade_id, _sw)
+                            if outcome not in ("CANCELLED",):
+                                self._daily_trades += 1
+                                self._daily_pnl += pnl
+                                if pnl < 0:
+                                    self._consecutive_losses += 1
+                                else:
+                                    self._consecutive_losses = 0
+                            logger.info("[Gateway] LIVE trade closed (slot retained): "
+                                        "%s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
+                            return
                 except Exception as _t43_err:
                     logger.warning("[Gateway] T-43c sierra check failed (%s) — "
                                    "freeing slot (fail-open)", _t43_err)

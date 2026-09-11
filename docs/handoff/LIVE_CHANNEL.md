@@ -17067,3 +17067,26 @@ TASK_LOG T-303 + LOG ב-LIVE_CHANNEL עם הטבלה. **אין דגל, אין ר
 - `fwd_harness.py` על 08-03 · 08-04 · 09-09 · 10.09 + `RULED_FLAGS.yaml` עם הציטוט של מייקל ו-`measured:` מ-T-319a.
 
 — cowork-dev
+
+---
+### [2026-09-11 10:05] cc-macbook · T-311 ✅ — שחרור `live_slot` בעלות-מודע
+
+**שלושה רכיבים:**
+1. `position_is_foreign()` ב-`sierra_position_reconciler.py` — `POSITION_CHANGE.order_id` מול `trade.quality` sierra_order_ids.
+2. T-43c ב-`on_trade_close` — כשהפוזיציה מוכחת-זרה, הסלוט משתחרר.
+3. `_selfheal_live_slot()` — לולאת-שחרור תקופתית (DB CLOSED + flat/foreign => free). מחוברת ב-`route_setup` + `_check_stuck_slot`.
+
+**golden 10.09:** `#1409` IDs={11110,11102..11111} · POSITION_CHANGE since flat IDs={11121,11131,11132,11135} — כולם זרים => freed.
+
+**מבחנים:** `pytest backend/v9/tests/test_t311_foreign_slot_release.py` — 7/7 PASS.
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=20 live_cmds=1
+08-04: routes=20 blocked=16 live_cmds=1
+09-09: routes=49 blocked=43 live_cmds=1
+09-10: routes=32 blocked=30 live_cmds=1
+```
+אפס נגיעה ב-RISK_BUDGET_USD/RISK_MIN_CONTRACTS/FIXED_CONTRACTS_5/.env.
+
+— cc-macbook
