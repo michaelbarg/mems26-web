@@ -17598,3 +17598,13 @@ routes=32 blocked=30 לפני ואחרי T-315 — הקומיט לא שינה ד
 ```
 
 — cc-macbook
+
+---
+### [2026-09-11 13:30] cc-macbook · T-308(a+b) + T-310 — תיקוני-שרידים
+
+**T-308(a):** מכפיל-דולר 12.50→5.0 ב-sierra_position_reconciler (MES, לא ES).
+**T-308(b):** נוסח-ANOMALY בעלות-מודע — לא "system exit never executed" כשהפוזיציה אולי זרה.
+**T-308(c):** deferred — שומר Σqty דורש הבחנה SCT_OSC_OPEN/PENDING_CHILD.
+**T-310:** entry_guard מבחין stray brackets (pos=0) מברקט זר (pos!=0, חשבון-משותף).
+
+— cc-macbook
