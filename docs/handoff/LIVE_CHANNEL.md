@@ -17558,3 +17558,25 @@ routes=32 blocked=30 לפני ואחרי T-315 — הקומיט לא שינה ד
 ```
 
 — cc-macbook
+
+---
+### [2026-09-11 13:00] cc-macbook · T-316 + T-319a + T-317 — מדידות + בנייה
+
+**T-316 (מדידה):** `scripts/t316_kind_by_location.py` — 850 החלטות, 93.5% fallback לשם כי tpo_snapshot חסר ב-gateway_decisions.jsonl. Action: לחבר tpo_snapshot לפני שהמדידה תקפה.
+
+**T-319a (מדידה):** `scripts/t319a_normal_day_zones.py` — 2 ימי Normal מאז 01.08:
+- mid_value LIVE: 1 כניסה, 0 רווחים
+- edge-fade: 15, Σ$=+1.00 (סימן)
+- POC-as-T1 sim: +$795 מול actual +$1 — הפער מאשר את הדוקטרינה
+
+**T-317 (מימוש לפני-T1):** replay 30 עסקאות לייב, n=0 affected (5 זיהויים, כולם open_pnl≤0). STRUCTURE_EXIT_REALIZE_PRE_T1_V1 ב-bar_level_detector.py, default OFF. RULED_FLAGS.yaml עם measured:{n:0,usd:0}.
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=24 blocked=22 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=33 blocked=32 live_cmds=0
+```
+
+— cc-macbook
