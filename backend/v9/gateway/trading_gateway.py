@@ -1208,7 +1208,64 @@ class TradingGateway:
                 _dalton_intent = _dp_intent(
                     opening_type=_dp_ot, day_type=_dp_dt,
                     now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
+                # ── T-319b-lite: location-based gate for Normal/Neutral ──
+                # Replaces entry_kinds check with zone_of for these day types.
+                # Ruling: Michael 2026-06-20 §1 + 2026-09-11 09:50.
+                _dp_location_checked = False
+                if _dp_dt in ("Normal", "Neutral_Center", "Neutral_Extreme"):
+                    try:
+                        _dp_tpo_loc = (cross_context.get("tpo_system")
+                                       if isinstance(cross_context, dict) else None) or {}
+                        _dp_loc_vah = float(_dp_tpo_loc.get("vah") or 0)
+                        _dp_loc_val = float(_dp_tpo_loc.get("val") or 0)
+                        _dp_loc_ibw = None
+                        _dp_loc_ibh = float(_dp_tpo_loc.get("ib_high") or 0)
+                        _dp_loc_ibl = float(_dp_tpo_loc.get("ib_low") or 0)
+                        if _dp_loc_ibh > 0 and _dp_loc_ibl > 0:
+                            _dp_loc_ibw = _dp_loc_ibh - _dp_loc_ibl
+                        if _dp_loc_vah > 0 and _dp_loc_val > 0:
+                            from backend.v9.systems.location_gate import zone_of as _dp_zone_of
+                            _dp_loc_price = float(
+                                setup.get("structural_anchor")
+                                or (setup.get("metadata") or {}).get("structural_anchor")
+                                or setup.get("entry_price") or 0)
+                            _dp_zone = _dp_zone_of(_dp_loc_price, _dp_loc_vah,
+                                                    _dp_loc_val, _dp_loc_ibw)
+                            _dp_loc_dir = (setup.get("direction") or "").upper()
+                            _dp_loc_poc = float(_dp_tpo_loc.get("poc") or 0) or None
+                            # Normal/Neutral: LONG only near_val/below_value,
+                            # SHORT only near_vah/above_value
+                            _dp_loc_ok = False
+                            if _dp_loc_dir == "LONG" and _dp_zone in ("near_val", "below_value"):
+                                _dp_loc_ok = True
+                            elif _dp_loc_dir == "SHORT" and _dp_zone in ("near_vah", "above_value"):
+                                _dp_loc_ok = True
+                            if not _dp_loc_ok:
+                                result["blocked_by"] = "dalton_intent:location"
+                                result["reason"] = (
+                                    f"zone={_dp_zone} price={_dp_loc_price:.2f} "
+                                    f"vah={_dp_loc_vah:.2f} val={_dp_loc_val:.2f} "
+                                    f"poc={_dp_loc_poc} "
+                                    f"({_dp_dt}: edge-fade only, no entries at POC)"
+                                )
+                                logger.warning(
+                                    "[Gateway] BLOCKED system=%s pattern=%s dir=%s "
+                                    "entry=%s blocked_by=dalton_intent:location "
+                                    "zone=%s ot=%s il=%s",
+                                    system_id, setup.get("classification"),
+                                    _dp_loc_dir, setup.get("entry_price"),
+                                    _dp_zone, _dp_ot, _dp_il_hhmm)
+                                return result
+                            _dp_location_checked = True
+                        # else: no VA → fall through to kinds check (Rule 1)
+                    except Exception as _loc_err:
+                        logger.warning("[Gateway] T-319b location check failed "
+                                       "(falling through to kinds): %s", _loc_err)
                 _dp_block = _dp_eval(setup, _dalton_intent)
+                # T-319b-lite: skip kinds block when location already approved
+                if _dp_block and _dp_location_checked:
+                    if _dp_block.get("blocked_by") == "dalton_intent:kind":
+                        _dp_block = None  # location approved → kinds check skipped
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]
