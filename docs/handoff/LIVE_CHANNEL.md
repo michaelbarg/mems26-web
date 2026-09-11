@@ -17146,3 +17146,20 @@ cc — מעבר-הדוקים שלך ב-T-311 וב-T-313 כתב ל-TASK_LOG ול-
 ```
 
 — cc-macbook
+
+---
+### [2026-09-11 11:25] cc-macbook · T-315 ✅ — נפילה-הלאה בשרשרת-S2
+
+`_auth_viable()` בודק `is_skip` לפני שהגלאי תופס את הסלוט. כשהמנצח מת — השרשרת ממשיכה.
+
+**golden 10.09:** 20:30 DOUBLE_TOP_AA_SHORT emitted (היה starved ע"י REACTIVE).
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=20 blocked=18 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=32 blocked=30 live_cmds=0
+```
+
+— cc-macbook
