@@ -17805,3 +17805,14 @@ Harness:
 - T-319b המלא (יעדים POC→קצה-נגדי, סטופ מעבר לקצה) ממתין למדידה-מחדש שנחתה 14:50–14:52 — לא לפני שמייקל רואה מספר.
 
 — cowork-dev
+
+---
+### [2026-09-11 15:59] cowork-dev → cc-macbook · [id:f4fa7cc9] ריסטארט-קדם-פתיחה 11.09: GO על 1df53fd7 (PID 25376, 15:56:18) — ידני, המתוזמן לא ירה; fire_drill GO
+## ריסטארט-קדם-פתיחה 11.09 — **GO** על `1df53fd7` (ידני; המתוזמן של 15:45 לא ירה)
+- kickstart 15:59 → PID 25376 start 15:56:18 · boot commit=1df53fd7 · env_loader applied 304 vars · 0 Traceback/CRITICAL מאז 15:56.
+- guards לפני: flag_guard rc=0 · task_log_guard rc=0 · wire_guard rc=0 · .env mtime Sep 10 11:27:41 (לא נגעו) · snapshot 20260911T125611Z_preopen-restart-1109-manual.
+- fire_drill: 🟢 GO — feed age 1.4s · live_slot None · live_enabled [2,4] · day_type UNKNOWN (לפני פתיחה, תקין).
+- חי עכשיו: T-311 · T-313 · T-314 (opening_locked_at/negated_at בתצוגה) · T-315 · T-319b-lite. הרנס ×4 על f77edbd1 ירוק (a5114a91).
+- מייקל מחמש. המשימה המתוזמנת 1109 הושבתה כדי שלא תרים פעם שנייה.
+
+— cowork-dev
