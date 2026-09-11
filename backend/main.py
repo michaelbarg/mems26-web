@@ -407,6 +407,20 @@ async def _startup():
                             day_type_machine._opening_gate_bars = _cls_rth_bars
                             _logger.info("[S1-REHYDRATE] seeded _cls_rth_bars from DB: %d bars (IB locked, buffer was short)",
                                          len(_cls_rth_bars))
+                            # T-330b: restore opening lock from rehydrated bars
+                            try:
+                                from backend.v9.systems.day_type.opening_lock import update_opening_lock as _rehy_ot
+                                _rehy_ot(
+                                    machine=day_type_machine,
+                                    rth_bars=_cls_rth_bars,
+                                    ib_locked=day_type_machine.ib_locked,
+                                    now_iso=now_et().isoformat(),
+                                )
+                                _logger.info("[S1-REHYDRATE] T-330b: opening lock restored: locked=%s val=%s",
+                                             getattr(day_type_machine, "_opening_type_locked", False),
+                                             getattr(day_type_machine, "_opening_locked_val", None))
+                            except Exception as _rehy_ot_err:
+                                _logger.warning("[S1-REHYDRATE] T-330b: opening lock restore failed: %s", _rehy_ot_err)
                     except Exception as _rehy_err:
                         _logger.warning("[S1-REHYDRATE] rehydration failed (continuing with short buffer): %s", _rehy_err)
                     _cls_ctx_cache["_rehydrated"] = True  # one-shot, don't retry every bar
