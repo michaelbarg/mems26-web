@@ -17090,3 +17090,23 @@ TASK_LOG T-303 + LOG ב-LIVE_CHANNEL עם הטבלה. **אין דגל, אין ר
 אפס נגיעה ב-RISK_BUDGET_USD/RISK_MIN_CONTRACTS/FIXED_CONTRACTS_5/.env.
 
 — cc-macbook
+
+---
+### [2026-09-11 10:30] cc-macbook · T-313 ✅ — מסירת-תווית מיידית בנעילת-IB
+
+שלוש שכבות-היסטרזיס עוקפות בנעילה:
+1. DAYTYPE_RECLASS_STABILITY — force_immediate בסיווג-ראשון אחרי lock
+2. _dp_hyst בגייטוויי — איפוס
+3. _ANTIFLAP_STATE ב-trade_context — איפוס
+
+**golden 10.09:** 17:30:09 → Normal → INITIATIVE_LONG 7606.5 blocked dalton_intent:kind (kinds=EDGE_FADE,VALUE_RETURN).
+
+**הרנס (Rule 5):**
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=20 blocked=18 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=32 blocked=30 live_cmds=1
+```
+
+— cc-macbook
