@@ -766,7 +766,7 @@ def s1_on_bar(bar: dict):
         dtm._opening_gate_bars = _cls_rth_bars
         # T-314: Opening type lock + negation (mirrors main.py)
         _n_rth = len(_cls_rth_bars)
-        if _n_rth >= 3 and not getattr(dtm, "_opening_type_locked", False):
+        if _n_rth >= 4 and not getattr(dtm, "_opening_type_locked", False):
             try:
                 from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type as _ot_det
                 _ot_closed = _cls_rth_bars[:-1] if len(_cls_rth_bars) > 1 else _cls_rth_bars
@@ -793,15 +793,15 @@ def s1_on_bar(bar: dict):
             if (_ot_locked in ("OPEN_REJECTION_REVERSE", "OPEN_DRIVE", "OPEN_TEST_DRIVE")
                     and not getattr(dtm, "_opening_negated", False) and _n_rth >= 4):
                 try:
-                    _bar_close = _cls_rth_bars[-1]["c"]
+                    _neg_closes = [b["c"] for b in _cls_rth_bars[3:]]
                     _open_bars = _cls_rth_bars[:3]
                     _rej_high = max(b["h"] for b in _open_bars)
                     _rej_low = min(b["l"] for b in _open_bars)
                     _ot_ldir = getattr(dtm, "_opening_locked_dir", None)
                     _negated = False
-                    if _ot_ldir in ("UP", "LONG") and _bar_close > _rej_high:
+                    if _ot_ldir in ("UP", "LONG") and any(c < _rej_low for c in _neg_closes):
                         _negated = True
-                    elif _ot_ldir in ("DOWN", "SHORT") and _bar_close < _rej_low:
+                    elif _ot_ldir in ("DOWN", "SHORT") and any(c > _rej_high for c in _neg_closes):
                         _negated = True
                     if _negated:
                         dtm._opening_negated = True

@@ -371,7 +371,7 @@ async def _startup():
                     # cancelled when price closes beyond rejected extreme → re-read
                     # once → lock. opening_locked_at / negated_at on the machine.
                     _n_rth = len(_cls_rth_bars)
-                    if _n_rth >= 3 and not getattr(day_type_machine, "_opening_type_locked", False):
+                    if _n_rth >= 4 and not getattr(day_type_machine, "_opening_type_locked", False):
                         try:
                             from backend.v9.systems.day_type.opening_detector_v2 import (
                                 detect_opening_type as _ot_detect)
@@ -415,7 +415,10 @@ async def _startup():
                                 and not getattr(day_type_machine, "_opening_negated", False)
                                 and _n_rth >= 4):
                             try:
-                                _bar_close = _cls_rth_bars[-1]["c"]
+                                # Check closes of all bars since lock (bar 4+)
+                                # In live: current bar updates; in harness:
+                                # closed bars have final OHLC via refresh.
+                                _neg_closes = [b["c"] for b in _cls_rth_bars[3:]]
                                 # Rejected extreme from opening bars 1-3
                                 _open_bars = _cls_rth_bars[:3]
                                 _rej_high = max(b["h"] for b in _open_bars)
@@ -423,16 +426,14 @@ async def _startup():
                                 _ot_ldir = getattr(day_type_machine, "_opening_locked_dir", None)
                                 _negated = False
                                 if _ot_ldir in ("UP", "LONG"):
-                                    # Market reversed UP → initial move was DOWN
-                                    # Rejected extreme = high of initial range
-                                    # Negated when close goes ABOVE it (new highs)
-                                    if _bar_close > _rej_high:
+                                    # Market reversed UP → expectation is UP.
+                                    # Negated when ANY close goes BELOW rej_low.
+                                    if any(c < _rej_low for c in _neg_closes):
                                         _negated = True
                                 elif _ot_ldir in ("DOWN", "SHORT"):
-                                    # Market reversed DOWN → initial move was UP
-                                    # Rejected extreme = low of initial range
-                                    # Negated when close goes BELOW it (new lows)
-                                    if _bar_close < _rej_low:
+                                    # Market reversed DOWN → expectation is DOWN.
+                                    # Negated when ANY close goes ABOVE rej_high.
+                                    if any(c > _rej_high for c in _neg_closes):
                                         _negated = True
                                 if _negated:
                                     day_type_machine._opening_negated = True
