@@ -764,57 +764,17 @@ def s1_on_bar(bar: dict):
         _cls_rth_bars.append({"o": bi.open, "h": bi.high, "l": bi.low, "c": bi.close, "v": bi.volume,
                               "cum": bar.get("cumulative_delta")})
         dtm._opening_gate_bars = _cls_rth_bars
-        # T-314: Opening type lock + negation (mirrors main.py)
-        _n_rth = len(_cls_rth_bars)
-        if _n_rth >= 4 and not getattr(dtm, "_opening_type_locked", False):
-            try:
-                from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type as _ot_det
-                _ot_closed = _cls_rth_bars[:-1] if len(_cls_rth_bars) > 1 else _cls_rth_bars
-                _ot_bars = [{"o": b["o"], "h": b["h"], "l": b["l"], "c": b["c"], "v": b.get("v", 0)}
-                            for b in _ot_closed[:6]]
-                _ot_r = _ot_det(_ot_bars, _cls_rth_bars[0]["o"])
-                _ot_val = str(_ot_r.get("opening_type") or "UNKNOWN")
-                _ot_dir = _ot_r.get("direction")
-                if _ot_val in ("OPEN_AUCTION_IN", "OPEN_AUCTION_OUT"):
-                    if dtm.ib_locked:
-                        dtm._opening_type_locked = True
-                        dtm._opening_locked_val = _ot_val
-                        dtm._opening_locked_dir = _ot_dir
-                        dtm._opening_locked_at = now_et().isoformat()
-                else:
-                    dtm._opening_type_locked = True
-                    dtm._opening_locked_val = _ot_val
-                    dtm._opening_locked_dir = _ot_dir
-                    dtm._opening_locked_at = now_et().isoformat()
-            except Exception:
-                pass
-        if getattr(dtm, "_opening_type_locked", False):
-            _ot_locked = getattr(dtm, "_opening_locked_val", "")
-            if (_ot_locked in ("OPEN_REJECTION_REVERSE", "OPEN_DRIVE", "OPEN_TEST_DRIVE")
-                    and not getattr(dtm, "_opening_negated", False) and _n_rth >= 4):
-                try:
-                    _neg_closes = [b["c"] for b in _cls_rth_bars[3:]]
-                    _open_bars = _cls_rth_bars[:3]
-                    _rej_high = max(b["h"] for b in _open_bars)
-                    _rej_low = min(b["l"] for b in _open_bars)
-                    _ot_ldir = getattr(dtm, "_opening_locked_dir", None)
-                    _negated = False
-                    if _ot_ldir in ("UP", "LONG") and any(c < _rej_low for c in _neg_closes):
-                        _negated = True
-                    elif _ot_ldir in ("DOWN", "SHORT") and any(c > _rej_high for c in _neg_closes):
-                        _negated = True
-                    if _negated:
-                        dtm._opening_negated = True
-                        dtm._opening_negated_at = now_et().isoformat()
-                        from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type as _ot_re
-                        _ot_neg_bars = _cls_rth_bars[:-1] if len(_cls_rth_bars) > 1 else _cls_rth_bars
-                        _ot_nb = [{"o": b["o"], "h": b["h"], "l": b["l"], "c": b["c"], "v": b.get("v", 0)}
-                                  for b in _ot_neg_bars[:6]]
-                        _ot_new = _ot_re(_ot_nb, _cls_rth_bars[0]["o"])
-                        dtm._opening_locked_val = str(_ot_new.get("opening_type") or "UNKNOWN")
-                        dtm._opening_locked_dir = _ot_new.get("direction")
-                except Exception:
-                    pass
+        # T-314: Opening type lock + negation (single owner: opening_lock.py)
+        try:
+            from backend.v9.systems.day_type.opening_lock import update_opening_lock
+            update_opening_lock(
+                machine=dtm,
+                rth_bars=_cls_rth_bars,
+                ib_locked=dtm.ib_locked,
+                now_iso=now_et().isoformat(),
+            )
+        except Exception:
+            pass
     entry = {"il": et_now.astimezone(IL).strftime("%H:%M"), "stage": str(getattr(dtm, "stage", "?")),
              "machine_opening": _machine_opening(), "ib_locked": bool(dtm.ib_locked),
              "day_type_pre": (state.day_type.value if hasattr(state.day_type, "value") else str(state.day_type)),

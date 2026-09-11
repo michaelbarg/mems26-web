@@ -365,97 +365,17 @@ async def _startup():
                     # The gateway reads via system_registry["day_type_machine"]._opening_gate_bars
                     day_type_machine._opening_gate_bars = _cls_rth_bars
 
-                    # ── T-314: Opening type lock + negation ──────────────────────
-                    # Freeze at bar 3 close (16:45 IL / 09:45 ET); AUCTION_IN/OUT
-                    # exception: keep reading until IB lock. Negation: ORR/DRIVE
-                    # cancelled when price closes beyond rejected extreme → re-read
-                    # once → lock. opening_locked_at / negated_at on the machine.
-                    _n_rth = len(_cls_rth_bars)
-                    if _n_rth >= 4 and not getattr(day_type_machine, "_opening_type_locked", False):
-                        try:
-                            from backend.v9.systems.day_type.opening_detector_v2 import (
-                                detect_opening_type as _ot_detect)
-                            # Use CLOSED bars (exclude developing bar) for detection
-                            _ot_closed = _cls_rth_bars[:-1] if len(_cls_rth_bars) > 1 else _cls_rth_bars
-                            _ot_bars = [{"o": b["o"], "h": b["h"], "l": b["l"],
-                                         "c": b["c"], "v": b.get("v", 0)}
-                                        for b in _ot_closed[:6]]
-                            _ot_r = _ot_detect(_ot_bars, _cls_rth_bars[0]["o"])
-                            _ot_val = str(_ot_r.get("opening_type") or "UNKNOWN")
-                            _ot_dir = _ot_r.get("direction")
-                            # AUCTION_IN/OUT: keep reading until IB lock
-                            if _ot_val in ("OPEN_AUCTION_IN", "OPEN_AUCTION_OUT"):
-                                if day_type_machine.ib_locked:
-                                    day_type_machine._opening_type_locked = True
-                                    day_type_machine._opening_locked_val = _ot_val
-                                    day_type_machine._opening_locked_dir = _ot_dir
-                                    day_type_machine._opening_locked_at = now_et().isoformat()
-                                    _logger.info("[S1-OPENING] T-314: locked opening=%s dir=%s at IB lock",
-                                                 _ot_val, _ot_dir)
-                                # else: keep updating (no lock yet)
-                            else:
-                                # Non-AUCTION: lock at bar 3
-                                day_type_machine._opening_type_locked = True
-                                day_type_machine._opening_locked_val = _ot_val
-                                day_type_machine._opening_locked_dir = _ot_dir
-                                day_type_machine._opening_locked_at = now_et().isoformat()
-                                _logger.info("[S1-OPENING] T-314: locked opening=%s dir=%s at bar %d",
-                                             _ot_val, _ot_dir, _n_rth)
-                        except Exception as _ot_err:
-                            _logger.warning("[S1-OPENING] T-314: lock failed (continuing): %s", _ot_err)
-
-                    # T-314 negation: ORR/DRIVE negated when price closes beyond
-                    # the rejected extreme. For ORR dir=UP (reversed upward):
-                    # rejected extreme = max(high of bars 1-3). Close above it
-                    # = the "rejection" failed → negate → re-read → lock.
-                    # For ORR dir=DOWN: rejected extreme = min(low of bars 1-3).
-                    if getattr(day_type_machine, "_opening_type_locked", False):
-                        _ot_locked = getattr(day_type_machine, "_opening_locked_val", "")
-                        if (_ot_locked in ("OPEN_REJECTION_REVERSE", "OPEN_DRIVE", "OPEN_TEST_DRIVE")
-                                and not getattr(day_type_machine, "_opening_negated", False)
-                                and _n_rth >= 4):
-                            try:
-                                # Check closes of all bars since lock (bar 4+)
-                                # In live: current bar updates; in harness:
-                                # closed bars have final OHLC via refresh.
-                                _neg_closes = [b["c"] for b in _cls_rth_bars[3:]]
-                                # Rejected extreme from opening bars 1-3
-                                _open_bars = _cls_rth_bars[:3]
-                                _rej_high = max(b["h"] for b in _open_bars)
-                                _rej_low = min(b["l"] for b in _open_bars)
-                                _ot_ldir = getattr(day_type_machine, "_opening_locked_dir", None)
-                                _negated = False
-                                if _ot_ldir in ("UP", "LONG"):
-                                    # Market reversed UP → expectation is UP.
-                                    # Negated when ANY close goes BELOW rej_low.
-                                    if any(c < _rej_low for c in _neg_closes):
-                                        _negated = True
-                                elif _ot_ldir in ("DOWN", "SHORT"):
-                                    # Market reversed DOWN → expectation is DOWN.
-                                    # Negated when ANY close goes ABOVE rej_high.
-                                    if any(c > _rej_high for c in _neg_closes):
-                                        _negated = True
-                                if _negated:
-                                    day_type_machine._opening_negated = True
-                                    day_type_machine._opening_negated_at = now_et().isoformat()
-                                    from backend.v9.systems.day_type.opening_detector_v2 import (
-                                        detect_opening_type as _ot_redetect)
-                                    _ot_neg_bars = _cls_rth_bars[:-1] if len(_cls_rth_bars) > 1 else _cls_rth_bars
-                                    _ot_new_bars = [{"o": b["o"], "h": b["h"], "l": b["l"],
-                                                     "c": b["c"], "v": b.get("v", 0)}
-                                                    for b in _ot_neg_bars[:6]]
-                                    _ot_new = _ot_redetect(_ot_new_bars, _cls_rth_bars[0]["o"])
-                                    day_type_machine._opening_locked_val = str(
-                                        _ot_new.get("opening_type") or "UNKNOWN")
-                                    day_type_machine._opening_locked_dir = _ot_new.get("direction")
-                                    _logger.warning(
-                                        "[S1-OPENING] T-314: NEGATED %s → re-read=%s dir=%s "
-                                        "(close %.2f beyond rejected extreme h=%.2f l=%.2f)",
-                                        _ot_locked, day_type_machine._opening_locked_val,
-                                        day_type_machine._opening_locked_dir,
-                                        _bar_close, _rej_high, _rej_low)
-                            except Exception as _neg_err:
-                                _logger.warning("[S1-OPENING] T-314: negation check failed: %s", _neg_err)
+                    # ── T-314: Opening type lock + negation (single owner) ────
+                    try:
+                        from backend.v9.systems.day_type.opening_lock import update_opening_lock
+                        update_opening_lock(
+                            machine=day_type_machine,
+                            rth_bars=_cls_rth_bars,
+                            ib_locked=day_type_machine.ib_locked,
+                            now_iso=now_et().isoformat(),
+                        )
+                    except Exception as _ot_err:
+                        _logger.warning("[S1-OPENING] T-314: opening lock failed: %s", _ot_err)
 
                 # #11 fix: rehydrate _cls_rth_bars from DB on mid-session restart.
                 # When IB is locked but the in-memory buffer is short (restart wiped it),
