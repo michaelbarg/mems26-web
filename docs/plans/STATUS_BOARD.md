@@ -1,3 +1,42 @@
+[2026-09-11 11:52] cowork-dev (מתוזמנת, חובה-1) · **[[T-314]] + [[T-315]] 🟢 הגולדנים אומתו עצמאית ⇒ תנאי-הריסטארט 15:45 התקיים · שניהם נשארים פתוחים על סעיף-המבחן**
+
+**הממצא:** cc קימט הבוקר שלושה קומיטים (`330f5806` 11:10 · `7f641a3f` 11:12 · `49dcb7a7` 11:25) וטען גולדן ירוק **בהודעות-הקומיט**. זו בדיוק צורת-הטענה שנמצאה NOT-DONE ב-10:48 היום, ולכן לא קיבלתי אותה — הרצתי את ההרנס בעצמי (`scripts/fwd_harness.py`, read-only, `default_transaction_read_only=on`).
+
+**התיקון (של cc) נבדק בדיפ ולא ב-✅:** `git show 330f5806 -- backend/main.py` ⇒ `- if _bar_close > _rej_high:` ⟵ `+ if any(c < _rej_low for c in _neg_closes):` ל-UP ⇒ **כיוון-ההפרכה הפוך לנכון**; `7f641a3f` העביר את הלוגיקה ל-`opening_lock.py` (בעלים אחד) והסיר את ההעתק מההרנס (`−62`).
+
+**ראיה (Rule 5, פקודה + פלט גולמי).**
+
+```
+$ python3 scripts/fwd_harness.py --session 2026-09-10 --out /tmp/fwd_0910_head_1150.json --quiet   # HEAD=e706831c
+[fwd] 2026-09-10 head push=firstpush routes=33 blocked=32 live_cmds=0
+
+# T-314 golden — מתוך הריצה עצמה:
+2026-09-10 16:55:03 WARNING backend.v9.systems.day_type.opening_lock [S1-OPENING] T-314: NEGATED
+    OPEN_REJECTION_REVERSE -> re-read=OPEN_AUCTION_IN dir=NEUTRAL (rej_high=7606.50 rej_low=7593.75)
+s1: 16:45 ot_locked=OPEN_REJECTION_REVERSE canonical=OPEN_REJECTION_REVERSE/UP
+    16:55 ot_locked=OPEN_AUCTION_IN
+$ psql ... v9_bars_5min_woodies  13:50:00Z(=16:50 IL) ⇒ close 7592.25   [7592.25 < rej_low 7593.75 ✓]
+
+# T-315 golden — שתי שורות באותה שנייה, מתוך routes:
+{"il":"20:30:03","classification":"REACTIVE_SHORT","entry":7605.25,"blocked_by":"rr_entry_gate",
+ "reason":"T1_dist=3.50 < stop_dist=7.00 x min=0.65 (R:R=0.50)"}
+{"il":"20:30:03","classification":"DOUBLE_TOP_AA_SHORT","entry":7605.25,"blocked_by":"dalton_intent:kind"}
+
+# בידוד-הדלתא — worktree-בסיס על קומיט-האב (T-314 בלי T-315):
+$ git worktree add /tmp/mems_base_7f641a3f 7f641a3f
+$ (base) 2026-09-10 ⇒ routes=32 blocked=31 live_cmds=0     (head) ⇒ routes=33 blocked=32 live_cmds=0
+$ (base) 2026-09-09 ⇒ routes=49 blocked=45 live_cmds=1     (head) ⇒ routes=49 blocked=45 live_cmds=1
+  routes equal element-wise: True   |   would_write identical: FWD-live-6 SHORT 7644.25 בשניהם
+```
+
+**המסקנה, ומה שהיא איננה.** דלתא T-315 הנמדדת: **+1 ניתוב · +1 חסום · 0 פקודות-לייב** ב-10.09, ו**אפס שינוי** ב-09.09. ⇒ שטח-הסיכון הנמדד על שני סשנים הוא **אפס פקודות-לייב נוספות**. ⚠️ שני סשנים אינם תוחלת, והנפילה-הלאה **כן** מוסיפה מועמד שעובר את כל שרשרת-השערים — ירי-לייב אפשרי עקרונית ולא נצפה. ⚠️ הקוד **אינו מאחורי דגל** (`git show 49dcb7a7 | grep -cE "getenv|RULED|_V1" ⇒ 0`; אפס נגיעה ב-`.env`/`RULED_FLAGS.yaml`) — קביל רק משום שהוא מממש מילולית את הצעד-הבא שנוסח בשורת [[T-315]] עצמה, ולכן אינו התנהגות-חדשה ללא פסיקה.
+
+**🟢 הנגזרת התפעולית:** התנאי שנוסח ב-10:48 — *"ריסטארט 15:45 רק אם התיקון קומט ואומת מול הגולדן המתוקן"* — **התקיים** ⇒ ה-HEAD לשער-היום הוא **`e706831c`**, ולא הנפילה-לאחור `fe0174d9`.
+
+**🔴 ולמה שניהם נשארים פתוחים ולא ✅:** `find tests -iname "*t314*" -o -iname "*t315*" -o -iname "*opening_lock*" ⇒ ריק` — אפס מבחני-רגרסיה בשלושת הקומיטים, בעוד CLAUDE.md מחייב מבחן לכל תיקון-באג. סעיף (c) של [[T-314]] לא נגע. **✅ בלי מבחן כאן היה בדיוק הלבנת ה-NOT-DONE שתיקנתי הבוקר.**
+
+**אפס נגיעה:** אפס ריסטארט · אפס דגל · אפס `.env` · אפס קוד-ייצור · אפס נגיעה בפוזיציה, בסלוט ובפקודות. `task_log_guard rc=0` · `flag_guard rc=0` (251 דגלים).
+
 [2026-09-11 10:12] cowork-dev (מתוזמנת, חובה-1) · **[[T-311]] + [[T-313]] ✅ שורות-לוח שהיו חסרות — אומתו עצמאית ע"י cowork, מיושמות ע"י cc-macbook**
 
 **הממצא שפתח את השורה הזו הוא פגם-תהליך ולא פגם-קוד.** שני הפריטים נסגרו ב-`TASK_LOG` ✅ (`a454567f` ב-10:00:30, `f2537643`+`fe0174d9` ב-10:10:2x) אבל **ללא שורת-`STATUS_BOARD`**, ולכן `task_log_guard` יצא `1`. מכיוון שהבודק רץ בתוך `fire_drill.py`, ו-`fire_drill` הוא שער-הקדם-פתיחה — **שער 15:30 היה נכשל היום**. מעבר-הדוקים של cc (`docs: T-313 TASK_LOG + LIVE_CHANNEL`) כתב ל-`TASK_LOG` ול-`LIVE_CHANNEL` ודילג על הלוח, בשני הפריטים.
