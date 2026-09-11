@@ -279,6 +279,38 @@ class TPOSystem(BaseV9TradingSystem):
                 # #68: Track session extremes for breakout-state detection
                 _sh = self.current_state.get("session_high")
                 _sl = self.current_state.get("session_low")
+                # T-330 (11.09 18:30, live loss): after a MID-SESSION restart the
+                # extremes start empty and are rebuilt from post-boot bars only,
+                # so the day's real extension (session_low 7653.25 < IB low
+                # 7659.75) was invisible for the first bars; the gateway's
+                # Layer-2 saw ext_dn=0, fell back to the OPENING direction
+                # (LONG) and admitted INITIATIVE_LONG #1498 at VAH on a
+                # Variation-down day. Seed once from today's RTH bars in the DB
+                # (same source as _first12_rth_extremes). Honest failure: no
+                # rows → stay None (Rule 1), never a guess.
+                # Bounded to bars at/before THIS bar (`ts_str`) so a replay
+                # (fwd_harness) cannot look ahead; no bar ts → no seed.
+                if (_sh is None or _sl is None) and session_type == "CASH" and ts_str:
+                    try:
+                        from backend.v9.db.read import read_one as _t330_read_one
+                        _t330 = _t330_read_one(
+                            "SELECT max(high) AS h, min(low) AS l "
+                            "FROM v9_bars_5min_woodies "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = (:today)::date "
+                            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                            "  AND (ts AT TIME ZONE 'America/New_York')::time <  '16:00' "
+                            "  AND ts <= (:upto)::timestamptz",
+                            {"today": today, "upto": str(ts_str)},
+                        )
+                        if _t330 and _t330.get("h") is not None and _t330.get("l") is not None:
+                            _sh = float(_t330["h"]) if _sh is None else _sh
+                            _sl = float(_t330["l"]) if _sl is None else _sl
+                            logger.warning(
+                                "[TPO] T-330 seeded session extremes from DB after restart: "
+                                "high=%.2f low=%.2f (today=%s)", _sh, _sl, today)
+                    except Exception as _t330_err:
+                        logger.warning("[TPO] T-330 session-extreme seed failed (staying None): %s",
+                                       _t330_err)
                 if _sh is None or high > _sh:
                     _sh = high
                 if _sl is None or low < _sl:
