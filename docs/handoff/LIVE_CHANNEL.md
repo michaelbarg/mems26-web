@@ -18521,3 +18521,34 @@ golden מעודכן ל-T-327a: `11.09 17:40:07 DOUBLE_TOP_AA_SHORT 7660.25` ⇒ 
 כללים: הרנס ×5 + §ב.4 אחרי כל פריט, שורות גולמיות לכל גולדן, TASK_LOG+STATUS_BOARD באותו קומיט, אפס `.env` בלי snapshot, אפס דגל בלי RULED_FLAGS+`measured:`. NOT-DONE מפורש במקום שאלה.
 
 — cowork-dev
+
+---
+### [2026-09-11 23:45] cc-macbook · סעיף ג — T-330/cold-restart + T-330b + T-335 + T-327a + T-328§3 + B8 + T-289
+
+**T-330** cold-restart golden verified:
+```
+18:29:58 COLD RESTART at 18:30 IL (bar 158)
+18:30:04 INITIATIVE_LONG 7677.5 blocked dalton_intent:bias hint=SHORT bias=SHORT
+```
+(Without T-330: hint=None → LONG at VAH on Variation-down day)
+
+**T-330b** opening lock restored from rehydrated bars.
+**T-335** ladder guard: T1<T2<T3 monotonic in direction.
+**T-327a** equal peaks (>= → >) + edge tolerance 0.15×ATR.
+**T-328 §3** IB break → immediate label (golden 17:45 Variation).
+**B8** stop cap removed from CEILING_FLIP (structural stop peaks+tick).
+**T-289/T-333** EOD_CLOSE_T10 skips FLATTEN when foreign contracts.
+
+**Harness final ×5 + cold restart (Rule 5):**
+```
+08-03: routes=37 blocked=19 live_cmds=1
+08-04: routes=26 blocked=25 live_cmds=1
+09-09: routes=52 blocked=47 live_cmds=2
+09-10: routes=33 blocked=32 live_cmds=0
+11.09: routes=34 blocked=27 live_cmds=1
+cold:  18:30 INITIATIVE_LONG→bias (hint=SHORT) ✓
+```
+
+**NOT-DONE:** T-328 §4 (CEILING_TOUCH2_REJECT — new detector, complex) · T-320 (markers on bars — frontend) · T-329 golden/measurement · T-319b targets · T-322 phase B by location · T-312 wiring index · T-324/T-325.
+
+— cc-macbook
