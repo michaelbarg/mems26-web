@@ -90,13 +90,13 @@ def _rate_limited_warn(category: str, msg: str, *args) -> None:
 
 
 def _swing_lows(bars: List[Dict], lookback: int = PIVOT_LOOKBACK) -> List[Tuple[int, float]]:
-    """Find swing low pivots."""
+    """Find swing low pivots. T-327a: strict < (not <=) for equal lows."""
     pivots = []
     for i in range(lookback, len(bars) - lookback):
         low_i = bars[i]["l"]
         is_pivot = True
         for j in range(1, lookback + 1):
-            if bars[i - j]["l"] <= low_i or bars[i + j]["l"] <= low_i:
+            if bars[i - j]["l"] < low_i or bars[i + j]["l"] < low_i:
                 is_pivot = False
                 break
         if is_pivot:
@@ -105,13 +105,17 @@ def _swing_lows(bars: List[Dict], lookback: int = PIVOT_LOOKBACK) -> List[Tuple[
 
 
 def _swing_highs(bars: List[Dict], lookback: int = PIVOT_LOOKBACK) -> List[Tuple[int, float]]:
-    """Find swing high pivots."""
+    """Find swing high pivots.
+
+    T-327a: strict > (not >=) so equal highs form valid pivots.
+    11.09 17:20/17:25 highs both 7678.75 — were invisible with >=.
+    """
     pivots = []
     for i in range(lookback, len(bars) - lookback):
         high_i = bars[i]["h"]
         is_pivot = True
         for j in range(1, lookback + 1):
-            if bars[i - j]["h"] >= high_i or bars[i + j]["h"] >= high_i:
+            if bars[i - j]["h"] > high_i or bars[i + j]["h"] > high_i:
                 is_pivot = False
                 break
         if is_pivot:

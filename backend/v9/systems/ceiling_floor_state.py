@@ -63,6 +63,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set
 # PRICE threshold — `tol_atr` is a multiple of ATR, the rest are bar counts.
 DEFAULTS: Dict[str, Any] = {
     "tol_atr": 0.25,           # |P2 - P1| <= tol_atr × ATR  (the ruling's 0.25)
+    "edge_tol_atr": 0.15,     # T-327a: peak within edge_tol_atr × ATR of the edge
     "max_bars_between": 12,    # P2 no later than 12 bars after P1
     "min_bars_between": 1,     # P2 at least 1 bar after P1
     "confirm_max_bars": 12,    # confirm no later than 12 bars after P2
@@ -185,9 +186,14 @@ def _scan_ceiling(
         return None
 
     # TOUCH-1: the highest high in the window — the ceiling itself.
+    # T-327a: edge tolerance — peak within edge_tol_atr × ATR of the edge
+    # (was strict p1 < edge → missed 11.09 17:20 IB-high by 3.25 pts).
+    _tol_atr_val = cfg.get("tol_atr", 0.25)
+    _atr_est = tol / _tol_atr_val if _tol_atr_val > 0 else tol
+    _edge_tol = cfg.get("edge_tol_atr", 0.15) * _atr_est
     i1 = _argmax(highs, p1_lo, p1_hi)
     p1 = highs[i1]
-    if p1 < edge:                        # never reached the edge → not this source
+    if p1 < edge - _edge_tol:           # not near the edge
         return None
 
     # TOUCH-2: the best second peak inside the allowed bar distance.
