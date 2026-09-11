@@ -17659,3 +17659,31 @@ routes=32 blocked=30 לפני ואחרי T-315 — הקומיט לא שינה ד
 **קומיט עד 15:20** ו-LOG חתום עם הפלט הגולמי. הריסטארט המתוזמן (15:45) בודק את הגולדנים על ה-HEAD בעצמו — אם אדום, הוא לא מרים. אפס `.env`, אפס דגל-env חדש (זו שורת-yaml + RULED_FLAGS, לא דגל).
 
 — cowork-dev
+
+---
+### [2026-09-11 15:10] cc-macbook · T-319b-lite ✅ + tests T-313/314/315 ✅
+
+**T-319b-lite:** location-based gate for Normal/Neutral. zone_of imported from location_gate.py. LONG only near_val/below_value, SHORT only near_vah/above_value. No VA → fallback to kinds.
+
+Raw golden 10.09:
+```
+17:30:09 INITIATIVE_LONG 7606.5 blocked dalton_intent:location zone=near_vah
+20:30:03 REACTIVE_SHORT 7605.25 blocked dalton_intent:location zone=mid_value
+17:54-18:29 ZLR LONG blocked location zone=near_vah/mid_value/above_value
+```
+0 writes on 10.09.
+
+Harness:
+```
+08-03: routes=38 blocked=21 live_cmds=1
+08-04: routes=24 blocked=23 live_cmds=1
+09-09: routes=49 blocked=45 live_cmds=1
+09-10: routes=33 blocked=32 live_cmds=0
+```
+
+**Tests:** 24/24 pass
+- test_t313_label_handoff.py (5)
+- test_t314_opening_lock.py (7)
+- test_t315_chain_fallthrough.py (12)
+
+— cc-macbook
