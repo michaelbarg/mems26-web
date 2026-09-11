@@ -1873,6 +1873,8 @@ class FiveMinSystem(BaseV9TradingSystem):
         session context.
         """
         bar = dict(event.payload) if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
+        # T-315: clear per-bar blocked set at start of each new bar
+        self._t315_blocked_this_bar = set()
 
         # Live session transition: advance out of OVERNIGHT_MODE / WEEKEND when
         # RTH opens. hydrate() sets mode at startup — if backend started pre-RTH
@@ -3309,14 +3311,94 @@ class FiveMinSystem(BaseV9TradingSystem):
                         except Exception:
                             pass  # never block a setup on context
                         try:
-                            self._gateway.route_setup(gateway_setup, 2)
+                            _route_result = self._gateway.route_setup(gateway_setup, 2)
                             logger.info("[FiveMin] Auto-routed: %s %s → gateway (SHADOW records; DEMO/LIVE if gates pass)", pattern_name, direction)
+                            # T-315: gateway-block fall-through. If the setup
+                            # was blocked by the gateway, store the blocked
+                            # pattern so a second detection pass can skip it.
+                            _gw_blocked = (_route_result or {}).get("blocked_by")
+                            if _gw_blocked and _gw_blocked not in ("live_slot_occupied",):
+                                _blocked_pattern = f"{kind}_{direction}"
+                                if not hasattr(self, "_t315_blocked_this_bar"):
+                                    self._t315_blocked_this_bar = set()
+                                self._t315_blocked_this_bar.add(_blocked_pattern)
+                                logger.info("[FiveMin] T-315: %s blocked by %s — "
+                                            "will attempt fall-through",
+                                            _blocked_pattern, _gw_blocked)
                         except Exception as gw_err:
                             logger.warning("[FiveMin] Gateway route_setup failed: %s", gw_err)
                 elif t1_setup:
                     logger.info("[FiveMin] T1Setup emitted but no gateway injected: %s", pattern_name)
             except Exception as emit_err:
                 logger.error("[FiveMin] emit_t1_setup failed (non-fatal): %s", emit_err)
+
+            # ── T-315: Gateway-block fall-through ──────────────────────────
+            # When the winning S2 pattern was blocked by the gateway (not just
+            # Auth Table), try chart patterns (Pkg 5a/5b) that were starved.
+            # This covers the 20:30 golden: REACTIVE→rr_entry_gate, then
+            # DOUBLE_TOP_AA_SHORT should fire on the same bar.
+            _t315_blocked = getattr(self, "_t315_blocked_this_bar", set())
+            if _t315_blocked and self.mode == FiveMinMode.DAY_TYPE_MODE and self._gateway:
+                try:
+                    _t315_dir = _t315_conf = _t315_info = None
+                    if chart_patterns_allowed(_s2_det_dt, "5a"):
+                        if not _t315_dir:
+                            _t315_dir, _t315_conf, _t315_info = detect_double_bottom_ee(
+                                _det_buf, atr_5m=self._current_atr_5m)
+                        if not _t315_dir:
+                            _t315_dir, _t315_conf, _t315_info = detect_double_top_aa(
+                                _det_buf, atr_5m=self._current_atr_5m)
+                    if _t315_dir and _t315_info:
+                        _t315_kind = _t315_info.get("kind", "UNKNOWN")
+                        _t315_pn = f"{_t315_kind}_{_t315_dir}"
+                        if _t315_pn not in _t315_blocked:
+                            # Build and route the fall-through setup
+                            _t315_info["starved_by"] = ", ".join(_t315_blocked)
+                            _t315_cb = _det_buf[-1] if _det_buf else bar
+                            _t315_entry = _t315_cb.get("c", bar.get("c", 0))
+                            _t315_pm = _t315_info.get("pattern_measure", 0)
+                            _t315_sa = _t315_info.get("structural_anchor", _t315_entry)
+                            _t315_sign = 1.0 if _t315_dir == "LONG" else -1.0
+                            # Minimal stop from structural anchor
+                            from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
+                            _t315_typical = compute_today_typical(self._bar_buffer)
+                            _t315_stop_r = compute_stop(
+                                entry_price=_t315_entry,
+                                direction=_t315_dir,
+                                structural_anchor=_t315_sa,
+                                family="Double_BT",
+                                today_typical=_t315_typical,
+                            )
+                            _t315_stop = _t315_stop_r.stop_price
+                            # T1/T2 from pattern measure (positive)
+                            if _t315_kind == "DOUBLE_TOP_AA":
+                                _t315_t1 = _t315_entry - 0.50 * _t315_pm
+                                _t315_t2 = _t315_entry - 0.74 * _t315_pm
+                            else:  # DOUBLE_BOTTOM_EE
+                                _t315_t1 = _t315_entry + 0.50 * _t315_pm
+                                _t315_t2 = _t315_entry + 0.66 * _t315_pm
+                            _t315_setup = emit_t1_setup(
+                                _t315_pn, _t315_dir,
+                                entry_price=_t315_entry, stop_price=_t315_stop,
+                                t1_price=_t315_t1, t2_price=_t315_t2,
+                                bar_index=self.buffer_size,
+                                day_type=_s2_det_dt,
+                                current_price=_t315_entry,
+                                signal_bar_ts=_raw_ts_ledger,
+                            )
+                            if _t315_setup:
+                                _t315_gw = build_s2_gateway_setup(_t315_setup, _t315_info)
+                                _t315_route_r = self._gateway.route_setup(_t315_gw, 2)
+                                logger.warning("[FiveMin] T-315 fall-through: %s → gateway "
+                                            "(starved_by=%s, blocked_by=%s)",
+                                            _t315_pn, _t315_info["starved_by"],
+                                            (_t315_route_r or {}).get("blocked_by"))
+                            else:
+                                logger.warning("[FiveMin] T-315 fall-through: %s emit returned None "
+                                            "(day_type=%s)", _t315_pn, _s2_det_dt)
+                except Exception as _t315_err:
+                    logger.warning("[FiveMin] T-315 fall-through failed: %s", _t315_err)
+                self._t315_blocked_this_bar = set()
 
     def get_state(self) -> dict:
         """Current system state for API/status."""
