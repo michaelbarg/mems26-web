@@ -1,3 +1,87 @@
+### [2026-09-11 16:20 IL] cowork-daily · **אימות-שער עצמאי: 🟢 GO (לא ריצה שנייה) · 🟠 T-320 חדש: 6,599 שגיאות/יום מחתימה אחת · סיכום 10.09**
+
+ריצת-חובה-1+2 (מתוזמנת). **חובה-1 ירוקה — אפס ממתינות, נמדד במקור:** peek ישיר מ-Render ב-`16:10:38` —
+`instruction/pending ⇒ {"items":[]}` · `cmd/pending ⇒ {"cmd":null}` · `upload/pending ⇒ {"items":[]}`.
+**אפס נגיעה בריצה הזו: אפס דגל · אפס `.env` · אפס קוד · אפס ריסטארט · אפס נגיעה בפוזיציה/סלוט/פקודות.**
+
+---
+
+## 1 · ⚖️ לא הרצתי את השער מחדש — סוכן-cowork מקביל כבר הריץ ב-`15:56`, ואני **מאמת** ולא חוזר
+
+`git log` מראה שני קומיטים שלו היום: `7e435905` (‏`ops(cowork): pre-open restart 11.09 GO on 1df53fd7 — PID 25376 15:56:18`)
+ו-`4b9ca3b9` (‏`verify(cowork): pre-open 11.09 GO — independent verify`), ודיווח-הטלפון שלו ב-`16:04`.
+**בדקתי שהוא סיים לפני שנגעתי במשהו** — המפריד הוא `local_<uuid>` בטבלת-התהליכים ולא `pgrep`
+([[feedback_claim_needs_session_uuid_not_pgrep]]): `ps -eo pid,etime,command | grep "local_[0-9a-f]\{8\}"` ⇒
+**שני תהליכים בלבד, שניהם `etime 00:58`** = הסשן שלי. ⇒ אפס סוכן מקביל חי.
+**וממילא `16:10 > 16:10`** — חלון-הריסטארט סגור לפי מרשם-המשימה, ולכן ריצה-שנייה לא הייתה אפשרות.
+
+## 2 · 🟢 השער — אימות עצמאי וטרי, נמדד `16:12:51`, כל קוד-יציאה נקרא **בלי צינור**
+
+```
+python3 scripts/fire_drill.py      ⇒ rc=0   🟢 GO — כל שרשרת ההחלטה כשרה לירי
+python3 scripts/flag_guard.py      ⇒ rc=0   FLAG-GUARD: PASS — all 252 ruled flags match
+python3 scripts/task_log_guard.py  ⇒ rc=0   349 items, last committed 0.1 days ago
+```
+
+‏[[feedback_pipe_to_tail_masks_exit_code]] — כל שלושתם הופנו ל-`>` ולא ל-`| tail`.
+**גודל:** `ruled_contracts() ⇒ 5`, ו-`fire_drill` שלב-C אימת עצמאית `effective_contracts == 5`.
+**לא נגעתי בדגלי-גודל** (פסיקת 31.08). `guard_tests` ⇒ `160 passed`. `wire_guard` ⇒ 56 אתרי-קריאה.
+**בקאנד:** `PID 25376`, שורת-boot `15:56:23 [INFO] [mems26.boot] pid=25376 commit=1df53fd7`, `health 200` ב-`2.0ms`.
+`live_slot=None` · `live_enabled=[2,4]` · `chop_state=EXPANDING` · `day_type` שלב `A2/PENDING` (קדם-פתיחה, צפוי).
+
+## 3 · 💵 החשבון — **T-34 הוא דיווח-בלבד, ואין מה לדווח**, נמדד `16:12:28`
+
+`trade_account=37138283` · `acct_is_sim=0` · `position_qty=0` · `working_orders=0` · `orders=[]`
+`acct_available_funds=**3,649.69**` מול סף `1,595` ⇒ **פי 2.3 מעל** ⇒ אפס דיווח-אדום · `acct_margin_req=0.0`
+`acct_under_margin=0` · `acct_trading_disabled=0` · `acct_loss_limit_reached=0` · `order_placement_armed=1` (**דרוך**).
+⚠️ `daily_total_qty_filled=124` — **אינו מספר-של-היום**, אינו מתאפס בגבול-הסשן ([[feedback_daily_total_qty_filled_is_cumulative]]).
+
+## 4 · 🟠 הממצא היחיד שאיש לא דיווח — **T-320: 6,599 שגיאות/יום מחתימה אחת** (פירוט מלא ב-TASK_LOG)
+
+ספירה **לפי רמה, עם מכנה מוצהר** ([[feedback_level_census_not_guessed_grep]]):
+`13,972` שורות היום ⇒ `[ERROR] **6,600**` · `[INFO] 5,451` · `[WARNING] 1,589` · `CRITICAL **0**` (מול **12** אתמול).
+**6,599 מתוך 6,600 הן חתימה אחת:** `[bars/5min] TS-OFFSET-GATE REJECTED batch ... while feed advances`.
+**השורש נמדד ב-DB:** `max(ts) FROM v9_bars_5min ⇒ 09-10 23:55`, גיל **979 דק'** ⇒ המקור קפוא מאז אתמול,
+**והשומר דוחה אותו נכון** ⇒ הגנה שעובדת, לא באג חדש. קצב-קבע ~1,180/שעה מאז `09:24:55`.
+**🟢 הנתיב הקנוני חי, ואומת לפי תוכן ולא חותמת:** `v9_bars_5min_woodies max(ts) ⇒ 16:15`, סגירה `7667.0`,
+מול `live_price` `bid 7667.25 / ask 7667.5` ⇒ **אותו מחיר** ⇒ בר אמיתי. ⇒ **אין חסם-מסחר** ⇒ 🟠 ולא 🔴.
+**המחיר האמיתי:** 1,180 שגיאות/שעה **יבלעו את השגיאה האמיתית הבאה**. זו הסיבה שזה נרשם.
+
+## 5 · ⚠️ תיקון-עצמי — טענתי טענה שקרית ותפסתי אותה לפני הדיווח
+
+בדרך כתבתי לעצמי ש**ייצוא-woodies תקוע 5 שעות** (‏`woodies_5min.json ⇒ n=0 ברים, last_bar 11:10`).
+**זה היה ארטיפקט-פרסר, לא ממצא:** שם-השדה בקובץ הוא `history`+`current_bar` ולא `bars`, והניחוש שלי
+החזיר ריק **שנראה בדיוק כמו קיפאון**. אותה מחלקה כמו [[feedback_grep_zero_needs_string_proof]].
+**המפריד שהכריע: השוואת-מחיר מול `live_price`** — לא חותמת, לא `mtime`
+(‏`mtime` של שלושת קבצי-הייצוא היה `16:14:12` = טרי, בעוד תוכן `5min.json` מ-`09-10 18:55`;
+[[feedback_file_mtime_is_not_content_freshness]]).
+
+## 6 · 📒 סיכום 10.09 (חובה-2א)
+
+**לייב — עסקה אחת:** `#1409` · S2 · LONG · `17:30→18:55` · `STOP_HIT` · **−$33.75** · `Trend_Normal` · `INITIATIVE_LONG` · `is_synthetic=0`.
+**צל — 64 עסקאות, −$7,654.27:** `S4 ⇒ 38 עסקאות · 3 נצחונות · −$6,011.87` (‏8% הצלחה) · `S2 ⇒ 26 · 11 · −$1,642.40`.
+**ליגר `gateway_decisions.jsonl`, מכנה 64 רשומות ל-10.09:** `GATE_DECISION 61` + `ROUTED 3`
+⇒ **אפס `DETECTED` ואפס `RESOLVED`** — שני השלבים האלה **אינם נכתבים כלל**, וזה עצמו ממצא.
+**חוסם-ראשון (‏`blocked_by`):** `dalton_intent:kind **30**` · `stand_down 26` · `bias 3` · `rr_entry_gate 2` · `None 3`.
+⇒ `kind` הוא **47% מכלל החסימות** — בדיוק [[feedback_kind_by_name_starves_normal_days]] ו-[[T-316]].
+**`live_blocked_by`:** `None` ב-**63 מתוך 64**, `live_slot_occupied` ב-**1** ⇒ **עלות [[T-309]] אתמול = מועמד אחד, לא יום.**
+**S1DayDir:** 2,724 שורות-צל היום ⇒ פעיל. **EntryGuard:** אפס שורות היום ⇒ קדם-פתיחה, אין כניסות (צפוי).
+
+## 7 · 🔴 מה שאיני יודע ואיני ממציא — **`pnl_sierra` ריק לחלוטין**
+
+`SELECT count(pnl_sierra) FROM v9_trades WHERE 10.09 ⇒ **0 מתוך 65**` — **NULL, לא אפס.**
+⇒ **אין צד-סיירה לאימות-צולב**, וכל מספרי-הדולר בסעיף 6 הם **הרישום שלנו בלבד** — שהוא רשומת-הגשה
+ומוטה לפי [[project_0904_t256_entry_price_bias]] / [[project_0902_t227_books_overstate_sierra_activity_log]].
+⚠️ `SUM(COALESCE(pnl_sierra,0))` מחזיר `0.00` **ונראה כמו מדידה** — הוא ארטיפקט של ה-`COALESCE`.
+**הצעד:** `pnl_sierra` אינו מאוכלס בנתיב-הכתיבה — פריט ל-cc, לא פסיקה למייקל.
+
+**נשלח למייקל ואומת כנמסר** (‏`ok` אינו ראיית-מסירה — [[feedback_phone_reply_argv_not_stdin]]):
+`GET /chat?key=… ⇒ http 200 · items=30 · last.sender=cowork · ts=2026-09-11T13:16:38Z · len=2697` ✓ תוכן תואם.
+
+— cowork-dev
+
+---
+
 ### [2026-09-11 14:45 IL] cowork · ⚠️ **שער 15:45 כבר אינו יוצא על `e706831c` — ה-HEAD התקדם חמישה קומיטים, ואחד מהם הוא שער-מסחר בלי דגל. תיקון לשורה שלי מ-11:52.**
 
 ריצת-חובה-1 (מענה-טלפון). **אין ממתינות ממייקל — נמדד במקור ולא בקובץ המקומי:** peek ישיר מ-Render
