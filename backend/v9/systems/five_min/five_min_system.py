@@ -1794,6 +1794,88 @@ class FiveMinSystem(BaseV9TradingSystem):
                 self._cf_fired = set()
                 self.ceiling_floor_state = None  # honest reset at the day roll
 
+            # T-328 §4: CEILING_FLIP_TOUCH2 — runs BEFORE the neckline-break
+            # detector because it fires at the second touch rejection, not at
+            # the neckline break. The neckline-break detector may return None
+            # (and `return` early) when TOUCH2 should fire.
+            _t2_mode = os.getenv("CEILING_FLIP_TOUCH2_V1", "0").lower()
+            if _t2_mode in ("1", "true", "shadow"):
+                try:
+                    from backend.v9.systems.ceiling_touch2 import detect_touch2
+                    _t2_ib_w = None
+                    try:
+                        _t2_ibh = float((_cf_levels or {}).get("ib_high") or 0)
+                        _t2_ibl = float((_cf_levels or {}).get("ib_low") or 0)
+                        if _t2_ibh > 0 and _t2_ibl > 0:
+                            _t2_ib_w = _t2_ibh - _t2_ibl
+                    except Exception:
+                        pass
+                    _t2_st = detect_touch2(
+                        _cf_bars, _cf_levels,
+                        atr=_cf_atr(_cf_bars, period=14),
+                        ib_width=_t2_ib_w,
+                        already_fired=getattr(self, "_t2_fired", None),
+                    )
+                    if _t2_st:
+                        if not hasattr(self, "_t2_fired"):
+                            self._t2_fired = set()
+                        self._t2_fired.add(_t2_st["key"])
+                        _t2_dir = "SHORT" if _t2_st["state"] == "CEILING_TOUCH2_REJECT" else "LONG"
+                        _t2_entry = _t2_st["confirm_close"]
+                        _t2_extreme = max(_t2_st["p1"], _t2_st["p2"]) if _t2_dir == "SHORT" \
+                            else min(_t2_st["p1"], _t2_st["p2"])
+                        _t2_tick = 0.25
+                        _t2_stop = round(_t2_extreme + _t2_tick, 2) if _t2_dir == "SHORT" \
+                            else round(_t2_extreme - _t2_tick, 2)
+                        _t2_poc = (_cf_levels or {}).get("poc")
+                        _t2_t1 = round(float(_t2_poc), 2) if _t2_poc else None
+                        if _t2_dir == "SHORT":
+                            _t2_opp = (_cf_levels or {}).get("val") or (_cf_levels or {}).get("session_low")
+                            _t2_opp_ib = (_cf_levels or {}).get("ib_low")
+                        else:
+                            _t2_opp = (_cf_levels or {}).get("vah") or (_cf_levels or {}).get("session_high")
+                            _t2_opp_ib = (_cf_levels or {}).get("ib_high")
+                        _t2_t2 = round(float(_t2_opp), 2) if _t2_opp else None
+                        _t2_t3 = round(float(_t2_opp_ib), 2) if _t2_opp_ib else None
+                        if _t2_t1 is not None:
+                            if _t2_dir == "SHORT" and _t2_t1 >= _t2_entry:
+                                _t2_t1 = _t2_t2
+                            elif _t2_dir == "LONG" and _t2_t1 <= _t2_entry:
+                                _t2_t1 = _t2_t2
+                        _t2_risk = abs(_t2_entry - _t2_stop)
+                        if _t2_t1 is None:
+                            _t2_sign = -1.0 if _t2_dir == "SHORT" else 1.0
+                            _t2_t1 = round(_t2_entry + _t2_sign * 1.0 * _t2_risk, 2)
+                        if _t2_t2 is None:
+                            _t2_sign = -1.0 if _t2_dir == "SHORT" else 1.0
+                            _t2_t2 = round(_t2_entry + _t2_sign * 2.0 * _t2_risk, 2)
+                        _t2_setup = {
+                            "direction": _t2_dir,
+                            "entry_price": _t2_entry,
+                            "stop": _t2_stop,
+                            "t1": _t2_t1, "t2": _t2_t2, "t3": _t2_t3,
+                            "classification": "CEILING_FLIP_TOUCH2",
+                            "pattern": "CEILING_FLIP_TOUCH2",
+                            "structural_anchor": _t2_extreme,
+                            "metadata": {
+                                "shadow_only": (_t2_mode == "shadow"),
+                                "pattern": "CEILING_FLIP_TOUCH2",
+                                "p1": _t2_st["p1"], "p2": _t2_st["p2"],
+                                "edge": _t2_st.get("edge"),
+                                "edge_source": _t2_st.get("edge_source"),
+                            },
+                        }
+                        logger.warning(
+                            "[CeilingFlipTouch2] %s → %s entry=%.2f stop=%.2f "
+                            "anchor=%.2f T1=%.2f T2=%s (%s)",
+                            _t2_st["state"], _t2_dir, _t2_entry, _t2_stop,
+                            _t2_extreme, _t2_t1, _t2_t2,
+                            "SHADOW" if _t2_mode == "shadow" else "live")
+                        if self._gateway:
+                            self._gateway.route_setup(_t2_setup, 2)
+                except Exception as _t2_err:
+                    logger.warning("[CeilingFlipTouch2] failed (non-fatal): %s", _t2_err)
+
             _cf_st = detect_ceiling_floor(
                 _cf_bars, _cf_levels, _cf_atr(_cf_bars, period=14),
                 load_ceiling_floor("baseline"),
@@ -1880,6 +1962,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                 except Exception as _flip_err:
                     logger.warning("[CeilingFlip] failed (non-fatal): %s",
                                    _flip_err)
+
         except Exception as _cf_err:
             logger.warning("[CeilingFloor] failed (non-fatal): %s", _cf_err)
 

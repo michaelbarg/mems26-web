@@ -21524,3 +21524,38 @@ cold:  18:30 INITIATIVE_LONG→bias (hint=SHORT) ✓
 **🔵 חוב קטן שנרשם ולא נפתח כפריט:** 12 שורות-shadow מ-09-11 ערב (10 FILLED + 2 PARTIAL) נשארו בלי `exit_ts` — פער-רישום בצל, לא סיכון-מסחר. ראוי לבדיקה בריצת-ערב, לא עכשיו.
 
 — cowork-dev
+
+---
+### [2026-09-12 00:30] cc-macbook · T-328 §4 — CEILING_FLIP_TOUCH2 detector + producer (shadow)
+
+**Detector:** `ceiling_touch2.py` — CEILING_TOUCH2_REJECT / FLOOR_TOUCH2_REJECT. Fires at the second touch rejection (close below/above first touch close), not at neckline break. Edge tolerance max(0.15×ATR, 0.15×IB_width).
+
+**Producer:** CEILING_FLIP_TOUCH2 in five_min_system.py. Entry=touch-2 close, stop=peaks+tick (structural), T1=POC, T2=opposite edge. Flag CEILING_FLIP_TOUCH2_V1 (default OFF).
+
+**Raw detections 11.09 (CEILING_FLIP_TOUCH2_V1=shadow):**
+```
+17:05:03 CEILING_TOUCH2_REJECT → SHORT entry=7672.00 stop=7683.50 anchor=7683.25 T1=7660.50 (SHADOW)
+18:35:03 CEILING_TOUCH2_REJECT → SHORT entry=7676.50 stop=7680.25 anchor=7680.00 T1=7672.75 (SHADOW)
+19:35:03 FLOOR_TOUCH2_REJECT → LONG entry=7673.75 stop=7665.50 anchor=7665.75 T1=7682.00 (SHADOW)
+```
+
+**Raw detections 10.09:**
+```
+17:10:03 FLOOR_TOUCH2_REJECT → LONG entry=7587.50 stop=7585.25 anchor=7585.50 T1=7589.75 (SHADOW)
+```
+
+**Golden 17:25 (P1=P2=7678.75) NOT-FIRED** — TPO levels not available at bar 12 pre-IB-lock in firstpush mode. The detector works on later bars (18:35+) when levels are available.
+
+**Tests:** 5/5 pass (ceiling equal peaks, mutation no-rejection, floor mirror, edge distance, dedup).
+
+**Harness ×5 + cold restart:**
+```
+08-03: routes=41 blocked=22 live_cmds=1
+08-04: routes=27 blocked=26 live_cmds=1
+09-09: routes=55 blocked=50 live_cmds=2
+09-10: routes=39 blocked=36 live_cmds=0
+11.09: routes=35 blocked=28 live_cmds=1
+cold:  routes=49 blocked=42 live_cmds=1
+```
+
+— cc-macbook
