@@ -1,3 +1,128 @@
+### [2026-09-13 19:45 IL] cowork-scheduled · 🟢 **חובה-1 — הטלפון שקט (peek חמישה-עשר)** · 🆕 **[[T-347]] נפתח — `EXIT_TRACK_ACTIVITY_V1` דלוק ו-`FillPoller` מכריז על עצמו `BLIND`** · 🔴 **תיקון-עצמי: "6 עסקאות-לייב פתוחות" היה סינון על העמודה הלא-נכונה** · **אל: cc**
+
+ריצה `19:36-19:45`. יום ראשון, השוק סגור (‏MES נפתח א' `18:00 ET` = ב' `01:00 IL`) ⇒ **חובה-1 חלה**; **חובה-2 אינה נדרכת** (`19:36` מאוחרת מ-`16:10`, וגם אין פתיחה היום); **חובה-3 נדרכת בשעון אך אין RTH** ⇒ ניטור-קריאה בלבד.
+
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד-מסחר · **אפס ריסטארט** · אפס נגיעה בפוזיציה/סלוט/פקודות. `~/SierraChart*` נקרא **קריאה-בלבד** (`ls`/`stat`/`tail`/`find`). **כתיבה: `TASK_LOG.md` + הקובץ הזה בלבד.**
+
+#### 1 · ✅ אין ממתינות — peek חמישה-עשר היום
+
+```
+peek ישיר מ-Render ב-19:37:33 IL:
+  /instruction/pending  ⇒  {"items":[]}
+  /cmd/pending          ⇒  {"cmd":null}
+  /upload/pending       ⇒  {"items":[]}
+```
+
+`PHONE_THREAD.jsonl` — 521 שורות, אחרונה `09-11T20:46Z`; **אחרונת-מייקל `2026-09-11T17:24:48Z` ולה תשובה עניינית `17:45:33Z`** ⇒ אין הודעה בלי מענה ⇒ **לא נשלחה תשובה-מענה** (חובה-3: *תקין ⇒ שקט*).
+
+**הרלה מוכח-מושך ולא `state=running`** ([[feedback_relay_running_is_not_polling]]) — `PID 2006` (עלה `Fri Sep 11 09:28:59`), 12 דגימות `lsof -a -p 2006 -i -nP` במרווחי 3 שנ'; 5 תפסו שקע, **וכל הפורטים שנתפסו שונים**:
+
+```
+19:37:44=53875   19:37:53=53979   19:38:09=54227   19:38:16=54327
+samples_with_socket=5/12   (‏4 פורטים ייחודיים ב-35 שנ')
+```
+
+⇒ שקע חדש בכל מחזור = תעבורה, לא הבהוב.
+
+#### 2 · 🆕 [[T-347]] — הדגל דלוק, והפולר מכריז על עצמו עיוור
+
+הראיה הגולמית (Rule 5), `19:34:45`:
+
+```
+[WARNING] [fill_poller] [FillPoller] EXIT_TRACK_ACTIVITY_V1 is ON but
+/Users/michael/SierraChart_Data/v9_export/trade_activity_events.jsonl is 70530s stale (> 900s)
+— exit tracking is BLIND; Sierra-truth exits will not be priced (check com.mems26.activity_feed)
+[throttled 300s]
+```
+
+**זה לא רעש בודד — זה כל פלט-הפולר.** מפקד לפי יום, עם בקרה-חיובית באותו קובץ ([[feedback_grep_zero_needs_string_proof]]):
+
+```
+grep "EXIT_TRACK_ACTIVITY_V1 is ON but"      ⇒  09-11: 3    09-12: 74    09-13: 234
+grep "[fill_poller]"  (בקרה חיובית)          ⇒  09-11: 231  09-12: 74    09-13: 234
+```
+
+הפרסר **כן** רואה את 09-11 (231 שורות) ⇒ הקפיצה מ-`3/231` ל-`74/74` ול-`234/234` היא אמת, לא עיוורון-`grep`.
+
+**שלושה מפרידים — לא הנחה:**
+
+1. **הכותב חי, ולכן אין כאן חזרה על שורש-[[T-227]]** (27.08: רג'קס שבור + LaunchAgent לא-טעון). `launchctl` ⇒ `2010 0 com.mems26.activity_feed`; `/tmp/activity_feed.log` `mtime 19:02:09` (לפני 39 דק'); `activity_feed.err.log` בגודל **0**.
+2. **`mtime` אינו טריות-תוכן** ([[feedback_file_mtime_is_not_content_freshness]]) — ושתי הצורות זו-לצד-זו:
+   ```
+   mtime של ה-JSONL        ⇒  2026-09-12 23:59:15   (19.7 שעות)
+   scan_ts של השורה האחרונה ⇒  2026-09-11T18:20:34Z = 21:20 IL  (46.3 שעות)
+   ```
+   ⇒ **אזהרת-הפולר מקטינה את העיוורון פי-2.4**, כי היא נמדדת על `mtime` ולא על התוכן.
+3. **הסיבה היא היעדר-מקור, לא כותב-שבור:**
+   ```
+   TradeActivityLog_2026-09-11_UTC.37138283.data  ⇒  163,808 בתים
+   TradeActivityLog_2026-09-12_UTC.37138283.data  ⇒      516 בתים (גדם, כותרת-חשבון בלבד)
+   TradeActivityLog_2026-09-13_UTC.37138283.data  ⇒  No such file or directory
+   ```
+   סיירה לא יצרה קובץ-פעילות היום ⇒ אין מה לסרוק ⇒ ה-JSONL אינו מתקדם.
+
+**⚠️ תיקון-עצמי:** ה-`ls` הראשון שלי רץ על `~/SierraChart_Data` והחזיר אפס-קבצים — **נתיב שגוי שלי**, לא היעדר. המקור נקרא מ-`SIERRA_DIR = ~/SierraChart/TradeActivityLogs` (`trade_activity_feed.py:28`), ושם `find ⇒ 2,037` קבצים = בקרה-חיובית שהספרייה נראית.
+
+**⚠️ אינו נטען:** שזה ייפתר בפתיחה. זו **תחזית** הנשענת על כך שסיירה תיצור `TradeActivityLog_2026-09-14` ושהפיד יתפוס אותו — ניתנת-להפרכה מחר.
+
+**סיווג היום: רעש-ולא-סיכון** (שוק סגור, `position_qty=0`, אפס עסקאות לתמחר). **אבל המחלקה היא [[T-227]]/[[T-256]]/[[T-290]]** — ספרים שנסגרים בלי אמת-ברוקר ⇒ **פריט-קדם-פתיחה לחובה-2 מחר**: לאמת שהמקור נוצר ושה-JSONL מתקדם **בתוכן** (`scan_ts` חדש, לא `mtime`). לא לכבות את הדגל (פסיקת-מייקל 27.07).
+
+#### 3 · 🔴 תיקון-עצמי — "6 עסקאות-לייב פתוחות" נתפס לפני שנוסח
+
+השאילתה הראשונה שלי סיננה `outcome NOT IN ('CANCELLED','CANCELED')` והחזירה `6`. **הסימון יושב בעמודה `state`, לא `outcome`** — ה-`outcome` של כל השש הוא `NULL`, ולכן הן עברו את הסינון:
+
+```
+SELECT state, count(*) ... WHERE lower(mode)='live' AND exit_ts IS NULL GROUP BY 1
+⇒  CANCELLED | 6      (מסתכם במכנה)
+```
+
+⇒ **אפס פוזיציות-לייב פתוחות אמיתיות.** אלה ששת השרידים מ-27.07 שכבר תועדו ב-TASK_LOG של 09-07 — לא חדש ולא שינוי. מאושש מבחוץ, `/api/v9/agent/sierra_live_check`: `sierra_qty=0 · working_orders=0 · tm_open_trades=0 · tm_net_qty=0` ⇒ **flat בשני הצדדים**, verdict 🟢. ([[feedback_exit_ts_null_counts_cancelled]] — הפעם המלכודת הייתה שכבה אחת עמוקה יותר: העמודה, לא הערך.)
+
+#### 4 · [[T-164]] ממשיך — מפקד-רמות מסתכם במכנה, ואין מחלקה חדשה
+
+מכנה `53,055` שורות ל-13.09 (צילום `19:39:38`):
+
+```
+רמה    ⇒  28,827 WARNING + 13,580 ERROR + 10,648 INFO = 53,055  ✓
+לוגר   ⇒  backend.v9.api.v9.bars = 41,334  (77.9% מכל הלוג)
+ERROR  ⇒  bars 13,580 / 13,580  =  100%
+WARNING⇒  bars 27,754 + build_status.types 840 + fill_poller 233 = 28,827  ✓
+CRITICAL ⇒ 0   (בקרה-חיובית: grep "\[ERROR\]" באותה צורה ⇒ 13,580)
+```
+
+**שתי משפחות-ה-WARNING שאינן-bars אופיינו לראשונה** — כל אחת **צורה יחידה** שמסתכמת במכנה שלה: `840/840` `Coercing datetime→str for pydantic field` · `233/233` = T-347 לעיל. ⇒ ה-`0 CRITICAL` הוא היעדר-אמת, ואין מחלקת-שגיאה חדשה מעבר לידוע.
+
+#### 5 · 🟠 [[T-345]] — ללא שינוי, והעלות עדיין אפס
+
+```
+git fetch origin           ⇒ rc=0
+git rev-list --left-right --count HEAD...@{upstream}  ⇒  0	0     (origin לא זז)
+git diff --name-only       ⇒  backend/v9/systems/five_min/five_min_system.py   (אחד)
+git ls-files --others      ⇒  57
+git pull --rebase          ⇒  rc=128 "cannot pull with rebase: You have unstaged changes"
+```
+
+ה-`rc=128` **צפוי ואינו החסם שנמדד** — שער-קדם-הפתיחה מריץ `--ff-only` (‏`MEMS26_CONTROL.command:128`), והתנאי שנמדד ב-18:44 עומד: החסם מתממש **רק אם** origin יזוז בקומיט הנוגע ב-`five_min_system.py`. `0	0` ⇒ לא זז.
+
+#### 6 · 🟢 מצב (נמדד `19:36-19:41`)
+
+```
+/health                 200 @ 3.6ms     backend PID 39331 מ-11.09 18:29:18 (uptime 176,956s)
+sierra_state age        0.3-0.9s        ⇒ כותב-המצב חי גם בשוק סגור  (המפריד מול פיד-מת)
+position_qty 0 · working_orders 0 · verdict flat · open_trade null
+live_slot None · live_slot_system None · is_sim 0 · armed 1
+acct_daily_pl 0.0 · acct_available_funds $2,953.14 · acct_under_margin 0
+בר-קנוני (woodies)      2026-09-11 23:55 IL · גיל 2,623.8 דק' · 0 ברים ב-36ש'
+flag_guard      rc=0    PASS 252 + LIVENESS
+task_log_guard  rc=0    335 items
+```
+
+הבר הקפוא הוא **בר-סגירת-שישי**, ובשוק סגור זה צפוי — המפריד מול פיד-מת הוא `sierra_state` בן שבריר-שנייה ([[feedback_frozen_bar_is_not_dead_feed]]). שני ה-`rc` נלכדו **ישירות ולא דרך `| tail`** ([[feedback_pipe_to_tail_masks_exit_code]]). `daily_pnl=-262.5` · `daily_total_qty_filled=104` · `gateway trades_today=3`/`daily_pnl=47.5` — **שלושתם לא נמסרו כאמת-היום** (פסולים/מצטברים/[[T-346]]).
+
+— cowork-dev, 13.09 19:45 IL
+
+---
+
 ### [2026-09-13 19:13 IL] cowork-scheduled · 🟢 **חובה-1 — הטלפון שקט (peek ארבעה-עשר)** · 🔑 **[[T-164]] — "הקנוני נקי" נמדד על ERROR בלבד; במפקד-רמות-מלא הוא הגוש הגדול בלוג, והוא ארטיפקט-סוף-שבוע** · 🟠 **[[T-346]] — המונים שויכו לסשן מזוהה והדלתא כומתה** · **אל: cc**
 
 ריצה `19:06-19:13`. יום ראשון, השוק סגור (‏MES נפתח א' `18:00 ET` = ב' `01:00 IL`) ⇒ **חובה-1 חלה**; **חובה-2 אינה נדרכת** (`19:06` מאוחרת מ-`16:10`, וגם אין פתיחה היום); **חובה-3 נדרכת בשעון אך אין RTH** ⇒ ניטור-קריאה בלבד.
