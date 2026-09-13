@@ -1,3 +1,104 @@
+### [2026-09-13 11:10 IL] cowork-scheduled · 🟢 **חובה-1 בלבד (יום א', שוק סגור) — אין ממתינות, והרלה מוכח מושך** · 🟠 **לסוכן-שער-שני: קוד לא-מקומט על הדיסק לפני הריסטארט**
+
+ריצה של `11:06-11:12`. **רק חובה-1 חלה** — חובה-2 היא `15:30-16:10`, חובה-3 היא `16:30-23:00`, חובה-4 היא `23:00-23:30`. בנוסף: יום ראשון, השוק סגור (גלובקס נפתח `18:00 ET` = `01:00 IL` ליום ב').
+
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · אפס ריסטארט · אפס נגיעה בפוזיציה/סלוט/פקודות. קריאות בלבד.
+
+---
+
+#### 1 · ✅ **אין ממתינות — ולא הסקתי את זה מקובץ שקט**
+
+`PHONE_THREAD.jsonl` לא נכתב מאז `09-11 23:46` (35 שעות). לפי [[feedback_phone_silence_needs_live_relay_proof]] זו **שלילה-כוזבת** עד שמוכח שהרלה חי, ולפי [[feedback_relay_running_is_not_polling]] גם `state = running` אינו "מושך". שלוש ראיות, לא אחת:
+
+```
+(א) peek ישיר מ-Render ב-11:07:52 IL:
+    /instruction/pending  ⇒  {"items":[]}
+    /cmd/pending          ⇒  {"cmd":null}
+    /upload/pending       ⇒  {"items":[]}
+
+(ב) הרלה מושך בפועל — שקע פתוח, לא רק state:
+    lsof -a -p 2006 -i -n -P  ⇒  192.168.1.127:55677->216.24.57.7:443 (ESTABLISHED)
+    dig mems26-mobile.onrender.com ⇒ 216.24.57.7   ⇒ היעד הוא Render, לא ניחוש
+    דגימות: 2 מתוך 6 @5ש' מראות ESTABLISHED = חתימת-משיכה מחזורית
+
+(ג) מפקד-סוכנים 9/9 רשומים (backend bridge frontend mobile_relay export_promoter
+    activity_feed eod_handoff startup_check update_check) — אין חזרה של T-259.
+```
+
+ההודעה האחרונה של מייקל היא `09-11 20:24 IL` ("אם אני סוגר את העסקה תנסה לעשות במחיר הטוב ביותר"), ויש לה **תשובה עניינית** של cowork ב-`20:45`. ⇒ **שקט בטלפון, לפי חובה-1.**
+
+⚠️ **ולמה `/tmp/mobile_relay.log` עומד על `09:50:02` ואינו ראיה לתקיעה:** 33 השורות האחרונות זהות — `[relay] idle notice pushed (window=10:00-23:30)` — והאחרונה היא `09:50`, כלומר **עשר דקות לפני שהחלון נפתח**. ההודעה נכתבת **מחוץ** לחלון; ב-`10:00` הרלה עבר למשיכה פעילה והפסיק לכתוב אותה. השקעים בסעיף (ב) הם המפריד, לא ה-mtime ([[feedback_file_mtime_is_not_content_freshness]]).
+
+---
+
+#### 2 · 🟠 **לסוכן-שער של יום ב': שני דברים על הדיסק שהריסטארט יטען**
+
+הריסטארט-קדם-פתיחה של חובה-2 טוען **את מה שעל הדיסק**, ולכן זה נמסר לפניו ולא אחריו.
+
+**(א) הבקאנד הרץ מקדים את HEAD ב-5.3 שעות:**
+
+```
+backend PID 39331  start = Fri Sep 11 18:29:18 2026
+HEAD              = 8d6c05ae  09-11 23:48  "cowork night 23:58: delivery verified…"
+```
+
+⇒ מה שנכנס בין `18:29` ל-`23:48` **אינו רץ** כרגע. הריסטארט של `15:30-16:10` (בפוזיציה 0, אחרי `git pull`) הוא התיקון המתוכנן — לא נדרשת פעולה עכשיו.
+
+**(ב) עבודה לא-מקומטת של cc, ובדקתי שהיא בטוחה לטעינה:**
+
+```
+ M backend/v9/systems/five_min/five_min_system.py   (+83)  — חיווט CEILING_FLIP_TOUCH2
+?? backend/v9/systems/ceiling_touch2.py                    — גלאי חדש (T-328 §4)
+ M config/news_calendar.yaml                               — תוצר ריצת-עדכון tradingview
+```
+
+זהו הגלאי של **תקרה-כפולה בנגיעה-השנייה** — המחלקה ש[[feedback_golden_is_the_traders_pattern_not_code_output]] נפתחה עליה ב-11.09. **המפריד שזה בטוח, ולא הנחתי אותו:**
+
+```
+grep CEILING_FLIP_TOUCH2 .env                 ⇒ NOT_IN_ENV
+grep CEILING_FLIP_TOUCH2 config/RULED_FLAGS.yaml ⇒ NOT_IN_RULED_FLAGS
+קוד: os.getenv("CEILING_FLIP_TOUCH2_V1", "0")  ⇒ ברירת-מחדל 0 = כבוי
+```
+
+⇒ הריסטארט יטען קוד-מת. **אין כאן הדלקה ואין סיכון-מסחר.** ⚠️ אבל דגל חדש בלי שורה ב-`RULED_FLAGS.yaml` הוא `UNMEASURED` לפי [[LEARNING_DOCTRINE]] — **הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל.** כשתידלק: מספר-ריפליי קודם.
+
+⚠️ ומה שבמפורש אינו נטען: שהקוד הזה **נכון**. לא קראתי אותו לעומק ולא הרצתי עליו גולדן — נמדד רק שהוא **כבוי**.
+
+---
+
+#### 3 · 🟢 **מצב-המערכת — שטוח, פנוי, ושומרים ירוקים**
+
+```
+account/state:   position_qty 0 · working_orders 0 · is_sim 0 · armed 1
+                 acct_available_funds $2,953.14 · acct_daily_pl 0.0 · acct_trading_disabled 0
+sierra_live_check: open_trade_detect ⇒ "flat בשני הצדדים" (sierra_qty 0, tm_net_qty 0)
+gateway/status:  live_slot null  ⇒ אין חזרה של T-178/T-309/T-342
+flag_guard:      rc=0 · PASS — 252 דגלים תואמים · BUDGET×MIN 225×3=675 ≤ 800
+task_log_guard:  rc=0 · PASS — 333 פריטים, הקומיט האחרון לפני 1.5 ימים
+.env mtime 09-11 18:10:32  <  backend start 18:29:18  ⇒ התהליך נושא את ה-.env הנוכחי
+```
+
+**🟡 ומה שנראה אדום ואינו:** `sierra_live_check` מחזיר `sierra_alive ok=false · age_s 24,674` (‏6.85 שעות) ו-verdict `🟡 יש פער`. **השוק סגור מיום ו' `17:00 ET`** — [[feedback_frozen_bar_is_not_dead_feed]]: הדי-אל-אל לא כותב כי אין מה לכתוב, וסיירה עצמה **חיה** (‏`Menu Helper` תחת CrossOver, `7.7% CPU` — [[feedback_pgrep_blind_to_wine_sierra]] אומר ש-`pgrep sierra` היה מחזיר 0 ומשקר). **הבדיקה האמיתית היא ביום ב' בבוקר:** אם `age_s` עדיין גדול אחרי `01:00 IL` — זו תקלה. עכשיו זו לא.
+
+**🔴 ושני מספרים שאסור לצטט מהריצה הזו:** `gateway/status.daily_pnl = 47.5` ו-`trades_today = 3` הם **של יום שישי** ([[feedback_gateway_status_daily_pnl_is_yesterday]]), ו-`sierra_state.daily_pnl = −262.5` הוא השדה הפסול לחלוטין ([[feedback_daily_pnl_is_the_wrong_field]]). **המספר הנכון להיום: `0` סגירות · `$0`** — `closures_on_fills ⇒ day_n 0`. וגם `daily_total_qty_filled = 104` הוא מצטבר ולא של-היום ([[feedback_daily_total_qty_filled_is_cumulative]]).
+
+---
+
+#### 4 · ⏱️ **שעון אחד קדימה, כדי שלא יפתיע**
+
+`task_log_guard` נכשל על לוג שלא עודכן **3 ימים**. הקומיט האחרון הוא `09-11 23:43`:
+
+```
+שער יום ב'  09-14 15:30  ⇒ 2.65 ימים  ⇒ PASS (בקושי)
+שער יום ג'  09-15 15:30  ⇒ 3.65 ימים  ⇒ FAIL — אם הלוג לא יעודכן בינתיים
+```
+
+זו בדיוק התקלה שהפילה את שער `09-11`. **הריצה היומית של יום ב' מעדכנת אותו ממילא** — נרשם כאן רק כדי שאם יום ב' יידלג, יום ג' לא יופתע.
+
+— `cowork-scheduled`, נמדד `11:06-11:12 IL`, יום א' 13.09.2026
+
+---
+
 ### [2026-09-11 23:55 IL] cowork-scheduled · 🟠 **[[T-344]] — מועמד-לייב שעבר את *כל* שערי-דלתון מת על פוזיציה זרה, והשוק ענה שזו הייתה טובה (`−1R` בצל)** · 🟢 **מפקד-שגיאות: 6,602 = 6,600 שומר-עובד + 2 אמיתיות**
 
 המשך-הריצה של ה-CLAIM מ-`23:20` (אותו סוכן, אותו לילה). **חובה-1 — אין ממתינות ממייקל:** peek ישיר מ-Render ב-`23:37:29` ⇒ `instruction/pending {"items":[]}` · `cmd/pending {"cmd":null}` · `upload/pending {"items":[]}`. ⇒ **שקט, לפי חובה-1.**
