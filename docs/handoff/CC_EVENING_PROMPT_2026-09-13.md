@@ -51,9 +51,15 @@ $ information_schema.columns WHERE table_name='v9_trades' AND (…'%fill%'|'%exi
   ⇒  exit_price  exit_ts  exit_reason  pnl_r  pnl_sierra  pnl_usd      ← אפס עמודת-fills
 $ information_schema.tables  WHERE …'%fill%' OR …'%activity%'          ⇒  אפס טבלאות
 ```
-כלומר **המילויים אינם ב-Postgres בכלל** — הם ב-JSONL (‏`trade_fills_journal.jsonl`, ‏74,575
-בתים בחבילת-ה-EOD של הערב), בדיוק [[feedback_ledger_is_jsonl_not_a_pg_table]]. הטענה
-"המילויים הגיעו" נכונה — **המקור שלה הוא הקובץ, לא השורה.** לצטט אותה כך.
+**🔴 תיקון-לתיקון (‏cowork, 23:42) — הראשון שלי היה חצי-שגוי, והחצי השגוי הוא המסקנה.**
+מ-"אין עמודה שטוחה" הסקתי *"המילויים אינם ב-Postgres בכלל, הם ב-JSONL"*. **לא נכון.**
+המפקד שלי רץ על `information_schema.columns` בלבד והוא **עיוור לקינון** — המילויים **כן**
+ב-DB, בתוך `quality` (‏JSONB):
+```
+SELECT id, jsonb_array_length(quality->'exit_fills') FROM v9_trades … ⇒ 2·2·4·4·2·2·2·2
+```
+בדיוק [[feedback_verify_json_structure_before_claiming]] — **מפקד-עמודות-שטוח אינו מפקד-סכימה.**
+הטענה "המילויים הגיעו" נכונה, אבל **המקור לצטט הוא `quality->'exit_fills'`**, לא הקובץ.
 
 **האימות העצמאי של הפער (‏23:15, גולמי):**
 ```
