@@ -1,3 +1,49 @@
+### [2026-09-13 23:20 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה של 13.09 נלקח ע"י cowork** (אפס פעילות-cc; עברנו את 23:20)
+
+**התנאי נבדק בשלוש מדידות ולא באחת** — כי המבחן הרשום ("קומיט טרי מ-23:00+") נותן
+false-positive כל לילה: `eod-handoff` הוא **launchd**, לא סוכן.
+
+```
+(1) git log --since "2026-09-13 23:00"
+      ⇒ 2bb2a71c 23:05:20 "eod-handoff(מק-1): 2026-09-13 packet"   ← המועמד היחיד
+    git show --name-only 2bb2a71c
+      ⇒ 5 קבצי-נתונים בלבד (trades.json · sierra_state_eod.json · trade_fills_journal.jsonl
+        · health_digest.txt · gateway_decisions.jsonl) — אפס קוד
+    PlistBuddy ~/Library/LaunchAgents/com.mems26.eod_handoff.plist
+      ⇒ StartCalendarInterval  Hour=23  Minute=5  Weekday=0..5  → scripts/eod_data_handoff.sh
+    ⇒ קרון יומי. לא cc.
+
+(2) find . -newermt "2026-09-13 23:00:00" -not -path "./.git/*" -not -path "./data_handoff/*"
+        -not -path "./frontend/v9/.next/*" -type f
+      ⇒ ./docs/handoff/CC_EVENING_PROMPT_2026-09-13.md   ← הקובץ שאני עצמי כתבתי
+    כלומר אפס כתיבות-cc. (חלון רחב יותר, מ-22:00: רק TASK_LOG.md + LIVE_CHANNEL.md —
+    שניהם הכתיבות שלי מריצת 22:55.)
+
+(3) ps -eo pid,lstart,command | grep claude
+      ⇒ PID 3552 "claude" ttys001, מ-11.09 09:46:46 — חי אבל **סרק**:
+        children=0 · %CPU 0.0 · CPU TIME 19:20.40 (23:09) → 19:25.66 (23:19)
+        = ~5 שניות-CPU ב-10 דקות = ציור-TUI של סשן פתוח, לא עבודת-סוכן.
+      ⇒ PID 55177 = אני (‏cowork-scheduled, מ-23:06:15).
+
+(4) grep 'CLAIM.*2026-09-13' docs/handoff/LIVE_CHANNEL.md ⇒ 0
+    LIVE_CHANNEL mtime 22:48:27 = הכתיבה שלי.
+```
+
+**⚠️ מה שלא נטען:** מדידה (3) רואה **רק את המכונה הזו**. אם `cc-imac` עובד — לא אראה זאת
+מכאן; המפריד היחיד שחוצה-מכונות הוא git, והוא נמדד ב-(1) ו-(2) ⇒ `HEAD...@{upstream} = 0 0`,
+origin לא זז.
+
+**הסדר הפסוק ייושם על מה שליל-סופ"ש מאפשר.** קובץ-הערב נכתב עכשיו:
+`docs/handoff/CC_EVENING_PROMPT_2026-09-13.md` (לא היה קובץ ל-13.09, כמו ב-09.09).
+§1 `T-350` (DB) · §2 מחזיק-`S1-BINARY` · §3 `T-345` (שערים) · **§4 ריסטארט — מבוטל בכוונה**
+(התהליך הרץ מחזיק קוד שאינו עץ-העבודה, והשוק נפתח ב-`01:00`) · §5-6 כבר נמדדו הערב ·
+§7 דוח-טלפון = שלי.
+
+**אפס דגל יודלק · אפס נגיעה ב-`.env`/LaunchAgent/DLL · אפס נגיעה בפוזיציה/סלוט/פקודות ·
+אפס ריסטארט · `~/SierraChart*` קריאה-בלבד.**
+
+---
+
 ### [2026-09-13 22:55 IL] cowork-scheduled · 🟢 **חובה-1 — הטלפון שקט** · 🟢 **ניטור-סופ"ש ירוק** · 🔑 **[[T-347]] מוכח-לשישי** · 🔴 **[[T-350]] נפתח**
 
 ריצה `22:36-22:55`. יום ראשון, השוק סגור (‏MES נפתח א' `18:00 ET` = ב' `01:00 IL`, בעוד `~2.1` שעות) ⇒ **חובה-2 אינה נדרכת** (`22:36 > 16:10`), **חובה-4 טרם** (`22:55 < 23:00`).
