@@ -1,3 +1,182 @@
+### [2026-09-13 23:40 IL] cc-night(cowork-subagent) · ✅ **תור-הלילה §1-§3 בוצע** · 🔑 **[[T-350]] הוכרע ⇒ 🟠** · 🟢 **§2 אפס-מאומת** · 🔴 **§3 המבחן נופל**
+
+**תחת ה-CLAIM של `cowork-scheduled` (`d38d110d`).** §4 מבוטל כפי שנפסק · §5-§7 לא שלי.
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · **אפס ריסטארט** · אפס נגיעה בפוזיציה/סלוט/
+תור-פקודות · `~/SierraChart*` קריאה-בלבד · **`--write` לא הורץ** · **עבודת-T-328 לא קומטה**.
+
+---
+
+## §1 · [[T-350]] — **השערה (ב) שורדת: כלי-אצווה שלא הורץ. לא רגרסיה.**
+
+**🔴 תיקון-עצמי, והוא עיקר-הסעיף.** המפקד שהתבקש הוא "מי קורא ל-`sierra_pnl_reconcile`".
+הרצתי אותו, קיבלתי **אפס קוראי-ייצור**, וכמעט הכרעתי ממנו לבדו. **הוא עיוור:** העמודה
+נכתבת גם ממודול שאינו מייבא אותו כלל. המפריד — מפקד על **העמודה**, לא על המודול.
+
+```
+$ grep -rn "sierra_pnl_reconcile" backend/ scripts/ bridge/ tests/ --include=*.py ...   ⇒ 5 שורות
+    daily_pnl.py:120      ⇒ divergence_summary, load_journal   (קריאה-בלבד)
+    pnl_reconcile.py:30   ⇒ DEFAULT_JOURNAL, divergence_summary, load_journal, reconcile
+                            ← אינו מייבא את write_pnl_sierra
+    exit_verifier.py:266  ⇒ הערה בלבד (כותב ל-JSONL, לא לעמודה)
+    tests/.../test_sierra_pnl_reconcile.py:8
+
+$ grep -rn "pnl_sierra" backend/ scripts/ --include=*.py      ⇒ TOTAL=103   (המכנה)
+$ grep -n "\.pnl_sierra *= *[^=]"                             ⇒ n_attr=4
+    test_w2_exit_tracking.py:101          t.pnl_sierra = None          ← מבחן
+    sierra_pnl_reconcile.py:257           t.pnl_sierra = ...           ← קוד-מת, אפס קוראים
+    fill_poller.py:558                    trade.pnl_sierra = float(sierra_pnl)   ← 🔴 אוטומטי
+    fill_poller.py:579                    trade.pnl_sierra = float(sierra_pnl)   ← 🔴 אוטומטי
+$ grep -in "SET pnl_sierra"                                   ⇒ n_sql=5
+    pnl_reconcile.py:70 · sierra_activity_join.py:277  (+3 docstrings של גלגול-אחורה)
+```
+
+⇒ **שלושה נתיבי-כתיבה ולא אחד:** `fill_poller.py:558`/`:579` (**אוטומטי**, אך רק במסלול
+`CLOSED_TRADE_PNL`) · `pnl_reconcile.py:57` (אצווה, חסום מאחורי `--i-have-michaels-ruling`) ·
+`sierra_activity_join.py:266` (אצווה). ו-`sierra_pnl_reconcile.py:242` = **קוד-מת**.
+
+**הדיסקרימינטור — `exit_reason`. הנתיב האוטומטי מציב גם `exit_reason="BRACKET_EXIT_ACTIVITY"`:**
+
+```
+  id  |     d      | outcome  |      exit_reason      | pnl_usd | pnl_sierra
+ 1191 | 2026-09-07 | WIN      | BRACKET_EXIT_ACTIVITY |     2.5 |        2.5    ← היחידה
+ 1224 | 2026-09-08 | LOSS     | STOP_HIT              |     -50 |      -42.5
+ 1231 | 2026-09-08 | LOSS     | STOP_HIT              | -103.75 |     -86.25
+ 1262 | 2026-09-08 | LOSS     | STOP_HIT              |   -52.5 |      -52.5
+ 1328 | 2026-09-09 | LOSS     | STOP_HIT              |     -40 |        -40
+ 1343 | 2026-09-09 | LOSS     | STOP_HIT              | -131.25 |     -137.5
+ 1409 | 2026-09-10 | LOSS     | STOP_HIT              |  -33.75 |
+ 1498 | 2026-09-11 | UNPRICED | phantom_reconcile     |         |
+ 1512 | 2026-09-11 | WIN      | STOP_HIT              |   38.75 |
+```
+
+⇒ **רק `1191` יכולה להיות פרי הנתיב האוטומטי; `8` הנותרות נסגרו במסלולים שאינם כותבים את
+העמודה כלל ⇒ לא היה ענף שנשבר ב-`09-10`.** חיזוק לוגי: `fill_poller` מציב `pnl_usd ==
+pnl_sierra`, ולכן `3` השורות שבהן הם **חולקים** (`1224`/`1231`/`1343`) לא ייתכן שנכתבו על-ידיו.
+
+**הרצה קריאה-בלבד (`--write` לא הועבר):**
+
+```
+$ python3 scripts/pnl_reconcile.py --mode live --since 2026-09-07   ; rc=1
+  1191  +2.50        —       —   0/2  incomplete      1409  -33.75  -33.75  +0.00  4/4  MATCH
+  1224 -50.00   -50.00   +0.00   2/2  MATCH           1498       —       —      —  2/4  incomplete
+  1231 -103.75 -103.75  +0.00   2/2  MATCH            1512  +38.75  +38.75  +0.00  2/2  MATCH
+matched 7 · DIVERGENT 0 · incomplete 2 · (dry-run: nothing was written)
+```
+
+⇒ **`1409` ו-`1512` ניתנות-לחישוב עכשיו ו-`MATCH`** — העמודה ריקה **רק כי איש לא הריץ
+`--write`**. `1498` `incomplete 2/4` ⇒ `NULL` **נכון** (Rule-1) ⇒ **המכנה האפקטיבי `2` ולא `3`**.
+ו-**הוכחה-בדרך-השלילה:** `1191` היא `incomplete 0/2` ⇒ כלי-האצווה **לא יכול** היה לכתוב אותה.
+
+**מפקד-מתזמנים — אפס, וכל אפס עם ביקורת-חיובית דרך אותה צורת-פקודה:**
+
+```
+$ grep -l "pnl_reconcile\|sierra_activity_join\|pnl_sierra\|sierra_pnl_reconcile" ~/Library/LaunchAgents/*.plist
+      ⇒ rc=1  hits=0        [ביקורת-חיובית: grep -l "Program" ⇒ 11 מתוך 13]
+$ crontab -l                ⇒ rc=1  "crontab: no crontab for michael"
+$ grep -n "...pnl_sierra" scripts/eod_data_handoff.sh  ⇒ :73 בתוך SELECT בלבד
+      [ביקורת-חיובית: grep -c "python3" באותו קובץ ⇒ 9]
+$ מפקד כל אזכור לשני הכלים (sh/py/command/plist/yaml) ⇒ 13 שורות, כולן docstring/usage/מבחן
+```
+
+**והמובהקת — המערכת מורה ל*אדם* להריץ ידנית:**
+`scripts/live_pnl.py:145` ⇒ `print("      python3 scripts/sierra_activity_join.py --date <d> --write")`
+`scripts/live_pnl.py:14`  ⇒ ``pnl_sierra` is written by `sierra_activity_join.py``
+
+⇒ **חיזוי-[[T-192]] מ-05.09 (*"כלי שרץ פעם אחת ידנית יחזור להיות NULL"*) התאמת** — והפעם עם
+מנגנון מוכח. **T-350 ל-🟠. לא נסגר. לא תוקן.** ראיה מלאה:
+`docs/handoff/NIGHT_2026-09-13_T350_WRITE_PATH_CENSUS.md` (קומיט `02ef9f16`).
+
+### 🔴 ממצא-לוואי ⇒ [[T-351]] נפתח: העמודה אינה בעלת-בעלים-יחיד
+
+הרקונסיילר מחשב `1224 = -50.00`, אך ב-DB יושב `-42.50`. המקור אותר ושוחזר בדיוק:
+
+```
+$ python3 scripts/sierra_activity_join.py --date 2026-09-08   ; rc=0
+  1224 SHORT   books -50.00   broker -42.50   recon -42.50  OK    Δ -7.50
+  1231 SHORT  books -103.75   broker -86.25   recon -86.25  OK    Δ-17.50
+```
+
+⇒ **שני כלים כותבים את אותה עמודה משני מקורות ומקבלים מספרים שונים לאותה עסקה**
+(`-50.00` מול `-42.50`). ו-`live_pnl.py:14` קובע ש-`pnl_sierra` הוא **"המספר"** של P&L-לייב ⇒
+**התוצאה תלויה בכלי שרץ אחרון.** הפרת "בעל אחד לכל תפקיד" של [[LEARNING_DOCTRINE_2026-09-09]].
+**⚠️ לא נקבע מי הצודק** — `sierra_activity_join` מצהיר על סמכות עליונה (`Closed Trade P/L`,
+"sum equals `acct_daily_pl` exactly") אך **לא אימתתי את סכום-היום מול `acct_daily_pl`**.
+⇒ **פסיקת-בעלות למייקל; עד אז אין להריץ `--write` באף אחד מהשניים.**
+
+---
+
+## §2 · מחזיק-ה-`S1-BINARY` — **`0` ב-09-13, והאפס מאומת פעמיים**
+
+```
+$ for D in 2026-09-13 2026-09-11; do grep -c "^${D}.*\[S1-BINARY\]" /tmp/backend.err.log; done
+DENOM 2026-09-13 = 0
+DENOM 2026-09-11 = 9      ← ביקורת-חיובית, יום-מסחר, אותו פרסר בדיוק
+פילוח 09-11: 6 EVENT + 3 HELD = 9 ✓ · מפקד-על: 9 + 1 (09-12) + 0 = 10 ✓
+```
+
+**המפריד השני — אפס בלוג *חי* אינו אפס בלוג *מת*** ([[feedback_zero_log_lines_needs_clock_check]]):
+
+```
+09-11 total=106,915 · 09-12 total=236,308 · 09-13 total=67,916   (הלוג חי ופעיל היום)
+tail -1 ⇒ 2026-09-13 23:25:16 [WARNING] ... _route_bar BLOCKED stale bar (bar 2026-09-11T20:55:00+00:00)
+date    ⇒ 2026-09-13 23:25:17 IDT      ← הכתיבה האחרונה קדמה לשעון בשנייה אחת
+```
+
+⇒ הבקאנד כתב `67,916` שורות היום ו**אפס** מהן `[S1-BINARY]`; הבר החדש-ביותר הוא
+**בר-סגירת-שישי** ⇒ אין ברים ⇒ אין אירועי-S1. **האפס הוא התשובה הנכונה.**
+
+**⚠️ תיקון-עצמי שני:** פילוח-הרמות הראשון **לא הסתכם** (`67,933` מול `67,916`, עודף `17`).
+לא דיווחתי את החלקים — הסיבה היא **גידול-הקובץ בין הקריאות**. צילום אטומי ⇒
+`37,075 + 17,583 + 13,295 = 67,953 = DENOM` ✓, והמכנה נע `+37` בשתי דקות ⇒ אישור ישיר.
+**ממצא-לוואי ⇒ [[T-352]]:** `17,583` `ERROR` ביום שוק-סגור, **כולן** `TS-OFFSET-GATE`, ו-
+`53,522/67,953` (**78.8%**) מ-`api.v9.bars` ⇒ שגיאה אמיתית חדשה תיקבר בתוכן. **אינו נטען
+כבאג** — למדוד מחדש אחרי `01:00`: נעצר ⇒ שוק-סגור; נמשך ⇒ מחלקה חדשה.
+ראיה: `docs/handoff/NIGHT_2026-09-13_S1BINARY_CENSUS.md` (קומיט `80b20846`).
+
+---
+
+## §3 · [[T-345]] — **המבחן הורץ ו-*נופל*. לא קומטתי.**
+
+```
+$ python3 -m pytest backend/v9/tests/test_ceiling_touch2.py -v    ; rc=1
+collected 5 items
+  test_ceiling_touch2_equal_peaks              PASSED [ 20%]
+  test_no_rejection_when_touch2_closes_above   PASSED [ 40%]
+  test_floor_touch2_mirror                     FAILED [ 60%]
+  test_peaks_too_far_from_edge                 PASSED [ 80%]
+  test_dedup_key_prevents_refire               PASSED [100%]
+--------------------------------------------------------------------
+    result = detect_touch2(bars, levels, atr=10.0, ib_width=18.75)
+>   assert result is not None
+E   assert None is not None
+backend/v9/tests/test_ceiling_touch2.py:53: AssertionError
+========================= 1 failed, 4 passed in 0.19s =========================
+```
+
+⇒ **צד-הרצפה (המראה) מחזיר `None`; צד-התקרה עובר.** הגלאי **אסימטרי** — צד אחד ממומש
+והמראה לא. ⇒ הקוד הלא-מקומט אינו רק "לא-מאומת" אלא **מאומת-כשבור בחלקו**, וקמיטה עכשיו
+תכניס לענף קוד שהמבחן של **כותבו-עצמו** מסמן כשבור.
+**מה שאינו משתנה:** `CEILING_FLIP_TOUCH2_V1` כבוי בברירת-מחדל ⇒ **אין סיכון-מסחר הלילה**.
+**⚠️ אינו נטען:** לא אובחן **מדוע** המראה נופלת — רק **שהיא נופלת**. האבחון שייך ל-cc.
+**אפס נגיעה ב-`five_min_system.py` / `ceiling_touch2.py` / `test_ceiling_touch2.py`.**
+
+---
+
+## NOT-DONE (מפורש)
+
+1. **לא נמדדה חותמת-הרצה אחרונה** של כלי-האצווה — ההסקה היא מהנתונים בלבד.
+2. **לא הורץ backfill** ל-`1409`/`1512` — `--write` חסום מאחורי `--i-have-michaels-ruling`
+   (שומר-[[T-227]]) ⇒ **מעבר-לסמכות תור-הלילה**. דורש פסיקת-מייקל.
+3. **לא הוכרעה הבעלות** בין שני הכלים ⇒ [[T-351]] פתוח.
+4. **`1262` מסומנת `!!`** (`-105.00` ברוקר מול `-52.50` recon) ו-`COVERAGE … INCOMPLETE
+   (residual +697.50)` ל-`09-08` ⇒ **מיפוי-הברוקר לאותו יום אינו מלא** — לא נחקר.
+5. **§4 לא בוצע** (מבוטל בכוונה) · **§5-§7 אינם שלי.**
+6. **לא אובחן שורש הכשל** ב-`test_floor_touch2_mirror`.
+
+**חתום:** `cc-night(cowork-subagent)` 13.09
+
+---
+
 ### [2026-09-13 23:20 IL] cowork-scheduled · 🔒 **CLAIM — תור-הלילה של 13.09 נלקח ע"י cowork** (אפס פעילות-cc; עברנו את 23:20)
 
 **התנאי נבדק בשלוש מדידות ולא באחת** — כי המבחן הרשום ("קומיט טרי מ-23:00+") נותן
