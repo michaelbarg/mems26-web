@@ -1,3 +1,121 @@
+### [2026-09-14 14:15 IL] cowork-scheduled · 🟢 **[[T-353]] נסוג שוב — הפנוי `+598.66`, `trading_disabled=0` ב-`6/6`** · 🔑 **[[T-43]] התנאי עדיין קיים ב-`14:05:32`** · ⚠️ **`gateway/status.daily_pnl=47.5`/`trades_today=3` הם של `09-11`, לא של היום** · 📱 **שקט מוחלט בטלפון**
+
+**חובה-1 בלבד** — ריצת `14:06-14:15`, לפני-RTH (‏MES ב-RTH נפתח `16:30 IL`).
+`14:06` מוקדמת מ-`15:30` ⇒ **חובה-2 אינה נדרכת**; לא RTH ⇒ **חובה-3 לא**; `< 23:00` ⇒ **חובה-4 לא**.
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · **אפס ריסטארט** · אפס נגיעה בפוזיציה/סלוט/תור-פקודות.
+כתיבות: `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד. **אפס הודעות-טלפון** (הנימוק בסעיף 1).
+`git fetch` ⇒ `0 0` (‏`rev-list --left-right --count HEAD...@{u}`) ⇒ **אין מה למשוך ואין מה לדחוף**.
+עץ מלוכלך `73`, אך חוסמי-pull הם `2` בלבד — `backend/v9/app.py` + `ChartV5b.tsx`, **לא נגעתי**
+([[feedback_dirty_tree_size_is_not_blocker_size]]).
+
+#### 1 · 📱 טלפון — אפס ממתינות **וגם** אפס-שליחה
+
+peek ישיר מ-Render `14:07`:
+```
+GET /instruction/pending  ⇒ {"items":[]}
+GET /cmd/pending          ⇒ {"cmd":null}
+GET /upload/pending       ⇒ {"items":[]}
+```
+`GET /chat` ⇒ `30` פריטים; **מפקד-שולחים** (ולא הצצה באחרונות), והוא **מסתכם במכנה**
+([[feedback_histogram_must_sum_to_denominator]]):
+```
+Counter({'cowork': 28, 'מייקל': 1, 'cc': 1})   sum = 30 = len(items)
+```
+⇒ **אחרונת-מייקל בתיבה היא `09-11T17:24:48Z`** (`76` תווים) ולה מענה-ענייני `17:45:33Z`
+⇒ **אין חוב-מענה**. שלוש ההודעות של היום (`08:44:29Z` · `09:16:17Z` · `09:43:41Z`) כולן
+`sender=cowork` — מייקל טרם ענה.
+
+⚠️ **מלכודת-פרסר שנתפסה בריצה הזו:** הסינון שלי ל"צד-מייקל" בדק
+`sender in ('michael','user','me','phone')` והדפיס **`MICHAEL-SIDE items: 0`** — אפס-כוזב,
+כי השדה הוא **`מייקל` בעברית**. המפקד הוא שתפס זאת; לו הסתמכתי על הסינון, הייתי מכריז
+"אין הודעות ממייקל בכלל" במקום "יש אחת, מ-09-11, נענתה". מחלקת
+[[feedback_grep_zero_needs_string_proof]].
+
+**ולכן לא נשלחה הודעה רביעית:** סף-ההסלמה הכתוב מראש בצעד-הבא של T-353 הוא
+`acct_trading_disabled → 1`. הדגל **לא התהפך** (`0` ב-`6/6`), והמצב **המשיך להשתפר**
+(סעיף 2) ⇒ שליחה הייתה **דוח-ניטור** = הפרת כלל-הטלפון. **שער-15:40 הוא הרגע הפסוק**
+לשידור GO/NO-GO (מקרה ד).
+
+#### 2 · 🟢 ראיה גולמית (Rule 5) — הפנוי טיפס `398.66` → `598.66`
+
+`~/SierraChart_Data/v9_export/sierra_state.json`, שש דגימות ב-`10s`:
+```
+clock     mtime     age_s  avail    under disab  pos  price     is_sim  acct_val  acct_daily_pl
+14:08:52  14:08:52  0.0    618.66   0     0      8    7612.00   0       2903.14   0.0
+14:09:02  14:09:01  1.2    628.66   0     0      8    7612.25   0       2913.14   0.0
+14:09:12  14:09:12  0.1    638.66   0     0      8    7612.75   0       2923.14   0.0
+14:09:22  14:09:22  0.1    638.66   0     0      8    7612.50   0       2923.14   0.0
+14:09:32  14:09:32  0.1    628.66   0     0      8    7611.75   0       2913.14   0.0
+14:09:42  14:09:42  0.1    598.66   0     0      8    7612.00   0       2883.14   0.0
+
+under_margin==1    : 0 of 6 samples
+trading_disabled==1: 0 of 6 samples
+avail  min=598.66  max=638.66  last=598.66
+acct_margin_req=2284.48 · open_pnl=-50.0 · working_orders=1 · trade_account=37138283
+```
+מסלול-הפנוי היום: `448.66 (11:44)` → **`-51.34 (12:41)`** → `+118.66 (13:15)` → `+398.66 (13:39)`
+→ **`+598.66 (14:09)`**. הפסד-פתוח `-680 (12:43)` → `-270 (13:39)` → **`-50`**.
+הזהות נסגרת על הדגימה הראשונה: `2903.14 − 2284.48 = 618.66` — **בדיוק** הנצפה.
+(הסתייגות נשמרת: [[feedback_arithmetic_fit_is_not_causation]] — מאמת את הקריאה, לא את הסיבה.)
+
+**`mtime` נבדק ולא הונח** — `age_s ≤ 1.2` ו-`mtime` מתקדם עם כל דגימה ⇒ קובץ **חי**
+([[feedback_file_mtime_is_not_content_freshness]]). `is_sim=0` נקרא **ברגע-המדידה**
+([[feedback_read_time_at_moment_of_speaking]]).
+
+**החוסר ל-5 חוזים:** `$1,931.00 − $598.66 = $1,332.34` (היה `$1,532.34` ב-`13:39`).
+`margin_req` **לא זז** (`2284.48`) ⇒ כל השיפור מגיע מהמחיר, לא משחרור-מרג'ין.
+
+#### 3 · 🔑 [[T-43]] — **התנאי** עדיין קיים; **האכיפה** לא נמדדה ואינה נטענת
+
+```
+2026-09-14 13:55:29 [INFO] [Reconciler] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says 8 (src=state) [phantom-heal streak 0/3] 🔴 DESYNC
+2026-09-14 14:05:32 [INFO] [Reconciler] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says 8 (src=state) [phantom-heal streak 0/3] 🔴 DESYNC
+```
+`grep -c 'T-43'` **היום** ⇒ `1` (המופע היחיד הוא `11:04:42 … BLOCKING new entries until resolved`),
+מול מכנה `31,849` שורות-היום. כלומר: שורת-ה-**הכרזה** נאמרה פעם אחת ב-`11:04`, וה-**תנאי**
+(`Sierra 8 ≠ TM 0`) ממשיך להיפלט כל `10` דק' עד `14:05:32`.
+
+⚠️ **ולכן איני טוען "T-43 חוסם כניסות" כמדידה** — `gateway/status` אינו חושף דגל-חסימה כזה,
+ושורת-לוג שמכריזה על חסימה אינה ראיה שהחסימה נאכפת
+([[feedback_log_declaration_is_not_enforcement]]). הנטען הוא הצר: **התנאי שהוליד את ההכרזה
+לא נפתר**. לשער-15:40: אם הזרה עדיין פתוחה — שני החסמים דלוקים.
+
+#### 4 · ⚠️ מלכודת שנתפסה: מוני-`gateway/status` הם של `09-11`
+
+```
+GET /api/v9/gateway/status ⇒ daily_pnl 47.5 · trades_today 3 · live_slot null · chop_state EXPANDING
+                             live_enabled_systems len=2 · shadow_active_count 8
+```
+`daily_pnl=47.5` ו-`trades_today=3` **אינם של היום** ([[feedback_gateway_status_daily_pnl_is_yesterday]]).
+הופרך במקור בלתי-תלוי:
+```
+v9_trades  entry_ts >= '2026-09-12'        ⇒ 0 rows  (max_id NULL)
+v9_trades  entry_ts >= date_trunc('day')   ⇒ 0 rows  (פילוח mode: 0 שורות)
+v9_trades  4 האחרונות: #1531/#1530/#1529/#1528 — כולן mode=shadow, entry_ts 2026-09-11
+```
+⇒ **אפס עסקאות היום, ואפס עסקה שלנו מ-`09-12`.** העוגן ל-P&L נשאר `acct_daily_pl`
+(‏`0.0` בשש הדגימות), לעולם לא `daily_pnl` ([[feedback_daily_pnl_is_the_wrong_field]]).
+`live_slot=null` ⇒ **הסלוט פנוי** (אין חזרה של [[T-178]]/[[T-309]]).
+
+#### 5 · פיד + backend — ירוקים
+
+```
+health                : code=200 t=0.002425s
+listener :8000        : Python PID 39331, up since Fri Sep 11 18:29:18 (etime 02-19:40:46)
+v9_bars_5min_woodies  : last_ts 2026-09-14 14:10:00+03  age_min 1.0  rows_24h 159
+COMMAND QUEUED / op=FLATTEN_ACCOUNT היום : 0  (מכנה 31,849 שורות)
+```
+גיל-הבר נמדד מול `now()` של ה-DB באותו TZ ⇒ ללא היפוך-סימן
+([[feedback_bar_age_negative_tz_direction]]), ולא מ-`ts` של `5min.json`
+([[feedback_5min_json_ts_is_not_epoch_utc]]).
+
+---
+**הצעד הבא (שער-15:40, ללא שינוי):** לבדוק **שני** חסמים — `avail ≥ $1,931` **וגם**
+`TM == Sierra`. הפנוי משתפר אך `margin_req 2284.48` לא זז, ולכן שניהם תלויים באותו דבר:
+סגירת הפוזיציה-הזרה. הודעת-הטלפון היחידה שמתוכננת היום היא שער-15:40 (מקרה ד, ≤500 תווים).
+— cowork-dev
+
+---
 ### [2026-09-14 IL] cc-macbook · T-355 פריט 4/8 — phase-B location gate · commit pending
 
 **ד1 · 10.09 17:10:03 CEILING_FLIP_TOUCH2 LONG 7587.5 stop 7585.25:**
