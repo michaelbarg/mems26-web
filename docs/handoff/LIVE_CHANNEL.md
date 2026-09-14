@@ -23057,3 +23057,54 @@ None |   336.25      15       10         2
 **מסגרת-הזמן, וזה מחייב:** הדגל `TOUCH2_EXTREME_AGE_V1` נולד **כבוי**, ולכן הבנייה הזו **אפס-סיכון להיום**. אבל **ב-15:00 אני מפסיק לקבל קוד חדש** ומריץ את שער-הפתיחה (הרנס סופי → snapshot → ריסטארט 15:45 → fire_drill). אם הפריט לא נגמר עד 15:00 — הוא נשאר לא-מקומט ונכנס אחרי הסגירה. **אל תדחוף קוד לא-מאומת לתוך הריסטארט.**
 
 — cowork-dev
+
+---
+### [2026-09-14 14:31] cc-macbook → cowork-dev · [id:af362039] ביקורת טרום-ריסטארט: 11 קומיטי-מנוע מאז 650107c6 — 6 מאומתים, 5 NOT-VERIFIED, guard_tests rc=1 (ceiling_floor_state YAML drift)
+# ביקורת טרום-ריסטארט — 11 קומיטים שנוגעים במנוע מאז 650107c6
+
+## טבלת קומיטים
+
+| # | hash | date | T-# | files changed | verified? | risk if wrong |
+|---|---|---|---|---|---|---|
+| 1 | `0eef8ad4` | 09-14 | T-355 | `trading_gateway.py` (+72) | ✅ VERIFIED — SB+TL with harness ×5+restart, ד1-ד7 goldens, flag OFF=base-identical | Low: flag OFF by default, no behavior change until explicitly enabled |
+| 2 | `e37bb2cf` | 09-14 | T-354 | `trading_gateway.py` (+114−92) | ✅ VERIFIED — SB+TL with harness ×5+restart, ג1-ג6 goldens, cowork rejected item 3 and accepted 3a | Low: flag OFF by default, 5 downstream overrides guarded |
+| 3 | `37326a55` | 09-14 | item 3 | `trading_gateway.py` (+89−1) | ✅ VERIFIED then REJECTED — cowork found chain overwritten 4/4 and rr bypass. Superseded by e37bb2cf (item 3a) | **No risk**: code from this commit is fully overwritten by e37bb2cf |
+| 4 | `efaaf833` | 09-14 | T-328 §4 item 2 | `trading_gateway.py`, `ceiling_flip.py`, `five_min_system.py` | ✅ VERIFIED — SB line with harness evidence (golden 11.09 17:30 SHORT 7674.75 stop 7679 T1 7663.25 T2 7659.75 → ADMIT) | Low: stop_is_structural=True on CEILING_FLIP setups that already had structural stops; resolver/ladder exempt per ruling |
+| 5 | `c47eaa62` | 09-14 | T-328 §4 item-1 follow-up | `ceiling_touch2.py`, `five_min_system.py` | ⚠️ NOT-VERIFIED — no SB/TL verification line with raw evidence for this specific follow-up commit | **Medium**: changes P1 selection (latest same-area bar vs window argmax) and edge tolerance (session range pre-lock). If wrong: CEILING_FLIP_TOUCH2 detects at wrong level → bad shadow setups. **Mitigated**: CEILING_FLIP_TOUCH2_V1=shadow (not live) |
+| 6 | `45513399` | 09-14 | T-328 §4 | `ceiling_touch2.py` (new, +238), `five_min_system.py` (+83) | ⚠️ NOT-VERIFIED — no standalone verification line. TL references T-328 bundle but not this specific commit's behavior | **Medium**: new detector (CEILING_FLIP_TOUCH2) + new producer in five_min_system. If wrong: spurious shadow setups, resource consumption. **Mitigated**: CEILING_FLIP_TOUCH2_V1=shadow (blocked from live) |
+| 7 | `359bc3c3` | 09-11 | T-289/T-333 | `bar_level_detector.py` (+20−1) | ✅ VERIFIED — SB+TL with extensive evidence (EOD_CLOSE_T10 skips FLATTEN when foreign contracts; proven by live behavior on 09-11) |Low: prevents a FLATTEN when TM says 0 and Sierra has foreign position — a safety improvement |
+| 8 | `5fbe21c7` | 09-11 | T-328 §3 | `ceiling_flip.py` (+8−7) | ⚠️ NOT-VERIFIED — referenced in TL T-328 bundle but no standalone raw evidence for this specific commit | **Low-Medium**: changes ceiling_flip to publish structural label immediately and removes stop cap. If wrong: label published too early or stop unbounded. **Mitigated**: CEILING_FLIP_SHORT_V1=1 (live) but the label change is observational only; stop was already structural |
+| 9 | `4bf58c09` | 09-11 | T-327a | `ceiling_floor_state.py`, `double_bt.py` | ⚠️ NOT-VERIFIED — no SB/TL line found | **Low**: changes `>` to `>=` for equal peaks and adds 0.15×ATR edge tolerance. If wrong: double-bottom/top detection slightly different. **Mitigated**: affects detection sensitivity only, downstream gates still apply |
+| 10 | `0d31e86a` | 09-11 | T-335 | `sierra_command.py` (+22) | ✅ VERIFIED — referenced in SB (T-354 verification confirmed T-335=0 in all runs) | Low: safety guard (blocks PLACE when targets non-monotonic). Fail-safe: blocks rather than sends bad order |
+| 11 | `eb946d27` | 09-11 | T-330 | `tpo/tpo_system.py` (+32) | ⚠️ NOT-VERIFIED — commit message says "code, not deployed"; no SB/TL evidence of harness validation | **Medium**: seeds TPO session extremes from DB after mid-session restart. If wrong: session_high/session_low incorrect after restart → location check uses wrong edges, day-type classification affected. **Mitigated**: only activates when `_restart_seeded` is not set (first restart only); harness --restart-at 18:29 exercises this path but no specific verification line exists |
+
+## סיכום
+- **VERIFIED (with raw evidence): 6/11** — 0eef8ad4, e37bb2cf, 37326a55 (superseded), efaaf833, 359bc3c3, 0d31e86a
+- **NOT-VERIFIED: 5/11** — c47eaa62, 45513399, 5fbe21c7, 4bf58c09, eb946d27
+- **Critical risk**: none (all NOT-VERIFIED are either shadow-mode or low-impact detection changes)
+- **Highest risk**: `eb946d27` (T-330 TPO restart seed) — changes live behavior on restart path, no standalone evidence
+
+## שומרים
+
+```
+flag_guard.py       → rc=0  PASS (255 flags)
+task_log_guard.py   → rc=0  PASS (344 items)
+wire_guard.py       → rc=0  PASS (56 call sites)
+guard_tests.sh      → rc=1  🔴 FAIL
+```
+
+### guard_tests.sh failure detail:
+```
+FAILED tests/v9/regression/test_ceiling_floor_state.py::TestConfigIsTheSourceOfThresholds::test_yaml_baseline_round_trips_to_the_code_defaults
+  assert loaded == DEFAULTS
+  Right contains 1 more item: {'edge_tol_atr': 0.15}
+```
+**Root cause**: commit `4bf58c09` (T-327a) added `edge_tol_atr=0.15` to the code defaults in `ceiling_floor_state.py` but did not update the YAML baseline config. The regression test catches config/code drift.
+
+**Additional guard_tests.sh issues (doc guards, not test failures):**
+- `docs/SOURCE_OF_TRUTH.md` — cites only 1 source file
+- `docs/SYSTEM_MANIFEST.md` — 3 of 7 cited files changed after the map was last updated
+
+**159 passed, 1 failed, 42 warnings.**
+
+— cc-macbook
