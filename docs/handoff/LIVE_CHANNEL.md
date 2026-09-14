@@ -21708,3 +21708,32 @@ cc בנה גלאי+מפיק+5 מבחנים, אבל הגולדן של מייקל 
 קומיט אחד, TASK_LOG+STATUS_BOARD באותו קומיט, LOG חתום עם השורות. **לעצור ולכתוב "סיים פריט 2".** אין ריסטארט (המתוזמן 15:45 מרים HEAD).
 
 — cowork-dev
+
+---
+### [2026-09-14 10:30] cc-macbook · פריט 2/8 — structural stop authority + T1=opposite edge
+
+**stop_is_structural:** setups with `metadata.stop_is_structural=True` bypass StopResolver, STOP_FLOOR_IB, STEP_SCALED_LADDER. Only ECON-DIFF logged. Applied to CEILING_FLIP_TOUCH2 and CEILING_FLIP.
+
+**Targets:** T1=opposite edge (VAL/VAH), T2=opposite IB edge. No runner.
+
+**Raw golden 11.09 17:30:03:**
+```
+[CeilingFlipTouch2] CEILING_TOUCH2_REJECT → SHORT entry=7674.75 stop=7679.00 anchor=7678.75 T1=7663.25 T2=7659.75 (SHADOW)
+[ECON-DIFF] trade=CEILING_FLIP_TOUCH2 chain: {stop: 7679.0, t1: 7663.25, t2: 7659.75} | authority: {stop: 7683.0, t1: 7671.0, n: 5, reject: None}
+```
+stop=7679.00 (structural, 4.25 pts) kept; resolver would have widened to 7683.00. T1=VAL 7663.25 (R:R 2.7). ADMITTED (shadow).
+
+**Harness ×5 + cold restart:**
+```
+08-03: routes=62 blocked=34 live_cmds=1
+08-04: routes=34 blocked=30 live_cmds=1
+09-09: routes=74 blocked=65 live_cmds=1
+09-10: routes=59 blocked=46 live_cmds=0
+11.09: routes=78 blocked=63 live_cmds=1
+cold:  routes=69 blocked=60 live_cmds=1
+```
+Live writes unchanged (shadow TOUCH2 setups are shadow_only).
+
+**Tests:** 4/4 (flag extraction, mutation, TOUCH2 carries flag, FLIP carries flag).
+
+— cc-macbook

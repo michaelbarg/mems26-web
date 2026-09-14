@@ -1841,21 +1841,18 @@ class FiveMinSystem(BaseV9TradingSystem):
                         _t2_tick = 0.25
                         _t2_stop = round(_t2_extreme + _t2_tick, 2) if _t2_dir == "SHORT" \
                             else round(_t2_extreme - _t2_tick, 2)
-                        _t2_poc = (_cf_levels or {}).get("poc")
-                        _t2_t1 = round(float(_t2_poc), 2) if _t2_poc else None
+                        # Targets: T1=opposite edge (VAL/VAH), T2=opposite IB edge.
+                        # Structural stop is tight → POC too close for R:R.
+                        # Golden 11.09 17:30: stop 4.25, T1=VAL 7663.25 (11.5) R:R 2.7.
                         if _t2_dir == "SHORT":
                             _t2_opp = (_cf_levels or {}).get("val") or (_cf_levels or {}).get("session_low")
                             _t2_opp_ib = (_cf_levels or {}).get("ib_low")
                         else:
                             _t2_opp = (_cf_levels or {}).get("vah") or (_cf_levels or {}).get("session_high")
                             _t2_opp_ib = (_cf_levels or {}).get("ib_high")
-                        _t2_t2 = round(float(_t2_opp), 2) if _t2_opp else None
-                        _t2_t3 = round(float(_t2_opp_ib), 2) if _t2_opp_ib else None
-                        if _t2_t1 is not None:
-                            if _t2_dir == "SHORT" and _t2_t1 >= _t2_entry:
-                                _t2_t1 = _t2_t2
-                            elif _t2_dir == "LONG" and _t2_t1 <= _t2_entry:
-                                _t2_t1 = _t2_t2
+                        _t2_t1 = round(float(_t2_opp), 2) if _t2_opp else None
+                        _t2_t2 = round(float(_t2_opp_ib), 2) if _t2_opp_ib else None
+                        _t2_t3 = None  # no runner
                         _t2_risk = abs(_t2_entry - _t2_stop)
                         if _t2_t1 is None:
                             _t2_sign = -1.0 if _t2_dir == "SHORT" else 1.0
@@ -1873,6 +1870,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                             "structural_anchor": _t2_extreme,
                             "metadata": {
                                 "shadow_only": (_t2_mode == "shadow"),
+                                "stop_is_structural": True,
                                 "pattern": "CEILING_FLIP_TOUCH2",
                                 "p1": _t2_st["p1"], "p2": _t2_st["p2"],
                                 "edge": _t2_st.get("edge"),

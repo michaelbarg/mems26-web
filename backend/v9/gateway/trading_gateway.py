@@ -3142,6 +3142,19 @@ class TradingGateway:
         except Exception as _te_err:
             logger.debug("[ECON-DIFF] errored (non-fatal): %s", _te_err)
 
+        # ── T-328 §4 / B8: structural stop authority ─────────────────────
+        # Setups with metadata.stop_is_structural=True carry a stop that IS
+        # the structural anchor (peaks + 1 tick). StopResolver, STOP_FLOOR_IB,
+        # STEP_SCALED_LADDER must NOT widen it — they may only log ECON-DIFF.
+        # Size (n) is derived from the structural stop. n<3 → no entry.
+        # Ruling: Michael 09.09 10:20 "הסטופ = העוגן המבני, הגודל נגזר".
+        _stop_is_structural = bool((setup.get("metadata") or {}).get("stop_is_structural"))
+        if _stop_is_structural:
+            setup["stop_source"] = "structural"
+            logger.info(
+                "[Gateway] STRUCTURAL STOP: %s %s stop=%.2f — resolver/floor/ladder exempt",
+                setup.get("classification"), direction, float(setup.get("stop") or 0))
+
         # Item-4: structural stop resolver (STOP_RESOLVER_V1, default OFF).
         # Single choke point covering S2 + S4: re-derive the stop from a REAL
         # bar-extreme rung ladder within the ATR band, replacing a financed
@@ -3150,7 +3163,7 @@ class TradingGateway:
         # error, or missing bars → keep the original stop. Backtest evidence:
         # 31/86 stops were below the 0.5×ATR floor (BACKTEST_STOP_RESOLVER_ITEM4).
         # (CONFLUENCE_RI_ZLR is exempt: its stop is already structural + capped 7pt.)
-        if (not _confluence_fixed) and os.getenv("STOP_RESOLVER_V1", "0").lower() in ("1", "true", "yes"):
+        if (not _confluence_fixed) and (not _stop_is_structural) and os.getenv("STOP_RESOLVER_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 _sr_entry = setup.get("entry_price")
                 _sr_stop = setup.get("stop")
@@ -3670,7 +3683,7 @@ class TradingGateway:
         # → R=15, no trade banks. Fix: stop = max(4, 0.6×median_step), targets =
         # 0.5/1.0/1.5×step. Overrides stop+targets when the ladder is available;
         # fail-open (keeps existing stop/targets) when < 3 steps or error.
-        if (not _confluence_fixed) and os.getenv("STEP_SCALED_LADDER_V1", "0").lower() in ("1", "true", "yes"):
+        if (not _confluence_fixed) and (not _stop_is_structural) and os.getenv("STEP_SCALED_LADDER_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.five_min.step_scaled_ladder import build_step_ladder
                 from backend.v9.db.read import read_all as _ssl_read

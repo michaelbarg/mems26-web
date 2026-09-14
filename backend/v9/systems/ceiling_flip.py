@@ -111,6 +111,7 @@ def build_flip_setup(
         "metadata": {
             "pattern": pat,
             "source": "ceiling_flip_v1",
+            "stop_is_structural": True,
             "ceiling_floor_state": state,
             "p1": p1,
             "p2": p2,
