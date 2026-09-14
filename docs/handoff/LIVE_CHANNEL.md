@@ -1,3 +1,62 @@
+## 🔴 [cowork-dev · 2026-09-14 17:36-17:42 IL] — ניטור-RTH: הפוזיציה-הזרה עברה מלחסום **גודל** לחסום **ירי** — `2` ירי-לייב נחסמו לפני שליחה
+
+**ריצת חובה-1 + חובה-3** (`17:36` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
+מאזין `uvicorn` `pid 1361`, שכבת-INFO תואמת — נמדד לפני כל מסקנה (שער §3.9):
+`2026-09-14 15:35:06 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=1361 commit=c9cd46d4 stream=stderr`
+
+### 1 · חובה-1 · טלפון — אפס ממתינות (peek ישיר מ-Render, לא מהרלה)
+
+```
+instruction/pending ⇒ {"items":[]}      cmd/pending ⇒ {"cmd":null}
+```
+**והרלה חי** — הראיה שנדרשת לפני שאומרים "אפס ממתינות" ([[T-259]]):
+`launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 2006`,
+ו-`/tmp/mobile_relay.log` נכתב `17:28` עם `[relay] recovered after 1 fails` ⇒ **מושך בפועל**, לא רק "running".
+ההודעה האחרונה של מייקל ב-`PHONE_THREAD.jsonl` היא מ-`11.09` ⇒ **אין שאלה פתוחה שלו** ⇒ אפס מקרה-(א).
+
+### 2 · הממצא — `[[T-374]]` הסלים, וההשלכה החדשה אינה הגודל אלא הירי
+
+`2` ירי-לייב **נחסמו לפני שליחה** — שתי השורות היחידות מסוגן היום:
+```
+17:25:08 [CRITICAL] [Gateway] LIVE fire BLOCKED pre-send: UNMANAGED POSITION -8 on the account
+         (live slot was free → not TM-managed) … — LONG CEILING_FLIP_TOUCH2 sys=2
+17:30:04 [CRITICAL] [Gateway] LIVE fire BLOCKED pre-send: UNMANAGED POSITION -8 on the account
+         (live slot was free → not TM-managed) … — LONG DALTON_EDGE_LONG sys=2
+```
+**המכנה סגור** (הפילוח מסתכם במכנה — הכלל שנשבר ב-`11.09`):
+`grep -o "LIVE fire BLOCKED pre-send: [A-Z_ ]*" | sort | uniq -c ⇒ 2 UNMANAGED POSITION` — ו**אפס מכל סיבה אחרת**.
+
+**מצב-הברוקר, `5/5` דגימות זהות `17:38:36-17:39:00`** (נקרא ברגע-האמירה):
+```
+position_qty=-8 · avg_price=7684.0 · acct_margin_req=2299.44 · acct_available_funds=992.45
+acct_daily_pl=-361.25 · acct_under_margin=0 · acct_trading_disabled=0 · is_sim=0 · account=37138283
+orders=[{'id': 11185, 'type': 3, 'bs': 1, 'price': 7683.0, 'qty': 8}]
+```
+⚠️ **אזהרת-קריאה:** `type=3` הוא **`STOP_LIMIT` ולא `STOP`** — לקרוא ממנו "יש סטופ על ה-8" **מגזים את ההגנה**.
+
+**בעלות — לא שלנו, שני מקורות בלתי-תלויים שנמדדו אחרי הופעת הפוזיציה:**
+`COMMAND QUEUED` היום `= 0` מתוך מכנה `55,065` שורות-לוג · `live_slot = None` + `trades_today = 0` ב-`/api/v9/gateway/status`.
+⇒ **אפס נגיעה בפוזיציה.** הצעד שייך למייקל.
+
+### 3 · המערכת עצמה בריאה — אפס-חסימה אינו אפס-חיים (§3.4)
+
+```
+health ⇒ {"status":"ok","version":"v9.0.0"}
+max_ts=2026-09-14 17:35:00+03 · now_utc=14:38:13 · age_min=3.2 · bars_2h=24
+ייצוא: sierra_state.json / live_price.json / trade_activity_events.jsonl — mtime Sep 14 17:39
+```
+עסקאות-היום ב-`v9_trades` (ET): `19` שורות, **כולן `mode=shadow`** · `0` לייב ⇒ **אפס מקרה-(ב)**.
+
+### 4 · טלפון — הודעה אחת, מקרה (ג)
+
+נשלחה `14:40:28Z` (`324` תווים, שאלה אחת בסוף), **מסירה אומתה ב-`GET /chat`** ולא מהדפסת `ok`.
+**אינה חזרה על `17:14`:** שם השאלה נשענה על **גודל** (`avail 372-432`); כאן העובדה החדשה היא **חסימת-הירי** —
+שתי פקודות שהמערכת רצתה לשלוח ולא שלחה. זו העובדה שמשנה את ההחלטה, ולכן היא הצדיקה הודעה שנייה.
+
+**אפס נגיעה:** דגלים · `.env` · גודל · פוזיציה · סלוט · פקודות · ריסטארט.
+
+---
+
 ## 🔴 [cowork-dev · 2026-09-14 17:06-17:19 IL] — ניטור-RTH: `0` עסקאות-לייב, והמכנה נסגר על שני שמות
 
 **ריצת חובה-1 + חובה-3** (‏`17:06` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל**;
