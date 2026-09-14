@@ -3113,6 +3113,93 @@ class TradingGateway:
             except Exception as _ddd_err:
                 logger.debug("[Gateway] day-direction doctrine errored (fail-open): %s", _ddd_err)
 
+        # ── Item 3/8: edge_fade_targets — Dalton doctrine 11.09 09:50 ──────
+        # Edge entries at VAH/VAL get POC→opposite-edge→opposite-IB targets and
+        # structural stop (edge + 1 tick). Zone check uses TPO levels; applies to
+        # setups without a structural_anchor (confirmed doubles keep theirs).
+        # STRUCT_TARGETS_WIN and step-scaled-ladder are later guarded from
+        # overriding a setup with edge_fade_targets.
+        try:
+            _ef_tpo = (cross_context.get("tpo_system")
+                       if isinstance(cross_context, dict) else None) or {}
+            _ef_vah = float(_ef_tpo.get("vah") or 0)
+            _ef_val = float(_ef_tpo.get("val") or 0)
+            _ef_ibh = float(_ef_tpo.get("ib_high") or 0)
+            _ef_ibl = float(_ef_tpo.get("ib_low") or 0)
+            _ef_poc = float(_ef_tpo.get("poc") or 0) or None
+            _ef_ibw = (_ef_ibh - _ef_ibl) if (_ef_ibh > 0 and _ef_ibl > 0) else None
+            _ef_entry = float(setup.get("entry_price") or 0)
+            _ef_dir = str(direction).upper()
+            # Only skip for setups that already carry stop_is_structural
+            # (confirmed doubles / CEILING_FLIP — their stop IS the anchor).
+            _ef_already_structural = bool((setup.get("metadata") or {}).get("stop_is_structural"))
+            if (_ef_vah > 0 and _ef_val > 0 and _ef_entry > 0
+                    and not _ef_already_structural):
+                from backend.v9.systems.location_gate import zone_of as _ef_zone_of, _tol as _ef_tol
+                _ef_zone = _ef_zone_of(_ef_entry, _ef_vah, _ef_val, _ef_ibw)
+                _ef_at_edge = (
+                    (_ef_dir == "SHORT" and _ef_zone in ("near_vah", "above_value"))
+                    or (_ef_dir == "LONG" and _ef_zone in ("near_val", "below_value")))
+                if _ef_at_edge:
+                    if _ef_dir == "SHORT":
+                        _ef_stop = round(max(_ef_vah,
+                                             _ef_ibh if _ef_ibh > _ef_vah else _ef_vah) + 0.25, 2)
+                        _ef_opp_val = _ef_val
+                        _ef_opp_ib = _ef_ibl
+                    else:
+                        _ef_stop = round(min(_ef_val,
+                                             _ef_ibl if _ef_ibl < _ef_val else _ef_val) - 0.25, 2)
+                        _ef_opp_val = _ef_vah
+                        _ef_opp_ib = _ef_ibh
+                    _ef_risk = abs(_ef_entry - _ef_stop)
+                    _ef_poc_close = (
+                        _ef_poc is None or _ef_risk <= 0
+                        or abs(_ef_entry - _ef_poc) < 0.65 * _ef_risk)
+                    if _ef_poc_close:
+                        _ef_t1 = round(_ef_opp_val, 2) if _ef_opp_val else None
+                        _ef_t2 = round(_ef_opp_ib, 2) if _ef_opp_ib else None
+                        _ef_t3 = None
+                    else:
+                        _ef_t1 = round(_ef_poc, 2)
+                        _ef_t2 = round(_ef_opp_val, 2) if _ef_opp_val else None
+                        _ef_t3 = round(_ef_opp_ib, 2) if _ef_opp_ib else None
+                    # T-335 monotonic chain guard
+                    if _ef_dir == "SHORT":
+                        if _ef_t2 is not None and _ef_t1 is not None and _ef_t2 >= _ef_t1:
+                            _ef_t2 = None
+                        if _ef_t3 is not None and (_ef_t2 or _ef_t1) is not None:
+                            _floor = _ef_t2 if _ef_t2 is not None else _ef_t1
+                            if _ef_t3 >= _floor:
+                                _ef_t3 = None
+                    else:
+                        if _ef_t2 is not None and _ef_t1 is not None and _ef_t2 <= _ef_t1:
+                            _ef_t2 = None
+                        if _ef_t3 is not None and (_ef_t2 or _ef_t1) is not None:
+                            _ceil = _ef_t2 if _ef_t2 is not None else _ef_t1
+                            if _ef_t3 <= _ceil:
+                                _ef_t3 = None
+                    setup["t1"] = _ef_t1
+                    setup["t2"] = _ef_t2
+                    setup["t3"] = _ef_t3
+                    setup["stop"] = _ef_stop
+                    _meta = setup.get("metadata")
+                    if not isinstance(_meta, dict):
+                        _meta = {}
+                        setup["metadata"] = _meta
+                    _meta["edge_fade_targets"] = True
+                    _meta["stop_is_structural"] = True
+                    _meta["runner"] = False
+                    logger.warning(
+                        "[Gateway] EDGE_FADE_TARGETS: %s %s entry=%.2f "
+                        "stop=%.2f T1=%s T2=%s T3=%s poc=%s "
+                        "vah=%.2f val=%.2f ibh=%.2f ibl=%.2f zone=%s",
+                        setup.get("classification"), _ef_dir,
+                        _ef_entry, _ef_stop, _ef_t1, _ef_t2, _ef_t3,
+                        _ef_poc, _ef_vah, _ef_val, _ef_ibh, _ef_ibl,
+                        _ef_zone)
+        except Exception as _ef_err:
+            logger.warning("[Gateway] edge_fade_targets errored (fail-open): %s", _ef_err)
+
         # ── TRADE_ECONOMICS_AUTHORITY_V1=diff: log what the authority WOULD set,
         # without changing the setup. =1 (not today) would write + skip the chain.
         try:
@@ -3754,7 +3841,8 @@ class TradingGateway:
         # When structural targets (from structural_targets.py) exist and day_type
         # is known, they override the m×risk ladder. m×risk = fallback only.
         # Applied AFTER step-scaled-ladder so it wins; BEFORE I-61/TP-1 safety guards.
-        if os.getenv("STRUCT_TARGETS_WIN_V1", "0").strip().lower() in ("1", "true", "yes"):
+        _edge_fade = bool((setup.get("metadata") or {}).get("edge_fade_targets"))
+        if (not _edge_fade) and os.getenv("STRUCT_TARGETS_WIN_V1", "0").strip().lower() in ("1", "true", "yes"):
             _stw_meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
             _stw_sl = _stw_meta.get("spacing_levels") or []
             _stw_dt = (setup.get("day_type_at_entry")

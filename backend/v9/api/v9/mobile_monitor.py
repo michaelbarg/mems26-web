@@ -441,7 +441,20 @@ async def mobile_data(request: Request):
             "last_intent_reason": _dp_it.reason,
             "size_frac": _dp_it.size_frac,
             "runner": _dp_it.runner,
+            "targets_source": None,
         }
+        # Item 3/8: surface whether the last fired trade used dalton_edge targets
+        try:
+            _mm_gw = getattr(request.app.state, "trading_gateway", None)
+            _mm_decs = list(getattr(_mm_gw, "decisions", []) or [])
+            for _mm_d in reversed(_mm_decs):
+                if _mm_d.get("outcome") in ("live", "demo"):
+                    _mm_meta = (_mm_d.get("setup") or {}).get("metadata") or {}
+                    out["dalton"]["targets_source"] = (
+                        "dalton_edge" if _mm_meta.get("edge_fade_targets") else "ladder")
+                    break
+        except Exception:
+            pass
     except Exception as _dp_err:
         out["dalton"] = {"error": str(_dp_err)[:80]}
     try:
