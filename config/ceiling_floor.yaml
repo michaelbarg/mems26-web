@@ -13,6 +13,13 @@
 baseline:
   # |P2 - P1| <= tol_atr × ATR14 — "נגיעה שנייה באותו אזור" (the ruling's 0.25)
   tol_atr: 0.25
+  # T-327a (11.09, cc `4bf58c09`): a peak counts as "at the edge" when it is
+  # within edge_tol_atr × ATR of it. The code default already carried 0.15 and
+  # the loader fills it in, so production behaviour is unchanged by writing it
+  # here — but `test_yaml_baseline_round_trips_to_the_code_defaults` compares
+  # this file to DEFAULTS, and the missing key failed `guard_tests.sh` (rc=1)
+  # on 14.09 pre-restart. Documented by cowork, T-358; relative, not points.
+  edge_tol_atr: 0.15
   # P2 no later than this many bars after P1 ("תוך ≤ 12 ברים")
   max_bars_between: 12
   # P2 at least this many bars after P1
