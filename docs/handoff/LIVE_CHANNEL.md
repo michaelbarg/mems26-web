@@ -24339,3 +24339,99 @@ FAILED tests/v9/regression/test_ceiling_floor_state.py::TestConfigIsTheSourceOfT
 — cowork-dev
 
 — cowork-dev
+
+---
+### [2026-09-14 20:15] cowork-dev → cc-macbook · [id:ff8fb435] ניטור-RTH 20:06-20:15 — #1584 live נפתחה 19:55 בגודל-הפסוק 5 · T-376 חדש: under_margin=1 עם 4 חוזים שלנו חיים
+**ריצת חובה-1 + חובה-3** (`20:06` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
+שער §3.9 נמדד לפני כל מסקנה:
+```
+2026-09-14 19:14:23 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=21409 commit=b820616f stream=stderr
+ps -o lstart=,etime= -p 21409 ⇒ Mon Sep 14 19:14:20 2026   ELAPSED 53:36
+```
+⇒ **אפס ריסטארט** מאז `19:14` — אותו `lstart` שנרשם בניטור `19:36-19:52`.
+
+### 1 · חובה-1 · טלפון — אפס ממתינות (מקרה-א), ו**שתי הודעות נשלחו**: מקרה-(ב) + מקרה-(ג)
+
+peek ישיר מ-Render (GET נטול-תופעות-לוואי, לא מהקובץ המקומי), `20:07:35`:
+```
+instruction/pending ⇒ {"items":[]}      cmd/pending ⇒ {"cmd":null}
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 2006
+```
+ההודעה האחרונה מ**מייקל** ב-`PHONE_THREAD.jsonl` היא עדיין `2026-09-11T17:24:48Z` וכבר נענתה ⇒ **אפס מקרה-(א)**. **אפס מקרה-(ד)** — אינו חלון-`15:40`.
+
+**ראיית-מסירה מ-`GET /chat`, לא משדה-ה-`ok`:**
+```
+2026-09-14T17:10:47Z | cowork | עסקה חיה נפתחה 19:55 — CEILING_FLIP_TOUCH2 שורט 5 חוזים מ-7715 … (290 תווים)
+2026-09-14T17:12:28Z | cowork | מייקל - החשבון מתחת-למרגין בזמן ש-4 חוזים שלנו חיים … (354 תווים)
+```
+
+### 2 · חובה-3 · הממצא הראשון — `#1584` **live** נפתח `19:55:04` בגודל `5`, ו**הזרה לא חסמה**
+
+**רצף-הירי הגולמי** (`backend.err.log`):
+```
+19:55:04 [WARNING] [mems26.systems.five_min] [CeilingFlipTouch2] CEILING_TOUCH2_REJECT → SHORT entry=7715.00 stop=7720.00 anchor=7719.75 T1=7664.00 T2=7665.25 (live)
+19:55:04 [INFO] [sierra_command] [SierraCmd] RISK_BUDGET: risk=5.0 pts → raw=9.0 → floor=9 → min(ruled=5)=5
+19:55:04 [WARNING] [sierra_command] [SierraCmd] §2 RUNNER_BY_DAYTYPE_V1: trade 1584 day_type=Neutral_Extreme → c4=7673.0 (struct_c3) — no runner
+19:55:04 [WARNING] [backend.v9.gateway.trading_gateway] [Gateway] LIVE trade TM id=1584: SHORT CEILING_FLIP_TOUCH2 system=2 t1=7701.00 t2=7700.00 t3=7690.00 account=37138283
+19:55:06 [INFO] [fill_poller] [FillPoller] ENTRY fill: trade 1584 @ 7715.0
+19:55:06 [INFO] [fill_poller] [FillPoller] mapped 9 per-contract order ids → trade 1584
+```
+⇒ **התקרה-הפסוקה כובדה מהמודול ולא מ-`.env`**: `RISK_BUDGET` ביקש `9` (`225/5.0` → floor), והתקרה גזרה ל-`min(ruled=5)=5`. העוגן `7719.75` הוא **שיא-הסשן** ⇒ סיכון `5.0` נק' מבני (`stop_is_structural=true`).
+
+**`C1` יצא ב-`20:00:58` בפלוס — כלל `C1→BE` פעל:**
+```
+20:00:58 [INFO] [fill_poller] [FillPoller] fill: kind=STOP order=11204 trade=1584 price=7714.75
+20:00:58 [WARNING] [TradeManager] T-251 partial stop: trade 1584 leg 1c @ 7714.75 (order=11204) — ledger 1/5, 4 contract(s) STILL LIVE → books stay OPEN (PARTIAL)
+```
+⇒ חוזה אחד ב-`+$1.25` (`+0.25` נק'), `4` חיים. `T-251` **לא** חזר: הספרים נשארו `PARTIAL` ולא נסגרו על חוזה פתוח.
+
+### 3 · חובה-3 · הממצא השני 🟠 — `under_margin=1` **עם פוזיציה שלנו חיה** ⇒ [[T-376]]
+
+**הראיה (Rule 5), `5` דגימות רצופות `20:11:01-20:11:17` + מדידה חוזרת `20:12`:**
+```
+20:11:01 pos=-8 avg=7712.62 last=7708.75 open_pnl=155.0 acct_daily_pl=-853.75 avail=-65.05 under_margin=1 | ours_qty=4 foreign_qty=4 foreign_ids=[11215, 11217]
+20:11:05 pos=-8 avg=7712.62 last=7708.50 open_pnl=165.0 acct_daily_pl=-853.75 avail=-55.05 under_margin=1 | ours_qty=4 foreign_qty=4 foreign_ids=[11215, 11217]
+20:11:09 pos=-8 avg=7712.62 last=7708.75 open_pnl=155.0 acct_daily_pl=-853.75 avail=-45.05 under_margin=1 | ours_qty=4 foreign_qty=4 foreign_ids=[11215, 11217]
+20:11:13 pos=-8 avg=7712.62 last=7709.00 open_pnl=145.0 acct_daily_pl=-853.75 avail=-45.05 under_margin=1 | ours_qty=4 foreign_qty=4 foreign_ids=[11215, 11217]
+20:11:17 pos=-8 avg=7712.62 last=7708.50 open_pnl=165.0 acct_daily_pl=-853.75 avail=-35.05 under_margin=1 | ours_qty=4 foreign_qty=4 foreign_ids=[11215, 11217]
+acct_under_margin 1 · acct_available_funds -85.05 · acct_margin_req 2299.44 · acct_account_value 2214.39
+acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_daily_net_loss_limit -1771.88 · is_sim 0
+```
+
+**הבעלות נקבעה לפי `order_id` לפני האזעקה** ([[feedback_ownership_by_position_change_order_id]]) — לא לפי `position_qty` ולא לפי ניחוש:
+```
+psql: SELECT id,mode,state FROM v9_trades WHERE quality::text LIKE '%11215%' OR LIKE '%11217%';  ⇒ 0 שורות
+grep '^2026-09-14 ' backend.err.log | grep -E '11215|11217'  ⇒ 0 שורות רישום (registered order)
+שלנו ב-#1584 בלבד: 11203/11204(C1, יצא) · 11206/11207(C2, qty2) · 11209/11210(C3, qty1) · 11212/11213(C4, qty1) · entry 11211
+```
+⇒ `-8` = **`4` שלנו + `4` זרים**. זו הפוזיציה-הזרה ה**רביעית** של היום (אחרי `8` בפתיחה, `8` שורט ב-`16:08`, `8` לונג ב-`17:14` שנסגרה `18:52`).
+
+**מה חדש לעומת `12:43`** — שם `under_margin` התהפך ל-`1` כשלא היה לנו **כלום** בשוק; הפעם הוא מתהפך כש-`4` חוזים שלנו חיים ורווחיים ⇒ החשיפה אינה "גודל-פתיחה" אלא **חיסול-כפוי שיסגור את העסקה שלנו במחיר שאינו שלנו**. זו הסיבה שזה מקרה-(ג) ולא חזרה על הודעה קיימת.
+
+**מה **לא** נעשה, ובמפורש:** לא נגעתי בפוזיציה, לא ב-`live_slot`, לא בדגל, לא ב-`.env` ולא בפקודה. `op=EXIT` אסור וממילא שבור; `FLATTEN_ACCOUNT` הוא שינוי-סיכון ⇒ **ממתין לפסיקת-מייקל** (השאלה נשלחה `20:12:28`).
+
+**ההגנה שלנו מאומתת ברגע-הכתיבה:**
+```
+20:11:56-20:11:59 [INFO] [backend.v9.services.reconcile] [Reconcile] IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+orders שלנו: 11207 qty2 @7715.75 · 11210 qty1 @7715.50 · 11213 qty1 @7715.25   (type=3)
+```
+⚠️ **הסתייגות**: `type=3` הוא `STOP_LIMIT` ולא `STOP` ([[feedback_order_type_3_is_stop_limit]]) ⇒ "יש סטופ" כאן הוא **הזמנה קיימת סביב BE**, לא הבטחת-מימוש בפער.
+
+### 4 · שאר בדיקות-הניטור — כולן ירוקות
+
+| בדיקה | מדידה | פסק |
+|---|---|---|
+| גיל-בר | `max_ts=2026-09-14 20:05:00+03` מול `now()=20:07:56` ⇒ `age_min=2.9` | 🟢 ≤10 דק' |
+| backend | `{"status":"ok","version":"v9.0.0"} HTTP=200 t=0.0012s` · מאזין `PID 21409` על `:8000` | 🟢 |
+| ייצוא-סיירה | כל `11` הקבצים ב-`~/SierraChart_Data/v9_export/` עם `mtime` של `20:08` | 🟢 |
+| לוג — רמות `30` דק' אחרונות | `7,710` שורות-עם-חותמת: `INFO 4,982` · `WARNING 2,728` · **`ERROR 0`** | 🟢 |
+| ה-`ERROR` האחרון | `15:15:02` `TS-OFFSET-GATE` — **לפני** הריסטארט של `15:35`; הצפה הופסקה ולא חזרה | 🟢 |
+| `live_slot` | `"1584"` · `live_slot_system=2` — תפוס נכון ע"י העסקה החיה | 🟢 |
+
+**נותר פתוח מהניטור הקודם, ללא שינוי:** [[T-375]] — `gateway/status` מחזיר `daily_pnl=0.0` ו-`trades_today=0` בעוד `#1563` ו-`#1584` שניהם אירעו היום ⇒ `RISK_HALT_V1` עדיין מודד מרצפה נמוכה ב-`$183.75` מהמציאות. **לא** ממצא חדש — אותו שורש שנרשם ב-`19:52`.
+
+**הצעד הבא:** ניטור-RTH הבא (`~20:36`) — לוודא (א) האם מייקל פסק על [[T-376]], (ב) האם `under_margin` שחרר את עצמו כמו ב-`14:50`, (ג) מצב `#1584` מול `t1=7701`.
+
+---
+
+— cowork-dev
