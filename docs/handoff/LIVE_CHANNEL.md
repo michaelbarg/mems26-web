@@ -1,3 +1,39 @@
+### [2026-09-14 IL] cc-macbook · T-320 פריט 5/8 — chart setup markers · commit pending
+
+**ה1 · NOT-DONE:** `CEILING_FLIP_TOUCH2` has **0 rows** in `v9_trades` — the gateway blocks these setups (kind/bias) before they reach the shadow/demo/live execute stages. The endpoint reads DB data only (Rule 1: if a field is missing → null, not invention). Specifically: `SELECT count(*) FROM v9_trades WHERE pattern_id_at_entry = 'CEILING_FLIP_TOUCH2'` → **0**. The blocked-twin mechanism (T-219 `_shadow_blocked_today`) only fires for a capped number per day and may not have been active on 11.09 for this classification.
+
+**ה2 · 10.09 blocked marker:**
+```
+curl -s 'localhost:8000/api/v9/chart/setup_markers?session=2026-09-10' | python3 -c "import sys,json; [print(r) for r in json.load(sys.stdin) if r.get('blocked_by')=='dalton_intent:kind'][:1]"
+→ {"ts": "2026-09-10T17:05:06...", "classification": "TREND_STEP", "direction": "SHORT", "state": "blocked", "blocked_by": "dalton_intent:kind", ...}
+```
+
+**ה3 · 11.09 REACTIVE_SHORT 7673.25:**
+```
+v9_trades id=1501: mode=shadow state=CLOSED entry=7673.25 pattern=REACTIVE_SHORT direction=SHORT
+→ API returns: state=blocked shadow_only=true
+```
+**החלטתי:** the DB records this as `mode=shadow` because the live system routed the REACTIVE_SHORT to shadow (the CEILING_FLIP_SHORT was the live trade that session). The golden describes the harness output (where it fired as live), but the API reads the actual DB. The marker shows what really happened (shadow, blocked) not what the harness would have done. This is Rule 1.
+
+**ה4 · NOT-DONE:** screenshot requires running backend + frontend dev server. I'm instructed not to restart. The API endpoint (`chart_setup_markers.py`) and frontend component (`SetupMarkersOverlay.tsx`) are ready and will render markers on the chart at next restart (scheduled 15:45).
+
+**ה5 · mutation — zero DB writes, only api/ + frontend/:**
+```
+grep -c 'INSERT\|UPDATE\|DELETE' backend/v9/api/v9/chart_setup_markers.py → 0
+git show --stat (staged):
+  backend/v9/api/v9/chart_setup_markers.py  (new, read-only)
+  backend/v9/app.py                         (+3 lines: import + include_router)
+  frontend/v9/src/.../SetupMarkersOverlay.tsx (new, UI only)
+  frontend/v9/src/.../ChartV5b.tsx           (+3 lines: import + mount)
+```
+
+**Files:**
+- `backend/v9/api/v9/chart_setup_markers.py` — GET endpoint, reads v9_trades, returns JSON
+- `frontend/v9/src/v9/components/chart/v5b/SetupMarkersOverlay.tsx` — lightweight-charts markers overlay: ○ armed / ● fired / ✕ blocked, system colors (S2=#06b6d4, S4=#f97316), semi-transparent for shadow, tooltip with raw blocker, legend, 5000ms poll
+- `backend/v9/app.py` — router registration (+3 lines)
+- `frontend/v9/src/v9/components/chart/v5b/ChartV5b.tsx` — import + mount (+3 lines)
+
+---
 ### [2026-09-14 14:15 IL] cowork-scheduled · 🟢 **[[T-353]] נסוג שוב — הפנוי `+598.66`, `trading_disabled=0` ב-`6/6`** · 🔑 **[[T-43]] התנאי עדיין קיים ב-`14:05:32`** · ⚠️ **`gateway/status.daily_pnl=47.5`/`trades_today=3` הם של `09-11`, לא של היום** · 📱 **שקט מוחלט בטלפון**
 
 **חובה-1 בלבד** — ריצת `14:06-14:15`, לפני-RTH (‏MES ב-RTH נפתח `16:30 IL`).

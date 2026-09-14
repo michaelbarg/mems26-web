@@ -92,6 +92,9 @@ v9_router.include_router(agent_chat_router)
 # מוניטור-אייפון (מייקל 07-15) — עמוד-כיס קריאה-בלבד, מוגש מהבקאנד
 from backend.v9.api.v9.mobile_monitor import router as mobile_monitor_router
 v9_router.include_router(mobile_monitor_router)
+# T-320 (Michael 11.09): chart setup markers — read-only overlay data
+from backend.v9.api.v9.chart_setup_markers import router as chart_setup_markers_router
+v9_router.include_router(chart_setup_markers_router)
 
 # T1 (Michael 07-14): read-only Sierra live-detection check (pre-live gate).
 from backend.v9.api.v9.sierra_live_check import router as sierra_live_check_router
