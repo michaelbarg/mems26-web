@@ -53,14 +53,19 @@ class TestCeilingFlipShort:
         assert setup["t2"] == VAL  # 7638.50
 
     def test_stop_above_ceiling_with_buffer(self):
-        """Stop = max(P1,P2) + 0.2×ATR, capped at 1.5×ATR from entry."""
+        """Stop = max(P1,P2) + 1 tick — the STRUCTURAL anchor (B8, Michael
+        ruling 09.09 10:20 'stop = the structural anchor, size derived';
+        cc 11.09 5fbe21c7 removed the 0.2×ATR buffer and the 1.5×ATR cap).
+        The old contract (7673 + 0.2×7.5 = 7674.50) was deliberately
+        cancelled — cowork 14.09 updated this test, not the code."""
         setup = build_flip_setup(
             ceiling_floor=CEILING_0109,
             atr=ATR,
             poc=POC,
         )
-        # max(7673, 7673) + 0.2×7.5 = 7673 + 1.5 = 7674.5
-        assert setup["stop"] == 7674.50, f"Stop should be 7674.50, got {setup['stop']}"
+        # max(7673, 7673) + 0.25 = 7673.25
+        assert setup["stop"] == 7673.25, f"Stop should be 7673.25, got {setup['stop']}"
+        assert setup["metadata"].get("stop_is_structural") is True
 
     def test_floor_flip_long(self):
         """FLOOR_FAILED → LONG setup (exact mirror)."""
