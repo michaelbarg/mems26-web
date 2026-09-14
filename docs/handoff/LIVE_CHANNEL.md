@@ -1,3 +1,93 @@
+## 🟢 [cowork-dev · 2026-09-14 19:06-19:13 IL] — **עסקת-הלייב הראשונה של היום נפתחה `19:05:06`** בגודל-הפסוק המלא (5); הזרה חזרה ב-`19:07` ו**לא חסמה**
+
+**ריצת חובה-1 + חובה-3** (`19:06` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
+שער §3.9 נמדד לפני כל מסקנה:
+```
+2026-09-14 15:35:06 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=1361 commit=c9cd46d4 stream=stderr
+ps -o pid,lstart,etime -p 1361 ⇒ 1361  Mon Sep 14 15:35:03 2026   ELAPSED 03:35:17
+```
+⇒ **אפס ריסטארט** — `lstart` זהה לזה שנרשם ב-`15:55`, `17:17`, `17:42`, `18:11`, `18:36`.
+
+### 1 · חובה-1 · טלפון — אפס ממתינות (מקרה-א), ו**מקרה-(ב) נשלח** — עסקת-לייב נפתחה
+
+peek ישיר מ-Render (GET נטול-תופעות-לוואי, לא מהקובץ המקומי), `19:08:13`:
+```
+instruction/pending ⇒ {"items":[]}   cmd/pending ⇒ {"cmd":null}   upload/pending ⇒ {"items":[]}
+```
+הרלה **מוכח-מושך ולא רק `state = running`** ([[feedback_relay_running_is_not_polling]]):
+```
+launchctl ⇒ state = running · pid = 2006
+lsof -a -p 2006 -i ⇒ TCP 192.168.1.127:57537->ip-216-24-57-7.ingress.render.com:https (ESTABLISHED)
+```
+`PHONE_THREAD.jsonl` = `535` שורות; ההודעה האחרונה מ**מייקל** היא `2026-09-11T17:24:48Z` וכבר נענתה (`cowork`, `17:45:33Z`) ⇒ **אפס מקרה-(א).**
+**מקרה-(ב) — נשלח אחד** (`259` תווים, מתחת ל-300). ראיית-מסירה מ-`GET /chat` ולא משדה-ה-`ok`:
+```
+2026-09-14T16:12:00Z | cowork | עסקה חיה נפתחה 19:05 — CEILING_FLIP_TOUCH2 שורט, 5 חוזים מ-7697.25. סטופ 7704.75 מאומת בסיירה. יעדים 7683.25 / 7674.75 / 7665.25 …
+```
+**אפס מקרה-(ג)** — הזרה חזרה אך אינה חוסמת (§2), והשאלה מ-`17:40` כבר פתוחה אצל מייקל ⇒ הודעה שלישית באותו נושא = חזרה אסורה. **אפס מקרה-(ד)** — אינו חלון-`15:40`.
+
+### 2 · חובה-3 · הממצא — `#1563` **live** נפתח `19:05:06` בגודל `5`, והזרה הגיעה **אחרי** הירי
+
+**רצף-הירי הגולמי** (`backend.err.log`, שורות `519158`-`519176`):
+```
+19:05:06 [WARNING] [mems26.systems.five_min] [CeilingFlipTouch2] CEILING_TOUCH2_REJECT → SHORT entry=7697.25 stop=7704.75 anchor=7704.50 T1=7665.25 T2=7665.25 (live)
+19:05:06 [INFO] [sierra_command] [SierraCmd] RISK_BUDGET: risk=7.5 pts → raw=6.0 → floor=6 → min(ruled=5)=5
+19:05:06 [INFO] [trade_manager.manager] Trade 1563 created: mode=live sys=2 dir=SHORT
+19:05:06 [WARNING] [sierra_command] §2 RUNNER_BY_DAYTYPE_V1: trade 1563 day_type=Neutral_Extreme → c4=7665.25 (struct_c3) — no runner
+19:05:06 [WARNING] [sierra_command] COMMAND QUEUED #404 → …/command_queue/cmd_000404.json (op=PLACE, pending_before=0, fast_path=True)
+```
+⇒ **הגודל-הפסוק כובד מהמודול ולא מ-`.env`**: `min(ruled=5)=5`. ‏`RISK_BUDGET` ביקש `6` (225/7.5·2 → floor), והתקרה-הפסוקה גזרה ל-`5`.
+
+**הספרים** (`v9_trades`, ET):
+```
+1563 | live | 2 | CEILING_FLIP_TOUCH2 | SHORT | FILLED | 12:05:08 ET | entry 7697.25 | stop 7704.75 | t1 7683.25 | t2 7674.75 | t3 7665.25 | Neutral_Extreme | MIDDAY
+gateway/status ⇒ live_slot "1563" · live_slot_system 2 · shadow_active_count 8
+```
+
+**הבראקט קיים בסיירה — לא רק בספרים** (`sierra_state.json`, `mtime 19:09:50`, `8 working orders`):
+```
+type=1 qty=1 @7691.50   type=3 qty=1 @7702.00      ← T0
+type=1 qty=2 @7683.25   type=3 qty=2 @7704.75      ← T1
+type=1 qty=1 @7674.75   type=3 qty=1 @7704.75      ← T2
+type=1 qty=1 @7665.25   type=3 qty=1 @7704.75      ← T3
+```
+סכום-הרגליים `1+2+1+1 = 5` **מסתכם בגודל-העסקה**, והיעדים `7683.25/7674.75/7665.25` **זהים לשדות `t1/t2/t3` בשורה** ⇒ ייחוס-מקור, לא אריתמטיקה-שמסתדרת. `Reconcile ⇒ IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)`.
+⚠️ **תיעוד, לא ממצא:** רגלי-הסטופ הן `type=3` = `STOP_LIMIT` ([[feedback_order_type_3_is_stop_limit]]), כמו בכל בראקט שלנו.
+
+**הזרה חזרה — ו-`3` החוזים הגיעו אחרי הירי, לכן לא חסמו** ([[feedback_ownership_by_position_change_order_id]]):
+```
+19:05:06  COMMAND QUEUED #404 (pending_before=0)        ← שער UNMANAGED POSITION עבר ⇒ החשבון היה 0 ברגע השליחה
+19:07:18  [sierra_position_reconciler] SYS-3 DIVERGENCE: TM says -5 ['#1563(live,SHORT,5c/assumed_open)'], Sierra says -8
+```
+⇒ **הפער `-8` מול `-5` נולד ב-`19:07:18`, שתי דקות אחרי הפתיחה.** `3` חוזים זרים, **ללא בראקט משלנו** (כל `5` הרגליים תפוסות בשלנו). לא נגעתי בהם.
+`avg_price 7697.50` על `8` מול `7697.25` על שלנו ⇒ `3` הזרים סביב `7697.9` — **לא** שרידי השורט מ-`7684` של `17:40`.
+
+**‏5 דגימות על ~20 שנ' (`19:12:24`-`19:12:40`), `qty`/`mreq`/`um` כולן `n_distinct = 1`:**
+```
+qty -8 · avg 7697.5 · working_orders 8 · mreq 2299.44 · under_margin 0 · trading_disabled 0
+avail 252.45 → 232.45 → 242.45 → 222.45 → 222.45   ·   open_pnl -90 → -80 → -100 → -100 → -110
+```
+**בעלות ה-`acct_daily_pl = -331.25` נשללה שוב** (§3.5): הוא קדם לירי שלנו — `closures_on_fills ⇒ closed_today 0 · day_pnl $0.00`, ו-`trades_today = 0` בשער.
+
+### 3 · המצב — ירוק; `ERROR 0` מחזיק שעה רביעית
+
+```
+health ⇒ {"status":"ok","version":"v9.0.0"}      מאזין Python 1361 על *:8000
+גיל-בר (שעון-DB) ⇒ max_ts=2026-09-14 16:05:00Z · age_min=3.7 · 67 ברים ב-6 השעות האחרונות     ≤ 10 ✅
+מפקד-רמות על 4,000 השורות האחרונות: INFO 3,316 + WARNING 684 = 4,000 = DENOM ✓  ⇒ ERROR 0 · CRITICAL 0
+ERROR אחרון היום ⇒ 15:15:02 (TS-OFFSET-GATE, טרום-ריסטארט) · CRITICAL אחרון ⇒ 17:30:04
+```
+`LIVE fire BLOCKED` היום **עדיין `2`** (`17:25:08` · `17:30:04`) ⇒ **אפס חסימה חדשה** — ובדיוק אותה תבנית (`CEILING_FLIP_TOUCH2`) שנחסמה כ-LONG ב-`17:25` **עברה כ-SHORT ב-`19:05`**.
+פיד-ההחלטות החזיר `32 < 200` ⇒ **אינו חתוך** (§3.2); `16:05:06Z` = שתי שורות `blocked_by = None`, `CEILING_FLIP_TOUCH2` + `CEILING_FLIP_SHORT`, שתיהן SHORT.
+
+### 4 · מה שלא קבעתי · מה במעקב לריצה הבאה
+
+- 🟠 **`avail` ‏`$222-252` בלבד** בזמן שהפוזיציה פתוחה. `under_margin = 0` בכל `5` הדגימות, אבל הכרית דקה: כל תנועה נוספת נגדנו + `3` הזרים ⇒ `under_margin` עלול להתהפך. **זה, ורק זה, יהיה מקרה-(ג) בריצה הבאה.**
+- **לא קבעתי מי פתח את `3` החוזים הזרים ובאיזה מחיר בדיוק** — `POSITION_CHANGE.order_id` לא נדגם בריצה הזו; `avg_price` הוא היסק-תמחור ולא ייחוס-בעלות.
+- `#1559`, `#1561`, `#1562`, `#1564` (shadow) עדיין `FILLED` — לצל אין בראקט בסיירה, זה תקין.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-14 18:36-18:52 IL] — ניטור-RTH: הפוזיציה-הזרה השלישית **נסגרה**, הגודל-הפסוק ממומן שוב, ו**מפולת-ה-ERROR של היום נפסקה בריסטארט של `15:35`**
 
 **ריצת חובה-1 + חובה-3** (`18:36` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
