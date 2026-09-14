@@ -1810,12 +1810,26 @@ class FiveMinSystem(BaseV9TradingSystem):
                             _t2_ib_w = _t2_ibh - _t2_ibl
                     except Exception:
                         pass
+                    _t2_atr = _cf_atr(_cf_bars, period=14)
                     _t2_st = detect_touch2(
                         _cf_bars, _cf_levels,
-                        atr=_cf_atr(_cf_bars, period=14),
+                        atr=_t2_atr,
                         ib_width=_t2_ib_w,
                         already_fired=getattr(self, "_t2_fired", None),
                     )
+                    if os.getenv("CEILING_TOUCH2_DEBUG", "0") == "1":
+                        # cowork 14.09: per-bar evaluation trace (harness only)
+                        try:
+                            logger.warning(
+                                "[CeilingFlipTouch2] DEBUG n=%d last_h=%.2f last_c=%.2f atr=%s "
+                                "ib_w=%s levels=%s -> %s",
+                                len(_cf_bars), float(_cf_bars[-1].get("h", 0)),
+                                float(_cf_bars[-1].get("c", 0)), _t2_atr, _t2_ib_w,
+                                {k: (_cf_levels or {}).get(k) for k in
+                                 ("vah", "val", "session_high", "session_low", "ib_high", "ib_low")},
+                                None if not _t2_st else _t2_st.get("state"))
+                        except Exception:
+                            pass
                     if _t2_st:
                         if not hasattr(self, "_t2_fired"):
                             self._t2_fired = set()

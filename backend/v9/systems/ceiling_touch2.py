@@ -103,32 +103,42 @@ def _scan_ceiling_touch2(
     if p1_lo > p1_hi:
         return None
 
-    # TOUCH-1: highest high in the window
-    i1 = _argmax(highs, p1_lo, p1_hi)
-    p1 = highs[i1]
-    if p1 < edge - edge_tol:
-        return None  # not near edge
-
-    # TOUCH-2 = the LAST bar
+    # TOUCH-2 = the LAST bar; it must sit near the edge.
     i2 = last
     p2 = highs[i2]
-    if abs(p2 - p1) > tol:
-        return None  # not same area
-
-    # TOUCH-2 near edge too
     if p2 < edge - edge_tol:
         return None
-
-    # REJECTION: touch-2 bar closes BELOW touch-1 bar close
-    c1 = closes[i1]
     c2 = closes[i2]
-    if c2 >= c1:
-        return None  # no rejection — touch-2 closed at or above touch-1
 
-    # Rejection between touches: at least one close below edge
-    has_rejection = any(closes[k] < edge for k in range(i1, i2 + 1))
-    if not has_rejection:
+    # TOUCH-1: the LATEST earlier bar in the window whose high is in the
+    # same area as touch-2 (|P1-P2| <= tol), near the edge, whose close
+    # touch-2 rejected (c2 < c1), with nothing in between advancing above
+    # the pair (max(P1,P2)+tol) and at least one close back below the edge.
+    # cowork 14.09 (item-1 follow-up): the previous rule took P1 = argmax of
+    # the window, so Michael's 11.09 17:20/17:25 equal-high double top
+    # (7678.75 = 7678.75, 3.25 under the 16:55 session high 7682) could never
+    # match — P1 always snapped to 7682 and |P2-P1| = 3.25 > tol. A double
+    # top is two touches of the SAME area near the edge, not "the max".
+    i1 = None
+    for cand in range(p1_hi, p1_lo - 1, -1):
+        p1c = highs[cand]
+        if abs(p2 - p1c) > tol:
+            continue  # not same area
+        if p1c < edge - edge_tol:
+            continue  # not near edge
+        if c2 >= closes[cand]:
+            continue  # no rejection — touch-2 closed at or above touch-1
+        cap = max(p1c, p2) + tol
+        if any(highs[k] > cap for k in range(cand + 1, i2)):
+            continue  # something between the touches advanced past the pair
+        if not any(closes[k] < edge for k in range(cand, i2 + 1)):
+            continue  # never closed back below the edge
+        i1 = cand
+        break
+    if i1 is None:
         return None
+    p1 = highs[i1]
+    c1 = closes[i1]
 
     return {
         "p1": p1,
@@ -193,12 +203,26 @@ def detect_touch2(
         conf.update(cfg)
 
     tol = conf["tol_atr"] * atr_f
-    # Edge tolerance: max(edge_tol_atr × ATR, 0.15 × IB_width) — T-327a
-    _edge_tol_atr = conf.get("edge_tol_atr", 0.15) * atr_f
-    _edge_tol_ib = 0.15 * float(ib_width) if ib_width and float(ib_width) > 0 else 0
-    edge_tol = max(_edge_tol_atr, _edge_tol_ib)
-
     lv = levels if isinstance(levels, dict) else {}
+    # Edge tolerance: max(edge_tol_atr × ATR, 0.15 × IB_width) — T-327a.
+    # Item-1 follow-up (cowork 14.09): before the IB locks, ib_width is None
+    # and the tolerance collapsed to 0.15×ATR (~1.2 pt), so Michael's 11.09
+    # 17:20/17:25 equal-high double top (7678.75, 3.25 pt under the session
+    # high 7682) was NOT-FIRED in the harness. The developing session range
+    # (session_high − session_low, both bar-derived running RTH extremes) is
+    # the pre-lock stand-in for the IB width — geometry, not a guess.
+    _range_w = None
+    if not (ib_width and float(ib_width) > 0):
+        try:
+            _sh, _sl = lv.get("session_high"), lv.get("session_low")
+            if _sh is not None and _sl is not None and float(_sh) > float(_sl):
+                _range_w = float(_sh) - float(_sl)
+        except (TypeError, ValueError):
+            _range_w = None
+    _edge_w = float(ib_width) if (ib_width and float(ib_width) > 0) else _range_w
+    _edge_tol_atr = conf.get("edge_tol_atr", 0.15) * atr_f
+    _edge_tol_ib = 0.15 * _edge_w if _edge_w and _edge_w > 0 else 0
+    edge_tol = max(_edge_tol_atr, _edge_tol_ib)
     fired = already_fired or set()
 
     last_bar = bars[-1]
@@ -225,7 +249,18 @@ def detect_touch2(
             res = scan(highs, lows, closes, edge_val, tol, edge_tol, conf)
             if res is None:
                 continue
-            key = f"T2_{state}_{res['p1_index']}_{res['p2_index']}"
+            # Dedup key by the touch bars' TIMESTAMPS, not window indices.
+            # cowork 14.09: with a 120-bar sliding window every adjacent-bar
+            # pattern has indices 118/119, so the first fire (16:40) silenced
+            # every later one — including Michael's 17:20/17:25 double top.
+            def _bar_id(b):
+                return str(b.get("ets") or b.get("ts") or b.get("ets_utc") or "")
+            _b1, _b2 = bars[res["p1_index"]], bars[res["p2_index"]]
+            _id1, _id2 = _bar_id(_b1), _bar_id(_b2)
+            if _id1 and _id2:
+                key = f"T2_{state}_{_id1}_{_id2}"
+            else:
+                key = f"T2_{state}_{res['p1_index']}_{res['p2_index']}"
             if key in fired:
                 continue
             res["state"] = state
