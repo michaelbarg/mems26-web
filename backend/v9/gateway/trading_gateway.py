@@ -407,6 +407,23 @@ def _is_ui_decision_row(row: dict) -> bool:
         return row.get("event_type") in (None, "GATE_DECISION", "ROUTED")
 
 
+def _fx_read_rth_bars_today():
+    """T-366: Read today's RTH bars (from 16:30 IL) for the fresh-extreme gate.
+
+    Returns list of dicts with 'high' and 'low', ordered ascending by ts.
+    In the fwd_harness the clock is frozen, so now() is rewritten to the
+    harness clock automatically — no special handling needed.
+    """
+    from backend.v9.db.read import read_all as _fx_ra
+    return _fx_ra(
+        "SELECT high, low FROM v9_bars_5min_woodies "
+        "WHERE (ts AT TIME ZONE 'Asia/Jerusalem')::date = "
+        "(now() AT TIME ZONE 'Asia/Jerusalem')::date "
+        "AND (ts AT TIME ZONE 'Asia/Jerusalem')::time >= '16:30' "
+        "ORDER BY ts", {},
+    )
+
+
 class TradingGateway:
     """Central trade routing: SHADOW (unlimited) / DEMO (1 slot) / LIVE (1 slot + risk)."""
 
@@ -1415,6 +1432,38 @@ class TradingGateway:
                 result["reason"] = f"dalton_playbook crashed (fail-closed): {_dp_err}"
                 logger.warning("[Gateway] BLOCKED by dalton_intent ERROR (fail-closed): %s", _dp_err)
                 return result
+
+        # ── T-366: fresh-extreme gate — one rule, every producer ──────────────
+        # Michael 14.09: "לא להיכנס בסוף העלייה ואז ככה נכשלת". Doctrine, not a
+        # tuned edge. Superseded the per-detector TOUCH2_EXTREME_AGE_V1.
+        if os.getenv("FRESH_EXTREME_GATE_V1", "1").lower() in ("1", "true", "yes"):
+            try:
+                _fx_min = int(os.getenv("FRESH_EXTREME_MIN_BARS", "3") or "3")
+                _fx_dir = (setup.get("direction") or "").upper()
+                # RTH bars of TODAY only, closed strictly before the current bar.
+                _fx_rows = _fx_read_rth_bars_today()
+                if len(_fx_rows) >= _fx_min + 1:
+                    _fx_prev = _fx_rows[:-1]              # without the current bar — zero look-ahead
+                    if _fx_dir == "LONG":
+                        _fx_ext = min(float(r["low"]) for r in _fx_prev)
+                        _fx_idx = max(i for i, r in enumerate(_fx_prev) if float(r["low"]) == _fx_ext)
+                    else:
+                        _fx_ext = max(float(r["high"]) for r in _fx_prev)
+                        _fx_idx = max(i for i, r in enumerate(_fx_prev) if float(r["high"]) == _fx_ext)
+                    _fx_age = (len(_fx_prev) - 1) - _fx_idx
+                    if _fx_age < _fx_min:
+                        result["blocked_by"] = "fresh_extreme"
+                        result["reason"] = (
+                            f"{_fx_dir} against a session extreme set {_fx_age} bars ago "
+                            f"(min {_fx_min}); extreme={_fx_ext:.2f}")
+                        logger.warning(
+                            "[Gateway] T-366 BLOCKED fresh_extreme: %s %s entry=%s "
+                            "extreme=%.2f age=%d < %d",
+                            setup.get("classification"), _fx_dir,
+                            setup.get("entry_price"), _fx_ext, _fx_age, _fx_min)
+                        return result
+            except Exception as _fx_err:
+                logger.warning("[Gateway] T-366 fresh-extreme gate errored (fail-OPEN): %s", _fx_err)
 
         # §5א NO_LABEL_NO_FIRE_V1: after IB lock, a live-eligible setup with
         # no day_type label → routed to shadow. 20/46 live trades fired on None.

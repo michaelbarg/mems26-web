@@ -250,37 +250,6 @@ def detect_touch2(
             res = scan(highs, lows, closes, edge_val, tol, edge_tol, conf)
             if res is None:
                 continue
-            # T-357: extreme-age guard — don't sell a freshly-set extreme
-            if os.getenv("TOUCH2_EXTREME_AGE_V1", "0").lower() in ("1", "true", "yes"):
-                _min_age = int(os.getenv("TOUCH2_MIN_EXTREME_AGE_BARS", "3") or "3")
-                _last = len(highs) - 1  # index of the current (touch-2) bar
-                # Bars BEFORE the current bar only (no look-ahead)
-                if _last >= 1:
-                    if state == CEILING_TOUCH2:
-                        # Find the bar that set the session high (latest wins on tie)
-                        _ext_idx = 0
-                        for _i in range(1, _last):
-                            if highs[_i] >= highs[_ext_idx]:
-                                _ext_idx = _i
-                        _age = (_last - 1) - _ext_idx  # bars between extreme and bar before current
-                    else:
-                        # Floor: find bar that set the session low
-                        _ext_idx = 0
-                        for _i in range(1, _last):
-                            if lows[_i] <= lows[_ext_idx]:
-                                _ext_idx = _i
-                        _age = (_last - 1) - _ext_idx
-                    if _age < _min_age:
-                        logger.info(
-                            "[CeilingFlipTouch2] extreme too fresh: age=%d < %d "
-                            "(dir=%s) — no setup", _age, _min_age,
-                            "SHORT" if state == CEILING_TOUCH2 else "LONG")
-                        continue
-                elif _last < _min_age + 1:
-                    logger.info(
-                        "[CeilingFlipTouch2] not enough bars for age check: "
-                        "%d < %d — no setup", _last, _min_age + 1)
-                    continue
             # Dedup key by the touch bars' TIMESTAMPS, not window indices.
             # cowork 14.09: with a 120-bar sliding window every adjacent-bar
             # pattern has indices 118/119, so the first fire (16:40) silenced
