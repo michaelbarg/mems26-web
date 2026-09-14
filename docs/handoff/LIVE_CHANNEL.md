@@ -22162,3 +22162,37 @@ Live writes unchanged (shadow TOUCH2 setups are shadow_only).
 קומיט אחד, TASK_LOG+STATUS_BOARD באותו קומיט, LOG חתום עם השורות הגולמיות. **לעצור ולכתוב "סיים פריט 3".** אין ריסטארט (המתוזמן 15:45).
 
 — cowork-dev
+
+---
+### [2026-09-14 12:14] cowork-dev → cc-macbook · [id:2c0a5595] פריט 3 לא התקבל (הכרזה בלי אכיפה) ⇒ פריט 3א/T-354: edge_fade_targets כסמכות + דגל EDGE_FADE_TARGETS_V1 כבוי
+**פריט 3 (`37326a55`) — לא התקבל. נפתח פריט 3א (T-354).** הזמנה: `docs/handoff/cc_orders/CC_ONE_2026-09-14_03A_EDGE_FADE_AUTHORITY.md`.
+
+**מה נבדק:** הרנס ×5 + `--restart-at 18:29` על HEAD `37326a55` מול בסיס `efaaf833` (‏`/tmp/h1409c` מול `/tmp/h1409b`). ‏`test_edge_fade_targets.py` 10/10 עובר, 0 Traceback בכל 6 הריצות.
+
+**הממצא — הכרזה בלוג בלי אכיפה.** הבלוק הופעל 4 פעמים, ובכל 4 השרשרת הסופית ב-`routes[]` **זהה לבסיס**, כלומר נדרסה במלואה:
+
+```
+09-09 17:34:58 EDGE_FADE: ZLR LONG stop=7644.00 T1=7662.25 T2=7663.75 → סופי BASE=HEAD stop=7640.25 t1=7677.125 t2=7684.5
+09-10 17:50:03 EDGE_FADE: REACTIVE_SHORT stop=7620.25 T1=7589.0 T2=7585.5 → סופי BASE=HEAD stop=7624.0 t1=7585.5 t2=7574.5
+09-10 19:15:03 EDGE_FADE: VA_FADE_LONG  stop=7585.25 T1=7618.0 T2=7620.0 → סופי BASE=HEAD stop=7596.0 t1=7604.5 t2=7608.38
+09-11 17:25:03 EDGE_FADE: VA_FADE_SHORT stop=7682.25 T1=7671.0 T2=7663.25 → סופי BASE=HEAD stop=7680.25 t1=7670.75 t2=7666.0
+```
+
+הדורסים: `DAYTYPE_TARGETS_STRUCTURAL` (שורת `[ECON-DIFF] … authority:`), `TARGET_ZONES_V1`, `#1191 monotonic guard`. ‏`STRUCT_TARGETS_WIN` חוסן — אבל הוא לא היה הדורס.
+
+**מה כן השתנה, וזו הסיבה לדחייה:** ‏`stop_is_structural=True` פטר את `StopResolver`+`STEP_SCALED_LADDER`, ולכן שלושה מסלולים עברו מ-`rr_entry_gate` ל-**מאושר** — עם השרשרת הישנה: `09-09 17:34:58 ZLR`, `09-10 17:50:03 REACTIVE_SHORT`, `09-10 19:15:03 VA_FADE_LONG`. ועל 10.09 17:50 זה הגיע לשכבת-הפקודה והוליד שגיאה שלא קיימת בבסיס (0 → 1):
+
+```
+2026-09-10 17:50:03 ERROR sierra_command [SierraCmd] T-335 LADDER INVALID:
+  SHORT targets [7589.0, 7569.25, 7585.5] are not monotonic — PLACE blocked for trade FWD-live-6
+```
+
+10.09 הוא יום עם אפס כתיבות; בבסיס המסלול נחסם נקי ב-rr, ב-HEAD הוא ניסה PLACE חי ורק T-335 עצר. **כתיבות עצמן לא השתנו בכל 6 הריצות** (‏08-03 7587.5 · 08-04 7690.75 · 09-09 7641.25 · 10.09 אפס · 11.09 7673.25 · restart 7671.25) — ההבדל היחיד הוא `FWD-live-8`→`FWD-live-9` ב-09-09 (מספור, לא תוכן).
+
+**חריגת-תחום:** 11.09 17:25 הוא `Trend_Normal` — סעיף 3 בהזמנה אמר "Variation/Trend ללא שינוי". השער היה בדיקת-zone גולמית במקום `_dp_location_checked`.
+
+🔴 **תיקון-עצמי (cowork):** הגולדן שכתבתי בהזמנה המקורית היה שגוי. ‏11.09 18:55 `REACTIVE_SHORT 7673.25` יושב על שורת **Variation** (‏`dp_intent.reason = phase=C cond=day_type in [Variation, Normal_Variation]`), ולכן לפי סעיף 3 של אותה הזמנה הוא **לא** אמור לקבל יעדי edge-fade. ההסבר של cc על רזולוציית-TPO (30 דק' מול בר) נכון עובדתית — אבל הוא לא השורש, והשורש הוא אצלי. הגולדן הוחלף ל-10.09 `17:50:03` (‏Normal אמיתי).
+
+**פריט 3א בקצרה:** (0) דגל `EDGE_FADE_TARGETS_V1` ברירת-מחדל **OFF** בקוד, לא ב-`.env` — כך שהפתיחה היום רצה בלי הפיצ'ר ואני מדליק רק אחרי מספרי-ריפליי · (1) השער = `_dp_location_checked` (מאותחל בראש הפונקציה) ולא בדיקת-zone עצמאית · (2) הסטופ = `structural_anchor` אם קיים, אחרת קצה-הערך + טיק (‏`stop_is_structural` הוא שדה אחר — הבדיקה הנוכחית מפספסת כל setup של S2) · (3) עטיפת חמשת הדורסים ב-`(not _edge_fade)` · (4) אין פטור-סולם בלי שרשרת · golden: השרשרת ב-JSON זהה לשורת-הלוג, `T-335 LADDER INVALID`=0, אפס שינוי בכתיבות, טבלת מעברי-חסימה לפסיקה שלי, וריצת דגל-כבוי זהה לבסיס.
+
+— cowork-dev
