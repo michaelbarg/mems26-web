@@ -1,8 +1,12 @@
-"""Item 3/8: edge_fade_targets — Normal/Neutral location-confirmed setups
-get dalton-doctrine targets (POC→VAL→IB) and structural stop (edge+tick).
+"""Item 3a/8 (T-354): edge_fade_targets — authority, not log line.
 
-Golden: 11.09 18:55 REACTIVE_SHORT 7673.25 → stop≈7676.25, T1=7667.75 (POC),
-T2=7660.25 (VAL), T3=7659.75 (IB-low).
+Normal/Neutral location-confirmed setups get dalton-doctrine targets
+(POC→VAL→IB) and structural stop. Chain is FINAL — downstream overrides
+(DAYTYPE_TARGETS_STRUCTURAL, load_pattern_t1_points, TARGET_ZONES_V1,
+TARGET_STRUCTURE_CLAMP_V1, TARGET_REALISM_V1) are guarded by (not _edge_fade).
+
+Flag: EDGE_FADE_TARGETS_V1 (default OFF).
+Gate: _dp_location_checked (Normal/Neutral only).
 """
 
 
@@ -147,3 +151,51 @@ def test_long_from_val_with_monotonic_ib():
     assert s["t1"] == 7665.00   # POC
     assert s["t2"] == 7670.75   # VAH
     assert s["t3"] == 7675.25   # IB-high (above VAH → monotonic)
+
+
+# ── ג6 mutation tests: verify wiring in the actual gateway source ──
+
+def test_gate_uses_dp_location_checked():
+    """The edge_fade block must be gated by _dp_location_checked, not a raw zone check."""
+    import inspect
+    from backend.v9.gateway.trading_gateway import TradingGateway
+    src = inspect.getsource(TradingGateway._route_setup_inner)
+    idx = src.find("EDGE_FADE_TARGETS_V1")
+    assert idx > 0, "EDGE_FADE_TARGETS_V1 not found in _route_setup_inner"
+    # The if-condition is on the same line or nearby — check ±200 chars around the flag
+    window = src[max(0, idx - 200):idx + 200]
+    assert "_dp_location_checked" in window, (
+        "_dp_location_checked not in the condition guarding EDGE_FADE_TARGETS_V1")
+
+
+def test_downstream_overrides_guarded_by_edge_fade():
+    """All 5 downstream target overrides must be guarded by (not _edge_fade)."""
+    import inspect
+    from backend.v9.gateway.trading_gateway import TradingGateway
+    src = inspect.getsource(TradingGateway._route_setup_inner)
+    guarded = [
+        "DAYTYPE_TARGETS_STRUCTURAL",
+        "load_pattern_t1_points",
+        "TARGET_ZONES_V1",
+        "TARGET_STRUCTURE_CLAMP_V1",
+        "TARGET_REALISM_V1",
+    ]
+    for name in guarded:
+        # For env flags, search for the os.getenv call; for import names, the import
+        env_form = f'getenv("{name}"'
+        idx = src.find(env_form)
+        if idx < 0:
+            # Not an env flag — search for "import name" or "name(" call
+            for pat in [f"import {name}", f"{name}("]:
+                idx = src.find(pat)
+                if idx >= 0:
+                    break
+        assert idx > 0, f"{name} not found (any form) in _route_setup_inner"
+        # The _edge_fade guard is on the same line or the enclosing if above
+        line_start = src.rfind("\n", 0, idx) + 1
+        line = src[line_start:src.find("\n", idx)]
+        if "_edge_fade" not in line:
+            # Check the enclosing if (up to 3 lines above)
+            prev3 = src[max(0, line_start - 300):line_start]
+            assert "_edge_fade" in prev3, (
+                f"{name}: _edge_fade not on same line or within 300 chars above")

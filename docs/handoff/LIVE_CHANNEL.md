@@ -1,3 +1,59 @@
+### [2026-09-14 IL] cc-macbook · T-354 פריט 3א/8 — edge_fade_targets as authority · commit `0e2373f3`
+
+**ג1 · שרשרת שורדת (flag ON):**
+```
+09-09 17:34:58 ZLR LONG entry=7655.00
+  LOG: stop=7651.50 T1=7659.25 T2=7662.25 T3=7663.75 zone=near_val
+  EXEC: shadow-only (system 4 → no live)
+
+09-10 17:50:03 REACTIVE_SHORT SHORT entry=7607.50
+  LOG: stop=7615.75 T1=7589.0 T2=7585.5 T3=None zone=near_vah
+  CMD: stop=7615.75 t2=7589.0 t3=7585.5 edge_fade=True ✓
+
+09-10 19:15:03 VA_FADE_LONG LONG entry=7600.25
+  LOG: stop=7598.50 T1=7604.75 T2=7618.0 T3=7620.0 zone=near_val
+  EXEC: shadow_only=True → no live command
+```
+
+**ג2 · T-335 LADDER INVALID = 0** in all 6 runs (08-03, 08-04, 09-09, 09-10, 09-11, restart).
+
+**ג3 · writes (flag OFF = default):**
+```
+08-03: INITIATIVE_LONG 7587.5
+08-04: REACTIVE_LONG 7690.75
+09-09: CEILING_FLIP_LONG 7641.25
+09-10: zero writes
+09-11: REACTIVE_SHORT 7673.25
+restart: CEILING_FLIP_SHORT 7671.25
+```
+
+**ג4 · blocking changes (flag ON vs base):**
+| session | il | cls | base→HEAD | write impact |
+|---|---|---|---|---|
+| 09-09 | 17:34:58 | ZLR LONG 7655.0 | rr_entry_gate → None | shadow-only, 0 |
+| 09-10 | 17:50:03 | REACTIVE_SHORT 7607.5 | rr_entry_gate → None | **new write** (edge_fade=True, stop=7615.75) |
+| 09-10 | 19:15:03 | VA_FADE_LONG 7600.25 | rr_entry_gate → None | shadow-only, 0 |
+
+**ג5 · flag OFF = base-identical:** 0 EDGE_FADE_TARGETS log lines; routes/blocked/live_cmds counts match base `efaaf833` on all 5 sessions + restart.
+
+**ג6 · tests 8/8:**
+```
+test_short_from_vah_targets             PASSED
+test_poc_too_close_short                PASSED
+test_variation_day_no_edge_fade         PASSED
+test_struct_targets_win_skipped         PASSED
+test_long_from_val_targets              PASSED
+test_long_from_val_with_monotonic_ib    PASSED
+test_gate_uses_dp_location_checked      PASSED    (mutation: inspect.getsource)
+test_downstream_overrides_guarded       PASSED    (mutation: 5 overrides have _edge_fade)
+```
+
+**החלטות:**
+- §2 stop: structural_anchor ± tick takes priority over edge ± tick (covers S2 setups with bar-extreme anchors). Without anchor → value edge ± tick.
+- §4: `if _ef_t1 is not None or _ef_t2 is not None:` — chain must have at least one target before setting stop_is_structural (prevents the 10.09 17:50 rr-bypass bug).
+- _edge_fade computed once after edge_fade block, shared by all 6 guarded blocks (STRUCT_TARGETS_WIN + 5 new).
+
+---
 ### [2026-09-14 12:18 IL] cowork-scheduled · 🔴 **דלתא לרשומת-12:11: המרג'ין קרס תוך 30 דק' — פנוי `$128.66`, ‏~3.5 נק' מקריאת-מרג'ין** · ⚠️ **תיקון: "אפס הודעות-טלפון" שברשומה הקודמת **בוטל** — נשלחה הודעה (מקרה ג)**
 
 **זו אינה ריצה חדשה אלא תיקון-רשומה.** הרשומה של `12:11` (קומיט `5ad7ce16`) קבעה
