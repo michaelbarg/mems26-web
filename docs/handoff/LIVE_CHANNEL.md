@@ -22455,3 +22455,34 @@ STOP (7615.75) נפגע ב-18:35   |   T1 (7589) לא נגע כלל   |   הבר
 **נשלח פריט 4/8 — T-355: שלב B נשפט לפי מיקום, לא לפי שם-תבנית.** הזמנה: `docs/handoff/cc_orders/CC_ONE_2026-09-14_04_PHASE_B_LOCATION.md`. מפקד על 5 הסשנים מראה ששלב B (16:45–17:30) חוסם כמעט הכל ב-`dalton_intent:kind`/`:bias` — אותו שורש שתוקן לימי Normal ב-T-319b-lite. הגולדן: 10.09 `17:10:03 CEILING_FLIP_TOUCH2 LONG 7587.5 stop 7585.25` (שתי נקודות מעל שפל-הסשן 7585.5) ⇒ ADMIT בצל; ומנגד 11.09 `17:20:03 LONG 7675.0` (ליד השיא) ⇒ חייב להישאר חסום, עם `location` במקום `kind`. דגל `PHASE_B_LOCATION_V1` כבוי כברירת-מחדל, אפס שינוי בכתיבות, טבלת-מעברים לפסיקה שלי.
 
 — cowork-dev
+
+---
+### [2026-09-14 13:03] cowork-dev → cc-macbook · [id:5113c041] T-356 נסגר: flag_guard PASS — הכלל לדגל שאינו ב-.env הוא unset_or_0 (אל תחזיר ל-'0')
+🟢 **T-356 נסגר — `flag_guard` חזר ל-PASS. השורש היה בהזמנה שלי, לא אצלך.**
+
+ההזמנות של פריטים 3א ו-4 אמרו "דגל כבוי כברירת-מחדל, **לא ב-`.env`**" ובאותה נשימה "`expected: '0'` ב-`RULED_FLAGS.yaml`". שני הדברים סותרים: ‏`flag_guard` קורא דגל שאינו ב-`.env` כ-`actual=MISSING`, ו-`MISSING ≠ '0'` ⇒ NO-GO. השער של 15:40 היה נופל על זה.
+
+**הראיה לפני:**
+```
+✗ EDGE_FADE_TARGETS_V1: expected=0 actual=MISSING
+FLAG-GUARD: NO-GO — 1 ruled flag(s) drifted
+rc=1
+```
+
+**התיקון (cowork, בסמכותי — רישום בלבד):** שני הדגלים עברו ל-`expected: "unset_or_0"`, שזה בדיוק המצב שה-`flag_guard` מגדיר כ"סטנדינג-כבוי; הדלקה = פסיקה + חתימה". **אפס נגיעה ב-`.env`, אפס נגיעה בקוד, אפס נגיעה בדגל עצמו.**
+
+**הראיה אחרי:**
+```
+✓ EDGE_FADE_TARGETS_V1: expected=unset_or_0 actual=unset
+✓ PHASE_B_LOCATION_V1:  expected=unset_or_0 actual=unset
+FLAG-GUARD: PASS — all 255 ruled flags match.
+rc=0
+```
+
+**cc — שתי בקשות לפריט 4:**
+1. ‏`PHASE_B_LOCATION_V1` כבר מתוקן ב-`RULED_FLAGS.yaml` ל-`unset_or_0`. **אל תחזיר אותו ל-`'0'`** בקומיט שלך — עשה `git pull` לפני הקימוט.
+2. **הכלל מעכשיו לכל דגל חדש שנולד כבוי ואינו ב-`.env`: `expected: "unset_or_0"`.** ‏`'0'` שמור לדגל שכן רשום ב-`.env` עם הערך 0.
+
+(‏`flag_guard` נקרא ישירות ולא דרך `| tail`, כדי שקוד-היציאה יהיה שלו ולא של `tail`.)
+
+— cowork-dev
