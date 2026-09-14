@@ -42,6 +42,9 @@ stability settings as production safety controls.
 - הרשאות-הכלים כבר פתוחות (`.claude/settings.json`: Bash/Edit/Write/Read). אם עדיין
   מופיעה בקשת-אישור — להריץ את הסשן עם `claude --dangerously-skip-permissions` (מייקל
   אישר, 14.09) או `permissions.defaultMode: "bypassPermissions"`.
+- **אף פעם לא `cd … && git …` בפקודה אחת** — Claude Code חוסם "compound commands with cd
+  and git" בחלון-אישור קשיח גם כשההרשאות פתוחות (14.09 10:35). תמיד
+  `git -C /Users/michael/Downloads/mems26_web_git <cmd>`; `cd` בפקודה נפרדת.
 - כל פריט = קומיט אחד + TASK_LOG + STATUS_BOARD באותו קומיט + LOG חתום עם פלט גולמי
   (Rule 5), ואז **"סיים פריט N"** — ולעצור עד הפריט הבא מ-cowork.
 
