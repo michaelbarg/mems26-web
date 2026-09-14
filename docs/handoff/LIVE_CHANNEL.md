@@ -1,3 +1,132 @@
+## 🟢 [cowork-dev · 2026-09-14 21:06-21:14 IL] — **ריצת-ניטור נקייה: אפס פעולה נדרשת · אפס עסקת-לייב חדשה ⇒ שקט מוחלט בטלפון** · **מפקד-רמות תפס מדידה-עצמית שגויה שלי (`grep ERROR ⇒ 15` מול `0` בפועל)**
+
+**ריצת חובה-1 + חובה-3** (`21:06` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
+שער §3.9 (ד0) נמדד **לפני** כל מסקנה — הלוג רואה, וה-pid תואם את התהליך שרץ:
+```
+grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+⇒ 2026-09-14 19:14:23 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=21409 commit=b820616f stream=stderr
+ps -o pid,lstart,etime -p 21409 ⇒ 21409  Mon Sep 14 19:14:20 2026   01:53:56
+```
+⇒ **אפס ריסטארט מאז `19:14:20`** — אותו `lstart` שנרשם ב-`19:36`, `20:06`, `20:15`, `20:36`.
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ **שקט מוחלט** (אפס (א) · אפס (ב) · אפס (ג))
+
+הרלה **הוכח חי לפני ההסקה** ([[מלכודת 12]] — "אין ממתינות" היא שלילה-כוזבת כשהדוור מת):
+```
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 2006 · last exit code = (never exited)
+ps aux | grep mobile_relay ⇒ michael 2006 … Fri09AM 27:41.00 … scripts/mobile_relay.py
+```
+peek ישיר מ-Render (GET נטול-תופעות-לוואי, **לא** מהקובץ המקומי), `21:07`:
+```
+instruction/pending ⇒ {"items":[]}        cmd/pending ⇒ {"cmd":null}
+```
+`PHONE_THREAD.jsonl` נקרא אחרי **מפקד-שדות**, לא בניחוש-שם ([[feedback_jsonl_parser_field_blindness]]):
+```
+lines=540 parsed=540 bad=0 | keys: sender,text,ts,status,id,att
+sender ⇒ {'cowork': 356, 'מייקל': 100, 'cc': 84}
+```
+⇒ **אפס מקרה-(א):** ההודעה האחרונה מ**מייקל** היא `2026-09-11T17:24:48Z` — נענתה. אפס הודעות ממנו היום.
+⇒ **אפס מקרה-(ב):** אפס עסקאות-לייב חדשות/סגורות מאז הריצה הקודמת. האחרונה — `#1584`, נסגרה `13:12 ET` (`20:12 IL`), **דווחה כבר** ב-`17:20:13Z`.
+⇒ **אפס מקרה-(ג):** ראה §4 — התנאי היחיד שזז (`avail`) **אינו** עומד בסף-האזעקה, והוא נובע מפסיקה קיימת.
+
+### 2 · חובה-3 · ארבעת השערים — כולם ירוקים
+
+| שער | מדידה (raw) | תוצאה |
+|---|---|---|
+| גיל-בר ≤10 דק' | `SELECT max(ts), now(), age_min FROM v9_bars_5min_woodies` ⇒ `max_ts 2026-09-14 21:05:00+03 · now 21:08:16 · age_min 3.3` | ✅ |
+| backend בריא | `GET /api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}` · `lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 21409` | ✅ |
+| שקט-שגיאות | **מפקד-רמות** מאז `20:45` ⇒ `3133 [INFO] · 1755 [WARNING] · 0 [ERROR]` | ✅ |
+| סלוט + גודל | `gateway/status ⇒ live_slot: None` · `ruled_contracts() ⇒ 5` (canonical §3.9, **לא** מ-`.env`) | ✅ |
+
+### 3 · 🔴 המלכודת שנתפסה בריצה הזאת — **המדידה הראשונה שלי הייתה שגויה, והשנייה תיקנה אותה**
+
+```
+# מדידה 1 (שגויה):  grep -c "ERROR"            ⇒ 15
+# מדידה 2 (קבילה):  grep -oE "\[(INFO|WARNING|ERROR|CRITICAL)\]" | sort | uniq -c
+#                    ⇒ 3133 [INFO] · 1755 [WARNING] · 0 [ERROR]
+```
+‏15 ה"שגיאות" הן **המילה `ERROR` בתוך גוף-הודעה**, לא שורות ברמת-ERROR. זו בדיוק
+[[feedback_level_census_not_guessed_grep]]: ספירת-שגיאות היא `uniq -c` על **הרמה**, לא `grep` על מילה שניחשתי.
+לו נעצרתי במדידה-1 הייתי מדווח `15` שגיאות על חלון **נקי לחלוטין**.
+
+**וההמשך הנדרש** ([[feedback_clean_at_one_level_is_not_clean]] — "נקי ברמה אחת אינו נקי): מפקד גם על שכבת-ה-WARNING:
+```
+ 730 [bar_router] SLOW handler BarLevelDetector.on_bar took Nms
+ 478 [bar_router] dispatch total Nms for Nmin
+ 365 [bar_router] dispatch total Nms for woodies_Nmin
+ 138 [build_status.types] Coercing datetime→str for pydantic field
+  28 [bar_router] SLOW handler TPOSystem.process_bar
+```
+⇒ `1,601` מתוך `1,755` (‏`91%`) הם **רעש-ביצועים של `bar_router`** — לא מסלול-מסחר. ‏`0` WARNING במסלול ביצוע/יציאה.
+
+### 4 · פוזיציה מול TM — **הזרה לבדה, `-7`; שלנו אפס** · אפס חסימת-לייב
+
+```
+sierra_state (mtime 21:08:45): position_qty=-7 · avg=7707.75 · open_pnl=-61.25 · last=7709.5
+  acct_available_funds=21.13 · acct_margin_req=2012.01 · acct_account_value=2033.14
+  acct_under_margin=0 · acct_trading_disabled=0 · acct_loss_limit_reached=0 · acct_daily_net_loss_limit=-1771.88
+  orders: n=1 {type:3, qty:7}        ← type=3 = STOP_LIMIT, לא STOP ([[feedback_order_type_3_is_stop_limit]])
+[Reconciler] 20:54:23 · 21:04:27 ⇒ "TM says 0 contracts [], Sierra says -7 (src=state) … [phantom-heal streak 0/3]"
+```
+**הבעלות נקבעה מהספרים, לא מהנחה:** שתי עסקאות-הלייב של היום `CLOSED` (‏`#1563` `12:15 ET`, `#1584` `13:12 ET`),
+‏`live_slot: None`, ואפס `COMMAND QUEUED` מאז `20:45` ⇒ **אף חוזה מה-`-7` אינו שלנו.** הרקונסיילר **אינו** מרפא
+(‏`streak 0/3`) ואינו מסווג אורפן — התנהגות נכונה לחשבון-משותף. **לא נגעתי בפוזיציה.**
+
+**אפס חסימת-לייב:** `LIVE fire BLOCKED ⇒ 0` מאז `20:45`. שש החסימות בחלון כולן **דוקטרינה**, לא מרג'ין:
+```
+20:45:26 sys4 ZLR LONG                 blocked_by=dalton_intent:location   (zone=above_value)
+20:52:37 sys4 ZLR LONG                 blocked_by=dalton_intent:location
+21:00:03 sys2 CEILING_FLIP_TOUCH2 SHORT blocked_by=dalton_intent:stand_down
+21:00:03 sys4 VEGAS SHORT              blocked_by=dalton_intent:stand_down
+21:05:04 sys2 CEILING_FLIP_TOUCH2 SHORT blocked_by=dalton_intent:stand_down
+21:05:05 sys4 GB100 SHORT              blocked_by=dalton_intent:location   (zone=mid_value)
+```
+(‏`18` שורות-לוג = `6` חסימות מובחנות; הגייטוויי כותב כל חסימה פעמיים.)
+
+### 5 · 🟠 מפקד-יום שמונע ממצא-שווא: **`MARGIN SIZING 5 → 4` הוא תנאי-עומד מ-`17:25`, לא אירוע של הריצה הזאת**
+
+שתי שורות `21:00`/`21:05` נראו בתחילה כהידרדרות-חדשה של הגודל-הפסוק. **המפקד היומי הכריע שלא:**
+```
+grep "^2026-09-14" /tmp/backend.err.log | grep -c "MARGIN SIZING"        ⇒ 16
+grep -oE "MARGIN SIZING [0-9]+ → [0-9]+" | sort | uniq -c                ⇒ 16  MARGIN SIZING 5 → 4
+ראשונה 17:25:08 ($752.45 usable) … אחרונה 21:05:04 ($76.13 usable)
+```
+⇒ נפילת-המרג'ין `5→4` פועלת **כל היום** (פסיקת-מייקל `2026-08-19`, מיושמת כראוי), והיא **לא נגעה בשתי עסקאות-הלייב** —
+שתיהן יצאו בגודל-הפסוק המלא `5`. ⇒ **אין כאן ממצא חדש ואין בקשת-פסיקה**; רישום בלבד תחת משפחת [[T-374]]/[[T-376]].
+
+**🟠 לוואי לתיעוד — שלושה מספרי-גודל באותו חלון** (המשך [[project_contracts_sizing_paths]] · [[COWORK_DAILY_READ §3.9]]):
+```
+ruled_contracts()                      ⇒ 5
+MARGIN FALLBACK (sierra_command)       ⇒ 4        ×16 היום
+§6 RISK_BUDGET capped by sizer         ⇒ 2        ×11 היום (10× budget=3→2 · 1× budget=4→2)
+```
+אף אחד מהם לא הפך לפקודה בחלון הזה (`COMMAND QUEUED ⇒ 0`), ולכן זו **תצפית, לא תקרית**. **הצעד-הבא:** לקבוע האם `§6` נקרא
+על מועמדי-צל בלבד — אם הוא נקרא גם במסלול-לייב, `5` פסוק יכול לצאת כ-`2` בלי שאיש יראה זאת.
+
+### 6 · אימות-חוזר לשני פריטים פתוחים (אותו ממצא, מספר טרי — **לא** ממצא חדש)
+
+**[[T-375]]** — מוני-הסיכון עדיין מנותקים, `1:54` שעות אחרי הריסטארט:
+```
+GET /api/v9/gateway/status ⇒ {'daily_pnl': 46.25, 'trades_today': 1, 'live_slot': None}
+psql: SUM(pnl_usd) mode='live' היום ⇒ -137.50 על 2 עסקאות (#1563 -183.75 · #1584 +46.25)
+```
+⇒ הפער **בדיוק `$183.75`** — כפי שנרשם ב-`20:45`. `RISK_HALT_V1` עדיין מודד מרצפה גבוהה-מדי.
+
+**[[T-269]]** — שני שדות-הרווח הסותרים, מדידה טרייה `21:08`:
+```
+daily_pnl = -723.75   ·   acct_daily_pl = -858.75   ·   delta = -135.00
+```
+
+### 7 · שערי-שפיות — שניהם PASS (rc נלכד ישירות, **לא** דרך `| tail` ⇒ [[feedback_pipe_to_tail_masks_exit_code]])
+```
+python3 scripts/flag_guard.py     > /tmp/fg.out;  rc=0  ⇒ FLAG-GUARD: PASS — all 257 ruled flags match.
+python3 scripts/task_log_guard.py > /tmp/tlg.out; rc=0  ⇒ 358 items · ✅ current, structured, and the only one
+```
+
+### ⇒ מסקנת-הריצה: **אפס פעולה נדרשת · אפס הודעת-טלפון · אפס דגל · אפס ריסטארט · אפס נגיעה בפוזיציה**
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-14 20:36-20:45 IL] — **ריצת-ניטור נקייה: אפס פעולה נדרשת · `under_margin=1` חזר בפעם ה-3 היום אך **מתחת לסף-האזעקה** של T-376 (אפס חוזים שלנו) ⇒ **שקט בטלפון**
 
 **ריצת חובה-1 + חובה-3** (`20:36` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**
