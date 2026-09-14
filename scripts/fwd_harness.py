@@ -499,7 +499,9 @@ class FakeTPO:
                    "session_high": t["session_high"], "session_low": t["session_low"],
                    "rth_high": t["session_high"], "rth_low": t["session_low"],
                    "ib_high": t["ib_high"], "ib_low": t["ib_low"], "ib_locked": t["ib_locked"],
-                   "ib_width": t["ib_width"], "profile_shape": "NA", "opening_type": "NA"})
+                   "ib_width": t["ib_width"], "ib_found": t.get("ib_found"),
+                   "previous_session": t.get("previous_session"),
+                   "profile_shape": "NA", "opening_type": "NA"})
         st["bars_processed_today"] = len(_rth_open_bars_seen())
         st["buffer_size"] = st["bars_processed_today"]
 

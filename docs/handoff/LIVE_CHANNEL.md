@@ -1,3 +1,80 @@
+### [2026-09-14 IL] cc-macbook · T-355 פריט 4/8 — phase-B location gate · commit pending
+
+**ד1 · 10.09 17:10:03 CEILING_FLIP_TOUCH2 LONG 7587.5 stop 7585.25:**
+```
+T-355 PHASE_B location admit: entry=7587.50 price=7585.50 prior_vah=7643.25 prior_val=7636.25
+  sh=7609.25 sl=7585.50 ibh=7609.25 ibl=7585.50 tol=4.00 (was dalton_intent:kind)
+  → dalton ADMIT → then entry_not_confirmed blocks downstream (per spec §2: "these gates stay")
+```
+
+**ד2 · 11.09 17:20:03 CEILING_FLIP_TOUCH2 LONG 7675.0:**
+```
+blocked_by=dalton_intent:location  reason=phase=B price=7675.00 low_edge=7595.75 high_edge=7682.00
+  tol=4.00 prior_vah=7620.00 prior_val=7595.75
+```
+
+**ד3 · writes (flag ON + OFF × 5 sessions + restart):** zero changes.
+```
+08-03: INITIATIVE_LONG 7587.5  |  08-04: REACTIVE_LONG 7690.75  |  09-09: CEILING_FLIP_LONG 7641.25
+09-10: zero                    |  09-11: REACTIVE_SHORT 7673.25  |  restart: CEILING_FLIP_SHORT 7671.25
+```
+
+**ד4 · blocking transitions (flag ON, 32 total):**
+```
+08-03 16:45 CEILING_FLIP_TOUCH2 SHORT 7567.5   shadow  bias→None
+08-03 17:05 DALTON_EDGE_SHORT SHORT 7585.75     live    bias→location
+08-04 16:45 CEILING_FLIP_TOUCH2 SHORT 7670.0    shadow  kind→None
+08-04 17:00 CEILING_FLIP_TOUCH2 SHORT 7685.25   shadow  kind→location
+08-04 17:10 INITIATIVE_LONG LONG 7695.5          live    kind→location
+08-04 17:20 INITIATIVE_LONG LONG 7704.75         live    kind→location
+08-04 17:25 CEILING_FLIP_TOUCH2 SHORT 7695.5    shadow  kind→location
+09-09 16:49 ZLR LONG 7658.75                     live    kind→location
+09-09 16:50 CEILING_FLIP_TOUCH2 LONG 7658.75    shadow  kind→rr_entry_gate
+09-09 16:59 GB100 LONG 7661.0                    live    kind→location
+09-09 17:05 CEILING_FLIP_TOUCH2 SHORT 7658.25   shadow  kind→location
+09-09 17:09 ZLR LONG 7660.5                      live    kind→location
+09-09 17:10 CEILING_FLIP_TOUCH2 SHORT 7660.5    shadow  kind→location
+09-09 17:15 CEILING_FLIP_TOUCH2 SHORT 7658.75   shadow  kind→location
+09-09 17:20 INITIATIVE_SHORT SHORT 7650.0        live    kind→location
+09-10 16:45 CEILING_FLIP_TOUCH2 SHORT 7600.25   shadow  bias→location
+09-10 16:49 ZLR SHORT 7605.5                     live    bias→location
+09-10 16:50 CEILING_FLIP_TOUCH2 SHORT 7605.5    shadow  bias→location
+09-10 17:05 CEILING_FLIP_TOUCH2 LONG 7592.0     shadow  kind→None
+09-10 17:10 CEILING_FLIP_TOUCH2 LONG 7587.5     shadow  kind→entry_not_confirmed
+09-10 17:15 CEILING_FLIP_TOUCH2 LONG 7593.0     shadow  kind→None
+09-10 17:20 CEILING_FLIP_LONG LONG 7599.25       live    kind→location
+09-11 16:45 CEILING_FLIP_TOUCH2 SHORT 7672.25   shadow  kind→None
+09-11 16:49 ZLR LONG 7667.25                     live    kind→location
+09-11 16:50 CEILING_FLIP_TOUCH2 SHORT 7667.25   shadow  kind→location
+09-11 16:59 GHOST LONG 7681.0                    live    kind→location
+09-11 17:00 GHOST LONG 7681.0                    live    kind→location
+09-11 17:05 GHOST LONG 7672.0                    live    kind→location
+09-11 17:05 CEILING_FLIP_TOUCH2 SHORT 7672.0    shadow  kind→location
+09-11 17:14 ZLR LONG 7666.5                      live    kind→location
+09-11 17:19 ZLR LONG 7675.0                      live    kind→location
+09-11 17:20 CEILING_FLIP_TOUCH2 LONG 7675.0     shadow  kind→location
+09-11 17:24 ZLR LONG 7675.5                      live    kind→location
+```
+
+**ד5 · flag OFF = base-identical:** 0 T-355 log lines; routes/blocked/live_cmds match base on all 5 sessions + restart.
+
+**ד6 · T-335 LADDER INVALID = 0, Traceback = 0** in all 12 runs (6 flag OFF + 6 flag ON).
+
+**ד7 · tests 5/5:**
+```
+test_gate_present_in_source          PASSED
+test_long_at_low_admitted            PASSED
+test_long_at_high_blocked            PASSED
+test_phase_c_untouched               PASSED  (mutation)
+test_flag_off_preserves_original     PASSED
+```
+
+**החלטות:**
+- ד1 entry_not_confirmed: T-355 dalton location admits the setup; S4_ENTRY_CONFIRM_V1=1 blocks it downstream. Per spec §2 "these gates stay and are last. If they block — they block."
+- Harness fix: TPO.refresh() now copies `previous_session` and `ib_found` to current_state (was missing → prior_vah/val read as 0).
+- Low edge = min(prior_val, session_low, ib_low_if_found); high edge = max(prior_vah, session_high, ib_high_if_found).
+
+---
 ### [2026-09-14 13:50 IL] cowork-scheduled · 🟢 **[[T-353]] נסוג עוד מהקו — הפנוי `+398.66`, `under_margin=0` ב-`6/6`** · 🔑 **[[T-43]] חוסם כניסות מ-`11:04:42` — זה החסם התפעולי, לא רק המרג'ין** · ✅ **20 `CRITICAL` של הרקונסיילר = הכרזה *וגם* אי-אכיפה מוכחת** · 📱 **שקט מוחלט בטלפון**
 
 **חובה-1 בלבד** — ריצת `13:36-13:50`, לפני-RTH (‏MES ב-RTH נפתח `16:30 IL`).

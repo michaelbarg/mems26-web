@@ -1326,6 +1326,78 @@ class TradingGateway:
                     except Exception as _fx_err:
                         logger.warning("[Gateway] T-329 failed-extension check failed "
                                        "(keeping block): %s", _fx_err)
+                # ── T-355: phase-B location gate ──────────────────────────────
+                # Phase B (16:45-17:30 IL): day_type unknown, playbook blocks by
+                # pattern name (kind) or bias. Replace with location check using
+                # prior session's VA + developing session extremes/IB.
+                if (_dp_block
+                        and _dp_block.get("blocked_by") in ("dalton_intent:kind", "dalton_intent:bias")
+                        and os.getenv("PHASE_B_LOCATION_V1", "0").lower() in ("1", "true", "yes")):
+                    try:
+                        from backend.v9.services.dalton_playbook import _resolve_phase as _pb_phase
+                        _pb_p = _pb_phase(_dp_il_hhmm)
+                        if _pb_p == "B":
+                            _pb_tpo = (cross_context.get("tpo_system")
+                                       if isinstance(cross_context, dict) else None) or {}
+                            _pb_prev = _pb_tpo.get("previous_session") or {}
+                            _pb_pvah = float(_pb_prev.get("vah") or 0)
+                            _pb_pval = float(_pb_prev.get("val") or 0)
+                            _pb_sh = float(_pb_tpo.get("session_high") or _pb_tpo.get("rth_high") or 0)
+                            _pb_sl = float(_pb_tpo.get("session_low") or _pb_tpo.get("rth_low") or 0)
+                            _pb_ibh = float(_pb_tpo.get("ib_high") or 0)
+                            _pb_ibl = float(_pb_tpo.get("ib_low") or 0)
+                            _pb_ib_found = bool(_pb_tpo.get("ib_found") or (_pb_ibh > 0 and _pb_ibl > 0))
+                            if _pb_pvah > 0 and _pb_pval > 0 and _pb_sh > 0 and _pb_sl > 0:
+                                from backend.v9.systems.location_gate import _tol as _pb_tol_fn
+                                _pb_ibw = (_pb_ibh - _pb_ibl) if _pb_ib_found else (_pb_sh - _pb_sl)
+                                _pb_tol = _pb_tol_fn(_pb_ibw if _pb_ibw > 0 else None)
+                                _pb_entry = float(setup.get("entry_price") or 0)
+                                _pb_dir = (setup.get("direction") or "").upper()
+                                # Chase guard: structural_anchor within 2×tol of entry
+                                _pb_anchor = (setup.get("structural_anchor")
+                                              or (setup.get("metadata") or {}).get("structural_anchor"))
+                                _pb_price = _pb_entry
+                                try:
+                                    if _pb_anchor is not None and _pb_entry > 0:
+                                        _pb_anchor = float(_pb_anchor)
+                                        if abs(_pb_entry - _pb_anchor) <= 2.0 * _pb_tol:
+                                            _pb_price = _pb_anchor
+                                except (TypeError, ValueError):
+                                    pass
+                                _pb_low_edge = min(_pb_pval, _pb_sl)
+                                _pb_high_edge = max(_pb_pvah, _pb_sh)
+                                if _pb_ib_found:
+                                    _pb_low_edge = min(_pb_low_edge, _pb_ibl)
+                                    _pb_high_edge = max(_pb_high_edge, _pb_ibh)
+                                _pb_ok = False
+                                if _pb_dir == "LONG" and _pb_price <= _pb_low_edge + _pb_tol:
+                                    _pb_ok = True
+                                elif _pb_dir == "SHORT" and _pb_price >= _pb_high_edge - _pb_tol:
+                                    _pb_ok = True
+                                if _pb_ok:
+                                    logger.warning(
+                                        "[Gateway] T-355 PHASE_B location admit: %s %s "
+                                        "entry=%.2f price=%.2f prior_vah=%.2f prior_val=%.2f "
+                                        "sh=%.2f sl=%.2f ibh=%.2f ibl=%.2f tol=%.2f "
+                                        "(was %s)",
+                                        setup.get("classification"), _pb_dir,
+                                        _pb_entry, _pb_price, _pb_pvah, _pb_pval,
+                                        _pb_sh, _pb_sl, _pb_ibh, _pb_ibl, _pb_tol,
+                                        _dp_block.get("blocked_by"))
+                                    _dp_block = None
+                                else:
+                                    _dp_block = {
+                                        "blocked_by": "dalton_intent:location",
+                                        "reason": (
+                                            f"phase=B price={_pb_price:.2f} "
+                                            f"low_edge={_pb_low_edge:.2f} high_edge={_pb_high_edge:.2f} "
+                                            f"tol={_pb_tol:.2f} prior_vah={_pb_pvah:.2f} "
+                                            f"prior_val={_pb_pval:.2f}"
+                                        ),
+                                    }
+                    except Exception as _pb_err:
+                        logger.warning("[Gateway] T-355 phase-B location errored "
+                                       "(keeping block): %s", _pb_err)
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]
