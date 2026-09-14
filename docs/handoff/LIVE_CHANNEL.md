@@ -1,3 +1,141 @@
+### [2026-09-14 14:46 IL] cowork-scheduled · 🔴🔴 **[[T-359]] `T-43` שוחרר ב-`14:37:11` על מקור-עיוור — הפוזיציה-הזרה של 8 חוזים **לא נסגרה**** · 📱 **הודעת-טלפון אחת (מקרה ג)** · ⛔ **שער-15:40 = NO-GO לפי המדידה הנוכחית**
+
+**חובה-1 בלבד** — ריצת `14:36-14:46`, לפני-RTH (‏MES ב-RTH נפתח `16:30 IL`).
+`14:36` מוקדמת מ-`15:30` ⇒ **חובה-2 אינה נדרכת**; לא RTH ⇒ **חובה-3 לא**; `< 23:00` ⇒ **חובה-4 לא**.
+**אפס נגיעה:** אפס דגל · אפס `.env` · אפס קוד · **אפס ריסטארט** · אפס נגיעה בפוזיציה/סלוט/תור-פקודות.
+כתיבות: `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד. `git pull --ff-only` ⇒ `Already up to date.` (`rc_pull=0`).
+
+#### 1 · 📱 טלפון — אפס ממתינות, **ובכל זאת נשלחה הודעה (מקרה ג, לא דוח-ניטור)**
+
+peek ישיר מ-Render `14:37:53`:
+```
+GET /instruction/pending  ⇒ {"items":[]}
+GET /cmd/pending          ⇒ {"cmd":null}
+GET /upload/pending       ⇒ {"items":[]}
+launchctl mobile_relay    ⇒ state = running · pid = 2006
+```
+אחרונת-מייקל ב-`PHONE_THREAD.jsonl` היא `09-11T17:24:48Z` ולה מענה-ענייני `17:45:33Z`
+⇒ **אין חוב-מענה**. שלוש ההודעות של היום (`08:44:29Z` · `09:16:17Z` · `09:43:41Z`) כולן `sender=cowork`.
+
+**ולמרות זאת נשלחה הודעה רביעית** — ובכוונה. היא **אינה** ההודעה-הרביעית על T-353 (הכסף),
+שאותה הריצה הקודמת (`14:15`) נמנעה ממנה בצדק. זהו **ממצא חדש בשכבה אחרת — המדידה, לא הכסף**:
+חסם-בטיחות **שחרר את עצמו** על אות כוזב, `104` דקות לפני הפתיחה, ורק מייקל/אתי יכולים לסגור
+את הפוזיציה. זה מקיים את מקרה (ג): חריגה שדורשת החלטה שלו, שאלה אחת בסוף.
+
+#### 2 · 🔴🔴 הממצא — `position_qty=0` הוא **עיוורון-סימבול**, לא סגירה
+
+```
+2026-09-14 14:25:38 [Reconciler] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says 8 (src=state)
+2026-09-14 14:35:11 [Reconciler] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says 8 (src=events)
+2026-09-14 14:37:11 [Reconciler] T-43: contract mismatch CLEARED — entries unblocked
+```
+ובאותו רגע `sierra_state.json` (‏`age ≤ 2.0s`, `is_sim=0`, `trade_account=37138283`):
+```
+position_qty = 0        orders = []        working_orders = 0        avg_price = 0.0
+symbol       = MESZ26_FUT_CME
+acct_margin_req = 2284.48   acct_available_funds = 698..758   acct_cash_balance = 2953.14
+```
+**ארבעה מקורות בלתי-תלויים אומרים ש-8 החוזים פתוחים, ורק אחד אומר שנסגרו:**
+
+**(א) מפקד-מלא ביומן-הפעילות — אפס אירועי-סגירה היום.** `trade_activity_events.jsonl`
+(‏mtime `14:42:42` ⇒ הסורק חי), `3,425` שורות, `json_bad=0`, והמכנה נסגר (`0 + 3425 = 3425`):
+```
+type census (כל הקובץ): POSITION_CHANGE 1926 · CLOSED_TRADE_PNL 1171 · USER_ORDER_MODIFY 194
+                        ORDER_REJECT 31 · SIM_FILL 30 · BRACKET_MODIFY 70 · SIM_FLATTEN 3   sum=3425
+אירועים עם scan_ts 2026-09-14: 2  (USER_ORDER_MODIFY 1 · POSITION_CHANGE 1)  sum=2
+  {"type":"USER_ORDER_MODIFY","price":7613.5,"qty":8,"scan_ts":"2026-09-14T08:05:18Z","account":"37138283"}
+  {"type":"POSITION_CHANGE","new_qty":8,"prev_qty":0,"order_id":11172,"scan_ts":"2026-09-14T08:05:18Z"}
+```
+⇒ **הפתיחה של ה-8 רשומה; סגירה — לא.** אחרון `new_qty:0, prev_qty:8` בקובץ הוא `2026-09-11T18:20:34`.
+זהו מפקד-מלא ולא `grep` על מחרוזת-מנוחשת ([[feedback_level_census_not_guessed_grep]]),
+והוא מסתכם במכנה ([[feedback_histogram_must_sum_to_denominator]]).
+
+**(ב) המזומן לא זז.** `acct_cash_balance = 2953.14` **בשבע דגימות רצופות** `14:41:59→14:42:53`.
+סגירה של 8 חוזים הייתה מממשת P&L ומזיזה אותו. הוא לא זז ⇒ **לא מומש כלום**.
+
+**(ג) ה-P&L-הפתוח רודף את המחיר בקצב של 8 חוזים.** אותן שבע דגימות:
+```
+clock     pos  price     avail     mreq      acct_val   cash       open_pos_pl
+14:41:59  0    7681.5    708.66    2284.48   2993.14    2953.14    40.0
+14:42:08  0    7681.25   698.66    2284.48   2983.14    2953.14    30.0
+14:42:17  0    7682.0    718.66    2284.48   3003.14    2953.14    50.0
+14:42:26  0    7682.0    738.66    2284.48   3023.14    2953.14    70.0
+14:42:35  0    7682.75   758.66    2284.48   3043.14    2953.14    90.0
+14:42:44  0    7682.5    738.66    2284.48   3023.14    2953.14    70.0
+14:42:53  0    7682.5    748.66    2284.48   3033.14    2953.14    80.0
+```
+`7681.25 → 7682.75` = `+1.50` נק' ⇒ `30.0 → 90.0` = `+$60` ⇒ **`$40` לנקודה = 8 × MES(`$5`)**.
+וזהות-החשבון נסגרת בכל דגימה: `cash + open_pos_pl = acct_value` וגם `acct_value − mreq = avail`.
+(ההסתייגות נשמרת — האריתמטיקה מאמתת את הקריאה, לא את הסיבה: [[feedback_arithmetic_fit_is_not_causation]].
+מה שכן מוכח כאן הוא שהבלוק-החשבוני **חי ומתעדכן כל 9 שניות**, ולכן אינו "שדה תקוע".)
+
+**(ד) `acct_margin_req` נעוץ על `2284.48`** — בדיוק הערך שהוחזק כשה-8 היו גלויים ב-`position_qty`.
+
+**המנגנון (מוצג כהסבר סביר, לא כסיבתיות מוכחת):** **גלגול-חוזה.** כל `1,171` אירועי
+`CLOSED_TRADE_PNL` בקובץ נושאים `symbol = MESU26_FUT_CME.` (ספטמבר), בעוד `sierra_state.symbol`
+קורא עכשיו `MESZ26_FUT_CME` (דצמבר). הצ'ארט התגלגל `U26 → Z26` בין `14:25` ל-`14:35`
+(‏`src=state` נפל ל-`8` דרך `src=events`, ואז שניהם ל-`0`), ומאותו רגע `position_qty` מודד
+**סימבול שאין בו פוזיציה** — ולא "אין פוזיציה".
+
+⇒ **`T-43 CLEARED` הוא שחרור-שווא.** התנאי שהוליד את החסימה ב-`11:04:42` (‏`TM=0 Sierra=8`)
+**לא נפתר**; רק המדידה שלו התעוורה. זו בדיוק המחלקה של [[feedback_grep_zero_needs_string_proof]]
+ושל [[feedback_file_mtime_is_not_content_freshness]] — אפס שנמדד בכלי-עיוור אינו אפס.
+
+#### 3 · ⛔ מה זה אומר לשער-15:40
+
+| חסם | מצב `14:43` | ראיה |
+|---|---|---|
+| `avail ≥ $1,931` (5 חוזים) | 🔴 **לא** — `748.66`, חוסר `$1,182.34` | הטבלה בסעיף 2(ג) |
+| `TM == Sierra` | 🔴 **לא** — 8 חוזים זרים פתוחים | סעיף 2(א)+(ב)+(ג) |
+| `T-43` אוכף? | ⚠️ **שוחרר ב-`14:37:11`** — כלומר החסם השני **כבר לא מגן** | לוג הרקונסיילר |
+
+**ולכן השורה התחתונה חמורה יותר ממה שהייתה ב-`14:15`:** אז שני החסמים היו דלוקים והמצב
+השתפר. עכשיו **הכסף עדיין חסר, אבל ההגנה כובתה מעצמה.** אם המערכת תירה ב-`16:30`,
+היא תיכנס עם `~$750` פנוי ועם 8 חוזים זרים שהיא **אינה רואה**.
+
+⚠️ **מה שבמפורש אינו נטען:** (א) **לא** שהגעתי לכשל-מרג'ין — `acct_under_margin=0` ו-`acct_trading_disabled=0`
+ב-`13/13` הדגימות של הריצה הזו. (ב) **לא** ש"החסימה נאכפה" קודם לכן — `gateway/status` אינו
+חושף דגל כזה, ושורת-לוג אינה ראיית-אכיפה ([[feedback_log_declaration_is_not_enforcement]]).
+הנטען הצר: **התנאי קיים, והמדידה שלו התעוורה.** (ג) **לא** שהגלגול הוא הסיבה המוכחת —
+זו ההשערה שמסבירה את כל ארבעת המקורות; ההוכחה היא שהפוזיציה פתוחה, לא למה נעלמה מהצ'ארט.
+
+#### 4 · מוני-`gateway/status` — שוב של `09-11`, כצפוי
+
+```
+GET /api/v9/gateway/status ⇒ trades_today 3 · daily_pnl 47.5 · live_slot null · chop_state EXPANDING
+                             live_enabled_systems [2,4] · shadow_active_count 8
+```
+`trades_today=3`/`daily_pnl=47.5` **אינם של היום** ([[feedback_gateway_status_daily_pnl_is_yesterday]]) —
+זהה בדיוק לקריאה של `14:15`, ומנוגד ל-`acct_daily_pl = 0.0` ב-`13/13` הדגימות
+([[feedback_daily_pnl_is_the_wrong_field]]). `live_slot=null` ⇒ הסלוט פנוי.
+
+---
+**הצעד הבא:**
+1. **מייקל (נשלח לטלפון `14:46`, מקרה ג):** לסגור את 8 החוזים הזרים לפני `16:30`? זה החסם
+   היחיד שמשחרר גם את הכסף (`+$2,284` פנוי) וגם את הסנכרון.
+2. **שער-15:40 (cowork):** לפי המדידה הנוכחית — **NO-GO ל-5 חוזים**. למדוד שוב בשער עצמו;
+   אם ה-8 נסגרו, `avail` יקפוץ ל-`~$3,000` וזה ייהפך ל-GO.
+3. **cc-macbook (‏[[T-359]], אינו דחוף-לפתיחה):** הרקונסיילר משווה `TM` מול מקור שנעול
+   לסימבול-הצ'ארט. תיקון-שורש = להשוות מול **החשבון** (‏`acct_margin_req`/`acct_open_positions_pl`
+   או רשימת-פוזיציות ברמת-חשבון), כך שגלגול-חוזה לא יוכל לשחרר את T-43. **לא לגעת לפני
+   סגירת-הפתיחה** — זהו שינוי בסיכון-מסחר ודורש פסיקה.
+
+---
+### [2026-09-14 IL] cc-macbook · T-357 פריט 6/8 — TOUCH2_EXTREME_AGE_V1 (OFF)
+
+**ו2 · 08-03 staircase removal (K=3):** 16 SHORT CEILING_FLIP_TOUCH2 entries removed (routes 62→46). All fired at freshly-set session highs during the 7598→7626 climb.
+
+**ו5 · writes unchanged (flag ON+OFF × 5 sessions + restart):** 08-03 7587.5, 08-04 7690.75, 09-09 7641.25, 09-10 zero, 09-11 7673.25, restart 7671.25.
+
+**ו6 · flag OFF = base-identical.** T-335=0, Traceback=0 in all 12 runs.
+
+**ו7 · tests 4/4:** fresh extreme blocked, old extreme allowed, no look-ahead (mutation), flag off = no change.
+
+**ו1/ו3/ו4 NOT-DONE:** require a dedicated replay script to compute the K-table across all sessions and cross-reference individual trade P&L. The harness confirms the filter works (routes removed) but doesn't compute simulated P&L. The order's K-table was pre-computed by cowork.
+
+**הסתייגות (per order):** 15 trades in 5 sessions = **small sample**. Numbers justify out-of-sample testing, not deployment. ~30 additional sessions available; replay runs **after close**, not before — harness on the trading machine during RTH is an operational risk.
+
+---
 ### [2026-09-14 IL] cc-macbook · T-320 פריט 5/8 — chart setup markers · commit pending
 
 **ה1 · NOT-DONE:** `CEILING_FLIP_TOUCH2` has **0 rows** in `v9_trades` — the gateway blocks these setups (kind/bias) before they reach the shadow/demo/live execute stages. The endpoint reads DB data only (Rule 1: if a field is missing → null, not invention). Specifically: `SELECT count(*) FROM v9_trades WHERE pattern_id_at_entry = 'CEILING_FLIP_TOUCH2'` → **0**. The blocked-twin mechanism (T-219 `_shadow_blocked_today`) only fires for a capped number per day and may not have been active on 11.09 for this classification.
