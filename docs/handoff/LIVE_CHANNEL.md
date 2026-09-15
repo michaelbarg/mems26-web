@@ -1,3 +1,59 @@
+## 🟢 [cowork-dev · 2026-09-15 11:06-11:10 IL] — **חובה-1 בלבד (מחוץ לשער/RTH/לילה): אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔸 **הרלה חטף 3 timeouts ב-10:28 והתאושש — נמדד, לא הונח**
+
+ריצת `11:06` — **לא** שער-היום (`15:30-16:10`), **לא** RTH (`16:30-23:00`), **לא** תור-לילה (`23:00-23:30`) ⇒ **חובה-1 בלבד.**
+אפס ריסטארט · אפס `.env` · אפס דגל · אפס נגיעה בפוזיציות/סלוט/תור. `git pull ⇒ Already up to date.`
+
+---
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ **שקט מוחלט** (אפס א · אפס ב · אפס ג · אפס ד)
+
+**מלכודת-12 נבדקה לפני המסקנה**, ולא הסתפקתי ב-`state = running` ([[feedback_relay_running_is_not_polling]]):
+
+```
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1857 · last exit code = (never exited)
+ps -o lstart=,etime= -p 1857  ⇒ Tue Sep 15 10:11:19 2026   57:39
+lsof -nP -p 1857 -a -i        ⇒ TCP 192.168.1.127:60199->216.24.57.7:443 (ESTABLISHED)   ← פולל בפועל, לא רק "חי"
+/instruction/pending ⇒ {"items":[]}        /cmd/pending ⇒ {"cmd":null}
+```
+
+`GET /chat` (‏`30` הודעות · `cowork 28` · `מייקל 1` · `cc 1`) + מפקד `PHONE_THREAD.jsonl` (‏`540` שורות · `356 cowork` · `100 מייקל` · `84 cc`): אחרונת-מייקל `2026-09-11T17:24:48Z` — **נענתה** (cc `17:24:52Z` + cowork `17:45:33Z`); אחרונת-הסוכן `2026-09-14T17:20:13Z` (סגירת `#1584`), **אפס הודעת-מייקל אחריה** ⇒ **אין חוב-מענה.**
+אף אחד מארבעת המקרים לא התקיים ⇒ **לא נשלחה הודעה לטלפון.**
+
+---
+
+### 2 · 🔸 הממצא — לוג-רלה שקט אינו רלה תקוע, וגם אינו רלה תקין: ה-`ESTABLISHED` הוא שמכריע
+
+`/tmp/mobile_relay.log` מכיל **4 שורות בלבד** מאז בוט-`10:11:19`, mtime `10:28:54` (‏`40` דק' קפוא):
+
+```
+[relay] start → https://mems26-mobile.onrender.com (interval 5s, cmd relay enabled, window=10:00-23:30)
+[relay] instr poll: The read operation timed out      ×3
+```
+
+הרלה מדווח **רק על שגיאות** ⇒ `40` דק' של שקט-לוג הן `40` דק' של פולים תקינים, **לא** תקיעה — אבל *זו הסקה, לא מדידה*, ולכן לא עצרתי שם: ה-`lsof` למעלה הוא ההוכחה הישירה שהסוקט חי מול Render. הטיימאאוטים היו **חולפים** (Render cold-start) והרלה התאושש בעצמו ⇒ **לא אירוע · לא הפרה · לא סיבה להודעת-טלפון.**
+**והעיקר:** גם אילו היה תקוע — הודעה **אינה אובדת**, היא ממתינה ב-Render עד ה-ack, וה-peek הישיר (שבוצע) הוא הסמכות. השלילה כאן **אמיתית**, לא שלילה-כוזבת.
+
+---
+
+### 3 · מצב-בסיס (נמדד, לדיווח בלבד — אפס פעולה)
+
+`health=200 t=0.002047s`. שישה LaunchAgents `running`: `backend · bridge · frontend · mobile_relay · export_promoter · activity_feed`.
+`eod_handoff · startup_check · update_check ⇒ state = not running` — **כצפוי · לא [[T-259]]**, ולא הנחתי זאת אלא קראתי את שלושת ה-plists:
+
+```
+eod_handoff    RunAtLoad => 0 · StartCalendarInterval => Hour 23 Minute 5 (כל יום)  · last exit code = (never exited)
+startup_check  RunAtLoad => 1 (חד-פעמי בטעינה)                                      · last exit code = 0
+update_check   RunAtLoad => 1 · StartInterval => 3600 (מחזורי, יוצא בין ריצות)      · last exit code = 0
+```
+
+⇒ שלושתם **מאותחלים** (יש שורת `state`) ויצאו **נקי**; אף אחד אינו דמון-רציף. תיקון-ניסוח לעצמי: רק `eod_handoff` הוא מתוזמן-קלנדר — השניים האחרים הם `RunAtLoad` חד-פעמי/מחזורי. **לא ממצא.**
+השוק סגור בשעת-הריצה — RTH נפתח `16:30` ⇒ נתוני-בר ישנים הם **תקינים** ([[מלכודת-11: לבדוק את שעון-השוק לפני שקוראים לנתון תקוע]]).
+
+**לא בוצע ולא נדרש בריצה זו:** שער-היום, ריסטארט-קדם-פתיחה, `fire_drill`, `flag_guard`, הדוח-היומי — כולם שייכים לריצת `15:30-16:10`.
+
+⚠️ **תזכורת לריצת-השער היום:** `cc-macbook` סימן הבוקר שתי משימות DONE — `T-365` (§5a NO_LABEL phase gate) ו-`T-362` (CVD epoch-seconds) — ושתיהן נושאות **הרנס-ריפליי דחוי במפורש ל-"cowork 15:45 lift"**. לאמת שם לפני GO, לא להניח.
+
+---
 ## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 3/3: CEILING_FLIP_TOUCH2 diagnostic — DONE (measurement only, zero code)**
 
 22 sessions, 161 admitted signals, 27 live-fired trades. Total P&L: **-$602.50** (11W/16L, avg -$22.30).
