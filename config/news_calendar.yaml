@@ -4,16 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-11 23:29 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-15 03:03 ET
 events:
-  - date: 2026-09-14
-    time_et: "11:30"
-    name: "3-Month Bill Auction"
-    severity: yellow
-  - date: 2026-09-14
-    time_et: "11:30"
-    name: "6-Month Bill Auction"
-    severity: yellow
   - date: 2026-09-15
     time_et: "08:15"
     name: "ADP Employment Change Weekly"
@@ -321,4 +313,20 @@ events:
   - date: 2026-09-18
     time_et: "13:00"
     name: "Baker Hughes Total Rigs Count"
+    severity: yellow
+  - date: 2026-09-21
+    time_et: "06:30"
+    name: "Fed Goolsbee Speech"
+    severity: orange
+  - date: 2026-09-21
+    time_et: "08:30"
+    name: "Chicago Fed National Activity Index"
+    severity: orange
+  - date: 2026-09-21
+    time_et: "11:30"
+    name: "3-Month Bill Auction"
+    severity: yellow
+  - date: 2026-09-21
+    time_et: "11:30"
+    name: "6-Month Bill Auction"
     severity: yellow
