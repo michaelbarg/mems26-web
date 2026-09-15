@@ -21,18 +21,36 @@ code=$(curl -s -m4 -o /dev/null -w "%{http_code}" http://localhost:8000/health 2
 pgrep -f json_bridge.py >/dev/null && ok "bridge running" || er "bridge NOT running"
 pgrep -f v9_export_promoter >/dev/null && ok "export promoter running" || er "export promoter NOT running"
 
-echo "── 2. LaunchAgents loaded ──"
-for la in com.mems26.backend com.mems26.bridge com.mems26.export_promoter; do
-  # iMac bug 2026-07-12: `launchctl list` context can miss gui-domain agents (false
-  # "NOT loaded" while state=running). Authoritative check = launchctl print state.
-  if launchctl print "gui/$(id -u)/$la" 2>/dev/null | grep -q "state = running"; then
-    ok "$la running"
-  elif launchctl list 2>/dev/null | grep -q "$la"; then
-    ok "$la loaded"
+echo "── 2. LaunchAgents loaded (all NINE — T-259) ──"
+# 15.09: this section used to check 3 of the 9 agents, so it returned full green
+# at 10:07 while mobile_relay was NOT REGISTERED after the 10:01 reboot — and
+# mobile_relay is the only writer of Michael's phone messages into
+# PHONE_THREAD.jsonl, i.e. the inbox looked empty because the mailman was dead.
+# Green measured on the wrong set. The roster now lives in ONE place:
+# scripts/mems26_bootstrap_agents.sh (--check is read-only and starts nothing).
+BA="$REPO/scripts/mems26_bootstrap_agents.sh"
+if [ -x "$BA" ]; then
+  ba_out=$("$BA" --check 2>&1); ba_rc=$?
+  echo "$ba_out" | sed -n '2,$p' | sed 's/^/  /'
+  if [ $ba_rc -eq 0 ]; then
+    ok "all 9 LaunchAgents as designed"
   else
-    wn "$la NOT loaded"
+    er "LaunchAgent drift — fix: $BA --bootstrap"
   fi
-done
+else
+  wn "mems26_bootstrap_agents.sh missing — falling back to the 3-agent check"
+  for la in com.mems26.backend com.mems26.bridge com.mems26.export_promoter; do
+    # iMac bug 2026-07-12: `launchctl list` context can miss gui-domain agents (false
+    # "NOT loaded" while state=running). Authoritative check = launchctl print state.
+    if launchctl print "gui/$(id -u)/$la" 2>/dev/null | grep -q "state = running"; then
+      ok "$la running"
+    elif launchctl list 2>/dev/null | grep -q "$la"; then
+      ok "$la loaded"
+    else
+      wn "$la NOT loaded"
+    fi
+  done
+fi
 
 echo "── 3. DLL deployed ↔ repo monolith ──"
 # Support both SierraChart/ (mac-1) and SierraChart2/ (mac-2/iMac)
