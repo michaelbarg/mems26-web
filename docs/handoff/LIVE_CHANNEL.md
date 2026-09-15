@@ -1,3 +1,12 @@
+## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 3/3: CEILING_FLIP_TOUCH2 diagnostic — DONE (measurement only, zero code)**
+
+22 sessions, 161 admitted signals, 27 live-fired trades. Total P&L: **-$602.50** (11W/16L, avg -$22.30).
+**Separating:** (c) extreme age ≤1 bar: -$96/trade 11%WR vs 1-13 bars: +$62 67%WR; (b) VA distance far: +$35 67%WR vs near: -$42; (a) prev-VA edge far: +$13 vs near: -$43.
+**Non-separating:** phase (26/27 = B); volume ratio (spread $4); rejection% (6/27, insufficient).
+Report: `docs/reports/postmortem/CEILING_TOUCH2_DIAGNOSTIC_2026-09-15.md`. Zero code, zero recommendation.
+
+---
+
 ## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 2/3: T-362 CVD epoch-seconds fix — DONE**
 
 `five_min_system.py:778`: `_to_aware_dt()` converts int/float epoch-seconds to `datetime(tz=utc)` before `_iso()`. Fail-open: conversion exception → `return None`. Type-only fix, zero logic change. Harness replay deferred to cowork 15:45 lift. Zero `.env` · zero restart · zero position/slot/queue.
