@@ -1,3 +1,122 @@
+## 🔵 [cowork-dev · 2026-09-15 22:07-22:20 IL] — **ניטור-RTH: ירוק · אפס עסקת-לייב חדשה · [[T-383]] דגימה **שמינית** ללא-שינוי (`8/8` על `dalton_intent:stand_down`) · ממצא-מדידה חדש: `ruled_contracts()` מחוץ-לתהליך מחזיר `None` ואינו אזעקה**
+
+ריצת-`22:07` ∈ `16:30-23:00` ⇒ **חובה-3 (ניטור קצר)**. אפס ריסטארט (אסור `16:10-23:00`) · אפס דגל · אפס `.env` · אפס דגלי-גודל/`RISK_*` · אפס קוד · אפס נגיעה בפוזיציות/סלוט/פקודות.
+
+---
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ **שקט מוחלט**
+
+**מלכודת-12 נשמרה — קודם חיוּת-הדוור, ורק אחר-כך "ריק":**
+
+```
+launchctl print … com.mems26.mobile_relay   state = running · pid = 1857
+pgrep -fl mobile_relay                      1857 … scripts/mobile_relay.py
+GET /instruction/pending?key=…              {"items":[]}                 ← peek, לא pop
+GET /cmd/pending?key=…                      {"cmd":null}
+GET /chat?key=…                             n=30 · 30/30 sender=cowork · אחרון 2026-09-15T15:09:04Z
+PHONE_THREAD.jsonl                          544 שורות · cowork:360 · מייקל:100 · cc:84
+                                            אחרונת-מייקל 2026-09-11T17:24:48Z — ונענתה
+git pull                                    Already up to date
+```
+
+**אפס הודעה נשלחה.** ארבעת המקרים, אחד-אחד:
+
+- **(א) אין** — התיבה ריקה **והדוור חי** ⇒ אינה שלילה-כוזבת.
+- **(ב) לא חל — נבדק, לא הונח.** `COMMAND QUEUED` היום `= 2` **בלבד** (`#404 19:15:03`=`#1647` · `#405 20:05:05`=`#1659`) ⇒ **אפס פקודה חדשה מאז `20:05`**. שאילתת-לייב בחלון-30-דק׳ ⇒ `0`. שתי עסקאות-הלייב של היום סגורות ו**כבר דווחו** בריצות קודמות. דיווח חוזר = כפילות.
+- **(ג) לא חל** — אפס חריגה **חדשה** הדורשת הכרעה. שאלת-[[T-383]] פתוחה מ-`14:50:42Z` ⇒ **לא חזרתי עליה**; [[T-386]] מנוסחת ולא נשאלה (שאלה שנייה בזמן שהראשונה תלויה = הפרה).
+- **(ד) לא חל** — לא שער-`15:40`.
+
+---
+
+### 2 · חובה-3 · ארבע בדיקות-הניטור — פלט גולמי (Rule 5)
+
+```
+date                       2026-09-15 22:08:31 IDT
+/api/v9/health             {"status":"ok","version":"v9.0.0"}
+lsof -nP -iTCP:8000 -sTCP:LISTEN
+                           Python  32500  michael  16u  IPv4  TCP *:8000 (LISTEN)
+ps -o lstart -p 32500      Tue Sep 15 17:27:35 2026    (etime 04:41:04)
+[boot] logging OK          2026-09-15 17:27:38 … pid=32500 commit=bde429ef stream=stderr
+ERROR|CRITICAL|Traceback   0   (tail -8000 /tmp/backend.err.log)
+
+--- בר (הקנוני v9_bars_5min_woodies, לא v9_bars_5min) ---
+max(ts), now()-max(ts)     2026-09-15 22:05:00+03 | 00:03:31.524188      ← ✅ ≤10 דק׳
+
+--- אמת-הברוקר · sierra_state.json (mtime Sep 15 22:09) ---
+is_sim                     1
+trade_account              "Sim1"
+send_orders_to_trade_service 0
+position_qty               0
+working_orders             0
+acct_under_margin          0
+daily_pnl                  -150.0        (Sim1)
+daily_total_qty_filled     10
+```
+
+**פוזיציה-מול-TM: תואם, אפס אזעקה.** `position_qty=0` בברוקר **וגם** `0` עסקאות-לייב פתוחות בספרים.
+**בעלוּת נבדקה לפני אזעקה, כנדרש:** `ORPHAN` היום `= 10`, **כולן `16:57-17:12`, כולן `LONG`, כולן לפני הפקודה הראשונה שלנו (`19:15`)** ⇒ **אינן שלנו**; אפס `ORPHAN` חדשה מאז `17:12`. `LIVE fire BLOCKED` היום `= 0`.
+
+**עסקאות-הלייב של היום (שתיהן על `Sim1` ⇒ אפס דולר אמיתי, `is_sim=1`):**
+
+```
+1647 | sys2 | SHORT | CLOSED | in=7649.75 stop=7655.75 | out=7655.50 | STOP_HIT | -86.25 | 19:15->19:22
+1659 | sys4 | SHORT | CLOSED | in=7653.75 stop=7659.50 | out=7659.25 | STOP_HIT | -55.00 | 20:05->21:10
+```
+
+---
+
+### 3 · [[T-383]] — דגימה שמינית, ללא-שינוי
+
+הליגר **כותב** (אחרון `19:05:07Z` = `22:05` IL, פיגור `~3` דק׳). מאז החתך של הריצה הקודמת (`18:45Z`=`21:45`):
+
+```
+NEW since 18:45Z           8
+outcomes                   {'blocked': 8}
+blocked_by                 {'dalton_intent:stand_down': 8}      ← 8/8
+live_blocked_by            {None: 8}
+by system                  {2: 3, 4: 5}
+
+ALL-DAY (הפיד מחזיר 70 שורות, 13:30Z→19:05Z — תקרת-200 לא נגעה)
+outcomes                   {'blocked': 64, 'shadow_only': 4, 'live': 2}
+blocked_by top             stand_down:24 · bias:24 · None:6 · rr_entry_gate:6 · kind:4 · location:3
+```
+
+**הסדרה יציבה:** דגימה שביעית `9/9`, שמינית `8/8` — `stand_down` הוא החוסם הבלעדי מאז `~21:20`. **לא נגעתי בשער.**
+
+---
+
+### 4 · ממצא-מדידה חדש — `ruled_contracts()` מחוץ-לתהליך אינו ראיה
+
+הרצתי `python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"` וקיבלתי **`None`**. **זו אינה תקלה ואינה אזעקה** — הפונקציה נפתרת מסביבת-התהליך הרץ, ומפרשן נקי אין לה קלט. אמת-הגודל של התהליך הרץ היא הלוג:
+
+```
+.env                       FIXED_CONTRACTS_5=0 · RISK_BUDGET_SIZING_V1=1 · RISK_BUDGET_USD=225
+grep contracts= (זנב)      contracts=2 ·2 ·3 ·2 ·2 ·2 ·2 ·2       ← תקצוב-סיכון דינמי, תואם פסיקת-3 מ-17:31
+```
+
+**אל כל סוכן:** אל תסיק "הגודל נשבר" מ-`None` בהרצה עצמאית — זו מלכודת חדשה, והראיה היא `contracts=` בלוג התהליך הרץ. **לא נגעתי בדגלי-גודל** (אסור בהחלט).
+
+---
+
+### 5 · שערי-שפיות
+
+```
+python3 scripts/flag_guard.py       FLAG-GUARD: PASS — all 257 ruled flags match.
+                                    ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+python3 scripts/task_log_guard.py   368 items, last committed 0.0 days ago
+                                    ✅ the task log is current, structured, and the only one
+```
+
+---
+
+**מצב-מערכת בסוף הריצה:** backend `pid=32500` (עלה `17:27:35`, `commit=bde429ef`, `/api/v9/health`=ok, אפס `ERROR`) · ייצוא-סיירה `mtime` `22:09` · בר קנוני בפיגור `3:31` · `position_qty=0` · `working_orders=0` · `acct_under_margin=0` · `is_sim=1` + `send_orders=0` (**ללא-שינוי מ-`17:43`; השאלה כבר נשאלה ב-`17:50` וממתינה — לא חזרתי עליה**).
+
+**הבא:** ריצת-`~22:37` — ניטור קצר נוסף; דגימה **תשיעית** ל-[[T-383]]. ואז `23:00-23:30` = **תור-הלילה** (חובה-4): לבדוק `git log` לפעילות-`cc` טרייה לפני כל נגיעה.
+
+— cowork-dev
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-15 21:36-21:45 IL] — **ניטור-RTH: ירוק · אפס עסקת-לייב חדשה · [[T-383]] דגימה **שביעית** ללא-שינוי · ממצא: `9/9` ההחלטות החדשות נחסמו על `dalton_intent:stand_down`**
 
 ריצת-`21:36` ∈ `16:30-23:00` ⇒ **חובה-3 (ניטור קצר)**. אפס ריסטארט (אסור `16:10-23:00`) · אפס דגל · אפס `.env` · אפס דגלי-גודל/`RISK_*` · אפס קוד · אפס נגיעה בפוזיציות/סלוט/פקודות.
