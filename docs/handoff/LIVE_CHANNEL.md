@@ -1,3 +1,108 @@
+## 🔴 [cowork-dev · 2026-09-15 17:36-17:52 IL] — **ניטור-RTH: המסחר-החי כובה בסיירה ב-17:44 אחרי שהחשבון הגיע לתקרת-ההפסד היומית שלו — וההפסד אינו שלנו** · [[T-383]]
+
+ריצת-`17:36` נופלת ב-`16:30-23:00` ⇒ **חובה-3 (ניטור קצר)**, לא חובה-2. אפס ריסטארט (אסור `16:10-23:00`) · אפס דגל · אפס `.env` · אפס קוד · אפס נגיעה בפוזיציות/סלוט/פקודות. **כתיבה יחידה:** הקובץ הזה + `TASK_LOG` + `STATUS_BOARD`. **הודעת-טלפון אחת** — מקרה-(ג), הנימוק ב-§4.
+
+---
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ שקט (המענה היחיד הוא מקרה-ג של §4)
+
+חיוּת-הרלה לפני ההסקה, ואז peek ישיר מ-Render עם `MOBILE_ACCESS_KEY` (מלכודת-12):
+
+```
+pgrep -fl mobile_relay   1857 … scripts/mobile_relay.py        ← חי
+GET /chat?key=…          TOTAL 30 · LAST 2026-09-15T14:31:53Z (cowork, "בוצע 17:31")
+GET /instruction/pending {"items":[]}
+GET /cmd/pending         {"cmd":null}
+GET /upload/pending      {"items":[]}
+```
+
+הפריט האחרון בת'רד הוא **שלנו**; הודעת-מייקל האחרונה בפיד היא `09-11T17:24:48Z` ונענתה בזמנה. ⇒ **אפס (א)**. אפס עסקת-לייב נפתחה/נסגרה היום ⇒ **אפס (ב)**.
+
+---
+
+### 2 · מצב-המערכת `17:38-17:50` — בריא, ומה שהשתנה אינו אצלנו
+
+```
+health            {"status":"ok","version":"v9.0.0"}
+listener :8000    Python 32500 (LISTEN)   ps lstart: Tue Sep 15 17:27:35 2026
+boot INFO (T-61)  2026-09-15 17:27:38 [INFO] [mems26.boot] logging OK pid=32500 commit=bde429ef
+בר קנוני          v9_bars_5min_woodies max(ts)=2026-09-15 17:35:00+03 · lag 00:03:17   ← ≤10 דק' ✓
+ייצוא סיירה       5min_continuous.json / woodies_5min.json mtime Sep 15 17:43 (עכשיו)
+ruled_contracts() 3 · ladder (1,1,1,0)          ← פסיקת-מייקל 15.09 17:25
+flag_guard        PASS — all 257 ruled flags match
+fire_drill        🟢 GO (guard_tests 160 passed · feed age=427ms · live_slot=None · day_type Variation)
+```
+
+**גודל-3 אינו חריגה.** `RULED_FLAGS.yaml` נושא `FIXED_CONTRACTS_3 {expected: "1", ruled_by: "מייקל", date: "2026-09-15"}` עם ציטוט-הפסיקה `17:25 "להפעיל את המערכת היום על 3 חוזים"`, ו-`.env` תואם (`FIXED_CONTRACTS_5=0 · FIXED_CONTRACTS_3=1`). הנוסח בקובץ-המשימה שלי ("הגודל פסוק וקבוע 5") **מוחלף ע"י הפסיקה החדשה** — לא לתקן אותו בחזרה ל-5.
+
+---
+
+### 3 · העסקאות והפוזיציה — הבעלות הוכרעה לפני האזעקה
+
+`14` עסקאות היום, **כולן `shadow`**. אפס `mode='live'`:
+
+```
+SELECT count(*) FROM v9_trades WHERE mode='live'
+  AND (entry_ts AT TIME ZONE 'America/New_York')::date = date '2026-09-15';   → 0
+SELECT … FROM v9_trades WHERE mode='live' AND state NOT IN ('CLOSED','CANCELLED');  → (0 rows)
+עסקת-הלייב האחרונה אי-פעם: #1584 CLOSED 09-14 12:55 ET
+grep "^2026-09-15" backend.err.log | grep -cE "COMMAND QUEUED|LIVE trade TM id|PLACE_BRACKET"  → 0
+                                                    (מתוך 73,468 שורות-לוג היום)
+```
+
+⇒ הפוזיציה שהתחלפה כל היום (`7c → 3c → 0` ב-`~17:40`) היא **זרה**, והמְיַשֵּׁב מסכים: `SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says 3`. חלון-החסימה שלה:
+
+```
+17:37:44 [WARNING] T-43: contract mismatch DETECTED (TM=0 Sierra=3) — BLOCKING new entries
+17:41:16 [INFO]    T-43: contract mismatch CLEARED — entries unblocked      ← פתוח שוב
+```
+
+---
+
+### 4 · 🔴 הממצא — החשבון החי הגיע לתקרת-ההפסד שלו, וסיירה עברה לסימולציה
+
+**מדוד, לא מוסק.** תצלום קוהרנטי יחיד מ-`sierra_state.json` ב-`17:43` (כל השדות מלאים, `acct_ok=1`):
+
+```
+"trade_account": "37138283",  "is_sim": 0,
+"acct_daily_pl": -1542.5,  "acct_daily_net_loss_limit": -1541.39,
+"acct_loss_limit_reached": 1,          ← ‏m_DailyNetLossLimitHasBeenReached מה-DLL
+"acct_available_funds": 1026.49,  "acct_margin_req": 0.0,  "acct_under_margin": 0
+```
+
+ודקה אחריו, יציב ב-**15 דגימות** `17:44-17:50:36`:
+
+```
+17:48:36  {"is_sim":1,"order_placement_armed":1,"send_orders_to_trade_service":0,"position_qty":0,…
+17:50:24  is_sim= 1  send_orders= 0  armed= 1  acct= Sim1  pos= 0
+17:50:30  is_sim= 1  send_orders= 0  armed= 1  acct= Sim1  pos= 0
+17:50:36  is_sim= 1  send_orders= 0  armed= 1  acct= Sim1  pos= 0
+~/SierraChart/TradeActivityLogs/  …UTC.37138283.data  mtime 17:40   ← הפסיק
+                                  …UTC.None.data      mtime 17:44   ← "Connected to server / None"
+```
+
+**הממצא:** החשבון החי `37138283` חצה את תקרת-ההפסד-היומית שלו ב-`17:43` (`-1,542.50` מול `-1,541.39`), ומיד אחר-כך הצ'ארט עבר ל-`Sim1` **ו-`send_orders_to_trade_service` ירד ל-`0`**. כלומר **אין כרגע נתיב מהמערכת לברוקר** — פקודה שתישלח לא תגיע לחשבון החי.
+
+**וההפסד אינו שלנו** — §3 מוכיח אפס עסקאות-לייב ואפס פקודות שלנו היום. זה הסוחר הזר, אותו אחד שהחזיק את ה-`7c/3c`.
+
+**שדות-החשבון כעת `DBL_MAX`** (`1.8e308`), וזה **לא באג חדש**: `margin_sizing._read_state` כבר תופס את הסנטינל ומחזיר `None` ("size left unchanged", Rule 1) — נראה בפלט-הריצה של `fire_drill`. אבל המשמעות היא ש-`avail` הוא `UNDETERMINED` ⇒ ה-precheck עובר עיוור (`scale_in.py:96-100`).
+
+---
+
+### 5 · 🟠 ממצא-משנה — `fire_drill` אמר GO בזמן שסיירה בסימולציה
+
+`fire_drill` בדק `flag_guard · stop-chain · contracts · guard_tests · health · T-61 · feed · slot · live_enabled · day_type` — **ואף אחד מהם אינו קורא `is_sim` או `send_orders_to_trade_service`.** לכן ה-🟢 GO של `17:52` נכון לגבי שרשרת-ההחלטה, ו**שקרי לגבי השאלה היחידה שחשובה — האם הפקודה מגיעה לברוקר.** זה אותו מחלקת-כשל של T-382 (GO על גודל שהברוקר ידחה), אבל חמור ממנו: שם הפקודה נדחית ונראית, כאן היא "מצליחה" לתוך סימולטור.
+
+**הצעד הבא (לא בוצע — מחוץ לסמכות ניטור):** שער `T-61`-סגנון ב-`fire_drill` — `is_sim==0 AND send_orders_to_trade_service==1` ⇒ אחרת NO-GO. נרשם `T-383`.
+
+---
+
+### 6 · מה לא נגעתי
+
+אפס ריסטארט · אפס דגל/`.env`/קוד · אפס נגיעה בפוזיציה/סלוט/פקודות · אפס `op=EXIT`/`FLATTEN`. **הודעת-טלפון אחת** (מקרה-ג, `339` תווים, אימות-מסירה ב-`GET /chat` — הפריט האחרון, `14:50:42Z`): המסחר-החי כבוי, ההפסד אינו שלנו, **"להחזיר את החשבון החי היום?"**
+
+---
+
 ## 🔴 [cowork-daily · 2026-09-15 16:07-16:20 IL] — **ריצה-שנייה בחלון-השער: חובה-2 כבר בוצעה ב-15:52 ⇒ אפס כפילות · אבל הפנוי מכסה חוזה אחד ולא 5, והשער של 15:57 קרא את השדה הלא-נכון** · [[T-382]]
 
 ריצת `16:07` נופלת אף היא ב-`15:30-16:10`, אבל `git log` מראה `18d6b4a6 15:52` = **חובה-2 מלאה כבר בוצעה** (סיכום-14.09 + שער-היום), והמאזין על `:8000` הוא `pid 27616` עם `lstart Tue Sep 15 15:56:22` ⇒ **הריסטארט כבר בוצע**. לפי הכלל המפורש (*"אל תרים פעמיים: בדוק `ps -o lstart` לפני"*) — **אפס ריסטארט · אפס סיכום-חוזר · אפס הודעת-שער-כפולה.** אפס דגל · אפס `.env` · אפס דגלי-גודל · אפס קוד · אפס נגיעה בפוזיציות/סלוט/פקודות.
