@@ -1,3 +1,144 @@
+## 🟠 [cowork-sub (תור-לילה) · 2026-09-15 23:45 IL] — **הרנס-הריפליי הדחוי של T-365 + T-362 בוצע · T-362 ✅ נסגר · פריט-ה-§5a ⇒ [[T-387]] (הגולדן אינו מדיד בהרנס)**
+
+**מה בוצע:** 22 ריצות-`fwd_harness` read-only על חמשת סשני-הבסיס, HEAD מול worktree-בסיס `d6030f07~1` (=`9136f112`), אותו `.env` בדיוק, + פרוב-שורש ישיר ל-T-362.
+**אפס ריסטארט** (`pid 32500 · lstart Tue Sep 15 17:27:35 · etime 06:07`) · **אפס `.env`** · **אפס דגל** · **אפס קוד-ייצור** · אפס פוזיציה/סלוט/תור-פקודות · אפס טלפון.
+
+### T-362 — ✅ עבר. השורש אומת לפני-ואחרי על צורת-הקלט של הייצור (פלט גולמי)
+
+```
+###### HEAD (both fixes) ######
+TREE = /Users/michael/Downloads/mems26_web_git
+RAW setup.metadata = {'absorption': {'net_delta': -285.0, 'entry_bar_delta': -196.0, 'opposing': True}}
+absorption.net_delta = -285.0
+
+###### BASE (d6030f07~1 = 9136f112) ######
+WARNING backend.v9.db.read [db.read] read_all failed: (psycopg2.errors.DatetimeFieldOverflow)
+  date/time field value out of range: "1789133400"
+[SQL: SELECT cumulative FROM v9_bars_cumulative_delta WHERE ts >= %(t0)s AND ts <= %(t1)s ORDER BY ts ASC]
+[parameters: {'t0': '1789133400', 't1': '1789134300'}]
+TREE = /tmp/mems26_pre365
+RAW setup.metadata = None
+absorption.net_delta = <<absorption key ABSENT>>
+```
+
+בקרה — עם `ts` כ-`datetime` **שני העצים מחזירים את אותו dict**:
+`{'net_delta': -285.0, 'perbar_deltas': [134.0, -223.0, -196.0], 'cumulatives': [30.0, 164.0, -59.0, -255.0], 'coverage': 1.0}`
+⇒ התיקון נוגע **רק** במסלול-ה-epoch, אפס שינוי-לוגיקה.
+
+⚠️ **תיקון לגולדן כפי שנוסח — ולא בליעה:** `grep -c DatetimeFieldOverflow` על ריפליי `2026-09-11` ⇒ **`0`**, אבל הוא **`0` גם בבסיס** — `fwd_harness` שואב ברים מ-`v9_bars_5min_woodies` ומזין `ts` כ-`datetime`, ולכן מסלול-ה-epoch **כלל אינו נדרך בריפליי**. זו בדיוק המלכודת שההזמנה הזהירה ממנה ("לא לדווח 0 שגיאות על ריצה שממילא לא הגיעה לשאילתה"). **החלטתי להוכיח את הצד ה"לפני" בפרוב ישיר** שקורא את `FiveMinSystem._compute_setup_cvd` האמיתי בשני העצים עם epoch-שניות אמיתיים (‏`2026-09-11 16:30..16:45 IL`), **כי זו הצורה שהייצור נושא** ‏(‏`1,743` כשלים ב-`14.09`) — והיא המסלול שהתיקון נוגע בו.
+
+### פריט-ה-§5a ("T-365" בהזמנה) — ⇒ [[T-387]] · ח2/ח4/ח5 ✓ · ח1/ח3 **לא-נמדד**
+
+| בדיקה | תוצאה | הראיה |
+|---|---|---|
+| **ח1** — `16:45:05 OPENING_ORR LONG 7678.25` ⇒ `blocked_by=None` + ADMIT | 🔴 **לא-נמדד** | בריפליי `09-14` יש **`0` מסלולי-`OPENING_*` מתוך `63`** (מפקד-סיווגים מלא). בבר `16:45` יושב מסלול אחר — ראה להלן. |
+| **ח2** — `§5a skipped: phase=B` מופיע · `§5a NO_LABEL` לא לפני `17:30` | 🟢 **עבר** | `skipped` ×2 ב-`09-14`, `9` ב-5 הסשנים, **כולם `phase=B`**; `NO_LABEL` ⇒ `0`. |
+| **ח3** — כל `§5a NO_LABEL` שאחרי `17:30` נשמר, עם מפקד לפני/אחרי | 🔴 **לא-נמדד** | המפקד הוא `0/0` **בשני העצים** ⇒ אין מה שייעלם ואין מה שיישמר. השורש נמדד (למטה). |
+| **ח4** — אפס שינוי בכתיבות ב-5 הסשנים + `--restart-at 18:29` | 🟢 **עבר** | `would_write` ו-`routes` **זהים בית-בית** מול הבסיס בכל השש. |
+| **ח5** — `T-335`=0 · `Traceback`=0 · `.env` לא נגעת | 🟢 **עבר** | שניהם `0` בכל ריצות-HEAD; `.env` — ראה למטה. |
+
+**ח1 — הפלט הגולמי של הבר הנדון (‏`09-14`), HEAD ובסיס, זהה מילה-במילה:**
+
+```
+HEAD: il=16:45:03 et=09:45 sys=2 CEILING_FLIP_TOUCH2 LONG entry=7677.5 stop=7667.75 t1=7747.75
+      blocked_by=None shadow_only=True exec=['shadow'] result={'shadow': True, 'demo': None, 'live': None, 'blocked_by': None}
+BASE: il=16:45:03 et=09:45 sys=2 CEILING_FLIP_TOUCH2 LONG entry=7677.5 stop=7667.75 t1=7747.75
+      blocked_by=None shadow_only=True exec=['shadow'] result={'shadow': True, 'demo': None, 'live': None, 'blocked_by': None}
+```
+
+`OPENING_ORR LONG 7678.25` היא שורה מ**פיד-ההחלטות החי** של `14.09`, לא מהריפליי. בקאונטרפקטואל `--oe-closed` כן נולד `16:45:03 OPENING_DRIVE LONG 7677.50 · blocked_by=None · exec=['shadow','demo','live']` (ADMIT) — **אך `DRIVE` אינו `ORR`, ומצב-הרצה אחר אינו הגולדן** ⇒ לא מדווח כמעבר.
+
+**ח2 — הפלט הגולמי:**
+
+```
+$ grep -n "§5a" /tmp/fwd_t365/logs/head_2026-09-14_r1.log
+200:2026-09-14 16:45:03,000 INFO backend.v9.gateway.trading_gateway [Gateway] §5a skipped: phase=B — opening doctrine governs, day_type not required (Michael 14.09 17:07)
+330:2026-09-14 17:25:03,000 INFO backend.v9.gateway.trading_gateway [Gateway] §5a skipped: phase=B — opening doctrine governs, day_type not required (Michael 14.09 17:07)
+$ grep -o "5a skipped: phase=[A-D]" … | sort | uniq -c   ⇒   2 5a skipped: phase=B
+$ grep -c "NO_LABEL" …                                    ⇒   0
+```
+
+*(השורה היא `logger.info`, וההרנס מקבע `basicConfig(level=WARNING)` ⇒ היא נבלעת. הריצות בוצעו דרך עוטף ב-`/tmp` שמתקין handler ב-INFO לפני `basicConfig` — **אפס שינוי בהרנס ובקוד-הייצור**, והוכח אינרטי: ריצה "עירומה" (`python3 scripts/fwd_harness.py …`) מחזירה `sha256` **זהה** ל-`8d033ba1095dce8a`.)*
+
+**ח3 — המפקד המפורש שהתבקש, ומדוע הוא ריק (זה הממצא):**
+
+```
+session       BASE NO_LABEL  <17:30  >=17:30 |  HEAD NO_LABEL  <17:30  >=17:30 |  HEAD skipped
+2026-09-14                0       0        0 |              0       0        0 |             2
+2026-09-11                0       0        0 |              0       0        0 |             3
+2026-09-10                0       0        0 |              0       0        0 |             1
+2026-09-09                0       0        0 |              0       0        0 |             1
+2026-09-08                0       0        0 |              0       0        0 |             2
+TOTAL                     0       0        0 |              0       0        0 |             9
+
+EXACT §5a firing precondition (ib_locked=True AND live_label falsy), per s1 row:
+  HEAD/BASE × 5 sessions  ⇒  n_hits = 0   (10/10 runs)
+```
+
+**השורש, משני הקבצים ולא מהשערה:** `scripts/fwd_harness.py:441` ⇒ `ib_locked = ib_found and sm >= 60` (כלל-`10:30 ET` **האמיתי**), מול הייצור `backend/v9/api/v9/tpo_routes.py:420` ⇒ `"ib_locked": ib_found` (דולק **מהפעמון**). ⇒ **ההרנס כבר מממש את תיקון-[[T-373]] שטרם נפסק**, ולכן `§5a` אינו יכול להידרך בשלבי A/B בריפליי — לא ב-HEAD ולא בבסיס — ו**תקרית-`14.09` שעליה נפסק הכלל אינה ניתנת-לשחזור כאן**. אחרי `17:30` `ib_locked=True` אך `live_label` **תמיד** מאוכלס (`Normal`/`Variation`/`Neutral_Center`/`Neutral_Extreme`/`Nontrend`, אף פעם `None`) ⇒ גם שם `0`.
+
+**ח4 — מפקד-הכתיבות (HEAD מול בסיס):**
+
+```
+2026-09-14: routes H=63  B=63  | would_write H=3 B=3 | live_cmds H=3 B=3 | trades H=3 B=3 | writes_identical=True
+2026-09-11: routes H=78  B=78  | would_write H=1 B=1 | live_cmds H=1 B=1 | trades H=1 B=1 | writes_identical=True
+2026-09-10: routes H=59  B=59  | would_write H=0 B=0 | live_cmds H=0 B=0 | trades H=0 B=0 | writes_identical=True
+2026-09-09: routes H=74  B=74  | would_write H=1 B=1 | live_cmds H=1 B=1 | trades H=1 B=1 | writes_identical=True
+2026-09-08: routes H=107 B=107 | would_write H=4 B=4 | live_cmds H=4 B=4 | trades H=4 B=4 | writes_identical=True
+--restart-at 18:29 09-14 : routes H=59 B=59 | would_write H=3 B=3 identical=True | routes byte-identical=True
+                            sha HEAD=a7fd87576630bbcd  sha BASE=a7fd87576630bbcd
+routes byte-identical HEAD vs BASE, all 5 sessions ⇒ IDENTICAL ×5
+```
+
+**ח5 — הפלט הגולמי:**
+
+```
+HEAD 2026-09-14: T-335=0  Traceback=0     HEAD 2026-09-11: T-335=0  Traceback=0
+HEAD 2026-09-10: T-335=0  Traceback=0     HEAD 2026-09-09: T-335=0  Traceback=0
+HEAD 2026-09-08: T-335=0  Traceback=0     HEAD restart r1/r2: T-335=0  Traceback=0
+```
+
+`.env` — **הדגל לא נגעתי**, והראיה אינה `git diff`:
+
+```
+$ grep -n NO_LABEL_NO_FIRE_V1 .env        ⇒ 126:NO_LABEL_NO_FIRE_V1=1
+$ stat -f "%Sm" .env                      ⇒ 2026-09-15 23:20:21   (לפני תחילת המשימה)
+$ diff ~/mems26_snapshots/20260915T202021Z_size-3-to-2-for-1609/env/.env .env
+264c264 < FIXED_CONTRACTS_2=0  --- > FIXED_CONTRACTS_2=1
+354c354 < FIXED_CONTRACTS_3=1  --- > FIXED_CONTRACTS_3=0
+```
+
+⇒ הדלתא היחידה היא שינוי-הגודל של [[T-367]]; `NO_LABEL_NO_FIRE_V1` אינו בה.
+⚠️ **`git diff --stat -- .env` הוא ראיה ריקה** — `.env` יושב ב-`.gitignore` (`שורה 3`), והדיווח עליו כהוכחה הוא בדיוק מחלקת "grep שמחזיר 0 מוכיח רק שהמחרוזת לא נמצאה". נרשם כדי שלא יחזור.
+
+### דטרמיניזם — 🟢 מושלם
+
+```
+2026-09-14  r1=8d033ba1095dce8a  r2=8d033ba1095dce8a  IDENTICAL
+2026-09-11  r1=a85a328102a83221  r2=a85a328102a83221  IDENTICAL
+2026-09-10  r1=12306fc6bd816c18  r2=12306fc6bd816c18  IDENTICAL
+2026-09-09  r1=f7b8150f7f0d53c4  r2=f7b8150f7f0d53c4  IDENTICAL
+2026-09-08  r1=13e39bc057eceab1  r2=13e39bc057eceab1  IDENTICAL
+--restart-at 18:29  r1=a7fd87576630bbcd  r2=a7fd87576630bbcd  IDENTICAL
+PLAIN (ללא עוטף-לוג) = 8d033ba1095dce8a  ⇒ העוטף אינרטי
+```
+
+### החלטות שנלקחו ונרשמות ("החלטתי X כי …")
+
+1. **החלטתי לפתוח [[T-387]] במקום שורת-`T-365` שנייה**, כי `| T-365 |` שבטבלה הוא **הכפיל-מפעילים** (`Errno 48`) שנסגר `14.09 15:24`, ו-`task_log_guard` נכשל על מזהה כפול. פריט-ה-`§5a` מעולם לא קיבל שורה משלו. **התנגשות-המספור נרשמת ואינה מוסתרת** — ההזמנה, ה-`LIVE_CHANNEL` וה-`STATUS_BOARD` כולם קוראים לו "T-365".
+2. **החלטתי לדווח ח1 ו-ח3 כ"לא-נמדד" ולא כ"עבר"**, כי מפקד ריק בשני העצים אינו ראיה לשימור-C/D — הוא ראיה שהשער לא נדרך כלל.
+3. **החלטתי להוכיח את T-362 בפרוב ישיר** ולא להסתפק ב-`grep ⇒ 0` של הריפליי, כי הבסיס מחזיר `0` באותה מידה.
+
+### NOT-DONE במכוון
+
+אפס ריסטארט · אפס `.env`/דגל/דגלי-גודל/`RISK_*` · אפס קוד-ייצור (הבאג ב-`ib_locked` **תועד ולא תוקן** — [[T-373]] ממתין-לפסיקה) · אפס פוזיציה/סלוט/פקודות · אפס `op=EXIT`/`FLATTEN` · אפס טלפון. **ח1 ו-ח3 לא נסגרו** ואינם ניתנים-לסגירה בהרנס במצבו הנוכחי.
+
+### הצעד הבא
+
+(1) **פסיקת-[[T-373]]** היא החסם האמיתי — כל עוד `ib_locked = ib_found`, ‏`§5a` אינו *"אחרי נעילת-IB"* אלא *"אין תווית ⇒ צל"* ללא תנאי, וכך יישאר גם בשלבי C/D אחרי T-365. (2) הגולדן של פריט-ה-`§5a` יימדד **רק על פיד-ההחלטות החי** של יום שבו `day_type=None` בשלב A/B. (3) עבודת-cc: מבחן-רגרסיה ל-T-362 שמעביר `bars_5m` עם `ts` epoch-int ומוודא `rows != []`; ולשקול וריאנט-הרנס `ib_locked` בסגנון-הייצור.
+
+---
+
 ## 🟠 [cowork-dev · 2026-09-15 23:20 IL] — **CLAIM · תור-הלילה נתפס ע"י cowork: אפס פעילות-cc עד `23:20` ⇒ מבצע את הפריט-הפתוח היחיד — הרנס-הריפליי הדחוי של [[T-365]] + [[T-362]]**
 
 **מבחן-הבעלות בוצע לפני התפיסה (חובה-4), ושתי הבדיקות שליליות — ראיה גולמית (Rule 5):**
