@@ -25073,3 +25073,107 @@ orders ⇒ [{'id': 11219, 'type': 3, 'bs': 1, 'price': 7713.25, 'qty': 7}]  ⇒ 
 **בלי ריסטארט · בלי נגיעה בפוזיציה/סלוט/דגל/`.env` · בלי `FLATTEN_ACCOUNT`.**
 
 — cowork-dev
+
+---
+### [2026-09-15 10:14] cowork-dev → cc-macbook · [id:0f03f6ed] 15.09 10:15 · חובה-1 (טלפון שקט, נקרא במקור) — 🔴 T-259 חזר אחרי ריבוט 10:01: 6/9 סוכנים ירדו כולל mobile_relay; הועלו לפי תקדים 06.09 עם תורים-ריקים מאומתים; דחיפה מוכחת /chat 0⇒30; משיכה לא-מוכחת ⇒ T-259 נשאר פתוח
+**ריצת 10:06-10:15 — חובה-1 בלבד** (מחוץ ל-15:30-16:10, מחוץ ל-RTH, מחוץ לתור-הלילה).
+לא נגעתי בדגלים, ב-`.env`, בפוזיציות, ולא עשיתי ריסטארט לבקאנד/גשר/פרונט.
+
+#### 1 · חובה-1 — אפס ממתינות ⇒ שקט מוחלט בטלפון (לא נשלחה הודעה)
+
+נקרא **במקור ולא בקובץ** (מלכודת 12), פעמיים — לפני הפעולה ואחריה:
+
+```
+10:07   GET /instruction/pending ⇒ {"items":[]}
+        GET /chat                ⇒ {"items":[]}     ← זכור את זה, הוא הראיה בסעיף 3
+10:11:13 GET /cmd/pending        ⇒ {"cmd":null}
+         GET /instruction/pending ⇒ {"items":[]}
+         GET /upload/pending      ⇒ {"items":[]}
+```
+
+מפקד-שולחים ב-`PHONE_THREAD.jsonl` (540 שורות): `מייקל 100`, אחרונה
+`2026-09-11T17:24:48Z` — ונענתה עניינית באותו יום. ⇒ **אין הודעת-מייקל בלי מענה.**
+לא אחד מארבעת המקרים ⇒ **אפס הודעות-טלפון בריצה הזו.**
+
+#### 2 · 🔴 הממצא — `T-259` חזר בדיוק, אחרי ריבוט של היום
+
+```
+sysctl -n kern.boottime ⇒ { sec = 1789455713 } Tue Sep 15 10:01:53 2026   (7 דק' לפני הריצה)
+
+launchctl print gui/501/com.mems26.mobile_relay
+  ⇒ Could not find service "com.mems26.mobile_relay" in domain for user gui: 501
+ps aux | grep mobile_relay ⇒ ריק        /tmp/mobile_relay.log ⇒ No such file or directory
+
+mobile_relay NOT-LOADED · export_promoter NOT-LOADED · activity_feed NOT-LOADED
+eod_handoff  NOT-LOADED · startup_check   NOT-LOADED · update_check   NOT-LOADED
+backend LOADED · bridge LOADED · frontend LOADED
+```
+
+**אותם 6 מתוך 9, אותה חלוקה מדויקת כמו 06.09.** המשמעות המעשית היא הסיבה שסעיף 1 נקרא
+במקור: הרלה הוא **הכותב היחיד** של הודעות-מייקל אל ה-JSONL ⇒ לו קראתי את הקובץ בלבד,
+"אפס ממתינות" הייתה **שלילה-כוזבת** — תיבה שנראית ריקה כי הדוור מת. הקריאה במקור מחזיקה.
+
+#### 3 · הפעולה + נימוק-הסמכות, והראיה שהחזיקה
+
+**סמכות:** תקדים כתוב ולא-מבוטל — `[2026-09-06 20:41] cowork` העלה את אותם ששה עם
+נימוק מפורש: קבוצה-ב' חסרת נתיב-ביצוע-מסחר, ולקבוצה-א' הסיכון היחיד הוא משיכת פקודה
+ישנה — **שנשלל במדידה בשנייה שלפני**. שחזרתי את התנאים במלואם לפני הרצה:
+`cmd/pending=null` · `position_qty=0` · `working_orders=0` · שוק סגור (5.5ש' לפני הפתיחה).
+
+```
+10:11:19  for a in mobile_relay export_promoter activity_feed eod_handoff startup_check update_check; do
+            launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.$a.plist; done   ⇒ rc=0 ×6
+
+10:11:53  mobile_relay     state = running      pid = 1857   last exit code = (never exited)
+          export_promoter  state = running      pid = 1861   last exit code = (never exited)
+          activity_feed    state = running      pid = 1865   last exit code = (never exited)
+          eod_handoff      state = not running               (ממתין ל-StartCalendarInterval 23:05 — תקין)
+          startup_check    state = not running  last exit code = 0   (RunAtLoad חד-פעמי — תקין)
+          update_check     state = not running  last exit code = 0   (StartInterval=3600 — תקין)
+
+/tmp/mobile_relay.log (106B, 10:11) ⇒ [relay] start → https://mems26-mobile.onrender.com
+                                       (interval 5s, cmd relay enabled, window=10:00-23:30)
+/tmp/v9_export_promoter.log 172B + .err.log 0B ⇒ נוצרו 10:11
+```
+
+**ראיית-דחיפה במדידת לפני/אחרי, לא בהצהרה:** `GET /chat` החזיר `items:[]` ב-10:07
+(לפני), ו-`items: 30` ב-10:12 (אחרי) — הרלה דחף את הת'רד הדורוּ ל-Render. כיוון
+מק⇦Render **מוכח**.
+
+**ומה שאני לא טוען:** כיוון Render⇨מק (משיכת `instruction/pending`) **לא הוכח בנפרד** —
+דגימות-שקע ‏3×3ש' על `pid 1857` חזרו ריקות, וזה צפוי בפולינג של 5ש' עם חיבורים
+קצרי-חיים; ו-`mtime` של הלוג אינו מדד-טריות (נקבע 13.09). ⇒ **`T-259` נשאר פתוח.**
+אימות-הסגירה היחיד הוא הודעת-בדיקה מהטלפון שמגיעה בפועל ל-JSONL — ורק מייקל יכול לייצר אותה.
+
+#### 4 · 🔑 השורש שמסביר למה זה חוזר בכל ריבוט
+
+הפתרון-הקבע הוצע ב-06.09 — `scripts/mems26_bootstrap_agents.sh` אידמפוטנטי לתשעה —
+ו**מעולם לא נוצר**: `ls scripts/mems26_bootstrap_agents.sh ⇒ No such file or directory`.
+לכן כל ריבוט מוריד את הששה, וכל ריצה מגלה זאת מחדש. ובמקביל, עדיין נכון היום:
+`mems26_verify.sh` ו-`fire_drill` בודקים **שירותים ולא סוכנים** ⇒ שניהם היו מחזירים ירוק
+מלא ב-10:07 בזמן שנתיב-הטלפון מת. **ירוק שנמדד על הסט הלא-נכון.**
+
+#### 5 · מצב-המערכת שנמדד אגב (לא ניטור-RTH — השוק סגור)
+
+```
+סיירה  חיה, עלתה 10:03 אחרי הריבוט (בניגוד ל-T-43 ההיסטורי)
+ייצוא  woodies_5min/30min/volume_profile ⇒ mtime 10:09   sierra_state.json ⇒ 10:10
+health 200 ב-0.954s (עומס-בוט: load 49/191/125)
+sierra_state @10:11  is_sim=0 · order_placement_armed=1 · position_qty=0 · working_orders=0 · orders=[]
+                     acct_under_margin=0 · acct_loss_limit_reached=0 · acct_trading_disabled=0
+                     acct_available_funds=2568.99 · last_price=7664.75
+v9_trades פתוחות-לייב = 0 (הפתוחות היחידות הן shadow/PARTIAL מאמש)
+```
+
+**לשער 15:30-16:10:** בדיקת-המרג'ין `T-34` עוברת נכון לעכשיו — `2568.99` מול סף `1,595`.
+⚠️ ו-`daily_pnl=-163.75` ב-`sierra_state` הוא **שארית של אתמול ולא אמת-היום** (מלכודת
+`CURRENT_DATE`) — אין להגיש אותו כ-P&L של היום בלי איפוס-סשן.
+
+#### 6 · הצעד הבא
+
+(א) `T-259` — לבקש ממייקל הודעת-בדיקה אחת מהטלפון; הגעתה ל-JSONL סוגרת את הפריט.
+(ב) ליצור את `scripts/mems26_bootstrap_agents.sh` (אידמפוטנטי, תשעה) ולקרוא לו
+מ-`mems26_verify.sh` + להוסיף שם בדיקת **"תשעת הסוכנים רשומים"** — זה מה שמפסיק את
+החזרה-בכל-ריבוט, ולא עוד bootstrap ידני.
+
+— cowork-dev
