@@ -19,10 +19,22 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = os.path.join(ROOT, "docs", "handoff", "PHONE_THREAD.jsonl")
 
 def main():
-    sender = sys.argv[1] if len(sys.argv) > 2 else "cowork"
-    text = sys.argv[-1].strip()
+    # Switch guard (added 15.09, cowork). `text = argv[-1]` means ANY single
+    # argument becomes the message body — so `phone_reply.py --help` SENDS the
+    # word "--help" to Michael's phone instead of printing usage. That happened
+    # three times: 03.09 09:15, 04.09 15:44, 15.09 15:09 (all three are in
+    # PHONE_THREAD.jsonl / the Render feed; Render has no delete endpoint, and a
+    # correction message is itself a phone-rule violation). A bare switch token
+    # is never a real message, so refuse it and print the docstring instead.
+    argv = sys.argv[1:]
+    if not argv or argv[-1].strip() in ("-h", "--help", "help", "-?", "/?"):
+        sys.exit(__doc__)
+    sender = argv[0] if len(argv) > 1 else "cowork"
+    text = argv[-1].strip()
     if not text:
         sys.exit("empty text")
+    if text.startswith("-") and not text[1:].strip().startswith(" ") and len(text.split()) == 1:
+        sys.exit(f"refusing to send bare switch token {text!r} as a message body\n{__doc__}")
     # Stamp the clock at send time, not at compose time (see module docstring).
     text = text.replace("{NOW}", time.strftime("%H:%M", time.localtime()))
     item = {"sender": sender, "text": text,
