@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 1/3: T-365 §5a NO_LABEL phase gate — DONE**
+
+`trading_gateway.py:1468-1501`: §5a block now gated by `_resolve_phase`. Phase A/B → skip (opening doctrine). Phase C/D or fail → apply as before (fail-closed). Test: `BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_no_label_phase_gate.py -v ⇒ 6 passed, 0 failed`. Harness replay deferred — zero restart allowed before 15:45 cowork lift. Zero `.env` · zero restart · zero position/slot/queue.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-14 22:36-22:47 IL] — **ריצת-ניטור נקייה: אפס פעולה · אפס עסקת-לייב חדשה ⇒ שקט מוחלט בטלפון** · 🔸 **מלכודת-בעלות שנתפסה: `grep -c "11219" ⇒ 1` הוא התאמה-כוזבת — הספרה נבלעה בתוך `211219s` של הודעה אחרת**
 
 **ריצת חובה-1 + חובה-3** (`22:36` — בתוך RTH, **אחרי** `16:10`) ⇒ **לא בוצע ריסטארט ולא נשקל.**

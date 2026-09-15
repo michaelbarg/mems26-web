@@ -1467,17 +1467,38 @@ class TradingGateway:
 
         # §5א NO_LABEL_NO_FIRE_V1: after IB lock, a live-eligible setup with
         # no day_type label → routed to shadow. 20/46 live trades fired on None.
+        # T-365 (Michael 14.09 17:07): in phases A/B the opening doctrine
+        # governs and day_type is not yet available — skip this gate entirely.
+        # Phases C/D: the original logic applies (day_type IS required there).
         if os.getenv("NO_LABEL_NO_FIRE_V1", "0").lower() in ("1", "true", "yes"):
             try:
-                _nl_tpo = (cross_context.get("tpo_system")
-                           if isinstance(cross_context, dict) else None) or {}
-                _nl_ib_locked = bool(_nl_tpo.get("ib_locked"))
-                if _nl_ib_locked:
-                    from backend.v9.services.trade_context import get_live_day_type as _nl_gldt
-                    _nl_dt = _nl_gldt()
-                    if not _nl_dt:
-                        setup.setdefault("metadata", {})["shadow_only"] = True
-                        logger.warning("[Gateway] §5a NO_LABEL: IB locked, day_type=None → shadow")
+                # Resolve phase to decide if §5a applies
+                try:
+                    from backend.v9.services.dalton_playbook import _resolve_phase as _nl_phase_fn
+                    from backend.v9.services.market_clock import now_et as _nl_now_et
+                    from zoneinfo import ZoneInfo as _nl_ZI
+                    _nl_et = _nl_now_et()
+                    _nl_il = _nl_et.astimezone(_nl_ZI("Asia/Jerusalem"))
+                    _nl_il_hhmm = f"{_nl_il.hour:02d}:{_nl_il.minute:02d}"
+                    _nl_phase = _nl_phase_fn(_nl_il_hhmm)
+                except Exception:
+                    _nl_phase = None  # fail-closed: treat as C/D (apply gate)
+
+                if _nl_phase in ("A", "B"):
+                    logger.info(
+                        "[Gateway] §5a skipped: phase=%s — opening doctrine governs, "
+                        "day_type not required (Michael 14.09 17:07)", _nl_phase)
+                else:
+                    # Phase C/D or failed resolve → original §5a logic
+                    _nl_tpo = (cross_context.get("tpo_system")
+                               if isinstance(cross_context, dict) else None) or {}
+                    _nl_ib_locked = bool(_nl_tpo.get("ib_locked"))
+                    if _nl_ib_locked:
+                        from backend.v9.services.trade_context import get_live_day_type as _nl_gldt
+                        _nl_dt = _nl_gldt()
+                        if not _nl_dt:
+                            setup.setdefault("metadata", {})["shadow_only"] = True
+                            logger.warning("[Gateway] §5a NO_LABEL: IB locked, day_type=None → shadow")
             except Exception:
                 pass  # fail-open
 
