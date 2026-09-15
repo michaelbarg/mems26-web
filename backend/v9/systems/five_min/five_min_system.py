@@ -783,6 +783,28 @@ class FiveMinSystem(BaseV9TradingSystem):
             # windows on 08-21).  Use .isoformat() to match the stored
             # format.  NOTE: this ENABLES a gate that never ran; the
             # gate itself is fail-open (returns None → caller proceeds).
+            # T-362 fix: bars carry ts as epoch-seconds (int/float).
+            # Injecting a raw epoch into a timestamptz query causes
+            # DatetimeFieldOverflow (1,743 failures/day on 14.09).
+            # Convert to tz-aware datetime before the query.
+            def _to_aware_dt(ts):
+                """Convert ts to tz-aware datetime. Handles datetime, int/float epoch, str."""
+                from datetime import datetime, timezone
+                if hasattr(ts, 'isoformat'):
+                    # Already a datetime — ensure tz-aware
+                    if ts.tzinfo is None:
+                        return ts.replace(tzinfo=timezone.utc)
+                    return ts
+                # Numeric epoch seconds
+                try:
+                    epoch = float(ts)
+                    if epoch > 1_000_000_000:  # sanity: looks like epoch seconds
+                        return datetime.fromtimestamp(epoch, tz=timezone.utc)
+                except (TypeError, ValueError, OverflowError):
+                    pass
+                # String fallback — parse ISO or return as-is for _iso
+                return ts
+
             def _iso(ts):
                 if hasattr(ts, 'isoformat'):
                     return ts.isoformat()
@@ -791,6 +813,14 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if len(s) > 10 and s[10] == ' ':
                     return s[:10] + 'T' + s[11:]
                 return s
+
+            # Convert epoch-seconds to aware datetime (T-362)
+            try:
+                first_ts = _to_aware_dt(first_ts)
+                last_ts = _to_aware_dt(last_ts)
+            except Exception:
+                return None  # fail-open: conversion failed → None as today
+
             rows = read_all(
                 "SELECT cumulative FROM v9_bars_cumulative_delta "
                 "WHERE ts >= :t0 AND ts <= :t1 ORDER BY ts ASC",

@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 2/3: T-362 CVD epoch-seconds fix — DONE**
+
+`five_min_system.py:778`: `_to_aware_dt()` converts int/float epoch-seconds to `datetime(tz=utc)` before `_iso()`. Fail-open: conversion exception → `return None`. Type-only fix, zero logic change. Harness replay deferred to cowork 15:45 lift. Zero `.env` · zero restart · zero position/slot/queue.
+
+---
+
 ## [cc-macbook · 2026-09-15 IL] — **מקבץ 15.09 משימה 1/3: T-365 §5a NO_LABEL phase gate — DONE**
 
 `trading_gateway.py:1468-1501`: §5a block now gated by `_resolve_phase`. Phase A/B → skip (opening doctrine). Phase C/D or fail → apply as before (fail-closed). Test: `BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_no_label_phase_gate.py -v ⇒ 6 passed, 0 failed`. Harness replay deferred — zero restart allowed before 15:45 cowork lift. Zero `.env` · zero restart · zero position/slot/queue.
