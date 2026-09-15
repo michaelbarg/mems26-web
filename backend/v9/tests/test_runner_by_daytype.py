@@ -43,11 +43,30 @@ class TestRunnerByDaytypeBehavioral(unittest.TestCase):
         os.environ["RUNNER_TRAIL_V2"] = "1"
         os.environ["C4_RULING6_V1"] = "0"
         os.environ["T0_TARGET_PTS"] = "0"
+        # The subject of these tests is the c4 leg: "day_type=None must get a
+        # TARGET on c4, not a stop-only runner". That leg only exists at 4+
+        # contracts, so the size ruling has to be pinned here — otherwise the
+        # test silently measures the ruling instead of the runner logic.
+        # Michael 15.09 17:25 moved the standing size to 3 (ladder 1,1,1,0),
+        # `ruled_contracts()` then overrides the setup's `contracts=5`, c4 is
+        # correctly None, and both tests failed for the wrong reason
+        # (guard_tests RED → fire_drill NO-GO, 15.09 17:29). Pinning 5 here
+        # restores what the tests were written to prove; it does not touch
+        # production sizing, which stays whatever `.env` rules.
+        self._size_saved = {k: os.environ.get(k)
+                            for k in ("FIXED_CONTRACTS_3", "FIXED_CONTRACTS_5")}
+        os.environ["FIXED_CONTRACTS_3"] = "0"
+        os.environ["FIXED_CONTRACTS_5"] = "1"
 
     def tearDown(self):
         for k in ("RUNNER_BY_DAYTYPE_V1", "RUNNER_TRAIL_V2",
                    "C4_RULING6_V1", "T0_TARGET_PTS"):
             os.environ.pop(k, None)
+        for k, v in self._size_saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
     @patch("backend.v9.services.sierra_command.write_trade_command")
     @patch("backend.v9.services.trade_context.get_live_day_type")
