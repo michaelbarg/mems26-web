@@ -1,3 +1,111 @@
+## 🔵 [cowork-dev · 2026-09-16 20:06-20:14 IL] — **חובה-3 (ניטור-RTH שישי־ב') · הכל ירוק · שקט-טלפון** · 🟡 **שתי תצפיות: שער `variation_mid_value` קפץ 1→12 · `machine_health` WARN חדש על RAM/swap**
+
+ריצת `20:06:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
+תפוס (‏`PID 97101` boot `15:41:22` + רשומות-cowork-dev `17:06`/`17:37`/`18:06`/`18:36`/`19:06`)
+⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.**
+הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל ⇒ **שקט מוחלט**
+
+```
+GET /chat?key=…   → 30 פריטים, זהה לזנב PHONE_THREAD.jsonl (אין פער-דחיפה)
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+אחרון-בתור   2026-09-16T14:40:39Z (מקרה-(ב) של 1717, ריצת 17:37)
+git pull → Already up to date
+```
+
+אין מקרה (א)/(ב)/(ג)/(ד) ⇒ **לא נשלחה הודעת-טלפון.**
+
+### חובה-3 · ניטור — ארבע הבדיקות, פלט גולמי
+
+```
+feed      SELECT max(ts), (now()-max(ts)) FROM v9_bars_5min_woodies;
+          → 2026-09-16 13:05:00 ET | 2.8 min            (≤10 דק' ✅)
+backend   GET /api/v9/health → {"status":"ok","version":"v9.0.0"}
+          lsof :8000 → Python 97101 (LISTEN) · ps lstart → Wed Sep 16 15:41:22 2026
+          [boot] logging OK … pid=97101 commit=8cfc061c   ⇒ שכבת-INFO טעונה (שער ד0 עבר)
+          חלון 19:10:00→20:12:00 (62 דק'): grep -c "\[ERROR\]|\[CRITICAL\]" → 0
+          5,093 שורות · 1,966 WARNING — bar_router 1,791 · pydantic-coerce 122 ·
+          gateway-tags 36 · TM 6. אפס מחלקת-שגיאה חדשה (זהה לפרופיל 19:06).
+position  sierra_state.json (‏ts 20:10:56, mtime שנייה): position_qty=0 ·
+          working_orders=0 · orders=[] · open_pnl=0.0
+TM        v9_trades היום: live 2/2 CLOSED (1712, 1717 — שתיהן MAE_SCRATCH) ·
+          אפס שורת-live פתוחה ⇒ פוזיציה 0 ⟷ TM 0 — מסכימים.
+```
+
+**בעלות-הפילים (לפני אזעקה, לפי `order_id`) — המונים קפואים מאז `18:14`:**
+
+```
+daily_total_qty_filled = 12   (ללא שינוי מאז 18:06 — 8 שלנו + 4 של הסבב-הזר 11267/11268)
+daily_pnl              = -142.50   (ללא שינוי)
+trade_activity_events.jsonl: אחרון = 2026-09-16T15:14:20Z (=18:14:20 IL)
+                             mtime = 20:10:39  ⇒ הקובץ חי, הסורק סורק — שקט אמיתי
+```
+
+⇒ **אפס פיל, אפס פקודה, אפס עסקת-לייב ב-3 השעות מאז `17:13`. אין מקרה (ב).**
+
+### 🟡 תצפית 1 · `variation_mid_value` — 1 → 12 חסימות, 11 מהן בשעה האחרונה
+
+הליגר חי (‏`buffer_len=59`, אחרון `t_il=20:10:07`, הרחק מתקרת-200). מאז `19:05`
+**12 החלטות, כולן חסומות, אפס ירי** — 11 מהן ע"י שער אחד:
+
+```
+today  = {blocked: 47, shadow_only: 10, live: 2}
+by_gate = dalton_intent:stand_down 20 · variation_mid_value 12 · location 8 ·
+          bias 4 · rr_entry_gate 2 · entry_location_quality 1
+מאז 19:10 (12 החלטות) = variation_mid_value 11 · dalton_intent:bias 1 · ירי 0
+variation_mid_value: כיוונים SHORT 11 / LONG 1 · מערכות S2×8 S4×4
+  תבניות: ZLR 4 · DOUBLE_TOP_AA_SHORT 3 · INITIATIVE_SHORT · REACTIVE_LONG ·
+          REACTIVE_SHORT · CEILING_FLIP_TOUCH2 · FAILED_RE_IB
+זמנים IL: 19:05 19:20 19:25 19:25 19:35 19:50 19:50 19:59 20:00 20:00 20:10 20:10
+רשומה גולמית: {"pattern":"DOUBLE_TOP_AA_SHORT","direction":"SHORT","entry":7677.5,
+  "blocked_by":"variation_mid_value","reason":"T-367 Rule B: mid_value entry on
+  Variation entry=7677.50 vah=7687.75 val=7672.75","outcome":"blocked","t_il":"20:10:07"}
+```
+
+**פסק:** זו **התנהגות-כמתוכנן, לא תקלה.** המחיר נעול בתוך אזור-הערך
+(‏`VAL 7672.75 – VAH 7687.75`, `last_price 7676.50`) והניסיונות נכנסים באמצע —
+בדיוק מה ש-`T-367 Rule B` נועד לחסום ביום-Variation. מדווח כאן כי הרנבוק §2ב מחייב
+דיווח על שער שחסם **≥3 בתוך RTH**, עם פילוח-כיוון. **לא מקרה (ג)** — אין החלטה
+שממתינה למייקל. נרשם כתצפית לבדיקת-הפער של מחר (‏T-389).
+
+### 🟡 תצפית 2 · `machine_health` — WARN חדש שלא היה ב-19:06
+
+```
+python3 scripts/machine_health.py
+  WARN: unused RAM 87M < 400M — the Mac is compressing/swapping
+  WARN: swap used 2353M > 500M
+  trading stack: backend n=1 rss 121MB cpu 42.9% · sierra n=2 rss 222MB cpu 19.7% ·
+                 bridge 20MB · postgres 611MB · phone-relay 26MB
+  non-trading (MB): cowork-vm 2066 · claude-app 1575 · chrome 1491 · claude-agents 653
+```
+
+ב-19:06 נמדד `load 3.32` בלי WARN על זיכרון; עכשיו `load 5.30` והמכונה דוחסת.
+**הצרכן אינו סטאק-המסחר** — הבקאנד 121MB, כל הסטאק ≈1GB, מול ≈5.8GB לא-מסחר.
+**WARN-בלבד לפי ההגדרה ⇒ שורה כאן, לא לטלפון, אפס פעולה.** אין את פתולוגיית-הבוקר
+(‏26 שורות-צל ⇒ 80% CPU + 1,000 שורות-לוג לדקה): קצב-הלוג נמדד ‏132/114/129 לדקה
+ב-`20:05/20:06/20:07` — נורמלי.
+
+### חשבון · צל · T-34
+
+```
+acct   is_sim=0 · order_placement_armed=1 · send_orders_to_trade_service=1
+       acct_trading_disabled=0 · acct_loss_limit_reached=0
+       acct_daily_pl=-142.50  מול תקרה -544.85 (לא נגועה) · last_price=7676.50
+צל     python3 scripts/close_stale_shadow.py → "no stale shadow trades — nothing to do"
+       14 שורות FILLED/PARTIAL פתוחות — כולן של היום (בדיקת-DB: אפס שורה פתוחה
+       שתאריך-הכניסה שלה < 2026-09-16). הסקריפט הוא הפוסק.
+T-34   acct_available_funds = 765.59 (< $1,595) · acct_margin_req = 0.0 ·
+       acct_under_margin = 0 · acct_ok = 1 — ללא שינוי מ-19:06.
+       מתחת לסף-הדיווח אך **אינו חוסם מסחר** ⇒ שורה כאן, בלי מקרה-(ג) בטלפון.
+```
+
+**מצב-סיום:** לייב+חמוש · פוזיציה 0 · סלוט פנוי · פיד 2.8 דק' · יום-סיירה `-142.50` ·
+אפס עסקת-לייב מאז `17:13` · אפס ERROR ב-62 דק'.
+— *cowork-dev*
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 19:06-19:10 IL] — **חובה-3 (ניטור-RTH שישי) · הכל ירוק · שקט-טלפון** · אפס עסקת-לייב חדשה מאז `17:13`
 
 ריצת `19:06:53` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
