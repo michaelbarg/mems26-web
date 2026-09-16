@@ -1,3 +1,176 @@
+## 🔵 [cowork-dev · 2026-09-16 20:36-20:45 IL] — **חובה-3 (ניטור-RTH שביעי) · הכל ירוק · שקט-טלפון** · 🟡 **`variation_mid_value` 12→20 (שער-המוביל) · 21 צל-פתוחות תקינות (לא תקועות) · `machine_health` WARN נמשך**
+
+ריצת `20:36:55` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
+(‏`PID 97101` boot `Wed Sep 16 15:41:22 2026` + רשומות-cowork-dev
+`17:06`/`17:37`/`18:06`/`18:36`/`19:06`/`19:35`/`20:06`) ⇒ **הבעלים תפוס: אפס
+ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.**
+הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל ⇒ **שקט מוחלט**
+
+מלכודת-12 נבדקה קודם (רלה חי לפני שמסיקים שקט):
+
+```
+launchctl print gui/$UID/com.mems26.mobile_relay → state = running · pid = 1857
+GET /instruction/pending?key=…  → {"items":[]}        (peek, ללא תופעות-לוואי)
+GET /cmd/pending?key=…          → {"cmd":null}
+GET /chat?key=…&limit=40        → 30 פריטים
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+אחרון-בתור   2026-09-16T14:40:39Z (מקרה-(ב) של 1717, ריצת 17:37)
+git pull --ff-only → Already up to date   (HEAD 741a6bbf)
+```
+
+אין מקרה (א)/(ב)/(ג)/(ד) ⇒ **לא נשלחה הודעת-טלפון.**
+
+### חובה-3 · ניטור — ארבע הבדיקות, פלט גולמי
+
+```
+feed      SELECT max(ts) AT TIME ZONE 'America/New_York', (now()-max(ts)) …
+          → 13:40 ET | 0.5 min          (≤10 דק' ✅ · aware⟷aware, לא מלכודת-TZ)
+          ls -lt ~/SierraChart_Data/v9_export/ → כל 5 הקבצים mtime Sep 16 20:38
+backend   GET /api/v9/health → {"status":"ok","version":"v9.0.0"}
+          lsof -nP -iTCP:8000 -sTCP:LISTEN → Python 97101 (LISTEN)
+          [boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr
+                                        ⇒ שכבת-INFO טעונה (שער ד0 עבר, לא עיוורון)
+          חלון 20:06:00→20:42:00: 4,942 שורות · ERROR|CRITICAL = 0 · WARNING 2,089
+          פילוח: bar_router 1,964 · TM 1,217 · trade_context 763 · opening_entry 335 ·
+                 woodies 172 · api.bars 110 · gateway 72 — אפס מחלקת-שגיאה חדשה
+position  sierra_state.json (ts 1789580323, mtime 20:38): is_sim=0 ·
+          order_placement_armed=1 · send_orders_to_trade_service=1 ·
+          position_qty=0 · avg_price=0.0 · open_pnl=0.0 · working_orders=0
+          (high/low_during_pos = זבל-סנטינל ±1.79e306 — לא דווח, מלכודת-3.7)
+TM        mobile/data.active = []  ·  v9_trades live היום = 2/2 CLOSED
+          ⇒ פוזיציה 0 ⟷ TM 0 — מסכימים. ownership לפי order_id לא נדרש.
+```
+
+**עסקאות-לייב היום — שתיהן סגורות, אפס אירוע חדש מאז `17:13`:**
+
+```
+1712  live  S2  OPENING_DRIVE      SHORT  CLOSED  09:40→09:46 ET  MAE_SCRATCH  UNPRICED
+1717  live  S2  CEILING_FLIP_LONG  LONG   CLOSED  09:50→10:13 ET  MAE_SCRATCH  UNPRICED
+```
+
+```
+פקודה אחרונה: #410 op=FLATTEN_ACCOUNT ב-17:13:19 (יציאת 1717) — אפס PLACE מאז
+daily_total_qty_filled = 12      (ללא שינוי מאז 18:06 — 8 שלנו + 4 הסבב-הזר 11267/11268)
+daily_pnl = acct_daily_pl = -142.50   (ללא שינוי · halt_cap 800 לא נגוע · trading_paused=False)
+trade_activity_events.jsonl: אחרון = CLOSED_TRADE_PNL 2026-09-16T15:14:20Z (18:14 IL)
+                             mtime = Sep 16 20:39  ⇒ הסורק חי, שקט אמיתי
+```
+
+⇒ **אין מקרה (ב).** ‏`UNPRICED` בשתיהן — הספרים לא תומחרו ולא סונתז מספר (כלל-1).
+
+### ליגר — בטווח-מלא, בלי תקרת-200
+
+```
+GET /api/v9/gateway/decisions?limit=2000 → buffer_len 67 · returned 67
+oldest 2026-09-16T13:30:03Z (=09:30 ET, פתיחת-RTH) · newest 17:35:07Z
+⇒ החלון מכסה את כל יום-המסחר — ההיסטוגרמה שלמה, לא חתוכה (מלכודת-3.2)
+today = {fired: 2, blocked: 55, shadow_only: 10}
+by_gate: variation_mid_value 20 · dalton_intent:stand_down 20 · location 8 ·
+         bias 4 · rr_entry_gate 2 · entry_location_quality 1
+כיוונים (67): SHORT 36 / LONG 31
+```
+
+### 🟡 תצפית 1 · `variation_mid_value` — 12 → 20, עלה לשער-המוביל
+
+```
+variation_mid_value  n=20   חלון 16:05:05Z → 17:35:07Z
+  כיוונים: SHORT 16 / LONG 4        מערכות: S4×12 · S2×8
+  תבניות: ZLR 9 · GHOST 3 · DOUBLE_TOP_AA_SHORT 3 · INITIATIVE_SHORT ·
+          REACTIVE_LONG · REACTIVE_SHORT · CEILING_FLIP_TOUCH2 · FAILED_RE_IB
+נוסח-החסימה (אחרון): "T-367 Rule B: mid_value entry on Variation
+                      entry=7679.00 vah=7687.25 val=7673.25"
+6 ההחלטות האחרונות (17:25→17:35): כולן S4 ZLR/GHOST → variation_mid_value, ירי 0
+```
+
+מדידה שלישית רצופה של אותה מגמה (‏1 → 12 → 20). השער **פסוק** (T-367 Rule B)
+ומתנהג לפי הכתוב: המחיר תקוע באמצע ה-Value Area (‏7679 מול VAH 7687.25 /
+VAL 7673.25), ולכן כל מועמד נדחה על מיקום. **זו לא תקלה ולא מקרה-(ג)** — אין
+כאן החלטה למייקל, והצעד-הבא הוא כימות בריפליי ולא דגל. נרשם כתצפית-מדידה
+לדוח-הפער של 17.09 (דוקטרינת-הלמידה: "הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל").
+
+### 🟡 תצפית 2 · 21 עסקאות-צל פתוחות — **תקינות, לא מחלקת-התקיעה של הבוקר**
+
+הספירה עלתה מ-8 (‏19:35) ל-21, ולכן נבדקה מול מלכודת-14 (‏`state`, לא `exit_ts`)
+ומול הפוסק עצמו:
+
+```
+SELECT mode,state,count(*) FROM v9_trades WHERE state NOT IN ('CLOSED','CANCELLED')
+  → shadow FILLED 19 · shadow PARTIAL 2 · (אפס live)
+פילוח לפי תאריך-כניסה ET: כולן 2026-09-16, 09:50 → 13:35 ET — אפס גרירה מאתמול
+python3 scripts/close_stale_shadow.py  → "no stale shadow trades — nothing to do"
+צל היום: 67 נכנסו · 46 נסגרו · 21 פתוחות באמצע-סשן
+```
+
+⇒ **הפוסק אומר שאין תקועות**, וכל 21 נכנסו בסשן הנוכחי ⇒ צבירה שגרתית, לא
+חזרת-התקלה של הבוקר (‏26 שורות · 80% CPU · 1,000 שורות-לוג/דקה).
+
+### 🟡 תצפית 3 · קצב-לוג ~140 שורות/דקה · הלוג 109MB · `SLOW handler` חוזר
+
+```
+שורות/דקה 20:26→20:39: 131 126 124 135 144 135 159 138 131 253 163 167 166 99
+10 הדקות האחרונות, לפי מקור:
+  481  [TradeManager] F5 swing-trail trade=…        (21 הצל-הפתוחות × בר)
+  287  BarRouter: SLOW handler BarLevelDetector.on_bar
+  256  [S1DayDir] SHADOW accepted_break=UP …
+  114  [OPENING_DIR_FUSION] SKIP: opening_vol 87981 …
+ls -lh /tmp/backend.err.log → 109M      ps -o %cpu -p 97101 → 10.0
+```
+
+‏140/דקה הוא **פי-7 פחות** מאירוע-הבוקר (‏1,000/דקה) וה-CPU 10% ⇒ לא אותה מחלקה.
+‏`SLOW handler BarLevelDetector.on_bar` ×287/10-דק' הוא סימן-ביצועים שנרשם כאן
+לראשונה במפורש — **לא נגעתי בקוד**; מוצע לכימות בערב (‏`BarLevelDetector` זמן-בר)
+ולא באמצע-סשן.
+
+### 🟡 תצפית 4 · `machine_health` — WARN נמשך (RAM/swap), דיווח-בלבד
+
+```
+WARN: unused RAM 58M < 400M — the Mac is compressing/swapping
+WARN: swap used 2353M > 500M
+trading stack: backend 123MB · bridge 20MB · sierra 240MB (n=2) ·
+               postgres 552MB (n=17) · frontend 18MB · phone-relay 26MB
+non-trading (MB): cowork-vm 2066 · claude-app 1560 · chrome 1511 ·
+                  claude-agents 642 · spotlight 249 · adobe 160
+```
+
+‏~5.8GB אצל הצרכנים שאינם-מסחר על מכונה שמדחיסה. **לא חוסם** (פיד 0.5 דק',
+‏0 ERROR, 2 עסקאות עברו היום) ⇒ WARN ל-ערוץ, לא לטלפון. הדבר היחיד שיסגור
+את זה הוא סגירת חלונות Chrome/Claude — פעולה של מייקל, לא שלי.
+
+### שערי-שפיות + גודל-עסקה (‏T-225: נקרא מהפסיקה, לא מ-`.env`)
+
+```
+set -a; source .env; set +a   ← חלק מהפקודה (מלכודת-3.9)
+python3 -c "…from backend.v9.services.contract_size import ruled_contracts…"
+  → ruled_contracts() -> 2
+GET /api/v9/mobile/data → contracts_cfg = 2      ⇒ התהליך-החי מחזיק את הפסיקה
+python3 scripts/flag_guard.py → FLAG-GUARD: PASS — all 259 ruled flags match
+                                LIVENESS: all ON flags have ≥1 production read-site
+```
+
+### T-34 · מרג'ין — דיווח-בלבד, לא חוסם
+
+```
+acct_available_funds = 765.59   (< 1,595 — הסף מ-T-34)
+grep -c "under_margin" /tmp/backend.err.log → 0   (all-time 0 · today 0)
+2 עסקאות-לייב עברו היום ⇒ הסף אינו חוסם ביצוע בפועל
+```
+
+⇒ אין מקרה-(ג) בטלפון (התנאי הוא "רק אם זה חוסם מסחר").
+
+### סיכום-הריצה
+
+**ירוק בארבע הבדיקות · שקט-טלפון · אפס כתיבה מחוץ לקובץ הזה.** ארבע תצפיות,
+כולן דיווח: שער-פסוק שמתנהג לפי הכתוב (‏`variation_mid_value`), צבירת-צל תקינה
+שאומתה מול הפוסק, קצב-לוג שגרתי עם סימן-ביצועים אחד, ו-RAM/swap שדורש פעולת-מייקל.
+**הצעד-הבא:** ריצת-הניטור הבאה ב-~21:05; דוח-הפער של 17.09 יקבל את מדידת
+‏`variation_mid_value` (‏1→12→20) כקלט.
+
+— cowork-dev
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 20:06-20:14 IL] — **חובה-3 (ניטור-RTH שישי־ב') · הכל ירוק · שקט-טלפון** · 🟡 **שתי תצפיות: שער `variation_mid_value` קפץ 1→12 · `machine_health` WARN חדש על RAM/swap**
 
 ריצת `20:06:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
