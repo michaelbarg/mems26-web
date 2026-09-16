@@ -1,3 +1,174 @@
+## [cowork-dev · 2026-09-16 23:39 IL] תור-הלילה — שער-הבטיחות על 5 פריטי-cc עבר ⇒ **ריסטארט-הבוקר ירוק**; [[T-389]] NOT-DONE על פגם-נתונים
+
+**אל: cc-macbook (שני פריטים לבוקר) · מייקל (נקודת-ההחלטה של 17.09 נדחית).**
+ביצעתי את הפריט-הפתוח היחיד מהזמנת-הערב. אפס ריסטארט · אפס `.env` · אפס דגל ·
+אפס פוזיציות/פקודות · **אפס הודעת-טלפון**.
+
+---
+
+### א1 · טסטים — ✅ PASS (98, `rc=0`)
+
+הרצתי בעצמי; לא הסתמכתי על דיווח-cc.
+
+```
+$ set -a; . ./.env; set +a
+$ python3 -m pytest tests/v9/regression/test_shadow_session_close.py \
+    tests/v9/regression/test_situation_vector.py tests/v9/regression/test_condition_expr.py \
+    tests/v9/regression/test_dalton_playbook_identity.py tests/v9/regression/test_gap_analysis.py \
+    tests/v9/regression/test_dalton_tree.py -q
+rc=0
+98 passed, 2 warnings in 1.51s
+```
+
+ספירה לפי קובץ — **חמשת המספרים של cc על קבצים קיימים אומתו בדיוק:**
+
+```
+test_shadow_session_close  : 6 passed      (cc טען 6)
+test_situation_vector      : 24 passed     (cc טען 24)
+test_condition_expr        : 28 passed     (cc טען 28)
+test_gap_analysis          : 24 passed     (cc טען 24)
+test_dalton_tree           : 13 passed     (cc טען 13)
+test_dalton_playbook_identity : 3 passed
+```
+
+### א2 · Guards — ✅ PASS (`rc` נתפס ישירות, לא דרך `| tail`)
+
+```
+flag_guard rc=0
+FLAG-GUARD: PASS — all 259 ruled flags match.
+  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+
+task_log_guard rc=0
+task_log_guard — 381 items, last committed 0.1 days ago
+✅ the task log is current, structured, and the only one
+```
+
+**אפס דגל-דלוק שאינו ב-`RULED_FLAGS.yaml`** ⇒ לא נדרשה שורת-🔴 לפסיקת-מייקל, ולא
+כובה ולא נוסף אף דגל.
+
+### א3 · הרנס — ✅ PASS, `routes`/`would_write` **זהים בית-בית**
+
+הבסיס `harness_out/t367/` נוצר `10:58` — **לפני** קומיטי-cc מ-`16:37+` — ובאותו
+`variant=head`/`push_mode=firstpush`/`oe_closed=false`. זו בדיוק ההשוואה הנדרשת.
+
+```
+$ python3 scripts/fwd_harness.py --session 2026-09-15 --out harness_out/night_0916/head_2026-09-15.json
+rc=0   Traceback=0   peak memory footprint 96,321,536
+$ python3 scripts/fwd_harness.py --session 2026-09-11 --out harness_out/night_0916/head_2026-09-11.json
+rc=0   Traceback=0
+
+$ python3 harness_out/night_0916/cmp_routes.py 2026-09-15 2026-09-11
+===== session 2026-09-15 =====
+routes: baseline_len=70 new_len=70 IDENTICAL=True
+would_write: baseline_len=0 new_len=0 IDENTICAL=True
+===== session 2026-09-11 =====
+routes: baseline_len=78 new_len=78 IDENTICAL=True
+would_write: baseline_len=0 new_len=0 IDENTICAL=True
+A3 VERDICT: IDENTICAL (zero behaviour change)
+```
+
+ההשוואה **על שני השדות בלבד** ולא checksum-קובץ — שדות-זמן היו שוברים אותו בלי
+משמעות-החלטה. ⇒ **קריטריון אפס-שינוי-ההתנהגות של T-390/T-391/T-392 מתקיים.**
+
+ריצה נוספת `--restart-at 18:29` ⇒ `rc=0 Traceback=0 routes 67`. **מסומנת מפורשות
+כ-crash-check ולא כבדיקת-זהות:** ה-`cold_restart_*.json` שבריפו הם מעידן-קוד אחר
+ואינם בסיס בן-השוואה, ו-`67` מול `70` הוא הפרש-צפוי של ניקוי-מצב+re-seed באמצע-יום.
+ערכה: **נתיב-ההידרציה שנגע בו T-396 סעיף-2 אינו קורס.**
+
+---
+
+### 🟢 פסיקת-הריסטארט: **ירוק**
+
+הקריטריון שההזמנה קבעה — `Traceback=0` על 15.09+11.09 — התקיים (`0` ו-`0`), וקריטריון
+אפס-שינוי-ההתנהגות אומת חזק ממנו (זהות בית-בית). **אפס ממצא-חוסם.** הריסטארט שטוען
+T-390/T-391/T-396 יכול לרוץ מחר לפני הפתיחה.
+
+---
+
+### ⛔ ב · [[T-389]] NOT-DONE — `gap_analysis.py` קורס על כל סשן עם עסקאות
+
+**ב1 smoke נכשל:**
+
+```
+$ python3 scripts/gap_analysis.py --dry --session 2026-09-15 --verbose
+rc=1
+  File ".../scripts/gap_analysis.py", line 609, in analyze_session
+    day_type_final = (first_cc.get("day_type_final")
+AttributeError: 'list' object has no attribute 'get'
+```
+
+שיטתי — **5/5 תאריכים על פני 4 חודשים** (10.06 · 15.07 · 12.08 · 11.09 · 15.09).
+לא תקלת-סביבה ולא מלכודת-[[T-399]]: `.env` נטען.
+
+**השורש:**
+
+```
+$ psql -c "SELECT jsonb_typeof(cross_context), count(*) FROM v9_trades GROUP BY 1;"
+ array | 1627        ← שורה אחת בלבד
+```
+
+**כל 1,627 העסקאות נושאות רשימה; הסקריפט מניח `dict` שטוח.** ההיקף אינו שורה אחת
+אלא שכבת-הגישה: `:608-611` קורס · `:487-499` `blocked_by` תמיד `None` · `:555-563`
+ששת השדות תמיד `None` · `:287-294` הלואדר מטפל ב-`str`/`None` אך לא ברשימה.
+⇒ **תיקון-הקריסה לבדה היה מייצר דוח שנראה תקין ומדווח `NO_SETUP` על הכול.**
+
+**שני ממצאים נלווים:**
+1. `test_gap_analysis.py:183/200/216/233` מזריקים `"cross_context": {}` בלבד —
+   צורת-הרשימה לא נבדקת באף טסט ⇒ `24/24` ירוק **אמיתי** שאינו מעיד על נתונים
+   אמיתיים. זה מסביר איך הפריט נמסר "עובר" בלי ריצה אחת מול DB.
+2. `grep -c classify_replay scripts/gap_analysis.py` ⇒ **`0`**. ההזמנה דרשה אותו
+   ל-`day_type_final` — מפתח-הקיבוץ של 3 מתוך 4 חלקי-הדוח.
+
+**@cc-macbook — יעדי-תיקון מאומתים מול ה-DB** (פירוט ב-`docs/reports/GAP_ANALYSIS_2026-09-17.md`):
+- **אדפטר כבר קיים** — `scripts/replay_s7_acceptance.py:55,75` `_systems_blob_at_entry`. לאמץ, לא לכתוב שלישי.
+- `blocked_by` ⇒ `cross_context[0].metadata.blocked_by` — **מאומת מאוכלס 635/1585**
+  (`dalton_intent:stand_down 143 · awaiting_release 128 · dalton_intent:location 72 · variation_mid_value 28 …`).
+- ⚠️ `woodies_system.decision_tree` הוא **`{}` ריק** ⇒ גם הנתיב ש**ההזמנה עצמה ניחשה**
+  (`woodies_system.last_route.blocked_by`) **אינו קיים**.
+- `zone` **לחשב** ב-`location_gate.zone_of`; `extension` מול `tpo_system.ib_*`. לא לקרוא.
+- **להוסיף טסט עם `cross_context` בצורת-רשימה אמיתית** — בלעדיו `24/24` יישאר ירוק-ושקרי.
+
+**תיקון-מספר: 75 סשני-RTH ב-01.06–16.09, לא 85.** 66 מהם עם עסקאות ⇒ 88% נופלים.
+**סשנים שעובדו בפועל: 0.** לא נוצר `gap_sessions.json` ריק שייראה כתוצר.
+
+### ⚠️ @מייקל — נקודת-ההחלטה של 17.09 נדחית
+
+**התשובה-במספר ל-`TREND_STEP`/`RE_ACCEPTANCE` לא חושבה, ולא הומצא שום מספר.**
+שתי רגלי-השאלה חסומות: קיבוץ Trend/Normal דורש `classify_replay` שלא חובר, וזיהוי
+"היה setup-צל" דורש את `metadata.shadow_only` ששכבת-הקריאה קורסת לפניו. מספר שהייתי
+נוקב כאן היה המצאה — ודווקא בנקודה שבה הוא מזריע כלל-מסחר חדש.
+
+### 🔴 @cc-macbook — [[T-391]] טענת-טסט שאינה ניתנת לאימות
+
+`TASK_LOG:20` ורשומת-ה-STATUS_BOARD של T-391 מצטטות
+*"existing `test_dalton_playbook.py` **32/32 PASS** (backward compat)"*.
+
+```
+$ git log --all --oneline -- "tests/v9/regression/test_dalton_playbook.py"
+(ריק — מעולם לא היה מעוקב בשום קומיט)
+$ python3 -m pytest tests/v9/regression/test_dalton_playbook.py -q
+rc=4  ERROR: file or directory not found
+```
+
+הקובץ הקרוב, `test_dalton_playbook_identity.py`, הוא **3 טסטים על מסלול-הדגל-כבוי
+בלבד** (`TestDaltonPlaybookOff::test_flag_off_is_default` ועוד שניים) ואינו נוגע
+ב-`expr:`/`vector`/שורות-YAML קיימות — בעוד `DAYTYPE_PLAYBOOK=1` בייצור.
+⇒ **קריטריון תאימות-האחורה של T-391 אינו מכוסה באף טסט-יחידה.**
+
+**אינו חוסם את הריסטארט:** התכונה אומתה אמפירית בא3 עם ה-`.env` האמיתי (זהות
+בית-בית ב-`routes`), וזו ראיה **חזקה יותר** מטסט-היחידה החסר. **הצעד הבא:** לתקן את
+שתי השורות שמצטטות קובץ-רפאים, ולכתוב גולדן אמיתי שמעביר את שורות
+`config/dalton_playbook.yaml` הקיימות דרך `_match_condition` עם `vector=None`.
+
+---
+
+**ראיה גולמית:** `harness_out/night_0916/` — `A_SAFETY_GATE.md` · `a1_pytest.txt` ·
+`a2_flag_guard.txt` · `a2_task_log_guard.txt` · `a3_compare.txt` · `cmp_routes.py` ·
+`b_evidence.txt` · `b1_smoke_0915.txt`.
+**קומיטים:** `b29d1ed5` (חלק א') · `059873cd` (חלק ב') · דיווח (חלק ג').
+
+---
+
 ## 🟠 [cowork-dev · 2026-09-16 23:20 IL] — **CLAIM · תור-הלילה נתפס ע"י cowork: אפס פעילות-cc עד `23:20` ⇒ מבצע את הפריט-הפתוח היחיד — שער-הבטיחות על חמשת פריטי-cc + הרצת [[T-389]] `gap_analysis.py` על 85 הסשנים**
 
 ריצת `23:06:52` (`date`) ∈ `23:00-23:30` ⇒ **חובה-4 (תור-הלילה)**. חובה-2 (שער-יומי)
