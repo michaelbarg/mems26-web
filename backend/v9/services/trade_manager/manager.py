@@ -210,6 +210,48 @@ class TradeManager:
         self._fill_locks: set = set()  # Pkg 3b-2 · Sierra fill lock (LOCK 3)
         # L2-residual (2026-07-08): rate-limit state for skipped-emit warnings
         self._emit_skip_warned: Dict[tuple, float] = {}
+        # T-396: close stale shadow trades at boot
+        self._close_stale_shadows_at_boot()
+
+    def _close_stale_shadows_at_boot(self) -> None:
+        """T-396: at boot, close shadow trades from previous RTH sessions.
+
+        Shadow trades whose entry_ts predates today's RTH open should not be
+        hydrated as active — they are stale leftovers that cause 55-80% CPU,
+        1000 log lines/min, and stuck_trade alerts. Close them with
+        STALE_UNRESOLVED immediately.
+        """
+        try:
+            from backend.v9.services.market_clock import get_session_info
+            session = get_session_info()
+            rth_open_utc = session["rth_open_utc"]
+
+            stale = self._db.query(V9Trade).filter(
+                V9Trade.state.in_(_ACTIVE_TRADE_STATES),
+                V9Trade.mode == "shadow",
+                V9Trade.entry_ts < rth_open_utc,
+            ).all()
+
+            if not stale:
+                return
+
+            now = datetime.now(timezone.utc)
+            for trade in stale:
+                trade.state = "CLOSED"
+                trade.exit_reason = "STALE_UNRESOLVED"
+                trade.exit_price = None
+                if trade.exit_ts is None:
+                    trade.exit_ts = now
+
+            self._db.commit()
+            logger.warning(
+                "[TradeManager] boot hydration: closed %d stale shadow trades → STALE_UNRESOLVED",
+                len(stale),
+            )
+        except Exception as e:
+            logger.warning(
+                "[TradeManager] boot stale-shadow close error (fail-safe): %s", e,
+            )
 
     def _log_management(self, trade_id: int, action: str, value: Optional[Dict] = None) -> None:
         """Write to V9TradeManagementLog — observability for trades page timeline."""

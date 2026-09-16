@@ -54,6 +54,11 @@ class BarLevelDetector:
         # (trade, op, target), counted always, so suppression is not silence.
         self._unexec_ops: set = set()
         self._unexec_count: int = 0
+        # T-396: dedup target hits — prevent the same (trade_id, target) from
+        # firing more than once. Root cause of 123x "T2 HIT trade 1608": if
+        # the commit after the on_bar loop fails (any trade in the batch
+        # raises), the t2_hit_ts flush is rolled back and the next bar re-hits.
+        self._target_hit_dedup: set = set()  # {(trade_id, target_name), ...}
 
     def _trade_still_open(self, trade_id: int) -> bool:
         """T4 helper: is this trade still active in the books?
@@ -563,6 +568,62 @@ class BarLevelDetector:
         except Exception as _s0_err:
             logger.debug("[System0] shadow log error (fail-safe): %s", _s0_err)
 
+    def _close_stale_shadow(self, active) -> None:
+        """T-396: close shadow trades from previous RTH sessions.
+
+        Stale shadows (entry_ts before today's RTH open) stay FILLED/PARTIAL
+        forever, causing 55-80% CPU, 1000 log lines/min, stuck_trade alerts.
+        On every bar, find shadow trades whose entry_ts predates today's RTH
+        start and close them immediately with STALE_UNRESOLVED. Does NOT touch
+        live/demo trades.
+        """
+        try:
+            from zoneinfo import ZoneInfo
+            from backend.v9.services.market_clock import get_session_info
+
+            session = get_session_info()
+            rth_open_utc = session["rth_open_utc"]
+
+            closed_count = 0
+            for trade in (active or []):
+                trade_mode = getattr(trade, "mode", "shadow")
+                if trade_mode != "shadow":
+                    continue
+                if trade.state not in (
+                    TradeState.FILLED.value,
+                    TradeState.PARTIAL.value,
+                    "OPEN",
+                ):
+                    continue
+                entry = trade.entry_ts
+                if entry is None:
+                    continue
+                # Normalize to aware UTC
+                if entry.tzinfo is None:
+                    entry = entry.replace(tzinfo=timezone.utc)
+                if entry >= rth_open_utc:
+                    continue  # same session — leave it
+
+                # Stale shadow from a previous session → close
+                trade.state = TradeState.CLOSED.value
+                trade.exit_reason = "STALE_UNRESOLVED"
+                trade.exit_price = None  # no real exit
+                if trade.exit_ts is None:
+                    trade.exit_ts = datetime.now(timezone.utc)
+                closed_count += 1
+
+            if closed_count > 0:
+                self._tm._db.flush()
+                logger.warning(
+                    "[TradeManager] shadow session close: n=%d trades → STALE_UNRESOLVED",
+                    closed_count,
+                )
+        except Exception as _stale_err:
+            logger.warning(
+                "[BarLevelDetector] stale shadow close error (fail-safe skip): %s",
+                _stale_err,
+            )
+
     def _eod_close_t10(self, active) -> None:
         """T-10: close open positions 10 min before RTH close (+$3.28/day measured).
 
@@ -859,6 +920,11 @@ class BarLevelDetector:
 
             self._bars_processed += 1
             active = self._tm.get_active_trades()
+
+            # T-396: close stale shadow trades from previous sessions.
+            # Runs on every bar, unconditionally. Stale shadows inflate
+            # CPU (55-80%), logs (1000 lines/min), and stuck_trade alerts.
+            self._close_stale_shadow(active)
 
             # T-10: EOD close 10 min before RTH close (flag-gated, default OFF).
             # +$3.28/day measured. FLATTEN only (op=EXIT broken).
@@ -1381,7 +1447,14 @@ class BarLevelDetector:
                             logger.info("[BarLevelDetector] %s INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
                                         target_name, trade.id, target_price)
                             continue
+                        # T-396: dedup — if we already fired this target for this
+                        # trade (in a previous bar whose commit failed), skip it.
+                        # Root cause of 123x "T2 HIT trade 1608".
+                        _dedup_key = (trade.id, target_name)
+                        if _dedup_key in self._target_hit_dedup:
+                            continue
                         self._tm.on_target_hit(trade.id, target_name, fill_ts=bar_ts)
+                        self._target_hit_dedup.add(_dedup_key)
                         logger.info("[BarLevelDetector] %s HIT: trade %d at %.2f",
                                     target_name, trade.id, target_price)
                         # After T3 (all contracts out): notify gateway to free demo slot

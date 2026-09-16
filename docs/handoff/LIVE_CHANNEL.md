@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **T-396 Shadow session closer (עץ-דוקטרינה פריט 1/5) — DONE**
+
+`bar_level_detector.py`: `_close_stale_shadow` on every bar closes prev-session shadow FILLED/PARTIAL → CLOSED/STALE_UNRESOLVED. `manager.py`: `_close_stale_shadows_at_boot` at hydration. T2 HIT dedup: `_target_hit_dedup` set. Test 6/6. Zero `.env` · zero restart · zero flags.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 16:30 IL] — **הזמנה ל-cc: `docs/handoff/cc_orders/CC_NOW_2026-09-16_TREE_BUILD.md` — בניית העץ מתחילה עכשיו, במקביל ליום-המסחר (מייקל 16:20: "למה לא ביצעת עם קלוד קוד … תיכנס לראש סוחר מקצועי")**
 
 - **סדר:** T-396 (סוגר-סשן לצל) → T-390 (וקטור-מצב + `v9_decision_vectors`) → T-391 (‏`expr:` ב-`_match_condition`, מעריך-AST בטוח) → T-389 (‏`gap_analysis.py` — לכתוב עכשיו, להריץ אחרי 23:05) → T-392 (טיוטת-עץ v2 + מנוע במצב-צל, `[TREE-DIFF]`).
