@@ -1,3 +1,18 @@
+## 🟢 [cowork-dev · 2026-09-16 11:07-11:20 IL] — **ריסטארט-קדם-פתיחה בוצע (מוקדם, לפי בקשת-מייקל בצ'אט "תכין אותה למסחר מלא"): pid 32500→81906 · commit bde429ef→b1aea09f · חוזים בתהליך = 2 · fire_drill 🟢 GO · ⚠️ תיקון: RULED_FLAGS.yaml לא היה YAML תקין מאז b6540ac4 (NO-GO כוזב בשלב Y)**
+
+```
+לפני : 11:07:06 sierra_state — is_sim=0 · position_qty=0 · working_orders=0 · avail=908.09 · daily_net_loss_limit=-544.85 · trading_disabled=0
+        v9_trades: open live/demo = [] · היום = 0 · git pull ⇒ up to date · HEAD b1aea09f · tree נקי
+פעולה: 11:07:19 launchctl kickstart -k gui/$UID/com.mems26.backend
+אחרי : pid 81906 (lstart 11:07:20, launchd runs=4) · [boot] logging OK pid=81906 commit=b1aea09f · health 200 / 67ms · Errno 48 = 0 · Traceback = 0
+גודל : /api/v9/mobile/data?key= ⇒ contracts_cfg=2 (mobile_monitor.py:527 קורא _ruled() בתוך התהליך — לא קריאה-מחוץ-לתהליך) · fire_drill: effective_contracts == 2 — got 2
+fire_drill (ריצה 2): 🟢 GO — guard_tests 159 passed · flag_guard PASS 259 · task_log_guard ✓ · feed age 467ms · live_slot None · live_enabled [2,4]
+```
+
+**⚠️ הממצא בדרך — fire_drill ריצה 1 = 🔴 NO-GO על `yaml_valid — line 45: expected ',' or '}'`:** `config/RULED_FLAGS.yaml:45` (‏`FIXED_CONTRACTS_2`, קומיט `b6540ac4` של cc 15.09 23:21) הכיל `מרג\'ין` — ב-YAML גרש-בודד מוכפל (`''`), לא נמלט בבקסלאש ⇒ הקובץ לא נטען ב-`yaml.safe_load` מאז אתמול בלילה. `flag_guard` **עבר** כי הוא קורא בפרסר משלו — כלומר שני בודקים על אותו קובץ נתנו תשובות הפוכות. תוקן ל-`''`; `yaml.safe_load` ✓; flag_guard PASS 259; fire_drill GO. לקח ל-cc: אחרי כל עריכת RULED_FLAGS — `python3 -c "import yaml; yaml.safe_load(open('config/RULED_FLAGS.yaml'))"`.
+
+**מה נשאר לשער-15:40:** בדיקה חוזרת (feed · פוזיציה · slot · avail ≥ 822) + **הודעת-טלפון אחת** (מקרה ד). הריסטארט הזה הוא הריסטארט של היום — ריצת-המשימה-המתוזמנת של 15:30 **לא מרימה שוב** (SKILL.md עודכן: בעלות-ריסטארט לאינטראקטיבי). ריסטארט נוסף לפני 16:10 רק אם מייקל מכריע לכבות את T-367 (השאלה פתוחה בצ'אט).
+
 ## 🟠 [cowork-dev · 2026-09-16 11:10 IL] — **אימות-הרנס ל-T-367/T-368 (השלמת שער-הבטיחות שריצת-10:42 לא הריצה): בטיחות ✓ · ⚠️ ממצא: Rule B של T-367 מוחק 3/3 כניסות-לייב בשני הסשנים, Rule A לא שחרר אף אחת — נרשם `measured:` · השאלה למייקל בצ'אט**
 
 ריצת `10:57-11:05`, מחוץ ל-RTH, 2 מקבילים בלבד (load 4.3→3.0). אפס ריסטארט · אפס `.env` · אפס דגל · אפס פוזיציות. הטלפון: אפס ממתינות (ריצת-10:42 כבר בדקה).
