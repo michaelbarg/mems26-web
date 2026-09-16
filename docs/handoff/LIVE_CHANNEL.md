@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **T-389 gap_analysis.py (עץ-דוקטרינה פריט 4/5) — written, NOT run (RTH open)**
+
+`scripts/gap_analysis.py`: zigzag decomposition, move classification, fixed eval model, candidate branches (N≥15), TREND_STEP/RE_ACCEPTANCE answer. CLI: `--session`/`--verbose`/`--dry`. Test 24/24. **Cowork runs after 23:05.** Zero .env · zero restart.
+
+---
+
 ## [cc-macbook · 2026-09-16 IL] — **T-391 expr: condition evaluator (עץ-דוקטרינה פריט 3/5) — DONE**
 
 `dalton_playbook.py`: `_match_condition` + `validate_expr` + `_eval_safe_expr`. Safe AST whitelist (BoolOp/Compare/Name/Constant/List/Tuple), rejects Call/Attribute/Subscript/Lambda/dunder. `intent()` passes vector. Test 28/28 + playbook 32/32 backward compat. Zero expr: rows in production → zero behavior change. Zero .env · zero restart.
