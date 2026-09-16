@@ -1,3 +1,177 @@
+## 🟢 [cowork-daily · 2026-09-16 15:36-15:52 IL] — **חובה-1 (שקט) + חובה-2 מלאה: סיכום-15.09 + שער-היום** · 🟢 **GO · ריסטארט 15:41:22 · pid 83194→97101 · commit 8cfc061c · גודל 2 משלושה מקורות** · 🔑 **[[T-381]] נמדד סוף-סוף — הלוג לא נמחק בריסטארט, ו-S1DayDir/EntryGuard יצאו מ"לא-ניתן-לקבוע"**
+
+ריצת `15:36` ∈ `15:30-16:10` ⇒ **חובה-1 + חובה-2 (מלאה + שער).**
+**בעלות-הריסטארט נבדקה ונמצאה שלי:** אין משימה מתוזמנת `mems26-preopen-restart-1609` (‏`list_scheduled_tasks` — קיימות רק `1009/1109/1509`, כולן `enabled:false`) · שתי רשומות-הריסטארט של היום (`11:07`,`11:19`) הן **לפני 12:00** · `ps -o lstart` של המאזין ⇒ `Wed Sep 16 11:19:30` (‏`< 12:00`) · רשומת `15:06` שלי-עצמי מסרה את השער במפורש לריצה הזו. ⇒ **הרמתי ריסטארט אחד ושלחתי הודעת-שער אחת.**
+אפס `.env` · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס נגיעה בפוזיציות/סלוט/פקודות · אפס קוד-ייצור · אפס deploy.
+**כתיבות:** `config/manual_position_ack.json` (חידוש-תאריך, פסיקה עומדת 01.09/[[T-171]]) · הקובץ הזה · `TASK_LOG` · `STATUS_BOARD`.
+
+---
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ **שקט** (הודעת-השער ב-§4 היא מקרה-ד, לא מקרה-א)
+
+```
+date                          Wed Sep 16 15:36:50 IDT 2026
+git pull                      Already up to date   (HEAD 8cfc061c)
+GET /chat?key=…               total items: 30
+אחרון-מייקל                   2026-09-16T10:43:05Z "מה ההחלטות שעלי לקבל? האם אפשר שהוא יבצע?"
+הפריט האחרון בפיד             cowork 2026-09-16T11:09:29Z (404 תווים) — מענה עניייני
+PHONE_THREAD.jsonl (זנב 6)    זהה ל-Render בית-בית ⇒ אין פער-דחיפה
+```
+⇒ **(א)** אפס הודעת-מייקל חדשה מאז `10:43` ⇒ ✗ · **(ב)** `0` עסקאות היום ⇒ ✗ · **(ג)** אפס חריגה **חדשה** ⇒ ✗ · **(ד)** מתקיים — §4.
+
+---
+
+### 2 · חובה-2(א) · סיכום-15.09
+
+`DAY` נגזר מהנתונים ולא מ-`CURRENT_DATE` (§3.3): `max(ts ET)::date` על ברי-RTH ⇒ **`2026-09-15`**.
+
+**מסלול-המחיר (RTH):** `n=78 · 7672.00 → 7657.00 · high 7687.00 · low 7643.50` — יום-ירידה של `15` נק'.
+
+**P&L — ספרים:**
+
+```
+ mode   | n  | wins | losses | no_outcome | pnl_usd  | pnl_sierra לא-ריק
+ live   |  2 |    0 |      2 |          0 |  -141.25 |  0
+ shadow | 87 |   21 |     43 |         23 |  +314.68 |  0
+```
+
+**שתי עסקאות-הלייב הפסידו, שתיהן `STOP_HIT`:** `#1647 S2 INITIATIVE_SHORT 12:15 ET −$86.25` · `#1659 S4 GHOST SHORT 13:05 ET −$55.00`. **ספירת-הלוג מאשרת את הספרים:** `LIVE trade TM id`=`2` · `SHADOW trade TM`=`87` — התאמה מדויקת, ולכן הספרים אינם חסרים שורות.
+
+🔴 **ה-`+314.68` של הצל הוא ארטיפקט, לא רווח.** פילוח לפי `exit_reason`:
+
+```
+ STOP_HIT          57   −2,472.80
+ STALE_UNRESOLVED  23   +1,793.10     ← 23 שורות בלי יציאה אמיתית, outcome=NULL
+ T2_HIT             5     +678.13
+ T3_HIT             2     +316.25
+```
+**בלי 23 שורות-ה-STALE: `64` עסקאות · `21` ניצחונות = `32.8%` · `−$1,478.42`.** כלומר הצל של 15.09 הוא יום מפסיד בבירור, וה"רווח" כולו נשען על שורות שנסגרו מנהלתית ב-11:19 היום (‏`close_stale_shadow --apply`, 26 שורות) בלי מחיר-יציאה. **כל דוח שמצטט `+314.68` בלי הפילוח הזה — משקר.**
+
+🟠 **`pnl_sierra` ריק בכל `89` השורות** ⇒ [[T-371]] (הצלבת-הברוקר כבויה) מתרחב מ-`10.09`+`11.09`+`14.09` גם ל-**`15.09` — ארבעה ימים**. "ספרים" הוא שוב המקור היחיד.
+
+**הליגר** — `~/SierraChart_Data/v9_export/gateway_decisions.jsonl` כפי שנארכב ל-`data_handoff/מק-1/2026-09-15/`. **`204` שורות** ‏`09:30:04 → 16:00:02 ET` — **מעל תקרת-ה-200 של ה-API ופורש את מלוא ה-RTH** ⇒ הפעם זה הקובץ המלא ולא פיד-קטוע (מחלקת §3.2 **אינה** חלה כאן):
+
+```
+DETECTED        58        GATE_DECISION   81
+EMIT_DECISION   59        ROUTED           6   (4 trade_id שונים)
+RESOLVED         0        ← [[T-233]] עומד: אין יצרן בקוד. לא "אפס פתרונות" — אפס כותב.
+system: S4=119 · S2=85          direction: SHORT=105 · LONG=99
+```
+
+**חוסמים** (כל `204` בתוך RTH ⇒ אין מה להפריד מטרום-סשן):
+
+```
+ 123  (none)                      4  dalton_intent:kind
+  40  dalton_intent:stand_down    3  dalton_intent:location
+  24  dalton_intent:bias          2  entry_location_quality
+   6  rr_entry_gate               1  entry_not_confirmed · 1 session_gate_closed
+ live_blocked_by:  1 × live_slot_occupied   (היתר: none)
+```
+⇒ `dalton_intent` על ארבעת ענפיו = **71/81 = 87.7%** מכלל החסימות. ספירת-מועמדים **אינה** P&L ([[T-11]] חסום) — לא הומר לדולרים.
+
+---
+
+### 3 · 🔑 **[[T-381]] יוצא מ"לא ניתן לקבוע" — הלוג שורד ריסטארט, והוא מכיל את 15.09 במלואו**
+
+**הממצא → התיקון → הראיה.** ב-15.09 נמסרו `S1DayDir`/`EntryGuard`/חריגים כ-**`לא ניתן לקבוע`** בהנחה שהריסטארט מוחק את `/tmp/backend.err.log`. **ההנחה שגויה:** launchd **מוסיף** לקובץ ולא מקצר אותו.
+
+```
+ls -la /tmp/backend.err.log        108,712,843 bytes · mtime Sep 16 15:43
+grep -c "^2026-09-15"              315,624 שורות  ← יום שלם, זמין
+```
+
+**מה שנמדד כתוצאה (ולא הוסק):**
+
+```
+S1DayDir              15,989   ⇒  SHADOW accepted_break=DOWN  8,765
+                                  SHADOW accepted_break=none  7,224
+                                  SHADOW accepted_break=UP        0
+EntryGuard                  0   ← המחרוזת "[EntryGuard]" לא הופיעה אף פעם ב-15.09
+LIVE fire BLOCKED           0        UNMANAGED            0
+ORPHAN                     10        COMMAND QUEUED       2
+LIVE trade TM id            2        SHADOW trade TM     87
+stuck_trade               154        OPENING_DIR_FUSION 4,052 · TREND_STEP 4
+ExitVerify / exit_not_executed / drive_exhaustion   0 / 0 / 0
+v9_day_type_shadow_transitions (15.09)              0 שורות
+```
+
+**שלוש מסקנות, וכל אחת עם גבול-הידיעה שלה:**
+
+1. **`S1DayDir` חי ורועש, אבל חד-צדדי לגמרי** — `DOWN` או `none`, **אפס `UP` ב-15,989 הערכות**. היום אכן ירד (`7672 → 7657`), ולכן זה **עקבי עם הטייפ** — אבל יום-ירידה אחד **אינו מבדיל** בין גלאי-נכון לגלאי-תקוע-על-DOWN. ⇒ **צריך יום-עלייה אחד** כדי להכריע; נרשם כצעד-הבא ב-[[T-381]], לא כתקלה.
+2. **`EntryGuard` שתק לגמרי** — לא אזהרה ולא `info`. זה **עקבי**: ה-`ack` היה בתוקף ל-15.09, ולכן אפס `UNMANAGED` ואפס `LIVE fire BLOCKED`. שתיקה כאן = השער לא נדרש, **לא** שהשער מת.
+3. **`ORPHAN STOP BREACHED` × 10, ברמת `CRITICAL`** — הראשון `10:25:28` `MAX_LOSS: unrealized $255 ≥ $200 (7.29pt × 7c)`. **`7` חוזים אינם הגודל שלנו (`2`)** ⇒ זו הפוזיציה-הידנית של החשבון-המשותף. הרקונסיילר **לא שיטח**, נכון לפסיקת `07-…`. ⇒ **מחלקה מוכרת, לא חריגה חדשה** — ולכן לא הלכה לטלפון.
+
+**🔴 ציון-מודעות 4-האחוזים — עדיין לא-נמדד.** `ls scripts/*awareness*` ⇒ `No such file`. [[T-159]] פתוח, אין סקריפט מחויב-גיט ⇒ **לא הומצא מספר.** (`<80%=🔴` חל על מספר שנמדד; "אין מספר" אינו `100%` ואינו `0%`.)
+**דוחות-cc:** `git log --since="2026-09-15"` ⇒ **אפס קומיטים של cc** ⇒ אין מה לקפל.
+
+---
+
+### 4 · חובה-2(ב) · שער-היום — 🟢 **GO**
+
+**לפני הריסטארט** (שניהם חובה מאז 16.09 בוקר):
+```
+python3 scripts/close_stale_shadow.py     no stale shadow trades — nothing to do
+python3 scripts/machine_health.py         backend 110MB/6.7% · bridge 19MB · sierra 209MB/52.1%
+                                          postgres 532MB · frontend 18MB · phone-relay 28MB
+  WARN: unused RAM 24M < 400M   ·   WARN: swap used 1299M > 500M
+  לא-מסחרי: cowork-vm 2,068MB · claude-app 1,643 · chrome 914 · claude-agents 410
+```
+⚠️ שתי ה-WARN הן **WARN-בלבד** (‏`rc=0`) — הזיכרון עדיין נחנק ע"י הכלים-שמסביב, לא ע"י המערכת-המסחרית ([[T-396]]). ל-LIVE_CHANNEL, לא לטלפון.
+
+**מה הריסטארט טוען היום — כלום, וזה נמדד ולא הונח:**
+```
+git diff --stat 701f8c5f..HEAD -- backend/ scripts/ config/ sc_study/ bridge/
+  scripts/machine_health.py | 120 +++++   (סקריפט עצמאי, לא נטען ע"י ה-backend)
+```
+⇒ התהליך שרץ מ-11:19 כבר היה בפריטֵי-קוד עם `HEAD`. הרמתי בכל-זאת כי (א) ההזמנה מורה על ריסטארט-קדם-פתיחה, (ב) פוזיציה `0` ו-`49` דק' לפני הפעמון ⇒ חלון-העיוורון של `COLD_START_GUARD_V1` נבלע לפני הפתיחה, (ג) תהליך-נקי בפעמון הוא הנוהג העומד. **נרשם כאן כדי שלא ייקרא כ"נטענו תיקוני-בוקר".**
+
+```
+PRE                is_sim=0 · position_qty=0 · working_orders=0 · OLD_PID 83194
+launchctl kickstart -k gui/$UID/com.mems26.backend      15:41:22 · rc=0
+POST               NEW_PID 97101 · lstart Wed Sep 16 15:41:22 · health http=200 t=0.0019s
+[boot] logging OK  2026-09-16 15:41:26 [INFO] pid=97101 commit=8cfc061c stream=stderr
+```
+
+**אימות-הגודל — `2`, משלושה מקורות בלתי-תלויים** (הצורה הקבילה, אחרי מלכודת-16: `set -a; . ./.env; set +a`):
+```
+ruled_contracts()                        2      ← הקובץ, עם .env טעון
+fire_drill שלב C                         2      ← "effective_contracts == 2 (לפי דגלי הפסיקה)"
+GET /api/v9/mobile/data → contracts_cfg   2      ← התהליך החדש (97101), בלתי-תלוי בקובץ
+```
+⇒ תואם את פסיקת 16.09 (`FIXED_CONTRACTS_2=1`). **לא נגעתי בשום דגל-גודל.**
+
+**השערים:**
+```
+python3 scripts/flag_guard.py      FLAG-GUARD: PASS — all 259 ruled flags match
+                                   ✓ BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0
+                                   LIVENESS: all ON flags have ≥1 production read-site
+python3 scripts/fire_drill.py      🟢 GO — כל שרשרת ההחלטה כשרה לירי
+   שלב A דגלים ✓ · B שרשרת-סטופ ✓ (ATR-14≈3.4) · C חוזים=2 + בר-אישור ✓ · Y yaml ✓
+   G guard_tests 159 passed/1 skipped · wire_guard 56 call sites · task_log_guard 380 items
+   D  backend health ✓ · T-61 INFO ✓ (114 שורות אחרי הבוט) · feed age=1,036ms ✓
+      live_slot=None ✓ · live_enabled=[2,4] ✓ · day_type=UNKNOWN conf=0.0
+bash scripts/post_restart_verify.sh   🟢 GREEN — liveness verified, OK to trade
+                                      bridge 40 heartbeat/push · decisions HTTP 200
+```
+
+**ack-תאריך — חודש `2026-09-15 → 2026-09-16`** בסמכות פסיקת-מייקל 01.09 שסגרה את [[T-171]] (פסיקה עומדת, לא בקשת-אישור חוזרת). `_read_manual_ack()` יושב ב-`entry_guard.py:59` ונקרא **בזמן-קריאה** (`:173`) ⇒ תופס בלי ריסטארט נוסף. הפער היה **יום אחד** — לעומת חמישה ימים שנתפסו ב-15.09; בדיקת-השער היא הפיצוי הידני על חידוש-אוטומטי שעדיין לא נבנה (שארית [[T-234]]).
+
+**ליגר-כותב — 🟡 לא ניתן להוכיח חיובית לפני ה-RTH, וזה לא "תקין":**
+```
+~/SierraChart_Data/v9_export/gateway_decisions.jsonl   110,537B · mtime Sep 15 23:00
+grep -c '2026-09-16'                                   0
+GET /api/v9/gateway/decisions?limit=5                  {"decisions":[],"buffer_len":0}  http=200
+```
+הקובץ קיים, האנדפוינט חי, והשורה האחרונה היא `2026-09-15T20:00:02Z` (EOD). `0` שורות היום **עקבי** עם `0` החלטות טרום-RTH — אבל **הוכחת-כתיבה חיובית ממתינה להחלטה הראשונה אחרי 16:30.** לא מדווח כ"עבר".
+
+**🟠 מרג'ין [[T-34]] — דיווח בלבד:** `acct_available_funds = 908.09 < 1,595` ⇒ מתחת לסף. **אינו חוסם מסחר בגודל הנוכחי:** `fire_drill` עבר GO עם `effective_contracts=2`, `trading_paused=false`, `loss_limit_reached=0`, `live_slot=None`. ⇒ **שורה כאן, לא מקרה-(ג) בטלפון** (חזרה על חריגה שכבר נמסרה = דוח-ניטור = הפרה).
+
+**מצב-חי בשער:** `is_sim=0 · armed=1 · send_orders=1 · position_qty=0 · trading_paused=false · daily_pnl=−1542.5 · daily_net_loss_limit=−544.85`.
+
+📱 **הודעת-טלפון אחת בלבד** (מקרה-ד): GO + קומיט + PID + מה-חי. ≤500 תווים. אפס הודעה נוספת מהריצה הזו.
+
+— cowork-daily
+
 ## 🔵 [cowork-dev · 2026-09-16 15:06-15:12 IL] — **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון · ניטור-צד ירוק · הגודל-הפסוק 2 מאומת בשני מקורות**
 
 ריצת `15:06`. `15:06` ∉ `15:30-16:10` ∧ ∉ `16:30-23:00` ∧ ∉ `23:00-23:30` ⇒ **חובה-1 בלבד.**
