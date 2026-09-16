@@ -1,3 +1,23 @@
+## 🟢 [cowork-dev · 2026-09-16 11:25-11:35 IL] — **"למה המחשב והמערכת עובדים לאט" (מייקל 11:25) — נמדד, תוקן מה שבסמכות, נרשם [[T-396]] לשורש · ריסטארט שני 11:19 (פוזיציה 0) · pid 83194 · commit 701f8c5f**
+
+**שני גורמים, שניהם נמדדו ולא נוחשו:**
+
+**(1) ה-backend עצמו רץ ב-55-80% CPU בלי שום עסקה חיה** — 26 עסקאות-צל מ-14-15.09 נשארו FILLED/PARTIAL וה-TradeManager ניהל אותן בכל בר: 5,399 שורות-לוג ב-5 דק' (‏`trade_manager` 3,004), `SLOW handler BarLevelDetector.on_bar 620ms`, `T2 HIT: trade 1608` ×123 (אותו HIT שוב ושוב). זו גם מקור 70 התראות-`stuck_trade` של S6 אתמול.
+```
+$ python3 scripts/close_stale_shadow.py          (dry-run: 26 shadow, 0 live/demo)
+$ python3 scripts/close_stale_shadow.py --apply  ⇒ closed 26 shadow trade(s) as STALE_UNRESOLVED (no exit price) · still open: 0
+$ launchctl kickstart -k …com.mems26.backend     11:19:29 · PRE is_sim=0 position_qty=0 working_orders=0 · pid 83194 · commit 701f8c5f · health ok
+אחרי : backend 6-20% CPU (היה 54-72) · trade_manager 0 שורות (היה 3,004/5דק') · SLOW handler 0 · load 6.8 ⇒ 3.4
+```
+השורש — לצל אין סוגר-סשן (‏`EOD_*` כבויים ומיועדים ללייב) ⇒ **[[T-396]]** ל-cc, מחוץ ל-RTH. עד אז `close_stale_shadow.py` נוסף לשער-הבוקר של המשימה-המתוזמנת.
+
+**(2) הזיכרון גמור — 16 GB בשימוש מלא, 226 MB פנויים, 3.2 GB דחוסים, swap 730 MB, 3.7M swapouts.** המערכת-המסחרית עצמה קטנה (backend 120 MB · bridge 20 · postgres 490 · Sierra+CrossOver ~660 · frontend 180); מה שאוכל את הזיכרון הוא הכלים מסביב: **Cowork-VM 2,069 MB · אפליקציית-Claude 1,783 · Chrome 983 · סוכני-claude 395 · Adobe 292 · Spotlight 160.** Sierra תחת CrossOver = 40-88% CPU קבוע (זה הפלטפורמה; לא נגעתי).
+```
+$ python3 scripts/machine_health.py   (חדש, קריאה-בלבד, WARN-בלבד, rc=0 תמיד)
+WARN: load 6.82 > 6.0 · unused RAM 226M < 400M · swap used 730M > 500M
+```
+**מה שאני לא עושה:** לא הורג אפליקציות של מייקל ולא משנה הגדרות-מערכת (Spotlight) — המלצות בצ'אט. `machine_health.py` נוסף לשער-הבוקר (דיווח ל-LIVE_CHANNEL, לא לטלפון).
+
 ## 🔵 [cowork-dev · 2026-09-16 11:13 IL] — **חובה-1 בלבד: טלפון שקט מוחלט (אפס ממתינות, אומת עצמאית) · ✅ פער-`.env`⇄תהליך שנרשם ב-[[T-383]] נסגר בריסטארט-`11:07` · שאר המדידות מאשרות ולא מגלות**
 
 ריצת `11:06-11:13`. `11:06` ∉ `15:30-16:10` ∧ ∉ `16:30-23:00` ∧ ∉ `23:00-23:30` ⇒ **חובה-1 בלבד**.
