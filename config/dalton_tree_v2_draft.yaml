@@ -1,0 +1,104 @@
+# T-392: Decision Tree v2 — draft YAML
+#
+# Existing hardcoded rules expressed as expr: conditions.
+# This tree is NOT connected to the firing path — shadow comparison only.
+# First matching rule wins.  No match → stand_down.
+#
+# Fields available in the vector namespace (from SituationVector + gateway):
+#   day_type, phase, zone, direction, extension, extension_pts,
+#   opening_type, ib_locked, bars_since_high, bars_since_low,
+#   entry_kind, classification, vol_ratio, atr_causal, dir_hint, prior_zone
+#
+# Rule schema:
+#   id:        unique string
+#   phase:     list of phases this rule applies to (omit = all phases)
+#   condition: "expr: <safe expression>"
+#   decision:  allow | block | stand_down
+#   source:    originating task
+#   measured:  measurement data or UNMEASURED
+#   note:      optional explanation
+
+rules:
+
+  # ── T-319b: location gate, phase C Normal/Neutral ──────────────────────
+  - id: t319b_normal_location_long
+    phase: [C]
+    condition: "expr: day_type in ['Normal','Neutral_Center','Neutral_Extreme'] and zone not in ['near_val','below_value'] and direction == 'LONG'"
+    decision: block
+    source: T-319b
+    measured: UNMEASURED
+    note: "LONG must come from near_val or below_value in Normal/Neutral phase C"
+
+  - id: t319b_normal_location_short
+    phase: [C]
+    condition: "expr: day_type in ['Normal','Neutral_Center','Neutral_Extreme'] and zone not in ['near_vah','above_value'] and direction == 'SHORT'"
+    decision: block
+    source: T-319b
+    measured: UNMEASURED
+    note: "SHORT must come from near_vah or above_value in Normal/Neutral phase C"
+
+  # ── T-329: FAILED_EXTENSION / CEILING_FLIP exempt ──────────────────────
+  - id: t329_failed_extension
+    phase: []
+    condition: "expr: classification == 'PLACEHOLDER_NEVER_MATCHES'"
+    decision: allow
+    source: T-329
+    measured: UNMEASURED
+    note: >
+      Requires classification prefix check (startswith('CEILING_FLIP')) —
+      not expressible in pure expr: v1. Method calls are rejected by the
+      safe evaluator. This row is a placeholder; the real logic stays in code.
+
+  # ── T-355: phase-B location gate ───────────────────────────────────────
+  - id: t355_phase_b_location
+    phase: [B]
+    condition: "expr: phase == 'B'"
+    decision: allow_if_location_ok
+    source: T-355
+    measured: UNMEASURED
+    note: >
+      Phase-B location check with prior_vah/val + session extremes —
+      requires dynamic zone computation that can't be expressed as a
+      single expr: condition.  This row marks the slot in the tree;
+      the real check is multi-step code.
+
+  # ── T-365: opening before day-type, phases A/B ─────────────────────────
+  - id: t365_opening_before_daytype
+    phase: [A, B]
+    condition: "expr: phase in ['A', 'B']"
+    decision: skip_no_label_gate
+    source: T-365
+    measured: UNMEASURED
+    note: "In phases A/B the day-type label is not yet available — skip label-dependent gates"
+
+  # ── T-367 Rule A: Variation with extension allow ───────────────────────
+  # MUST come before Rule B so that extension entries from mid_value are
+  # allowed (deliberate diff from current code — see GHOST SHORT note).
+  - id: t367_rule_a_extension_allow
+    condition: "expr: day_type in ['Variation','Normal_Variation'] and extension != 'none'"
+    decision: allow
+    source: T-367
+    measured: UNMEASURED
+    note: "entry_kind in BREAK/PULLBACK, direction matches extension — allows mid_value WITH extension"
+
+  # ── T-367 Rule B: Variation mid_value block ────────────────────────────
+  - id: t367_rule_b_midvalue_block
+    condition: "expr: day_type in ['Variation','Normal_Variation'] and zone == 'mid_value'"
+    decision: block
+    source: T-367
+    measured: UNMEASURED
+    note: "Mid-value entries blocked on Variation days (only when no extension — Rule A catches extension first)"
+
+  # ── GHOST SHORT deliberate diff (15.09 19:10) ─────────────────────────
+  # The 15.09 19:10 SHORT from mid_value was blocked by T-367 Rule B
+  # (variation_mid_value) in the current code.  The tree v2 DELIBERATELY
+  # says 'allow' here: the intent is to capture entries with the extension
+  # even from mid_value when going WITH the trend.  This is the only
+  # designed divergence between tree-v2 and current gates for known setups.
+  #
+  # This is NOT a separate rule — it's a documentation note explaining
+  # that t367_rule_a_extension_allow fires BEFORE t367_rule_b_midvalue_block
+  # for setups where extension != 'none', producing the desired 'allow'.
+
+  # ── FRESH_EXTREME (T-366) ──────────────────────────────────────────────
+  # Measured negative, Michael turned off.  NO ROW in tree v2.

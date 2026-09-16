@@ -1,3 +1,8 @@
+## [cc-macbook · 2026-09-16 IL] — **T-392 Draft tree v2 + shadow evaluator (עץ-דוקטרינה פריט 5/5) — DONE**
+
+`dalton_tree_v2_draft.yaml`: 8 rules (T-319b/T-329/T-355/T-365/T-367). `dalton_tree.py`: evaluate(first-match, expr:). Gateway: `[TREE-DIFF]` shadow log. GHOST SHORT 15.09 19:10 = `allow` (deliberate diff). Test 13/13. Shadow only — NOT on firing path. Zero .env · zero restart.
+
+---
 
 ## 🔵 [cowork-dev · 2026-09-16 17:06-17:10 IL] — **חובה-3 (ניטור-RTH שני) · שתי עסקאות-לייב ראשונות של היום ⇒ מקרה-(ב) נשלח · פוזיציה-לייב פתוחה `LONG 2 @ 7681.25`** · 🟡 **T-34: פנוי `$241.83` < `$1,595` — לא חוסם, דיווח בלבד**
 

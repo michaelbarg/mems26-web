@@ -1594,6 +1594,44 @@ class TradingGateway:
             except Exception:
                 pass
 
+        # ── T-392: shadow decision-tree comparison ───────────────────────────
+        # Evaluate draft tree v2 and log any diff vs the real gate decision.
+        # NOT connected to the firing path — observation only.
+        try:
+            from backend.v9.services.dalton_tree import evaluate as _tree_eval, load_tree as _tree_load
+            _tree = _tree_load()
+            _tree_sv = (setup.get("metadata") or {}).get("situation") or {}
+            _tree_result = _tree_eval(_tree, _tree_sv, setup)
+            _real_decision = result.get("blocked_by") or "FIRED"
+            _tree_decision = _tree_result.get("decision", "unknown")
+            if _real_decision != _tree_decision:
+                logger.info(
+                    "[TREE-DIFF] real=%s tree=%s row=%s reason=%s",
+                    _real_decision, _tree_decision,
+                    _tree_result.get("row"), _tree_result.get("reason", ""))
+            # Store tree_shadow in decision_vectors via mode_result if T-390 is active
+            if _dp_active:
+                try:
+                    _sv_meta_ts = (setup.get("metadata") or {}).get("situation")
+                    if _sv_meta_ts:
+                        from backend.v9.services.situation_vector import log_decision_vector as _sv_log_tree
+                        _sv_log_tree(
+                            ts=datetime.now(timezone.utc).isoformat(),
+                            kind="TREE_SHADOW",
+                            system=system_id,
+                            classification=setup.get("classification"),
+                            direction=setup.get("direction"),
+                            entry=float(setup.get("entry_price") or 0),
+                            phase=_sv_meta_ts.get("phase"),
+                            blocked_by=_tree_decision,
+                            reason=f"row={_tree_result.get('row')} real={_real_decision}",
+                            vector=_sv_meta_ts,
+                        )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # ── T-366: fresh-extreme gate — one rule, every producer ──────────────
         # Michael 14.09: "לא להיכנס בסוף העלייה ואז ככה נכשלת". Doctrine, not a
         # tuned edge. Superseded the per-detector TOUCH2_EXTREME_AGE_V1.
