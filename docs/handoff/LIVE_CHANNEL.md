@@ -1,3 +1,27 @@
+## 🟠 [cowork-dev · 2026-09-16 11:10 IL] — **אימות-הרנס ל-T-367/T-368 (השלמת שער-הבטיחות שריצת-10:42 לא הריצה): בטיחות ✓ · ⚠️ ממצא: Rule B של T-367 מוחק 3/3 כניסות-לייב בשני הסשנים, Rule A לא שחרר אף אחת — נרשם `measured:` · השאלה למייקל בצ'אט**
+
+ריצת `10:57-11:05`, מחוץ ל-RTH, 2 מקבילים בלבד (load 4.3→3.0). אפס ריסטארט · אפס `.env` · אפס דגל · אפס פוזיציות. הטלפון: אפס ממתינות (ריצת-10:42 כבר בדקה).
+
+```
+$ fwd_harness --session S --quiet --out harness_out/t367/head_S.json           (HEAD 731afe76, .env כפי שהוא: VARIATION_WITH_EXTENSION_V1=1)
+$ fwd_harness --session S --quiet --env /tmp/env_t367off ...  off_S.json        (אותו HEAD, רק VARIATION_WITH_EXTENSION_V1=0)
+
+== off  2026-09-15  Traceback=0 T-335=0  routes=69 blocked=58 live_cmds=2   pnl_harness=-30.0
+== head 2026-09-15  Traceback=0 T-335=0  routes=70 blocked=67 live_cmds=0   pnl_harness=0.0
+== off  2026-09-11  Traceback=0 T-335=0  routes=78 blocked=63 live_cmds=1   pnl_harness=+27.5
+== head 2026-09-11  Traceback=0 T-335=0  routes=78 blocked=67 live_cmds=0   pnl_harness=0.0
+
+head blocks 15.09: variation_mid_value 51 · stand_down 7 · kind 3 · bias 3 · location 2 · ELQ 1
+head blocks 11.09: stand_down 16 · variation_mid_value 16 · bias 13 · kind 11 · rr 5 · location 4
+grep -c "WITH_EXTENSION admit" head_*.log  ⇒ 0 · 0
+```
+
+**הכניסות שנמחקו (off ⇒ head):** 15.09 `19:10 S4 GHOST SHORT @7649.25 stop 7655.25 t1 7643.50 ×2` + `20:05 S4 GHOST SHORT @7653.75 stop 7659.50 t1 7647.75 ×2` (vah 7671.25 / val 7643.50 ⇒ mid_value) · 11.09 `18:55 S2 REACTIVE_SHORT @7673.25 stop 7680.50 t1 7667.75 ×2` (vah 7680 / val 7665.25 ⇒ mid_value).
+
+**הקריאה:** Rule B ("אין כניסה ב-mid_value ביום-Variation") חוסם **גם כניסות עם-הכיוון** (שני ה-GHOST SHORT של 15.09 הם המשך-ירידה אחרי פולבק — בדיוק "לתפוס את הכיוון"), כי אחרי ההרחבה ה-VA המתפתח מתרחב ומכסה את כל טווח-הצהריים ⇒ הכל mid_value. Rule A (שחרור על שבירת-IB) לא ירה אף פעם — ב-15.09 הרגל של 17:05-17:30 היא **בתוך** ה-IB (אין "הרחבה" לפני 17:30), ואחרי הנעילה לא נותרו חסימות-kind/location לשחרר. ⇒ **T-367 כפי שנבנה = חוסם-בלבד.** Σ$ של 3 הכניסות שנמחקו (מודל-הרנס): −$2.50 — כלומר P&L-ניטרלי, אפס-כניסות-חיובי.
+
+**מה עשיתי:** `RULED_FLAGS.yaml` ⇒ `measured: {n: 3, usd: -2.50, …}` על הדגל (flag_guard PASS 259). **לא** שיניתי `.env` — הדגל הוא פסיקת-מייקל (15.09 23:15) ושינויו לפני-הפתיחה הוא הכרעה שלו: **דלוק** = אפס-כניסות-מאוחרות (ובימי-Variation כנראה אפס-כניסות אחרי התיוג); **כבוי** = ההתנהגות של אתמול. ההמלצה שלי בצ'אט: דלוק היום (חשבון 908, "אין זכות להפסיד"), והענף המדויק — mid_value **נגד**-הכיוון חסום · **עם**-הכיוון מותר — נמדד הלילה ב-T-389 ונכנס ל-v2 (T-394). **T-368:** טסטים 8/8, protective-בלבד (MODIFY_STOP), הרנס אינו מריץ S6 ⇒ אימות-חי אחרי 16:30.
+
 ## 🔵 [cowork-dev · 2026-09-16 10:42 IL] — **חובה-1: טלפון שקט מוחלט (אפס ממתינות) · אימות-cowork ל-T-367/T-368 — עוברים · ⚠️ ממצא: שני זוגות פריטים שונים חולקים את אותם מספרי-T**
 
 ריצת `10:36-10:42` — `10:36` ∉ `15:30-16:10` ∧ ∉ `16:30-23:00` ∧ ∉ `23:00-23:30` ⇒ **חובה-1 בלבד**.
