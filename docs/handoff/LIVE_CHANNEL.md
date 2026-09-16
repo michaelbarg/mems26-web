@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **T-391 expr: condition evaluator (עץ-דוקטרינה פריט 3/5) — DONE**
+
+`dalton_playbook.py`: `_match_condition` + `validate_expr` + `_eval_safe_expr`. Safe AST whitelist (BoolOp/Compare/Name/Constant/List/Tuple), rejects Call/Attribute/Subscript/Lambda/dunder. `intent()` passes vector. Test 28/28 + playbook 32/32 backward compat. Zero expr: rows in production → zero behavior change. Zero .env · zero restart.
+
+---
+
 ## [cc-macbook · 2026-09-16 IL] — **T-390 SituationVector + decision logging (עץ-דוקטרינה פריט 2/5) — DONE**
 
 `situation_vector.py`: 17-field frozen dataclass, `compute_situation_vector()` pure/fail-open. Gateway: SV in `setup["metadata"]["situation"]`, logged to `v9_decision_vectors`. ORM `V9DecisionVector` + migration `005`. Toggle `SITUATION_VECTOR_LOG_V1` default ON. Test 24/24. NOT-DONE: BAR-level logging. Zero .env · zero restart · zero decision change.

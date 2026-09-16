@@ -99,8 +99,15 @@ def _resolve_bias(rule_bias: str, opening_type: str, day_type: str,
     return rule_bias
 
 
-def _match_condition(cond: str, opening_type: str, day_type: str) -> bool:
-    """Evaluate a rule condition string."""
+def _match_condition(cond: str, opening_type: str, day_type: str,
+                     vector: Optional[Dict] = None) -> bool:
+    """Evaluate a rule condition string.
+
+    Supports legacy forms (opening_type ==, day_type in, etc.) and new
+    ``expr:`` form that evaluates a safe AST expression over the situation
+    vector (T-391). Unknown names or None values in comparisons → False
+    (fail-closed for the rule, not the system).
+    """
     if cond == "default":
         return True
     if cond.startswith("opening_type == "):
@@ -117,7 +124,61 @@ def _match_condition(cond: str, opening_type: str, day_type: str) -> bool:
         vals = cond.split("in ", 1)[1].strip().strip("[]").split(",")
         vals = [v.strip().strip("'\"") for v in vals]
         return day_type in vals
+    if cond.startswith("expr:"):
+        expr_str = cond[5:].strip()
+        return _eval_safe_expr(expr_str, opening_type, day_type, vector or {})
     return False
+
+
+# ── T-391: safe expression evaluator on the situation vector ──────────
+import ast
+
+_SAFE_NODES = frozenset({
+    ast.Expression, ast.BoolOp, ast.And, ast.Or,
+    ast.UnaryOp, ast.Not,
+    ast.Compare,
+    ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.In, ast.NotIn,
+    ast.Name, ast.Load,
+    ast.Constant,
+    ast.List, ast.Tuple,
+})
+
+
+def validate_expr(expr_str: str) -> ast.Expression:
+    """Parse and whitelist-check an expr string. Raises ValueError on unsafe nodes."""
+    try:
+        tree = ast.parse(expr_str, mode='eval')
+    except SyntaxError as e:
+        raise ValueError(f"invalid expr syntax: {e}") from e
+    for node in ast.walk(tree):
+        if type(node) not in _SAFE_NODES:
+            raise ValueError(
+                f"unsafe AST node {type(node).__name__} in expr: {expr_str}")
+    return tree
+
+
+def _eval_safe_expr(expr_str: str, opening_type: str, day_type: str,
+                    vector: Dict) -> bool:
+    """Evaluate a safe expression against the vector namespace.
+
+    Names resolve to vector fields first, then opening_type/day_type.
+    Unknown name or None in comparison → False (fail-closed for the rule).
+    """
+    try:
+        tree = validate_expr(expr_str)
+    except ValueError:
+        return False  # invalid expr → rule doesn't match
+
+    ns = dict(vector)
+    ns["opening_type"] = opening_type
+    ns["day_type"] = day_type
+
+    try:
+        result = eval(compile(tree, "<expr>", "eval"), {"__builtins__": {}}, ns)
+        return bool(result)
+    except (NameError, TypeError, KeyError, AttributeError):
+        # Unknown name or None in comparison → False
+        return False
 
 
 def intent(
@@ -126,6 +187,7 @@ def intent(
     day_type: str = "",
     now_il_hhmm: str = "17:00",
     direction_hint: Optional[str] = None,
+    vector: Optional[Dict] = None,
 ) -> Intent:
     """Compute the playbook intent for the current session state.
 
@@ -134,6 +196,7 @@ def intent(
         day_type: from get_live_day_type (Trend_Normal, etc.)
         now_il_hhmm: current IL time as "HH:MM"
         direction_hint: LONG/SHORT from the opening or trend direction
+        vector: SituationVector as dict (T-390/T-391), for expr: conditions
     """
     cfg = load_config()
     phase = _resolve_phase(now_il_hhmm, cfg)
@@ -145,7 +208,7 @@ def intent(
 
     for rule in phase_cfg.get("rules", []):
         cond = rule.get("condition", "default")
-        if _match_condition(cond, opening_type, day_type or ""):
+        if _match_condition(cond, opening_type, day_type or "", vector=vector):
             bias = _resolve_bias(
                 rule.get("bias", "NONE"), opening_type, day_type or "",
                 direction_hint)
