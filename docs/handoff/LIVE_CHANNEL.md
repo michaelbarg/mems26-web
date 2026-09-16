@@ -1,3 +1,72 @@
+## 🔵 [cowork-dev · 2026-09-16 18:06-18:10 IL] — **חובה-3 (ניטור-RTH רביעי) · הכל ירוק · אפס עסקת-לייב חדשה ⇒ שקט-טלפון** · 🟡 **T-34: פנוי `$763.09` < `$1,595` — לא חוסם, דיווח בלבד**
+
+ריצת `18:06:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף, הבעלים
+תפוס (‏`PID 97101` boot `15:41:26` + רשומות-cowork-dev `17:06` ו-`17:37` בקובץ הזה)
+⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.**
+הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל ⇒ אפס מקרה-(א) ⇒ **שקט מוחלט**
+
+מלכודת-12 נסגרה לפני ההסקה — הרלה הוכח חי, והתיבה במקור נבדקה ישירות:
+
+```
+launchctl print gui/$UID/com.mems26.mobile_relay   → state = running · pid = 1857
+GET /instruction/pending?key=…                     → {"items":[]}
+GET /chat?key=…                                    → 30 פריטים, זהה לזנב PHONE_THREAD.jsonl (אין פער-דחיפה)
+אחרון-מייקל   2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z ⇒ אין ממתינה
+אחרון-בתור    2026-09-16T14:40:39Z (מקרה-(ב) של 1717, הריצה הקודמת)
+```
+
+### חובה-3 · ארבעת הבדיקות — כולן PASS
+
+```
+backend    /api/v9/health {"status":"ok","version":"v9.0.0"} · מאזין :8000 PID 97101
+boot-log   2026-09-16 15:41:26 [boot] logging OK level=INFO pid=97101 commit=8cfc061c   ⇒ pid תואם, שכבת-INFO נטענה (§3.9)
+בר         max(ts)=2026-09-16 18:05:00+03 · 3.1 דק' ב-18:08, 4.3 דק' ב-18:09  ⇒ ≤10 דק'
+ERROR/60ד' 0   (אחרון בקובץ כולו: 2026-09-15 15:56:16 TS-OFFSET-GATE — אתמול)
+```
+
+**פוזיציה ↔ TM — מוסכם, בלי אזעקה:**
+
+```
+sierra_state.json  position_qty=0 · working_orders=0 · orders=[] · age_s=0.1 · is_sim=0 · armed=1 · send_orders=1
+v9_trades          mode='live' AND state NOT IN (CLOSED,CANCELLED)  →  (0 rows)
+⇒ שני הצדדים על 0 ⇒ אין מה לייחס לפי order_id
+```
+
+**עסקאות-לייב היום — שתיים, שתיהן סגורות ושתיהן כבר דווחו:** `1712` OPENING_DRIVE
+SHORT `16:40→16:46` MAE_SCRATCH · `1717` CEILING_FLIP_LONG LONG `16:50→17:13`
+MAE_SCRATCH. **אפס חדשה מאז** ⇒ **אין מקרה-(ב)**, ואין חריגה שדורשת הכרעה ⇒ אין מקרה-(ג).
+
+### חשבון ותנועה (מסיירה כמות-שהוא — הספרים עדיין `UNPRICED`, לא הומצא מספר)
+
+```
+daily_pnl -145.00 · daily_total_qty_filled 8 · last_price 7690.25 (MESZ26_FUT_CME)
+acct_daily_net_loss_limit -544.85 · loss_limit_reached=0 · under_margin=0 · trading_disabled=0
+acct_available_funds 763.09   ⇒ 🟡 T-34: מתחת ל-$1,595 — דיווח בלבד, לא חוסם (under_margin=0, גודל 2)
+```
+
+### פיד-ההחלטות — 36 היום, בלי תקרת-200 · 8 עברו · החסימות כולן דלתון
+
+```
+החזיר 36 | מהיום 36 | טווח 13:30:03Z → 15:05:02Z   ⇒ לא נחתך ב-200 (§3.2)
+dalton_intent:stand_down  19   LONG 11 / SHORT 8
+dalton_intent:location     8   LONG  4 / SHORT 4
+dalton_intent:bias         1   SHORT 1
+(none) — עברו           8   14:30 CEILING_FLIP_TOUCH2 L · 14:30 VA_FADE_LONG L · 13:55 CEILING_FLIP_LONG L ·
+                              13:50 GB100 L · 13:50 CEILING_FLIP_LONG L · 13:50 CEILING_FLIP_TOUCH2 L ·
+                              13:50 FAILED_BREAK_LONG L · 13:40 OPENING_DRIVE S
+gateway/risk  cooldown_active=false (consecutive_stops=15) · cluster_guard=false · SSV=false · chop=EXPANDING
+```
+
+**שורות-צל תקועות מלפני היום: `0`** (‏`v9_trades` shadow, state לא-סופי, `entry_ts::date ET < 16.09`)
+⇒ אין חזרה על תקלת-ה-80%-CPU של הבוקר.
+
+**מסקנה:** מערכת חיה, חמושה, פנויה וללא חריגה. **שקט בטלפון** — אין אחד מארבעת
+המקרים. הריצה הבאה: ניטור-RTH.
+
+---
+
 ## [cc-macbook · 2026-09-16 IL] — **T-392 Draft tree v2 + shadow evaluator (עץ-דוקטרינה פריט 5/5) — DONE**
 
 `dalton_tree_v2_draft.yaml`: 8 rules (T-319b/T-329/T-355/T-365/T-367). `dalton_tree.py`: evaluate(first-match, expr:). Gateway: `[TREE-DIFF]` shadow log. GHOST SHORT 15.09 19:10 = `allow` (deliberate diff). Test 13/13. Shadow only — NOT on firing path. Zero .env · zero restart.
