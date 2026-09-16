@@ -1343,6 +1343,87 @@ class TradingGateway:
                     except Exception as _fx_err:
                         logger.warning("[Gateway] T-329 failed-extension check failed "
                                        "(keeping block): %s", _fx_err)
+                # ── T-367: Variation with IB extension — release kind/location
+                # block when IB is broken in the setup direction ────────────────
+                # Rule B: block mid_value entries on Variation days (governs
+                # over Rule A — mid_value is never released).
+                # Rule A: release kind/location block when the IB break matches
+                # the setup direction and the entry zone is not mid_value.
+                if os.getenv("VARIATION_WITH_EXTENSION_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _we_tpo = (cross_context.get("tpo_system")
+                                   if isinstance(cross_context, dict) else None) or {}
+                        _we_ibh = float(_we_tpo.get("ib_high") or 0)
+                        _we_ibl = float(_we_tpo.get("ib_low") or 0)
+                        _we_sh = float(_we_tpo.get("session_high") or _we_tpo.get("rth_high") or 0)
+                        _we_sl = float(_we_tpo.get("session_low") or _we_tpo.get("rth_low") or 0)
+                        _we_vah = float(_we_tpo.get("vah") or 0)
+                        _we_val = float(_we_tpo.get("val") or 0)
+                        _we_ibw = (_we_ibh - _we_ibl) if (_we_ibh > 0 and _we_ibl > 0) else None
+                        _we_entry = float(setup.get("entry_price") or 0)
+                        _we_dir = (setup.get("direction") or "").upper()
+                        _we_is_variation = (
+                            str(_dp_dt or "").startswith("Variation")
+                            or str(_dp_dt or "").startswith("Normal_Variation"))
+                        # Rule B — mid_value block on Variation days
+                        if (_we_is_variation and _we_vah > 0 and _we_val > 0
+                                and _we_entry > 0):
+                            from backend.v9.systems.location_gate import zone_of as _we_zone_of
+                            _we_zone = _we_zone_of(_we_entry, _we_vah, _we_val, _we_ibw)
+                            if _we_zone == "mid_value":
+                                _dp_block = {
+                                    "blocked_by": "variation_mid_value",
+                                    "reason": (
+                                        f"T-367 Rule B: mid_value entry on {_dp_dt} "
+                                        f"entry={_we_entry:.2f} vah={_we_vah:.2f} "
+                                        f"val={_we_val:.2f}"
+                                    ),
+                                }
+                                logger.warning(
+                                    "[Gateway] T-367 BLOCKED variation_mid_value: "
+                                    "system=%s pattern=%s dir=%s entry=%.2f zone=%s "
+                                    "dt=%s vah=%.2f val=%.2f",
+                                    system_id, setup.get("classification"),
+                                    _we_dir, _we_entry, _we_zone, _dp_dt,
+                                    _we_vah, _we_val)
+                        # Rule A — release kind/location block on IB extension
+                        if (_dp_block and _dp_block.get("blocked_by") in (
+                                "dalton_intent:kind", "dalton_intent:location")
+                                and _we_tpo.get("ib_locked")
+                                and _we_ibh > 0 and _we_ibl > 0
+                                and _we_sh > 0 and _we_sl > 0
+                                and _we_vah > 0 and _we_val > 0
+                                and _we_entry > 0):
+                            from backend.v9.systems.location_gate import zone_of as _we_zone_of
+                            _we_zone = _we_zone_of(_we_entry, _we_vah, _we_val, _we_ibw)
+                            _we_break_down = _we_sl < _we_ibl
+                            _we_break_up = _we_sh > _we_ibh
+                            from backend.v9.services.dalton_playbook import entry_kind_for as _we_ekf
+                            _we_cls = str(setup.get("classification") or "")
+                            _we_ek = _we_ekf(_we_cls)
+                            _we_admit = False
+                            if (_we_break_down and _we_dir == "SHORT"
+                                    and _we_zone != "mid_value"
+                                    and _we_ek in ("BREAK", "PULLBACK")):
+                                _we_admit = True
+                            elif (_we_break_up and _we_dir == "LONG"
+                                  and _we_zone != "mid_value"
+                                  and _we_ek in ("BREAK", "PULLBACK")):
+                                _we_admit = True
+                            if _we_admit:
+                                logger.warning(
+                                    "[Gateway] T-367 WITH_EXTENSION admit: "
+                                    "system=%s pattern=%s dir=%s entry=%.2f zone=%s "
+                                    "entry_kind=%s dt=%s ib=[%.2f,%.2f] "
+                                    "session=[%.2f,%.2f] (was %s)",
+                                    system_id, _we_cls, _we_dir, _we_entry,
+                                    _we_zone, _we_ek, _dp_dt,
+                                    _we_ibl, _we_ibh, _we_sl, _we_sh,
+                                    _dp_block.get("blocked_by"))
+                                _dp_block = None
+                    except Exception as _we_err:
+                        logger.warning("[Gateway] T-367 WITH_EXTENSION check failed "
+                                       "(keeping block): %s", _we_err)
                 # ── T-355: phase-B location gate ──────────────────────────────
                 # Phase B (16:45-17:30 IL): day_type unknown, playbook blocks by
                 # pattern name (kind) or bias. Replace with location check using

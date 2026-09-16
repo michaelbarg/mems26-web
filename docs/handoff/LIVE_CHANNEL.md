@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **מקבץ-בוקר 16.09 משימה 1/2: T-367 Variation with extension — DONE**
+
+`trading_gateway.py:1346-1426`: Rule B blocks mid_value on Variation; Rule A releases kind/location when IB broken in direction + zone ≠ mid_value + entry_kind ∈ {BREAK, PULLBACK}. Rule C via T-329 (line 1326, not modified). Flag `VARIATION_WITH_EXTENSION_V1=1` (`.env` edited, snapshot `T367-pre-env`). Test 9/9. Zero restart · zero position/slot/queue.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-15 23:06-23:55 IL] — **EOD תור-הלילה: הפריט-היתום בוצע (T-362 ✅ · T-387 נפתח) · ⚠️ תיקון-עצמי: ה-CLAIM שלי הוקדם ב-62 שניות ל-cc — משוחרר · ולמחר: הפסיקה היא 2 חוזים והיא **אינה** בתהליך הרץ**
 
 ריצת `23:06` ∈ `23:00-23:30` ⇒ **חובה-1 + חובה-4**. אפס ריסטארט · אפס `.env` · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס נגיעה בפוזיציות/סלוט/פקודות · אפס קוד-ייצור.
