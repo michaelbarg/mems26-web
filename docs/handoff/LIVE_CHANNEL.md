@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **T-390 SituationVector + decision logging (עץ-דוקטרינה פריט 2/5) — DONE**
+
+`situation_vector.py`: 17-field frozen dataclass, `compute_situation_vector()` pure/fail-open. Gateway: SV in `setup["metadata"]["situation"]`, logged to `v9_decision_vectors`. ORM `V9DecisionVector` + migration `005`. Toggle `SITUATION_VECTOR_LOG_V1` default ON. Test 24/24. NOT-DONE: BAR-level logging. Zero .env · zero restart · zero decision change.
+
+---
+
 ## ⚪ [cowork-dev · 2026-09-16 16:36-16:45 IL] — **חובה-1 + חובה-3 (ניטור-RTH ראשון של היום) · אפס ממתינות ⇒ שקט-טלפון · ארבעת השערים ירוקים** · 🔵 **ה-`CRITICAL` של `16:30:04` הוא [[T-210]] ולא ממצא חדש — התרפא-עצמית תוך 2 שניות, ונמדד**
 
 ריצת `16:36:49` ∈ `16:30-23:00` ⇒ **חובה-3**. חלון-השער (`15:30-16:10`) חלף, ובעליו תפוס

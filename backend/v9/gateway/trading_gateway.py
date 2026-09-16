@@ -1496,6 +1496,48 @@ class TradingGateway:
                     except Exception as _pb_err:
                         logger.warning("[Gateway] T-355 phase-B location errored "
                                        "(keeping block): %s", _pb_err)
+                # ── T-390: SituationVector — informational, fail-open ──
+                _sv = None
+                try:
+                    from backend.v9.services.situation_vector import (
+                        compute_situation_vector as _sv_compute,
+                        log_decision_vector as _sv_log,
+                    )
+                    from dataclasses import asdict as _sv_asdict
+                    from backend.v9.services.dalton_playbook import _resolve_phase as _sv_phase
+                    _sv_phase_val = None
+                    try:
+                        _sv_phase_val = _sv_phase(_dp_il_hhmm)
+                    except Exception:
+                        pass
+                    # day_type confidence from DB (lightweight, cached by PG)
+                    _sv_dt_conf = None
+                    try:
+                        from backend.v9.db.read import read_one
+                        _sv_conf_row = read_one(
+                            "SELECT confidence FROM v9_day_type_state "
+                            "ORDER BY ts DESC LIMIT 1")
+                        if _sv_conf_row:
+                            _sv_dt_conf = float(_sv_conf_row["confidence"])
+                    except Exception:
+                        pass
+                    _sv = _sv_compute(
+                        cross_context=cross_context,
+                        price=float(setup.get("entry_price") or 0),
+                        ts=datetime.now(timezone.utc).isoformat(),
+                        bars_rth_today=None,     # fail-open: not easily available here
+                        prior_sessions_bars=None, # fail-open
+                        phase=_sv_phase_val,
+                        dir_hint=_dp_dir_hint,
+                        day_type=_dp_dt if "_dp_dt" in dir() else None,
+                        day_type_conf=_sv_dt_conf,
+                        opening_type=_dp_ot if "_dp_ot" in dir() else None,
+                    )
+                    setup.setdefault("metadata", {})["situation"] = _sv_asdict(_sv)
+                except Exception as _sv_err:
+                    logger.warning("[Gateway] T-390 SituationVector compute failed "
+                                   "(fail-open, continuing): %s", _sv_err)
+
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]
@@ -1506,6 +1548,23 @@ class TradingGateway:
                                    _dp_block["blocked_by"], _dp_ot, _dp_dir_hint,
                                    _dalton_intent.bias, sorted(_dalton_intent.entry_kinds),
                                    _dp_il_hhmm)
+                    # T-390: log blocked decision vector
+                    try:
+                        if _sv is not None:
+                            _sv_log(
+                                ts=datetime.now(timezone.utc).isoformat(),
+                                kind="DECISION",
+                                system=system_id,
+                                classification=setup.get("classification"),
+                                direction=setup.get("direction"),
+                                entry=float(setup.get("entry_price") or 0),
+                                phase=_sv.phase,
+                                blocked_by=_dp_block.get("blocked_by"),
+                                reason=_dp_block.get("reason"),
+                                vector=_sv_asdict(_sv),
+                            )
+                    except Exception:
+                        pass
                     return result
             except Exception as _dp_err:
                 # fail-CLOSED: a gate that replaces three and crashes ⇒ zero gates
@@ -1513,6 +1572,27 @@ class TradingGateway:
                 result["reason"] = f"dalton_playbook crashed (fail-closed): {_dp_err}"
                 logger.warning("[Gateway] BLOCKED by dalton_intent ERROR (fail-closed): %s", _dp_err)
                 return result
+
+        # T-390: log allowed decision vector (passed dalton gate)
+        if _dp_active:
+            try:
+                _sv_meta = (setup.get("metadata") or {}).get("situation")
+                if _sv_meta:
+                    from backend.v9.services.situation_vector import log_decision_vector as _sv_log_pass
+                    _sv_log_pass(
+                        ts=datetime.now(timezone.utc).isoformat(),
+                        kind="DECISION",
+                        system=system_id,
+                        classification=setup.get("classification"),
+                        direction=setup.get("direction"),
+                        entry=float(setup.get("entry_price") or 0),
+                        phase=_sv_meta.get("phase"),
+                        blocked_by=None,
+                        reason=None,
+                        vector=_sv_meta,
+                    )
+            except Exception:
+                pass
 
         # ── T-366: fresh-extreme gate — one rule, every producer ──────────────
         # Michael 14.09: "לא להיכנס בסוף העלייה ואז ככה נכשלת". Doctrine, not a
