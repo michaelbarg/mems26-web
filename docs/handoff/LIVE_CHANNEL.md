@@ -1,3 +1,152 @@
+## 🔵 [cowork-dev · 2026-09-16 21:06-21:12 IL] — **חובה-3 (ניטור-RTH שמיני) · הכל ירוק** · 🟢 **עסקת-לייב 1776 `GHOST` LONG נסגרה ‎+$46.25 — הזוכה הראשונה היום ⇒ מקרה-(ב) נשלח ואומת** · 🔬 **T-367 Rule B נמדד: מבחין נכון (‎`near_val` עבר ⟷ `mid_value` נחסם)** · 🟡 **CRITICAL יחיד של `daytype_watchdog` ב-16:30 — נרפא-עצמית**
+
+ריצת `21:06:49` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
+(‏`PID 97101` boot `Wed Sep 16 15:41:22 2026` + רשומות-cowork-dev
+`17:06`…`20:45`) ⇒ **הבעלים תפוס: אפס ריסטארט · אפס הודעת-שער · אפס נגיעה
+בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.** הכתיבה היחידה בריצה: הקובץ הזה
++ הודעת-הטלפון של מקרה-(ב).
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל, אבל **נשלח מקרה-(ב)**
+
+מלכודת-12 נבדקה קודם (רלה חי לפני שמסיקים שקט):
+
+```
+launchctl print gui/$UID/com.mems26.mobile_relay → state = running · pid = 1857
+GET /instruction/pending?key=…  → {"items":[]}        (peek, ללא תופעות-לוואי)
+GET /cmd/pending?key=…          → {"cmd":null}
+GET /chat?key=…                 → 30 פריטים
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+git pull --ff-only → Already up to date   (HEAD af94e4db)
+```
+
+אין מקרה (א)/(ג)/(ד). **יש מקרה-(ב)** — עסקת-לייב נפתחה ונסגרה מאז הריצה הקודמת
+(‏`20:45`), ולכן הודעה אחת, 207 תווים, אפס backticks, שעה מ-`date`:
+
+```
+python3 scripts/phone_reply.py cowork "עסקת לייב נסגרה 21:01 - GHOST לונג 2 חוזים מ-7675. …" → ok
+אימות-מסירה (לא מה-ok) — GET /chat:
+  2026-09-16T18:12:05Z | cowork | עסקת לייב נסגרה 21:01 - GHOST לונג 2 חוזים מ-7675.
+  פלוס 46.25 דולר, הזוכה הראשונה היום. T1 נלקח 7684 על חוזה אחד, הסטופ נגרר 7667.5
+  ואז 7675.25 והחוזה השני יצא שם ברווח. פוזיציה 0, יום לפי סיירה מינוס 98.75.
+```
+
+### 🟢 עסקת-לייב 1776 — הזוכה הראשונה היום (‏`v9_trades` גולמי)
+
+```
+id 1776 · live · sys4 · GHOST · LONG · CLOSED · sizing=half · contracts=2
+entry  2026-09-16 20:45:04+03 @ 7675.00     stop_initial 7667.50 (risk 7.5pt)
+t1 7684.00  t2 7686.50  t3 7687.00→DROP (shadow evaluator: "no real level … within reach 12.0")
+t1_hit  20:58:55 @ 7684.00  (qty 1, order 11270)
+stop_move  7667.50 → 7670.50   "structure-trail after T1"
+stop_move  7670.50 → 7675.25   "F5 swing trail (last confirmed swing 7674.25, rev=4.75)"
+exit   21:01:13 @ 7675.25 STOP_HIT (qty 1, order 11274)
+pnl_usd 46.25 · pnl_r 0.62 · outcome WIN · pnl_sierra NULL (ספרים UNPRICED — לא סונתז)
+```
+
+**‏`STOP_HIT` כאן הוא ניצחון, לא הפסד** — הגרירה העלתה את הסטופ מעל הכניסה
+(‏7675.25 > 7675.00) לפני שנגע. חשבון: ‎`9.0pt × $5 = $45` (T1) `+ 0.25pt × $5 = $1.25`
+(סטופ) `= $46.25` ✓ תואם ל-`pnl_usd`. **אזהרת-קריאה לדוחות הבאים: `exit_reason`
+לבדו אינו תוצאה** — לסווג לפי `outcome`/`pnl`, אחרת ייספר `WIN` כ-`STOP`.
+
+### 🔬 T-367 Rule B — נמדד, לא הונח (השער שנספר 22 פעם היום)
+
+שתי החלטות sys4 בהפרש 5 דקות נראו סותרות בפיד — שתיהן בין VAL 7673.25 ל-VAH 7687.25:
+
+```
+17:40:01Z sys4 ZLR   SHORT entry=7677.75 → blocked_by=variation_mid_value
+17:40:04Z sys4 ZLR   SHORT entry=7677.50 → blocked_by=variation_mid_value
+17:45:03Z sys4 GHOST LONG  entry=7675.00 → outcome=live  blocked_by=None  trade_id=1776
+```
+
+**ההשערה שנבדקה ונדחתה:** ש-`tpo:missing` ב-שלב A4 של ה-cross_context ריקן את
+ה-VAH/VAL והשער no-op-ה בשקט (הקוד אכן עושה `float(vah or 0)` ומדלג על `vah>0`).
+**המדידה מפריכה את זה** — ה-`tpo_system` ב-cross_context של 1776 מלא
+(‏`vah 7687.25 · val 7673.25`), ו-`zone_of` מסווג לפי **טולרנס**, לא לפי
+"בין VAL ל-VAH":
+
+```
+python3 -c "from backend.v9.systems.location_gate import zone_of; …"   (vah=7687.25 val=7673.25 ibw=17.5)
+entry=7675.0    zone=near_val     ← עבר (1776, הזוכה)
+entry=7676.5    zone=near_val
+entry=7677.5    zone=mid_value    ← נחסם
+entry=7677.75   zone=mid_value    ← נחסם
+entry=7683.5    zone=near_vah
+entry=7672.0    zone=near_val
+```
+
+⇒ **השער התנהג בדיוק כפסוק:** חוסם את אמצע-הערך, מעביר את הקצוות — והלונג עבר
+בקצה-התחתון (‏`near_val`, טריטוריה רספונסיבית-לונג) והפך לזוכה היחיד. ספירת
+"‏22 חסימות `variation_mid_value`" **חסרת-משמעות בלי פילוח-אזור**; זה התיקון
+לתצפית של `20:06`/`20:45` שדיווחה את המספר בלבד. אין כאן דגל לשנות — לכימות
+בריפליי 17.09 (דוקטרינת-הלמידה: הוראה⇐ריפליי, לא דגל).
+
+### חובה-3 · ניטור — הבדיקות, פלט גולמי
+
+```
+feed      SELECT max(ts), now(), age → 2026-09-16 21:05:00+03 | 21:07:49+03 | 2.83 min
+          (≤10 דק' ✅ · aware⟷aware, לא מלכודת-TZ) · DAY נגזר מהנתונים = 2026-09-16
+          ls -lt ~/SierraChart_Data/v9_export/ → 5 קבצים mtime Sep 16 21:07
+backend   GET /api/v9/health → {"status":"ok","version":"v9.0.0"}
+          ps -o lstart → PID 97101 · Wed Sep 16 15:41:22 2026 (אפס ריסטארט סמוי)
+          [boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr
+                                        ⇒ שכבת-INFO טעונה (שער ד0 עבר, לא עיוורון)
+          חלון 20:05→21:09: 9,909 שורות (~152/דק') · ERROR|CRITICAL = 1
+position  sierra_state.json: is_sim=0 · order_placement_armed=1 ·
+          send_orders_to_trade_service=1 · position_qty=0 · working_orders=0 ·
+          daily_pnl=-98.75 · daily_total_qty_filled=16 · symbol MESZ26_FUT_CME
+          (high/low_during_pos = זבל-סנטינל — לא דווח, מלכודת-3.7)
+TM        mobile/data.active = []  ·  v9_trades live היום = 3/3 CLOSED
+          ⇒ פוזיציה 0 ⟷ TM 0 מסכימים. ownership לפי order_id לא נדרש.
+גודל      mobile/data.contracts_cfg = 2 == הפסיקה (2) ✅ — נקרא מהתהליך החי
+שערים     flag_guard → FLAG-GUARD: PASS — all 259 ruled flags match
+          task_log_guard → ✅ current, structured, and the only one (380 items)
+ליגר      attempts 77 · fired 3 · blocked 64 · shadow_only 10
+          oldest 13:30:03Z = פתיחת-RTH ⇒ **לא נחתך בתקרת-200** (מלכודת-3.2)
+          blocked_by: dalton_intent:stand_down 24 · variation_mid_value 22 ·
+                      dalton_intent:location 8 · dalton_intent:bias 6 ·
+                      rr_entry_gate 2 · news_blackout 1 · entry_location_quality 1
+```
+
+### 🟡 שתי שורות-חריגה — שתיהן דיווח, לא פעולה
+
+**1 · `CRITICAL` יחיד ב-16:30, נרפא-עצמית.** לא אירוע-חי:
+
+```
+16:30:04 [WARNING] day_type_state stale: last entry 49min ago (threshold 10.0min), last_type=UNKNOWN
+16:30:04 [WARNING] SELF-HEAL: reset _last_dts_sig — next bar will force a DB write
+16:30:04 [CRITICAL] ESCALATION-3: day_type_state stale 49 min despite sig-reset + force-close
+אימות שהריפוי תפס (‏21:11):
+  max(created_at)=18:00:11 UTC · now_utc=18:11:29 · age=11.3 min · rows_last_2h=10
+```
+
+⚠️ **מלכודת-TZ נלכדה תוך-כדי:** אותה שאילתה מול `now()` ה-aware החזירה
+`age_min=191.1` — "הטבלה מתה 3 שעות". `created_at` כאן **naive-UTC**; ההשוואה
+הנכונה היא `now() AT TIME ZONE 'utc'` ⇒ **11.3 דק'**. זו בדיוק מלכודת-14
+הנלווית, והפעם היא כמעט הפכה טבלה חיה ל"מתה" בדוח.
+
+**2 · `ERROR` יחיד ב-21:00:07** — `[BarLevelDetector] on_bar error: Invalid
+transition: CLOSED -> CLOSED`. מופע **אחד** בכל היום (‏`grep -c` = 1), על נתיב-הצל
+בשנייה שבה 1756/1757 נסגרו זה-אחר-זה; שומר-המצב עשה את עבודתו. **לא-נבחן אם
+זה מרוץ-סגירה-כפולה או רעש** — נרשם לכימות-ערב, בלי קוד ובלי דגל.
+
+### צל + מרג'ין — שניהם תקינים, דיווח-בלבד
+
+```
+SELECT mode,state,count(*) … WHERE state NOT IN ('CLOSED','CANCELLED')  (מלכודת-14: לפי state, לא exit_ts)
+  → shadow FILLED: 1715 (09:50 ET) · 1755 (12:25) · 1759 (12:50) · 1783 (14:05) — כולן מהיום
+python3 scripts/close_stale_shadow.py → "no stale shadow trades — nothing to do"
+  ⇒ צבירה תקינה של יום-מסחר, לא תקיעת-הבוקר (26 השורות של 16.09 בבוקר)
+T-34  acct_available_funds 809.34 < 1,595 — **דיווח-בלבד**: 3 עסקאות-לייב
+      עברו היום (האחרונה 20:45) ⇒ **אינו חוסם מסחר** ⇒ אין מקרה-(ג).
+```
+
+**פער-ספרים לא-מוסבר (‏$2.50), לא סונתז:** יום-סיירה נע `-142.5 → -98.75`
+(‎`+43.75`) מול `pnl_usd = +46.25` בספרים. ‎16 fills − 12 מהריצה הקודמת = 4,
+כלומר **כל ארבעת החדשים שלנו** (כניסה 2 + T1 1 + סטופ 1) ⇒ אין fill זר לתלות בו.
+הפער עקבי עם עמלות round-turn על 2 חוזים, **אך לא אומת** — נרשם כפער, לא כעמלה.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 20:36-20:45 IL] — **חובה-3 (ניטור-RTH שביעי) · הכל ירוק · שקט-טלפון** · 🟡 **`variation_mid_value` 12→20 (שער-המוביל) · 21 צל-פתוחות תקינות (לא תקועות) · `machine_health` WARN נמשך**
 
 ריצת `20:36:55` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
