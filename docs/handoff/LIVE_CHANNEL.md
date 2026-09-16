@@ -1,3 +1,102 @@
+## 🔵 [cowork-dev · 2026-09-16 21:36-21:45 IL] — **חובה-3 (ניטור-RTH תשיעי) · הכל ירוק · שקט-טלפון** · 🟡 **ERROR יחיד `CLOSED -> CLOSED` ב-21:00:07 (‏1776 נסגרה נכון)** · ✅ **שתי "תקלות" שזיהיתי התבררו כמלכודות-מתועדות — לא דווחו כממצא**
+
+ריצת `21:36:52` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
+(‏`PID 97101` boot `Wed Sep 16 15:41:22 2026`, + רשומות-cowork-dev `17:06`…`21:12`)
+⇒ **הבעלים תפוס: אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/
+פקודות/`.env`/קוד.** הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — **אפס ממתינות ⇒ שקט מוחלט** (אפס הודעות נשלחו)
+
+```
+GET /chat?key=…  → 30 פריטים (זהה ל-PHONE_THREAD.jsonl המקומי — אין דריפט)
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+אחרון בפיד   2026-09-16T18:12:05Z | cowork | סגירת 1776 (נשלח בריצה הקודמת)
+git pull --rebase → Already up to date      (HEAD 635ee215)
+```
+
+אין מקרה (א) · אין (ב) — **אפס עסקאות-לייב חדשות או סגורות מאז 21:01**, ו-1776
+כבר דווחה ב-21:12 · אין (ג) · אין (ד). לפי כלל-הטלפון: דוח-ניטור תקופתי אסור
+בטלפון ⇒ הוא כאן בלבד.
+
+### ניטור — חמש הבדיקות, פלט גולמי (Rule 5)
+
+```
+health      curl /api/v9/health  → {"status":"ok","version":"v9.0.0"}
+מאזין       Python 97101 *:8000 (LISTEN) · STARTED Wed Sep 16 15:41:22 · RSS 127MB
+שכבת-INFO   [boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr  ← pid תואם (ד0 עבר)
+בר          max(ts)=2026-09-16 21:35:00+03 · now=21:38:20 · גיל 3.3 דק'  (≤10 ✓)
+פיד-סיירה   5min_continuous.json / cumulative_delta / sierra_state — mtime 21:38-21:39
+```
+
+**פוזיציה-מול-TM — AGREED_FLAT, אפס שאלת-ownership:**
+
+```
+sierra_state: position_qty 0 · working_orders 0 · open_pnl 0.0 · armed 1 · send_orders 1
+              acct_trading_disabled 0 · acct_under_margin 0 · acct_loss_limit_reached 0
+              daily_pnl -98.75  מול  acct_daily_net_loss_limit -544.85   (רחוק)
+v9_trades:    state not in (CLOSED,CANCELLED) → 0 שורות   ← המדידה הקבילה (§3 בזנב הרנבוק)
+log 21:01:14  [Gateway] LIVE slot freed: 1776 pnl=46.25 outcome=STOP
+```
+
+**גודל — 2, משלושה מקורות בלתי-תלויים באותו רגע:**
+
+```
+ruled_contracts() דרך env_loader (מסלול backend/main.py)  → 2
+GET /api/v9/mobile/data → contracts_cfg                    → 2
+                        → radar.trading.contracts_allowed  → 2
+```
+
+**עסקאות-לייב היום — 3, כולן סגורות** (‏`pnl_sierra` NULL בשתיים — לא סונתז):
+
+```
+1712 OPENING_DRIVE     SHORT 09:40→09:46 MAE_SCRATCH   UNPRICED
+1717 CEILING_FLIP_LONG LONG  09:50→10:13 MAE_SCRATCH   UNPRICED
+1776 GHOST             LONG  13:45→14:01 STOP_HIT      +46.25  WIN
+```
+
+### 🟡 הממצא היחיד — `Invalid transition: CLOSED -> CLOSED`
+
+```
+2026-09-16 21:00:07 [ERROR] [backend.v9.services.trade_manager.bar_level_detector]
+  [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+  → backend.v9.services.trade_manager.state_machine.InvalidTransition
+grep -c "Invalid transition: CLOSED -> CLOSED" /tmp/backend.err.log → 2  (השורה + ה-traceback; מופע יחיד בכל הלוג)
+```
+
+**ממצא:** מירוץ סגירה-כפולה ב-`on_bar` — נתיב שני ניסה לסגור עסקה שכבר ב-`CLOSED`
+בדיוק סביב יציאת 1776 (‏21:01:13). **אין נזק-מסחר:** 1776 נרשמה `CLOSED · STOP_HIT ·
++46.25 · WIN`, הסלוט שוחרר 21:01:14, ואין `ORPHAN`/`exit_not_executed`/
+`exit_unverifiable` היום (‏0/0/0). **פתרון-מוצע (לא בוצע — RTH):** להפוך
+`CLOSED→CLOSED` לאידמפוטנטי ב-`state_machine` במקום לזרוק, + מקרה-רגרסיה.
+מופע יחיד ⇒ לא חוסם, לא מקרה-(ג).
+
+### ✅ שתי "תקלות" שלא דווחו — המלכודות תפסו אותן לפני הדוח
+
+1. **`ruled_contracts()` החזיר `None`** בקריאה ראשונה — **אינו דריפט.** זו מלכודת
+   §3.9 בדיוק כלשונה: הפונקציה קוראת `os.environ` ואינה טוענת `.env`. עם
+   `env_loader` (מסלול הבקאנד) → **2**. אילו דיווחתי `None` הייתי מייצר T-225 שני.
+2. **`exit_ts IS NULL` → 57 שורות** (6 live) נראה כמו בק-לוג `close_stale_shadow` —
+   **אינו.** זו המדידה שהרנבוק כבר פסל: `CANCELLED` ו-`STALE_UNRESOLVED` נשארים
+   בכוונה בלי `exit_ts`. ששת ה-live הן פקודות-יולי שמעולם לא נמלאו
+   (‏`PHANTOM_PENDING_FLAT` / `ORDER_FAILED` / `CANCELLED`). לפי `state` — **0 פתוחות.**
+   `[Reconcile] AGREED_FLAT … db_open=[…] is stale bookkeeping, not a live position` ✓
+
+**‏`daytype_watchdog`:** ה-CRITICAL של 16:30:04 (staleness 49 דק', `last_type=UNKNOWN`,
+טרום-פתיחה) — דווח בריצה הקודמת, וכעת **מאומת כנרפא**: `grep 17:00→21:42 → 0`
+מופעים, וכתיבות חזרו `18:00 / 18:35 / 18:40`. ‏`v9_day_type_state` נכתב **בשינוי
+בלבד**, והמצב `Neutral_Extreme · B2 · LOCKED_LOW_CONF` נעול מ-18:40 ⇒ שלוש שעות
+בלי שורה הן התנהגות-נעילה תקינה, לא קיפאון.
+
+**בריאות-מכונה (WARN-בלבד):** ‏`%CPU` 11→30 לאורך הריצה, RSS 127MB יציב,
+קצב-לוג **57 שורות/דקה** — רחוק מהפתולוגיה של 16.09 (1,000 שורות/דקה @ 80%).
+‏`available_funds 809.34` מתחת לסף T-34 (1,595) אך **אינו חוסם בגודל 2** — עסקת-לייב
+נכנסה היום ב-20:45. דיווח-בלבד, אין מקרה-(ג).
+
+**הצעד הבא:** ריצת-ניטור עשירית; ב-`15:30-16:10` מחר (17.09) — היומית המלאה,
+‏`close_stale_shadow` dry-run ו-`machine_health` לפי הפרוטוקול.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 21:06-21:12 IL] — **חובה-3 (ניטור-RTH שמיני) · הכל ירוק** · 🟢 **עסקת-לייב 1776 `GHOST` LONG נסגרה ‎+$46.25 — הזוכה הראשונה היום ⇒ מקרה-(ב) נשלח ואומת** · 🔬 **T-367 Rule B נמדד: מבחין נכון (‎`near_val` עבר ⟷ `mid_value` נחסם)** · 🟡 **CRITICAL יחיד של `daytype_watchdog` ב-16:30 — נרפא-עצמית**
 
 ריצת `21:06:49` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
