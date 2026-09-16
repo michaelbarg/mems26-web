@@ -1,3 +1,79 @@
+## 🔵 [cowork-dev · 2026-09-16 19:06-19:10 IL] — **חובה-3 (ניטור-RTH שישי) · הכל ירוק · שקט-טלפון** · אפס עסקת-לייב חדשה מאז `17:13`
+
+ריצת `19:06:53` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
+תפוס (‏`PID 97101` boot `15:41:22` + רשומות-cowork-dev `17:06`/`17:37`/`18:06`/`18:36`)
+⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.**
+הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל ⇒ **שקט מוחלט**
+
+```
+GET /instruction/pending?key=…  → {"items":[]}
+GET /chat?key=…                 → 30 פריטים, זהה לזנב PHONE_THREAD.jsonl (אין פער-דחיפה)
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+אחרון-בתור   2026-09-16T14:40:39Z (מקרה-(ב) של 1717, ריצת 17:37)
+mobile_relay.py  PID 1857 חי (‏etime 01-08:58)
+git pull → Already up to date
+```
+
+אין מקרה (א)/(ב)/(ג)/(ד) ⇒ **לא נשלחה הודעת-טלפון.**
+
+### חובה-3 · ניטור — ארבע הבדיקות, פלט גולמי
+
+```
+feed      select max(ts), now()-max(ts) from v9_bars_5min_woodies;
+          → 2026-09-16 19:05:00+03 | 3.1 min          (≤10 דק' ✅)
+backend   GET /api/v9/health → {"status":"ok","version":"v9.0.0"}
+          /tmp/backend.err.log חלון 18:24:40→19:08:52 (44 דק'): grep -c ERROR → 0
+          1,387 WARNING — כולן שגרתיות: bar_router dispatch 1,083 · SLOW handler 141 ·
+          pydantic coerce 94 · תגיות-גייטוויי. אפס מחלקת-שגיאה חדשה.
+position  sierra_state.json (‏mtime 1 שנייה): position_qty=0 · working_orders=0 ·
+          orders=[] · open_pnl=0.0
+TM        v9_trades היום: live 2/2 CLOSED (MAE_SCRATCH) · אפס שורת-live פתוחה
+          ⇒ פוזיציה 0 ⟷ TM 0 — מסכימים.
+```
+
+**בעלות-הפילים (לפני אזעקה, לפי `order_id`):** `daily_total_qty_filled = 12` — ללא
+שינוי מאז `18:06`+הסבב-הזר. הפירוק מלא: 8 שלנו (‏`1712` 2-in/2-out, `1717` 2-in/2-out)
++ 4 של הסבב-הזר `11267`/`11268` שהוכח NOT-OURS ב-`18:36-18:45`. `trade_activity_events.jsonl`
+אחרון `15:14:20Z` (=`18:14:20` IL) — **אפס אירוע-מסחר חדש ב-55 הדקות האחרונות**, והקובץ
+חי (‏mtime `19:09`) ⇒ שקט אמיתי, לא סורק-מת. **אין מקרה (ב).**
+
+### חשבון · ליגר · צל
+
+```
+acct      is_sim=0 · order_placement_armed=1 · send_orders_to_trade_service=1
+          acct_trading_disabled=0 · acct_loss_limit_reached=0
+          acct_daily_pl=-142.50  מול תקרה  acct_daily_net_loss_limit=-544.85 (לא נגועה)
+          last_price=7685.25 · symbol=MESZ26_FUT_CME · trade_account=37138283
+ליגר      GET /gateway/decisions?limit=2000 → buffer_len=47 (הרחק מתקרת-200)
+          today = {fired: 2, blocked: 35, shadow_only: 10}
+          by_gate = dalton_intent:stand_down 20 · location 8 · bias 3 ·
+                    rr_entry_gate 2 · entry_location_quality 1 · variation_mid_value 1
+          live_blocked_by: live_slot_occupied ×2 (בזמן שהסלוט היה תפוס ע"י 1717)
+          אחרון t_il=19:05:05 ⇒ כותב עכשיו.
+צל        python3 scripts/close_stale_shadow.py → "no stale shadow trades — nothing to do"
+          (‏3 שורות FILLED פתוחות — כולן של היום: 1715 מ-16:50, 1751/1752 מ-19:05;
+           הסקריפט הוא הפוסק, לא שאילתת-exit_ts.)
+מכונה     load 3.32 · backend PID 97101 32.5% CPU / RSS 122MB — נורמלי לשעת-RTH;
+          אין את פתולוגיית-הבוקר (26 שורות-צל ⇒ 80% CPU). Sierra 36.9% הוא הצרכן הגדול.
+```
+
+### T-34 · מרג'ין — **דיווח בלבד, לא חוסם**
+
+```
+acct_available_funds = 765.59  (< $1,595)   acct_account_value = 765.59
+acct_margin_req = 0.0 · acct_under_margin = 0 · acct_ok = 1
+```
+
+מתחת לסף-הדיווח, אך **אינו חוסם מסחר** — שתי עסקאות-לייב עברו היום בפועל בגודל 2,
+`under_margin=0` ו-`trading_disabled=0`. ⇒ שורה כאן, **בלי מקרה-(ג) בטלפון**.
+
+**מצב-סיום:** לייב+חמוש · פוזיציה 0 · סלוט פנוי · פיד 3.1 דק' · יום-סיירה `-142.50`.
+— *cowork-dev*
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 18:36-18:45 IL] — **חובה-3 (ניטור-RTH חמישי) · המערכת ירוקה · שקט-טלפון** · 🔴 **ממצא-חדש: סבב-לייב זר 2 חוזים ב-`18:13:45→18:14:16` — לא שלנו, חמש ראיות · `T-43` תפס ושחרר נכון**
 
 ריצת `18:36:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
