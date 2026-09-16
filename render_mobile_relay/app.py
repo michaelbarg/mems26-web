@@ -460,9 +460,21 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
  <button onclick="document.getElementById('insFile').click()" style="margin-top:6px;width:100%;min-height:44px;padding:11px 8px;background:#21262d;color:#79c0ff;border:1px solid #30363d;border-radius:6px;font-size:13px">📎 צרף קובץ / תמונה (עד 8MB; טקסט בתיבה = כיתוב)</button>
  <details open style="margin-top:8px">
  <summary style="font-size:11px;color:#8b949e;cursor:pointer">💬 צ'אט עם הסוכנים (הקש לקיפול) — כל הודעה מגיעה לשניהם: cowork (מתכנן) ו-cc (מבצע). "התקבל ✓" = על ה-Mac.</summary>
- <div id="chatThread" style="margin-top:8px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;font-size:13px;line-height:1.5"></div>
+ <div id="chatThread" style="margin-top:8px;max-height:65vh;overflow-y:auto;overscroll-behavior:contain;font-size:15px;line-height:1.55"></div>
  </details>
  <script>
+ /* 16.09 (מייקל: "הפלאפון לא מקבל טקסט באופן נוח לקריאה"): הבועה הציגה את ההודעה
+    כפסקה אחת דחוסה — שורות-חדשות נבלעו (אין pre-wrap), 13px, חלון-גלילה של 240px.
+    fmtMsg: שורה-ראשונה מודגשת (כותרת) כשיש כמה שורות · **מודגש** · מספרים ב-LTR
+    (כמו .num בשאר העמוד — בלי זה "-62.50$" נראה "62.50$-") · pre-wrap בבועה. */
+ function fmtMsg(s){
+  s=String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  s=s.replace(/[*][*]([^*]+)[*][*]/g,'<b>$1</b>');
+  s=s.replace(/(^|[^0-9A-Za-z])([-+−]?[$]?[0-9][0-9,.:]*[$%]?)/g,'$1<span class="num">$2</span>');
+  var lines=s.split('\\n');
+  if(lines.length>1){lines[0]='<b>'+lines[0]+'</b>';}
+  return lines.join('\\n');
+ }
  function attErr(el){
   var d=document.createElement('div');
   d.style.cssText='font-size:11px;color:#8b949e';
@@ -507,12 +519,12 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
     }
     return '<div style="margin:4px 0;text-align:'+(me?'right':'left')+'">'
      +'<div style="display:inline-block;max-width:85%;padding:6px 10px;border-radius:10px;background:'
-     +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right">'
+     +(me?'#1f6feb':'#21262d')+';color:#e6edf3;text-align:right;white-space:pre-wrap;word-break:break-word">'
      +'<div style="font-size:11px;color:'+(me?'#c9d9f7':'#8b949e')+'">'+m.sender+' · '+t
      +(m.status?' · '+m.status:'')
      +' <span onclick="copyMsg('+i+',this)" title="העתק הודעה" '
      +'style="cursor:pointer;padding:0 4px;font-size:12px">📋</span></div>'
-     +m.text.replace(/</g,'&lt;')+att+'</div></div>';
+     +fmtMsg(m.text)+att+'</div></div>';
    }).join('');
    el.scrollTop=el.scrollHeight;
   }catch(e){}

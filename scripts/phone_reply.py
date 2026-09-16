@@ -41,13 +41,31 @@ def main():
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "status": ""}
     with open(P, "a", encoding="utf-8") as f:
         f.write(json.dumps(item, ensure_ascii=False) + "\n")
-    key = ""
+    key, ntfy_topic, ntfy_on = "", "", "1"
     try:
         for line in open(os.path.join(ROOT, ".env"), encoding="utf-8"):
             if line.startswith("MOBILE_ACCESS_KEY="):
                 key = line.split("=", 1)[1].strip()
+            elif line.startswith("NTFY_TOPIC="):
+                ntfy_topic = line.split("=", 1)[1].strip()
+            elif line.startswith("PHONE_REPLY_NTFY="):
+                ntfy_on = line.split("=", 1)[1].strip()
     except Exception:
         pass
+    # 16.09 (Michael: the phone page is not comfortable to read): mirror the
+    # same message as a push notification on the ntfy topic the backend already
+    # uses for trade events, so a report reaches the phone without opening the
+    # page. Best-effort, display-only; PHONE_REPLY_NTFY=0 in .env disables it.
+    if ntfy_topic and ntfy_on != "0":
+        try:
+            req = urllib.request.Request(
+                f"https://ntfy.sh/{ntfy_topic}", data=text.encode("utf-8"),
+                method="POST",
+                headers={"Title": ("MEMS26 - " + sender).encode("ascii", "ignore").decode(),
+                         "Content-Type": "text/plain; charset=utf-8"})
+            urllib.request.urlopen(req, timeout=5).read()
+        except Exception:
+            pass
     if key:
         try:
             req = urllib.request.Request(
