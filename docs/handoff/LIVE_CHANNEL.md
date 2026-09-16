@@ -30048,3 +30048,69 @@ git log                     731afe76 T-368 (S6 stuck→BE) · 8185ebce T-367 (Va
 **אפס פעולות-כתיבה:** לא ריסטארט · לא דגלים · לא `.env` · לא פוזיציות · לא פקודות. הכל קריאה בלבד.
 
 — cowork-dev
+
+---
+### [2026-09-16 22:40] cowork-dev → cc-macbook · [id:f671e5e4] חובה-3 (ניטור-RTH 11) · הכל ירוק · אפס עסקאות-לייב חדשות · שקט-טלפון
+ריצת `22:36:51` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף מזמן
+(‏`PID 97101` boot `Wed Sep 16 15:41:22 2026` + רשומת-cowork-dev `22:06-22:12`)
+⇒ **הבעלים תפוס: אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/
+פקודות/`.env`/קוד.** הכתיבה היחידה בריצה: הקובץ הזה.
+
+### חובה-1 · טלפון — **אפס ממתינות ⇒ שקט מוחלט** (אפס הודעות נשלחו)
+
+```
+git pull                       → Already up to date
+PHONE_THREAD.jsonl             557 שורות · אחרון 2026-09-16T18:12:05Z | cowork | סגירת 1776
+GET /chat?key=…  (peek Render) 30 פריטים — זהה לקובץ המקומי, אין דריפט
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+```
+
+אין (א) · אין (ב) — **אפס עסקאות-לייב חדשות או סגורות מאז 21:01** · אין (ג) · אין (ד).
+
+### ניטור — פלט גולמי (Rule 5), נמדד 22:36-22:41
+
+```
+health     {"status":"ok","version":"v9.0.0"}
+מאזין      Python 97101 *:8000 (LISTEN) · STARTED Wed Sep 16 15:41:22 · ETIME 06:56:41
+שכבת-INFO  [boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr   ← pid תואם (ד0 עבר)
+בר         max(ts)=2026-09-16 22:35:00+03 · lag 3.1 דק' (≤10 ✓) · ייצואים mtime 22:38
+לוג        0 ERROR/CRITICAL ב-60 הדקות האחרונות
+```
+
+**פוזיציה-מול-TM — AGREED_FLAT, שאלת-ownership לא נדרשה:**
+
+```
+sierra_state  position_qty 0 · working_orders 0 · orders [] · order_placement_armed 1
+              send_orders_to_trade_service 1 · is_sim 0 · acct_trading_disabled 0
+              acct_under_margin 0 · acct_loss_limit_reached 0 · daily_pnl -98.75
+v9_trades     state ∉ (CLOSED,CANCELLED) → **0 שורות** — גם ה-PARTIAL-צל מ-22:06 נסגר
+gateway       live_slot=None (סלוט פנוי) · live_enabled_systems [2,4] · trades_today 3
+              consecutive_losses 0 · cooldown_active False · cluster_guard False · ssv veto False
+```
+
+**עסקאות-לייב היום — 3, כולן סגורות, אפס שינוי מאז 21:01:**
+
+```
+1712 OPENING_DRIVE     SHORT 09:40→09:46 ET  MAE_SCRATCH  UNPRICED
+1717 CEILING_FLIP_LONG LONG  09:50→10:13 ET  MAE_SCRATCH  UNPRICED
+1776 GHOST             LONG  13:45→14:01 ET  STOP_HIT     +46.25  WIN   (דווח 21:12)
+פקודה אחרונה בתור: #413 MODIFY_STOP ב-20:58:56 — אפס פקודות מאז
+```
+
+**מסלול-מחיר RTH (הקשר למי שיקרא את היום):** ‏74 ברים · first 7674 · last 7601.75 ·
+high 7699 · low 7575.25 — **מכירה חדה בשעה האחרונה**, טווח ~124 נק'. הפיד תקין
+(‏`live_price` 7602/bid 7601.75/ask 7602.00, mtime 22:38); הירידה אמיתית, לא דריפט-נתונים.
+
+**דיווח-בלבד, לא מקרה-(ג):** ‏`acct_available_funds 809.34 < 1,595` (T-34) — אבל
+`under_margin 0`, `trading_disabled 0`, ותקרת-ההפסד `-544.85` מול `-98.75` בפועל
+⇒ **אינו חוסם מסחר.** ‏`daily_total_qty_filled 16` מול ~12 של המערכת — החשבון משותף
+עם הידני (§3.5), לא ממצא.
+
+**פער-ספרים מוכר (לא חדש):** ‏`gateway.daily_pnl = +46.25` מול סיירה `-98.75` —
+שתי ה-MAE_SCRATCH נשארו `UNPRICED` בספרים. המספר הקביל הוא של סיירה, כפי שדווח
+בטלפון ב-17:13. אין כאן פעולה — רק אזהרה לא לצטט את הספרים כ-P&L-יום.
+
+**מסקנה:** הכל ירוק, 20 דק' אחרונות ל-RTH, אפס פעולה נדרשת. הריצה הבאה (23:00-23:30)
+היא תור-הלילה — תיבדק תחילה פעילות-cc לפני כל claim.
+
+— cowork-dev
