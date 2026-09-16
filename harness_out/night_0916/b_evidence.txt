@@ -1,0 +1,63 @@
+=== B1 smoke 2026-09-15 (rc=1, Traceback=1) ===
+[env_loader] applied 0 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+[env_loader] applied 0 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+[dry run] Analyzing session 2026-09-15...
+Traceback (most recent call last):
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 968, in <module>
+    main()
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 911, in main
+    data = analyze_session(session, verbose=True)
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 609, in analyze_session
+    day_type_final = (first_cc.get("day_type_final")
+AttributeError: 'list' object has no attribute 'get'
+
+=== B2 systematic probe: 4 further dates ===
+2026-06-10 => AttributeError: 'list' object has no attribute 'get'
+2026-07-15 => AttributeError: 'list' object has no attribute 'get'
+2026-08-12 => AttributeError: 'list' object has no attribute 'get'
+2026-09-11 => AttributeError: 'list' object has no attribute 'get'
+
+=== cross_context type census (all v9_trades) ===
+ cc_type | count 
+---------+-------
+ array   |  1627
+(1 row)
+
+=== session counts ===
+ rth_sessions 
+--------------
+           75
+(1 row)
+
+ sessions_with_trades | trades 
+----------------------+--------
+                   66 |   1585
+(1 row)
+
+=== metadata.blocked_by census (verified fix target) ===
+        blocked_by        |  n  
+--------------------------+-----
+ (null)                   | 950
+ dalton_intent:stand_down | 143
+ awaiting_release         | 128
+ dalton_intent:location   |  72
+ dalton_intent:kind       |  64
+ dalton_intent:bias       |  49
+ rr_entry_gate            |  38
+ eod_entry_cutoff         |  37
+ variation_mid_value      |  28
+ entry_location_quality   |  14
+ extreme_chase_guard      |  12
+ direction_compass        |  11
+ location_gate            |   9
+ daytype_playbook         |   9
+ cold_start_guard         |   7
+(15 rows)
+
+=== tests only inject empty dict ===
+183:            "cross_context": {},
+200:            "cross_context": {},
+216:            "cross_context": {},
+233:            "cross_context": {},
+=== classify_replay not wired ===
+0

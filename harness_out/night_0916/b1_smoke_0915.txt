@@ -1,0 +1,11 @@
+[env_loader] applied 0 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+[env_loader] applied 0 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+[dry run] Analyzing session 2026-09-15...
+Traceback (most recent call last):
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 968, in <module>
+    main()
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 911, in main
+    data = analyze_session(session, verbose=True)
+  File "/Users/michael/Downloads/mems26_web_git/scripts/gap_analysis.py", line 609, in analyze_session
+    day_type_final = (first_cc.get("day_type_final")
+AttributeError: 'list' object has no attribute 'get'
