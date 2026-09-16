@@ -334,3 +334,39 @@ psql … -c "select max(ts), now()-max(ts) from v9_bars_5min_woodies;"   # הק�
 ב-07.09 סיירה רצה, `live_price` היה טרי, **ובכל-זאת** ייצוא-ה-RTH (`5min.json`)
 היה תקוע על שישי ושער-הקליטה דחה כל אצווה ([[T-265]]). **חיוּת-תהליך · טריוּת-ייצוא ·
 קליטה-ל-DB הן שלוש שאלות נפרדות** — לענות על שלושתן לפני שמצהירים "הפיד תקין".
+
+### מלכודת 14 · `exit_ts IS NULL` **אינו** "עסקה פתוחה" — השדה הקובע הוא `state` (16.09)
+
+בבוקר 16.09 סגר `close_stale_shadow.py --apply` ‏26 עסקאות-צל תקועות (הן החזיקו את
+ה-TradeManager ב-55-80% CPU ו-1,000 שורות-לוג בדקה). שעתיים אחר-כך, אימות-צד עם
+`count(*) … where exit_ts is null` החזיר **57 שורות** — מספר שנראה בדיוק כמו חזרת-התקלה.
+
+**זה היה שקר-מדידה.** הפילוח הראה שכל 57 כבר סגורות:
+
+```bash
+psql … -c "select date(entry_ts), mode, state, exit_reason, count(*)
+           from v9_trades where exit_ts is null group by 1,2,3,4 order by 1 desc;"
+# 51 × shadow CLOSED STALE_UNRESOLVED   ·   6 × live CANCELLED (ORDER_FAILED / PHANTOM_*)
+python3 scripts/close_stale_shadow.py   # no stale shadow trades — nothing to do
+```
+
+**השורש הוא תכנוני, לא באג:** ‏`close_stale_shadow.py` סוגר **בלי תוצאה** בכוונה —
+`state=CLOSED · exit_reason=STALE_UNRESOLVED · exit_price=NULL · pnl=NULL`, וגם
+`exit_ts` נשאר ריק — כדי לא לייצר מנצח או מפסיד שלא היה (פסיקת-מייקל 28.07:
+"אתה לא לוקח נתונים או מציב נכונים"). שורות `CANCELLED` מעולם לא נכנסו לשוק ולכן
+גם להן אין `exit_ts`. שתי הקבוצות סגורות לחלוטין.
+
+**המדידה הקבילה — לפי `state`, כמו שהסקריפט עצמו עושה:**
+
+```bash
+psql … -c "select mode, state, count(*) from v9_trades
+           where state not in ('CLOSED','CANCELLED') group by 1,2;"   # ריק = אין פתוחות
+python3 scripts/close_stale_shadow.py    # dry-run; הוא הפוסק, לא שאילתת-exit_ts
+```
+
+**⚠️ מלכודת-TZ נלווית (אותה ריצה):** ‏`extract(epoch from (now() at time zone 'utc') - max(ts))`
+על עמודה **tz-aware** החזיר `-10786` — "הפיד שלוש שעות בעתיד". האמת:
+`max(ts)=12:10:00+03` מול `now()=12:10:27+03` ⇒ **הפיד בן 27 שניות.** החיסור ערבב
+naive-UTC עם aware-IDT. להשוות aware מול aware (`now()`), או `now() at time zone 'utc'`
+מול `max(ts) at time zone 'utc'` — לא לערבב. כלל-4 (TZ בקלט-מפרט) חל גם על
+שאילתות-האימות עצמן, לא רק על הקוד.
