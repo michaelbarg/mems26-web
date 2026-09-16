@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-16 IL] — **מקבץ-בוקר 16.09 משימה 2/2: T-368 System 6 stuck_trade → BE — DONE**
+
+`system6_supervisor.py`: stuck_trade + T0 filled + stop far from BE → AUTO MODIFY_STOP to BE. Idempotent (_s6_stuck_be_done). Never widens/FLATTEN/EXIT. Flag `S6_STUCK_TO_BE_V1=1` (.env, snapshot `T368-pre-env`). Test 8/8. Zero restart · zero position/slot/queue.
+
+---
+
 ## [cc-macbook · 2026-09-16 IL] — **מקבץ-בוקר 16.09 משימה 1/2: T-367 Variation with extension — DONE**
 
 `trading_gateway.py:1346-1426`: Rule B blocks mid_value on Variation; Rule A releases kind/location when IB broken in direction + zone ≠ mid_value + entry_kind ∈ {BREAK, PULLBACK}. Rule C via T-329 (line 1326, not modified). Flag `VARIATION_WITH_EXTENSION_V1=1` (`.env` edited, snapshot `T367-pre-env`). Test 9/9. Zero restart · zero position/slot/queue.

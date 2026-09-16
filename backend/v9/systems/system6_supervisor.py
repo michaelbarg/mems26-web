@@ -109,6 +109,8 @@ def diagnose_trade(
     # T16 — SYSTEM6_REVERSAL_TIGHTEN_V1: CVD-flip + ≥2 adverse closes after T1.
     # Conservative reversal signal computed by caller. Default False = byte-identical.
     cvd_reversal: bool = False,
+    # T-368 — S6_STUCK_TO_BE_V1: T0 already filled (first contract banked +3pt).
+    t0_hit: bool = False,
 ) -> SupervisorReport:
     """Pure diagnosis of one active trade. `trade` = {direction, entry_price,
     stop, t1, t2, t3, contracts}. Returns a SupervisorReport. Never raises on
@@ -223,6 +225,25 @@ def diagnose_trade(
                                 f"{bars_since_entry} bars since entry, progress {progress_pts:.2f}pt "
                                 f"< {stuck_progress_frac:.0%} of risk {_risk:.2f}pt — "
                                 f"consider tightening the stop"))
+            # T-368 (Michael 16.09): when stuck_trade AND T0 already filled
+            # AND stop is far from BE → MODIFY_STOP to BE. Once per trade
+            # (idempotent via _s6_stuck_be_done in trade metadata). Never
+            # widens, never FLATTEN, never op=EXIT. Protective only.
+            if (t0_hit
+                    and os.getenv("S6_STUCK_TO_BE_V1", "0").lower() in ("1", "true", "yes")
+                    and not trade.get("_s6_stuck_be_done")):
+                _be = _be_target(d, entry)
+                # Never widen: only move if current stop is farther from
+                # entry than BE (i.e. stop is worse than breakeven).
+                _stop_farther = (
+                    (d == "LONG" and stop < _be - 0.25)
+                    or (d == "SHORT" and stop > _be + 0.25))
+                if _stop_farther:
+                    issues.append(Issue("stuck_trade_to_be", WARN, AUTO,
+                                        f"T-368 stuck_trade + T0 filled → MODIFY_STOP to BE "
+                                        f"{_be:.2f} (was {stop:.2f})",
+                                        correction={"op": "MODIFY_STOP", "price": _be}))
+                    trade["_s6_stuck_be_done"] = True
 
     # 11. N4(a) — reversing leg on the runner: after T1, price action turns
     # against the still-open runner contract(s). Caller detects the reversal
@@ -334,6 +355,7 @@ def scan_active_trade(
     progress_pts: Optional[float] = None,
     runner_reversal: bool = False,
     cvd_reversal: bool = False,
+    t0_hit: bool = False,
 ) -> Optional[SupervisorReport]:
     """Diagnose the active trade, log loudly, and (if SYSTEM6_AUTOCORRECT and an
     executor is given) apply AUTO corrections. Returns None when disabled or flat.
@@ -350,7 +372,7 @@ def scan_active_trade(
         now_ct_min=now_ct_min,
         counter_signal_pre_t1=counter_signal_pre_t1, bars_since_entry=bars_since_entry,
         progress_pts=progress_pts, runner_reversal=runner_reversal,
-        cvd_reversal=cvd_reversal,
+        cvd_reversal=cvd_reversal, t0_hit=t0_hit,
     )
     for iss in report.alerts:
         logger.warning("[System6] %s ALERT: %s", iss.code, iss.detail)
