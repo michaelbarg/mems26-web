@@ -1,3 +1,87 @@
+## 🔵 [cowork-dev · 2026-09-16 22:06-22:12 IL] — **חובה-3 (ניטור-RTH עשירי) · הכל ירוק · שקט-טלפון** · 🆕 **מלכודת-15 מתועדת: `shadow_active_count` בפיד-הגייטוויי אינו מונה צל-פתוחות (13 מול 2 — תקין)**
+
+ריצת `22:06:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
+(‏`PID 97101` boot `Wed Sep 16 15:41:22 2026` + רשומות-cowork-dev `17:06`…`21:45`)
+⇒ **הבעלים תפוס: אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/גודל/פוזיציות/
+פקודות/`.env`/קוד.** הכתיבה היחידה בריצה: מסמכים (הקובץ הזה + רנבוק + לוח).
+
+### חובה-1 · טלפון — **אפס ממתינות ⇒ שקט מוחלט** (אפס הודעות נשלחו)
+
+מלכודת-12 נבדקה ראשונה (רלה חי לפני שמסיקים שקט):
+
+```
+launchctl print … com.mems26.mobile_relay → state = running · pid = 1857
+GET /instruction/pending?key=… → {"items":[]}      GET /cmd/pending?key=… → {"cmd":null}
+GET /chat?key=…                → 30 פריטים   (זהה ל-PHONE_THREAD.jsonl — אין דריפט)
+אחרון-מייקל  2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z  ⇒ אין ממתינה
+אחרון בפיד   2026-09-16T18:12:05Z | cowork | סגירת 1776 (נשלח ב-21:12)
+git pull → Already up to date      (HEAD d9320156)
+```
+
+אין (א) · אין (ב) — **אפס עסקאות-לייב חדשות או סגורות מאז 21:01** · אין (ג) · אין (ד).
+לפי כלל-הטלפון דוח-ניטור תקופתי אסור בטלפון ⇒ הוא כאן בלבד.
+
+### ניטור — ארבע הבדיקות, פלט גולמי (Rule 5)
+
+```
+health    curl /api/v9/health → {"status":"ok","version":"v9.0.0"}
+מאזין     Python 97101 *:8000 (LISTEN) · STARTED Wed Sep 16 15:41:22
+שכבת-INFO [boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr  ← pid תואם (ד0 עבר)
+בר        max(ts)=2026-09-16 22:10:00+03 · lag 0.7 דק'   (≤10 ✓)   ייצואים mtime 22:07
+```
+
+**פוזיציה-מול-TM — AGREED_FLAT, שאלת-ownership לא נדרשה:**
+
+```
+sierra_state  position_qty 0 · working_orders 0 · order_placement_armed 1 · is_sim 0
+              acct_trading_disabled 0 · acct_under_margin 0 · daily_pnl -98.75
+v9_trades     state ∉ (CLOSED,CANCELLED) → shadow PARTIAL ×1 בלבד · אפס live   ← המדידה הקבילה
+close_stale_shadow.py (dry-run) → "no stale shadow trades — nothing to do"
+```
+
+**עסקאות-לייב היום — 3, כולן סגורות, אפס שינוי מאז 21:01:**
+
+```
+1712 OPENING_DRIVE     SHORT 09:40→09:46 MAE_SCRATCH  UNPRICED
+1717 CEILING_FLIP_LONG LONG  09:50→10:13 MAE_SCRATCH  UNPRICED
+1776 GHOST             LONG  13:45→14:01 STOP_HIT     +46.25  WIN   (דווח 21:12)
+```
+
+**בריאות-מכונה (WARN-בלבד):** ‏**0** ‏ERROR/CRITICAL מ-21:45 · 1,906 שורות/26 דק'
+= **73/דק'** (מול 1,000/דק' בפתולוגיית-הבוקר) · CPU 5.6% · RSS 127MB יציב.
+‏`acct_available_funds 809.34 < 1,595` (T-34) — **דיווח-בלבד**: `under_margin 0`,
+‏`trading_disabled 0`, ו-3 עסקאות עברו היום בגודל 2 ⇒ **אינו חוסם, לא מקרה-(ג)**.
+
+### 🆕 הממצא היחיד — `shadow_active_count` **אינו** מספר הצל-הפתוחות (מלכודת-15)
+
+```
+GET /api/v9/gateway/status → "shadow_active_count": 13     מול     DB (state): 2 פתוחות
+trading_gateway.py:5282       "shadow_active_count": len(self.shadow_trades),
+trading_gateway.py:4756-4758  self.shadow_trades.append(…);  if len>500: [-300:]
+trading_gateway.py:886        # Do NOT append to shadow_trades (§3.4 — no feedback)
+```
+
+**ממצא:** ‏`shadow_trades` הוא **חוצץ-טבעת בזיכרון, append-only, נגזם ב-500→300,
+ולפחות נתיב אחד מדלג עליו בכוונה** — הוא סופר תת-קבוצה של צל-שנרשמו-מאז-הריסטארט,
+לא צל-פתוחות. הפער 13 מול 2 הוא **תקין ואינו דריפט.** אילו דיווחתי "11 צל תקועות"
+הייתי משחזר את בהלת-הבוקר של 16.09 על נתון-תצוגה — ומייצר מקרה-(ג) שווא בטלפון.
+
+**ראיה שהמערכת נקייה באמת:** ‏`close_stale_shadow` dry-run → `nothing to do`,
+ושתי הצל-הפתוחות (‏1793/1794, ‏15:05 ET) נכנסו **בריצה הזו** — אחת כבר נסגרה
+והשנייה ב-`PARTIAL` אחרי T1. צבירה תקינה, לא תקיעה.
+
+**תיקון:** תועד כ-**מלכודת 15** ב-`docs/runbooks/COWORK_DAILY_READ.md` (הקובץ
+שכל סוכן-cowork קורא בתחילת סשן) ⇒ לא יתגלה מחדש. **הצעה שלא בוצעה (RTH,
+שינוי-תצוגה בלבד):** שינוי-שם ל-`shadow_buffer_len`. אין דגל, אין קוד, אין סיכון-מסחר.
+
+**הכלל הרחב שנוסף:** מונה שנקרא `*_active_*` בפיד-תצוגה אינו ראיה עד שנקרא הקוד
+מאחוריו; ה-DB הוא מקור-האמת (‏`docs/SOURCE_OF_TRUTH.md`), `gateway/status` הוא תצוגה.
+
+**הצעד הבא:** ריצת-ניטור אחת-עשרה (‏RTH ננעל 23:00 IL, אין ריסטארט עד אז);
+ב-`15:30-16:10` מחר 17.09 — היומית המלאה + `close_stale_shadow` + `machine_health`.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 21:36-21:45 IL] — **חובה-3 (ניטור-RTH תשיעי) · הכל ירוק · שקט-טלפון** · 🟡 **ERROR יחיד `CLOSED -> CLOSED` ב-21:00:07 (‏1776 נסגרה נכון)** · ✅ **שתי "תקלות" שזיהיתי התבררו כמלכודות-מתועדות — לא דווחו כממצא**
 
 ריצת `21:36:52` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף

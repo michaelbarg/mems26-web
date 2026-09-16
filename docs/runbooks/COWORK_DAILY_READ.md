@@ -386,3 +386,39 @@ python3 scripts/close_stale_shadow.py    # dry-run; הוא הפוסק, לא שא
 naive-UTC עם aware-IDT. להשוות aware מול aware (`now()`), או `now() at time zone 'utc'`
 מול `max(ts) at time zone 'utc'` — לא לערבב. כלל-4 (TZ בקלט-מפרט) חל גם על
 שאילתות-האימות עצמן, לא רק על הקוד.
+
+
+### מלכודת 15 · `shadow_active_count` בפיד-הגייטוויי **אינו** מונה עסקאות-צל פתוחות (16.09)
+
+בניטור-RTH של 22:06 החזיר `GET /api/v9/gateway/status` את `"shadow_active_count": 13`
+בזמן שה-DB הראה **2** עסקאות-צל לא-סגורות. הפער נראה בדיוק כמו בק-לוג-הצל שהרים
+את הבקאנד ל-80% CPU באותו בוקר — ‏"11 תקועות" הוא בדיוק סוג-הממצא שנשלח לטלפון.
+
+**זה היה שקר-מדידה. השדה מודד דבר אחר לגמרי:**
+
+```bash
+grep -rn "shadow_active_count" backend/ --include=*.py
+# trading_gateway.py:5282   "shadow_active_count": len(self.shadow_trades),
+grep -n "shadow_trades" backend/v9/gateway/trading_gateway.py
+# 433   self.shadow_trades: List[Dict] = []
+# 886   # Do NOT append to shadow_trades (§3.4 — no feedback)   ← נתיב שמדלג בכוונה
+# 4756  self.shadow_trades.append(shadow_trade)
+# 4757  if len(self.shadow_trades) > 500:
+# 4758  self.shadow_trades = self.shadow_trades[-300:]          ← גיזום
+```
+
+‏`shadow_trades` הוא **חוצץ-טבעת בזיכרון, append-only, נגזם ב-500→300, ולפחות נתיב
+אחד מדלג עליו בכוונה.** הוא סופר תת-קבוצה של צל-שנרשמו-מאז-הריסטארט — לא פתוחות,
+ולא "מאז תחילת-היום" (ריסטארט מאפס אותו). הפער מול ה-DB הוא **תקין ולא דריפט**.
+
+**המדידה הקבילה — `state`, כמו במלכודת-14:**
+
+```bash
+psql … -c "select mode, state, count(*) from v9_trades
+           where state not in ('CLOSED','CANCELLED') group by 1,2;"
+python3 scripts/close_stale_shadow.py    # dry-run — הוא הפוסק
+```
+
+**הכלל הרחב:** מונה שנקרא `*_active_*` בפיד-תצוגה אינו ראיה עד שנקרא הקוד שמאחוריו.
+‏`gateway/status` הוא שכבת-תצוגה; ה-DB הוא מקור-האמת (‏`docs/SOURCE_OF_TRUTH.md`).
+**הצעה (לא בוצעה — RTH):** לשנות שם ל-`shadow_buffer_len` כדי שהשם יגיד מה הוא מודד.
