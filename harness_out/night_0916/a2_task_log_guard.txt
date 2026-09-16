@@ -1,0 +1,2 @@
+task_log_guard — 381 items, last committed 0.1 days ago
+✅ the task log is current, structured, and the only one

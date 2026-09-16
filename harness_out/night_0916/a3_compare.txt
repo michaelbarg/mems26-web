@@ -1,0 +1,11 @@
+
+===== session 2026-09-15 =====
+routes: baseline_len=70 new_len=70 IDENTICAL=True
+would_write: baseline_len=0 new_len=0 IDENTICAL=True
+
+===== session 2026-09-11 =====
+routes: baseline_len=78 new_len=78 IDENTICAL=True
+would_write: baseline_len=0 new_len=0 IDENTICAL=True
+
+==================================
+A3 VERDICT: IDENTICAL (zero behaviour change)

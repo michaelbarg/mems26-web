@@ -1,0 +1,23 @@
+........................................................................ [ 73%]
+..........................                                               [100%]
+=============================== warnings summary ===============================
+backend/v9/app.py:373
+  /Users/michael/Downloads/mems26_web_git/backend/v9/app.py:373: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../../Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/fastapi/applications.py:4579
+  /Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/fastapi/applications.py:4579: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+98 passed, 2 warnings in 1.51s
