@@ -1,3 +1,114 @@
+## 🟠 [cowork-dev · 2026-09-16 23:20 IL] — **CLAIM · תור-הלילה נתפס ע"י cowork: אפס פעילות-cc עד `23:20` ⇒ מבצע את הפריט-הפתוח היחיד — שער-הבטיחות על חמשת פריטי-cc + הרצת [[T-389]] `gap_analysis.py` על 85 הסשנים**
+
+ריצת `23:06:52` (`date`) ∈ `23:00-23:30` ⇒ **חובה-4 (תור-הלילה)**. חובה-2 (שער-יומי)
+וחובה-3 (ניטור-RTH) **אינן של הריצה הזו** — חלון-השער חלף ו-RTH נסגר `23:00`.
+
+### מבחן-הבעלות לפני ה-CLAIM (Rule 5, פלט גולמי)
+
+```
+date                                   2026-09-16 23:06:52 IDT  … re-check 23:20:16
+git pull --ff-only                     Already up to date   (×2: 23:06, 23:20)
+git log --since="2026-09-16 23:00"     9c41b56f|23:05|eod-handoff(מק-1): 2026-09-16 packet
+                                       └─ הקומיט היחיד מ-23:00+ — ו**הוא launchd + data-only**
+launchctl list | grep mems26           -   0   com.mems26.eod_handoff      ← המשימה שייצרה אותו
+git show --stat 9c41b56f               6 files, כולם docs/handoff/…/2026-09-16/ (trades/decisions/
+                                       fills/state/health) — אפס קוד, אפס תצורה
+head -1 docs/handoff/LIVE_CHANNEL.md   cowork-dev 22:06-22:12  ⇒ **אפס שורת-claim של cc**
+ps — claude-code sessions              25510 (23:06:39, ppid→Claude.app) = **הריצה הזו**
+                                       10646 (18:44:01, ppid→Claude.app, cwd=local-agent-mode-
+                                       sessions/…) = **cowork-האינטראקטיבי**, לא cc-macbook
+```
+
+**המסקנה:** ‏`eod_handoff` הוא **משימת-launchd שמייצרת נתונים**, לא סוכן שעובד על התור —
+בדיוק החריג שהכלל מוציא ("קומיטים טריים מ-23:00+ **שאינם launchd/data-only**").
+אפס שורת-claim, אפס סשן-cc. **⇒ התור פנוי, cowork תופס אותו ב-`23:20`.**
+
+### הפריט-הפתוח היחיד — הוא של cowork, וכתוב בהזמנה עצמה
+
+חמשת פריטי `CC_NOW_2026-09-16_TREE_BUILD.md` **בוצעו ע"י cc עד `17:14`** ומסומנים
+ב-`TASK_LOG` שורות `16`-`24`:
+
+```
+1b9fb6d7 16:37  T-396  shadow session closer                    test_shadow_session_close  6/6
+046fa563 16:53  T-390  SituationVector + v9_decision_vectors     test_situation_vector     24/24
+a6d68736 16:55  T-391  safe expr: evaluator                      test_condition_expr       28/28
+36613f1a 17:01  T-389  gap_analysis.py — נכתב, לא הורץ (RTH)      test_gap_analysis         24/24
+6e4994d1 17:14  T-392  draft tree v2 + shadow evaluator          test_dalton_tree          13/13
+```
+
+ההזמנה, §דיווח, מטילה את השארית על cowork במפורש: *"cowork מאמת הלילה בשער-הבטיחות
+ומריץ את `gap_analysis.py` על 85 הסשנים; הריסטארט שטוען T-390/T-391/T-396 הוא של
+cowork, **מחר לפני הפתיחה**, אחרי `Traceback=0` על 15.09+11.09."*
+⇒ **פריט אחד, שני חלקים:** (א) שער-בטיחות על עבודת-cc; (ב) הרצת ניתוח-הפער.
+
+### מה מבוצע — ומה במפורש לא
+
+| | |
+|---|---|
+| ✅ מבוצע | טסטי-cc מורצים מחדש ע"י cowork · `flag_guard` · `task_log_guard` · `fwd_harness` 15.09+11.09 מול בסיס-`t367` (`Traceback=0`, `routes`/`would_write` זהים) · `gap_analysis.py` על 85 סשנים ⇒ `harness_out/gap/gap_sessions.json` + `docs/reports/GAP_ANALYSIS_2026-09-17.md` |
+| ⛔ **לא** מבוצע | **אפס ריסטארט** (הריסטארט שטוען T-390/T-391/T-396 הוא של השער מחר, אחרי `Traceback=0`) · אפס `.env` · אפס הדלקת-דגל · אפס דגלי-גודל/`RISK_*` · אפס נגיעה בפוזיציות/סלוט/פקודות · אפס `op=EXIT` |
+
+### מצב-המערכת ברגע ה-CLAIM (נמדד, לא הונח)
+
+```
+health        {"status":"ok","version":"v9.0.0"}
+מאזין :8000   PID 97101 · STARTED Wed Sep 16 15:41:22 · etime 07:27 ⇒ אפס ריסטארט סמוי
+שכבת-INFO     [boot] logging OK level=INFO pid=97101 commit=8cfc061c   ← pid תואם (ד0 עבר)
+בר-SoT        max(ts)=2026-09-16 23:05:00+03 · lag 4.3 דק' (RTH נסגר 23:00 — תקין)
+sierra_state  age 0.8s · position_qty 0 · working_orders 0 · armed 1 · is_sim 0
+              trading_disabled 0 · under_margin 0 · loss_limit_reached 0
+              daily_pnl -98.75  ==  acct_daily_pl -98.75   ← תואמים (בניגוד ל-[[T-398]] הבוקר)
+v9_trades     state ∉ (CLOSED,CANCELLED) ⇒ shadow FILLED ×1 בלבד · אפס live   (מלכודת-14)
+close_stale_shadow (dry-run) ⇒ "no stale shadow trades — nothing to do"
+גודל          ruled_contracts()=2  ==  contracts_cfg=2 (התהליך החי)  == הפסיקה   (מלכודת-[[T-399]])
+guards        flag_guard rc=0 PASS 259 · task_log_guard rc=0 (381 items, 0.1 ימים)
+לוג           0 ERROR/CRITICAL מ-22:00 · 2,545 שורות/20 דק' = 127/דק' · CPU 5.1% · RSS 126MB
+ליגר          89 רשומות · oldest 13:30:03Z (=פתיחת-RTH) ⇒ **אין תקרת-200**, ההיסטוגרמה שלמה
+              stand_down 29 · variation_mid_value 28 · location 9 · bias 6 · rr_entry_gate 2
+```
+
+**עסקאות-לייב היום — 3, כולן סגורות, אפס שינוי מאז `21:01`:**
+
+```
+1712 OPENING_DRIVE     SHORT 16:40→16:46  MAE_SCRATCH  pnl NULL  UNPRICED
+1717 CEILING_FLIP_LONG LONG  16:50→17:13  MAE_SCRATCH  pnl NULL  UNPRICED
+1776 GHOST             LONG  20:45→21:01  STOP_HIT     +46.25    WIN   (דווח 21:12)
+יום לפי סיירה -98.75 · תקרת-ברוקר -544.85 (רחוקה)
+```
+
+### חובה-1 · טלפון — **אפס ממתינות ⇒ שקט מוחלט** (אפס הודעות נשלחו)
+
+מלכודת-12 נבדקה ראשונה (רלה חי לפני שמסיקים שקט):
+
+```
+launchctl print … com.mems26.mobile_relay → state = running · pid = 1857
+GET /chat?key=…                → 30 פריטים (זהה בדיוק לזנב PHONE_THREAD.jsonl — אין דריפט)
+GET /instruction/pending?key=…  → {"items":[]}      GET /cmd/pending?key=… → {"cmd":null}
+אחרון-מייקל  2026-09-16T10:43:05Z  — נענה ע"י cowork ב-11:09:29Z   ⇒ אין ממתינה
+אחרון בפיד   2026-09-16T18:12:05Z | cowork | סגירת 1776 (נשלח 21:12)
+```
+
+אין (א) · אין (ב) — **אפס עסקת-לייב חדשה/סגורה מאז `21:01`** · אין (ג) · אין (ד).
+דוח-EOD הוא דוח-ניטור תקופתי ⇒ **אסור בטלפון** ⇒ הוא כאן בלבד.
+
+### ⚠️ בריאות-מכונה — WARN, דיווח-בלבד, ומגביל את אופן-ההרצה
+
+```
+machine_health.py → WARN: unused RAM 131M < 400M — the Mac is compressing/swapping
+                    WARN: swap used 2462M > 500M
+trading stack: backend 126MB/5.1% · bridge 21MB · sierra 219MB/28.1% · postgres 608MB
+non-trading:   cowork-vm 2066MB · claude-app 1645MB · chrome 1298MB · claude-agents 580MB
+```
+
+**השלכה מבצעית שנלקחה:** ‏`gap_analysis.py` על 85 סשנים יורץ **בנתחים** (`--start/--end`)
+ולא כריצה אחת, עם מדידת-זיכרון בין נתחים. **אינו מקרה-(ג)** — השוק סגור, אפס פוזיציה,
+אפס פקודות ⇒ אין סיכון-מסחר, ואין מה לשאול את מייקל ב-23:20.
+
+**הבא:** ביצוע דרך סוכן-משנה (Rule-5 פלט-גולמי · קומיט-פר-סעיף · `git -C` תמיד ·
+בלי-הדלקות-שלא-נפסקו · NOT-DONE מפורש), ואז דוח-EOD חתום כאן.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 22:06-22:12 IL] — **חובה-3 (ניטור-RTH עשירי) · הכל ירוק · שקט-טלפון** · 🆕 **מלכודת-15 מתועדת: `shadow_active_count` בפיד-הגייטוויי אינו מונה צל-פתוחות (13 מול 2 — תקין)**
 
 ריצת `22:06:50` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף
