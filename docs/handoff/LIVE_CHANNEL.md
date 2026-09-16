@@ -4,6 +4,89 @@
 
 ---
 
+## 🔵 [cowork-dev · 2026-09-16 17:37-17:41 IL] — **חובה-3 (ניטור-RTH שלישי) · `1717` נסגר `17:13` MAE_SCRATCH ⇒ מקרה-(ב) נשלח · פוזיציה 0 · יום-סיירה `-$145`** · 🟡 **T-34: פנוי `$763.09` < `$1,595` — לא חוסם, דיווח בלבד**
+
+ריצת `17:36:54` (‏`date`) ∈ `16:30-23:00` ⇒ **חובה-3 בלבד.** חלון-השער חלף והבעלים
+תפוס (הודעת-שער `12:49:58Z` + רשומת-cowork-dev של `17:06` בקובץ הזה + `PID 97101`
+boot `Wed Sep 16 15:41:22`) ⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה
+בדגלים/גודל/פוזיציות/פקודות/`.env`/קוד.** הכתיבה היחידה: הקובץ הזה + הודעת-הטלפון.
+
+### חובה-1 · טלפון — אפס ממתינות-מייקל ⇒ אפס מקרה-(א)
+
+```
+GET /chat?key=…   30 פריטים — זהה לזנב PHONE_THREAD.jsonl ⇒ אין פער-דחיפה
+אחרון-מייקל       2026-09-16T10:43:05Z — נענה ע"י cowork ב-11:09:29Z ⇒ אין ממתינה
+```
+
+### 🔴 הממצא · `1717` **נסגר** — הדיווח הקודם (`14:09:58Z`) הותיר אותו פתוח
+
+```
+ id   | mode | pat               | dir  | state  | entry   | stop    | t1      | e_idt | x_idt | exit_reason | exit_price | pnl_usd | outcome
+ 1712 | live | OPENING_DRIVE     | SHORT| CLOSED | 7669.5  | 7680.5  | 7668.0  | 16:40 | 16:46 | MAE_SCRATCH | (null)     | (null)  | UNPRICED
+ 1717 | live | CEILING_FLIP_LONG | LONG | CLOSED | 7681.25 | 7668.75 | 7688.25 | 16:50 | 17:13 | MAE_SCRATCH | (null)     | (null)  | UNPRICED
+```
+
+`1717`: `stop_hit_ts=NULL · t1_hit_ts=NULL` ⇒ **יציאת-scratch, לא סטופ ולא יעד.**
+שרשרת-היציאה מאומתת מהלוג (‏`backend.err.log`, לא `backend.log`):
+
+```
+17:13:19 [WARNING] [sierra_command] COMMAND QUEUED #410 → cmd_000410.json (op=FLATTEN_ACCOUNT, pending_before=0)
+17:13:19 [INFO]    [exit_verifier] [ExitVerify] trade 1717 exit PENDING (mae_scratch) — books stay open until Sierra proves flat
+17:13:22 [INFO]    [exit_verifier] [ExitVerify] trade 1717 exit CONFIRMED flat after 3.2s (mae_scratch) — books closed
+```
+
+⇒ **מקרה-(ב), הודעה אחת** (289 תווים), נשלחה `14:40:39Z` תחת `sender="cowork"`
+(ארגומנט-מיקום, לא `--frm` — פגם-התצוגה של `12:49`), **אומתה ב-GET /chat ולא ב-`ok`**.
+
+🔎 `exit_price`/`pnl_usd` של **שתי** עסקאות-הלייב הם `NULL` (`UNPRICED`) ⇒ **לא הומצא
+מספר** (כלל-1). לטלפון נמסר `acct_daily_pl` מסיירה כמות-שהוא, עם המשפט "הספרים לא
+תמחרו". **פער-ספרים פתוח — לא חוסם-מסחר, מועמד לפריט-ערב.**
+
+### ייחוס-P&L — 8 fills, כולם שלנו (מלכודת 3.5 נסגרת)
+
+```
+daily_total_qty_filled = 8   ⇔  2 עסקאות-לייב × 2 חוזים × 2 צדדים = 8
+COMMAND QUEUED היום: #404 PLACE · #405 MODIFY_TARGET · #406-408 FLATTEN · #409 PLACE · #410 FLATTEN
+```
+
+⇒ אין fill זר ⇒ **`daily_pnl = -145.0` הוא של המערכת**, לא של מסחר-ידני.
+הדלתא מול `-67.5` שדווח ב-`17:09` (‏`-77.5`) עקבית עם `1717` בגודל 2 — **לא נכתבה
+כמספר-פר-עסקה** כי הספרים לא תמחרו.
+
+### פוזיציה-מול-TM — מסכימה, אפס אזעקת-בעלוּת
+
+```
+sierra_state (גיל 0.8s)                 v9_trades
+  position_qty          = 0        ⇔     live|FILLED/OPEN = 0  (שתיהן CLOSED)
+  working_orders        = 0        ⇔     סלוט פנוי
+  is_sim=0 · armed=1 · send_orders=1     acct_loss_limit_reached=0
+  acct_daily_pl         = -145.00        acct_daily_net_loss_limit = -544.85  (מרווח $399.85)
+  acct_under_margin=0 · acct_trading_disabled=0
+```
+
+### שערי-שפיות ובריאות
+
+```
+[boot] logging OK level=INFO pid=97101 commit=8cfc061c stream=stderr   ← ד0 עובר (pid == המאזין)
+/api/v9/health              {"status":"ok","version":"v9.0.0"}
+lsof :8000 LISTEN           Python 97101  (up Wed Sep 16 15:41:22, ‏%CPU 38.9)
+v9_bars_5min_woodies        max_ts 2026-09-16 17:35:00+03 · גיל 3.0 דק' ≤ 10 ✅
+v9_export mtime             17:37 (5min_continuous · cumulative_delta · tpo · reversal_cluster)
+ruled_contracts()           2      ← עם set -a; source .env; set +a — תואם פסיקת 16.09
+שורות ERROR/Traceback 16:00-17:37   0
+עסקאות-צל פתוחות מלפני היום        0   ← close_stale_shadow לא נדרש (נגד תקרית 16.09)
+```
+
+### 🟡 T-34 · מרג'ין — דיווח בלבד, **לא** מקרה-(ג)
+
+`acct_available_funds = $763.09` < סף `$1,595`. **אינו חוסם כרגע:** `acct_under_margin=0`,
+`acct_trading_disabled=0`, ושתי כניסות בגודל 2 **התמלאו בפועל** היום (`16:40`, `16:50`)
+כשהפנוי היה נמוך מזה. הפנוי עלה מ-`$241.83` (‏`17:10`, מרג'ין תפוס) ל-`$763.09` עם
+סגירת-הפוזיציה. **לא נשלחה הודעת-טלפון** — הכלל דורש חסימת-מסחר בפועל, ואין כזו.
+נשאר במעקב: אם `acct_under_margin` יעלה ל-1 או כניסה תידחה — זה הופך למקרה-(ג).
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-16 17:06-17:10 IL] — **חובה-3 (ניטור-RTH שני) · שתי עסקאות-לייב ראשונות של היום ⇒ מקרה-(ב) נשלח · פוזיציה-לייב פתוחה `LONG 2 @ 7681.25`** · 🟡 **T-34: פנוי `$241.83` < `$1,595` — לא חוסם, דיווח בלבד**
 
 ריצת `17:06:50` ∈ `16:30-23:00` ⇒ **חובה-3**. חלון-השער חלף והבעלים תפוס
