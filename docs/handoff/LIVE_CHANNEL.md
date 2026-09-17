@@ -1,3 +1,64 @@
+## 🟢 [cowork-dev · 2026-09-17 15:06-15:12 IL] — **ריצת-דלתא עשירית · חובה-1 בלבד (15:06 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק על הריסטארט-השלישי · ⚠️ מלכודת-שאילתה חדשה שכמעט ייצרה הודעת-טלפון שקרית**
+
+**מיקום-הריצה:** `list_scheduled_tasks` ⇒ `mems26-preopen-gate` cron `0,30 10-23`, `lastRunAt 2026-09-17T12:06:39Z` (=15:06 IL, הריצה הזו) · `nextRunAt 2026-09-17T12:35:56Z` (=15:35 IL). **הריצה הבאה (15:35) היא זו שנופלת בחלון-השער 15:30-16:10, לא זו.** אין `mems26-preopen-restart-1709` (רק 1009/1109/1509, כולם `enabled=false`) ⇒ חובה-2 אינה שייכת לריצה הזו.
+
+**חובה-1 — ארבעת הערוצים, peek ישיר מ-Render:**
+```
+/chat?key=            items=30 · senders: cowork 23 · מייקל 3 · cc 3 · --frm 1
+                      אחרון-מייקל 2026-09-16T10:43:05Z ("מה ההחלטות שעלי לקבל? האם אפשר שהוא יבצע?")
+                                 ⇒ נענה עניינית 2026-09-16T11:09:29Z (שתי נקודות-החלטה: דוח-הפער 17.09, עמוד-הענפים 20.09)
+                      אחרון-כלשהו 2026-09-16T18:12:05Z (cowork, סגירת GHOST) — אפס תנועה מאז, 21 שעות
+/instruction/pending  {"items":[]}
+/cmd/pending          {"cmd":null}
+/upload/pending       {"items":[]}
+PHONE_THREAD.jsonl    557 שורות — זהה לריצות 14:06 ו-14:36, אפס הודעות חדשות
+relay                 pid 1857 · STARTED Tue Sep 15 10:11:19 · ELAPSED 02-04:56:58 (חי)
+```
+⇒ **לא נשלחה הודעת-טלפון.** אין (א) הודעת-מייקל ללא מענה · אין (ב) עסקת-לייב שנפתחה/נסגרה היום · אין (ג) חריגה שדורשת החלטה · 15:06 אינו (ד) שער.
+
+**ניטור (קריאה-בלבד — אפס ריסטארט · אפס דגלים · אפס env · אפס פוזיציות/פקודות):**
+```
+backend      pid 62548 · STARTED Thu Sep 17 14:43:17 · ELAPSED 25:09 · RSS 113.9MB · health {"status":"ok","version":"v9.0.0"}
+             == הריסטארט השלישי-והאחרון של cowork-האינטראקטיבי (commit c16d5d19), חי ויציב 25 דק'
+פיד          v9_bars_5min_woodies max(ts)=2026-09-17 15:05:00+03 · lag 3.4 דק' ✓
+סיירה        sierra_state.json age 0.6s (טרי) · is_sim=0 · order_placement_armed=1 · last_price 7696.75
+פוזיציה      position_qty 0 · working_orders 0 · v9_trades state NOT IN (CLOSED,CANCELLED) ⇒ 0 בכל המודים
+עסקאות היום  17.09 (IL): live 0 · shadow 0 — טרם פתיחת RTH (15:08 IL = 08:08 ET; פתיחה 16:30 IL)
+             16.09: live 3 · shadow 89 (ET-date) — שלוש עסקאות-הלייב כולן CLOSED
+גודל         ruled_contracts() == 2 (עם set -a . ./.env) ✓ תואם פסיקת-16.09
+backend.err  /tmp/backend.err.log · 0 ERROR/CRITICAL ב-3000 השורות האחרונות · אחרון 15:08:47 (S1DayDir SHADOW חי)
+```
+
+**⚠️ מלכודת-שאילתה חדשה — `AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'` על `timestamptz` הוא הזזה-כפולה, והוא ייצר "live 1 היום" מדומה:**
+```
+שאילתה שגויה:  SELECT (entry_ts AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York')::date, mode, count(*) ...
+               ⇒ 2026-09-17|live|1 · 2026-09-17|shadow|34      ← פנטום
+בדיקת-השורות:  SELECT ... FROM v9_trades WHERE mode='live' AND entry_ts >= now() - interval '30 hours'
+               ⇒ 3 שורות בלבד, כולן CLOSED, כולן entry_il 2026-09-16 (GHOST 17:45, CEILING_FLIP 13:50, OPENING_DRIVE)
+שאילתה נכונה:  SELECT (entry_ts AT TIME ZONE 'America/New_York')::date, mode, count(*) ...
+               ⇒ 2026-09-16|live|3 · 2026-09-15|live|2 · 2026-09-14|live|2 · אפס שורות ל-17.09
+אימות נוסף:    mode='live' AND (entry_ts AT TIME ZONE 'Asia/Jerusalem')::date='2026-09-17'  ⇒ 0
+               mode='shadow' AND אותו תנאי                                                   ⇒ 0
+```
+`entry_ts` הוא `timestamptz`; `AT TIME ZONE 'UTC'` כבר מוריד אותו ל-naive-UTC, והשני מפרש את ה-naive **כניו-יורק** ומזיז שוב ⇒ תאריך מוקפץ קדימה. **זו בדיוק המלכודת שמייצרת הודעת-טלפון שקרית במקרה (ב)** — "עסקת-לייב נפתחה" על עסקה שנסגרה אתמול. נתפס ע"י משיכת השורות הגולמיות לפני כל אזעקה (Rule 2). התיקון: תמיד `AT TIME ZONE '<יעד>'` **פעם אחת** על `timestamptz`, ולעולם לא לשרשר דרך `'UTC'`.
+
+**⚠️ T-34 מרג'ין — ללא שינוי מ-14:45, דיווח-בלבד:**
+```
+acct_available_funds 798.14   (< סף 1,595 ⇒ שורת-LIVE_CHANNEL חובה)   · זהה למדידת 14:45
+acct_margin_req      0.0      (פוזיציה 0 ⇒ אין דרישה פעילה)
+acct_under_margin    0        · order_placement_armed 1 · acct_daily_pl 0.0
+```
+לא הופנה לטלפון — `under_margin=0`, חמוש, פוזיציה 0, טרם פתיחה; אינו חוסם-מסחר מוכח. **נשאר פתוח לשער-15:35: למדוד את דרישת-המרג'ין בפועל ל-2 חוזים מול 798.14 לפני GO** (מדידת-16.09: ~800 דרוש מול 908 פנוי ⇒ המרווח נמחק). אם יימצא חוסם — מקרה (ג).
+
+**בעלות-הריסטארט לשער-15:35 — של cowork-האינטראקטיבי, שני התנאים + הצהרה מפורשת:**
+```
+ps -p 62548 -o lstart  ⇒ Thu Sep 17 14:43:17 2026   (המאזין על :8000 עלה היום אחרי 12:00 ✓)
+LIVE_CHANNEL 17.09 14:38-14:50 ⇒ "הריסטארט השלישי והאחרון של היום — שער-15:30: לא להרים; GO אחד" ✓
+```
+⇒ **לריצת 15:35: אל תרים ריסטארט ואל תשלח GO/NO-GO** (T-369: שתי הודעות-שער = הצפה) — שורת-מדידה אחת בלבד כאן. קומיטי-cc של היום עד `de732195` (14:49, F7-F10 + gap v1) הם סקריפט-אופליין `scripts/gap_analysis.py` + `harness_out/` ואינם בנתיב-הריצה של הבקאנד ⇒ אינם מחייבים ריסטארט רביעי.
+
+**עבודה-בתהליך של סוכן אחר בעץ (לא נגעתי):** `M scripts/gap_analysis.py` · `M harness_out/gap/gap_sessions.json` · 19+ `?? docs/reports/postmortem/PM_*.md`. הקומיט שלי כולל **רק** `docs/handoff/LIVE_CHANNEL.md`.
+
 ## 🟢 [cowork-dev · 2026-09-17 14:38-14:50 IL] — **אימות-cowork ל-F1-F6 של cc + תיקון-שורש שלי ל-F4 · ריסטארט שלישי-ומסיים 14:43 (pid 62548 · commit c16d5d19 · פוזיציה 0 · fire_drill GO)**
 
 **cc (3 קומיטים 14:24-14:25, 655 שורות):** F1-F3 בסקריפט · F4 חיווט-ברים · F5 מיפוי TREE-DIFF + Rule A + שורות-Placeholder · F6 שתי שורות-טיוטה. 119 טסטים עוברים · compile ✓ · `.env` לא נגע.
