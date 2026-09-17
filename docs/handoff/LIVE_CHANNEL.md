@@ -1,3 +1,51 @@
+## 🟢 [cowork-dev · 2026-09-17 14:06-14:15 IL] — **ריצת-דלתא שמינית · חובה-1 בלבד (14:06 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק אחרי ריסטארט-14:02**
+
+**חובה-1 — ארבעת הערוצים, peek ישיר מ-Render (לא מהקובץ בלבד):**
+```
+/chat?key=            items=30 · senders: cowork 23 · מייקל 3 · cc 3 · --frm 1
+                      אחרון-מייקל 2026-09-16T10:43:05Z ("מה ההחלטות שעלי לקבל?") ⇒ נענה עניינית 11:09:29Z
+/instruction/pending  items=[] (0)
+/cmd/pending          {"cmd":null}
+/upload/pending       items=[] (0)
+PHONE_THREAD.jsonl    557 שורות — זהה לריצת 13:36, אפס הודעות חדשות
+relay pid 1857 ELAPSED 02-03:56:53 (חי)
+```
+⇒ **לא נשלחה הודעת-טלפון.** אין מקרה (א)/(ב)/(ג)/(ד): אין הודעת-מייקל ללא מענה · אין עסקת-לייב שנפתחה או נסגרה היום · אין חריגה שדורשת החלטה · 14:06 אינו שער-15:40.
+
+**ניטור (קריאה-בלבד — אפס ריסטארט, אפס דגלים, אפס env, אפס פוזיציות/פקודות):**
+```
+backend      pid 58880 · STARTED 14:02:34 (הריסטארט של cowork-האינטראקטיבי, commit 8eb2686f) · ELAPSED 05:38
+             health ok uptime_s 335 · RSS 111.7MB · v9_mounted true
+פיד          v9_bars_5min_woodies max(ts)=2026-09-17 14:05:00 IL · lag 3.4 דק' ✓
+סיירה        is_sim=0 · order_placement_armed=1 · age_s 0.6 (טרי)
+פוזיציה      position_qty 0 · working_orders 0 · TM: tm_open_trades 0 tm_net_qty 0 ⇒ "flat בשני הצדדים"
+             sierra_live_check verdict: 🟢 המערכת מזהה את סיירה תקין
+חשבון        avail 798.14 · margin_req 0.0 · under_margin 0 · acct_daily_pl 0.0 · loss_limit_reached 0
+עסקאות       היום 0 סגירות (day_n=0) · אתמול 16.09 live 3 / shadow 89 · פתוחות אמיתיות 0
+גודל         ruled_contracts() == 2 (עם set -a . ./.env) · .env גולמי FIXED_CONTRACTS_2=1 ✓ תואם פסיקה
+flag_guard   PASS — כל 259 הדגלים הפסוקים תואמים · BUDGET×MIN 225.0×3=675.0 ≤ CAP 800.0 ✓
+backend.err  0 ERROR/CRITICAL ב-3000 השורות האחרונות
+```
+
+**מלכודת שנתפסה היום (לתיעוד, כדי שלא תייצר אזעקת-שווא בריצה הבאה): `exit_ts IS NULL` אינו סמן-עסקה-פתוחה ב-`v9_trades`.**
+```
+שאילתה תמימה:  mode='shadow' AND exit_ts IS NULL          ⇒ 51 שורות (23 מהן 15.09) — נראה כמו "שורות-צל תקועות"
+הסמן האמיתי:   state NOT IN ('CLOSED','CANCELLED')        ⇒ 0 שורות בכל המודים
+פירוק:         כל 51 הן state=CLOSED · exit_reason=STALE_UNRESOLVED
+               (close_stale_shadow.py סוגר ב-state+exit_reason ומשאיר exit_ts ריק — כך בקוד, שורות 61/88-100)
+dry-run:       python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+```
+⇒ **אין בעיית-צל היום** (בניגוד ל-26 השורות של 16.09 שהרימו CPU ל-80%). לא הורץ `--apply`.
+
+**T-34 מרג'ין — דיווח בלבד, לא חוסם:** avail $798.14 < סף-הדיווח $1,595, אבל `margin_req 0.0` · `under_margin 0` · `armed 1`, והפסיקה היא 2 חוזים — אתמול שלוש עסקאות-לייב מולאו באותה יתרה. ⇒ שורה כאן בלבד, **אין מקרה (ג) בטלפון**.
+
+**שתי אזהרות-לוג שנבדקו ואינן חוסמות:**
+- `[bars_5min] TS-OFFSET-GATE: non-advancing batch 51203s old — stale re-push (pass but logged)` — על טבלת-הברים הישנה; מקור-האמת `v9_bars_5min_woodies` טרי (lag 3.4 דק'). תואם מפת-ה-SoT.
+- `[S2-CVD] insufficient coverage: 1/20 rows (min=18) — returning None (Rule 1)` — כשל-כן ולא ערך-מסונתז; תקין לפי Rule 1.
+- `daily_pnl` בשדה-סיירה מציג −98.75 = **הערך של אתמול** (גלגול-יום), בעוד `acct_daily_pl=0.0` ו-0 סגירות היום. אל תקרא את זה כהפסד-היום.
+
+**⛔ בעלות-הריסטארט נשארת אצל cowork-האינטראקטיבי** (ריסטארט 13:26 ו-14:02 היום, והוראה מפורשת בראש הערוץ). הריצה הזו לא הרימה ריסטארט ולא תשלח GO/NO-GO. הרישום הזה אינו מחליף את שער-15:30.
+
 ## 🟢 [cowork-dev · 2026-09-17 14:02 IL] — **ריסטארט-קדם-פתיחה (שני היום, טוען [[T-397]] שלב-D + [[T-367]] כבוי): pid 56123→58880 · commit 8eb2686f · פוזיציה 0 · חוזים בתהליך 2 · fire_drill 🟢 GO · Traceback 0 · backend 5.5% CPU**
 
 ```
