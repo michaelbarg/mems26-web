@@ -1539,55 +1539,14 @@ class TradingGateway:
                             _sv_dt_conf = float(_sv_conf_row["confidence"])
                     except Exception:
                         pass
-                    # T-390b: Wire bars to vector — get RTH bars from five_min_system
-                    _sv_bars_rth = None
-                    _sv_prior_bars = None
+                    # T-390b (cowork 17.09 14:50): bars for the vector come from one cached
+                    # DB read per 5-min bucket (situation_vector.load_bars_for_vector). CC's
+                    # F4 wiring read `five_min_system._cf_bars` — a local variable there, not
+                    # an attribute — so the vector stayed bar-less live. Fail-open.
+                    _sv_bars_rth, _sv_prior_bars = None, None
                     try:
-                        _sv_fms = self._system_registry.get("five_min_system")
-                        if _sv_fms and hasattr(_sv_fms, "_cf_bars"):
-                            from zoneinfo import ZoneInfo as _sv_ZI
-                            _sv_now_et = datetime.now(_sv_ZI("America/New_York"))
-                            _sv_today_str = _sv_now_et.strftime("%Y-%m-%d")
-                            # Filter _cf_bars to today's RTH (08:30-15:00 ET)
-                            _sv_all_bars = list(getattr(_sv_fms, "_cf_bars", []) or [])
-                            _sv_bars_rth = []
-                            for _sb in _sv_all_bars:
-                                _sb_ts = str(_sb.get("ts") or _sb.get("timestamp") or "")
-                                if _sv_today_str in _sb_ts:
-                                    _sv_bars_rth.append(_sb)
-                            if not _sv_bars_rth:
-                                _sv_bars_rth = None
-                    except Exception:
-                        pass
-                    try:
-                        # T-390b: Prior sessions bars — cached per date
-                        if not hasattr(self, "_PRIOR_CACHE"):
-                            self._PRIOR_CACHE = {}
-                        from zoneinfo import ZoneInfo as _sv_ZI2
-                        _sv_cache_date = datetime.now(_sv_ZI2("America/New_York")).strftime("%Y-%m-%d")
-                        if _sv_cache_date not in self._PRIOR_CACHE:
-                            from backend.v9.db.read import read_all as _sv_read_all
-                            _sv_prior_rows = _sv_read_all(
-                                "SELECT (ts AT TIME ZONE 'America/New_York')::date AS d, "
-                                "       open, high, low, close, volume "
-                                "FROM v9_bars_5min_woodies "
-                                "WHERE (ts AT TIME ZONE 'America/New_York')::date >= "
-                                "  ((:today)::date - INTERVAL '14 day')::date "
-                                "AND (ts AT TIME ZONE 'America/New_York')::date < (:today)::date "
-                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '08:30' "
-                                "AND (ts AT TIME ZONE 'America/New_York')::time <= '15:00' "
-                                "ORDER BY ts",
-                                {"today": _sv_cache_date}
-                            )
-                            # Group by date
-                            _sv_by_date = {}
-                            for _r in _sv_prior_rows:
-                                _rd = str(_r["d"])
-                                _sv_by_date.setdefault(_rd, []).append(dict(_r))
-                            _sv_prior_bars = list(_sv_by_date.values())[-10:]  # last 10 sessions
-                            self._PRIOR_CACHE[_sv_cache_date] = _sv_prior_bars
-                        else:
-                            _sv_prior_bars = self._PRIOR_CACHE[_sv_cache_date]
+                        from backend.v9.services.situation_vector import load_bars_for_vector as _sv_load_bars
+                        _sv_bars_rth, _sv_prior_bars = _sv_load_bars()
                     except Exception:
                         pass
                     # T-392b/F5: compute classification_prefix + pass direction/entry_kind

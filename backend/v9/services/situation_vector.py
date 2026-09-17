@@ -246,8 +246,13 @@ def _compute_vol_ratio(
         if cur_vol <= 0:
             return None
 
-        # Extract minute-of-day from ts
-        cur_minute = _minute_of_day(ts)
+        # Extract minute-of-day from the CLOSED bar itself (cowork 17.09 14:50):
+        # the decision timestamp is seconds into the next bar (18:53:07Z while
+        # the bar is 18:50:00Z), so keyed on `ts` no prior bar ever matched and
+        # vol_ratio was always None. Both sides are floored to the 5-min bucket.
+        cur_minute = _minute_of_day(str(current_bar.get("ts") or ts))
+        if cur_minute is not None:
+            cur_minute -= cur_minute % 5
         if cur_minute is None:
             return None
 
@@ -257,6 +262,8 @@ def _compute_vol_ratio(
             for bar in session_bars:
                 bar_ts = bar.get("ts") or bar.get("timestamp") or ""
                 bar_minute = _minute_of_day(str(bar_ts))
+                if bar_minute is not None:
+                    bar_minute -= bar_minute % 5
                 if bar_minute == cur_minute:
                     bv = float(bar.get("v") or bar.get("volume") or 0)
                     if bv > 0:
@@ -337,6 +344,71 @@ def _compute_atr_causal(bars_rth_today: Optional[List[Dict]]) -> Optional[float]
         return round(sum(tr14) / len(tr14), 4)
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Bars for the live vector (cowork 17.09 14:50, replaces the F4 wiring that
+# read `five_min_system._cf_bars` — a LOCAL variable in that module, never an
+# attribute — and a prior-sessions query that dropped `ts`, so vol_ratio /
+# bars_since_* / atr_causal stayed None live). One DB read per 5-minute
+# bucket, cached; closed bars only (ts <= now - 5 min); RTH 09:30-16:00 ET.
+# ---------------------------------------------------------------------------
+
+_BARS_CACHE: Dict[str, Any] = {"bucket": None, "today": None, "prior": None}
+_BARS_LOCK = threading.Lock()
+
+
+def load_bars_for_vector(now_utc: Optional[datetime] = None):
+    """Return (bars_rth_today, prior_sessions_bars) for compute_situation_vector.
+
+    Fail-open: any error → (None, None). Bars are dicts with ts (ISO UTC),
+    o/h/l/c/v so both key styles used by the helpers above resolve.
+    """
+    try:
+        now = now_utc or datetime.now(timezone.utc)
+        bucket = now.strftime("%Y-%m-%d %H:") + f"{(now.minute // 5) * 5:02d}"
+        with _BARS_LOCK:
+            if _BARS_CACHE["bucket"] == bucket:
+                return _BARS_CACHE["today"], _BARS_CACHE["prior"]
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT ts, (ts AT TIME ZONE 'America/New_York')::date AS d, "
+            "       open, high, low, close, volume "
+            "FROM v9_bars_5min_woodies "
+            "WHERE ts >= (:now)::timestamptz - INTERVAL '21 day' "
+            "  AND ts <= (:now)::timestamptz - INTERVAL '5 minute' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time <= '16:00' "
+            "ORDER BY ts",
+            {"now": now.isoformat()},
+        )
+        by_date: Dict[str, List[Dict]] = {}
+        for r in rows or []:
+            ts = r.get("ts")
+            ts_iso = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+            bar = {
+                "ts": ts_iso,
+                "o": r.get("open"), "h": r.get("high"), "l": r.get("low"),
+                "c": r.get("close"), "v": r.get("volume"),
+                "open": r.get("open"), "high": r.get("high"), "low": r.get("low"),
+                "close": r.get("close"), "volume": r.get("volume"),
+            }
+            by_date.setdefault(str(r.get("d")), []).append(bar)
+        dates = sorted(by_date)
+        # today = the ET date of `now`; prior = up to 10 sessions before it
+        try:
+            from zoneinfo import ZoneInfo
+            today_et = now.astimezone(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+        except Exception:
+            today_et = dates[-1] if dates else None
+        today_bars = by_date.get(today_et) or None
+        prior = [by_date[d] for d in dates if d < (today_et or "")][-10:] or None
+        with _BARS_LOCK:
+            _BARS_CACHE.update({"bucket": bucket, "today": today_bars, "prior": prior})
+        return today_bars, prior
+    except Exception as exc:
+        logger.warning("[SituationVector] load_bars_for_vector failed (fail-open): %s", exc)
+        return None, None
 
 
 # ---------------------------------------------------------------------------
