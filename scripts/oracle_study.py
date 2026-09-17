@@ -18,7 +18,10 @@ Method (no producers, no gates — bars, volume, delta only):
 Sessions flagged SUSPECT/ROLL by the gap report are excluded. Read-only; ~5s.
 Run:  python3 scripts/oracle_study.py            (writes harness_out/oracle/oracle_v0.json)
 """
-from backend.env_loader import load_dotenv_file; load_dotenv_file('.env')
+import os, sys
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT); os.chdir(ROOT)
+from backend.env_loader import load_dotenv_file; load_dotenv_file(os.path.join(ROOT, '.env'))
 from backend.v9.db.read import read_all
 import collections, statistics, json, os
 bars = read_all("""select b.ts, (b.ts at time zone 'Asia/Jerusalem')::date d, (b.ts at time zone 'Asia/Jerusalem')::time t,
