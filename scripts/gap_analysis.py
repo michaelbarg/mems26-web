@@ -287,11 +287,20 @@ def load_session_trades(session_date: str) -> List[Dict]:
         cc = d.get("cross_context")
         if isinstance(cc, str):
             try:
-                d["cross_context"] = json.loads(cc)
+                cc = json.loads(cc)
             except (json.JSONDecodeError, TypeError):
-                d["cross_context"] = {}
+                cc = {}
         elif cc is None:
-            d["cross_context"] = {}
+            cc = {}
+        # T-389: cross_context is persisted as a 1-element LIST of snapshots
+        # (verified 17.09: jsonb_typeof = array on 1627/1627 rows, 0 objects).
+        # Every consumer below assumes a dict, so unwrap once, here, at the
+        # single parse site. Empty list -> {} (honest miss, not a synthesis).
+        if isinstance(cc, list):
+            cc = cc[0] if (cc and isinstance(cc[0], dict)) else {}
+        if not isinstance(cc, dict):
+            cc = {}
+        d["cross_context"] = cc
         # Normalize entry_ts for IL time
         d["entry_ts"] = d.pop("entry_ts_il", d.get("entry_ts"))
         d["entry_price"] = float(d["entry_price"]) if d.get("entry_price") else None
@@ -484,19 +493,18 @@ def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
             if entry_il is None:
                 continue
             if t_start <= entry_il <= cutoff_il:
-                cc = trade.get("cross_context", {})
-                blocked_by = cc.get("blocked_by")
+                blocked_by = _blocked_by(trade.get("cross_context", {}))
                 if blocked_by:
                     blocked_trades.append(trade)
 
         if blocked_trades:
             t = blocked_trades[0]
-            cc = t.get("cross_context", {})
+            blocked_by = _blocked_by(t.get("cross_context", {}))
             return {
-                "status": f"BLOCKED:{cc.get('blocked_by', 'unknown')}",
+                "status": f"BLOCKED:{blocked_by or 'unknown'}",
                 "trade_id": t.get("id"),
                 "model_result": None,
-                "blocked_by": cc.get("blocked_by"),
+                "blocked_by": blocked_by,
                 "details": f"blocked at {_trade_entry_il(t)}"
             }
 
@@ -545,6 +553,40 @@ def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
 
 # ===== Loss vector extraction =====
 
+def _blocked_by(cc: Dict) -> Optional[str]:
+    """Why the gateway refused this setup.
+
+    T-389 (verified 17.09): ``blocked_by`` sits at ``metadata.blocked_by`` on
+    635 rows and at the element top level on 0 — the script read the top level,
+    so the BLOCKED branch never fired and every blocked setup was silently
+    reported as NO_SETUP. Top level is kept as a fallback, not a source.
+    """
+    if not isinstance(cc, dict):
+        return None
+    meta = cc.get("metadata")
+    if isinstance(meta, dict) and meta.get("blocked_by"):
+        return meta["blocked_by"]
+    return cc.get("blocked_by")
+
+
+def _day_type_block(cc: Dict) -> Dict:
+    """The day-type machine snapshot inside a cross_context element.
+
+    T-389 (verified 17.09): the key ``day_type_final`` exists in 0/1627 rows —
+    the script was reading a key that was never written. The canonical live
+    classification is ``systems.day_type_machine`` (per CLAUDE.md SoT map).
+    Returns {} when absent; callers fall back to the ``day_type_at_entry``
+    column. Nothing is synthesized.
+    """
+    if not isinstance(cc, dict):
+        return {}
+    systems = cc.get("systems")
+    if not isinstance(systems, dict):
+        return {}
+    dtm = systems.get("day_type_machine")
+    return dtm if isinstance(dtm, dict) else {}
+
+
 def extract_loss_vector(trade: Dict) -> Optional[Dict]:
     """For a live loss, extract the entry vector."""
     if trade.get("mode") != "live":
@@ -553,11 +595,14 @@ def extract_loss_vector(trade: Dict) -> Optional[Dict]:
         return None
 
     cc = trade.get("cross_context", {})
+    dtm = _day_type_block(cc)
     return {
         "trade_id": trade.get("id"),
-        "day_type": cc.get("day_type_final") or trade.get("day_type_at_entry"),
-        "day_type_conf": cc.get("day_type_confidence"),
-        "opening_type": cc.get("opening_type"),
+        "day_type": (dtm.get("day_type")
+                     or cc.get("day_type_final")
+                     or trade.get("day_type_at_entry")),
+        "day_type_conf": dtm.get("confidence") or cc.get("day_type_confidence"),
+        "opening_type": dtm.get("opening_type") or cc.get("opening_type"),
         "zone": cc.get("zone"),
         "extension": cc.get("extension"),
         "bars_since_extreme": cc.get("bars_since_extreme"),
@@ -606,9 +651,11 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
     opening_type = None
     if trades:
         first_cc = trades[0].get("cross_context", {})
-        day_type_final = (first_cc.get("day_type_final")
+        first_dtm = _day_type_block(first_cc)
+        day_type_final = (first_dtm.get("day_type")
+                          or first_cc.get("day_type_final")
                           or trades[0].get("day_type_at_entry"))
-        opening_type = first_cc.get("opening_type")
+        opening_type = first_dtm.get("opening_type") or first_cc.get("opening_type")
 
     # Live P&L through fixed evaluation model
     live_trades = [t for t in trades if t.get("mode") == "live"]

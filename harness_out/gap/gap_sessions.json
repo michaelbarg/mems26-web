@@ -1,0 +1,6641 @@
+[
+  {
+    "session": "2026-06-01",
+    "bar_count": 8,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 47.0,
+    "session_high": 7687.0,
+    "session_low": 7640.0,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 10.54,
+    "zigzag_threshold": 10.54,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "22:30",
+        "start_price": 7640.0,
+        "end_price": 7687.0,
+        "pts": 47.0,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 1,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:30",
+        "t_end": "22:55",
+        "start_price": 7687.0,
+        "end_price": 7670.0,
+        "pts": 17.0,
+        "direction": "DOWN",
+        "start_idx": 1,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 2,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-02",
+    "bar_count": 0,
+    "trade_count": 0,
+    "range_pts": 0.0,
+    "day_type_final": null,
+    "opening_type": null,
+    "captured_live_usd": 0.0,
+    "captured_live_pts": 0.0,
+    "moves": [],
+    "loss_vectors": [],
+    "skipped": true
+  },
+  {
+    "session": "2026-06-05",
+    "bar_count": 38,
+    "trade_count": 3,
+    "live_trade_count": 0,
+    "range_pts": 173.0,
+    "session_high": 7552.75,
+    "session_low": 7379.75,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 11.31,
+    "zigzag_threshold": 11.31,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "18:35",
+        "t_end": "21:45",
+        "start_price": 7503.75,
+        "end_price": 7410.25,
+        "pts": 93.5,
+        "direction": "DOWN",
+        "start_idx": 16,
+        "end_idx": 32,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:05",
+        "t_end": "22:15",
+        "start_price": 7415.75,
+        "end_price": 7379.75,
+        "pts": 36.0,
+        "direction": "DOWN",
+        "start_idx": 34,
+        "end_idx": 36,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 13,
+        "model_result": {
+          "n": 5,
+          "total_pts": 23.25,
+          "total_usd": 116.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "22:10",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "22:10",
+              "pts": 3.75
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "22:10",
+              "pts": 7.5
+            },
+            {
+              "contract": 3,
+              "event": "T3",
+              "bar_il": "22:10",
+              "pts": 11.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 22:05"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:45",
+        "start_price": 7552.75,
+        "end_price": 7517.5,
+        "pts": 35.25,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 3,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 13,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-08",
+    "bar_count": 53,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 73.0,
+    "session_high": 7476.75,
+    "session_low": 7403.75,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 7.92,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "18:20",
+        "t_end": "18:30",
+        "start_price": 7473.75,
+        "end_price": 7440.75,
+        "pts": 33.0,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 13,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:35",
+        "start_price": 7429.0,
+        "end_price": 7459.5,
+        "pts": 30.5,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:05",
+        "t_end": "22:25",
+        "start_price": 7434.0,
+        "end_price": 7403.75,
+        "pts": 30.25,
+        "direction": "DOWN",
+        "start_idx": 48,
+        "end_idx": 52,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 34,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-09",
+    "bar_count": 79,
+    "trade_count": 2,
+    "live_trade_count": 0,
+    "range_pts": 306.75,
+    "session_high": 7553.75,
+    "session_low": 7247.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 15.43,
+    "zigzag_threshold": 15.43,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:20",
+        "t_end": "17:40",
+        "start_price": 7497.25,
+        "end_price": 7405.5,
+        "pts": 91.75,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:40",
+        "t_end": "17:50",
+        "start_price": 7434.25,
+        "end_price": 7367.75,
+        "pts": 66.5,
+        "direction": "DOWN",
+        "start_idx": 14,
+        "end_idx": 16,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:20",
+        "t_end": "18:30",
+        "start_price": 7388.5,
+        "end_price": 7326.0,
+        "pts": 62.5,
+        "direction": "DOWN",
+        "start_idx": 22,
+        "end_idx": 24,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 57,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-10",
+    "bar_count": 79,
+    "trade_count": 3,
+    "live_trade_count": 0,
+    "range_pts": 199.5,
+    "session_high": 7466.5,
+    "session_low": 7267.0,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 28.0,
+    "zigzag_threshold": 28.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "22:40",
+        "t_end": "23:00",
+        "start_price": 7442.0,
+        "end_price": 7267.0,
+        "pts": 175.0,
+        "direction": "DOWN",
+        "start_idx": 74,
+        "end_idx": 78,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:40",
+        "t_end": "21:25",
+        "start_price": 7298.75,
+        "end_price": 7442.0,
+        "pts": 143.25,
+        "direction": "UP",
+        "start_idx": 50,
+        "end_idx": 59,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:45",
+        "t_end": "18:50",
+        "start_price": 7409.0,
+        "end_price": 7305.25,
+        "pts": 103.75,
+        "direction": "DOWN",
+        "start_idx": 27,
+        "end_idx": 28,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 12,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-11",
+    "bar_count": 79,
+    "trade_count": 34,
+    "live_trade_count": 0,
+    "range_pts": 156.75,
+    "session_high": 7419.75,
+    "session_low": 7263.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 12.8,
+    "zigzag_threshold": 12.8,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "20:20",
+        "t_end": "20:30",
+        "start_price": 7272.0,
+        "end_price": 7371.5,
+        "pts": 99.5,
+        "direction": "UP",
+        "start_idx": 46,
+        "end_idx": 48,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "17:00",
+        "start_price": 7397.0,
+        "end_price": 7314.5,
+        "pts": 82.5,
+        "direction": "DOWN",
+        "start_idx": 4,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:35",
+        "t_end": "17:55",
+        "start_price": 7320.25,
+        "end_price": 7270.25,
+        "pts": 50.0,
+        "direction": "DOWN",
+        "start_idx": 13,
+        "end_idx": 17,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 36,
+        "model_result": {
+          "n": 2,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:35"
+      }
+    ],
+    "all_moves_count": 57,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-12",
+    "bar_count": 79,
+    "trade_count": 23,
+    "live_trade_count": 0,
+    "range_pts": 95.75,
+    "session_high": 7524.75,
+    "session_low": 7429.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 8.1,
+    "zigzag_threshold": 8.1,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:50",
+        "t_end": "18:00",
+        "start_price": 7452.75,
+        "end_price": 7509.75,
+        "pts": 57.0,
+        "direction": "UP",
+        "start_idx": 16,
+        "end_idx": 18,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:45",
+        "t_end": "17:50",
+        "start_price": 7450.5,
+        "end_price": 7497.5,
+        "pts": 47.0,
+        "direction": "UP",
+        "start_idx": 15,
+        "end_idx": 16,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:35",
+        "t_end": "18:45",
+        "start_price": 7518.75,
+        "end_price": 7473.5,
+        "pts": 45.25,
+        "direction": "DOWN",
+        "start_idx": 25,
+        "end_idx": 27,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 63,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-15",
+    "bar_count": 79,
+    "trade_count": 26,
+    "live_trade_count": 0,
+    "range_pts": 50.5,
+    "session_high": 7648.75,
+    "session_low": 7598.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.19,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:30",
+        "t_end": "18:30",
+        "start_price": 7610.0,
+        "end_price": 7636.0,
+        "pts": 26.0,
+        "direction": "UP",
+        "start_idx": 12,
+        "end_idx": 24,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 97,
+        "model_result": {
+          "n": 5,
+          "total_pts": -24.0,
+          "total_usd": -120.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "17:35",
+              "pts": -6.0
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "17:35",
+              "pts": -6.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "17:35",
+              "pts": -6.0
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:35",
+              "pts": -6.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:30"
+      },
+      {
+        "t_start": "18:30",
+        "t_end": "19:00",
+        "start_price": 7626.5,
+        "end_price": 7648.75,
+        "pts": 22.25,
+        "direction": "UP",
+        "start_idx": 24,
+        "end_idx": 30,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:25",
+        "t_end": "21:30",
+        "start_price": 7645.5,
+        "end_price": 7625.5,
+        "pts": 20.0,
+        "direction": "DOWN",
+        "start_idx": 47,
+        "end_idx": 60,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 21,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-16",
+    "bar_count": 79,
+    "trade_count": 30,
+    "live_trade_count": 0,
+    "range_pts": 55.25,
+    "session_high": 7636.5,
+    "session_low": 7581.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 6.47,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "20:55",
+        "t_end": "22:15",
+        "start_price": 7611.5,
+        "end_price": 7584.75,
+        "pts": 26.75,
+        "direction": "DOWN",
+        "start_idx": 53,
+        "end_idx": 69,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 142,
+        "model_result": {
+          "n": 5,
+          "total_pts": -0.75,
+          "total_usd": -3.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "21:20",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "21:20",
+              "pts": -0.25
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "21:20",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "21:20",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 21:15"
+      },
+      {
+        "t_start": "17:10",
+        "t_end": "17:20",
+        "start_price": 7634.25,
+        "end_price": 7613.0,
+        "pts": 21.25,
+        "direction": "DOWN",
+        "start_idx": 8,
+        "end_idx": 10,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:30",
+        "start_price": 7625.25,
+        "end_price": 7604.0,
+        "pts": 21.25,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 12,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 124,
+        "model_result": {
+          "n": 5,
+          "total_pts": 20.43,
+          "total_usd": 102.15,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:30",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:30",
+              "pts": 6.5600000000004
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "17:30",
+              "pts": 13.1200000000008
+            },
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "17:35",
+              "pts": -0.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:25"
+      }
+    ],
+    "all_moves_count": 32,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-17",
+    "bar_count": 79,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 132.0,
+    "session_high": 7604.25,
+    "session_low": 7472.25,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 18.05,
+    "zigzag_threshold": 18.05,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "22:10",
+        "t_end": "22:35",
+        "start_price": 7551.5,
+        "end_price": 7472.25,
+        "pts": 79.25,
+        "direction": "DOWN",
+        "start_idx": 68,
+        "end_idx": 73,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:55",
+        "t_end": "21:05",
+        "start_price": 7590.0,
+        "end_price": 7513.75,
+        "pts": 76.25,
+        "direction": "DOWN",
+        "start_idx": 53,
+        "end_idx": 55,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "21:40",
+        "t_end": "21:55",
+        "start_price": 7584.25,
+        "end_price": 7531.5,
+        "pts": 52.75,
+        "direction": "DOWN",
+        "start_idx": 62,
+        "end_idx": 65,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 24,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-18",
+    "bar_count": 79,
+    "trade_count": 26,
+    "live_trade_count": 0,
+    "range_pts": 46.25,
+    "session_high": 7581.75,
+    "session_low": 7535.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 6.79,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7581.75,
+        "end_price": 7537.0,
+        "pts": 44.75,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 147,
+        "model_result": {
+          "n": 5,
+          "total_pts": 30.75,
+          "total_usd": 153.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "16:40",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "16:40",
+              "pts": 10.0
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "16:40",
+              "pts": 20.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:35"
+      },
+      {
+        "t_start": "17:15",
+        "t_end": "17:20",
+        "start_price": 7539.0,
+        "end_price": 7566.25,
+        "pts": 27.25,
+        "direction": "UP",
+        "start_idx": 9,
+        "end_idx": 10,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:30",
+        "start_price": 7566.25,
+        "end_price": 7541.25,
+        "pts": 25.0,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 41,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-19",
+    "bar_count": 42,
+    "trade_count": 12,
+    "live_trade_count": 0,
+    "range_pts": 14.5,
+    "session_high": 7568.5,
+    "session_low": 7554.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.47,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:00",
+        "t_end": "18:05",
+        "start_price": 7554.0,
+        "end_price": 7568.5,
+        "pts": 14.5,
+        "direction": "UP",
+        "start_idx": 6,
+        "end_idx": 19,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 176,
+        "model_result": {
+          "n": 5,
+          "total_pts": -9.75,
+          "total_usd": -48.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "17:20",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "17:20",
+              "pts": -3.25
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "17:20",
+              "pts": -3.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:20",
+              "pts": -3.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:15"
+      },
+      {
+        "t_start": "19:45",
+        "t_end": "19:55",
+        "start_price": 7567.75,
+        "end_price": 7554.75,
+        "pts": 13.0,
+        "direction": "DOWN",
+        "start_idx": 39,
+        "end_idx": 41,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 184,
+        "model_result": {
+          "n": 5,
+          "total_pts": -4.0,
+          "total_usd": -20.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "19:55",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "19:55",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "19:55",
+              "pts": -2.0
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "19:55",
+              "pts": -2.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 19:50"
+      },
+      {
+        "t_start": "18:05",
+        "t_end": "18:40",
+        "start_price": 7568.5,
+        "end_price": 7558.25,
+        "pts": 10.25,
+        "direction": "DOWN",
+        "start_idx": 19,
+        "end_idx": 26,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 5,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-22",
+    "bar_count": 79,
+    "trade_count": 19,
+    "live_trade_count": 0,
+    "range_pts": 72.0,
+    "session_high": 7599.25,
+    "session_low": 7527.25,
+    "day_type_final": "Nontrend",
+    "opening_type": null,
+    "atr14": 6.66,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:25",
+        "start_price": 7591.0,
+        "end_price": 7560.5,
+        "pts": 30.5,
+        "direction": "DOWN",
+        "start_idx": 9,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:25",
+        "t_end": "17:30",
+        "start_price": 7574.75,
+        "end_price": 7545.75,
+        "pts": 29.0,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:45",
+        "t_end": "19:00",
+        "start_price": 7559.25,
+        "end_price": 7532.0,
+        "pts": 27.25,
+        "direction": "DOWN",
+        "start_idx": 27,
+        "end_idx": 30,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 203,
+        "model_result": {
+          "n": 5,
+          "total_pts": -1.0,
+          "total_usd": -5.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "18:55",
+              "pts": -0.25
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "18:55",
+              "pts": -0.25
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "18:55",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "18:55",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:50"
+      }
+    ],
+    "all_moves_count": 47,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-23",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 0,
+    "range_pts": 76.25,
+    "session_high": 7491.25,
+    "session_low": 7415.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 8.77,
+    "zigzag_threshold": 8.77,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:40",
+        "t_end": "16:55",
+        "start_price": 7430.75,
+        "end_price": 7466.25,
+        "pts": 35.5,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 5,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7415.0,
+        "end_price": 7446.75,
+        "pts": 31.75,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "21:00",
+        "t_end": "21:40",
+        "start_price": 7461.25,
+        "end_price": 7433.0,
+        "pts": 28.25,
+        "direction": "DOWN",
+        "start_idx": 54,
+        "end_idx": 62,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 46,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-24",
+    "bar_count": 79,
+    "trade_count": 14,
+    "live_trade_count": 0,
+    "range_pts": 92.5,
+    "session_high": 7496.5,
+    "session_low": 7404.0,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 11.77,
+    "zigzag_threshold": 11.77,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "22:50",
+        "t_end": "23:00",
+        "start_price": 7411.0,
+        "end_price": 7451.25,
+        "pts": 40.25,
+        "direction": "UP",
+        "start_idx": 76,
+        "end_idx": 78,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:40",
+        "start_price": 7436.5,
+        "end_price": 7473.5,
+        "pts": 37.0,
+        "direction": "UP",
+        "start_idx": 10,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:40",
+        "t_end": "17:55",
+        "start_price": 7457.5,
+        "end_price": 7494.25,
+        "pts": 36.75,
+        "direction": "UP",
+        "start_idx": 14,
+        "end_idx": 17,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 48,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-25",
+    "bar_count": 79,
+    "trade_count": 1,
+    "live_trade_count": 0,
+    "range_pts": 100.5,
+    "session_high": 7490.5,
+    "session_low": 7390.0,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 11.52,
+    "zigzag_threshold": 11.52,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:35",
+        "t_end": "16:45",
+        "start_price": 7477.0,
+        "end_price": 7410.5,
+        "pts": 66.5,
+        "direction": "DOWN",
+        "start_idx": 1,
+        "end_idx": 3,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:10",
+        "start_price": 7392.25,
+        "end_price": 7454.5,
+        "pts": 62.25,
+        "direction": "UP",
+        "start_idx": 6,
+        "end_idx": 8,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:55",
+        "start_price": 7444.0,
+        "end_price": 7390.0,
+        "pts": 54.0,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 5,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 49,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-26",
+    "bar_count": 79,
+    "trade_count": 6,
+    "live_trade_count": 0,
+    "range_pts": 99.25,
+    "session_high": 7459.25,
+    "session_low": 7360.0,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 13.98,
+    "zigzag_threshold": 13.98,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "22:45",
+        "t_end": "22:55",
+        "start_price": 7432.25,
+        "end_price": 7369.75,
+        "pts": 62.5,
+        "direction": "DOWN",
+        "start_idx": 75,
+        "end_idx": 77,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:55",
+        "t_end": "17:20",
+        "start_price": 7384.0,
+        "end_price": 7436.25,
+        "pts": 52.25,
+        "direction": "UP",
+        "start_idx": 5,
+        "end_idx": 10,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:15",
+        "t_end": "18:35",
+        "start_price": 7409.5,
+        "end_price": 7453.75,
+        "pts": 44.25,
+        "direction": "UP",
+        "start_idx": 21,
+        "end_idx": 25,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 25,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-29",
+    "bar_count": 79,
+    "trade_count": 3,
+    "live_trade_count": 0,
+    "range_pts": 96.0,
+    "session_high": 7505.0,
+    "session_low": 7409.0,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.33,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:55",
+        "t_end": "17:05",
+        "start_price": 7480.75,
+        "end_price": 7435.25,
+        "pts": 45.5,
+        "direction": "DOWN",
+        "start_idx": 5,
+        "end_idx": 7,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:30",
+        "start_price": 7421.5,
+        "end_price": 7465.75,
+        "pts": 44.25,
+        "direction": "UP",
+        "start_idx": 10,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:05",
+        "t_end": "17:15",
+        "start_price": 7450.75,
+        "end_price": 7409.0,
+        "pts": 41.75,
+        "direction": "DOWN",
+        "start_idx": 7,
+        "end_idx": 9,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 36,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-06-30",
+    "bar_count": 79,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 72.0,
+    "session_high": 7567.75,
+    "session_low": 7495.75,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 5.47,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "18:00",
+        "t_end": "20:00",
+        "start_price": 7519.75,
+        "end_price": 7559.5,
+        "pts": 39.75,
+        "direction": "UP",
+        "start_idx": 18,
+        "end_idx": 42,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "17:00",
+        "start_price": 7505.75,
+        "end_price": 7532.75,
+        "pts": 27.0,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:40",
+        "t_end": "16:50",
+        "start_price": 7499.25,
+        "end_price": 7522.0,
+        "pts": 22.75,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 23,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-01",
+    "bar_count": 79,
+    "trade_count": 9,
+    "live_trade_count": 0,
+    "range_pts": 73.0,
+    "session_high": 7579.0,
+    "session_low": 7506.0,
+    "day_type_final": "Normal",
+    "opening_type": null,
+    "atr14": 5.87,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:50",
+        "t_end": "17:05",
+        "start_price": 7519.0,
+        "end_price": 7546.5,
+        "pts": 27.5,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 7,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:00",
+        "t_end": "18:30",
+        "start_price": 7552.25,
+        "end_price": 7578.5,
+        "pts": 26.25,
+        "direction": "UP",
+        "start_idx": 18,
+        "end_idx": 24,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:50",
+        "t_end": "23:00",
+        "start_price": 7552.5,
+        "end_price": 7529.0,
+        "pts": 23.5,
+        "direction": "DOWN",
+        "start_idx": 76,
+        "end_idx": 78,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 27,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-02",
+    "bar_count": 79,
+    "trade_count": 11,
+    "live_trade_count": 0,
+    "range_pts": 114.25,
+    "session_high": 7594.0,
+    "session_low": 7479.75,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 8.34,
+    "zigzag_threshold": 8.34,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "18:00",
+        "t_end": "18:05",
+        "start_price": 7559.25,
+        "end_price": 7522.25,
+        "pts": 37.0,
+        "direction": "DOWN",
+        "start_idx": 18,
+        "end_idx": 19,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:30",
+        "start_price": 7588.75,
+        "end_price": 7555.25,
+        "pts": 33.5,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7551.75,
+        "end_price": 7583.5,
+        "pts": 31.75,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 58,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-03",
+    "bar_count": 42,
+    "trade_count": 1,
+    "live_trade_count": 0,
+    "range_pts": 12.5,
+    "session_high": 7561.75,
+    "session_low": 7549.25,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 2.49,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:50",
+        "t_end": "17:40",
+        "start_price": 7549.25,
+        "end_price": 7561.75,
+        "pts": 12.5,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:50",
+        "start_price": 7559.25,
+        "end_price": 7549.25,
+        "pts": 10.0,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:40",
+        "t_end": "19:30",
+        "start_price": 7561.75,
+        "end_price": 7553.5,
+        "pts": 8.25,
+        "direction": "DOWN",
+        "start_idx": 14,
+        "end_idx": 36,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 3,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-06",
+    "bar_count": 79,
+    "trade_count": 3,
+    "live_trade_count": 0,
+    "range_pts": 50.0,
+    "session_high": 7602.25,
+    "session_low": 7552.25,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 4.25,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "20:40",
+        "t_end": "22:20",
+        "start_price": 7575.0,
+        "end_price": 7602.25,
+        "pts": 27.25,
+        "direction": "UP",
+        "start_idx": 50,
+        "end_idx": 70,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:05",
+        "t_end": "20:40",
+        "start_price": 7594.75,
+        "end_price": 7575.0,
+        "pts": 19.75,
+        "direction": "DOWN",
+        "start_idx": 43,
+        "end_idx": 50,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:40",
+        "t_end": "16:50",
+        "start_price": 7555.25,
+        "end_price": 7574.0,
+        "pts": 18.75,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 19,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-07",
+    "bar_count": 79,
+    "trade_count": 8,
+    "live_trade_count": 2,
+    "range_pts": 58.25,
+    "session_high": 7587.75,
+    "session_low": 7529.5,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 6.07,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -1.5,
+    "captured_live_usd": -7.5,
+    "moves": [
+      {
+        "t_start": "17:00",
+        "t_end": "17:10",
+        "start_price": 7570.25,
+        "end_price": 7547.5,
+        "pts": 22.75,
+        "direction": "DOWN",
+        "start_idx": 6,
+        "end_idx": 8,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "21:45",
+        "t_end": "22:00",
+        "start_price": 7566.25,
+        "end_price": 7545.5,
+        "pts": 20.75,
+        "direction": "DOWN",
+        "start_idx": 63,
+        "end_idx": 66,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7587.75,
+        "end_price": 7569.25,
+        "pts": 18.5,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 39,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-08",
+    "bar_count": 79,
+    "trade_count": 7,
+    "live_trade_count": 1,
+    "range_pts": 67.25,
+    "session_high": 7536.5,
+    "session_low": 7469.25,
+    "day_type_final": "Variation",
+    "opening_type": null,
+    "atr14": 6.91,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "19:35",
+        "t_end": "20:30",
+        "start_price": 7499.5,
+        "end_price": 7536.5,
+        "pts": 37.0,
+        "direction": "UP",
+        "start_idx": 37,
+        "end_idx": 48,
+        "status": "FIRED_LIVE",
+        "trade_id": 310,
+        "model_result": {
+          "n": 3,
+          "total_pts": 0.75,
+          "total_usd": 3.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "19:45",
+              "pts": 0.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 19:40"
+      },
+      {
+        "t_start": "18:50",
+        "t_end": "19:25",
+        "start_price": 7474.5,
+        "end_price": 7510.0,
+        "pts": 35.5,
+        "direction": "UP",
+        "start_idx": 28,
+        "end_idx": 35,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:25",
+        "t_end": "17:35",
+        "start_price": 7519.75,
+        "end_price": 7497.25,
+        "pts": 22.5,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 13,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 40,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-09",
+    "bar_count": 79,
+    "trade_count": 5,
+    "live_trade_count": 1,
+    "range_pts": 65.5,
+    "session_high": 7595.0,
+    "session_low": 7529.5,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.73,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7530.25,
+        "end_price": 7559.25,
+        "pts": 29.0,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:20",
+        "t_end": "20:45",
+        "start_price": 7566.5,
+        "end_price": 7595.0,
+        "pts": 28.5,
+        "direction": "UP",
+        "start_idx": 22,
+        "end_idx": 51,
+        "status": "FIRED_LIVE",
+        "trade_id": 333,
+        "model_result": {
+          "n": 5,
+          "total_pts": 0.75,
+          "total_usd": 3.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "18:50",
+              "pts": 0.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 18:45"
+      },
+      {
+        "t_start": "17:50",
+        "t_end": "18:20",
+        "start_price": 7546.75,
+        "end_price": 7574.75,
+        "pts": 28.0,
+        "direction": "UP",
+        "start_idx": 16,
+        "end_idx": 22,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 21,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-10",
+    "bar_count": 79,
+    "trade_count": 23,
+    "live_trade_count": 4,
+    "range_pts": 75.0,
+    "session_high": 7627.25,
+    "session_low": 7552.25,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 3.54,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -2.75,
+    "captured_live_usd": -13.75,
+    "moves": [
+      {
+        "t_start": "17:25",
+        "t_end": "17:30",
+        "start_price": 7603.5,
+        "end_price": 7552.25,
+        "pts": 51.25,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:30",
+        "t_end": "17:40",
+        "start_price": 7552.25,
+        "end_price": 7595.0,
+        "pts": 42.75,
+        "direction": "UP",
+        "start_idx": 12,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:45",
+        "t_end": "22:50",
+        "start_price": 7587.75,
+        "end_price": 7627.25,
+        "pts": 39.5,
+        "direction": "UP",
+        "start_idx": 27,
+        "end_idx": 76,
+        "status": "FIRED_LIVE",
+        "trade_id": 344,
+        "model_result": {
+          "n": 5,
+          "total_pts": 4.25,
+          "total_usd": 21.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "19:15",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "19:15",
+              "pts": 3.5
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 19:10"
+      }
+    ],
+    "all_moves_count": 18,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-13",
+    "bar_count": 79,
+    "trade_count": 10,
+    "live_trade_count": 3,
+    "range_pts": 59.0,
+    "session_high": 7610.5,
+    "session_low": 7551.5,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 6.04,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -35.5,
+    "captured_live_usd": -177.5,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:15",
+        "start_price": 7604.75,
+        "end_price": 7573.0,
+        "pts": 31.75,
+        "direction": "DOWN",
+        "start_idx": 9,
+        "end_idx": 9,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:15",
+        "t_end": "17:30",
+        "start_price": 7573.0,
+        "end_price": 7604.0,
+        "pts": 31.0,
+        "direction": "UP",
+        "start_idx": 9,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:10",
+        "t_end": "19:35",
+        "start_price": 7589.25,
+        "end_price": 7560.0,
+        "pts": 29.25,
+        "direction": "DOWN",
+        "start_idx": 32,
+        "end_idx": 37,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 364,
+        "model_result": {
+          "n": 5,
+          "total_pts": 26.25,
+          "total_usd": 131.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "19:20",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "19:20",
+              "pts": 4.25
+            },
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "19:25",
+              "pts": 8.5
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "19:25",
+              "pts": 12.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 19:15"
+      }
+    ],
+    "all_moves_count": 36,
+    "loss_vectors": [
+      {
+        "trade_id": 366,
+        "day_type": "Variation",
+        "day_type_conf": 0.26,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7570.75,
+        "stop": 7570.5,
+        "pnl_usd": -1.25
+      },
+      {
+        "trade_id": 368,
+        "day_type": "Variation",
+        "day_type_conf": 0.26,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7575.5,
+        "stop": 7570.0,
+        "pnl_usd": -82.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-14",
+    "bar_count": 79,
+    "trade_count": 5,
+    "live_trade_count": 1,
+    "range_pts": 47.75,
+    "session_high": 7604.25,
+    "session_low": 7556.5,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 4.3,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -24.0,
+    "captured_live_usd": -120.0,
+    "moves": [
+      {
+        "t_start": "17:20",
+        "t_end": "17:30",
+        "start_price": 7568.0,
+        "end_price": 7604.25,
+        "pts": 36.25,
+        "direction": "UP",
+        "start_idx": 10,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:30",
+        "t_end": "17:30",
+        "start_price": 7604.25,
+        "end_price": 7575.0,
+        "pts": 29.25,
+        "direction": "DOWN",
+        "start_idx": 12,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:50",
+        "t_end": "18:00",
+        "start_price": 7575.25,
+        "end_price": 7600.25,
+        "pts": 25.0,
+        "direction": "UP",
+        "start_idx": 16,
+        "end_idx": 18,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 33,
+    "loss_vectors": [
+      {
+        "trade_id": 372,
+        "day_type": "Variation",
+        "day_type_conf": 0.26,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7597.25,
+        "stop": 7591.25,
+        "pnl_usd": -90.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-15",
+    "bar_count": 60,
+    "trade_count": 11,
+    "live_trade_count": 5,
+    "range_pts": 48.0,
+    "session_high": 7619.75,
+    "session_low": 7571.75,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.12,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -21.25,
+    "captured_live_usd": -106.25,
+    "moves": [
+      {
+        "t_start": "18:55",
+        "t_end": "19:45",
+        "start_price": 7579.5,
+        "end_price": 7611.0,
+        "pts": 31.5,
+        "direction": "UP",
+        "start_idx": 29,
+        "end_idx": 39,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:40",
+        "t_end": "18:45",
+        "start_price": 7571.75,
+        "end_price": 7593.5,
+        "pts": 21.75,
+        "direction": "UP",
+        "start_idx": 26,
+        "end_idx": 27,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:30",
+        "t_end": "18:00",
+        "start_price": 7608.5,
+        "end_price": 7587.0,
+        "pts": 21.5,
+        "direction": "DOWN",
+        "start_idx": 12,
+        "end_idx": 18,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 23,
+    "loss_vectors": [
+      {
+        "trade_id": 377,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7600.75,
+        "stop": 7606.25,
+        "pnl_usd": -82.5
+      },
+      {
+        "trade_id": 381,
+        "day_type": "Variation",
+        "day_type_conf": 0.5,
+        "opening_type": "OPEN_AUCTION_OUT",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7612.25,
+        "stop": 7616.0,
+        "pnl_usd": -56.25
+      },
+      {
+        "trade_id": 385,
+        "day_type": "Trend_DD",
+        "day_type_conf": 0.38,
+        "opening_type": "OPEN_AUCTION_OUT",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7618.0,
+        "stop": 7615.25,
+        "pnl_usd": -37.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-16",
+    "bar_count": 65,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 66.5,
+    "session_high": 7614.75,
+    "session_low": 7548.25,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 7.26,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "21:45",
+        "t_end": "21:50",
+        "start_price": 7548.25,
+        "end_price": 7568.5,
+        "pts": 20.25,
+        "direction": "UP",
+        "start_idx": 63,
+        "end_idx": 64,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:20",
+        "t_end": "20:40",
+        "start_price": 7586.5,
+        "end_price": 7568.25,
+        "pts": 18.25,
+        "direction": "DOWN",
+        "start_idx": 46,
+        "end_idx": 50,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:25",
+        "t_end": "19:40",
+        "start_price": 7597.5,
+        "end_price": 7579.5,
+        "pts": 18.0,
+        "direction": "DOWN",
+        "start_idx": 35,
+        "end_idx": 38,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 35,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-17",
+    "bar_count": 78,
+    "trade_count": 9,
+    "live_trade_count": 2,
+    "range_pts": 54.5,
+    "session_high": 7539.0,
+    "session_low": 7484.5,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_TEST_DRIVE",
+    "atr14": 5.54,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 5.25,
+    "captured_live_usd": 26.25,
+    "moves": [
+      {
+        "t_start": "20:55",
+        "t_end": "21:25",
+        "start_price": 7512.0,
+        "end_price": 7486.25,
+        "pts": 25.75,
+        "direction": "DOWN",
+        "start_idx": 53,
+        "end_idx": 59,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "21:55",
+        "t_end": "22:10",
+        "start_price": 7509.25,
+        "end_price": 7484.5,
+        "pts": 24.75,
+        "direction": "DOWN",
+        "start_idx": 65,
+        "end_idx": 68,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:50",
+        "t_end": "20:25",
+        "start_price": 7521.5,
+        "end_price": 7497.75,
+        "pts": 23.75,
+        "direction": "DOWN",
+        "start_idx": 40,
+        "end_idx": 47,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 47,
+    "loss_vectors": [
+      {
+        "trade_id": 396,
+        "day_type": "Normal",
+        "day_type_conf": 0.67,
+        "opening_type": "OPEN_TEST_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7519.5,
+        "stop": 7525.0,
+        "pnl_usd": -78.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-20",
+    "bar_count": 78,
+    "trade_count": 14,
+    "live_trade_count": 2,
+    "range_pts": 75.5,
+    "session_high": 7552.25,
+    "session_low": 7476.75,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.01,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -39.0,
+    "captured_live_usd": -195.0,
+    "moves": [
+      {
+        "t_start": "16:45",
+        "t_end": "16:50",
+        "start_price": 7552.25,
+        "end_price": 7526.25,
+        "pts": 26.0,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "17:00",
+        "start_price": 7542.5,
+        "end_price": 7517.5,
+        "pts": 25.0,
+        "direction": "DOWN",
+        "start_idx": 4,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:30",
+        "t_end": "18:40",
+        "start_price": 7531.5,
+        "end_price": 7508.0,
+        "pts": 23.5,
+        "direction": "DOWN",
+        "start_idx": 24,
+        "end_idx": 26,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 42,
+    "loss_vectors": [
+      {
+        "trade_id": 420,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.35,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7508.75,
+        "stop": 7514.0,
+        "pnl_usd": -82.5
+      },
+      {
+        "trade_id": 424,
+        "day_type": "Normal",
+        "day_type_conf": 0.25,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7510.5,
+        "stop": 7515.0,
+        "pnl_usd": -42.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-21",
+    "bar_count": 71,
+    "trade_count": 21,
+    "live_trade_count": 7,
+    "range_pts": 33.25,
+    "session_high": 7554.25,
+    "session_low": 7521.0,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.37,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -36.0,
+    "captured_live_usd": -180.0,
+    "moves": [
+      {
+        "t_start": "17:05",
+        "t_end": "18:55",
+        "start_price": 7521.5,
+        "end_price": 7554.25,
+        "pts": 32.75,
+        "direction": "UP",
+        "start_idx": 7,
+        "end_idx": 29,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:40",
+        "t_end": "16:45",
+        "start_price": 7521.0,
+        "end_price": 7536.5,
+        "pts": 15.5,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 3,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "17:00",
+        "start_price": 7536.5,
+        "end_price": 7521.5,
+        "pts": 15.0,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 7,
+    "loss_vectors": [
+      {
+        "trade_id": 439,
+        "day_type": "Variation",
+        "day_type_conf": 0.33,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7523.25,
+        "stop": 7531.25,
+        "pnl_usd": -77.5
+      },
+      {
+        "trade_id": 445,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7550.25,
+        "stop": 7552.0,
+        "pnl_usd": -30.0
+      },
+      {
+        "trade_id": 449,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7548.75,
+        "stop": 7550.5,
+        "pnl_usd": -26.25
+      },
+      {
+        "trade_id": 452,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7546.0,
+        "stop": 7549.5,
+        "pnl_usd": -52.5
+      },
+      {
+        "trade_id": 456,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7545.5,
+        "stop": 7547.25,
+        "pnl_usd": -30.0
+      },
+      {
+        "trade_id": 458,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7547.0,
+        "stop": 7545.25,
+        "pnl_usd": -17.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-22",
+    "bar_count": 57,
+    "trade_count": 13,
+    "live_trade_count": 2,
+    "range_pts": 34.25,
+    "session_high": 7563.0,
+    "session_low": 7528.75,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.48,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -46.75,
+    "captured_live_usd": -233.75,
+    "moves": [
+      {
+        "t_start": "16:55",
+        "t_end": "17:25",
+        "start_price": 7533.75,
+        "end_price": 7559.5,
+        "pts": 25.75,
+        "direction": "UP",
+        "start_idx": 5,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:15",
+        "t_end": "21:10",
+        "start_price": 7563.0,
+        "end_price": 7542.25,
+        "pts": 20.75,
+        "direction": "DOWN",
+        "start_idx": 21,
+        "end_idx": 44,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:55",
+        "start_price": 7528.75,
+        "end_price": 7542.5,
+        "pts": 13.75,
+        "direction": "UP",
+        "start_idx": 3,
+        "end_idx": 5,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 7,
+    "loss_vectors": [
+      {
+        "trade_id": 460,
+        "day_type": "Variation",
+        "day_type_conf": 0.75,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7535.0,
+        "stop": 7540.5,
+        "pnl_usd": -67.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-23",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 2,
+    "range_pts": 68.0,
+    "session_high": 7486.5,
+    "session_low": 7418.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 9.33,
+    "zigzag_threshold": 9.33,
+    "captured_live_pts": -81.0,
+    "captured_live_usd": -405.0,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7444.75,
+        "end_price": 7486.5,
+        "pts": 41.75,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:00",
+        "t_end": "22:10",
+        "start_price": 7456.25,
+        "end_price": 7425.75,
+        "pts": 30.5,
+        "direction": "DOWN",
+        "start_idx": 66,
+        "end_idx": 68,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 494,
+        "model_result": {
+          "n": 5,
+          "total_pts": -7.75,
+          "total_usd": -38.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "22:10",
+              "pts": 0.75
+            },
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "22:20",
+              "pts": -4.25
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "22:20",
+              "pts": -4.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 22:05"
+      },
+      {
+        "t_start": "21:45",
+        "t_end": "21:55",
+        "start_price": 7418.5,
+        "end_price": 7447.75,
+        "pts": 29.25,
+        "direction": "UP",
+        "start_idx": 63,
+        "end_idx": 65,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 39,
+    "loss_vectors": [
+      {
+        "trade_id": 479,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.38,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7423.5,
+        "stop": 7434.5,
+        "pnl_usd": -161.25
+      },
+      {
+        "trade_id": 481,
+        "day_type": "Variation",
+        "day_type_conf": null,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7425.25,
+        "stop": 7434.5,
+        "pnl_usd": -138.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-24",
+    "bar_count": 78,
+    "trade_count": 15,
+    "live_trade_count": 2,
+    "range_pts": 65.25,
+    "session_high": 7496.5,
+    "session_low": 7431.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 5.43,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "17:35",
+        "t_end": "17:40",
+        "start_price": 7437.5,
+        "end_price": 7492.0,
+        "pts": 54.5,
+        "direction": "UP",
+        "start_idx": 13,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:30",
+        "t_end": "20:25",
+        "start_price": 7480.75,
+        "end_price": 7448.75,
+        "pts": 32.0,
+        "direction": "DOWN",
+        "start_idx": 36,
+        "end_idx": 47,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:55",
+        "start_price": 7457.5,
+        "end_price": 7431.25,
+        "pts": 26.25,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 5,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 41,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-27",
+    "bar_count": 79,
+    "trade_count": 17,
+    "live_trade_count": 3,
+    "range_pts": 98.0,
+    "session_high": 7514.25,
+    "session_low": 7416.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 6.37,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -17.25,
+    "captured_live_usd": -86.25,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:25",
+        "start_price": 7473.75,
+        "end_price": 7439.5,
+        "pts": 34.25,
+        "direction": "DOWN",
+        "start_idx": 9,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:25",
+        "t_end": "17:35",
+        "start_price": 7456.75,
+        "end_price": 7428.75,
+        "pts": 28.0,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 13,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 533,
+        "model_result": {
+          "n": 3,
+          "total_pts": 19.5,
+          "total_usd": 97.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:30",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:30",
+              "pts": 6.25
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "17:30",
+              "pts": 12.5
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:25"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:55",
+        "start_price": 7500.0,
+        "end_price": 7473.75,
+        "pts": 26.25,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 5,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 529,
+        "model_result": {
+          "n": 1,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:45"
+      }
+    ],
+    "all_moves_count": 49,
+    "loss_vectors": [
+      {
+        "trade_id": 545,
+        "day_type": "Variation",
+        "day_type_conf": 0.5,
+        "opening_type": "OPEN_AUCTION_OUT",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7424.5,
+        "stop": 7430.5,
+        "pnl_usd": -90.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-28",
+    "bar_count": 73,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 68.75,
+    "session_high": 7485.75,
+    "session_low": 7417.0,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 4.95,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "17:20",
+        "t_end": "17:25",
+        "start_price": 7421.0,
+        "end_price": 7476.75,
+        "pts": 55.75,
+        "direction": "UP",
+        "start_idx": 10,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:35",
+        "t_end": "16:45",
+        "start_price": 7448.5,
+        "end_price": 7417.0,
+        "pts": 31.5,
+        "direction": "DOWN",
+        "start_idx": 1,
+        "end_idx": 3,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:50",
+        "start_price": 7417.0,
+        "end_price": 7439.25,
+        "pts": 22.25,
+        "direction": "UP",
+        "start_idx": 3,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 31,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-29",
+    "bar_count": 79,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 139.0,
+    "session_high": 7465.5,
+    "session_low": 7326.5,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 22.17,
+    "zigzag_threshold": 22.17,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "21:40",
+        "t_end": "22:00",
+        "start_price": 7465.5,
+        "end_price": 7331.0,
+        "pts": 134.5,
+        "direction": "DOWN",
+        "start_idx": 62,
+        "end_idx": 66,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "19:15",
+        "start_price": 7461.0,
+        "end_price": 7373.0,
+        "pts": 88.0,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 33,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:10",
+        "t_end": "22:25",
+        "start_price": 7326.5,
+        "end_price": 7411.25,
+        "pts": 84.75,
+        "direction": "UP",
+        "start_idx": 68,
+        "end_idx": 71,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 14,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-30",
+    "bar_count": 79,
+    "trade_count": 10,
+    "live_trade_count": 3,
+    "range_pts": 93.25,
+    "session_high": 7492.0,
+    "session_low": 7398.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 6.82,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -13.25,
+    "captured_live_usd": -66.25,
+    "moves": [
+      {
+        "t_start": "16:40",
+        "t_end": "16:50",
+        "start_price": 7399.75,
+        "end_price": 7437.25,
+        "pts": 37.5,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:35",
+        "t_end": "22:15",
+        "start_price": 7445.75,
+        "end_price": 7478.5,
+        "pts": 32.75,
+        "direction": "UP",
+        "start_idx": 49,
+        "end_idx": 69,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "22:55",
+        "t_end": "23:00",
+        "start_price": 7464.25,
+        "end_price": 7492.0,
+        "pts": 27.75,
+        "direction": "UP",
+        "start_idx": 77,
+        "end_idx": 78,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 44,
+    "loss_vectors": [
+      {
+        "trade_id": 564,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7407.0,
+        "stop": 7411.5,
+        "pnl_usd": -63.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-07-31",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 5,
+    "range_pts": 113.5,
+    "session_high": 7541.0,
+    "session_low": 7427.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 7.99,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 8.0,
+    "captured_live_usd": 40.0,
+    "moves": [
+      {
+        "t_start": "16:55",
+        "t_end": "17:05",
+        "start_price": 7480.0,
+        "end_price": 7435.25,
+        "pts": 44.75,
+        "direction": "DOWN",
+        "start_idx": 5,
+        "end_idx": 7,
+        "status": "FIRED_LIVE",
+        "trade_id": 579,
+        "model_result": {
+          "n": 5,
+          "total_pts": 8.0,
+          "total_usd": 40.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:00",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:00",
+              "pts": 7.25
+            },
+            {
+              "contract": 2,
+              "event": "AMBIG",
+              "bar_il": "17:00",
+              "pts": 0.0
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:00",
+              "pts": -0.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 16:55"
+      },
+      {
+        "t_start": "16:35",
+        "t_end": "16:45",
+        "start_price": 7514.75,
+        "end_price": 7470.5,
+        "pts": 44.25,
+        "direction": "DOWN",
+        "start_idx": 1,
+        "end_idx": 3,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 577,
+        "model_result": {
+          "n": 5,
+          "total_pts": 16.75,
+          "total_usd": 83.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "16:45",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "16:45",
+              "pts": 16.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:40"
+      },
+      {
+        "t_start": "17:05",
+        "t_end": "17:15",
+        "start_price": 7459.0,
+        "end_price": 7427.5,
+        "pts": 31.5,
+        "direction": "DOWN",
+        "start_idx": 7,
+        "end_idx": 9,
+        "status": "FIRED_LIVE",
+        "trade_id": 581,
+        "model_result": {
+          "n": 5,
+          "total_pts": 32.25,
+          "total_usd": 161.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:10",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:10",
+              "pts": 5.25
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "17:10",
+              "pts": 10.5
+            },
+            {
+              "contract": 3,
+              "event": "T3",
+              "bar_il": "17:10",
+              "pts": 15.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:05"
+      }
+    ],
+    "all_moves_count": 54,
+    "loss_vectors": [
+      {
+        "trade_id": 575,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7512.75,
+        "stop": 7473.0,
+        "pnl_usd": -198.75
+      },
+      {
+        "trade_id": 579,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7471.0,
+        "stop": 7479.75,
+        "pnl_usd": -45.0
+      },
+      {
+        "trade_id": 584,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.35,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7435.75,
+        "stop": 7446.75,
+        "pnl_usd": -53.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-03",
+    "bar_count": 79,
+    "trade_count": 24,
+    "live_trade_count": 9,
+    "range_pts": 95.75,
+    "session_high": 7638.5,
+    "session_low": 7542.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 4.27,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 4.25,
+    "captured_live_usd": 21.25,
+    "moves": [
+      {
+        "t_start": "17:00",
+        "t_end": "21:05",
+        "start_price": 7582.5,
+        "end_price": 7635.25,
+        "pts": 52.75,
+        "direction": "UP",
+        "start_idx": 6,
+        "end_idx": 55,
+        "status": "FIRED_LIVE",
+        "trade_id": 593,
+        "model_result": {
+          "n": 5,
+          "total_pts": 7.0,
+          "total_usd": 35.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:15",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:15",
+              "pts": 6.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:10"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:35",
+        "start_price": 7542.75,
+        "end_price": 7571.0,
+        "pts": 28.25,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 1,
+        "status": "FIRED_LIVE",
+        "trade_id": 588,
+        "model_result": {
+          "n": 5,
+          "total_pts": -0.5,
+          "total_usd": -2.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "16:40",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "16:40",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "16:40",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "16:40",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 16:35"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "17:00",
+        "start_price": 7567.75,
+        "end_price": 7591.25,
+        "pts": 23.5,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 10,
+    "loss_vectors": [
+      {
+        "trade_id": 591,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7569.5,
+        "stop": 7565.75,
+        "pnl_usd": -20.0
+      },
+      {
+        "trade_id": 598,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.75,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7602.5,
+        "stop": 7598.5,
+        "pnl_usd": -7.5
+      },
+      {
+        "trade_id": 607,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7615.75,
+        "stop": 7613.25,
+        "pnl_usd": -25.0
+      },
+      {
+        "trade_id": 610,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7632.75,
+        "stop": 7629.0,
+        "pnl_usd": -32.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-04",
+    "bar_count": 41,
+    "trade_count": 15,
+    "live_trade_count": 5,
+    "range_pts": 99.25,
+    "session_high": 7755.25,
+    "session_low": 7656.0,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.53,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 31.75,
+    "captured_live_usd": 158.75,
+    "moves": [
+      {
+        "t_start": "17:35",
+        "t_end": "18:35",
+        "start_price": 7699.75,
+        "end_price": 7733.5,
+        "pts": 33.75,
+        "direction": "UP",
+        "start_idx": 13,
+        "end_idx": 25,
+        "status": "FIRED_LIVE",
+        "trade_id": 615,
+        "model_result": {
+          "n": 5,
+          "total_pts": 10.75,
+          "total_usd": 53.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:40",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:40",
+              "pts": 10.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:35"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:50",
+        "start_price": 7656.0,
+        "end_price": 7686.75,
+        "pts": 30.75,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:15",
+        "start_price": 7682.5,
+        "end_price": 7706.25,
+        "pts": 23.75,
+        "direction": "UP",
+        "start_idx": 6,
+        "end_idx": 9,
+        "status": "FIRED_LIVE",
+        "trade_id": 612,
+        "model_result": {
+          "n": 5,
+          "total_pts": 21.0,
+          "total_usd": 105.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:10",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:10",
+              "pts": 6.75
+            },
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:15",
+              "pts": 13.5
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:05"
+      }
+    ],
+    "all_moves_count": 13,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-05",
+    "bar_count": 79,
+    "trade_count": 10,
+    "live_trade_count": 2,
+    "range_pts": 74.5,
+    "session_high": 7820.25,
+    "session_low": 7745.75,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.82,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -4.5,
+    "captured_live_usd": -22.5,
+    "moves": [
+      {
+        "t_start": "18:10",
+        "t_end": "18:15",
+        "start_price": 7791.25,
+        "end_price": 7764.5,
+        "pts": 26.75,
+        "direction": "DOWN",
+        "start_idx": 20,
+        "end_idx": 21,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 630,
+        "model_result": {
+          "n": 0,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:13"
+      },
+      {
+        "t_start": "21:45",
+        "t_end": "22:55",
+        "start_price": 7771.5,
+        "end_price": 7745.75,
+        "pts": 25.75,
+        "direction": "DOWN",
+        "start_idx": 63,
+        "end_idx": 77,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "16:55",
+        "start_price": 7794.75,
+        "end_price": 7819.25,
+        "pts": 24.5,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 5,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 40,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-06",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 3,
+    "range_pts": 44.25,
+    "session_high": 7768.5,
+    "session_low": 7724.25,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 5.78,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -25.75,
+    "captured_live_usd": -128.75,
+    "moves": [
+      {
+        "t_start": "18:10",
+        "t_end": "18:30",
+        "start_price": 7757.5,
+        "end_price": 7734.75,
+        "pts": 22.75,
+        "direction": "DOWN",
+        "start_idx": 20,
+        "end_idx": 24,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:40",
+        "t_end": "16:50",
+        "start_price": 7745.0,
+        "end_price": 7765.75,
+        "pts": 20.75,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:50",
+        "t_end": "19:00",
+        "start_price": 7747.75,
+        "end_price": 7727.0,
+        "pts": 20.75,
+        "direction": "DOWN",
+        "start_idx": 28,
+        "end_idx": 30,
+        "status": "FIRED_LIVE",
+        "trade_id": 643,
+        "model_result": {
+          "n": 5,
+          "total_pts": -0.5,
+          "total_usd": -2.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "19:00",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "19:00",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "19:00",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "19:00",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 18:55"
+      }
+    ],
+    "all_moves_count": 31,
+    "loss_vectors": [
+      {
+        "trade_id": 640,
+        "day_type": "Neutral_Center",
+        "day_type_conf": 0.67,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7735.5,
+        "stop": 7744.0,
+        "pnl_usd": -131.25
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-07",
+    "bar_count": 79,
+    "trade_count": 4,
+    "live_trade_count": 2,
+    "range_pts": 43.5,
+    "session_high": 7786.75,
+    "session_low": 7743.25,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 5.16,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -23.0,
+    "captured_live_usd": -115.0,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:25",
+        "start_price": 7744.0,
+        "end_price": 7780.5,
+        "pts": 36.5,
+        "direction": "UP",
+        "start_idx": 9,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:20",
+        "t_end": "19:30",
+        "start_price": 7781.25,
+        "end_price": 7757.75,
+        "pts": 23.5,
+        "direction": "DOWN",
+        "start_idx": 34,
+        "end_idx": 36,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:10",
+        "t_end": "17:15",
+        "start_price": 7743.25,
+        "end_price": 7766.0,
+        "pts": 22.75,
+        "direction": "UP",
+        "start_idx": 8,
+        "end_idx": 9,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 28,
+    "loss_vectors": [
+      {
+        "trade_id": 650,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7783.75,
+        "stop": 7778.0,
+        "pnl_usd": -86.25
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-10",
+    "bar_count": 79,
+    "trade_count": 2,
+    "live_trade_count": 1,
+    "range_pts": 33.25,
+    "session_high": 7797.0,
+    "session_low": 7763.75,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 4.02,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -17.0,
+    "captured_live_usd": -85.0,
+    "moves": [
+      {
+        "t_start": "19:00",
+        "t_end": "19:30",
+        "start_price": 7791.25,
+        "end_price": 7763.75,
+        "pts": 27.5,
+        "direction": "DOWN",
+        "start_idx": 30,
+        "end_idx": 36,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:50",
+        "t_end": "17:45",
+        "start_price": 7771.0,
+        "end_price": 7797.0,
+        "pts": 26.0,
+        "direction": "UP",
+        "start_idx": 4,
+        "end_idx": 15,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:45",
+        "t_end": "18:00",
+        "start_price": 7797.0,
+        "end_price": 7779.25,
+        "pts": 17.75,
+        "direction": "DOWN",
+        "start_idx": 15,
+        "end_idx": 18,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 16,
+    "loss_vectors": [
+      {
+        "trade_id": 655,
+        "day_type": "Normal",
+        "day_type_conf": 0.48,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7795.0,
+        "stop": 7790.75,
+        "pnl_usd": -63.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-11",
+    "bar_count": 79,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 53.25,
+    "session_high": 7792.5,
+    "session_low": 7739.25,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 4.44,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "18:30",
+        "t_end": "20:15",
+        "start_price": 7771.25,
+        "end_price": 7747.75,
+        "pts": 23.5,
+        "direction": "DOWN",
+        "start_idx": 24,
+        "end_idx": 45,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:50",
+        "t_end": "18:30",
+        "start_price": 7786.25,
+        "end_price": 7763.25,
+        "pts": 23.0,
+        "direction": "DOWN",
+        "start_idx": 16,
+        "end_idx": 24,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:45",
+        "t_end": "21:25",
+        "start_price": 7759.0,
+        "end_price": 7739.25,
+        "pts": 19.75,
+        "direction": "DOWN",
+        "start_idx": 51,
+        "end_idx": 59,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 16,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-12",
+    "bar_count": 78,
+    "trade_count": 3,
+    "live_trade_count": 1,
+    "range_pts": 37.75,
+    "session_high": 7794.0,
+    "session_low": 7756.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 3.2,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -18.75,
+    "captured_live_usd": -93.75,
+    "moves": [
+      {
+        "t_start": "17:25",
+        "t_end": "17:30",
+        "start_price": 7777.75,
+        "end_price": 7756.25,
+        "pts": 21.5,
+        "direction": "DOWN",
+        "start_idx": 11,
+        "end_idx": 12,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:40",
+        "t_end": "21:40",
+        "start_price": 7760.25,
+        "end_price": 7781.0,
+        "pts": 20.75,
+        "direction": "UP",
+        "start_idx": 26,
+        "end_idx": 62,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:30",
+        "t_end": "17:45",
+        "start_price": 7756.25,
+        "end_price": 7776.75,
+        "pts": 20.5,
+        "direction": "UP",
+        "start_idx": 12,
+        "end_idx": 15,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 16,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-13",
+    "bar_count": 79,
+    "trade_count": 8,
+    "live_trade_count": 4,
+    "range_pts": 53.25,
+    "session_high": 7838.5,
+    "session_low": 7785.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 3.89,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -29.5,
+    "captured_live_usd": -147.5,
+    "moves": [
+      {
+        "t_start": "16:40",
+        "t_end": "17:20",
+        "start_price": 7800.0,
+        "end_price": 7836.75,
+        "pts": 36.75,
+        "direction": "UP",
+        "start_idx": 2,
+        "end_idx": 10,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:35",
+        "start_price": 7785.25,
+        "end_price": 7809.25,
+        "pts": 24.0,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 1,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:00",
+        "t_end": "18:25",
+        "start_price": 7826.75,
+        "end_price": 7803.25,
+        "pts": 23.5,
+        "direction": "DOWN",
+        "start_idx": 18,
+        "end_idx": 23,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 18,
+    "loss_vectors": [
+      {
+        "trade_id": 662,
+        "day_type": null,
+        "day_type_conf": null,
+        "opening_type": null,
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7830.25,
+        "stop": 7822.5,
+        "pnl_usd": -130.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-14",
+    "bar_count": 79,
+    "trade_count": 21,
+    "live_trade_count": 5,
+    "range_pts": 34.25,
+    "session_high": 7830.75,
+    "session_low": 7796.5,
+    "day_type_final": "Variation",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.04,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -36.0,
+    "captured_live_usd": -180.0,
+    "moves": [
+      {
+        "t_start": "17:05",
+        "t_end": "18:50",
+        "start_price": 7830.75,
+        "end_price": 7800.0,
+        "pts": 30.75,
+        "direction": "DOWN",
+        "start_idx": 7,
+        "end_idx": 28,
+        "status": "FIRED_LIVE",
+        "trade_id": 668,
+        "model_result": {
+          "n": 5,
+          "total_pts": -21.0,
+          "total_usd": -105.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "17:40",
+              "pts": -5.25
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "17:40",
+              "pts": -5.25
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "17:40",
+              "pts": -5.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:40",
+              "pts": -5.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:35"
+      },
+      {
+        "t_start": "19:25",
+        "t_end": "20:35",
+        "start_price": 7810.25,
+        "end_price": 7796.5,
+        "pts": 13.75,
+        "direction": "DOWN",
+        "start_idx": 35,
+        "end_idx": 49,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:35",
+        "t_end": "21:50",
+        "start_price": 7796.5,
+        "end_price": 7807.5,
+        "pts": 11.0,
+        "direction": "UP",
+        "start_idx": 49,
+        "end_idx": 64,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 8,
+    "loss_vectors": [
+      {
+        "trade_id": 668,
+        "day_type": "Variation",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7811.25,
+        "stop": 7816.5,
+        "pnl_usd": -71.25
+      },
+      {
+        "trade_id": 680,
+        "day_type": "Variation",
+        "day_type_conf": null,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7808.0,
+        "stop": 7803.5,
+        "pnl_usd": -45.0
+      },
+      {
+        "trade_id": 682,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.62,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7799.25,
+        "stop": 7804.25,
+        "pnl_usd": -75.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-17",
+    "bar_count": 79,
+    "trade_count": 17,
+    "live_trade_count": 3,
+    "range_pts": 43.25,
+    "session_high": 7809.5,
+    "session_low": 7766.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 3.61,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "19:20",
+        "t_end": "22:55",
+        "start_price": 7797.5,
+        "end_price": 7766.25,
+        "pts": 31.25,
+        "direction": "DOWN",
+        "start_idx": 34,
+        "end_idx": 77,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:45",
+        "start_price": 7809.5,
+        "end_price": 7792.75,
+        "pts": 16.75,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 3,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "17:00",
+        "start_price": 7802.0,
+        "end_price": 7789.25,
+        "pts": 12.75,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 9,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-18",
+    "bar_count": 79,
+    "trade_count": 0,
+    "live_trade_count": 0,
+    "range_pts": 25.0,
+    "session_high": 7735.25,
+    "session_low": 7710.25,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 3.63,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7718.5,
+        "end_price": 7735.25,
+        "pts": 16.75,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:10",
+        "start_price": 7732.75,
+        "end_price": 7716.5,
+        "pts": 16.25,
+        "direction": "DOWN",
+        "start_idx": 6,
+        "end_idx": 8,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:20",
+        "t_end": "19:20",
+        "start_price": 7713.25,
+        "end_price": 7728.75,
+        "pts": 15.5,
+        "direction": "UP",
+        "start_idx": 22,
+        "end_idx": 34,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 18,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-19",
+    "bar_count": 79,
+    "trade_count": 29,
+    "live_trade_count": 7,
+    "range_pts": 44.0,
+    "session_high": 7764.75,
+    "session_low": 7720.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 5.48,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -25.75,
+    "captured_live_usd": -128.75,
+    "moves": [
+      {
+        "t_start": "19:15",
+        "t_end": "20:20",
+        "start_price": 7759.5,
+        "end_price": 7729.5,
+        "pts": 30.0,
+        "direction": "DOWN",
+        "start_idx": 33,
+        "end_idx": 46,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "16:50",
+        "start_price": 7745.75,
+        "end_price": 7720.75,
+        "pts": 25.0,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:00",
+        "t_end": "18:40",
+        "start_price": 7764.75,
+        "end_price": 7740.0,
+        "pts": 24.75,
+        "direction": "DOWN",
+        "start_idx": 18,
+        "end_idx": 26,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 30,
+    "loss_vectors": [
+      {
+        "trade_id": 749,
+        "day_type": "Variation",
+        "day_type_conf": 0.33,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7737.5,
+        "stop": 7732.5,
+        "pnl_usd": -51.25
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-20",
+    "bar_count": 79,
+    "trade_count": 5,
+    "live_trade_count": 1,
+    "range_pts": 60.75,
+    "session_high": 7719.75,
+    "session_low": 7659.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 5.14,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "19:40",
+        "t_end": "20:40",
+        "start_price": 7705.5,
+        "end_price": 7680.25,
+        "pts": 25.25,
+        "direction": "DOWN",
+        "start_idx": 38,
+        "end_idx": 50,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7697.0,
+        "end_price": 7716.25,
+        "pts": 19.25,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:50",
+        "t_end": "21:15",
+        "start_price": 7688.25,
+        "end_price": 7669.25,
+        "pts": 19.0,
+        "direction": "DOWN",
+        "start_idx": 52,
+        "end_idx": 57,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 29,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-21",
+    "bar_count": 79,
+    "trade_count": 17,
+    "live_trade_count": 7,
+    "range_pts": 33.5,
+    "session_high": 7710.0,
+    "session_low": 7676.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_REJECTION_REVERSE",
+    "atr14": 4.13,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -87.0,
+    "captured_live_usd": -435.0,
+    "moves": [
+      {
+        "t_start": "18:25",
+        "t_end": "18:40",
+        "start_price": 7689.5,
+        "end_price": 7710.0,
+        "pts": 20.5,
+        "direction": "UP",
+        "start_idx": 23,
+        "end_idx": 26,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:40",
+        "t_end": "19:40",
+        "start_price": 7710.0,
+        "end_price": 7690.0,
+        "pts": 20.0,
+        "direction": "DOWN",
+        "start_idx": 26,
+        "end_idx": 38,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "21:30",
+        "t_end": "22:45",
+        "start_price": 7685.75,
+        "end_price": 7703.0,
+        "pts": 17.25,
+        "direction": "UP",
+        "start_idx": 60,
+        "end_idx": 75,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 17,
+    "loss_vectors": [
+      {
+        "trade_id": 762,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7678.25,
+        "stop": 7686.0,
+        "pnl_usd": -80.0
+      },
+      {
+        "trade_id": 770,
+        "day_type": null,
+        "day_type_conf": null,
+        "opening_type": null,
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7689.5,
+        "stop": 7695.5,
+        "pnl_usd": -57.5
+      },
+      {
+        "trade_id": 775,
+        "day_type": null,
+        "day_type_conf": null,
+        "opening_type": null,
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7702.25,
+        "stop": 7696.0,
+        "pnl_usd": -62.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-24",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 0,
+    "range_pts": 31.5,
+    "session_high": 7686.5,
+    "session_low": 7655.0,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.94,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7682.75,
+        "end_price": 7655.75,
+        "pts": 27.0,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:25",
+        "t_end": "19:20",
+        "start_price": 7664.5,
+        "end_price": 7686.5,
+        "pts": 22.0,
+        "direction": "UP",
+        "start_idx": 23,
+        "end_idx": 34,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:45",
+        "t_end": "21:30",
+        "start_price": 7664.25,
+        "end_price": 7685.25,
+        "pts": 21.0,
+        "direction": "UP",
+        "start_idx": 51,
+        "end_idx": 60,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 17,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-25",
+    "bar_count": 79,
+    "trade_count": 19,
+    "live_trade_count": 0,
+    "range_pts": 38.5,
+    "session_high": 7701.25,
+    "session_low": 7662.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 3.63,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.0,
+    "captured_live_usd": 0.0,
+    "moves": [
+      {
+        "t_start": "16:45",
+        "t_end": "17:30",
+        "start_price": 7700.5,
+        "end_price": 7662.75,
+        "pts": 37.75,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 12,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 789,
+        "model_result": {
+          "n": 0,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:50"
+      },
+      {
+        "t_start": "17:30",
+        "t_end": "17:35",
+        "start_price": 7662.75,
+        "end_price": 7683.75,
+        "pts": 21.0,
+        "direction": "UP",
+        "start_idx": 12,
+        "end_idx": 13,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:50",
+        "t_end": "18:30",
+        "start_price": 7673.25,
+        "end_price": 7691.0,
+        "pts": 17.75,
+        "direction": "UP",
+        "start_idx": 16,
+        "end_idx": 24,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 13,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-26",
+    "bar_count": 79,
+    "trade_count": 13,
+    "live_trade_count": 4,
+    "range_pts": 34.5,
+    "session_high": 7705.5,
+    "session_low": 7671.0,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 5.25,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -65.5,
+    "captured_live_usd": -327.5,
+    "moves": [
+      {
+        "t_start": "19:40",
+        "t_end": "22:00",
+        "start_price": 7671.0,
+        "end_price": 7705.5,
+        "pts": 34.5,
+        "direction": "UP",
+        "start_idx": 38,
+        "end_idx": 66,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:50",
+        "t_end": "19:40",
+        "start_price": 7695.25,
+        "end_price": 7671.0,
+        "pts": 24.25,
+        "direction": "DOWN",
+        "start_idx": 28,
+        "end_idx": 38,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:25",
+        "start_price": 7702.0,
+        "end_price": 7680.25,
+        "pts": 21.75,
+        "direction": "DOWN",
+        "start_idx": 6,
+        "end_idx": 11,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 16,
+    "loss_vectors": [
+      {
+        "trade_id": 809,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7701.5,
+        "stop": 7693.75,
+        "pnl_usd": -75.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-27",
+    "bar_count": 79,
+    "trade_count": 16,
+    "live_trade_count": 5,
+    "range_pts": 53.0,
+    "session_high": 7755.75,
+    "session_low": 7702.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "OPEN_AUCTION_OUT",
+    "atr14": 4.69,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -26.5,
+    "captured_live_usd": -132.5,
+    "moves": [
+      {
+        "t_start": "18:45",
+        "t_end": "20:10",
+        "start_price": 7725.0,
+        "end_price": 7755.75,
+        "pts": 30.75,
+        "direction": "UP",
+        "start_idx": 27,
+        "end_idx": 44,
+        "status": "FIRED_LIVE",
+        "trade_id": 828,
+        "model_result": {
+          "n": 0,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "live entry at 19:02"
+      },
+      {
+        "t_start": "21:00",
+        "t_end": "21:25",
+        "start_price": 7745.5,
+        "end_price": 7723.5,
+        "pts": 22.0,
+        "direction": "DOWN",
+        "start_idx": 54,
+        "end_idx": 59,
+        "status": "FIRED_LIVE",
+        "trade_id": 830,
+        "model_result": {
+          "n": 5,
+          "total_pts": 14.25,
+          "total_usd": 71.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "21:05",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "21:05",
+              "pts": 4.5
+            },
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "21:10",
+              "pts": 9.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 21:00"
+      },
+      {
+        "t_start": "21:55",
+        "t_end": "22:50",
+        "start_price": 7722.75,
+        "end_price": 7744.5,
+        "pts": 21.75,
+        "direction": "UP",
+        "start_idx": 65,
+        "end_idx": 76,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 23,
+    "loss_vectors": [
+      {
+        "trade_id": 822,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_OUT",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7723.5,
+        "stop": 7713.5,
+        "pnl_usd": -100.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-28",
+    "bar_count": 79,
+    "trade_count": 29,
+    "live_trade_count": 8,
+    "range_pts": 70.75,
+    "session_high": 7782.5,
+    "session_low": 7711.75,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.41,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -47.73,
+    "captured_live_usd": -238.65,
+    "moves": [
+      {
+        "t_start": "17:30",
+        "t_end": "17:40",
+        "start_price": 7738.0,
+        "end_price": 7765.0,
+        "pts": 27.0,
+        "direction": "UP",
+        "start_idx": 12,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:05",
+        "start_price": 7760.5,
+        "end_price": 7735.0,
+        "pts": 25.5,
+        "direction": "DOWN",
+        "start_idx": 6,
+        "end_idx": 7,
+        "status": "FIRED_LIVE",
+        "trade_id": 838,
+        "model_result": {
+          "n": 0,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:05"
+      },
+      {
+        "t_start": "17:10",
+        "t_end": "17:20",
+        "start_price": 7726.5,
+        "end_price": 7751.5,
+        "pts": 25.0,
+        "direction": "UP",
+        "start_idx": 8,
+        "end_idx": 10,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 44,
+    "loss_vectors": [
+      {
+        "trade_id": 841,
+        "day_type": null,
+        "day_type_conf": null,
+        "opening_type": null,
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7731.0,
+        "stop": 7738.62,
+        "pnl_usd": -77.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-08-31",
+    "bar_count": 79,
+    "trade_count": 68,
+    "live_trade_count": 7,
+    "range_pts": 33.5,
+    "session_high": 7708.25,
+    "session_low": 7674.75,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 5.6,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -106.75,
+    "captured_live_usd": -533.75,
+    "moves": [
+      {
+        "t_start": "21:40",
+        "t_end": "22:50",
+        "start_price": 7678.0,
+        "end_price": 7704.75,
+        "pts": 26.75,
+        "direction": "UP",
+        "start_idx": 62,
+        "end_idx": 76,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:35",
+        "start_price": 7704.25,
+        "end_price": 7685.25,
+        "pts": 19.0,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 1,
+        "status": "FIRED_LIVE",
+        "trade_id": 873,
+        "model_result": {
+          "n": 5,
+          "total_pts": -0.5,
+          "total_usd": -2.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "16:40",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "16:40",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "16:40",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "16:40",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 16:35"
+      },
+      {
+        "t_start": "17:25",
+        "t_end": "18:00",
+        "start_price": 7674.75,
+        "end_price": 7692.75,
+        "pts": 18.0,
+        "direction": "UP",
+        "start_idx": 11,
+        "end_idx": 18,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 23,
+    "loss_vectors": [
+      {
+        "trade_id": 875,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "UNKNOWN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7689.5,
+        "stop": 7693.5,
+        "pnl_usd": -100.0
+      },
+      {
+        "trade_id": 885,
+        "day_type": null,
+        "day_type_conf": null,
+        "opening_type": null,
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7676.5,
+        "stop": 7682.5,
+        "pnl_usd": -60.0
+      },
+      {
+        "trade_id": 936,
+        "day_type": "Normal",
+        "day_type_conf": 1.0,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7695.0,
+        "stop": 7689.5,
+        "pnl_usd": -55.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-01",
+    "bar_count": 79,
+    "trade_count": 12,
+    "live_trade_count": 3,
+    "range_pts": 52.25,
+    "session_high": 7673.75,
+    "session_low": 7621.5,
+    "day_type_final": "Trend_Normal",
+    "opening_type": "OPEN_DRIVE",
+    "atr14": 5.86,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -16.0,
+    "captured_live_usd": -80.0,
+    "moves": [
+      {
+        "t_start": "16:55",
+        "t_end": "17:35",
+        "start_price": 7641.5,
+        "end_price": 7673.0,
+        "pts": 31.5,
+        "direction": "UP",
+        "start_idx": 5,
+        "end_idx": 13,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 940,
+        "model_result": {
+          "n": 5,
+          "total_pts": -8.5,
+          "total_usd": -42.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "17:10",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "17:10",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "17:10",
+              "pts": -4.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:10",
+              "pts": -4.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:05"
+      },
+      {
+        "t_start": "18:50",
+        "t_end": "19:30",
+        "start_price": 7673.75,
+        "end_price": 7642.75,
+        "pts": 31.0,
+        "direction": "DOWN",
+        "start_idx": 28,
+        "end_idx": 36,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:40",
+        "t_end": "21:40",
+        "start_price": 7649.25,
+        "end_price": 7623.5,
+        "pts": 25.75,
+        "direction": "DOWN",
+        "start_idx": 50,
+        "end_idx": 62,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 17,
+    "loss_vectors": [
+      {
+        "trade_id": 948,
+        "day_type": "Trend_DD",
+        "day_type_conf": 0.38,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7668.75,
+        "stop": 7661.25,
+        "pnl_usd": -135.0
+      },
+      {
+        "trade_id": 950,
+        "day_type": "Variation",
+        "day_type_conf": 0.08,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7643.75,
+        "stop": 7650.0,
+        "pnl_usd": -156.25
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-02",
+    "bar_count": 79,
+    "trade_count": 26,
+    "live_trade_count": 4,
+    "range_pts": 48.0,
+    "session_high": 7691.25,
+    "session_low": 7643.25,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 3.91,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -33.75,
+    "captured_live_usd": -168.75,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:40",
+        "start_price": 7667.0,
+        "end_price": 7690.0,
+        "pts": 23.0,
+        "direction": "UP",
+        "start_idx": 9,
+        "end_idx": 14,
+        "status": "FIRED_LIVE",
+        "trade_id": 953,
+        "model_result": {
+          "n": 5,
+          "total_pts": 0,
+          "total_usd": 0.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "17:20",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "17:20",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "AMBIG",
+              "bar_il": "17:20",
+              "pts": 0.0
+            },
+            {
+              "contract": 3,
+              "event": "AMBIG",
+              "bar_il": "17:20",
+              "pts": 0.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "live entry at 17:15"
+      },
+      {
+        "t_start": "17:00",
+        "t_end": "17:15",
+        "start_price": 7654.75,
+        "end_price": 7676.25,
+        "pts": 21.5,
+        "direction": "UP",
+        "start_idx": 6,
+        "end_idx": 9,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:45",
+        "t_end": "17:00",
+        "start_price": 7645.75,
+        "end_price": 7664.0,
+        "pts": 18.25,
+        "direction": "UP",
+        "start_idx": 3,
+        "end_idx": 6,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 18,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-03",
+    "bar_count": 79,
+    "trade_count": 9,
+    "live_trade_count": 2,
+    "range_pts": 68.0,
+    "session_high": 7766.25,
+    "session_low": 7698.25,
+    "day_type_final": "Normal",
+    "opening_type": "OPEN_AUCTION_IN",
+    "atr14": 3.66,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -22.25,
+    "captured_live_usd": -111.25,
+    "moves": [
+      {
+        "t_start": "17:55",
+        "t_end": "18:10",
+        "start_price": 7698.25,
+        "end_price": 7741.5,
+        "pts": 43.25,
+        "direction": "UP",
+        "start_idx": 17,
+        "end_idx": 20,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:10",
+        "t_end": "18:25",
+        "start_price": 7732.5,
+        "end_price": 7756.0,
+        "pts": 23.5,
+        "direction": "UP",
+        "start_idx": 20,
+        "end_idx": 23,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "16:30",
+        "t_end": "16:50",
+        "start_price": 7704.25,
+        "end_price": 7726.5,
+        "pts": 22.25,
+        "direction": "UP",
+        "start_idx": 0,
+        "end_idx": 4,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 22,
+    "loss_vectors": [
+      {
+        "trade_id": 987,
+        "day_type": "Variation",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7749.0,
+        "stop": 7754.75,
+        "pnl_usd": -143.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-04",
+    "bar_count": 79,
+    "trade_count": 172,
+    "live_trade_count": 5,
+    "range_pts": 40.75,
+    "session_high": 7751.0,
+    "session_low": 7710.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 3.57,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -45.25,
+    "captured_live_usd": -226.25,
+    "moves": [
+      {
+        "t_start": "18:30",
+        "t_end": "19:50",
+        "start_price": 7710.25,
+        "end_price": 7735.25,
+        "pts": 25.0,
+        "direction": "UP",
+        "start_idx": 24,
+        "end_idx": 40,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1013,
+        "model_result": {
+          "n": 5,
+          "total_pts": 0,
+          "total_usd": 0.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "18:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "18:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "AMBIG",
+              "bar_il": "18:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 3,
+              "event": "AMBIG",
+              "bar_il": "18:45",
+              "pts": 0.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:40"
+      },
+      {
+        "t_start": "19:50",
+        "t_end": "20:45",
+        "start_price": 7735.25,
+        "end_price": 7712.75,
+        "pts": 22.5,
+        "direction": "DOWN",
+        "start_idx": 40,
+        "end_idx": 51,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:40",
+        "t_end": "18:00",
+        "start_price": 7733.25,
+        "end_price": 7712.25,
+        "pts": 21.0,
+        "direction": "DOWN",
+        "start_idx": 14,
+        "end_idx": 18,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1004,
+        "model_result": {
+          "n": 0,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:42"
+      }
+    ],
+    "all_moves_count": 15,
+    "loss_vectors": [
+      {
+        "trade_id": 998,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7745.75,
+        "stop": 7740.25,
+        "pnl_usd": -137.5
+      },
+      {
+        "trade_id": 1141,
+        "day_type": "Variation",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7724.25,
+        "stop": 7719.0,
+        "pnl_usd": -125.0
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-07",
+    "bar_count": 42,
+    "trade_count": 34,
+    "live_trade_count": 1,
+    "range_pts": 13.75,
+    "session_high": 7717.25,
+    "session_low": 7703.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 1.93,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "18:25",
+        "start_price": 7717.25,
+        "end_price": 7703.5,
+        "pts": 13.75,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 23,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1179,
+        "model_result": {
+          "n": 5,
+          "total_pts": 0.75,
+          "total_usd": 3.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "16:55",
+              "pts": 0.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:50"
+      }
+    ],
+    "all_moves_count": 1,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-08",
+    "bar_count": 79,
+    "trade_count": 82,
+    "live_trade_count": 3,
+    "range_pts": 45.5,
+    "session_high": 7717.75,
+    "session_low": 7672.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 5.79,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -31.5,
+    "captured_live_usd": -157.5,
+    "moves": [
+      {
+        "t_start": "16:30",
+        "t_end": "16:40",
+        "start_price": 7717.75,
+        "end_price": 7691.25,
+        "pts": 26.5,
+        "direction": "DOWN",
+        "start_idx": 0,
+        "end_idx": 2,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1214,
+        "model_result": {
+          "n": 3,
+          "total_pts": -12.25,
+          "total_usd": -61.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "16:35",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "16:35",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "16:35",
+              "pts": -12.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:30"
+      },
+      {
+        "t_start": "20:05",
+        "t_end": "21:45",
+        "start_price": 7701.75,
+        "end_price": 7676.75,
+        "pts": 25.0,
+        "direction": "DOWN",
+        "start_idx": 43,
+        "end_idx": 63,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "18:15",
+        "start_price": 7683.25,
+        "end_price": 7704.0,
+        "pts": 20.75,
+        "direction": "UP",
+        "start_idx": 10,
+        "end_idx": 21,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1232,
+        "model_result": {
+          "n": 5,
+          "total_pts": -15.5,
+          "total_usd": -77.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "17:25",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "17:25",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "17:25",
+              "pts": -7.75
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "17:25",
+              "pts": -7.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:20"
+      }
+    ],
+    "all_moves_count": 26,
+    "loss_vectors": [
+      {
+        "trade_id": 1224,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_REJECTION_REVERSE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7694.0,
+        "stop": 7699.25,
+        "pnl_usd": -50.0
+      },
+      {
+        "trade_id": 1231,
+        "day_type": "UNKNOWN",
+        "day_type_conf": null,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7684.0,
+        "stop": 7696.75,
+        "pnl_usd": -103.75
+      },
+      {
+        "trade_id": 1262,
+        "day_type": "Normal",
+        "day_type_conf": 1.0,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7697.75,
+        "stop": 7692.5,
+        "pnl_usd": -52.5
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-09",
+    "bar_count": 79,
+    "trade_count": 66,
+    "live_trade_count": 2,
+    "range_pts": 36.25,
+    "session_high": 7665.0,
+    "session_low": 7628.75,
+    "day_type_final": null,
+    "opening_type": null,
+    "atr14": 3.93,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -37.0,
+    "captured_live_usd": -185.0,
+    "moves": [
+      {
+        "t_start": "18:00",
+        "t_end": "18:10",
+        "start_price": 7665.0,
+        "end_price": 7633.5,
+        "pts": 31.5,
+        "direction": "DOWN",
+        "start_idx": 18,
+        "end_idx": 20,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1314,
+        "model_result": {
+          "n": 5,
+          "total_pts": 10.5,
+          "total_usd": 52.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "18:10",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "18:10",
+              "pts": 9.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:05"
+      },
+      {
+        "t_start": "18:25",
+        "t_end": "18:35",
+        "start_price": 7628.75,
+        "end_price": 7649.5,
+        "pts": 20.75,
+        "direction": "UP",
+        "start_idx": 23,
+        "end_idx": 25,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "19:20",
+        "t_end": "20:15",
+        "start_price": 7632.5,
+        "end_price": 7653.0,
+        "pts": 20.5,
+        "direction": "UP",
+        "start_idx": 34,
+        "end_idx": 45,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      }
+    ],
+    "all_moves_count": 28,
+    "loss_vectors": [
+      {
+        "trade_id": 1328,
+        "day_type": "Variation",
+        "day_type_conf": 0.33,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7643.25,
+        "stop": 7639.25,
+        "pnl_usd": -40.0
+      },
+      {
+        "trade_id": 1343,
+        "day_type": "Variation",
+        "day_type_conf": 0.33,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7652.5,
+        "stop": 7647.25,
+        "pnl_usd": -131.25
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-10",
+    "bar_count": 70,
+    "trade_count": 65,
+    "live_trade_count": 1,
+    "range_pts": 34.5,
+    "session_high": 7620.0,
+    "session_low": 7585.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 5.1,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": 0.75,
+    "captured_live_usd": 3.75,
+    "moves": [
+      {
+        "t_start": "17:15",
+        "t_end": "17:20",
+        "start_price": 7590.5,
+        "end_price": 7620.0,
+        "pts": 29.5,
+        "direction": "UP",
+        "start_idx": 9,
+        "end_idx": 10,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1407,
+        "model_result": {
+          "n": 5,
+          "total_pts": 12.47,
+          "total_usd": 62.35,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:25",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:25",
+              "pts": 11.720000000000255
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:20"
+      },
+      {
+        "t_start": "19:35",
+        "t_end": "20:00",
+        "start_price": 7591.5,
+        "end_price": 7617.75,
+        "pts": 26.25,
+        "direction": "UP",
+        "start_idx": 37,
+        "end_idx": 42,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "20:00",
+        "t_end": "21:30",
+        "start_price": 7617.75,
+        "end_price": 7591.75,
+        "pts": 26.0,
+        "direction": "DOWN",
+        "start_idx": 42,
+        "end_idx": 60,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1435,
+        "model_result": {
+          "n": 5,
+          "total_pts": -0.75,
+          "total_usd": -3.75,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "20:30",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "20:30",
+              "pts": -0.25
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "20:30",
+              "pts": -0.25
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "20:30",
+              "pts": -0.25
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 20:24"
+      }
+    ],
+    "all_moves_count": 26,
+    "loss_vectors": [
+      {
+        "trade_id": 1409,
+        "day_type": "Trend_Normal",
+        "day_type_conf": 0.35,
+        "opening_type": "OPEN_DRIVE",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "LONG",
+        "entry_price": 7606.5,
+        "stop": 7597.25,
+        "pnl_usd": -33.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-11",
+    "bar_count": 79,
+    "trade_count": 69,
+    "live_trade_count": 2,
+    "range_pts": 28.75,
+    "session_high": 7682.0,
+    "session_low": 7653.25,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 3.41,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -14.25,
+    "captured_live_usd": -71.25,
+    "moves": [
+      {
+        "t_start": "20:25",
+        "t_end": "22:55",
+        "start_price": 7681.25,
+        "end_price": 7657.5,
+        "pts": 23.75,
+        "direction": "DOWN",
+        "start_idx": 47,
+        "end_idx": 77,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1520,
+        "model_result": {
+          "n": 5,
+          "total_pts": -8.5,
+          "total_usd": -42.5,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "20:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "20:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "AMBIG",
+              "bar_il": "20:45",
+              "pts": 0.0
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "20:45",
+              "pts": -8.5
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 20:40"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:40",
+        "start_price": 7678.75,
+        "end_price": 7656.0,
+        "pts": 22.75,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 14,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "18:10",
+        "t_end": "18:40",
+        "start_price": 7658.25,
+        "end_price": 7680.5,
+        "pts": 22.25,
+        "direction": "UP",
+        "start_idx": 20,
+        "end_idx": 26,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1487,
+        "model_result": {
+          "n": 5,
+          "total_pts": 0,
+          "total_usd": 0.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "AMBIG",
+              "bar_il": "18:15",
+              "pts": 0.0
+            },
+            {
+              "contract": 1,
+              "event": "AMBIG",
+              "bar_il": "18:15",
+              "pts": 0.0
+            },
+            {
+              "contract": 2,
+              "event": "AMBIG",
+              "bar_il": "18:15",
+              "pts": 0.0
+            },
+            {
+              "contract": 3,
+              "event": "AMBIG",
+              "bar_il": "18:15",
+              "pts": 0.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:10"
+      }
+    ],
+    "all_moves_count": 24,
+    "loss_vectors": [],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-14",
+    "bar_count": 79,
+    "trade_count": 83,
+    "live_trade_count": 2,
+    "range_pts": 57.25,
+    "session_high": 7719.75,
+    "session_low": 7662.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 3.98,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -29.25,
+    "captured_live_usd": -146.25,
+    "moves": [
+      {
+        "t_start": "18:30",
+        "t_end": "18:40",
+        "start_price": 7678.0,
+        "end_price": 7706.5,
+        "pts": 28.5,
+        "direction": "UP",
+        "start_idx": 24,
+        "end_idx": 26,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1557,
+        "model_result": {
+          "n": 2,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:30"
+      },
+      {
+        "t_start": "17:15",
+        "t_end": "17:25",
+        "start_price": 7690.0,
+        "end_price": 7665.25,
+        "pts": 24.75,
+        "direction": "DOWN",
+        "start_idx": 9,
+        "end_idx": 11,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1544,
+        "model_result": {
+          "n": 5,
+          "total_pts": 2.25,
+          "total_usd": 11.25,
+          "events": [
+            {
+              "contract": 0,
+              "event": "T0",
+              "bar_il": "17:25",
+              "pts": 0.75
+            },
+            {
+              "contract": 1,
+              "event": "T1",
+              "bar_il": "17:25",
+              "pts": 0.25
+            },
+            {
+              "contract": 2,
+              "event": "T2",
+              "bar_il": "17:25",
+              "pts": 0.5
+            },
+            {
+              "contract": 3,
+              "event": "T3",
+              "bar_il": "17:25",
+              "pts": 0.75
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 17:20"
+      },
+      {
+        "t_start": "18:15",
+        "t_end": "18:30",
+        "start_price": 7668.25,
+        "end_price": 7692.5,
+        "pts": 24.25,
+        "direction": "UP",
+        "start_idx": 21,
+        "end_idx": 24,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1556,
+        "model_result": {
+          "n": 1,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:20"
+      }
+    ],
+    "all_moves_count": 27,
+    "loss_vectors": [
+      {
+        "trade_id": 1563,
+        "day_type": "Neutral_Extreme",
+        "day_type_conf": 0.25,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7697.25,
+        "stop": 7704.75,
+        "pnl_usd": -183.75
+      }
+    ],
+    "skipped": false
+  },
+  {
+    "session": "2026-09-15",
+    "bar_count": 79,
+    "trade_count": 89,
+    "live_trade_count": 2,
+    "range_pts": 43.5,
+    "session_high": 7687.0,
+    "session_low": 7643.5,
+    "day_type_final": "UNKNOWN",
+    "opening_type": "UNKNOWN",
+    "atr14": 3.85,
+    "zigzag_threshold": 8.0,
+    "captured_live_pts": -23.25,
+    "captured_live_usd": -116.25,
+    "moves": [
+      {
+        "t_start": "16:45",
+        "t_end": "17:20",
+        "start_price": 7684.75,
+        "end_price": 7654.0,
+        "pts": 30.75,
+        "direction": "DOWN",
+        "start_idx": 3,
+        "end_idx": 10,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1622,
+        "model_result": {
+          "n": 2,
+          "total_pts": 0.0,
+          "total_usd": 0.0,
+          "events": [],
+          "skip_reason": "size_too_small"
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 16:48"
+      },
+      {
+        "t_start": "17:20",
+        "t_end": "17:50",
+        "start_price": 7666.25,
+        "end_price": 7643.5,
+        "pts": 22.75,
+        "direction": "DOWN",
+        "start_idx": 10,
+        "end_idx": 16,
+        "status": "NO_SETUP",
+        "trade_id": null,
+        "model_result": null,
+        "blocked_by": null,
+        "details": "no setup fired in first 30% of move"
+      },
+      {
+        "t_start": "17:50",
+        "t_end": "18:40",
+        "start_price": 7643.5,
+        "end_price": 7659.75,
+        "pts": 16.25,
+        "direction": "UP",
+        "start_idx": 16,
+        "end_idx": 26,
+        "status": "FIRED_SHADOW_ONLY",
+        "trade_id": 1631,
+        "model_result": {
+          "n": 5,
+          "total_pts": -20.0,
+          "total_usd": -100.0,
+          "events": [
+            {
+              "contract": 0,
+              "event": "STOP",
+              "bar_il": "18:10",
+              "pts": -5.0
+            },
+            {
+              "contract": 1,
+              "event": "STOP",
+              "bar_il": "18:10",
+              "pts": -5.0
+            },
+            {
+              "contract": 2,
+              "event": "STOP",
+              "bar_il": "18:10",
+              "pts": -5.0
+            },
+            {
+              "contract": 3,
+              "event": "STOP",
+              "bar_il": "18:10",
+              "pts": -5.0
+            }
+          ],
+          "skip_reason": null
+        },
+        "blocked_by": null,
+        "details": "shadow entry at 18:05"
+      }
+    ],
+    "all_moves_count": 13,
+    "loss_vectors": [
+      {
+        "trade_id": 1647,
+        "day_type": "Variation",
+        "day_type_conf": 0.25,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7649.75,
+        "stop": 7655.75,
+        "pnl_usd": -86.25
+      },
+      {
+        "trade_id": 1659,
+        "day_type": "Variation",
+        "day_type_conf": 0.33,
+        "opening_type": "OPEN_AUCTION_IN",
+        "zone": null,
+        "extension": null,
+        "bars_since_extreme": null,
+        "direction": "SHORT",
+        "entry_price": 7653.75,
+        "stop": 7659.5,
+        "pnl_usd": -55.0
+      }
+    ],
+    "skipped": false
+  }
+]
