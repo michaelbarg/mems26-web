@@ -912,6 +912,105 @@ class FiveMinSystem(BaseV9TradingSystem):
             "reason": reason,
         }
 
+    # ── F17b / T-412: setup evidence for the existing producers ──
+    # Authority: docs/spec_authority/SETUP_GRAMMAR_2026-09-17.md.
+    # Michael 17.09 19:40: "לבחון על התבניות שלנו — בעיקר ריאקטיב ואיניאטיב —
+    # ולדייק, לא לבנות מחדש".  The census over 164 REACTIVE/INITIATIVE entries
+    # (scripts/pattern_evidence_study.py) says the trigger bar's close position
+    # separates the winners from the losers; for shorts, delta and volume at the
+    # trigger add on top.  The evidence is computed AFTER the existing geometry
+    # has passed and travels in info["evidence"] → metadata → cross_context.
+
+    @staticmethod
+    def _s2_tq_mode() -> str:
+        """S2_TRIGGER_QUALITY_V1, read at CALL time (not import) so a restart
+        is the only thing needed to change it.  Code default = 'shadow'
+        (log only, zero behaviour change); '1' = gate the fire.
+        """
+        return (os.environ.get("S2_TRIGGER_QUALITY_V1", "") or "shadow").strip().lower()
+
+    def _s2_evidence(self, bars_5m: List[Dict], direction: str, kind: str,
+                     anchor: Optional[float] = None) -> Dict:
+        """Compute the F17b evidence for a fire and log one [S2-EVIDENCE] line.
+
+        Pure maths lives in five_min/evidence.py (shared with the replay); this
+        method only gathers the inputs that exist in-process.  Never raises —
+        any failure returns {} and the fire proceeds exactly as before.
+        """
+        if self._s2_tq_mode() in ("0", "off", "false", "no"):
+            return {}
+        try:
+            from backend.v9.systems.five_min import evidence as _evd
+            bar = bars_5m[-1]
+            atr = self._current_atr_5m
+            # delta: one CVD read over the whole detection buffer
+            _cvd = self._compute_setup_cvd(bars_5m, window=min(20, len(bars_5m)))
+            perbar = list((_cvd or {}).get("perbar_deltas") or [])
+            bar_delta = perbar[-1] if perbar else None
+            med_abs = _evd.median_abs_delta(perbar[:-1]) if len(perbar) > 1 else None
+            # the two bars before the trigger, with their deltas, for absorption
+            prev2 = [dict(b) for b in bars_5m[-3:-1]]
+            if len(prev2) == 2 and len(perbar) >= 3:
+                prev2[0]["delta"], prev2[1]["delta"] = perbar[-3], perbar[-2]
+            # levels: same Sierra export the rest of the fire path reads
+            dev_va = prev_va = ib = None
+            try:
+                _tpo = _load_sierra_tpo() or {}
+                dev_va = {"vah": _tpo.get("vah"), "val": _tpo.get("val"),
+                          "poc": _tpo.get("poc")}
+                _ps = _tpo.get("previous_session") or {}
+                prev_va = {"vah": _ps.get("vah"), "val": _ps.get("val"),
+                           "poc": _ps.get("poc")}
+                ib = {"high": _tpo.get("ib_high"), "low": _tpo.get("ib_low")}
+            except Exception:
+                pass  # honest None-levels → location returns UNKNOWN (Rule 1)
+            _loc = _evd.location(anchor if anchor is not None else bar.get("c"),
+                                 dev_va, prev_va, ib, atr)
+            ev = {
+                "trigger": _evd.trigger_quality(bar, direction, atr),
+                "delta_with": _evd.delta_with(bar_delta, med_abs, direction),
+                "vol_trig": _evd.vol_trigger(
+                    bar.get("v"), _evd.median_volume(bars_5m[-6:-1])),
+                "location": _loc,
+                "absorption": _evd.absorption(prev2, direction, med_abs, atr),
+                "bar_delta": bar_delta,
+                "median_abs_delta": med_abs,
+                "cvd_coverage": (_cvd or {}).get("coverage"),
+                "anchor": anchor,
+                "mode": self._s2_tq_mode(),
+            }
+            logger.info(
+                "[S2-EVIDENCE] %s %s mode=%s trigger_ok=%s cp=%s delta_with=%s "
+                "vol_trig=%s loc=%s at_edge=%s absorption=%s",
+                kind, direction, ev["mode"], ev["trigger"].get("ok"),
+                ev["trigger"].get("cp"), ev["delta_with"], ev["vol_trig"],
+                _loc.get("zone"), _evd.at_edge_for(_loc, direction),
+                ev["absorption"])
+            return ev
+        except Exception as _e:                      # never break a live fire
+            logger.warning("[S2-EVIDENCE] %s %s evidence failed: %r",
+                           kind, direction, _e)
+            return {}
+
+    def _s2_evidence_blocks(self, ev: Dict, direction: str) -> bool:
+        """Would the F17b gate reject this fire?  Only consulted when
+        S2_TRIGGER_QUALITY_V1=1 — in 'shadow' (the default) the caller logs the
+        answer and fires anyway.
+
+        Rule (order 17.09 19:40): fire only with trigger_ok; for SHORT also
+        (delta_with or vol_trig).  Missing evidence is NOT a block (fail-open,
+        like every other S2 evidence gate in this file).
+        """
+        if not ev:
+            return False
+        if ev.get("trigger", {}).get("ok") is False:
+            return True
+        if direction == "SHORT":
+            _dw, _vt = ev.get("delta_with"), ev.get("vol_trig")
+            if _dw is False and _vt is False:        # both known and both no
+                return True
+        return False
+
     # ── Pattern detectors (Constitution V3 Layer 1 T1) ──
 
     def _detect_reactive(self, bars_5m: List[Dict]) -> tuple:
@@ -1079,12 +1178,19 @@ class FiveMinSystem(BaseV9TradingSystem):
             _active = [k for k, v in _variants_long.items() if v]
             # cc-1: structural anchor = min low of b1..b3 (demand zone floor for LONG)
             _struct_anchor_l = min(b1["l"], b2["l"], b3["l"])
+            # F17b/T-412: evidence after the geometry passed
+            _ev_l = self._s2_evidence(bars_5m, "LONG", "REACTIVE", _struct_anchor_l)
+            if self._s2_tq_mode() in ("1", "true", "yes") and self._s2_evidence_blocks(_ev_l, "LONG"):
+                logger.info("[S2-EVIDENCE] REACTIVE LONG rejected: trigger_ok=%s cp=%s",
+                            _ev_l.get("trigger", {}).get("ok"), _ev_l.get("trigger", {}).get("cp"))
+                return (None, 0, {})  # fall through to INITIATIVE
             return ("LONG", 0.80 if poc_rising else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising,
                      "belly_ratio": belly_ratio,
                      "variant": _active[0] if _active else "A_VSA",
                      "variants_passed": _active,
-                     "structural_anchor": _struct_anchor_l})
+                     "structural_anchor": _struct_anchor_l,
+                     "evidence": _ev_l})
 
         # Reactive SHORT (mirror)
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
@@ -1149,12 +1255,20 @@ class FiveMinSystem(BaseV9TradingSystem):
             _active_s = [k for k, v in _variants_short.items() if v]
             # cc-1: structural anchor = max high of b1..b3 (supply zone ceiling for SHORT)
             _struct_anchor_s = max(b1["h"], b2["h"], b3["h"])
+            # F17b/T-412: evidence after the geometry passed
+            _ev_s = self._s2_evidence(bars_5m, "SHORT", "REACTIVE", _struct_anchor_s)
+            if self._s2_tq_mode() in ("1", "true", "yes") and self._s2_evidence_blocks(_ev_s, "SHORT"):
+                logger.info("[S2-EVIDENCE] REACTIVE SHORT rejected: trigger_ok=%s cp=%s delta_with=%s vol_trig=%s",
+                            _ev_s.get("trigger", {}).get("ok"), _ev_s.get("trigger", {}).get("cp"),
+                            _ev_s.get("delta_with"), _ev_s.get("vol_trig"))
+                return (None, 0, {})  # fall through to INITIATIVE
             return ("SHORT", 0.80 if poc_falling else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling,
                      "belly_ratio": belly_ratio_s,
                      "variant": _active_s[0] if _active_s else "A_VSA",
                      "variants_passed": _active_s,
-                     "structural_anchor": _struct_anchor_s})
+                     "structural_anchor": _struct_anchor_s,
+                     "evidence": _ev_s})
 
         # S2_DETECTION_LOG: per-bar condition vector (observability, flag-gated)
         import os as _dl_os
@@ -1284,9 +1398,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                     return (None, 0, {})
             # cc-1: structural anchor = min low of b1..b3 for LONG
             _ini_anchor_l = min(b1["l"], b2["l"], b3["l"])
+            # F17b/T-412: evidence after the geometry passed
+            _ev_il = self._s2_evidence(bars_5m, "LONG", "INITIATIVE", _ini_anchor_l)
+            if self._s2_tq_mode() in ("1", "true", "yes") and self._s2_evidence_blocks(_ev_il, "LONG"):
+                logger.info("[S2-EVIDENCE] INITIATIVE LONG rejected: trigger_ok=%s cp=%s",
+                            _ev_il.get("trigger", {}).get("ok"), _ev_il.get("trigger", {}).get("cp"))
+                return (None, 0, {})
             return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                    "b2_alt": "poc_return" if b2_poc_return else "higher_low",
-                                   "structural_anchor": _ini_anchor_l})
+                                   "structural_anchor": _ini_anchor_l,
+                                   "evidence": _ev_il})
 
         # Initiative SHORT (mirror)
         b1_bear = b1["c"] < b1["o"]
@@ -1313,9 +1434,20 @@ class FiveMinSystem(BaseV9TradingSystem):
                     return (None, 0, {})
             # cc-1: structural anchor = max high of b1..b3 for SHORT
             _ini_anchor_s = max(b1["h"], b2["h"], b3["h"])
+            # F17b/T-412: evidence after the geometry passed.  The 17.09 17:10
+            # live INITIATIVE_SHORT @7683 is exactly this cell: trigger bar
+            # 17:05 closed at 36% of its range (cp 0.357 > 0.30) ⇒ trigger_ok
+            # False ⇒ under S2_TRIGGER_QUALITY_V1=1 it would not have fired.
+            _ev_is = self._s2_evidence(bars_5m, "SHORT", "INITIATIVE", _ini_anchor_s)
+            if self._s2_tq_mode() in ("1", "true", "yes") and self._s2_evidence_blocks(_ev_is, "SHORT"):
+                logger.info("[S2-EVIDENCE] INITIATIVE SHORT rejected: trigger_ok=%s cp=%s delta_with=%s vol_trig=%s",
+                            _ev_is.get("trigger", {}).get("ok"), _ev_is.get("trigger", {}).get("cp"),
+                            _ev_is.get("delta_with"), _ev_is.get("vol_trig"))
+                return (None, 0, {})
             return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                     "b2_alt": "poc_return" if b2_poc_return_s else "lower_high",
-                                    "structural_anchor": _ini_anchor_s})
+                                    "structural_anchor": _ini_anchor_s,
+                                    "evidence": _ev_is})
 
         # S2_DETECTION_LOG: per-bar initiative condition vector
         import os as _dl_os2

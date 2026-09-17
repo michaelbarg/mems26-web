@@ -277,6 +277,12 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-29: INITIATIVE_SHORT fired without CVD confirmation despite +3,403 absorption. Michael sign-off required."
     status: deferred
     ref: "docs/handoff/CC_STAGE2_CVD_DETECTION_2026-06-30.md"
+  S2_TRIGGER_QUALITY_V1:
+    category: s2
+    what: "F17b/T-412 — trigger-bar evidence inside the EXISTING REACTIVE/INITIATIVE producers (five_min/evidence.py): trigger_quality (close in the extreme 30%), delta_with, vol_trigger, direction-aware location, corrected absorption. 'shadow' (code default) = log [S2-EVIDENCE] + attach info['evidence'], ZERO behaviour change; '1' = fire only with trigger_ok (SHORT also needs delta_with or vol_trig); '0' = skip evidence entirely (pre-F17b path)."
+    why: "Census over 164 REACTIVE/INITIATIVE entries (June→, fixed 2-leg model): REACTIVE LONG with trigger_ok N=11 win 64% +$41.7 vs without N=28 win 11% −$70.6; INITIATIVE SHORT with trigger_ok N=9 win 78% +$52.8 vs without N=30 win 10% −$32.0. NOT enabled — the replay decides, then Michael rules (order CC_NOW_2026-09-17_FIXES §F17b: 'לא להדליק')."
+    status: shadow
+    ref: "docs/handoff/cc_orders/CC_NOW_2026-09-17_FIXES.md §F17b · docs/spec_authority/SETUP_GRAMMAR_2026-09-17.md"
   S2_ATR_RELATIVE:
     category: s2
     what: "Scale S2 thresholds to ATR (relative) instead of fixed points."
