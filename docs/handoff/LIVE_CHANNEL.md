@@ -1,3 +1,95 @@
+## 🟢 [cowork-dev · 2026-09-17 15:36-15:50 IL] — **ריצת-השער (חלון 15:30-16:10) · חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון · חובה-2: ⛔ בעלות-הריסטארט ל-cowork-האינטראקטיבי ⇒ לא הורם ריסטארט חמישי, לא נשלח GO/NO-GO (T-369) · שורת-מדידה בלבד · יומית-16.09 מצורפת · שלוש מלכודות נבדקו ונדחו כאזעקות-שווא**
+
+**⛔ הכרעת-הבעלות (שני התנאים התקיימו — לפני כל פעולה):**
+```
+ps -o lstart -p 65145  ⇒  Thu Sep 17 15:17:55 2026   (היום, אחרי 12:00)  ✓ תנאי-א
+LIVE_CHANNEL שורה 1    ⇒  cowork-dev 17.09 15:14-15:20 "ריסטארט 15:17:55 — הרביעי והאחרון"
+                          + "⛔ לא להרים חמישי. GO אחד לטלפון."                ✓ תנאי-ב
+⇒ הבעלים: cowork-האינטראקטיבי. אני: אפס ריסטארט · אפס הודעת-שער · שורת-מדידה אחת.
+```
+
+**חובה-1 · ארבעה ערוצים, אפס ממתינות (נבדק ישירות מ-Render, לא רק מהקובץ — מלכודת 12):**
+```
+relay        launchctl com.mems26.mobile_relay ⇒ state=running pid=1857        (חי ⇒ "שקט" קביל)
+GET /chat            30 items · אחרון-מייקל 2026-09-16T10:43:05Z
+                     ⇒ נענה עניינית 2026-09-16T11:09:29Z + 5 הודעות-סוכן אחריו
+GET /instruction/pending ⇒ {"items":[]}   ·   GET /cmd/pending ⇒ {"cmd":null}
+GET /upload/pending      ⇒ {"items":[]}   ·   PHONE_THREAD.jsonl 557 שורות (ללא שינוי)
+⇒ אין מקרה (א)/(ב)/(ג); מקרה (ד) שייך לבעלים ⇒ אפס הודעות-טלפון מהריצה הזו.
+```
+
+**חובה-2א · יומית 16.09 (מספרים גולמיים, Rule 5):**
+```
+לייב 16.09   3 עסקאות, כולן CLOSED:
+  1712 S2 SHORT OPENING_DRIVE     16:40→16:46  MAE_SCRATCH  pnl_usd NULL  outcome UNPRICED
+  1717 S2 LONG  CEILING_FLIP_LONG 16:50→17:13  MAE_SCRATCH  pnl_usd NULL  outcome UNPRICED
+  1776 S4 LONG  GHOST             20:45→21:01  STOP_HIT     pnl_usd +46.25  outcome WIN
+  ⇒ ספרים: sum(pnl_usd)=+46.25 · עמודת pnl_sierra ריקה בכל שלוש
+  ⇒ מספר-סיירה ליום: sierra_state.json daily_pnl = -98.75  (זהה להודעת-הטלפון 21:01)
+     ⚠️ הפער ספרים⇄סיירה נובע משתי ה-UNPRICED — לא להציג +46.25 כתוצאת-היום.
+צל 16.09     89 עסקאות (זהה ב-IL/ET/created_at) · sum(pnl_usd) = -868.79
+ליגר 16.09   GATE_DECISION 76 · ROUTED 13 · DETECTED 0 · RESOLVED 0   (gateway_decisions.jsonl, 214 שורות, 0 לא-נפרסו)
+חוסמים 16.09 T-367 Rule B mid_value on Variation      28   ← כובה היום 14:05, יירד מחר
+             phase=C day_type in [Nontrend,Nonconviction] 12
+             phase=D default bias=NONE                    9
+             phase=A default bias=NONE                    8
+             bias=LONG rejects SHORT (phase=C/B)           6
+             zone-gates (near_vah/near_val/mid_value)      6
+ציון-מודעות 4-האחוזים: **לא-נמדד** — [[T-159]] פתוח, הסקריפט מעולם לא נכתב. לא הומצא מספר.
+צל-S1DayDir  חי: 586 שורות מאז ריסטארט-15:17 · agree=True 24 · agree=False 0
+             מצב-נוכחי accepted_break=none · agree=n/a (live מחזיר legacy None ⇒ LSMA fallback) — טרום-RTH
+EntryGuard   0 שורות מאז הריסטארט — צפוי: אין ניסיונות-כניסה לפני 16:30. לאימות-חוזר אחרי הפתיחה.
+דוחות-cc     CC_NOW_2026-09-17_FIXES.md 14:49 (F7-F10 DONE) · GAP_ANALYSIS_2026-09-17.md 14:45
+חריגים       אין חריג חוסם.
+```
+
+**חובה-2ב · מדידת-השער (בלי ריסטארט, בלי הודעה):**
+```
+fire_drill      🟢 GO — כל שרשרת ההחלטה כשרה לירי
+  ├ flag_guard   ✓ PASS · RULED_FLAGS.yaml 259 דגלים פסוקים
+  ├ guard_tests  ✓ 159 passed, 1 skipped
+  ├ wire_guard   ✓ 56 call sites / 11 guarded signatures
+  ├ task_log_guard ✓ 382 items, last committed 0.0 days ago
+  ├ חוזים       ✓ effective_contracts == 2
+  ├ feed        ✓ age=1566ms · live_slot=None (פנוי) · live_enabled=[2,4] · backend health ok
+  └ T-61        ✓ INFO זורם — boot 15:17:57 pid=65145 commit=b1d8cc1d
+גודל            ruled_contracts() == 2  ✓ תואם פסיקת-16.09 (FIXED_CONTRACTS_2=1) — לא נגעתי בדגלי-גודל
+פיד             v9_bars_5min_woodies max(ts)=2026-09-17 15:40:00+03 · now 15:41:10+03 · lag 1.2 דק' ✓
+סיירה           age 0.7s · is_sim=0 · order_placement_armed=1 · send_orders=1 · position_qty=0 · working_orders=0
+פוזיציה         state NOT IN (CLOSED,CANCELLED) ⇒ 0 שורות בכל המודים  (המדידה הקבילה, לא exit_ts)
+backend.err     0 ERROR/CRITICAL/Traceback מ-01:15:50 ועד עכשיו · 74 שורות בדקה (נורמלי; התקרית של 16.09 הייתה 1,000/דקה)
+T-34 מרג'ין     avail 798.14 < 1,595 ⇒ דיווח-בלבד. margin_req 0 · under_margin 0 · loss_limit_reached 0
+                · trading_disabled 0 ⇒ **אינו חוסם מסחר בגודל 2** ⇒ לא הופעל מקרה (ג). זהה למדידות 14:45/15:06.
+close_stale_shadow (dry) ⇒ "no stale shadow trades — nothing to do" ⇒ **לא הופעל --apply** (אין שורות-צל מאתמול)
+machine_health  ⚠️ WARN: unused RAM 86M < 400M · swap 2,673M > 500M
+                backend cpu 48.3% rss 119MB · sierra 149% · bridge 1.4% · frontend/postgres 0%
+                לא-מסחרי: cowork-vm 2,066MB · claude-app 1,782MB · chrome 1,563MB
+```
+
+**⚠️ שלוש מלכודות נבדקו — כל אחת הייתה מייצרת דיווח-שקר; כולן נדחו על ראיה גולמית:**
+
+1. **`ruled_contracts()` בלי `.env` מחזיר `None`** — נראה בדיוק כמו "אין פסיקת-גודל פעילה" (והנוסח בקוד: *"None means no fixed-size ruling is active"*). הפונקציה קוראת `os.environ` בלבד:
+```
+python3 -c 'from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())'  ⇒ None   ← ארטיפקט
+set -a && . ./.env && set +a && python3 -c '...'                                                      ⇒ 2      ← האמת
+```
+**המדידה היחידה הקבילה לגודל היא עם `.env` טעון.** ‏`fire_drill` הסכים עצמאית (`effective_contracts == 2`).
+
+2. **`live_price.json` מראה `price=7622.00` מול bid/ask 7720.00/7720.25 — פער 98 נקודות.** ‏7622 הוא **בדיוק** הסגירה של הבר 16.09 23:55 (אומת ב-DB). זו **התנהגות מתועדת, לא תקלה**: ה-DLL כותב `price=sc.Close[idx]` הקשור להגדרת-הסשן, ושני הצרכנים כבר מתקנים דרך אמצע bid/ask — ‏`_best_price()` (סטייה >2 נק' ⇒ mid) ו-`trade_commands.py` (מאז דריל 09.07, שבו עסקה 326 נורתה 24 נק' מחוץ-לשוק). מחיר-האמת: mid 7720.125 ≈ סגירת-הבר 7720.25. **אין אזעקה — השומר עובד.** ⚠️ קריאה גולמית של `price` מהקובץ הייתה מדווחת מחיר שגוי ב-98 נקודות.
+
+3. **הליגר ריק היום (0 אירועים) בזמן ש-16.09 רשם 89** — נראה כמו כותב-מת. **ראיה נגדית מלאת-קובץ:**
+```
+אירועים לפני 16:30 IL בכל ההיסטוריה של gateway_decisions.jsonl:  0
+האירוע הראשון של 16.09:  16:30:03 GATE_DECISION  (שלוש שניות אחרי הפתיחה)
+```
+⇒ ריק טרום-RTH הוא **הצפוי**, מאותה משפחה של *"אפס עסקאות ≠ מערכת מתה"*. האימות האמיתי לכותב-הליגר הוא אחרי 16:30.
+
+**הערה נוספת (לא-חוסמת):** ‏`/api/v9/status` מדווח `bridge.running=false · streams_active=0` בזמן שהגשר **חי ודוחף** — `bridge.err.log` 15:43:23 `push #60062`, אפס שגיאות ב-400KB האחרונים, ו-`bar_router received 4698 / dispatched 6590 / failed 0`. שלילה-כוזבת בבדיקת-הגשר של ה-endpoint; הפיד עצמו אומת ישירות מול ה-DB. לא הועלה כאזעקה.
+
+**מה לא נעשה, במכוון:** אפס ריסטארט · אפס נגיעה בדגלים/`.env`/פוזיציות · אפס `--apply` · אפס הודעת-טלפון.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-17 15:14-15:20 IL] — **cc סיים F7-F10 (15:11-15:14) · ממצא-חי: 486 שורות-BAR כפולות ב-33 דק' (הבר של אתמול 23:55 שוב ושוב, כתיבה סינכרונית על נתיב-הבר) ⇒ dedupe + 503 שורות נמחקו · ריסטארט 15:17:55 — הרביעי והאחרון · pid 65145 · commit b1d8cc1d · fire_drill 🟢 GO**
 
 ```
