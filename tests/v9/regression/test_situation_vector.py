@@ -300,3 +300,95 @@ class TestAtrCausal:
         bars = [_bar(5000 + i, 4990 + i, c=4995 + i) for i in range(20)]
         atr = _compute_atr_causal(bars)
         assert atr is not None
+
+
+# ---------------------------------------------------------------------------
+# F4: SituationVector with bars — vol_ratio numeric, bars_since_low correct
+# ---------------------------------------------------------------------------
+
+class TestF4BarsToVector:
+    """T-390b: vector on 3 synthetic bars + 5 prior sessions."""
+
+    def test_vector_with_bars_vol_ratio_numeric(self):
+        """3 bars today + 5 prior sessions -> vol_ratio is numeric."""
+        ts = "2026-09-15T14:30:00+00:00"
+        bars_today = [
+            _bar(5010, 4990, v=200, ts="2026-09-15T14:20:00+00:00"),
+            _bar(5015, 4995, v=200, ts="2026-09-15T14:25:00+00:00"),
+            _bar(5020, 5000, v=500, ts=ts),
+        ]
+        # 5 prior sessions, each with a bar at 14:30, volume ~100
+        prior = []
+        for i in range(5):
+            prior.append([_bar(5005, 4995, v=100, ts=f"2026-09-{10+i:02d}T14:30:00+00:00")])
+
+        sv = compute_situation_vector(
+            cross_context={"tpo_system": _tpo()},
+            price=5010.0,
+            ts=ts,
+            bars_rth_today=bars_today,
+            prior_sessions_bars=prior,
+        )
+        assert sv.vol_ratio is not None
+        assert isinstance(sv.vol_ratio, float)
+        assert sv.vol_ratio > 0
+
+    def test_vector_with_bars_bars_since_low_correct(self):
+        """bars_since_low reflects the bar index of the session low."""
+        bars_today = [
+            _bar(5010, 4980, v=100, ts="2026-09-15T14:20:00+00:00"),  # session low at idx 0
+            _bar(5015, 4995, v=100, ts="2026-09-15T14:25:00+00:00"),
+            _bar(5020, 5000, v=100, ts="2026-09-15T14:30:00+00:00"),
+        ]
+        sv = compute_situation_vector(
+            cross_context={"tpo_system": _tpo()},
+            price=5010.0,
+            ts="2026-09-15T14:30:00+00:00",
+            bars_rth_today=bars_today,
+        )
+        assert sv.bars_since_low == 2  # low at idx 0, current idx 2
+
+
+# ---------------------------------------------------------------------------
+# F5: classification_prefix, direction, entry_kind fields
+# ---------------------------------------------------------------------------
+
+class TestF5NewFields:
+    """T-392b: new fields on SituationVector."""
+
+    def test_classification_prefix(self):
+        sv = compute_situation_vector(
+            cross_context={},
+            price=5000.0,
+            ts="2026-09-15T14:30:00Z",
+            classification_prefix="CEILING_FLIP",
+            direction="SHORT",
+            entry_kind="BREAK",
+        )
+        assert sv.classification_prefix == "CEILING_FLIP"
+        assert sv.direction == "SHORT"
+        assert sv.entry_kind == "BREAK"
+
+    def test_new_fields_default_none(self):
+        sv = compute_situation_vector(
+            cross_context={},
+            price=5000.0,
+            ts="2026-09-15T14:30:00Z",
+        )
+        assert sv.classification_prefix is None
+        assert sv.direction is None
+        assert sv.entry_kind is None
+
+    def test_new_fields_in_asdict(self):
+        sv = compute_situation_vector(
+            cross_context={},
+            price=5000.0,
+            ts="2026-09-15T14:30:00Z",
+            classification_prefix="REACTIVE_LON",
+            direction="LONG",
+            entry_kind="PULLBACK",
+        )
+        d = asdict(sv)
+        assert d["classification_prefix"] == "REACTIVE_LON"
+        assert d["direction"] == "LONG"
+        assert d["entry_kind"] == "PULLBACK"

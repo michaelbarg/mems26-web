@@ -1478,6 +1478,32 @@ class BarLevelDetector:
 
             self._tm._db.commit()
 
+            # T-390b: BAR-level SituationVector logging (simplified, non-blocking)
+            try:
+                from backend.v9.services.situation_vector import (
+                    compute_situation_vector as _bld_sv_compute,
+                    log_decision_vector as _bld_sv_log,
+                )
+                from dataclasses import asdict as _bld_asdict
+                _bld_cc = {}
+                try:
+                    if self._gateway and hasattr(self._gateway, "_capture_cross_context"):
+                        _bld_cc = self._gateway._capture_cross_context()
+                except Exception:
+                    pass
+                _bld_sv = _bld_sv_compute(
+                    cross_context=_bld_cc,
+                    price=float(bar_data.get("close", bar_data.get("c", 0)) or 0),
+                    ts=str(bar_ts_raw),
+                )
+                _bld_sv_log(
+                    ts=str(bar_ts_raw),
+                    kind="BAR",
+                    vector=_bld_asdict(_bld_sv),
+                )
+            except Exception:
+                pass  # non-critical, swallow
+
         except Exception as e:
             logger.error("[BarLevelDetector] on_bar error: %s", e, exc_info=True)
 

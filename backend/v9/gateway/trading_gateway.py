@@ -1539,17 +1539,76 @@ class TradingGateway:
                             _sv_dt_conf = float(_sv_conf_row["confidence"])
                     except Exception:
                         pass
+                    # T-390b: Wire bars to vector — get RTH bars from five_min_system
+                    _sv_bars_rth = None
+                    _sv_prior_bars = None
+                    try:
+                        _sv_fms = self._system_registry.get("five_min_system")
+                        if _sv_fms and hasattr(_sv_fms, "_cf_bars"):
+                            from zoneinfo import ZoneInfo as _sv_ZI
+                            _sv_now_et = datetime.now(_sv_ZI("America/New_York"))
+                            _sv_today_str = _sv_now_et.strftime("%Y-%m-%d")
+                            # Filter _cf_bars to today's RTH (08:30-15:00 ET)
+                            _sv_all_bars = list(getattr(_sv_fms, "_cf_bars", []) or [])
+                            _sv_bars_rth = []
+                            for _sb in _sv_all_bars:
+                                _sb_ts = str(_sb.get("ts") or _sb.get("timestamp") or "")
+                                if _sv_today_str in _sb_ts:
+                                    _sv_bars_rth.append(_sb)
+                            if not _sv_bars_rth:
+                                _sv_bars_rth = None
+                    except Exception:
+                        pass
+                    try:
+                        # T-390b: Prior sessions bars — cached per date
+                        if not hasattr(self, "_PRIOR_CACHE"):
+                            self._PRIOR_CACHE = {}
+                        from zoneinfo import ZoneInfo as _sv_ZI2
+                        _sv_cache_date = datetime.now(_sv_ZI2("America/New_York")).strftime("%Y-%m-%d")
+                        if _sv_cache_date not in self._PRIOR_CACHE:
+                            from backend.v9.db.read import read_all as _sv_read_all
+                            _sv_prior_rows = _sv_read_all(
+                                "SELECT (ts AT TIME ZONE 'America/New_York')::date AS d, "
+                                "       open, high, low, close, volume "
+                                "FROM v9_bars_5min_woodies "
+                                "WHERE (ts AT TIME ZONE 'America/New_York')::date >= "
+                                "  ((:today)::date - INTERVAL '14 day')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::date < (:today)::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '08:30' "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time <= '15:00' "
+                                "ORDER BY ts",
+                                {"today": _sv_cache_date}
+                            )
+                            # Group by date
+                            _sv_by_date = {}
+                            for _r in _sv_prior_rows:
+                                _rd = str(_r["d"])
+                                _sv_by_date.setdefault(_rd, []).append(dict(_r))
+                            _sv_prior_bars = list(_sv_by_date.values())[-10:]  # last 10 sessions
+                            self._PRIOR_CACHE[_sv_cache_date] = _sv_prior_bars
+                        else:
+                            _sv_prior_bars = self._PRIOR_CACHE[_sv_cache_date]
+                    except Exception:
+                        pass
+                    # T-392b/F5: compute classification_prefix + pass direction/entry_kind
+                    _sv_cls = setup.get("classification") or setup.get("pattern") or ""
+                    _sv_cls_prefix = _sv_cls[:12] if _sv_cls else None
+                    _sv_direction = (setup.get("direction") or "").upper() or None
+                    _sv_entry_kind = setup.get("entry_kind") or None
                     _sv = _sv_compute(
                         cross_context=cross_context,
                         price=float(setup.get("entry_price") or 0),
                         ts=datetime.now(timezone.utc).isoformat(),
-                        bars_rth_today=None,     # fail-open: not easily available here
-                        prior_sessions_bars=None, # fail-open
+                        bars_rth_today=_sv_bars_rth,
+                        prior_sessions_bars=_sv_prior_bars,
                         phase=_sv_phase_val,
                         dir_hint=_dp_dir_hint,
                         day_type=_dp_dt if "_dp_dt" in dir() else None,
                         day_type_conf=_sv_dt_conf,
                         opening_type=_dp_ot if "_dp_ot" in dir() else None,
+                        classification_prefix=_sv_cls_prefix,
+                        direction=_sv_direction,
+                        entry_kind=_sv_entry_kind,
                     )
                     setup.setdefault("metadata", {})["situation"] = _sv_asdict(_sv)
                 except Exception as _sv_err:
@@ -1620,12 +1679,16 @@ class TradingGateway:
             _tree = _tree_load()
             _tree_sv = (setup.get("metadata") or {}).get("situation") or {}
             _tree_result = _tree_eval(_tree, _tree_sv, setup)
-            _real_decision = result.get("blocked_by") or "FIRED"
+            # T-392b/F5a: vocabulary mapping — real FIRED ≡ tree allow,
+            # real blocked_by ≡ tree block/stand_down
+            _real_raw = result.get("blocked_by") or "FIRED"
+            _real_canonical = "allow" if _real_raw == "FIRED" else "block"
             _tree_decision = _tree_result.get("decision", "unknown")
-            if _real_decision != _tree_decision:
+            # Only log actual mismatches (after canonical mapping)
+            if _real_canonical != _tree_decision:
                 logger.info(
-                    "[TREE-DIFF] real=%s tree=%s row=%s reason=%s",
-                    _real_decision, _tree_decision,
+                    "[TREE-DIFF] real=%s(%s) tree=%s row=%s reason=%s",
+                    _real_canonical, _real_raw, _tree_decision,
                     _tree_result.get("row"), _tree_result.get("reason", ""))
             # Store tree_shadow in decision_vectors via mode_result if T-390 is active
             if _dp_active:

@@ -43,6 +43,10 @@ class SituationVector:
     bars_since_low: int | None
     dir_hint: str | None         # dp_dir_hint from gateway / S1DayDir
     atr_causal: float | None     # ATR14 on closed bars only
+    # T-392b/F5: fields for expr: conditions in decision tree
+    classification_prefix: str | None = None  # first 12 chars of classification
+    direction: str | None = None              # LONG/SHORT from setup
+    entry_kind: str | None = None             # BREAK/PULLBACK/etc from setup
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +66,9 @@ def compute_situation_vector(
     day_type: Optional[str] = None,
     day_type_conf: Optional[float] = None,
     opening_type: Optional[str] = None,
+    classification_prefix: Optional[str] = None,
+    direction: Optional[str] = None,
+    entry_kind: Optional[str] = None,
 ) -> SituationVector:
     """Compute the full SituationVector.  Fail-open: any field that cannot be
     computed → ``None``; never throws.
@@ -78,6 +85,9 @@ def compute_situation_vector(
             day_type=day_type,
             day_type_conf=day_type_conf,
             opening_type=opening_type,
+            classification_prefix=classification_prefix,
+            direction=direction,
+            entry_kind=entry_kind,
         )
     except Exception as exc:
         logger.warning("[SituationVector] compute failed (returning defaults): %s", exc)
@@ -87,6 +97,8 @@ def compute_situation_vector(
             ib_locked=False, ib_width=None, extension="none", extension_pts=0.0,
             vol_ratio=None, bars_since_high=None, bars_since_low=None,
             dir_hint=dir_hint, atr_causal=None,
+            classification_prefix=classification_prefix,
+            direction=direction, entry_kind=entry_kind,
         )
 
 
@@ -102,6 +114,9 @@ def _compute_inner(
     day_type: Optional[str],
     day_type_conf: Optional[float],
     opening_type: Optional[str],
+    classification_prefix: Optional[str] = None,
+    direction: Optional[str] = None,
+    entry_kind: Optional[str] = None,
 ) -> SituationVector:
     # -- TPO data --
     tpo = cross_context.get("tpo_system") or {}
@@ -180,6 +195,9 @@ def _compute_inner(
         bars_since_low=bars_since_low,
         dir_hint=dir_hint,
         atr_causal=atr_causal,
+        classification_prefix=classification_prefix,
+        direction=direction,
+        entry_kind=entry_kind,
     )
 
 
@@ -342,26 +360,32 @@ def log_decision_vector(
     mode_result: Optional[dict] = None,
     vector: Optional[dict] = None,
 ) -> None:
-    """Write one row to ``v9_decision_vectors``.  Non-blocking, error-swallowed.
-    Gated behind ``SITUATION_VECTOR_LOG_V1`` (default ON).
+    """Write one row to ``v9_decision_vectors``.  Non-blocking via background
+    thread, error-swallowed.  Gated behind ``SITUATION_VECTOR_LOG_V1`` (default ON).
     """
     if not _SV_LOG_ENABLED:
         return
-    try:
-        import json as _sv_json
-        from backend.v9.db.safe_writer import safe_execute
-        safe_execute(
-            """INSERT INTO v9_decision_vectors
-            (ts, kind, system, classification, direction, entry,
-             phase, blocked_by, reason, mode_result, vector, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                ts, kind, system, classification, direction, entry,
-                phase, blocked_by, reason,
-                _sv_json.dumps(mode_result, default=str) if mode_result else None,
-                _sv_json.dumps(vector, default=str) if vector else None,
-                datetime.now(timezone.utc).isoformat(),
-            ),
-        )
-    except Exception as exc:
-        logger.warning("[SituationVector] log_decision_vector failed (swallowed): %s", exc)
+
+    def _do_write():
+        try:
+            import json as _sv_json
+            from backend.v9.db.safe_writer import safe_execute
+            safe_execute(
+                """INSERT INTO v9_decision_vectors
+                (ts, kind, system, classification, direction, entry,
+                 phase, blocked_by, reason, mode_result, vector, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    ts, kind, system, classification, direction, entry,
+                    phase, blocked_by, reason,
+                    _sv_json.dumps(mode_result, default=str) if mode_result else None,
+                    _sv_json.dumps(vector, default=str) if vector else None,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+        except Exception as exc:
+            logger.warning("[SituationVector] log_decision_vector failed (swallowed): %s", exc)
+
+    # T-390b: non-blocking write via background thread
+    t = threading.Thread(target=_do_write, daemon=True)
+    t.start()
