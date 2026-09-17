@@ -1,3 +1,63 @@
+## 🟢 [cowork-dev · 2026-09-17 14:36-14:45 IL] — **ריצת-דלתא תשיעית · חובה-1 בלבד (14:36 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק · ⚠️ שתי נקודות לשער-15:30**
+
+**חובה-1 — ארבעת הערוצים, peek ישיר מ-Render:**
+```
+/chat?key=            items=30 · senders: cowork 23 · מייקל 3 · cc 3 · --frm 1
+                      אחרון-מייקל 2026-09-16T10:43:05Z ("מה ההחלטות שעלי לקבל?") ⇒ נענה עניינית 2026-09-16T11:09:29Z
+                      אחרון-כלשהו 2026-09-16T18:12:05Z (cowork, סגירת GHOST) — אפס תנועה מאז
+/instruction/pending  {"items":[]}
+/cmd/pending          {"cmd":null}
+/upload/pending       {"items":[]}
+PHONE_THREAD.jsonl    557 שורות — זהה לריצת 14:06, אפס הודעות חדשות
+relay                 pid 1857 · STARTED Tue Sep 15 10:11:19 · ELAPSED 02-04:27:09 (חי)
+```
+⇒ **לא נשלחה הודעת-טלפון.** אין מקרה (א) הודעת-מייקל ללא מענה · אין (ב) עסקת-לייב שנפתחה/נסגרה היום · אין (ג) חריגה שדורשת החלטה · 14:36 אינו (ד) שער-15:40.
+
+**ניטור (קריאה-בלבד — אפס ריסטארט · אפס דגלים · אפס env · אפס פוזיציות/פקודות):**
+```
+backend      pid 58880 · STARTED Thu Sep 17 14:02:34 · ELAPSED 36:04 · RSS 117.9MB · health {"status":"ok"}
+פיד          v9_bars_5min_woodies max(ts)=2026-09-17 14:35:00+03 · lag 3.5 דק' ✓
+סיירה        is_sim=0 · order_placement_armed=1 · age_s 0.8 (טרי) · last_price 7686.25 · acct 37138283
+פוזיציה      position_qty 0 · working_orders 0 · v9_trades state NOT IN (CLOSED,CANCELLED) ⇒ 0 בכל המודים
+עסקאות       היום 17.09: live 0 · shadow 1 || אתמול 16.09: live 3 · shadow 98
+גודל         ruled_contracts() == 2 (עם set -a . ./.env) ✓ תואם פסיקת-16.09
+backend.err  /tmp/backend.err.log · 0 ERROR/CRITICAL ב-3000 השורות האחרונות · אחרון 14:39:16 (BarRouter חי)
+```
+
+**⚠️ נקודה 1 לשער — בעלות-הריסטארט היא של cowork-האינטראקטיבי (שני התנאים מתקיימים):**
+```
+ps -p 58880 -o lstart  ⇒ Thu Sep 17 14:02:34 2026   (עלה היום אחרי 12:00 ✓)
+LIVE_CHANNEL 17.09 14:06 ⇒ רשומת cowork-dev מהיום על הריסטארט (commit 8eb2686f) ✓
+list_scheduled_tasks    ⇒ אין mems26-preopen-restart-1709 (רק 1009/1109/1509, כולם enabled=false)
+```
+⇒ **לריצת 15:30-16:10: אל תרים ריסטארט ואל תשלח GO/NO-GO** (T-369: שתי הודעות-שער = הצפה) — רק שורת-מדידה אחת כאן. קומיטי-cc של היום (F1-F6, `c66cc56e`) אינם מחייבים ריסטארט: הרשומה שלהם אומרת במפורש "Zero .env · zero restart", והשינויים ב-`scripts/gap_analysis.py` הם סקריפט אופליין ולא נתיב-ריצה של הבקאנד.
+
+**⚠️ נקודה 2 — T-34 מרג'ין על הקצה (דיווח-בלבד, לא הופנה לטלפון):**
+```
+acct_available_funds 798.14   (< סף 1,595 ⇒ שורת-LIVE_CHANNEL חובה)
+acct_margin_req      0.0      (פוזיציה 0 ⇒ אין דרישה פעילה כרגע)
+acct_under_margin    0        · order_placement_armed 1
+```
+מדידת-16.09: ל-2 חוזים דרוש כ-800 דולר, והפנוי אז היה 908 (מרווח ~100) — **היום הפנוי 798.14, כלומר המרווח נמחק והמספר יושב על הדרישה עצמה.** לא הופנה לטלפון כי אינו חוסם-מסחר מוכח ברגע זה (under_margin=0, חמוש, פוזיציה 0, טרם פתיחה) ולא אמציא ערך שלא נמדד. **לשער-15:30: למדוד מחדש את דרישת-המרג'ין בפועל מול 798.14 לפני שקובעים GO** — אם יימצא חוסם, זה מקרה (ג) בטלפון.
+
+**מלכודת לתיעוד (שלא תייצר אזעקת-שווא בשער): מוני-היום של ה-DLL טרם התגלגלו.**
+```
+sierra daily_pnl -98.75 · daily_total_qty_filled 16.0   ⇒ ערכי-16.09 עדיין בתוקף (הסשן לא נפתח)
+acct_daily_pl    0.0                                    ⇒ מונה-הברוקר כן אופס
+```
+⇒ אין לקרוא -98.75 כהפסד-היום ב-14:36. הסתירה בין שני המונים היא צפויה טרם-פתיחה, לא תקלה.
+
+**T-389 (דוח-הפער שהובטח למייקל ל"בוקר 17.09") — נחת, אך המספר עדיין לא יציב:**
+```
+docs/reports/GAP_ANALYSIS_2026-09-17.md   נוצר 11:50 · 75 סשנים · captured/range -20.4%
+                                          TREND_STEP/RE_ACCEPTANCE: 16 סשני trend/normal · 2 החמצות-עם-צל · מודל 88.75 דולר
+הסתייגות                                  42 מ-75 הסשנים עדיין day_type=UNKNOWN (56%) — קבוצות-הענפים הגדולות נשענות עליהם
+scripts/gap_analysis.py                   mtime 14:20 (אחרי הדוח של 11:50) ⇒ cc עדיין מתקן, הדוח אינו סופי
+```
+⇒ **לא נשלח לטלפון** — דוח/מדידה אינו אחד מארבעת המקרים. כשהמספר יתייצב, נקודת-ההחלטה של מייקל (TREND_STEP ו-RE_ACCEPTANCE מיד או ל-v2) חוזרת לשולחנו לפי הלו"ז שנמסר לו ב-16.09 11:09.
+
+---
+
 ## [cc-macbook · 2026-09-17 IL] — **F1-F6 תיקוני-סקירה לעץ ולסריקה — DONE (6 items)**
 
 **F1** `day_type_final` from bars (classify_day_type_from_bars). **F2** SUSPECT bar filter (|Δclose|>max(25,6×ATR) or H-L>40). **F3** Model vs broker gap section. **F4** bars_rth_today from five_min_system._cf_bars, prior_sessions_bars cached, BAR-level logging, background thread. **F5** TREE-DIFF vocabulary mapping, T-329 → real expr, Rule A narrowed. **F6** phase-D trend runner + volume break rows. `--dry --session 2026-09-15` output: `Variation, 43.5pt range, 3 moves, captured -23.25pts`. Tests: `BRIDGE_TOKEN=test pytest test_gap_analysis.py test_dalton_tree.py test_situation_vector.py ⇒ 80 passed`. NOT-DONE: F6 vol_ratio in gap_analysis (stub). Zero .env · zero restart.
