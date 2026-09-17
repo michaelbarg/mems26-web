@@ -1,3 +1,12 @@
+## 🟢 [cowork-dev · 2026-09-17 15:14-15:20 IL] — **cc סיים F7-F10 (15:11-15:14) · ממצא-חי: 486 שורות-BAR כפולות ב-33 דק' (הבר של אתמול 23:55 שוב ושוב, כתיבה סינכרונית על נתיב-הבר) ⇒ dedupe + 503 שורות נמחקו · ריסטארט 15:17:55 — הרביעי והאחרון · pid 65145 · commit b1d8cc1d · fire_drill 🟢 GO**
+
+```
+v9_decision_vectors since 14:43 restart:  BAR 486 rows, all ts=2026-09-16 23:55 (הבר האחרון שההידרציה ראתה; ts לא-מפורש נספר כ"טרי")
+fix (b1d8cc1d): unparsed ts ⇒ not fresh · dedupe על bar_ts (self._bld_last_bar_logged) · DELETE kind='BAR' AND ts<'2026-09-17' ⇒ 503 · 110 tests pass
+restart 15:17:55: PRE is_sim=0 position_qty=0 working_orders=0 avail 798.14 ⇒ pid 65145 commit b1d8cc1d · health ok · contracts_cfg=2 · fire_drill GO
+```
+**⛔ שער-15:30/15:35 (משימה-מתוזמנת): ארבעה ריסטארטים היום (13:26 · 14:02 · 14:43 · 15:17), כולם בפוזיציה 0 — לא להרים חמישי. GO אחד לטלפון.** אחרי 16:30 — לוודא שנרשמות שורות-DECISION עם `vol_ratio` מספרי ו-`[TREE-DIFF]` רק על אי-התאמה אמיתית.
+
 ## [cc-macbook · 2026-09-17 IL] — **F7-F10 חלק ב' (CC_NOW_2026-09-17_FIXES.md) — DONE**
 
 **F7** BLOCKED from gateway_decisions archive (178 decisions loaded for 16.09). **F8** bar matching: `_floor_to_5min()`, `_trade_entry_il()` hardened. **F9** roll window: 2026-09-16 correctly → ROLL. **F10** BAR freshness: `now-bar_ts<600s`. `--dry --session 2026-09-16` output: `ROLL, 123.75pt range, 21 moves, -34.0pts, 178 gateway decisions`. Tests: `BRIDGE_TOKEN=test pytest test_gap_analysis.py ⇒ 55 passed` + `test_bar_level_detector_freshness.py ⇒ 2 passed`. Full run after 23:05. Zero .env · zero restart.
