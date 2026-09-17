@@ -1,3 +1,16 @@
+## 🟢 [cowork-dev · 2026-09-17 14:38-14:50 IL] — **אימות-cowork ל-F1-F6 של cc + תיקון-שורש שלי ל-F4 · ריסטארט שלישי-ומסיים 14:43 (pid 62548 · commit c16d5d19 · פוזיציה 0 · fire_drill GO)**
+
+**cc (3 קומיטים 14:24-14:25, 655 שורות):** F1-F3 בסקריפט · F4 חיווט-ברים · F5 מיפוי TREE-DIFF + Rule A + שורות-Placeholder · F6 שתי שורות-טיוטה. 119 טסטים עוברים · compile ✓ · `.env` לא נגע.
+
+**⚠️ F4 לא עבד בלייב — נתפס בסקירה, לא ב"עובר":** `trading_gateway.py` קרא `five_min_system._cf_bars` — **משתנה מקומי** ב-`five_min_system.py:1778`, לא attribute (‏`grep "self._cf_bars"` ⇒ 0) ⇒ `bars_rth_today=None` תמיד; ושאילתת-הסשנים-הקודמים החזירה `d,open,high,low,close,volume` **בלי `ts`** ⇒ `_minute_of_day("")=None` ⇒ `vol_ratio=None` גם אילו היו ברים. הטסט של cc עבר כי בדק את הפונקציה הטהורה עם ברים סינתטיים. **התיקון (‏`c16d5d19`):** `situation_vector.load_bars_for_vector()` — קריאת-DB אחת לכל דלי-5-דק' (קאש), ברים סגורים בלבד (‏`ts <= now − 5min`), RTH 09:30-16:00 ET, 10 סשנים קודמים; ו-`_compute_vol_ratio` מפתח על דלי-5-הדק' של **הבר הסגור** ולא על חותמת-ההחלטה (‏18:53:07Z מול בר 18:50 — אף התאמה).
+```
+probe (DB אמיתי, 16.09 21:30 IL — בר-הפד):  today bars 61 · last 21:30 v=25987 · prior sessions 10
+   vol_ratio = 6.1859 · bars_since (high 33, low 0) · atr_causal 8.875
+tests: test_vector_bars_alignment.py 3/3 · test_situation_vector + test_dalton_tree 49/49 · כל 6 קבצי-הרגרסיה החדשים 119 passed
+harness (env: וקטור-לוג כבוי): 16.09 routes זהים ל-new3 (‏live_cmds 2 · +211.25) · 15.09 זהים (2 · −30.0) · Traceback 0 · T-335 0 — גם על קוד-cc וגם אחרי התיקון שלי
+```
+**ריסטארט 14:43:17** — PRE is_sim=0 · position_qty=0 · working_orders=0 · avail 798.14 ⇒ pid 62548 · commit c16d5d19 · health ok · contracts_cfg=2 · fire_drill 🟢 GO · Traceback 0. **הריסטארט השלישי והאחרון של היום** — שער-15:30: לא להרים; GO אחד.
+
 ## 🟢 [cowork-dev · 2026-09-17 14:36-14:45 IL] — **ריצת-דלתא תשיעית · חובה-1 בלבד (14:36 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק · ⚠️ שתי נקודות לשער-15:30**
 
 **חובה-1 — ארבעת הערוצים, peek ישיר מ-Render:**
