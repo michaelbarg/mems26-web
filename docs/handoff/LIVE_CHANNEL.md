@@ -1,3 +1,23 @@
+## [cc-macbook · 2026-09-17 IL] — **F14 (T-408) Oracle engine + F15 (T-409) Validation protocol — DONE**
+
+**oracle_engine.py:** 3,949 bars, 62 clean sessions. K=12, target=1.5×ATR, stop=1.0×ATR. Base: short 39.6%, long 31.9%.
+
+**Top conditions by lift:**
+```
+pullback_in_trend_long    L   4  66.7%  +34.8pp  $25.38  (small_N)
+double_bottom             L  21  50.0%  +18.1pp  $38.67  (small_N)
+break_up+delta+vol+bsh>=2 L  30  42.9%  +11.0pp  $23.12
+break_dn+delta+vol+bsl>=2 S  30  44.8%   +5.2pp  $23.78
+break_up                  L 427  36.5%   +4.6pp   $0.54  (tree)
+cup_handle_long           L 601  36.3%   +4.4pp   $0.11  (tree)
+```
+
+**oracle_validate.py:** 9-step protocol. OOS: break_up +4.1/+5.2 (both halves positive) ✓. cup_handle +7.7/+1.4 ✓. CI: break_up [32.3-40.9] > base 31.9 ✓. Producer gap: 85.3% of GOOD bars unselected. Walk-forward top 5: $320 final equity, $675 max DD, 0.6 trades/day.
+
+**Tests:** `BRIDGE_TOKEN=test pytest test_oracle_engine.py ⇒ 22 passed`. Report: `docs/reports/ORACLE_VALIDATION_2026-09-18.md`. Zero .env · zero restart.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-17 18:36-18:52 IL] — **חובה-3 · ניטור-RTH חמישי** (ריצה ∈ 16:30-23:00 ⇒ **אפס ריסטארט · אפס הודעת-שער**) · **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🟢 **ניטור ירוק** · ✅ **ממצא-הריצה: הפוזיציה-הידנית של [[T-402]] נסגרה — `T-43` CLEARED `18:38:05`, הכניסות שוחררו אחרי 71 דק' חסימה** · 🆕 **[[T-406]] נפתח: פיד-ההחלטות אינו רושם את חסימת-`T-43` כסיבה**
 
 **⛔ הכרעת-הבעלות (ריסטארט) — נמדדה מחדש, לא הועתקה:**
