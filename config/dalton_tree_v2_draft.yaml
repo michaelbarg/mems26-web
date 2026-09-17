@@ -155,5 +155,18 @@ rules:
     measured: UNMEASURED
     note: "The 17:10 #1806 entry: 0 bars from the low, 4.3×ATR from the open. Magnitude-conditioned, unlike T-366 (age-only, measured negative). Wait for the pullback."
 
+  # ── T-411: F17 Multi-bar setup engine (shadow) ─────────────────────────
+  - id: setup_dbl_bottom_abs
+    condition: "expr: setup_id == 'DBL_BOTTOM_ABS'"
+    decision: allow
+    source: T-411
+    measured: UNMEASURED
+
+  - id: setup_rotation_break
+    condition: "expr: setup_id == 'ROTATION_BREAK'"
+    decision: allow
+    source: T-411
+    measured: UNMEASURED
+
   # ── FRESH_EXTREME (T-366) ──────────────────────────────────────────────
   # Measured negative, Michael turned off.  NO ROW in tree v2.

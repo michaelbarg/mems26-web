@@ -1,3 +1,18 @@
+## [cc-macbook · 2026-09-17 IL] — **F17 (T-411) Multi-bar setup engine — DONE**
+
+`setup_engine.py`: DBL_BOTTOM_ABS + ROTATION_BREAK per SETUP_GRAMMAR_2026-09-17.md. Parameters in dict (plateau-ready).
+
+**Golden 17.09 (`--session 2026-09-17`):**
+```
+DBL_BOTTOM_ABS  LONG  17:10  entry=7692.25  stop=7680.25  T1=7699.00  +$31.15
+ROTATION_BREAK  SHORT 17:45  entry=7693.25  stop=7704.25  T1=7688.50  +$46.15
+```
+Total: 6 hits (4 DBL_BOTTOM_ABS, 2 ROTATION_BREAK). No fire at 16:50 (no absorption) ✓. No fire SHORT at 17:10 ✓. Tree: 2 shadow rows (14 total).
+
+Tests: `BRIDGE_TOKEN=test pytest test_setup_engine.py ⇒ 12 passed`. Zero .env · zero restart.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-17 19:36-19:45 IL] — **חובה-3 · ניטור-RTH שביעי** (ריצה ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס הודעת-שער**) · **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🟢 **ניטור ירוק** · 🔑 **ממצא-הריצה: הקפה-ידנית *רביעית* (‏`19:33:52`, פתוחה) — ובפעם הראשונה היום המערכת *חימשה סטופ-וירטואלי על הפוזיציה של מייקל*. אומת שהוא התראה-בלבד ושלא נגע בה.**
 
 **⛔ הכרעת-הבעלות (ריסטארט) — נמדדה מחדש, לא הועתקה:**
