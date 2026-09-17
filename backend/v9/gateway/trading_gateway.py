@@ -1076,6 +1076,7 @@ class TradingGateway:
         # Replaces compass/playbook/location_gate with one gate. Flag OFF → byte-identical.
         _dalton_intent = None
         _dp_location_checked = False
+        _dp_phase_now = None   # set inside the playbook block (17.09 phase-D ruling)
         _dp_active = os.getenv("DALTON_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes")
         if _dp_active:
             try:
@@ -1230,7 +1231,24 @@ class TradingGateway:
                 # Replaces entry_kinds check with zone_of for these day types.
                 # Ruling: Michael 2026-06-20 §1 + 2026-09-11 09:50.
                 _dp_location_checked = False
-                if _dp_dt in ("Normal", "Neutral_Center", "Neutral_Extreme"):
+                # Michael 2026-09-17 14:05 (phase D opened for trend days): the
+                # T-319b fade-location rule (LONG only near/below VAL, SHORT only
+                # near/above VAH) is a phase-C rotation rule. In phase D the only
+                # entries the playbook allows are WITH the trend/extension, and
+                # a with-trend pullback on Neutral_Extreme sits by definition
+                # beyond value (16.09 22:05 GHOST SHORT @7626.75 blocked
+                # "zone=below_value" in a 100-pt drop). Phase D had no entries at
+                # all before this ruling, so skipping T-319b there changes nothing
+                # for phases A-C.
+                _dp_phase_now = None
+                try:
+                    from backend.v9.services.dalton_playbook import (
+                        _resolve_phase as _t319_phase, load_config as _t319_cfg)
+                    _dp_phase_now = _t319_phase(_dp_il_hhmm, _t319_cfg())
+                except Exception:
+                    _dp_phase_now = None
+                if (_dp_dt in ("Normal", "Neutral_Center", "Neutral_Extreme")
+                        and _dp_phase_now != "D"):
                     try:
                         _dp_tpo_loc = (cross_context.get("tpo_system")
                                        if isinstance(cross_context, dict) else None) or {}
@@ -2415,7 +2433,24 @@ class TradingGateway:
         # Relative position quality gate: chaser / expensive stop / beyond value.
         # All thresholds relative. Flag OFF = byte-identical. Shadow = log only.
         _elq_mode = os.getenv("ENTRY_LOCATION_QUALITY_V1", "0").lower()
-        if _elq_mode in ("1", "true", "shadow"):
+        # Michael 2026-09-17 14:05 (phase D opened for trend days): ELQ's
+        # "beyond_value / chaser" tests are rotation-day tests. A with-trend
+        # pullback in phase D on a Trend/Neutral_Extreme day is beyond value by
+        # definition (16.09 21:49 GHOST SHORT @7656.5 ex=1.14, 22:05 @7627 ex=1.81
+        # in a 100-pt drop). When the playbook itself says "with the trend" in
+        # phase D and the setup is WITH that bias, ELQ is skipped (logged).
+        # Counter-bias setups never reach here (dalton_intent:bias blocks them).
+        try:
+            _elq_skip_d = (
+                _dp_phase_now == "D" and _dalton_intent is not None
+                and getattr(_dalton_intent, "bias", None) in ("LONG", "SHORT")
+                and getattr(_dalton_intent, "bias", None) == direction)
+        except Exception:
+            _elq_skip_d = False
+        if _elq_skip_d and _elq_mode in ("1", "true", "shadow"):
+            logger.info("[Gateway] ELQ skipped: phase D with-trend %s (%s)",
+                        direction, getattr(_dalton_intent, "reason", ""))
+        if _elq_mode in ("1", "true", "shadow") and not _elq_skip_d:
             try:
                 from backend.v9.systems.entry_location_quality import assess_entry_quality
                 _elq_entry = setup.get("entry_price")
@@ -3870,14 +3905,26 @@ class TradingGateway:
                             _st_daytype = _st_live_dt
                     except Exception:
                         pass
+                    # 17.09 (Michael 14:05, phase D opened for trend days): the
+                    # same continuation logic applies to a with-trend entry the
+                    # playbook admitted in phase D (Neutral_Extreme late
+                    # extension — 16.09 21:49/22:05 GHOST SHORT: structure's
+                    # POC/center sits above a 100-pt drop by definition).
+                    try:
+                        _st_phase_d_with = (
+                            _dp_phase_now == "D" and _dalton_intent is not None
+                            and getattr(_dalton_intent, "bias", None) in ("LONG", "SHORT")
+                            and getattr(_dalton_intent, "bias", None) == direction)
+                    except Exception:
+                        _st_phase_d_with = False
                     if (_st is not None and _st.get("all_wrong_side")
-                            and _st_daytype.startswith("Trend")):
+                            and (_st_daytype.startswith("Trend") or _st_phase_d_with)):
                         logger.warning(
                             "[Gateway] wrong-side veto EXEMPT on trend day "
-                            "(%s): %s %s entry=%s — continuation objective, "
+                            "(%s%s): %s %s entry=%s — continuation objective, "
                             "R-fallback targets kept",
-                            _st_daytype, _st_pat, direction,
-                            setup.get("entry_price"))
+                            _st_daytype, " / phase-D with-trend" if _st_phase_d_with else "",
+                            _st_pat, direction, setup.get("entry_price"))
                     elif (_st is not None and _st.get("all_wrong_side")
                             and os.getenv("STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1", "0").lower()
                             in ("1", "true", "yes")):

@@ -1,3 +1,37 @@
+## 🟢 [cowork-dev · 2026-09-17 13:40-14:10 IL] — **מייקל 13:50: "למה אתה כל הזמן דוחה… לפעול לפי הדוקטרינה… 3 עסקאות אתמול, פספסה המון" ⇒ בוצע היום, לא נדחה: [[T-397]] שלב D נפתח לימי-מגמה (פסיקה 14:05) · [[T-367]] כבוי · סקראץ'-MAE נמדד ונשאר · ריסטארט לפני 16:10**
+
+**הלקח של 16.09, מהברים ומהלוג (לא מזיכרון):**
+```
+RTH 16.09: open 7676.5 · IB 7669-7686.5 (17.5) · 21:00 הפד (בר 24k) · 21:30-22:25 קריסה 7680→7575 · close 7623.75 · טווח 123.75
+לייב:  16:40 OPENING_DRIVE SHORT @7669.5 → MAE_SCRATCH (הסטופ 7680.5 היה נפגע ב-16:45, high 7681.75 — הסקראץ' חסך)
+       16:50 CEILING_FLIP_LONG @7681.25 → MAE_SCRATCH (17:25 low 7669.25, סטופ 7668.75 ניצל ב-0.5; T1 7688.25 נפגע 18:00 — הסקראץ' עלה +$70)
+       Σ יום −$145
+נחסם:  21:18/21:20/21:25 ZLR SHORT ×4 + TOUCH2 SHORT ⇒ variation_mid_value (T-367 Rule B)
+       21:30:08 INITIATIVE_SHORT @7678.0 ⇒ variation_mid_value (ובלעדיו: phase D default stand_down)  ← תחילת הקריסה, בר 26k
+       21:47/21:50/21:55 GHOST SHORT @7665.75/7656/7631 ⇒ dalton_intent:stand_down (phase D = manage_only)
+       22:05 GHOST SHORT @7626.75 ⇒ dalton_intent:location zone=below_value (T-319b)
+```
+**ארבע שכבות של כללי-יום-רוטציה על יום-מגמה** — זה "לא לפי הדוקטרינה" שמייקל מדבר עליו, והוא צודק.
+
+**מה בוצע (קוד+YAML, מחוץ ל-RTH, guards ירוקים):**
+1. `config/dalton_playbook.yaml` שלב D: `Trend_Normal/Trend_DD` (bias trend_direction) · `Neutral_Extreme` (bias extension_direction — ה-dir_hint override של השער עוקב אחרי ההרחבה הדומיננטית) ⇒ `[PULLBACK, BREAK]`, `runner: false`, ברירת-מחדל נשארת stand_down.
+2. `trading_gateway.py` — שלושה פטורים **רק** לכניסה עם-הכיוון שהפלייבוק אישר בשלב D (`_dp_phase_now == "D" and intent.bias == direction`): T-319b location (‏`:1233`), ELQ (‏`:2434`), structural_targets_wrong_side (‏`:3940`). שלבים A-C — אפס שינוי. `_dp_phase_now` מאותחל ל-None (‏`:1079`).
+3. `VARIATION_WITH_EXTENSION_V1=0` — snapshot `20260917T104754Z_variation-ext-off-1709`; `RULED_FLAGS` expected "0" + measured; flag_guard PASS 259.
+4. `tests/v9/regression/test_phase_d_trend_days.py` 5/5 · guard_tests 159 passed · task_log_guard ✓.
+
+**הרנס (env-עותק: `SITUATION_VECTOR_LOG_V1=0` כדי לא לזהם את `v9_decision_vectors`; `VARIATION_WITH_EXTENSION_V1=0`):**
+```
+16.09  לפני (playbook ישן):  routes=73 live_cmds=1  pnl_harness=+23.75   (21:30 INITIATIVE_SHORT stand_down · 21:49/22:05 GHOST ELQ beyond_value ex=1.14/1.81)
+16.09  אחרי שלב D+פטורים:   routes=73 live_cmds=2  pnl_harness=+211.25  ← 21:50 GHOST SHORT @7656.25 stop 7662.75 t1 7638.25 t2 7636.75 ⇒ T1+T2 באותו בר, +$187.50 (mfe 81 נק' — נלקחו 18-19: ראנר ל-v2)
+        21:49 GHOST ⇒ entry_not_confirmed (שער אמיתי) · 21:55 GHOST ⇒ stand_down (התווית ריצדה Neutral_Center↔Extreme) · 22:05 ⇒ entry_not_confirmed · 22:05 TOUCH2 LONG ⇒ bias SHORT rejects LONG ✓
+15.09  ללא שינוי: live_cmds=2 pnl −30.0 (זהה ל-off-run של 16.09 בוקר) · Traceback 0 · T-335 0 בשני הסשנים
+```
+**מה שאינו נטען:** לא "+$211 בכל יום-מגמה" — 2 סשנים. המספר על 85 סשנים מגיע מהסריקה המתוקנת (F1-F3, הזמנת-cc) הלילה. **21:30 INITIATIVE_SHORT עדיין נחסם** גם אחרי הפתיחה (התווית ב-21:30 הייתה Variation, ההרחבה-למטה עוד לא הייתה קיימת) — הענף שיתפוס אותו הוא `vol_ratio` (26k מול ~4k) על BREAK בשבירת-IB — דורש F4 (ברים בווקטור).
+
+**סקראץ'-MAE — נמדד לפני שנוגעים (13 עסקאות-לייב MAE_SCRATCH):** בלי הסקראץ' — 10 סטופ-מלא · 3 T1 · Σ −81.5 נק'/חוזה (≈ −$815) מול −$116 בפועל ⇒ **הכלל מרוויח נטו, נשאר דלוק**, למרות שאתמול הוא עלה ב-LONG אחד. לקח מעסקה אחת = לקח שגוי.
+
+**הבא:** ריסטארט לפני 16:10 (פוזיציה 0) ⇒ שער-15:30 של המשימה-המתוזמנת: **לא להרים שוב**, רק GO אחד.
+
 ## 🟢 [cowork-dev · 2026-09-17 13:36-13:45 IL] — **ריצת-דלתא שביעית · חובה-1 בלבד · אפס ממתינות ⇒ שקט-טלפון · ניטור ירוק אחרי ריסטארט-13:26**
 
 **שורה אחת:** `13:36-13:45` · אפס ממתינות ב**ארבעה** ערוצים ⇒ **לא נשלחה הודעת-טלפון** · הריסטארט של היום כבר בוצע ב-13:26 ע"י cowork-האינטראקטיבי ⇒ **לא הורם שוב** · אפס דגלים/env/פוזיציות/פקודות/קוד.

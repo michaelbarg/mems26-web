@@ -171,6 +171,28 @@ phases:
     start_il: "21:00"
     end_il: "23:00"
     rules:
+      # Michael 2026-09-17 14:05 (ruling, after 16.09: 100 of the day's 124 pts came
+      # after 21:00 — FOMC 21:00, the 21:30-22:25 drop — and 5 correct SHORT setups,
+      # incl. INITIATIVE_SHORT 21:30 @7678, were all blocked by "phase D = manage
+      # only"): "לפתוח שלב D לימי-מגמה" — Dalton: on a trend day you trade WITH the
+      # trend to the close. Trend days + Neutral_Extreme (late one-directional
+      # extension; bias follows the extension via the dir_hint override in the
+      # gateway). With-direction PULLBACK/BREAK only, no runner (EOD cutoff 45 min
+      # still applies via eod_entry_cutoff). Everything else stays manage-only.
+      - condition: "day_type in [Trend_Normal, Trend_DD]"
+        bias: trend_direction
+        entry_kinds: [PULLBACK, BREAK]
+        stop_rule: BEYOND_LEG_EXTREME
+        target_rule: S1_TABLE
+        size_frac: 1.0
+        runner: false
+      - condition: "day_type == Neutral_Extreme"
+        bias: extension_direction
+        entry_kinds: [PULLBACK, BREAK]
+        stop_rule: BEYOND_LEG_EXTREME
+        target_rule: S1_TABLE
+        size_frac: 1.0
+        runner: false
       - condition: default
         bias: NONE
         entry_kinds: []
