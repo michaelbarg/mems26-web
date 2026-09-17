@@ -22,7 +22,9 @@ import os
 import sys
 from collections import defaultdict
 from datetime import datetime, date, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+import zoneinfo
 
 # ---------------------------------------------------------------------------
 # Bootstrap: standalone script, load .env then backend imports
@@ -54,6 +56,144 @@ def compute_vol_ratio_for_setup(bars: List[Dict], bar_idx: int,
     # Stub — vol_ratio computation from bars requires prior session volume data
     # which is not available in the current gap_analysis data model.
     return None
+
+
+# ---------------------------------------------------------------------------
+# F8 · T-389f: Floor HH:MM to nearest 5-minute boundary
+# ---------------------------------------------------------------------------
+
+def _floor_to_5min(hhmm: str) -> str:
+    """Floor an HH:MM string to the nearest 5-minute boundary.
+
+    Examples: "16:50" -> "16:50", "16:52" -> "16:50", "17:03" -> "17:00".
+    """
+    if not hhmm or len(hhmm) < 5:
+        return hhmm
+    try:
+        parts = hhmm[:5].split(":")
+        h, m = int(parts[0]), int(parts[1])
+        m_floored = (m // 5) * 5
+        return f"{h:02d}:{m_floored:02d}"
+    except (ValueError, IndexError):
+        return hhmm
+
+
+# ---------------------------------------------------------------------------
+# F7 · T-389e: Load gateway decisions from JSONL archive + live file
+# ---------------------------------------------------------------------------
+
+_IL_TZ = zoneinfo.ZoneInfo("Asia/Jerusalem")
+
+
+def load_gateway_decisions(session_date: str) -> List[Dict]:
+    """Load gateway decisions for a session date from archive and live file.
+
+    Sources:
+      - data_handoff/מק-1/{date}/gateway_decisions.jsonl  (archived)
+      - ~/SierraChart_Data/v9_export/gateway_decisions.jsonl  (live/recent)
+
+    Filters to the session date. Parses ``ts`` to IL time.
+    Returns list of dicts with an added ``ts_il`` datetime field.
+    """
+    results: List[Dict] = []
+    paths: List[Path] = []
+
+    # Archive path
+    archive_path = Path(_ROOT) / "data_handoff" / "מק-1" / session_date / "gateway_decisions.jsonl"
+    if archive_path.exists():
+        paths.append(archive_path)
+
+    # Live file
+    live_path = Path.home() / "SierraChart_Data" / "v9_export" / "gateway_decisions.jsonl"
+    if live_path.exists():
+        paths.append(live_path)
+
+    for fpath in paths:
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    ts_str = rec.get("ts")
+                    if not ts_str:
+                        continue
+                    # Parse ISO timestamp
+                    try:
+                        ts_utc = datetime.fromisoformat(ts_str)
+                    except (ValueError, TypeError):
+                        continue
+                    # Convert to IL time
+                    ts_il = ts_utc.astimezone(_IL_TZ)
+                    # Filter to session date
+                    if ts_il.strftime("%Y-%m-%d") != session_date:
+                        continue
+                    rec["ts_il"] = ts_il
+                    rec["ts_il_hhmm"] = ts_il.strftime("%H:%M")
+                    results.append(rec)
+        except OSError:
+            continue
+
+    return results
+
+
+def _build_gateway_index(decisions: List[Dict]) -> Dict[str, List[Dict]]:
+    """Index blocked gateway decisions by direction for fast lookup.
+
+    Returns {"LONG": [...], "SHORT": [...]}.
+    """
+    idx: Dict[str, List[Dict]] = {"LONG": [], "SHORT": []}
+    for d in decisions:
+        if d.get("outcome") != "blocked":
+            continue
+        direction = (d.get("direction") or "").upper()
+        if direction in idx:
+            idx[direction].append(d)
+    return idx
+
+
+# ---------------------------------------------------------------------------
+# F9 · T-389g: Roll window detection
+# ---------------------------------------------------------------------------
+
+def _third_friday(year: int, month: int) -> date:
+    """Return the 3rd Friday of the given month."""
+    # First day of the month
+    first = date(year, month, 1)
+    # weekday(): Monday=0 ... Friday=4
+    # Days until first Friday
+    days_to_friday = (4 - first.weekday()) % 7
+    first_friday = first + timedelta(days=days_to_friday)
+    # 3rd Friday = first Friday + 14 days
+    return first_friday + timedelta(days=14)
+
+
+def _roll_dates(year: int = 2026) -> Set[str]:
+    """Compute the 3 trading days before (inclusive) quarterly futures expiry.
+
+    MES quarterly expiry: 3rd Friday of March, June, September, December.
+    Roll window = expiry day and the 2 trading days before it.
+    Trading days = weekdays (simplified; does not account for market holidays).
+
+    Returns set of "YYYY-MM-DD" strings.
+    """
+    roll_set: Set[str] = set()
+    for month in (3, 6, 9, 12):
+        expiry = _third_friday(year, month)
+        # Collect 3 trading days ending on expiry (inclusive)
+        trading_days = []
+        d = expiry
+        while len(trading_days) < 3:
+            if d.weekday() < 5:  # Mon-Fri
+                trading_days.append(d)
+            d -= timedelta(days=1)
+        for td in trading_days:
+            roll_set.add(td.strftime("%Y-%m-%d"))
+    return roll_set
 
 
 def classify_day_type_from_bars(bars: List[Dict]) -> str:
@@ -276,6 +416,9 @@ def evaluate_trade_fixed(bars: List[Dict], trade: Dict) -> Dict:
         return {"n": n, "total_pts": 0.0, "total_usd": 0.0,
                 "events": [], "skip_reason": "no_entry_time"}
 
+    # F8: floor to 5-min boundary so entry_il matches bar timestamps exactly
+    entry_il = _floor_to_5min(entry_il)
+
     results = walk_forward(bars, entry_il, direction, entry, stop, targets)
 
     total_pts = sum(r["pts"] for r in results if r["event"] != "AMBIG")
@@ -291,12 +434,19 @@ def evaluate_trade_fixed(bars: List[Dict], trade: Dict) -> Dict:
 
 
 def _trade_entry_il(trade: Dict) -> Optional[str]:
-    """Extract IL-time HH:MM from trade entry_ts."""
+    """Extract IL-time HH:MM from trade entry_ts.
+
+    F8 fix: always returns a clean HH:MM string (or None), never a full
+    datetime string. Handles both ``datetime`` objects and various string
+    formats from Postgres.
+    """
     ts = trade.get("entry_ts")
     if ts is None:
         return None
+    if isinstance(ts, datetime):
+        return ts.strftime("%H:%M")
     if isinstance(ts, str):
-        # Try to parse "YYYY-MM-DD HH:MM:SS" or similar
+        # Try ISO / Postgres formats
         for fmt in ("%Y-%m-%d %H:%M:%S%z", "%Y-%m-%d %H:%M:%S",
                      "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S"):
             try:
@@ -304,9 +454,13 @@ def _trade_entry_il(trade: Dict) -> Optional[str]:
                 return dt.strftime("%H:%M")
             except ValueError:
                 continue
-        return ts[:5] if len(ts) >= 5 else None
-    if isinstance(ts, datetime):
-        return ts.strftime("%H:%M")
+        # Fallback: if it looks like "HH:MM..." extract first 5 chars
+        if len(ts) >= 5 and ts[2] == ":":
+            return ts[:5]
+        # Could be "YYYY-MM-DD HH:MM:SS..." without TZ — grab chars 11:16
+        if len(ts) >= 16 and ts[10] in (" ", "T") and ts[13] == ":":
+            return ts[11:16]
+        return None
     return None
 
 
@@ -517,7 +671,9 @@ def compute_zigzag(bars: List[Dict], threshold: float) -> List[Dict]:
 
 # ===== Move classification =====
 
-def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
+def classify_move(move: Dict, trades: List[Dict], bars: List[Dict],
+                   gateway_index: Optional[Dict[str, List[Dict]]] = None
+                   ) -> Dict:
     """Classify a move vs. actual trades.
 
     Returns: {status, trade_id, model_result, blocked_by, details}
@@ -525,7 +681,7 @@ def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
     Status is one of:
       FIRED_LIVE — a live trade entered in the first 30% of the move
       FIRED_SHADOW_ONLY — a shadow trade entered (with model result)
-      BLOCKED:<reason> — a setup existed but was blocked
+      BLOCKED:<reason> — a setup existed but was blocked (from trades or gateway)
       NO_SETUP — no setup at all (producer gap)
     """
     move_dir = move["direction"]
@@ -583,6 +739,19 @@ def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
                 "details": f"blocked at {_trade_entry_il(t)}"
             }
 
+        # F7: before returning NO_SETUP, check gateway decisions archive
+        if gateway_index:
+            gw_blocked = _check_gateway_blocked(
+                gateway_index, trade_dir, t_start, cutoff_il)
+            if gw_blocked:
+                return {
+                    "status": f"BLOCKED:{gw_blocked['blocked_by']}",
+                    "trade_id": None,
+                    "model_result": None,
+                    "blocked_by": gw_blocked["blocked_by"],
+                    "details": f"gateway blocked at {gw_blocked.get('ts_il_hhmm', '?')}"
+                }
+
         return {
             "status": "NO_SETUP",
             "trade_id": None,
@@ -617,6 +786,19 @@ def classify_move(move: Dict, trades: List[Dict], bars: List[Dict]) -> Dict:
             "details": f"shadow entry at {_trade_entry_il(t)}"
         }
 
+    # F7: check gateway decisions before falling through to NO_SETUP
+    if gateway_index:
+        gw_blocked = _check_gateway_blocked(
+            gateway_index, trade_dir, t_start, cutoff_il)
+        if gw_blocked:
+            return {
+                "status": f"BLOCKED:{gw_blocked['blocked_by']}",
+                "trade_id": None,
+                "model_result": None,
+                "blocked_by": gw_blocked["blocked_by"],
+                "details": f"gateway blocked at {gw_blocked.get('ts_il_hhmm', '?')}"
+            }
+
     return {
         "status": "NO_SETUP",
         "trade_id": None,
@@ -642,6 +824,21 @@ def _blocked_by(cc: Dict) -> Optional[str]:
     if isinstance(meta, dict) and meta.get("blocked_by"):
         return meta["blocked_by"]
     return cc.get("blocked_by")
+
+
+def _check_gateway_blocked(gateway_index: Dict[str, List[Dict]],
+                           trade_dir: str, t_start: str,
+                           cutoff_il: str) -> Optional[Dict]:
+    """Check if a gateway decision was blocked in the [t_start, cutoff_il] window.
+
+    Returns the first matching blocked decision dict, or None.
+    """
+    blocked_list = gateway_index.get(trade_dir, [])
+    for d in blocked_list:
+        d_il = d.get("ts_il_hhmm", "")
+        if t_start <= d_il <= cutoff_il:
+            return d
+    return None
 
 
 def _day_type_block(cc: Dict) -> Dict:
@@ -762,6 +959,41 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
 
     data_quality = "SUSPECT" if suspect_indices else "CLEAN"
 
+    # F9: Roll window detection
+    try:
+        session_year = int(session_date[:4])
+    except (ValueError, IndexError):
+        session_year = 2026
+    roll_set = _roll_dates(session_year)
+    if session_date in roll_set:
+        data_quality = "ROLL" if data_quality == "CLEAN" else data_quality
+
+    # F9: Roll mismatch — compare continuous vs woodies close at 23:00 IL
+    roll_mismatch = False
+    if data_quality not in ("SUSPECT",):
+        try:
+            cont_row = read_all(
+                "SELECT close FROM v9_bars_5min_continuous "
+                "WHERE (ts AT TIME ZONE 'Asia/Jerusalem')::date = (:d)::date "
+                "AND (ts AT TIME ZONE 'Asia/Jerusalem')::time = '23:00' "
+                "ORDER BY ts DESC LIMIT 1",
+                {"d": session_date}
+            )
+            wood_row = read_all(
+                "SELECT close FROM v9_bars_5min_woodies "
+                "WHERE (ts AT TIME ZONE 'Asia/Jerusalem')::date = (:d)::date "
+                "AND (ts AT TIME ZONE 'Asia/Jerusalem')::time = '23:00' "
+                "ORDER BY ts DESC LIMIT 1",
+                {"d": session_date}
+            )
+            if cont_row and wood_row:
+                diff = abs(float(cont_row[0]["close"]) - float(wood_row[0]["close"]))
+                if diff > 10:
+                    roll_mismatch = True
+                    data_quality = "ROLL_MISMATCH"
+        except Exception:
+            pass  # non-critical, DB may not have both tables
+
     # Zigzag decomposition
     zigzag_threshold = max(8.0, 1.0 * atr14)
     all_moves = compute_zigzag(bars, zigzag_threshold)
@@ -769,10 +1001,15 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
     # Take top 3 largest moves
     top_moves = all_moves[:3]
 
+    # F7: load gateway decisions and build index
+    gateway_decisions = load_gateway_decisions(session_date)
+    gateway_index = _build_gateway_index(gateway_decisions)
+
     # Classify each move
     classified_moves = []
     for move in top_moves:
-        classification = classify_move(move, trades, bars)
+        classification = classify_move(move, trades, bars,
+                                       gateway_index=gateway_index)
         classified_moves.append({
             **move,
             **classification,
@@ -799,6 +1036,8 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
         "atr14": round(atr14, 2),
         "zigzag_threshold": round(zigzag_threshold, 2),
         "data_quality": data_quality,
+        "roll_mismatch": roll_mismatch,
+        "gateway_decisions_count": len(gateway_decisions),
         "suspect_bar_count": len(suspect_indices),
         "captured_live_pts": round(captured_live_pts, 2),
         "captured_live_usd": round(captured_live_usd, 2),
@@ -865,17 +1104,21 @@ def generate_report(sessions_data: List[Dict]) -> str:
         lines.append("No valid sessions found.")
         return "\n".join(lines)
 
-    # T-389c: separate clean from suspect sessions
-    suspect_sessions = [s for s in valid if s.get("data_quality") == "SUSPECT"]
-    clean_sessions = [s for s in valid if s.get("data_quality") != "SUSPECT"]
+    # T-389c + F9: separate clean from suspect / ROLL / ROLL_MISMATCH sessions
+    excluded_qualities = {"SUSPECT", "ROLL", "ROLL_MISMATCH"}
+    excluded_sessions = [s for s in valid
+                         if s.get("data_quality") in excluded_qualities]
+    clean_sessions = [s for s in valid
+                      if s.get("data_quality") not in excluded_qualities]
 
-    if suspect_sessions:
-        lines.append("## SUSPECT Sessions (excluded from summaries)")
+    if excluded_sessions:
+        lines.append("## Excluded Sessions (SUSPECT / ROLL / ROLL_MISMATCH)")
         lines.append("")
-        lines.append("| Session | Suspect Bars | Range | Day Type |")
-        lines.append("|---------|-------------|-------|----------|")
-        for s in suspect_sessions:
-            lines.append(f"| {s['session']} | {s.get('suspect_bar_count', 0)} | "
+        lines.append("| Session | Quality | Suspect Bars | Range | Day Type |")
+        lines.append("|---------|---------|-------------|-------|----------|")
+        for s in excluded_sessions:
+            lines.append(f"| {s['session']} | {s.get('data_quality', '')} | "
+                         f"{s.get('suspect_bar_count', 0)} | "
                          f"{s['range_pts']:.1f} | {s.get('day_type_final', '')} |")
         lines.append("")
 
@@ -918,6 +1161,33 @@ def generate_report(sessions_data: List[Dict]) -> str:
 
         lines.append(f"| {dt} | {n} | {avg_range:.1f} | {avg_captured:.1f} | "
                      f"{ratio:.1%} | {status_str} |")
+
+    lines.append("")
+
+    # ---------- F7: NO_SETUP vs BLOCKED by gate, per day type ----------
+    lines.append("## NO_SETUP vs BLOCKED by Gate")
+    lines.append("")
+    lines.append("| Day Type | NO_SETUP | BLOCKED (total) | By Gate |")
+    lines.append("|----------|----------|-----------------|---------|")
+
+    for dt in sorted(by_dt.keys()):
+        ss = by_dt[dt]
+        no_setup_count = 0
+        blocked_by_gate: Dict[str, int] = defaultdict(int)
+        for s in ss:
+            for m in s.get("moves", []):
+                st = m.get("status", "")
+                if st == "NO_SETUP":
+                    no_setup_count += 1
+                elif st.startswith("BLOCKED:"):
+                    gate = st.split(":", 1)[1]
+                    blocked_by_gate[gate] += 1
+        total_blocked = sum(blocked_by_gate.values())
+        gate_str = ", ".join(f"{g}:{c}" for g, c in
+                             sorted(blocked_by_gate.items(),
+                                    key=lambda x: x[1], reverse=True))
+        lines.append(f"| {dt} | {no_setup_count} | {total_blocked} | "
+                     f"{gate_str or '-'} |")
 
     lines.append("")
 

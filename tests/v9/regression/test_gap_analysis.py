@@ -41,6 +41,12 @@ with mock.patch.dict(sys.modules, {
         walk_forward,
         classify_day_type_from_bars,
         compute_vol_ratio_for_setup,
+        _floor_to_5min,
+        _trade_entry_il,
+        load_gateway_decisions,
+        _build_gateway_index,
+        _third_friday,
+        _roll_dates,
     )
 
 
@@ -460,3 +466,210 @@ class TestVolRatioStub:
         bars = [make_bar("16:30", 5400, 5410, 5400, 5405)]
         result = compute_vol_ratio_for_setup(bars, 0)
         assert result is None
+
+
+# ===== F8: Test _floor_to_5min and _trade_entry_il =====
+
+class TestFloorTo5Min:
+    def test_exact_5min(self):
+        assert _floor_to_5min("16:50") == "16:50"
+
+    def test_floor_down(self):
+        assert _floor_to_5min("16:52") == "16:50"
+
+    def test_floor_03(self):
+        assert _floor_to_5min("17:03") == "17:00"
+
+    def test_floor_59(self):
+        assert _floor_to_5min("17:59") == "17:55"
+
+    def test_floor_00(self):
+        assert _floor_to_5min("17:00") == "17:00"
+
+    def test_empty(self):
+        assert _floor_to_5min("") == ""
+
+    def test_none(self):
+        assert _floor_to_5min(None) is None
+
+
+class TestTradeEntryILFixed:
+    """F8: _trade_entry_il must always return clean HH:MM or None."""
+
+    def test_datetime_object(self):
+        from datetime import datetime
+        trade = {"entry_ts": datetime(2026, 9, 15, 16, 50, 7)}
+        result = _trade_entry_il(trade)
+        assert result == "16:50"
+
+    def test_iso_string(self):
+        trade = {"entry_ts": "2026-09-15T16:52:30+03:00"}
+        result = _trade_entry_il(trade)
+        # Should return HH:MM from the parsed time (16:52)
+        assert result is not None
+        assert len(result) == 5
+        assert result[2] == ":"
+
+    def test_space_separated_string(self):
+        trade = {"entry_ts": "2026-09-15 16:50:07+03:00"}
+        result = _trade_entry_il(trade)
+        assert result is not None
+        assert len(result) == 5
+
+    def test_none(self):
+        trade = {"entry_ts": None}
+        assert _trade_entry_il(trade) is None
+
+    def test_hhmm_string(self):
+        trade = {"entry_ts": "16:50"}
+        result = _trade_entry_il(trade)
+        assert result == "16:50"
+
+
+class TestF8EvaluateFloors:
+    """F8: entry_ts 16:50:07 IL -> bar 16:50; 16:52:30 -> bar 16:50."""
+
+    def test_entry_floors_to_matching_bar(self):
+        """Entry at 16:52:30 should floor to 16:50 and match bar 16:50."""
+        bars = [
+            {"il": "16:45", "high": 5405, "low": 5395, "close": 5400},
+            {"il": "16:50", "high": 5415, "low": 5399, "close": 5412},
+            {"il": "16:55", "high": 5420, "low": 5410, "close": 5418},
+            {"il": "17:00", "high": 5425, "low": 5415, "close": 5422},
+        ]
+        # Entry at 16:52:30 should floor to 16:50
+        trade = {
+            "entry_price": 5400.0, "stop": 5391.0, "t1": 5415.0,
+            "direction": "LONG", "entry_ts": "16:52",
+        }
+        result = evaluate_trade_fixed(bars, trade)
+        # Should NOT get no_entry_time or no matching bar — the 16:50 bar exists
+        assert result["skip_reason"] is None
+        assert result["n"] == 5  # risk=9 -> n=5
+
+    def test_entry_exact_5min_matches(self):
+        """Entry at 16:50:07 should produce HH:MM 16:50, matching bar 16:50."""
+        from datetime import datetime
+        bars = [
+            {"il": "16:45", "high": 5405, "low": 5395, "close": 5400},
+            {"il": "16:50", "high": 5415, "low": 5399, "close": 5412},
+            {"il": "16:55", "high": 5420, "low": 5410, "close": 5418},
+        ]
+        trade = {
+            "entry_price": 5400.0, "stop": 5391.0, "t1": 5415.0,
+            "direction": "LONG",
+            "entry_ts": datetime(2026, 9, 15, 16, 50, 7),
+        }
+        result = evaluate_trade_fixed(bars, trade)
+        assert result["skip_reason"] is None
+        assert len(result["events"]) > 0
+
+
+# ===== F7: Test gateway decisions and BLOCKED classification =====
+
+class TestGatewayDecisions:
+    def test_blocked_decision_in_window(self):
+        """A move with a gateway-blocked decision in the 30% window -> BLOCKED."""
+        move = {
+            "direction": "DOWN", "t_start": "16:30", "t_end": "17:00",
+            "pts": 20.0, "start_idx": 0, "end_idx": 6,
+        }
+        bars = make_bars_simple()
+        # Build gateway index with a blocked SHORT decision at 16:32
+        gateway_decisions = [{
+            "ts_il_hhmm": "16:32",
+            "direction": "SHORT",
+            "outcome": "blocked",
+            "blocked_by": "dalton_intent:stand_down",
+            "reason": "test",
+        }]
+        gateway_index = _build_gateway_index(gateway_decisions)
+
+        result = classify_move(move, [], bars, gateway_index=gateway_index)
+        assert result["status"] == "BLOCKED:dalton_intent:stand_down"
+        assert result["blocked_by"] == "dalton_intent:stand_down"
+
+    def test_no_blocked_decision_returns_no_setup(self):
+        """A move with no gateway blocked decision -> NO_SETUP."""
+        move = {
+            "direction": "UP", "t_start": "16:30", "t_end": "17:00",
+            "pts": 15.0, "start_idx": 0, "end_idx": 6,
+        }
+        bars = make_bars_simple()
+        # Empty gateway index
+        gateway_index = {"LONG": [], "SHORT": []}
+
+        result = classify_move(move, [], bars, gateway_index=gateway_index)
+        assert result["status"] == "NO_SETUP"
+
+    def test_blocked_wrong_direction_ignored(self):
+        """A blocked SHORT decision should NOT match an UP move (needs LONG)."""
+        move = {
+            "direction": "UP", "t_start": "16:30", "t_end": "17:00",
+            "pts": 20.0, "start_idx": 0, "end_idx": 6,
+        }
+        bars = make_bars_simple()
+        gateway_decisions = [{
+            "ts_il_hhmm": "16:32",
+            "direction": "SHORT",
+            "outcome": "blocked",
+            "blocked_by": "dalton_intent:stand_down",
+        }]
+        gateway_index = _build_gateway_index(gateway_decisions)
+
+        result = classify_move(move, [], bars, gateway_index=gateway_index)
+        assert result["status"] == "NO_SETUP"
+
+    def test_build_gateway_index_filters_non_blocked(self):
+        """Only outcome='blocked' decisions are indexed."""
+        decisions = [
+            {"direction": "LONG", "outcome": "fired", "blocked_by": None,
+             "ts_il_hhmm": "16:35"},
+            {"direction": "SHORT", "outcome": "blocked",
+             "blocked_by": "test_gate", "ts_il_hhmm": "16:40"},
+            {"direction": "SHORT", "outcome": "shadow",
+             "blocked_by": None, "ts_il_hhmm": "16:45"},
+        ]
+        idx = _build_gateway_index(decisions)
+        assert len(idx["LONG"]) == 0
+        assert len(idx["SHORT"]) == 1
+        assert idx["SHORT"][0]["blocked_by"] == "test_gate"
+
+
+# ===== F9: Test roll window detection =====
+
+class TestRollDates:
+    def test_third_friday_june_2026(self):
+        from datetime import date
+        result = _third_friday(2026, 6)
+        # June 2026: June 1 is Monday. First Friday = June 5. 3rd Friday = June 19.
+        assert result == date(2026, 6, 19)
+
+    def test_third_friday_september_2026(self):
+        from datetime import date
+        result = _third_friday(2026, 9)
+        # Sep 2026: Sep 1 is Tuesday. First Friday = Sep 4. 3rd Friday = Sep 18.
+        assert result == date(2026, 9, 18)
+
+    def test_june_18_is_roll(self):
+        """June 18, 2026 is in the roll window (June 17-19)."""
+        roll_set = _roll_dates(2026)
+        assert "2026-06-18" in roll_set
+
+    def test_june_15_is_not_roll(self):
+        """June 15, 2026 is NOT in the roll window."""
+        roll_set = _roll_dates(2026)
+        assert "2026-06-15" not in roll_set
+
+    def test_sep_roll_window(self):
+        """Sep 16-18, 2026 should be in the roll window."""
+        roll_set = _roll_dates(2026)
+        assert "2026-09-16" in roll_set
+        assert "2026-09-17" in roll_set
+        assert "2026-09-18" in roll_set
+        assert "2026-09-15" not in roll_set
+
+    def test_roll_window_has_12_dates(self):
+        """4 quarters * 3 days = 12 roll dates per year."""
+        roll_set = _roll_dates(2026)
+        assert len(roll_set) == 12
