@@ -54,3 +54,10 @@
 ב-hook של `bar_router`: לרשום `kind='BAR'` רק כשהבר סגור **בתוך 10 הדקות האחרונות** (‏`now − bar_ts < 600s`), ולדלג על הידרציה/ריפליי (אותו anti-phantom כמו `five_min_system.py:1780`). לנקות את 25 שורות-ההידרציה מ-16.09 (‏`DELETE … WHERE kind='BAR' AND ts < '2026-09-17'`) — פקודה אחת, בפלט. **טסט:** בר בן שעה ⇒ לא נרשם.
 
 אחרי F7-F9: להריץ `gap_analysis.py --start 2026-06-01 --end 2026-09-16` **רק אחרי 23:05** (בזמן RTH: `--dry --session 2026-09-16` בלבד) ולהדביק את טבלת-סוגי-היום ואת פילוח NO_SETUP/BLOCKED. cowork כותב מזה את עמוד-הענפים ליום א'.
+
+---
+
+# חלק ג' (cowork 17.09 17:35, מהעסקה החיה #1806) — F11, מחוץ ל-RTH, נטען מחר לפני הפתיחה
+
+## F11 · T-398a — שדות-פתיחה בווקטור (‏`SituationVector`)
+מהברים הסגורים של היום (‏`bars_rth_today` — כבר מחוברים דרך `load_bars_for_vector`): `open_price` (open של בר 16:30) · `bars_since_open` (מספר ברי-RTH סגורים) · `move_from_open_pts` (‏`close_last − open_price`, חתום) · `move_from_open_atr` (‏`|move| / atr_causal`; None כש-ATR None) · `open_move_dir` (‏'up'/'down'/'flat' לפי סימן ה-move ו-|move| ≥ 0.5×ATR) · `retrace_from_open_pct` (כמה מהמהלך-מהפתיחה כבר חזר: `(extreme − close_last)/(extreme − open) × 100`, 0-100). סיבתי, ברים סגורים בלבד, fail-open. להוסיף ל-`asdict` ולשמות המותרים ב-`expr:`. **טסטים:** 3 ברים סינתטיים: פתיחה 7713.5, שפל 7680.5, סגירה 7683 ⇒ `open_move_dir='down'`, `move_from_open_atr` ≈ 30/6.9, `retrace_from_open_pct` ≈ 7.6; ושורות T-398/T-399 בטיוטה נטענות ומוערכות על הווקטור הזה (‏#1806 ⇒ t399 block; 16:40 FAILED_BREAK_SHORT עם bars_since_open=2, move 3.0×ATR, retrace 20% ⇒ t398 allow). **probe בפלט** על `v9_decision_vectors` של היום אחרי הריסטארט של מחר — לא רק pytest.

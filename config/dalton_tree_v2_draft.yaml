@@ -129,5 +129,31 @@ rules:
     measured: UNMEASURED
     note: "Volume break (vol_ratio >= 3.0) at IB extreme zones. vol_ratio None -> comparison fails -> False (fail-closed)"
 
+  # ── T-398/T-399 (Michael 17.09 17:30, from live trade #1806): the opening ──
+  # 17.09 open: gap-down, bar 1 closed on its low (7713.5→7695.75, 30k). The
+  # with-drive SHORTs at 16:35 (@7695.75) and 16:40 (@7692.75) were blocked
+  # only because opening_type was still UNKNOWN (bar-4 lock at 16:50). The one
+  # live entry came at 17:10 @7683 — bars_since_low=0, 30 pts from the open =
+  # 4.3×ATR — and reversed for -$102.50. Michael: "כניסה אחרי שהמחיר ירד כבר
+  # וסיים את המגמה … יכלת לקנות בדרך ולא לחכות כל כך הרבה — נוהל הפתיחה לא טוב".
+  # Both rows need vector fields not yet computed live (F11 in the cc order):
+  # bars_since_open · move_from_open_atr · retrace_from_open_pct. Until then a
+  # missing name makes the expr False (fail-closed) — the rows are inert.
+  - id: t398_open_drive_provisional_with
+    phase: [A, B]
+    condition: "expr: phase in ['A','B'] and bars_since_open <= 3 and move_from_open_atr >= 1.5 and retrace_from_open_pct <= 50 and ((open_move_dir == 'down' and direction == 'SHORT') or (open_move_dir == 'up' and direction == 'LONG'))"
+    decision: allow
+    source: T-398
+    measured: UNMEASURED
+    note: "Dalton Open-Drive is visible by bar 1-2 (drives one way, never returns to the open). Provisional with-drive entry on the first pause, before the bar-4 label. Needs Michael's ruling before it leaves shadow."
+
+  - id: t399_late_chase_at_extreme
+    phase: [A, B]
+    condition: "expr: phase in ['A','B'] and entry_kind == 'BREAK' and ((direction == 'SHORT' and bars_since_low == 0) or (direction == 'LONG' and bars_since_high == 0)) and move_from_open_atr >= 3.0"
+    decision: block
+    source: T-399
+    measured: UNMEASURED
+    note: "The 17:10 #1806 entry: 0 bars from the low, 4.3×ATR from the open. Magnitude-conditioned, unlike T-366 (age-only, measured negative). Wait for the pullback."
+
   # ── FRESH_EXTREME (T-366) ──────────────────────────────────────────────
   # Measured negative, Michael turned off.  NO ROW in tree v2.
