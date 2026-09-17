@@ -131,3 +131,32 @@
 4. **אימות:** אותו `oracle_validate` — לכל סטאפ: N על כל ההיסטוריה הנקייה · good% [CI] · lift-גילוי/אימות · $/עסקה עם החלקה+עמלות · plateau על 3 הפרמטרים המרכזיים של כל סטאפ (סובלנות-השפלים, מכפיל-הספיגה, סף-דלתא-הטריגר / N-ברי-הרוטציה, התכווצות, ווליום-הטריגר) · walk-forward של שני הסטאפים יחד (סלוט אחד, 2 חוזים). **פלט:** `docs/reports/SETUP_VALIDATION_2026-09-18.md` + כל ה-hits ל-`harness_out/setups/hits.json` (לצפייה בצ'ארט).
 5. **חיבור לעץ (צל):** hit של סטאפ ⇒ `classification = SETUP_DBL_BOTTOM_ABS_LONG` / `SETUP_ROTATION_BREAK_SHORT`, `entry_kind` = REVERSAL / BREAK; שורת-`expr:` בטיוטת-העץ לכל סטאפ (`setup_id == …` ⇒ allow) — צל בלבד, `[TREE-DIFF]` יראה מחר בלייב מתי הם היו יורים. **לא נתיב-ירי.**
 6. טסטים: golden 17.09 (שני הסטאפים, שני ה-"אסור"); סדרות סינתטיות: רצפה-כפולה בלי ספיגה ⇒ אין hit; רוטציה בלי התכווצות-ווליום ⇒ אין hit; טריגר בלי סגירה-בקצה ⇒ אין hit.
+
+---
+
+# ⚠️ תיקון-כיוון ל-F17 (cowork 17.09 19:40, מייקל: "לבחון על התבניות שלנו — בעיקר ריאקטיב ואיניאטיב — ולדייק, לא לבנות מחדש")
+
+**F17 כפי שנכתב ("מנוע-סטאפים חדש") — מבוטל בצורתו.** במקומו: **F17b · T-412 — דיוק REACTIVE/INITIATIVE הקיימים ב-`five_min_system.py` עם ראיות מיקום · נר-טריגר · ווליום/דלתא, ושימוש-חוזר בגלאי-הצורה שכבר קיימים ב-`scripts/oracle_engine.py`.** הדקדוק (`SETUP_GRAMMAR_2026-09-17.md`) נשאר הסמכות למה שנחשב ראיה; הוא מיושם **בתוך** המפיקים הקיימים, לא לצידם.
+
+**הראיה — `scripts/pattern_evidence_study.py` (cowork 19:35) על 164 כניסות REACTIVE/INITIATIVE (לייב+צל, יוני→, מודל קבוע 2 רגליים):**
+```
+                      עם trigger_ok                בלי trigger_ok
+REACTIVE LONG    N=11  win 64%  +$41.7/עסקה      N=28  win 11%  −$70.6
+REACTIVE SHORT   N=12  win 42%   +$4.6           N=42  win 19%  −$22.9
+INITIATIVE LONG  N= 8  win 38%  −$25.6           N=24  win 17%  −$76.3
+INITIATIVE SHORT N= 9  win 78%  +$52.8           N=30  win 10%  −$32.0
+trigger_ok = בר-הכניסה סוגר ב-30% הקיצוניים בכיוון העסקה (לונג: cp ≥ 0.7; שורט: cp ≤ 0.3)
+INITIATIVE SHORT + delta_with (δ_trigger ≤ −1×חציון): N=6 win 67% +$59.8  · בלי: N=33 win 18% −$25.5
+INITIATIVE SHORT + vol_trig  (v_trigger ≥ 1.3×חציון-5): N=4 win 75% +$27.8
+loc_edge (שורט בקצה-ערך עליון / ליד VAL-VAH של אתמול): REACTIVE S N=10 +$43.5 · INITIATIVE S N=6 +$28.8 (בלי: שלילי)
+absorption (ההגדרה של cowork): N=0 — ההגדרה קשוחה/שגויה, לתקן (ראה 3)
+```
+**המסקנה המדידה:** "בר 4 = אישור" של ה-Constitution בודק רק `close > open`; מה שמפריד מנצחות ממפסידות הוא **עוצמת בר-הטריגר** (סגירה בקצה), ואצל שורטים גם **דלתא וווליום בטריגר** ו**מיקום בקצה-הערך**. זה תיקון בתוך המפיקים, לא מפיק חדש.
+
+## F17b · T-412 — מה לבנות
+1. **`backend/v9/systems/five_min/evidence.py` (חדש, טהור, סיבתי):** `trigger_quality(bar, direction) -> {cp, body_ratio, range_atr, ok}` · `delta_with(bar_delta, median_abs_delta, direction)` · `vol_trigger(bar_v, prev5_median)` · `location(price, dev_va, prev_va, ib, atr) -> {zone, near_prev_edge, at_edge_for(direction)}` (לונג = ליד **VAL**/קצה-תחתון, שורט = ליד **VAH**/קצה-עליון — לא "מתחת לערך") · `absorption(bars[-3:-1], direction, median_abs_delta, atr)` — **הגדרה מתוקנת:** לפחות בר אחד מהשניים עם `|δ| ≥ 1.5×חציון` **נגד** כיוון-העסקה, והתקדמות-המחיר בכיוון-הנגד ≤ 1×ATR (17.09 17:00-17:05: δ −2,855/−1,372, התקדמות 7.75 נק' ⇒ True) · **צורות** — להעביר את `detect_head_shoulders_*`, `detect_cup_handle_long`, `double_bottom/top` (מ-`pattern_evidence_study.py`) לכאן, אותה חתימה, כדי שהמפיקים והסריקה ישתמשו **באותו קוד**.
+2. **REACTIVE / INITIATIVE:** ב-`_detect_reactive` ו-`_detect_initiative` — אחרי שהגיאומטריה הקיימת עברה, לחשב את הראיות ולצרף ל-`info["evidence"]` (נכנס ל-`metadata` ומשם ל-`cross_context`/וקטור). **מתג `S2_TRIGGER_QUALITY_V1`** (ברירת-מחדל `shadow` בקוד): `shadow` = רק רישום `[S2-EVIDENCE] trigger_ok=… delta_with=… loc=…` על כל ירי; `1` = ירי רק עם `trigger_ok` (ולשורט: גם `delta_with or vol_trig`). **לא להדליק** — הריפליי על ההיסטוריה (3) מכריע, ואז פסיקת-מייקל.
+3. **ריפליי:** `pattern_evidence_study.py` עם ההגדרות המתוקנות (מיקום לפי כיוון, ספיגה מתוקנת) + פילוח שלב; ו-**הרנס** על 5 סשנים עם `S2_TRIGGER_QUALITY_V1=1` (env-עותק) מול `shadow`: routes, live_cmds, Σ$ במודל הקבוע — **אחרי 23:05**.
+4. **golden 17.09:** INITIATIVE_SHORT 17:10 @7683 — `trigger_ok=False` (הבר 17:05 סגר ב-36% מהטווח, לא בקצה; ובכל מקרה 0 ברים מהשפל) ⇒ בצל: נרשם "היה נחסם"; לונג 17:10 (אם REACTIVE_LONG היה מזהה): cp 0.82, δ +3,319, ⇒ `trigger_ok=True, delta_with=True`.
+5. טסטים: כל פונקציית-ראיה על ברים סינתטיים; `_detect_reactive` עם `S2_TRIGGER_QUALITY_V1=shadow` ⇒ אותה תוצאה כמו היום (אפס שינוי-התנהגות) + `evidence` ב-info.
+**סדר:** F16 → F17b. F14/F15 כבר בוצעו. **אין מנוע חדש.**
