@@ -1479,28 +1479,42 @@ class BarLevelDetector:
             self._tm._db.commit()
 
             # T-390b: BAR-level SituationVector logging (simplified, non-blocking)
+            # F10 / T-390c: only log kind='BAR' when the bar is recent (< 600s).
+            # This filters out hydration/replay bars that are hours old — same
+            # anti-phantom pattern used in five_min_system.py:1780.
+            # Cleanup SQL (run manually to remove 25 stale hydration rows):
+            #   DELETE FROM v9_decision_vectors
+            #   WHERE kind = 'BAR' AND ts < '2026-09-17T00:00:00+00:00';
             try:
-                from backend.v9.services.situation_vector import (
-                    compute_situation_vector as _bld_sv_compute,
-                    log_decision_vector as _bld_sv_log,
-                )
-                from dataclasses import asdict as _bld_asdict
-                _bld_cc = {}
-                try:
-                    if self._gateway and hasattr(self._gateway, "_capture_cross_context"):
-                        _bld_cc = self._gateway._capture_cross_context()
-                except Exception:
-                    pass
-                _bld_sv = _bld_sv_compute(
-                    cross_context=_bld_cc,
-                    price=float(bar_data.get("close", bar_data.get("c", 0)) or 0),
-                    ts=str(bar_ts_raw),
-                )
-                _bld_sv_log(
-                    ts=str(bar_ts_raw),
-                    kind="BAR",
-                    vector=_bld_asdict(_bld_sv),
-                )
+                from datetime import datetime as _bld_dt, timezone as _bld_tz
+                _bld_bar_fresh = True
+                if bar_ts is not None:
+                    _bld_age_s = (_bld_dt.now(_bld_tz.utc) - bar_ts).total_seconds()
+                    if _bld_age_s >= 600:  # > 10 minutes old => hydration/replay
+                        _bld_bar_fresh = False
+
+                if _bld_bar_fresh:
+                    from backend.v9.services.situation_vector import (
+                        compute_situation_vector as _bld_sv_compute,
+                        log_decision_vector as _bld_sv_log,
+                    )
+                    from dataclasses import asdict as _bld_asdict
+                    _bld_cc = {}
+                    try:
+                        if self._gateway and hasattr(self._gateway, "_capture_cross_context"):
+                            _bld_cc = self._gateway._capture_cross_context()
+                    except Exception:
+                        pass
+                    _bld_sv = _bld_sv_compute(
+                        cross_context=_bld_cc,
+                        price=float(bar_data.get("close", bar_data.get("c", 0)) or 0),
+                        ts=str(bar_ts_raw),
+                    )
+                    _bld_sv_log(
+                        ts=str(bar_ts_raw),
+                        kind="BAR",
+                        vector=_bld_asdict(_bld_sv),
+                    )
             except Exception:
                 pass  # non-critical, swallow
 

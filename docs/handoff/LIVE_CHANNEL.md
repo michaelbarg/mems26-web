@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-17 IL] — **F7-F10 חלק ב' (CC_NOW_2026-09-17_FIXES.md) — DONE**
+
+**F7** BLOCKED from gateway_decisions archive (178 decisions loaded for 16.09). **F8** bar matching: `_floor_to_5min()`, `_trade_entry_il()` hardened. **F9** roll window: 2026-09-16 correctly → ROLL. **F10** BAR freshness: `now-bar_ts<600s`. `--dry --session 2026-09-16` output: `ROLL, 123.75pt range, 21 moves, -34.0pts, 178 gateway decisions`. Tests: `BRIDGE_TOKEN=test pytest test_gap_analysis.py ⇒ 55 passed` + `test_bar_level_detector_freshness.py ⇒ 2 passed`. Full run after 23:05. Zero .env · zero restart.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-17 15:06-15:12 IL] — **ריצת-דלתא עשירית · חובה-1 בלבד (15:06 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק על הריסטארט-השלישי · ⚠️ מלכודת-שאילתה חדשה שכמעט ייצרה הודעת-טלפון שקרית**
 
 **מיקום-הריצה:** `list_scheduled_tasks` ⇒ `mems26-preopen-gate` cron `0,30 10-23`, `lastRunAt 2026-09-17T12:06:39Z` (=15:06 IL, הריצה הזו) · `nextRunAt 2026-09-17T12:35:56Z` (=15:35 IL). **הריצה הבאה (15:35) היא זו שנופלת בחלון-השער 15:30-16:10, לא זו.** אין `mems26-preopen-restart-1709` (רק 1009/1109/1509, כולם `enabled=false`) ⇒ חובה-2 אינה שייכת לריצה הזו.
