@@ -40,14 +40,14 @@ rules:
   # ── T-329: FAILED_EXTENSION / CEILING_FLIP exempt ──────────────────────
   - id: t329_failed_extension
     phase: []
-    condition: "expr: classification == 'PLACEHOLDER_NEVER_MATCHES'"
+    condition: "expr: classification_prefix in ['CEILING_FLIP', 'FAILED_EXTEN']"
     decision: allow
     source: T-329
     measured: UNMEASURED
     note: >
-      Requires classification prefix check (startswith('CEILING_FLIP')) —
-      not expressible in pure expr: v1. Method calls are rejected by the
-      safe evaluator. This row is a placeholder; the real logic stays in code.
+      T-392b: rewritten from placeholder. Uses classification_prefix (first
+      12 chars) added to SituationVector. Matches CEILING_FLIP* and
+      FAILED_EXTENSION* setups that are exempt from location gates.
 
   # ── T-355: phase-B location gate ───────────────────────────────────────
   - id: t355_phase_b_location
@@ -57,10 +57,12 @@ rules:
     source: T-355
     measured: UNMEASURED
     note: >
-      Phase-B location check with prior_vah/val + session extremes —
-      requires dynamic zone computation that can't be expressed as a
-      single expr: condition.  This row marks the slot in the tree;
-      the real check is multi-step code.
+      PLACEHOLDER (T-392b): Phase-B location check requires dynamic computation
+      of price vs prior_vah/prior_val + session extremes + tolerance band.
+      Cannot be expressed as a single expr: condition because it needs
+      runtime edge = max(prior_vah, session_high) etc. The real multi-step
+      check lives in trading_gateway.py (T-355 block). This row marks the
+      slot; converting it requires extending the evaluator with computed fields.
 
   # ── T-365: opening before day-type, phases A/B ─────────────────────────
   - id: t365_opening_before_daytype
@@ -74,12 +76,21 @@ rules:
   # ── T-367 Rule A: Variation with extension allow ───────────────────────
   # MUST come before Rule B so that extension entries from mid_value are
   # allowed (deliberate diff from current code — see GHOST SHORT note).
+  # T-392b/F5c: narrowed scope — direction must match extension, entry_kind constrained.
   - id: t367_rule_a_extension_allow
-    condition: "expr: day_type in ['Variation','Normal_Variation'] and extension != 'none'"
+    condition: "expr: day_type in ['Variation','Normal_Variation'] and extension != 'none' and ((extension == 'down' and direction == 'SHORT') or (extension == 'up' and direction == 'LONG')) and entry_kind in ['BREAK','PULLBACK']"
     decision: allow
     source: T-367
     measured: UNMEASURED
-    note: "entry_kind in BREAK/PULLBACK, direction matches extension — allows mid_value WITH extension"
+    note: "direction matches extension + entry_kind in BREAK/PULLBACK — allows mid_value WITH extension"
+
+  # T-392b/F5c: counter-extension on Variation allowed only at extreme zones
+  - id: t367_rule_a_counter_extension
+    condition: "expr: day_type in ['Variation','Normal_Variation'] and extension != 'none' and ((extension == 'up' and direction == 'SHORT') or (extension == 'down' and direction == 'LONG')) and zone in ['above_value','below_value']"
+    decision: allow
+    source: T-392b
+    measured: UNMEASURED
+    note: "Counter-extension entries allowed only at extreme zones (above_value/below_value)"
 
   # ── T-367 Rule B: Variation mid_value block ────────────────────────────
   - id: t367_rule_b_midvalue_block
@@ -99,6 +110,24 @@ rules:
   # This is NOT a separate rule — it's a documentation note explaining
   # that t367_rule_a_extension_allow fires BEFORE t367_rule_b_midvalue_block
   # for setups where extension != 'none', producing the desired 'allow'.
+
+  # ── T-397: Phase D runner on trend continuation ────────────────────────
+  - id: t397_phase_d_trend_runner
+    phase: [D]
+    condition: "expr: phase == 'D' and day_type in ['Trend_Normal','Trend_DD','Neutral_Extreme'] and ((extension == 'down' and direction == 'SHORT') or (extension == 'up' and direction == 'LONG'))"
+    decision: allow
+    runner: true
+    source: T-397
+    measured: UNMEASURED
+    note: "16.09 lesson: Phase D trend continuation with extension — runner allowed"
+
+  # ── T-392c: Volume break at IB ────────────────────────────────────────
+  - id: t392c_volume_break
+    condition: "expr: entry_kind == 'BREAK' and vol_ratio >= 3.0 and ((extension == 'down' and direction == 'SHORT') or (extension == 'up' and direction == 'LONG') or extension == 'none') and zone in ['near_val','below_value','near_vah','above_value']"
+    decision: allow
+    source: T-392c
+    measured: UNMEASURED
+    note: "Volume break (vol_ratio >= 3.0) at IB extreme zones. vol_ratio None -> comparison fails -> False (fail-closed)"
 
   # ── FRESH_EXTREME (T-366) ──────────────────────────────────────────────
   # Measured negative, Michael turned off.  NO ROW in tree v2.

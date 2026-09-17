@@ -113,7 +113,7 @@ class TestEvaluate:
         assert result["row"] == "t367_rule_b_midvalue_block"
 
     def test_t367_allows_variation_extension_not_mid(self):
-        """Variation + extension + not mid_value -> allowed by t367 Rule A."""
+        """Variation + extension + not mid_value + direction matches extension -> allowed by t367 Rule A."""
         tree = load_tree()
         vector = {
             "day_type": "Variation",
@@ -121,8 +121,9 @@ class TestEvaluate:
             "zone": "below_value",
             "direction": "SHORT",
             "extension": "down",
+            "entry_kind": "BREAK",
         }
-        setup = {"direction": "SHORT", "classification": "BREAK"}
+        setup = {"direction": "SHORT", "classification": "BREAK", "entry_kind": "BREAK"}
         result = evaluate(tree, vector, setup)
         assert result["decision"] == "allow"
         assert result["row"] == "t367_rule_a_extension_allow"
@@ -205,3 +206,120 @@ class TestUnsafeRejected:
         """validate_expr directly rejects Call nodes."""
         with pytest.raises(ValueError, match="unsafe"):
             validate_expr("print('pwned')")
+
+
+# ===== F5: GHOST SHORT with narrowed Rule A + counter-extension =====
+
+class TestF5RuleAScope:
+    """F5c: Rule A narrowed — direction must match extension, entry_kind constrained."""
+
+    def test_ghost_short_15_09_19_10_with_extension_allow(self):
+        """GHOST SHORT 15.09 19:10 with extension down + direction SHORT -> allow."""
+        tree = load_tree()
+        vector = {
+            "day_type": "Variation",
+            "phase": "C",
+            "zone": "mid_value",
+            "direction": "SHORT",
+            "extension": "down",
+            "extension_pts": 4.5,
+            "entry_kind": "BREAK",
+        }
+        setup = {"direction": "SHORT", "classification": "BREAK", "entry_kind": "BREAK"}
+        result = evaluate(tree, vector, setup)
+        assert result["decision"] == "allow"
+
+    def test_long_at_same_time_blocked(self):
+        """LONG at same time with extension down -> blocked (Rule A won't match,
+        Rule B mid_value block catches it)."""
+        tree = load_tree()
+        vector = {
+            "day_type": "Variation",
+            "phase": "C",
+            "zone": "mid_value",
+            "direction": "LONG",
+            "extension": "down",
+            "extension_pts": 4.5,
+            "entry_kind": "BREAK",
+        }
+        setup = {"direction": "LONG", "classification": "BREAK", "entry_kind": "BREAK"}
+        result = evaluate(tree, vector, setup)
+        # LONG with extension down: Rule A won't match (direction mismatch),
+        # counter-extension rule needs extreme zone (mid_value won't match),
+        # -> falls through to Rule B midvalue block
+        assert result["decision"] == "block"
+        assert result["row"] == "t367_rule_b_midvalue_block"
+
+    def test_long_at_below_value_counter_extension_allow(self):
+        """LONG at below_value with extension down -> counter-extension allowed."""
+        tree = load_tree()
+        vector = {
+            "day_type": "Variation",
+            "phase": "C",
+            "zone": "below_value",
+            "direction": "LONG",
+            "extension": "down",
+            "extension_pts": 4.5,
+            "entry_kind": "PULLBACK",
+        }
+        setup = {"direction": "LONG", "classification": "PULLBACK", "entry_kind": "PULLBACK"}
+        result = evaluate(tree, vector, setup)
+        assert result["decision"] == "allow"
+        assert result["row"] == "t367_rule_a_counter_extension"
+
+
+# ===== F6: New tree rows load + golden scenarios =====
+
+class TestF6NewTreeRows:
+    """F6: Two new draft tree rows from 16.09 lesson."""
+
+    def test_new_rows_load_successfully(self):
+        """t397_phase_d_trend_runner and t392c_volume_break load."""
+        tree = load_tree()
+        ids = [r["id"] for r in tree]
+        assert "t397_phase_d_trend_runner" in ids
+        assert "t392c_volume_break" in ids
+
+    def test_new_rows_expr_validate(self):
+        """New row expr: conditions pass safe AST validation."""
+        tree = load_tree()
+        for rule in tree:
+            if rule["id"] in ("t397_phase_d_trend_runner", "t392c_volume_break"):
+                cond = rule["condition"]
+                assert cond.startswith("expr:")
+                validate_expr(cond[5:].strip())
+
+    def test_golden_16_09_21_50_ghost_short_runner(self):
+        """Golden 16.09 21:50 GHOST SHORT -> allow+runner via t397_phase_d_trend_runner."""
+        tree = load_tree()
+        vector = {
+            "day_type": "Trend_Normal",
+            "phase": "D",
+            "zone": "below_value",
+            "direction": "SHORT",
+            "extension": "down",
+            "extension_pts": 8.0,
+            "entry_kind": "BREAK",
+        }
+        setup = {"direction": "SHORT", "classification": "TREND_STEP", "entry_kind": "BREAK"}
+        result = evaluate(tree, vector, setup)
+        assert result["decision"] == "allow"
+        assert result["row"] == "t397_phase_d_trend_runner"
+
+    def test_golden_16_09_21_30_initiative_short_volume_break(self):
+        """Golden 16.09 21:30 INITIATIVE_SHORT with vol_ratio:6.2 -> allow."""
+        tree = load_tree()
+        vector = {
+            "day_type": "Trend_Normal",
+            "phase": "C",
+            "zone": "below_value",
+            "direction": "SHORT",
+            "extension": "down",
+            "extension_pts": 5.0,
+            "entry_kind": "BREAK",
+            "vol_ratio": 6.2,
+        }
+        setup = {"direction": "SHORT", "classification": "INITIATIVE", "entry_kind": "BREAK"}
+        result = evaluate(tree, vector, setup)
+        assert result["decision"] == "allow"
+        assert result["row"] == "t392c_volume_break"

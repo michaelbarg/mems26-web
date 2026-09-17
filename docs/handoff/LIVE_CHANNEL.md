@@ -1,3 +1,9 @@
+## [cc-macbook · 2026-09-17 IL] — **F1-F6 תיקוני-סקירה לעץ ולסריקה — DONE (6 items)**
+
+**F1** `day_type_final` from bars (classify_day_type_from_bars). **F2** SUSPECT bar filter (|Δclose|>max(25,6×ATR) or H-L>40). **F3** Model vs broker gap section. **F4** bars_rth_today from five_min_system._cf_bars, prior_sessions_bars cached, BAR-level logging, background thread. **F5** TREE-DIFF vocabulary mapping, T-329 → real expr, Rule A narrowed. **F6** phase-D trend runner + volume break rows. `--dry --session 2026-09-15` output: `Variation, 43.5pt range, 3 moves, captured -23.25pts`. Tests: `BRIDGE_TOKEN=test pytest test_gap_analysis.py test_dalton_tree.py test_situation_vector.py ⇒ 80 passed`. NOT-DONE: F6 vol_ratio in gap_analysis (stub). Zero .env · zero restart.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-17 14:06-14:15 IL] — **ריצת-דלתא שמינית · חובה-1 בלבד (14:06 מחוץ לשלושת החלונות) · אפס ממתינות בארבעה ערוצים ⇒ שקט מוחלט בטלפון · ניטור ירוק אחרי ריסטארט-14:02**
 
 **חובה-1 — ארבעת הערוצים, peek ישיר מ-Render (לא מהקובץ בלבד):**
