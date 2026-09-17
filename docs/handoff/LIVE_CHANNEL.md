@@ -1,3 +1,113 @@
+## 🟡 [cowork-dev · 2026-09-17 23:22-23:55 IL] — **F17b · T-412 בוצע (‏4/4 סעיפים) — והמדידה אומרת "אל תדליק": השער שלילי ב-`−$122.50` על 5 סשנים. הדגל נשאר `shadow`, ההכרעה למייקל.**
+
+**מה נבנה (2 קומיטים, כל סעיף עם TASK_LOG + STATUS_BOARD באותו קומיט):**
+- `0e814ee3` — §1+§2: `backend/v9/systems/five_min/evidence.py` (חדש · טהור · סיבתי: אפס I/O · אפס `os.environ` · אפס `datetime.now`; קלט-חסר ⇒ `None`, לא סינתזה) — `trigger_quality` · `delta_with` · `vol_trigger` · `location` · `absorption` · גלאי-הצורה; ו-`_s2_evidence`/`_s2_evidence_blocks`/`_s2_tq_mode` ב-`five_min_system.py`, מחוברים ב-**ארבעת** אתרי-הירי (REACTIVE L/S · INITIATIVE L/S) **אחרי** שהגיאומטריה הקיימת עברה. `S2_TRIGGER_QUALITY_V1` נקרא ב-`os.environ` **בזמן-ריצה** (לא import), ברירת-מחדל `shadow` **בקוד**.
+- `ef895312` — §3+§4: ריפליי מתוקן + הרנס ×12 ריצות (‏`harness_out/t412/`).
+
+**שתי ההגדרות שההזמנה תיקנה — מיושמות, ושתיהן שינו את התמונה:**
+- **מיקום לפי-כיוון** (לונג = VAL/`ib_low`/רמות-אתמול **בחצי-התחתון** של הערך; שורט = מראה). `REACTIVE S loc_edge` היה `N=10 +$43.5` בהגדרה חסרת-הכיוון ⇒ עכשיו `N=20 win 25% −$23.8` ⇒ **ה-+$43.5 היה ארטיפקט של ההגדרה**. `INITIATIVE S` שרד (`N=7 43% +$28.2` מול `N=6 +$28.8` בהזמנה).
+- **ספיגה מתוקנת** (בר אחד מבין השניים עם `|δ| ≥ 1.5×חציון` **נגד** הכיוון ∧ התקדמות-נגד ≤ 1×ATR): `N=0 ⇒ N=8` מתוך 164 — **אבל כל ארבעת התאים שליליים** ⇒ הספיגה **אינה** מסנן על הכניסות של המפיקים שלנו. ההגדרה הישנה לא רק החמיצה, היא הסתירה תא ריק-ממשות.
+
+**⚠️ גלאי-הצורה הועתקו ולא הוזזו — חריגה מודעת מלשון-ההזמנה, בכוונה:** `detect_head_shoulders_*`/`detect_cup_handle_long` יושבים ב-`scripts/oracle_engine.py`, **קובץ מוקפא לעבודת-F16 של סוכן אחר**. החלטתי להעתיק באותה חתימה ולהשאיר את המקור שלם, ולאכוף את הזהות בטסט-השוואה בר-בבר על 40 ברים (‏`test_shape_detectors_match_the_oracle_engine_copies`) — כך "אותו קוד" נאכף מכנית בלי לגעת בקובץ המוקפא. `double_bottom/top` כן הוזזו (מקורם ב-`pattern_evidence_study.py`).
+
+**פלט-טסטים גולמי (Rule 5):**
+```
+$ python3 -m pytest tests/v9/regression/test_s2_evidence.py -q
+...................................                                      [100%]
+35 passed, 2 warnings in 0.25s
+
+$ python3 -m pytest tests/v9/regression/ -q -k "s2 or five_min or reactive or initiative" \
+      --ignore=tests/v9/regression/test_replay_tpo_causality.py
+FAILED tests/v9/regression/test_higher_low_second_test.py::test_hlst_wired_in_five_min_system
+1 failed, 179 passed, 2614 deselected, 10 warnings in 3.74s
+```
+**הכישלון היחיד קדם לשינוי ולא נגרם ממנו** — `git log -S "detect_higher_low_second_test_long" -- backend/v9/systems/five_min/five_min_system.py` ⇒ `5d662010 2026-08-22`; HLST הוסר משרשרת-הזיהוי אז (ההערה "A4: HLST removed from the detection chain" בקוד), והטסט אדום מאז. **לא תיקנתי אותו — אינו הפריט שלי.**
+```
+$ python3 scripts/flag_guard.py
+  ✓ S2_TRIGGER_QUALITY_V1: expected=unset_or_0 actual=unset
+FLAG-GUARD: PASS — all 260 ruled flags match.          (בסיס 259 + הדגל החדש, rc=0)
+$ python3 scripts/task_log_guard.py
+task_log_guard — 395 items, last committed 0.0 days ago
+✅ the task log is current, structured, and the only one
+```
+`expected: unset_or_0` ולא `"shadow"` — הדגל במכוון אינו ב-`.env` וברירת-המחדל בקוד; `expected: "shadow"` היה מפיל את flag_guard על `actual=MISSING`, בדיוק המלכודת שתוקנה ב-`EDGE_FADE_TARGETS_V1` (T-356).
+
+**גולדן 17.09 — מהברים האמיתיים (`v9_bars_5min_woodies` + `DISTINCT ON (ts)` על הדלתא):**
+```
+16:30 7713.5/7716.25/7695.75/7695.75 v30194 δ−1348   17:00 .../7693.75/7683.75/7687   v18723 δ−2855
+...                                                  17:05 7687/7687.5/7680.5/7683    v14858 δ−1372
+                                                     17:10 7683.25/7692.75/7681.75/7692.25 v17129 δ+3319
+```
+- `INITIATIVE_SHORT 17:10:04 @7683` (לייב, −$102.50) — בר-הטריגר שלו הוא **17:05**: `cp = 2.5/7 = 0.357 > 0.30` ⇒ `trigger_ok=False` ⇒ תחת `=1` **היה נרשם כנחסם**. ✓ כפי שההזמנה ניבאה (והיא עצמה כתבה "‏36% מהטווח").
+- הכיוון ההפוך באותו רגע (בר 17:10): `cp 0.9545` · `δ +3,319` מול `חציון|δ| 583.5` ⇒ `trigger_ok=True · delta_with=True`. ✓
+- ספיגה על הזוג 17:00/17:05 כפי שההזמנה כותבת את החתימה (`bars[-3:-1]`) ⇒ `True`.
+
+**⚠️ שני מספרים שלא כופפתי כדי "להסתדר" עם ההזמנה:**
+1. ההזמנה כתבה `cp 0.82` לבר 17:10; מהברים יוצא **`0.9545`** (`(7692.25−7681.75)/11`). הכיוון זהה, המספר שונה — נרשם ולא הותאם.
+2. ההזמנה כתבה "התקדמות 7.75 נק' ⇒ True": ה-`7.75` נמדד מהשפל של **16:55**, ומול ATR14-של-RTH (`6.93`, בלי בר-הפתיחה בן 20.5 הנק') הוא **> 1×ATR ⇒ False**. הוא `True` רק מול ATR שכולל את בר-הפתיחה (`8.63`), או — כפי שההזמנה כותבת את החתימה — מול השפל של 17:00 (`3.25` נק'). **שתי הקריאות מכוסות בשני טסטים נפרדים ומדווחות במפורש.**
+
+**§3 ריפליי — `python3 scripts/pattern_evidence_study.py` (קורא עכשיו את `evidence.py`, אותו קוד שהמפיקים קוראים):**
+```
+entries evaluated: 164 | {'REACTIVE_SHORT': 54, 'REACTIVE_LONG': 39, 'INITIATIVE_SHORT': 39, 'INITIATIVE_LONG': 32}
+REACTIVE  L  trigger_ok  with: N= 11 win= 64% $= +41.7   without: N= 28 win= 11% $= -70.6
+REACTIVE  S  trigger_ok  with: N= 12 win= 42% $=  +4.6   without: N= 42 win= 19% $= -22.9
+INITIATIVE L trigger_ok  with: N=  8 win= 38% $= -25.6   without: N= 24 win= 17% $= -76.3
+INITIATIVE S trigger_ok  with: N=  9 win= 78% $= +52.8   without: N= 30 win= 10% $= -32.0
+GATE =1: R-L fire 11/64%/+41.7 block 28/11%/-70.6 · R-S fire 3/67%/+60.0 block 51/22%/-21.3
+         I-L fire  8/38%/-25.6 block 24/17%/-76.3 · I-S fire 7/86%/+64.5 block 32/12%/-29.2
+phase C: REACTIVE L trigger_ok 9/78%/+59.3 מול 24/8%/-74.9 · INITIATIVE S 5/80%/+68.2 מול 28/7%/-32.0
+phase D: N<=4 בכל תא ⇒ לא בר-הכרעה
+```
+**ארבעת התאים תואמים ספרה-בספרה למספרי ההזמנה** ⇒ ההעברה ל-`evidence.py` לא שינתה את המדידה. השער על אותן 164: יורה `N=29 Σ +$885`, חוסם `N=135 Σ −$5,829`.
+
+**§4 הרנס ×5 — `shadow` מול `S2_TRIGGER_QUALITY_V1=1` (פלט `harness_out/t412/cmp_t412.py`):**
+```
+session   | routes sh/tq | blocked sh/tq | live_cmds sh/tq | trades sh/tq | Sum$ shadow | Sum$ tq1 | delta
+----------------------------------------------------------------------------------------------------------
+20260915  |    69 /  68  |     58 /  58   |       2 /  2     |     2 /  2    |     -30.00 |   -30.00 |    +0.00
+20260911  |    78 /  69  |     63 /  56   |       1 /  1     |     1 /  1    |      27.50 |   -95.00 |  -122.50
+20260910  |    59 /  55  |     46 /  42   |       0 /  0     |     0 /  0    |       0.00 |     0.00 |    +0.00
+20260909  |    74 /  70  |     65 /  61   |       1 /  1     |     1 /  1    |      55.00 |    55.00 |    +0.00
+20260908  |   107 / 101  |     74 /  68   |       4 /  4     |     4 /  4    |      10.00 |    10.00 |    +0.00
+----------------------------------------------------------------------------------------------------------
+TOTAL Sum$: shadow 62.50 | tq1 -60.00 | delta -122.50
+יריות REACTIVE/INITIATIVE: 33 => 15    ·    live_cmds: 8 => 8 (ללא שינוי בשום סשן)
+```
+**🔑 כל הדלתא מסשן אחד, והסיבה נמדדה ולא הונחה — 11.09:**
+```
+shadow: 18:55:03 REACTIVE_SHORT entry 7673.25 -> WIN +27.50  (mfe 15.75 mae -8.0)
+tq1   : 18:55 נחסם  =>  19:25:03 CEILING_FLIP_SHORT entry 7671.25 -> STOP -95.00
+בר-הטריגר (18:50): o7676.75 h7677.75 l7671.75 c7673.25  =>  cp 0.2500  trigger_ok=True
+   delta 14.0 מול חציון|δ| 68.5      => delta_with = False
+   volume 6,853 מול חציון-5 8,162     => vol_trig   = False
+   => תוספת-השורט (delta_with ∨ vol_trig) היא שחסמה — לא trigger_ok.
+```
+⇒ **בסלוט-אחד חסימה אינה חינם: הסלוט עובר לאות הבא, ולרוב גרוע יותר.** זו בדיוק המחלקה של `FRESH_EXTREME_GATE_V1` (T-366). המפקד מודד עסקה-בבידוד; ההרנס מודד את **המערכת**. שניהם נכונים, וההכרעה היא של מייקל.
+
+**אפס-שינוי-התנהגות — נמדד, לא נטען:**
+```
+$ S2_TRIGGER_QUALITY_V1=0 fwd_harness --session 2026-09-15   (נתיב טרום-F17b, אפס ראיות)
+routes       off_len=69 shadow_len=69 IDENTICAL=True
+would_write  off_len=2  shadow_len=2  IDENTICAL=True
+trades       off_len=2  shadow_len=2  IDENTICAL=True
+daily_pnl_harness: off=-30.00 shadow=-30.00
+$ --restart-at 18:29 (15.09) ⇒ shadow routes 66 · tq1 routes 65 · Sum$ -30.00/-30.00 · אפס קריסה
+```
+
+**מה במפורש לא נעשה:**
+- **הדגל לא הודלק ולא נכנס ל-`.env`** — ההזמנה מפורשת ("לא להדליק"), והמדידה ממילא אינה תומכת. ה-`=1` הועבר **כמשתנה-סביבה על שורת-הפקודה** ולא כעותק-קובץ של `.env` — החלטתי כך כי זה **בטוח יותר** מהנוסח בהזמנה (אפס עותק של `.env` עם סודות ב-`/tmp`), ו-`load_dotenv_file(override=False)` מבטיח שהמשתנה גובר.
+- **אפס ריסטארט** — `pid 65145` חי מ-15:17:55; הקוד ייטען בריסטארט-הבוקר. עד אז השינוי **אינו משפיע על המסחר**.
+- **אפס נגיעה ב-`scripts/oracle_engine.py` / `scripts/oracle_validate.py`** — נותרו `M` בעץ-העבודה, לא-מקומטים (אומת ב-`git status --short` אחרי כל קומיט).
+- **לא תוקן** `test_hlst_wired_in_five_min_system` (אדום מ-22.08, אינו הפריט).
+- **לא נחקר** פער-הסקאלה בעמודת ה-`delta`: חציון `|δ|` ב-11.09 הוא `68.5` מול `583.5` ב-17.09 (שני סדרי-גודל). המבחנים יחסיים ולכן חסינים-לסקאלה, אבל הפער עצמו **מדווח ולא מוסבר**.
+- `gen_index.py` + `gen_flag_index.py` הורצו וקומטו; ⚠️ הרענון **בלע גם דריפט קודם שאינו שלי** (‏`FLAG_INDEX`: 100 ⇒ 125 דגלים לא-מתועדים, מספרי-שורה, `DAYTYPE_RECLASS_STABILITY_V1` מוצג ON כי כך ב-`.env`) — מדווח ולא נטען כתוצר של הפריט.
+
+**🟡 מה מחכה למייקל:** המדידה אינה תומכת בהדלקת השער **כפי שמומש**. שתי החלופות שהמספרים מצביעים עליהן: (א) `trigger_ok` בלבד, בלי תוספת-השורט `delta_with ∨ vol_trig` — היא זו שחסמה את המנצחת היחידה; (ב) שבוע-צל עם `[S2-EVIDENCE]` חי (הוא כבר כותב על כל ירי מחר בבוקר) ואז הכרעה על נתוני-לייב.
+
+— cowork-dev · 2026-09-17 23:55 IL
+
+---
+
 ## 🟠 [cowork-dev · 2026-09-17 23:06-23:12 IL] — **חובה-4 · שורת-CLAIM לתור-הלילה** + **חובה-1 · הטלפון שקט**
 
 **חובה-1 · אפס ממתינות ⇒ אפס הודעה (הרישום כאן, לא בטלפון):**
