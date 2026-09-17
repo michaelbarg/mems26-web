@@ -1,0 +1,65 @@
+[env_loader] applied 322 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+[env_loader] applied 0 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+entries evaluated: 164 | by pattern: {'REACTIVE_LONG': 39, 'REACTIVE_SHORT': 54, 'INITIATIVE_SHORT': 39, 'INITIATIVE_LONG': 32}
+
+== REACTIVE L  N=39 win=26% $/tr=-38.9
+   loc_edge     with: N=  8 win= 50% $= -10.0   without: N= 31 win= 19% $= -46.4
+   absorption   with: N=  0 win=  0% $=  +0.0   without: N= 39 win= 26% $= -38.9
+   shape        with: N= 14 win= 36% $= -47.4   without: N= 25 win= 20% $= -34.1
+   delta_with   with: N=  7 win= 14% $= -43.2   without: N= 32 win= 28% $= -38.0
+   vol_trig     with: N= 10 win= 30% $= -40.2   without: N= 29 win= 24% $= -38.4
+   trigger_ok   with: N= 11 win= 64% $= +41.7   without: N= 28 win= 11% $= -70.6
+   at_extreme   with: N=  4 win= 50% $= -52.2   without: N= 35 win= 23% $= -37.4
+   chase        with: N=  4 win= 50% $= -52.2   without: N= 35 win= 23% $= -37.4
+   COMBO loc_edge+delta_with+trigger_ok+not chase:  N=0 win=0% $=+0.0
+   COMBO (shape or absorption)+delta_with:            N=4 win=0% $=-69.4
+   GATE S2_TRIGGER_QUALITY_V1=1:  would-fire N= 11 win= 64% $= +41.7   would-block N= 28 win= 11% $= -70.6
+
+== REACTIVE S  N=54 win=24% $/tr=-16.8
+   loc_edge     with: N= 20 win= 25% $= -23.8   without: N= 34 win= 24% $= -12.6
+   absorption   with: N=  4 win=  0% $= -22.5   without: N= 50 win= 26% $= -16.3
+   shape        with: N=  4 win= 25% $=  -3.8   without: N= 50 win= 24% $= -17.8
+   delta_with   with: N=  2 win=  0% $=-238.8   without: N= 52 win= 25% $=  -8.2
+   vol_trig     with: N= 13 win= 38% $=  -4.5   without: N= 41 win= 20% $= -20.7
+   trigger_ok   with: N= 12 win= 42% $=  +4.6   without: N= 42 win= 19% $= -22.9
+   at_extreme   with: N=  8 win=  0% $= -20.6   without: N= 46 win= 28% $= -16.1
+   chase        with: N=  1 win=  0% $=  -2.5   without: N= 53 win= 25% $= -17.0
+   COMBO loc_edge+delta_with+trigger_ok+not chase:  N=0 win=0% $=+0.0
+   COMBO (shape or absorption)+delta_with:            N=1 win=0% $=-2.5
+   GATE S2_TRIGGER_QUALITY_V1=1:  would-fire N=  3 win= 67% $= +60.0   would-block N= 51 win= 22% $= -21.3
+
+== INITIATIVE L  N=32 win=22% $/tr=-63.6
+   loc_edge     with: N= 14 win= 29% $= -77.9   without: N= 18 win= 17% $= -52.5
+   absorption   with: N=  1 win=  0% $= -42.5   without: N= 31 win= 23% $= -64.3
+   shape        with: N= 25 win= 28% $= -60.2   without: N=  7 win=  0% $= -75.7
+   delta_with   with: N=  3 win= 33% $=  +7.1   without: N= 29 win= 21% $= -70.9
+   vol_trig     with: N=  5 win= 20% $= -18.5   without: N= 27 win= 22% $= -72.0
+   trigger_ok   with: N=  8 win= 38% $= -25.6   without: N= 24 win= 17% $= -76.3
+   at_extreme   with: N=  4 win= 25% $= -33.8   without: N= 28 win= 21% $= -67.9
+   chase        with: N=  3 win= 33% $=  +5.0   without: N= 29 win= 21% $= -70.7
+   COMBO loc_edge+delta_with+trigger_ok+not chase:  N=0 win=0% $=+0.0
+   COMBO (shape or absorption)+delta_with:            N=3 win=33% $=+7.1
+   GATE S2_TRIGGER_QUALITY_V1=1:  would-fire N=  8 win= 38% $= -25.6   would-block N= 24 win= 17% $= -76.3
+
+== INITIATIVE S  N=39 win=26% $/tr=-12.4
+   loc_edge     with: N=  7 win= 43% $= +28.2   without: N= 32 win= 22% $= -21.3
+   absorption   with: N=  3 win=  0% $=-109.2   without: N= 36 win= 28% $=  -4.3
+   shape        with: N=  6 win= 33% $= -17.1   without: N= 33 win= 24% $= -11.6
+   delta_with   with: N=  6 win= 67% $= +59.8   without: N= 33 win= 18% $= -25.5
+   vol_trig     with: N=  4 win= 75% $= +27.8   without: N= 35 win= 20% $= -17.0
+   trigger_ok   with: N=  9 win= 78% $= +52.8   without: N= 30 win= 10% $= -32.0
+   at_extreme   with: N=  3 win=  0% $=  -1.7   without: N= 36 win= 28% $= -13.3
+   chase        with: N=  2 win=  0% $=  -2.5   without: N= 37 win= 27% $= -12.9
+   COMBO loc_edge+delta_with+trigger_ok+not chase:  N=3 win=100% $=+105.8
+   COMBO (shape or absorption)+delta_with:            N=0 win=0% $=+0.0
+   GATE S2_TRIGGER_QUALITY_V1=1:  would-fire N=  7 win= 86% $= +64.5   would-block N= 32 win= 12% $= -29.2
+
+=== phase split (B = first hour · C = midday · D = last 90 min) ===
+REACTIVE   L ph=C  all: N= 33 win= 27% $= -38.3   trigger_ok: N=  9 win= 78% $= +59.3   no: N= 24 win=  8% $= -74.9
+REACTIVE   L ph=D  all: N=  6 win= 17% $= -42.3   trigger_ok: N=  2 win=  0% $= -37.5   no: N=  4 win= 25% $= -44.7
+REACTIVE   S ph=C  all: N= 45 win= 27% $=  -4.2   trigger_ok: N= 10 win= 40% $=  +1.8   no: N= 35 win= 23% $=  -5.9
+REACTIVE   S ph=D  all: N=  9 win= 11% $= -79.7   trigger_ok: N=  2 win= 50% $= +18.8   no: N=  7 win=  0% $=-107.9
+INITIATIVE L ph=C  all: N= 22 win= 18% $= -84.1   trigger_ok: N=  6 win= 33% $= -37.5   no: N= 16 win= 12% $=-101.6
+INITIATIVE L ph=D  all: N= 10 win= 30% $= -18.5   trigger_ok: N=  2 win= 50% $= +10.0   no: N=  8 win= 25% $= -25.6
+INITIATIVE S ph=C  all: N= 33 win= 18% $= -16.8   trigger_ok: N=  5 win= 80% $= +68.2   no: N= 28 win=  7% $= -32.0
+INITIATIVE S ph=D  all: N=  6 win= 67% $= +11.7   trigger_ok: N=  4 win= 75% $= +33.4   no: N=  2 win= 50% $= -31.9
