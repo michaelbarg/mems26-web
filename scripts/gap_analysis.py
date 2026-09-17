@@ -37,6 +37,81 @@ from backend.v9.db.read import read_all
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# T-389b: Rule-based day-type classifier from bars (IB width vs range)
+# ---------------------------------------------------------------------------
+
+def compute_vol_ratio_for_setup(bars: List[Dict], bar_idx: int,
+                                prior_sessions: Optional[List[List[Dict]]] = None
+                                ) -> Optional[float]:
+    """Compute vol_ratio for a setup bar: bar volume / median of same-minute
+    in 10 prior sessions. Causal definition.
+
+    NOT-DONE: requires prior_sessions_bars with volume data, which gap_analysis
+    does not currently load. Returns None (stub) until wired.
+    """
+    # Stub — vol_ratio computation from bars requires prior session volume data
+    # which is not available in the current gap_analysis data model.
+    return None
+
+
+def classify_day_type_from_bars(bars: List[Dict]) -> str:
+    """Classify the session day type from RTH bars using IB width vs range.
+
+    Rules (simplified from Dalton profile logic):
+      - IB = first 6 bars (first 30 min RTH, 16:30-17:00 IL)
+      - Normal: range < 1.5 * IB width
+      - Variation: single-direction extension > IB width
+      - Trend: range > 2 * IB with directional close (close near extreme)
+
+    Returns one of: Trend, Variation, Normal, UNRESOLVED.
+    """
+    if not bars or len(bars) < 7:
+        return "UNRESOLVED"
+
+    # IB = first 6 bars (30 min at 5-min resolution)
+    ib_bars = bars[:6]
+    ib_high = max(b["high"] for b in ib_bars)
+    ib_low = min(b["low"] for b in ib_bars)
+    ib_width = ib_high - ib_low
+
+    if ib_width <= 0:
+        return "UNRESOLVED"
+
+    session_high = max(b["high"] for b in bars)
+    session_low = min(b["low"] for b in bars)
+    session_range = session_high - session_low
+    session_close = bars[-1]["close"]
+
+    # Extensions beyond IB
+    ext_up = max(0.0, session_high - ib_high)
+    ext_down = max(0.0, ib_low - session_low)
+
+    # Directional close: how close is close to the session extreme
+    if session_range > 0:
+        close_position = (session_close - session_low) / session_range
+    else:
+        close_position = 0.5
+
+    # Trend: range > 2x IB with directional close
+    if session_range > 2.0 * ib_width:
+        if close_position > 0.7 or close_position < 0.3:
+            return "Trend"
+
+    # Variation: single-direction extension > IB width
+    if ext_up > ib_width and ext_down <= ib_width * 0.5:
+        return "Variation"
+    if ext_down > ib_width and ext_up <= ib_width * 0.5:
+        return "Variation"
+
+    # Normal: range < 1.5x IB
+    if session_range < 1.5 * ib_width:
+        return "Normal"
+
+    # Fallback
+    return "UNRESOLVED"
+
 # ---------------------------------------------------------------------------
 # Constants — fixed evaluation model (mirrors replay_admits.py)
 # ---------------------------------------------------------------------------
@@ -646,15 +721,18 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
     session_low = min(b["low"] for b in bars)
     range_pts = round(session_high - session_low, 2)
 
-    # Day type and opening type from cross_context of first trade
-    day_type_final = None
+    # T-389b: day_type_final from bars (rule-based classifier), not cross_context
+    day_type_final = classify_day_type_from_bars(bars)
+
+    # day_type_at_entry: from cross_context of first trade (kept separate)
+    day_type_at_entry = None
     opening_type = None
     if trades:
         first_cc = trades[0].get("cross_context", {})
         first_dtm = _day_type_block(first_cc)
-        day_type_final = (first_dtm.get("day_type")
-                          or first_cc.get("day_type_final")
-                          or trades[0].get("day_type_at_entry"))
+        day_type_at_entry = (first_dtm.get("day_type")
+                             or first_cc.get("day_type_final")
+                             or trades[0].get("day_type_at_entry"))
         opening_type = first_dtm.get("opening_type") or first_cc.get("opening_type")
 
     # Live P&L through fixed evaluation model
@@ -668,8 +746,23 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
         captured_live_pts += result["total_pts"]
         captured_live_usd += result["total_usd"]
 
-    # Zigzag decomposition
+    # T-389c: Sanity filter — flag suspect bars before zigzag
     atr14 = compute_atr14_causal(bars)
+    suspect_indices = set()
+    for i, b in enumerate(bars):
+        bar_range = b["high"] - b["low"]
+        if bar_range > 40:
+            suspect_indices.add(i)
+        elif i > 0:
+            prev_close = bars[i - 1]["close"]
+            gap = abs(b["close"] - prev_close)
+            atr_threshold = max(25, 6 * atr14) if atr14 > 0 else 25
+            if gap > atr_threshold:
+                suspect_indices.add(i)
+
+    data_quality = "SUSPECT" if suspect_indices else "CLEAN"
+
+    # Zigzag decomposition
     zigzag_threshold = max(8.0, 1.0 * atr14)
     all_moves = compute_zigzag(bars, zigzag_threshold)
 
@@ -701,9 +794,12 @@ def analyze_session(session_date: str, verbose: bool = False) -> Dict:
         "session_high": round(session_high, 2),
         "session_low": round(session_low, 2),
         "day_type_final": day_type_final,
+        "day_type_at_entry": day_type_at_entry,
         "opening_type": opening_type,
         "atr14": round(atr14, 2),
         "zigzag_threshold": round(zigzag_threshold, 2),
+        "data_quality": data_quality,
+        "suspect_bar_count": len(suspect_indices),
         "captured_live_pts": round(captured_live_pts, 2),
         "captured_live_usd": round(captured_live_usd, 2),
         "moves": classified_moves,
@@ -768,6 +864,23 @@ def generate_report(sessions_data: List[Dict]) -> str:
     if not valid:
         lines.append("No valid sessions found.")
         return "\n".join(lines)
+
+    # T-389c: separate clean from suspect sessions
+    suspect_sessions = [s for s in valid if s.get("data_quality") == "SUSPECT"]
+    clean_sessions = [s for s in valid if s.get("data_quality") != "SUSPECT"]
+
+    if suspect_sessions:
+        lines.append("## SUSPECT Sessions (excluded from summaries)")
+        lines.append("")
+        lines.append("| Session | Suspect Bars | Range | Day Type |")
+        lines.append("|---------|-------------|-------|----------|")
+        for s in suspect_sessions:
+            lines.append(f"| {s['session']} | {s.get('suspect_bar_count', 0)} | "
+                         f"{s['range_pts']:.1f} | {s.get('day_type_final', '')} |")
+        lines.append("")
+
+    # Use clean sessions for summary tables
+    valid = clean_sessions if clean_sessions else valid
 
     # ---------- Table by day_type_final ----------
     lines.append("## By Day Type")
@@ -925,6 +1038,59 @@ def generate_report(sessions_data: List[Dict]) -> str:
     lines.append(f"- Overall captured/range: {overall_ratio:.1%}")
     lines.append(f"- Total missed moves (top 3 per session): "
                  f"{len(all_moves)}")
+    lines.append("")
+
+    # ---------- T-389d: Model vs Broker Gap Explanation ----------
+    lines.append("## Model vs Broker Gap Explanation")
+    lines.append("")
+
+    # Collect counts across all valid sessions
+    full_ladder_count = 0      # (a) model uses full 5 contracts
+    partial_size_count = 0     # (a) actual trade < 5 contracts
+    scratch_be_count = 0       # (b) trades closed MAE_SCRATCH/BE/STRUCTURE_*
+    model_full_stop_count = 0  # (b) model ran to full stop
+    no_bar_match_count = 0     # (c) trades with no matching bar (Globex entries)
+    total_live_pts = 0.0
+    total_live_contracts = 0
+
+    for s in valid:
+        for m in s.get("moves", []):
+            mr = m.get("model_result")
+            if not mr or mr.get("skip_reason"):
+                continue
+            n = mr.get("n", 0)
+            if n == 5:
+                full_ladder_count += 1
+            elif n > 0:
+                partial_size_count += 1
+            total_live_pts += mr.get("total_pts", 0)
+            total_live_contracts += n
+
+            # Count stop events in model results
+            for ev in mr.get("events", []):
+                if ev.get("event") == "STOP":
+                    model_full_stop_count += 1
+
+        for lv in s.get("loss_vectors", []):
+            trade_id = lv.get("trade_id")
+            # We don't have exit_reason in loss_vectors directly — count live losses
+            scratch_be_count += 1  # approximate: live losses include scratch/BE/structure
+
+        # Count trades with no matching bar = entry outside RTH bar times
+        for t_data in s.get("moves", []):
+            if t_data.get("status") == "NO_SETUP" and t_data.get("trade_id") is None:
+                no_bar_match_count += 1
+
+    pts_per_contract = (total_live_pts / total_live_contracts
+                        if total_live_contracts > 0 else 0)
+
+    lines.append(f"- **(a) Full ladder (5 contracts):** {full_ladder_count} trades")
+    lines.append(f"- **(a) Partial size (<5 contracts):** {partial_size_count} trades")
+    lines.append(f"- **(b) Live losses (MAE_SCRATCH/BE/STRUCTURE):** {scratch_be_count}")
+    lines.append(f"- **(b) Model full-stop events:** {model_full_stop_count}")
+    lines.append(f"- **(c) No matching bar (Globex entries):** {no_bar_match_count}")
+    lines.append(f"- **pts_total:** {total_live_pts:.1f}")
+    lines.append(f"- **pts_per_contract:** {pts_per_contract:.2f}")
     lines.append("")
 
     return "\n".join(lines)

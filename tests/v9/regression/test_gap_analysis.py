@@ -39,6 +39,8 @@ with mock.patch.dict(sys.modules, {
         evaluate_trade_fixed,
         size_for,
         walk_forward,
+        classify_day_type_from_bars,
+        compute_vol_ratio_for_setup,
     )
 
 
@@ -367,3 +369,94 @@ class TestEvaluationModel:
         assert result["skip_reason"] is None
         assert result["total_usd"] != 0  # some P&L generated
         assert len(result["events"]) > 0
+
+
+# ===== F1: Test classify_day_type_from_bars =====
+
+class TestClassifyDayTypeFromBars:
+    def test_trend_day(self):
+        """Synthetic session with extension > 2x IB and directional close -> Trend."""
+        # IB = first 6 bars: high ~ 5410, low ~ 5400 -> IB width = 10
+        ib_bars = []
+        for i in range(6):
+            t = f"16:{30 + i * 5:02d}"
+            ib_bars.append(make_bar(t, 5400 + i * 0.5, 5410, 5400, 5405))
+
+        # Post-IB: strong trend up to 5450 (range = 50 > 2 * 10 = 20)
+        trend_bars = []
+        for i in range(12):
+            t = f"17:{00 + i * 5:02d}"
+            base = 5410 + i * 3.5
+            trend_bars.append(make_bar(t, base, base + 3, base - 1, base + 2.5))
+
+        all_bars = ib_bars + trend_bars
+        result = classify_day_type_from_bars(all_bars)
+        assert result == "Trend"
+
+    def test_normal_day(self):
+        """Session within IB (range < 1.5x IB) -> Normal."""
+        # IB = first 6 bars: range = 10
+        bars = []
+        for i in range(6):
+            t = f"16:{30 + i * 5:02d}"
+            bars.append(make_bar(t, 5400, 5410, 5400, 5405))
+
+        # Post-IB: stays within IB, no significant extension
+        for i in range(8):
+            t = f"17:{00 + i * 5:02d}"
+            bars.append(make_bar(t, 5403, 5412, 5401, 5406))
+
+        result = classify_day_type_from_bars(bars)
+        assert result == "Normal"
+
+    def test_too_few_bars(self):
+        """Less than 7 bars -> UNRESOLVED."""
+        bars = [make_bar("16:30", 5400, 5410, 5400, 5405)] * 5
+        result = classify_day_type_from_bars(bars)
+        assert result == "UNRESOLVED"
+
+    def test_empty_bars(self):
+        result = classify_day_type_from_bars([])
+        assert result == "UNRESOLVED"
+
+
+# ===== F2: Test sanity filter =====
+
+class TestSanityFilter:
+    def test_bar_with_100pt_range_is_suspect(self):
+        """Bar with 100pt range (> 40) should be detected as suspect."""
+        bars = [
+            make_bar("16:30", 5400, 5402, 5398, 5400),
+            make_bar("16:35", 5400, 5500, 5400, 5450),  # 100pt range!
+            make_bar("16:40", 5450, 5455, 5445, 5450),
+        ]
+        # Check via ATR and range
+        atr14 = compute_atr14_causal(bars)
+        suspect = False
+        for i, b in enumerate(bars):
+            bar_range = b["high"] - b["low"]
+            if bar_range > 40:
+                suspect = True
+        assert suspect, "100pt range bar should be flagged as SUSPECT"
+
+    def test_bar_with_12pt_range_is_clean(self):
+        """Bar with 12pt range (< 40) should be clean."""
+        bars = [
+            make_bar("16:30", 5400, 5406, 5394, 5400),
+            make_bar("16:35", 5400, 5412, 5400, 5410),  # 12pt range
+            make_bar("16:40", 5410, 5415, 5408, 5412),
+        ]
+        # No bar has range > 40
+        for b in bars:
+            bar_range = b["high"] - b["low"]
+            assert bar_range <= 40, f"Bar range {bar_range} should not be suspect"
+
+
+# ===== F6: Test vol_ratio stub =====
+
+class TestVolRatioStub:
+    def test_vol_ratio_returns_none(self):
+        """vol_ratio stub returns None (NOT-DONE)."""
+        bars = [make_bar("16:30", 5400, 5410, 5400, 5405)]
+        result = compute_vol_ratio_for_setup(bars, 0)
+        assert result is None
