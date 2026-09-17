@@ -1487,11 +1487,20 @@ class BarLevelDetector:
             #   WHERE kind = 'BAR' AND ts < '2026-09-17T00:00:00+00:00';
             try:
                 from datetime import datetime as _bld_dt, timezone as _bld_tz
-                _bld_bar_fresh = True
+                # cowork 17.09 15:20: 486 BAR rows in 33 min, all stamped with
+                # yesterday's 23:55 bar — the hook fired on every dispatch and
+                # an unparsed ts (None) counted as "fresh". Dedupe on the bar
+                # ts and treat an unparsed ts as NOT fresh.
+                _bld_bar_fresh = bar_ts is not None
                 if bar_ts is not None:
                     _bld_age_s = (_bld_dt.now(_bld_tz.utc) - bar_ts).total_seconds()
                     if _bld_age_s >= 600:  # > 10 minutes old => hydration/replay
                         _bld_bar_fresh = False
+                    _bld_key = str(bar_ts_raw)
+                    if getattr(self, "_bld_last_bar_logged", None) == _bld_key:
+                        _bld_bar_fresh = False  # already logged this bar
+                    elif _bld_bar_fresh:
+                        self._bld_last_bar_logged = _bld_key
 
                 if _bld_bar_fresh:
                     from backend.v9.services.situation_vector import (
