@@ -1,3 +1,72 @@
+## 🟢 [cowork-daily · 2026-09-18 21:37-21:41 IL] — **חובה-3 · ניטור-RTH (מחזור-המשך ל-21:06-21:12): ללא-שינוי מהותי** ⇒ **אפס הודעת-טלפון** · **חובה-1: אפס ממתינות**
+
+**נגיעות.** אפס ריסטארט · אפס `.env` · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס `--apply` ·
+**אפס נגיעה בפוזיציה/הזמנות/סלוט** · אפס `op=EXIT`/FLATTEN · אפס קוד-ייצור · אפס כתיבה ל-DB ·
+**אפס הודעת-טלפון.** כתיבה: `LIVE_CHANNEL` + קומיט-נתונים של `news_calendar.yaml` (ריענון-מקור, ראה למטה).
+הרשומות מתחת עומדות כלשונן — זו **דלתא בלבד**.
+
+```
+date                        Fri Sep 18 21:37:51 IDT 2026   (‏14:37 ET)
+/api/v9/health              200 · {"status":"ok","version":"v9.0.0"}
+lsof -nP -iTCP:8000         PID 23510  ·  ps lstart: Fri Sep 18 12:08:47   RSS 128MB
+                            ⇒ אותו PID מ-12:08 ⇒ **אפס ריסטארט** (הבעלות נשארת אצל cowork-האינטראקטיבי)
+בר-SoT woodies              max_ts 2026-09-18 21:35:00+03 · גיל **2.9 דק'** ✅ ≤10
+פיד sierra_state.json       ts 18:38:45Z · **גיל 0 שנ'** (נקרא חי, לא mtime)
+  position_qty 0 · avg_price 0.0 · open_pnl 0.0 · is_sim 0 · acct_ok 1 · under_margin 0 ·
+  order_placement_armed 1 · send_orders_to_trade_service 1 · working_orders 0 · orders []
+  daily_pnl −67.5 (סיירה) · loss_limit −285.98 · loss_limit_reached 0 · daily_total_qty_filled 4
+  last_price 7699.50
+gateway/status              live_slot **null** (פנוי) · live_enabled_systems [2,4] · trades_today 1 ·
+                            daily_pnl(ספרים) 6.25 · cooldown_active **false** · cluster_guard false ·
+                            ssv veto false · chop **EXPANDING**
+flag_guard                  PASS — all **261/261** ruled flags match  (+ LIVENESS: כל דגל-ON עם read-site)
+ruled_contracts()           **1**  (‏`set -a; . ./.env`; בלי טעינת-.env הפונקציה מחזירה `None` — לא 0, לא 2)
+                            `.env`: FIXED_CONTRACTS_1=1 · 2/3/4/5/6=0 = פסיקת-מייקל 18.09 12:05
+                            מאומת-צולב בלוג-הריצה 21:35:02: `RISK_BUDGET: … min(ruled=1)=1`
+machine_health              WARN-בלבד: unused RAM 59M<400M · swap 2432M>500M · load 3.18 (‏3.21 ב-21:09)
+                            backend CPU 30.9% RSS 128MB · bridge/frontend/postgres 0% · sierra 24.5%
+```
+
+**פוזיציה מול TM:** `position_qty 0` + לייב-פתוחה ב-`v9_trades` = **0** ⇒ **אפס דיברגנציה** ⇒ אין אזעקה ואין מקרה (ג).
+`T-43` נותר **CLEARED** מ-19:52:26 — אפס הישנות (הלוג מראה רק 4 אירועי-T-43 היום, האחרון הוא ה-CLEARED).
+**עסקאות:** הלייב היחידה נותרה `#1916` — S2 `OPENING_DRIVE` SHORT, ‏17:00:10→17:09:58, ‏7691.25→7690,
+`STOP_HIT` (סטופ-נגרר), **+6.25 ספרים** (דווחה לטלפון 17:16) ⇒ **אפס אירוע-לייב חדש ⇒ אפס מקרה (ב)**.
+
+**שלוש דלתאות מאז 21:12 — כולן דיווח, אף אחת אינה חריגה:**
+
+```
+1) פרופיל-החסימה התהפך. 8 מועמדים ב-21:15→21:35, **100% `dalton_intent:stand_down`**
+   (‏`phase=D cond=default bias=NONE`), מול תמונת-היום המלאה location 31 / bias 15 / stand_down 13.
+   ⇒ זו התנהגות-שער תקינה ל-phase=D בשעה האחרונה, **לא תקלה** — המנוע מעריך מועמדים כל 5 דק'.
+2) **מרג'ין (T-34): avail 409.14 < 1,595** ⇒ שורת-דיווח חובה. **אינו חוסם**: הפסיקה היום היא
+   חוזה אחד (~286 דרוש לחוזה לפי מדידת 19:43), ואף מועמד לא נדחה על מרג'ין — כל 8 נדחו על דלתון.
+   ⇒ **אין מקרה (ג)**. (‏עלה מ-139 ב-19:43 אחרי סגירת הפוזיציה הידנית; `acct_margin_req` 0.0 בשטוח.)
+3) shadow FILLED 15 ⇒ **16**, **כולן מהיום** (‏`group by date(entry_ts)` מחזיר שורה אחת: 2026-09-18)
+   ⇒ `close_stale_shadow.py` (dry-run): **"no stale shadow trades — nothing to do"** ⇒ אפס `--apply`.
+   קצב-לוג **~60 שורות/דק'** (נמדד 20 שנ') — רחוק מפתולוגיית 16.09 (1,000/דק').
+אפס `ERROR`/`CRITICAL`/`Traceback` ב-20k השורות האחרונות · אפס `UNMANAGED POSITION` · אפס `ORPHAN` ·
+אפס `RISK_HALT` · אפס `FLATTEN` · אפס `op=EXIT` · אפס `LIVE fire` חדש.
+```
+
+⚠️ **הערת-מלכודת (‏§3.2):** `/gateway/decisions?limit=200` החזיר **79** שורות בטווח `16:30→21:35 IL` —
+**מתחת לתקרת-200 ⇒ ההיסטוגרמה אינה קטומה** והספירות למעלה מלאות. נרשם כדי שלא יוסק "היה שקט" מפיד חתוך.
+
+📌 **נרשם לעין, לא חריגה:** `cooldown` מדווח `consecutive_stops: 39` עם `cooldown_active: false`
+ו-`cooldown_remaining_sec: 573`. ה-39 הם סטופי-**צל** (‏38 `STOP_HIT` צל היום מול לייב אחת),
+והשער אינו חוסם בפועל — כל 8 הדחיות מאז 21:12 הן `dalton_intent`, אפס `cooldown`. ללא פעולה.
+
+📄 **`config/news_calendar.yaml`** נמצא לא-מקומט (חסם `git pull --rebase`): זהו **ריענון-מקור** של
+המעדכן עצמו — `מקור-הריצה האחרונה` 17.09 20:18 ET ⇒ 18.09 11:08 ET, ‏+28/−4 שורות, כולן אירועי-לוח
+(‏Fed Schmid 18.09 · Fed Barkin 22.09 · ועוד). **נתון בלבד, אפס לוגיקה** ⇒ קומט כ-data-only כדי שה-pull
+של הסשן הבא לא ייחסם שוב. קבצי `docs/reports/postmortem/PM_*.md` הושארו כלא-מעוקבים כמקודם.
+
+⏳ **חלון-הכניסות נסגר 15:30 ET** (‏`RISK_CUTOFF_HOUR_ET=15`) = **22:30 IL** — נותרו ~**50 דק'** במדידה.
+🔇 **טלפון:** אפס הודעת-מייקל ממתינה (‏`PHONE_THREAD.jsonl` זנב **+ peek ישיר מ-Render/chat**, ‏30 הודעות,
+האחרונה שלנו ‏19:43) · אפס אירוע-לייב · אפס הכרעה נדרשת ⇒ **שקט מוחלט**.
+השאלה מ-19:43 **לא נשלחת שוב ולא "מתוקנת"** — מכוסה ב-[[T-402]]/[[T-405]].
+
+---
+
 ## 🟢 [cowork-daily · 2026-09-18 21:06-21:12 IL] — **חובה-3 · ניטור-RTH (מחזור-המשך ל-20:37-20:41): ללא-שינוי** ⇒ **אפס הודעת-טלפון** · **חובה-1: אפס ממתינות**
 
 **נגיעות.** אפס ריסטארט · אפס `.env` · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס `--apply` ·
