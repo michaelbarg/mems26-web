@@ -4,7 +4,7 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-17 20:18 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-18 11:08 ET
 events:
   - date: 2026-09-18
     time_et: "09:15"
@@ -34,6 +34,10 @@ events:
     time_et: "10:00"
     name: "CB Leading Index MoM"
     severity: yellow
+  - date: 2026-09-18
+    time_et: "11:45"
+    name: "Fed Schmid Speech"
+    severity: orange
   - date: 2026-09-18
     time_et: "13:00"
     name: "Baker Hughes Oil Rig Count"
@@ -96,6 +100,10 @@ events:
     severity: yellow
   - date: 2026-09-22
     time_et: "13:00"
+    name: "Fed Barkin Speech"
+    severity: orange
+  - date: 2026-09-22
+    time_et: "13:00"
     name: "Money Supply"
     severity: yellow
   - date: 2026-09-22
@@ -133,6 +141,10 @@ events:
   - date: 2026-09-23
     time_et: "09:45"
     name: "S&P Global Services PMI Flash"
+    severity: orange
+  - date: 2026-09-23
+    time_et: "10:05"
+    name: "Fed Barr Speech"
     severity: orange
   - date: 2026-09-23
     time_et: "10:30"
@@ -175,7 +187,7 @@ events:
     name: "17-Week Bill Auction"
     severity: yellow
   - date: 2026-09-23
-    time_et: "13:00"
+    time_et: "11:30"
     name: "2-Year FRN Auction"
     severity: yellow
   - date: 2026-09-23
@@ -187,11 +199,19 @@ events:
     name: "President Trump and President Xi Summit"
     severity: red
   - date: 2026-09-24
-    time_et: "07:50"
+    time_et: "04:10"
+    name: "Fed Williams Speech"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "08:00"
+    name: "Fed Barkin Speech"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "08:30"
     name: "Building Permits Final"
     severity: yellow
   - date: 2026-09-24
-    time_et: "07:50"
+    time_et: "08:30"
     name: "Building Permits MoM Final"
     severity: yellow
   - date: 2026-09-24
@@ -214,6 +234,10 @@ events:
     time_et: "08:50"
     name: "Fed Hammack Speech"
     severity: orange
+  - date: 2026-09-24
+    time_et: "09:20"
+    name: "NY Fed Bill Purchases 4 to 12 months"
+    severity: yellow
   - date: 2026-09-24
     time_et: "10:00"
     name: "New Home Sales"
