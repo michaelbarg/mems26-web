@@ -37,7 +37,7 @@ class TestTheSizingPathIsUnchanged:
     def _env(self, monkeypatch):
         monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
         monkeypatch.setenv("SIZE_CAP_OVER_FIXED_V1", "1")
-        for k in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+        for k in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
             monkeypatch.delenv(k, raising=False)
 
     @pytest.mark.parametrize("setup,expected", [

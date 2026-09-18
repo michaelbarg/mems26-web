@@ -31,7 +31,7 @@ from backend.v9.services.sierra_command import effective_contracts  # noqa: E402
 # outranked the _3 the test had just set — five of eight cases failed on a
 # correct system. An isolation fixture that isolates a subset isolates nothing.
 _FLAGS = ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
-          "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "SIZE_CAP_OVER_FIXED_V1")
+          "FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "SIZE_CAP_OVER_FIXED_V1")
 
 
 def _ec(setup, **env):

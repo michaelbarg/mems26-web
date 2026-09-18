@@ -18,7 +18,7 @@ def test_fc4_top_precedence(monkeypatch):
     # they are about and left the rest to the ambient .env — which now
     # carries FIXED_CONTRACTS_5=1, a HIGHER precedence, so the assertion
     # measured the live ruling instead of the precedence it is testing.
-    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+    for _f in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
         monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("FIXED_CONTRACTS_3", "1")   # must lose to _4
@@ -34,7 +34,7 @@ def _pin_ambient(monkeypatch):
     and falsify the tests' premises (4→3 via the cut; _3 loses to ambient _2).
     Pin them OFF here; the ruled interaction itself is pinned separately in
     test_fc4_with_ruled_size_cap_tomorrow_gate."""
-    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2",
+    for _f in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2",
                "SIZE_CAP_OVER_FIXED_V1",
                # F5 (RUNNER_TRAIL_V2, ruled 20.08, postdates these tests):
                # drops the runner leg's target -> t4=None by design. These
@@ -90,7 +90,7 @@ def test_fc4_with_ruled_size_cap_tomorrow_gate(monkeypatch, tmp_path):
     downward (Michael 07-09, 'still overrides downward, even under FIXED').
     The morning gate MUST therefore verify the effective COMMAND size, not
     just ruled_contracts(). A setup with sizing 4 ships the full 4."""
-    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2"):
+    for _f in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6", "FIXED_CONTRACTS_2"):
         monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     monkeypatch.setenv("SIZE_CAP_OVER_FIXED_V1", "1")

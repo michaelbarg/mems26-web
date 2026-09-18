@@ -171,7 +171,7 @@ def test_effective_contracts_exemption_scoped(monkeypatch):
     # they are about and left the rest to the ambient .env — which now
     # carries FIXED_CONTRACTS_5=1, a HIGHER precedence, so the assertion
     # measured the live ruling instead of the precedence it is testing.
-    for _f in ("FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+    for _f in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
         monkeypatch.setenv(_f, "0")
     monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
     exempt = {"contracts": 2, "metadata": {"fixed_contracts_exempt": 1}}

@@ -54,7 +54,8 @@ class TestRunnerByDaytypeBehavioral(unittest.TestCase):
         # restores what the tests were written to prove; it does not touch
         # production sizing, which stays whatever `.env` rules.
         self._size_saved = {k: os.environ.get(k)
-                            for k in ("FIXED_CONTRACTS_3", "FIXED_CONTRACTS_5")}
+                            for k in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_5")}
+        os.environ["FIXED_CONTRACTS_1"] = "0"  # 18.09 one-contract ruling — pinned off, same reason
         os.environ["FIXED_CONTRACTS_3"] = "0"
         os.environ["FIXED_CONTRACTS_5"] = "1"
 

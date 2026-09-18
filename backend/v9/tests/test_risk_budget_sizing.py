@@ -36,6 +36,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=4.0))
         assert n == 5, f"risk=4.0 should give 5 (ruled cap), got {n}"
@@ -47,6 +48,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=7.0))
         assert n == 4, f"risk=7.0 should give 4, got {n}"
@@ -58,6 +60,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=10.0))
         assert n == 3, f"risk=10.0 should give 3, got {n}"
@@ -69,6 +72,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=10.1))
         assert n == 0, f"risk=10.1 should be rejected (0), got {n}"
@@ -80,6 +84,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=11.0))
         assert n == 0, f"risk=11 should be rejected, got {n}"
@@ -91,6 +96,7 @@ class TestRiskBudget:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             # risk that gives raw=2.99: 150/(x×5)=2.99 → x=10.033
             n = _effective_contracts_raw(_setup(risk_pts=10.04))
@@ -101,7 +107,7 @@ class TestFlagOff:
     """Flag OFF → byte-identical to old behavior."""
 
     def test_flag_off_uses_ruled(self):
-        with patch.dict(os.environ, {"FIXED_CONTRACTS_5": "1"}, clear=False):
+        with patch.dict(os.environ, {"FIXED_CONTRACTS_5": "1", "FIXED_CONTRACTS_1": "0"}, clear=False):
             os.environ.pop("RISK_BUDGET_SIZING_V1", None)
             n = _effective_contracts_raw(_setup(risk_pts=25.0))
         assert n == 5, f"Flag OFF should use ruled=5, got {n}"
@@ -117,6 +123,7 @@ class TestNeverExceedsRuled:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=1.0))
         assert n == 5, f"Should be capped at ruled=5, got {n}"
@@ -132,6 +139,7 @@ class TestMutation:
             "RISK_BUDGET_USD": "150",
             "RISK_MIN_CONTRACTS": "3",
             "FIXED_CONTRACTS_5": "1",
+            "FIXED_CONTRACTS_1": "0",  # 18.09: the one-contract ruling is checked first; pin it off here
         }):
             n = _effective_contracts_raw(_setup(risk_pts=11.0))
         # If mutation removed the budget check, n would be 5 (ruled)

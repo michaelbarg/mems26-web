@@ -19,7 +19,7 @@ from backend.v9.services import contract_size as cs
 @pytest.fixture(autouse=True)
 def _clear(monkeypatch):
     for k in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
-              "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+              "FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
         monkeypatch.delenv(k, raising=False)
     yield
 

@@ -209,7 +209,7 @@ def test_bracket_cap_is_unconditional(monkeypatch, tmp_path):
     # 2026-08-18, and clearing a subset leaves the test measuring the ruling
     # instead of the cap it is about.
     for _f in ("FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
-               "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
+               "FIXED_CONTRACTS_1", "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6"):
         monkeypatch.setenv(_f, "0")
     # 6, not 4, since 2026-08-18 — the ladder protects six inside four groups.
     # What the test is really asserting is unchanged: the cap holds with margin
