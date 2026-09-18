@@ -4,96 +4,8 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-16 20:41 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-17 20:18 ET
 events:
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Building Permits MoM Prel"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Building Permits Prel"
-    severity: red
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Continuing Jobless Claims"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Housing Starts"
-    severity: red
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Housing Starts MoM"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Initial Jobless Claims"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Jobless Claims 4-week Average"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philadelphia Fed Manufacturing Index"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philly Fed Business Conditions"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philly Fed CAPEX Index"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philly Fed Employment"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philly Fed New Orders"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "08:30"
-    name: "Philly Fed Prices Paid"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "10:00"
-    name: "Pending Home Sales MoM"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "10:00"
-    name: "Pending Home Sales YoY"
-    severity: orange
-  - date: 2026-09-17
-    time_et: "10:30"
-    name: "EIA Natural Gas Stocks Change"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "11:30"
-    name: "4-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "11:30"
-    name: "8-Week Bill Auction"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "12:00"
-    name: "15-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "12:00"
-    name: "30-Year Mortgage Rate"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "13:00"
-    name: "10-Year TIPS Auction"
-    severity: yellow
-  - date: 2026-09-17
-    time_et: "16:30"
-    name: "Fed Balance Sheet"
-    severity: yellow
   - date: 2026-09-18
     time_et: "09:15"
     name: "Capacity Utilization"
@@ -274,3 +186,79 @@ events:
     time_et: "20:00"
     name: "President Trump and President Xi Summit"
     severity: red
+  - date: 2026-09-24
+    time_et: "07:50"
+    name: "Building Permits Final"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "07:50"
+    name: "Building Permits MoM Final"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "08:30"
+    name: "Continuing Jobless Claims"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "08:30"
+    name: "Current Account"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "08:30"
+    name: "Initial Jobless Claims"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "08:30"
+    name: "Jobless Claims 4-week Average"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "08:50"
+    name: "Fed Hammack Speech"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "10:00"
+    name: "New Home Sales"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "10:00"
+    name: "New Home Sales MoM"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "10:10"
+    name: "Fed Paulson Speech"
+    severity: orange
+  - date: 2026-09-24
+    time_et: "10:30"
+    name: "EIA Natural Gas Stocks Change"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "11:00"
+    name: "Kansas Fed Composite Index"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "11:00"
+    name: "Kansas Fed Manufacturing Index"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "11:30"
+    name: "4-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "11:30"
+    name: "8-Week Bill Auction"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "12:00"
+    name: "15-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "12:00"
+    name: "30-Year Mortgage Rate"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "13:00"
+    name: "7-Year Note Auction"
+    severity: yellow
+  - date: 2026-09-24
+    time_et: "16:30"
+    name: "Fed Balance Sheet"
+    severity: yellow

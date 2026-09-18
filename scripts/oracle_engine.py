@@ -142,7 +142,9 @@ def load_bars(session_date: Optional[str] = None) -> List[Dict]:
                b.open o, b.high h, b.low l, b.close c, b.volume v,
                cd.delta
         FROM v9_bars_5min_woodies b
-        LEFT JOIN v9_bars_cumulative_delta cd ON cd.ts = b.ts
+        LEFT JOIN (SELECT DISTINCT ON (ts) ts, delta
+                   FROM v9_bars_cumulative_delta
+                   ORDER BY ts, created_at DESC) cd ON cd.ts = b.ts
         WHERE {where_clause}
           AND (b.ts AT TIME ZONE 'Asia/Jerusalem')::time BETWEEN '16:30' AND '23:00'
         ORDER BY b.ts""",
@@ -646,10 +648,18 @@ def analyze_all(session_date: Optional[str] = None,
             rng = b['h'] - b['l']
             cp = ((b['c'] - b['l']) / rng) if rng > 0 else 0.5
 
-            # 5-bar structure break
+            # Structure break with varying windows (F16 Fix 1)
             prev5 = bs[i - 5:i]
             break_dn = b['c'] < min(x['l'] for x in prev5)
             break_up = b['c'] > max(x['h'] for x in prev5)
+
+            # Pre-compute break for window 3, 5, 8
+            break_dn_w3 = b['c'] < min(x['l'] for x in bs[max(0, i - 3):i]) if i >= 3 else False
+            break_dn_w5 = break_dn  # already computed above
+            break_dn_w8 = b['c'] < min(x['l'] for x in bs[max(0, i - 8):i]) if i >= 8 else False
+            break_up_w3 = b['c'] > max(x['h'] for x in bs[max(0, i - 3):i]) if i >= 3 else False
+            break_up_w5 = break_up
+            break_up_w8 = b['c'] > max(x['h'] for x in bs[max(0, i - 8):i]) if i >= 8 else False
 
             # Bars since session extreme
             hi_i = max(range(i + 1), key=lambda k: bs[k]['h'])
@@ -660,7 +670,7 @@ def analyze_all(session_date: Optional[str] = None,
             # Move from open in ATR
             move_open = (b['c'] - bs[0]['o']) / atr
 
-            # Double bottom/top (from oracle_study)
+            # Double bottom/top (from oracle_study) — with varying tolerance/min_dist (F16 Fix 1)
             win = bs[max(0, i - 15):i + 1]
             dbl_b = dbl_t = False
             lows = sorted(range(len(win)), key=lambda k: win[k]['l'])[:2]
@@ -671,6 +681,25 @@ def analyze_all(session_date: Optional[str] = None,
             if len(win) >= 8 and abs(highs[0] - highs[1]) >= 3 and abs(win[highs[0]]['h'] - win[highs[1]]['h']) <= 0.3 * atr:
                 neck = min(x['l'] for x in win[min(highs):max(highs) + 1])
                 dbl_t = b['c'] < neck and (len(win) - 1 - max(highs)) <= 3
+
+            # Pre-compute double bottom/top variants with varying tolerance and min_dist
+            dbl_variants = {}
+            for tol_key, tol_mult in [('t02', 0.2), ('t03', 0.3), ('t05', 0.5)]:
+                for dist_key, min_dist in [('d3', 3), ('d5', 5)]:
+                    # Double bottom
+                    db_key = f'dbl_b_{tol_key}_{dist_key}'
+                    db_val = False
+                    if len(win) >= 8 and abs(lows[0] - lows[1]) >= min_dist and abs(win[lows[0]]['l'] - win[lows[1]]['l']) <= tol_mult * atr:
+                        neck_b = max(x['h'] for x in win[min(lows):max(lows) + 1])
+                        db_val = b['c'] > neck_b and (len(win) - 1 - max(lows)) <= 3
+                    dbl_variants[db_key] = db_val
+                    # Double top
+                    dt_key = f'dbl_t_{tol_key}_{dist_key}'
+                    dt_val = False
+                    if len(win) >= 8 and abs(highs[0] - highs[1]) >= min_dist and abs(win[highs[0]]['h'] - win[highs[1]]['h']) <= tol_mult * atr:
+                        neck_t = min(x['l'] for x in win[min(highs):max(highs) + 1])
+                        dt_val = b['c'] < neck_t and (len(win) - 1 - max(highs)) <= 3
+                    dbl_variants[dt_key] = dt_val
 
             # New F14 conditions
             hs_short = detect_head_shoulders_short(bs, i, atr)
@@ -711,9 +740,14 @@ def analyze_all(session_date: Optional[str] = None,
                 dr=round(dr, 4) if dr is not None else None,
                 cp=round(cp, 4),
                 break_dn=break_dn, break_up=break_up,
+                # F16: pre-computed break variants by window
+                break_dn_w3=break_dn_w3, break_dn_w5=break_dn_w5, break_dn_w8=break_dn_w8,
+                break_up_w3=break_up_w3, break_up_w5=break_up_w5, break_up_w8=break_up_w8,
                 bsh=bsh, bsl=bsl,
                 move_open=round(move_open, 4),
                 dbl_b=dbl_b, dbl_t=dbl_t,
+                # F16: pre-computed double variants by tolerance/min_dist
+                **dbl_variants,
                 hs_short=hs_short, hs_long=hs_long,
                 cup_handle=cup_handle,
                 pullback_short=pullback_short, pullback_long=pullback_long,

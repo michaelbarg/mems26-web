@@ -1,0 +1,194 @@
+# Setup Validation Report
+Generated: 2026-09-18 13:37
+Total hits: 132
+
+## Summary Table
+
+| Setup | N | good% [CI] | lift-disc | lift-val | $/trade | plateau | Recommendation |
+|-------|---|------------|-----------|----------|---------|---------|----------------|
+| DBL_BOTTOM_ABS | 49 | 57.1 [45.4-68.1] | 28.6 | 68.6 | $-8.57 | Y | discard |
+| ROTATION_BREAK | 38 | 76.3 [63.5-85.7] | 71.4 | 77.4 | $-9.90 | Y | tree |
+
+## DBL_BOTTOM_ABS
+
+- N=78 (decided=49, G=28, B=21, AMBIG=0)
+- good% = 57.1 [Wilson 90% CI: 45.4-68.1]
+- OOS: discovery (Jun-Jul) = 28.6% (N=14), validation (Aug-Sep) = 68.6% (N=35)
+- $/trade = $-8.57 (N=66)
+- LONG: N=33, good%=72.7
+- SHORT: N=16, good%=25.0
+
+### Phase breakdown
+
+| Phase | N | good% |
+|-------|---|-------|
+| B | 2 | 50.0 |
+| C | 31 | 54.8 |
+| D | 16 | 62.5 |
+
+### Plateau (is_plateau=True)
+
+**dbl_tol_atr:**
+  - value=0.5: surviving=78
+  - value=1.0: surviving=78 (default)
+  - value=1.5: surviving=78
+**dbl_absorption_mult:**
+  - value=1.0: surviving=78
+  - value=1.5: surviving=78 (default)
+  - value=2.0: surviving=78
+**dbl_trigger_delta_mult:**
+  - value=0.5: surviving=78
+  - value=1.0: surviving=78 (default)
+  - value=1.5: surviving=78
+
+## ROTATION_BREAK
+
+- N=54 (decided=38, G=29, B=9, AMBIG=0)
+- good% = 76.3 [Wilson 90% CI: 63.5-85.7]
+- OOS: discovery (Jun-Jul) = 71.4% (N=7), validation (Aug-Sep) = 77.4% (N=31)
+- $/trade = $-9.90 (N=41)
+- LONG: N=10, good%=70.0
+- SHORT: N=28, good%=78.6
+
+### Phase breakdown
+
+| Phase | N | good% |
+|-------|---|-------|
+| B | 2 | 50.0 |
+| C | 20 | 85.0 |
+| D | 16 | 68.8 |
+
+### Plateau (is_plateau=True)
+
+**rot_min_bars:**
+  - value=3: surviving=54
+  - value=4: surviving=54 (default)
+  - value=5: surviving=54
+**rot_max_range_atr:**
+  - value=1.0: surviving=54
+  - value=1.5: surviving=54
+  - value=2.0: surviving=54 (default)
+**rot_trigger_vol_mult:**
+  - value=1.0: surviving=54
+  - value=1.3: surviving=54 (default)
+  - value=1.6: surviving=30
+
+## Walk-Forward Simulation (Combined)
+
+- Total trades: 39
+- Total days: 45
+- Final equity: $-743.30
+- Max drawdown: $842.70
+- Trades/day: 0.87
+- % days >= $200: 2.2%
+
+## Hit Detail
+
+| Session | Setup | Dir | Trigger | Entry | Stop | T1 | T2 | Label | $/trade |
+|---------|-------|-----|---------|-------|------|----|----|-------|---------|
+| 2026-06-15 | DBL_BOTTOM_ABS | SHORT | 22:25 | 7625.00 | 7636.50 | 7610.38 | 7608.25 | NONE | $-45.10 |
+| 2026-06-24 | DBL_BOTTOM_ABS | SHORT | 18:05 | 7481.25 | 7496.75 | 7464.50 | 7414.00 | NONE | skip |
+| 2026-06-25 | DBL_BOTTOM_ABS | LONG | 20:55 | 7429.50 | 7410.25 | 7440.25 | 7456.00 | BAD | skip |
+| 2026-06-25 | DBL_BOTTOM_ABS | LONG | 21:15 | 7443.75 | 7408.00 | 7467.50 | 7490.50 | NONE | skip |
+| 2026-06-25 | ROTATION_BREAK | LONG | 21:15 | 7443.75 | 7408.00 | 7462.75 | 7467.50 | NONE | skip |
+| 2026-06-25 | DBL_BOTTOM_ABS | LONG | 21:25 | 7454.25 | 7408.00 | 7467.50 | 7490.50 | NONE | skip |
+| 2026-06-25 | DBL_BOTTOM_ABS | LONG | 22:55 | 7428.50 | 7408.50 | 7440.25 | 7440.75 | GOOD | skip |
+| 2026-06-29 | DBL_BOTTOM_ABS | SHORT | 22:50 | 7492.75 | 7500.75 | 7467.12 | 7458.75 | BAD | $-27.60 |
+| 2026-06-30 | DBL_BOTTOM_ABS | SHORT | 17:45 | 7526.25 | 7542.00 | 7511.38 | 7495.75 | BAD | skip |
+| 2026-06-30 | DBL_BOTTOM_ABS | SHORT | 20:10 | 7553.75 | 7559.75 | 7511.38 | 7500.25 | NONE | $-62.60 |
+| 2026-06-30 | DBL_BOTTOM_ABS | SHORT | 22:25 | 7561.50 | 7568.00 | 7511.38 | 7500.25 | NONE | $97.40 |
+| 2026-07-01 | DBL_BOTTOM_ABS | SHORT | 18:30 | 7570.75 | 7578.75 | 7553.25 | 7501.50 | BAD | $-82.60 |
+| 2026-07-01 | DBL_BOTTOM_ABS | SHORT | 22:25 | 7553.75 | 7562.00 | 7553.25 | 7524.25 | GOOD | $-0.10 |
+| 2026-07-01 | ROTATION_BREAK | SHORT | 22:25 | 7553.75 | 7562.00 | 7552.25 | 7524.25 | GOOD | $4.90 |
+| 2026-07-01 | DBL_BOTTOM_ABS | SHORT | 22:35 | 7552.50 | 7562.00 | 7524.25 | 7521.50 | NONE | $202.40 |
+| 2026-07-02 | ROTATION_BREAK | SHORT | 20:00 | 7488.50 | 7514.00 | 7481.75 | 7465.75 | GOOD | skip |
+| 2026-07-02 | ROTATION_BREAK | SHORT | 20:35 | 7487.00 | 7502.25 | 7480.50 | 7469.75 | GOOD | skip |
+| 2026-07-02 | DBL_BOTTOM_ABS | LONG | 21:05 | 7504.00 | 7479.50 | 7533.25 | 7553.75 | NONE | skip |
+| 2026-07-02 | ROTATION_BREAK | SHORT | 22:00 | 7495.75 | 7515.00 | 7483.25 | 7482.00 | BAD | skip |
+| 2026-07-06 | DBL_BOTTOM_ABS | SHORT | 19:25 | 7585.75 | 7591.25 | 7563.12 | 7561.50 | BAD | $-57.60 |
+| 2026-07-06 | DBL_BOTTOM_ABS | SHORT | 20:30 | 7582.25 | 7595.00 | 7563.12 | 7561.50 | BAD | $-130.10 |
+| 2026-07-07 | DBL_BOTTOM_ABS | LONG | 22:30 | 7549.00 | 7536.50 | 7566.00 | 7574.00 | NONE | $37.40 |
+| 2026-07-07 | DBL_BOTTOM_ABS | LONG | 22:50 | 7554.75 | 7536.50 | 7566.00 | 7574.00 | NONE | skip |
+| 2026-07-07 | ROTATION_BREAK | LONG | 22:50 | 7554.75 | 7536.50 | 7562.75 | 7566.00 | NONE | skip |
+| 2026-07-08 | DBL_BOTTOM_ABS | LONG | 19:00 | 7487.00 | 7469.00 | 7513.25 | 7524.75 | GOOD | skip |
+| 2026-07-08 | ROTATION_BREAK | LONG | 20:20 | 7529.75 | 7510.75 | 7539.50 | 7566.75 | NONE | skip |
+| 2026-07-08 | DBL_BOTTOM_ABS | SHORT | 20:35 | 7528.00 | 7536.75 | 7513.25 | 7493.50 | NONE | $19.90 |
+| 2026-07-08 | DBL_BOTTOM_ABS | SHORT | 20:40 | 7524.75 | 7536.75 | 7513.25 | 7493.50 | NONE | $-12.60 |
+| 2026-07-09 | ROTATION_BREAK | LONG | 22:15 | 7587.50 | 7580.75 | 7591.00 | 7596.00 | NONE | $7.40 |
+| 2026-07-09 | DBL_BOTTOM_ABS | SHORT | 22:50 | 7582.75 | 7589.25 | 7548.38 | 7547.25 | BAD | $-67.60 |
+| 2026-07-09 | ROTATION_BREAK | SHORT | 22:50 | 7582.75 | 7589.25 | 7577.50 | 7548.38 | BAD | $-67.60 |
+| 2026-07-13 | DBL_BOTTOM_ABS | LONG | 20:40 | 7571.50 | 7563.25 | 7586.50 | 7592.50 | BAD | $-85.10 |
+| 2026-07-14 | DBL_BOTTOM_ABS | SHORT | 22:00 | 7589.50 | 7598.50 | 7576.25 | 7571.25 | NONE | $-2.60 |
+| 2026-07-15 | ROTATION_BREAK | LONG | 19:45 | 7610.50 | 7593.25 | 7616.50 | 7619.00 | GOOD | skip |
+| 2026-07-20 | DBL_BOTTOM_ABS | LONG | 19:45 | 7506.00 | 7498.75 | 7510.00 | 7533.00 | GOOD | $17.40 |
+| 2026-07-30 | ROTATION_BREAK | LONG | 20:00 | 7453.75 | 7430.75 | 7460.50 | 7475.25 | NONE | skip |
+| 2026-07-30 | DBL_BOTTOM_ABS | SHORT | 20:30 | 7449.00 | 7456.75 | 7419.88 | 7404.50 | BAD | $-80.10 |
+| 2026-07-30 | DBL_BOTTOM_ABS | SHORT | 20:35 | 7447.50 | 7456.75 | 7419.88 | 7404.50 | BAD | $-95.10 |
+| 2026-07-31 | ROTATION_BREAK | LONG | 22:15 | 7526.75 | 7509.00 | 7525.25 | 7533.25 | GOOD | skip |
+| 2026-08-03 | ROTATION_BREAK | LONG | 22:00 | 7637.00 | 7626.00 | 7642.25 | 7650.25 | BAD | $-112.60 |
+| 2026-08-04 | DBL_BOTTOM_ABS | SHORT | 19:05 | 7736.00 | 7742.00 | 7671.38 | 7669.75 | BAD | $-62.60 |
+| 2026-08-05 | DBL_BOTTOM_ABS | LONG | 19:25 | 7772.25 | 7750.25 | 7772.75 | 7807.50 | GOOD | skip |
+| 2026-08-05 | ROTATION_BREAK | SHORT | 21:30 | 7765.25 | 7775.00 | 7757.25 | 7748.00 | NONE | $37.40 |
+| 2026-08-06 | ROTATION_BREAK | SHORT | 18:15 | 7739.25 | 7762.75 | 7728.50 | 7727.75 | GOOD | skip |
+| 2026-08-06 | ROTATION_BREAK | LONG | 22:00 | 7745.50 | 7734.25 | 7751.00 | 7753.00 | BAD | $-115.10 |
+| 2026-08-07 | ROTATION_BREAK | LONG | 18:20 | 7783.00 | 7769.00 | 7794.25 | 7806.75 | NONE | $-142.60 |
+| 2026-08-07 | ROTATION_BREAK | SHORT | 19:20 | 7770.00 | 7784.25 | 7765.50 | 7761.12 | GOOD | $64.30 |
+| 2026-08-07 | ROTATION_BREAK | SHORT | 21:10 | 7763.00 | 7772.50 | 7756.75 | 7751.50 | GOOD | $28.65 |
+| 2026-08-10 | DBL_BOTTOM_ABS | SHORT | 17:20 | 7786.25 | 7790.75 | 7777.12 | 7751.50 | BAD | $-47.60 |
+| 2026-08-10 | DBL_BOTTOM_ABS | SHORT | 17:50 | 7785.00 | 7797.25 | 7777.12 | 7763.50 | NONE | $83.05 |
+| 2026-08-10 | ROTATION_BREAK | SHORT | 22:25 | 7776.00 | 7781.50 | 7771.75 | 7771.00 | GOOD | $18.65 |
+| 2026-08-11 | ROTATION_BREAK | SHORT | 18:05 | 7773.50 | 7786.50 | 7768.25 | 7740.50 | GOOD | $23.65 |
+| 2026-08-11 | ROTATION_BREAK | SHORT | 18:30 | 7765.00 | 7775.50 | 7759.75 | 7740.50 | GOOD | $23.65 |
+| 2026-08-11 | DBL_BOTTOM_ABS | LONG | 18:40 | 7767.25 | 7762.25 | 7768.50 | 7799.50 | GOOD | $3.65 |
+| 2026-08-11 | ROTATION_BREAK | SHORT | 19:20 | 7762.25 | 7770.25 | 7756.00 | 7740.50 | GOOD | $137.40 |
+| 2026-08-11 | ROTATION_BREAK | SHORT | 20:10 | 7748.75 | 7761.25 | 7744.50 | 7740.50 | NONE | $18.65 |
+| 2026-08-13 | ROTATION_BREAK | SHORT | 18:25 | 7806.00 | 7820.75 | 7802.50 | 7798.50 | GOOD | $14.90 |
+| 2026-08-13 | ROTATION_BREAK | LONG | 22:05 | 7828.00 | 7817.75 | 7830.00 | 7836.00 | NONE | $-40.10 |
+| 2026-08-13 | DBL_BOTTOM_ABS | SHORT | 22:25 | 7825.00 | 7829.00 | 7803.38 | 7798.50 | NONE | $4.90 |
+| 2026-08-14 | DBL_BOTTOM_ABS | LONG | 21:00 | 7802.50 | 7796.25 | 7807.25 | 7808.00 | GOOD | $21.15 |
+| 2026-08-17 | ROTATION_BREAK | SHORT | 22:00 | 7773.75 | 7779.25 | 7770.50 | 7766.75 | GOOD | $13.65 |
+| 2026-08-18 | ROTATION_BREAK | SHORT | 20:55 | 7716.00 | 7725.75 | 7713.50 | 7707.50 | BAD | $-100.10 |
+| 2026-08-18 | ROTATION_BREAK | SHORT | 22:50 | 7715.00 | 7723.00 | 7711.75 | 7706.25 | GOOD | $-2.60 |
+| 2026-08-21 | ROTATION_BREAK | LONG | 18:35 | 7705.75 | 7689.25 | 7711.00 | 7714.50 | NONE | skip |
+| 2026-08-24 | ROTATION_BREAK | SHORT | 18:00 | 7664.50 | 7675.75 | 7660.50 | 7655.00 | GOOD | $17.40 |
+| 2026-08-24 | DBL_BOTTOM_ABS | LONG | 18:20 | 7665.50 | 7657.25 | 7668.88 | 7693.50 | GOOD | $14.30 |
+| 2026-08-24 | ROTATION_BREAK | LONG | 19:00 | 7683.75 | 7670.75 | 7692.00 | 7694.00 | NONE | $-132.60 |
+| 2026-08-25 | DBL_BOTTOM_ABS | LONG | 21:40 | 7688.75 | 7680.00 | 7694.62 | 7701.25 | NONE | $38.00 |
+| 2026-08-26 | DBL_BOTTOM_ABS | SHORT | 17:10 | 7694.25 | 7702.25 | 7690.12 | 7671.00 | GOOD | $18.05 |
+| 2026-08-26 | ROTATION_BREAK | SHORT | 18:30 | 7684.75 | 7697.25 | 7677.50 | 7672.00 | NONE | $97.40 |
+| 2026-08-26 | ROTATION_BREAK | SHORT | 19:35 | 7673.50 | 7686.75 | 7672.50 | 7672.00 | GOOD | $2.40 |
+| 2026-08-26 | ROTATION_BREAK | LONG | 21:45 | 7695.25 | 7686.75 | 7698.00 | 7701.50 | GOOD | $42.40 |
+| 2026-08-26 | DBL_BOTTOM_ABS | SHORT | 22:50 | 7694.00 | 7705.00 | 7690.12 | 7682.75 | GOOD | $-65.10 |
+| 2026-08-27 | DBL_BOTTOM_ABS | SHORT | 18:25 | 7734.75 | 7743.00 | 7715.62 | 7706.25 | NONE | $-85.10 |
+| 2026-08-27 | ROTATION_BREAK | LONG | 19:35 | 7746.50 | 7734.50 | 7752.25 | 7761.00 | GOOD | $26.15 |
+| 2026-08-27 | ROTATION_BREAK | SHORT | 21:25 | 7726.00 | 7739.25 | 7723.00 | 7715.62 | GOOD | $12.40 |
+| 2026-08-28 | DBL_BOTTOM_ABS | SHORT | 18:05 | 7771.75 | 7782.75 | 7750.88 | 7678.00 | GOOD | $348.00 |
+| 2026-08-28 | DBL_BOTTOM_ABS | LONG | 20:10 | 7722.50 | 7711.50 | 7730.00 | 7760.25 | NONE | $-2.60 |
+| 2026-08-28 | DBL_BOTTOM_ABS | LONG | 22:05 | 7722.75 | 7712.00 | 7730.00 | 7744.50 | NONE | $-5.10 |
+| 2026-08-31 | ROTATION_BREAK | SHORT | 17:20 | 7677.75 | 7691.50 | 7670.75 | 7660.50 | BAD | $-140.10 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 17:35 | 7684.25 | 7674.50 | 7688.75 | 7715.25 | GOOD | $19.90 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 18:20 | 7688.50 | 7674.50 | 7688.75 | 7700.75 | GOOD | $-1.35 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 19:10 | 7685.00 | 7677.00 | 7688.75 | 7705.25 | NONE | $16.15 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 20:35 | 7686.00 | 7679.00 | 7688.75 | 7697.75 | GOOD | $11.15 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 20:40 | 7690.50 | 7679.00 | 7693.38 | 7704.25 | GOOD | $11.80 |
+| 2026-08-31 | ROTATION_BREAK | SHORT | 21:30 | 7688.25 | 7696.50 | 7682.75 | 7682.50 | GOOD | $53.65 |
+| 2026-08-31 | ROTATION_BREAK | SHORT | 21:35 | 7682.25 | 7696.50 | 7679.25 | 7676.50 | GOOD | $-145.10 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 21:50 | 7684.25 | 7677.75 | 7688.75 | 7714.50 | GOOD | $102.40 |
+| 2026-08-31 | DBL_BOTTOM_ABS | LONG | 22:20 | 7692.00 | 7677.75 | 7693.38 | 7704.25 | GOOD | $4.30 |
+| 2026-09-01 | ROTATION_BREAK | SHORT | 21:25 | 7638.75 | 7648.25 | 7630.50 | 7624.00 | GOOD | $112.40 |
+| 2026-09-02 | DBL_BOTTOM_ABS | SHORT | 20:05 | 7673.00 | 7681.50 | 7650.25 | 7647.00 | NONE | $-87.60 |
+| 2026-09-02 | ROTATION_BREAK | LONG | 20:40 | 7675.75 | 7669.75 | 7680.00 | 7680.50 | GOOD | $18.65 |
+| 2026-09-03 | DBL_BOTTOM_ABS | SHORT | 19:50 | 7754.25 | 7760.00 | 7715.38 | 7704.25 | BAD | $-60.10 |
+| 2026-09-03 | DBL_BOTTOM_ABS | SHORT | 20:05 | 7750.00 | 7758.50 | 7715.38 | 7704.25 | BAD | $-87.60 |
+| 2026-09-03 | ROTATION_BREAK | LONG | 20:50 | 7760.25 | 7752.00 | 7763.25 | 7768.75 | GOOD | $12.40 |
+| 2026-09-03 | DBL_BOTTOM_ABS | SHORT | 21:40 | 7761.75 | 7766.50 | 7715.38 | 7704.25 | NONE | $84.90 |
+| 2026-09-04 | ROTATION_BREAK | SHORT | 17:40 | 7725.00 | 7739.25 | 7720.00 | 7718.25 | GOOD | $56.15 |
+| 2026-09-04 | DBL_BOTTOM_ABS | LONG | 18:05 | 7718.75 | 7712.00 | 7726.50 | 7758.25 | BAD | $-70.10 |
+| 2026-09-04 | DBL_BOTTOM_ABS | LONG | 18:10 | 7721.25 | 7712.00 | 7726.50 | 7758.25 | BAD | $-95.10 |
+| 2026-09-04 | DBL_BOTTOM_ABS | LONG | 18:40 | 7721.75 | 7710.00 | 7726.50 | 7745.50 | GOOD | $21.15 |
+... and 32 more hits
+
+## NOT-DONE Items
+
+- Full re-run of detection per plateau grid cell (approximated via surviving-hit count)
+- Cross-validation with oracle_engine conditions (joint probability)

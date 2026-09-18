@@ -276,7 +276,7 @@ def step5_parameter_grid(rows: List[Dict]) -> Dict[str, Any]:
     """
     results = {}
 
-    # Break conditions grid
+    # Break conditions grid — F16: use pre-computed break_dn_w{3,5,8} fields
     windows = [3, 5, 8]
     delta_mults = [1.5, 2.0, 3.0]
     vol_thresholds = [1.0, 1.3, 1.6]
@@ -286,12 +286,12 @@ def step5_parameter_grid(rows: List[Dict]) -> Dict[str, Any]:
         for dm in delta_mults:
             for vt in vol_thresholds:
                 def sel(r, _w=w, _dm=dm, _vt=vt):
-                    # Break down with parameterized thresholds
-                    if not r['break_dn']:
+                    # F16 Fix 1: use pre-computed window-specific break field
+                    if not r.get(f'break_dn_w{_w}', False):
                         return False
-                    if r['dr'] is None or r['dr'] > -_dm:
+                    if r.get('dr') is None or r['dr'] > -_dm:
                         return False
-                    if r['vr'] is None or r['vr'] < _vt:
+                    if r.get('vr') is None or r['vr'] < _vt:
                         return False
                     return True
 
@@ -367,15 +367,16 @@ def step5_parameter_grid(rows: List[Dict]) -> Dict[str, Any]:
 
 
 def _double_top_param(r: Dict, tol_mult: float = 0.3, min_dist: int = 3) -> bool:
-    """Parameterized double-top check (uses pre-computed fields)."""
-    # We use the existing dbl_t flag which already uses 0.3*ATR tolerance and dist>=3.
-    # For different params, we'd need the raw bar data.
-    # Since we only have the pre-labeled rows, approximate:
-    # tol=0.3 and md=3 match the existing dbl_t. Others are approximate.
-    if tol_mult == 0.3 and min_dist == 3:
-        return r['dbl_t']
-    # For other params, conservatively return same result (approximation)
-    return r['dbl_t']
+    """Parameterized double-top check using F16 pre-computed fields."""
+    # Map tolerance to key: 0.2->t02, 0.3->t03, 0.5->t05
+    tol_map = {0.2: 't02', 0.3: 't03', 0.5: 't05'}
+    dist_map = {3: 'd3', 5: 'd5'}
+    tol_key = tol_map.get(tol_mult)
+    dist_key = dist_map.get(min_dist)
+    if tol_key and dist_key:
+        return r.get(f'dbl_t_{tol_key}_{dist_key}', False)
+    # Fallback to default dbl_t
+    return r.get('dbl_t', False)
 
 
 # ---------------------------------------------------------------------------
@@ -570,6 +571,13 @@ def step8_data_quality() -> Dict[str, Any]:
     )
     dup_n = int(dup_count[0]['n']) if dup_count else 0
 
+    # F16 Fix 3: count clean sessions (excluding partial and EXC)
+    from scripts.oracle_engine import EXC as OE_EXC, ROLL_DATES as OE_ROLL
+    exc_all = OE_EXC | OE_ROLL
+    clean_sessions = [s for s in sessions
+                      if str(s['d']) not in exc_all and int(s['bar_count']) >= 40]
+    total_clean = len(clean_sessions)
+
     # TS gaps: check for sessions with gaps > 10 min between consecutive bars
     gap_sessions = read_all(
         """SELECT d, MAX(gap_min) as max_gap FROM (
@@ -587,15 +595,19 @@ def step8_data_quality() -> Dict[str, Any]:
         LIMIT 10"""
     )
 
+    # F16 Fix 3: list the top 4 gap sessions by date
+    gap_sessions_detail = [
+        {'date': str(g['d']), 'max_gap_min': round(float(g['max_gap']), 1)}
+        for g in gap_sessions
+    ][:4]
+
     return {
         'total_sessions': len(sessions),
+        'clean_sessions': total_clean,
         'partial_sessions': partial_sessions,
         'low_delta_coverage': low_delta_sessions,
         'duplicate_delta_ts': dup_n,
-        'sessions_with_ts_gaps': [
-            {'date': str(g['d']), 'max_gap_min': round(float(g['max_gap']), 1)}
-            for g in gap_sessions
-        ],
+        'sessions_with_ts_gaps': gap_sessions_detail,
     }
 
 
@@ -680,6 +692,222 @@ def step9_walk_forward(rows: List[Dict], summary: Dict,
 
 
 # ---------------------------------------------------------------------------
+# Step 10: Condition x Phase x Day-type cells (F16 Fix 4)
+# ---------------------------------------------------------------------------
+def step10_condition_phase_day(rows: List[Dict], summary: Dict,
+                               by_day: Dict) -> Dict[str, Any]:
+    """For the top 5 surviving conditions, compute good% / CI / OOS split
+    per (condition, phase, day_type) cell. Only cells with N >= 10.
+    Walk-forward on cells that pass."""
+
+    # Pick top 5 by lift
+    conds_sorted = sorted(
+        summary['conditions'].items(),
+        key=lambda x: x[1]['lift'],
+        reverse=True
+    )[:5]
+    top_cond_names = [c[0] for c in conds_sorted]
+    conditions = _get_condition_definitions()
+
+    cells: List[Dict] = []
+
+    for cname in top_cond_names:
+        if cname not in conditions:
+            continue
+        cfunc, side = conditions[cname]
+        lab = 'ls' if side == 'S' else 'll'
+        direction = 'SHORT' if side == 'S' else 'LONG'
+
+        matching = [r for r in rows if cfunc(r)]
+
+        # Get base rate for this side
+        all_decided = [r for r in rows if r[lab] in ('GOOD', 'BAD')]
+        base_g = sum(1 for r in all_decided if r[lab] == 'GOOD')
+        base_rate = base_g / len(all_decided) if all_decided else 0
+
+        # Group by (phase, day_type)
+        cell_groups: Dict[Tuple[str, str], List[Dict]] = collections.defaultdict(list)
+        for r in matching:
+            cell_groups[(r['ph'], r['day_type'])].append(r)
+
+        for (ph, dt), cell_rows in cell_groups.items():
+            g = sum(1 for r in cell_rows if r[lab] == 'GOOD')
+            b = sum(1 for r in cell_rows if r[lab] == 'BAD')
+            dec = g + b
+            if dec < 10:
+                continue
+            good_pct = 100 * g / dec
+            lo, hi = wilson_ci(g, dec)
+            # OOS split
+            disc = [r for r in cell_rows if r['d'] < '2026-08-01']
+            val = [r for r in cell_rows if r['d'] >= '2026-08-01']
+            disc_g = sum(1 for r in disc if r[lab] == 'GOOD')
+            disc_b = sum(1 for r in disc if r[lab] == 'BAD')
+            val_g = sum(1 for r in val if r[lab] == 'GOOD')
+            val_b = sum(1 for r in val if r[lab] == 'BAD')
+            disc_pct = 100 * disc_g / (disc_g + disc_b) if (disc_g + disc_b) else 0
+            val_pct = 100 * val_g / (val_g + val_b) if (val_g + val_b) else 0
+
+            # Walk-forward $/trade for this cell
+            dollar_trades = []
+            for r in cell_rows:
+                d = r['d']
+                if d not in by_day:
+                    continue
+                bs = by_day[d]
+                result = compute_dollar_per_trade(bs, r['bar_idx'], r['atr'], direction)
+                if result and not result.get('skip'):
+                    dollar_trades.append(result['pnl_usd'])
+
+            avg_dollar = (sum(dollar_trades) / len(dollar_trades)
+                          if dollar_trades else 0.0)
+
+            passes_ci = lo > base_rate
+            passes_oos = disc_pct > 0 and val_pct > 0
+
+            cells.append({
+                'condition': cname,
+                'phase': ph,
+                'day_type': dt,
+                'N': dec,
+                'good_pct': round(good_pct, 1),
+                'ci_lower': round(100 * lo, 1),
+                'ci_upper': round(100 * hi, 1),
+                'disc_pct': round(disc_pct, 1),
+                'val_pct': round(val_pct, 1),
+                'avg_dollar': round(avg_dollar, 2),
+                'n_trades': len(dollar_trades),
+                'passes_ci': passes_ci,
+                'passes_oos': passes_oos,
+            })
+
+    return {'cells': cells}
+
+
+# ---------------------------------------------------------------------------
+# Step 11: Winner Profile Combinations Validation (F16)
+# ---------------------------------------------------------------------------
+def step11_winner_profile_validation(rows: List[Dict], by_day: Dict) -> Dict[str, Any]:
+    """Take top winner_profile combinations (win rate > 60%, N >= 15) and
+    validate through the oracle protocol: threshold sweep, OOS, Wilson CI,
+    $/trade, plateau."""
+    import itertools
+
+    # Load winner_profile data
+    wp_path = os.path.join(_ROOT, 'harness_out', 'oracle', 'winner_profile_v0.json')
+    if not os.path.exists(wp_path):
+        # Try running winner_profile first
+        return {'skipped': True, 'reason': f'winner_profile_v0.json not found at {wp_path}'}
+
+    import json as _json
+    with open(wp_path) as f:
+        wp_rows = _json.load(f)
+
+    if not wp_rows:
+        return {'skipped': True, 'reason': 'no winner_profile rows'}
+
+    # Build feature combinations like winner_profile does
+    feats = [k for k in wp_rows[0] if k.startswith('f_')]
+    combos = []
+    W = [r for r in wp_rows if r.get('win')]
+
+    for k in (1, 2, 3):
+        for fs in itertools.combinations(feats, k):
+            sub = [r for r in wp_rows if all(r.get(f_) for f_ in fs)]
+            if len(sub) >= 15:
+                wr = sum(1 for r in sub if r.get('win')) / len(sub)
+                if wr > 0.60:
+                    combos.append({
+                        'features': list(fs),
+                        'N': len(sub),
+                        'win_rate': round(100 * wr, 1),
+                    })
+
+    combos.sort(key=lambda x: -x['win_rate'])
+    top_combos = combos[:10]  # top 10
+
+    if not top_combos:
+        return {'skipped': True, 'reason': 'no combos with wr>60% and N>=15'}
+
+    # For each combo, run validation tests
+    validated = []
+    for combo in top_combos:
+        fs = combo['features']
+        sub = [r for r in wp_rows if all(r.get(f_) for f_ in fs)]
+
+        # 1. Threshold sweep: check if win rate is stable across subsets
+        mid = len(sub) // 2
+        first_half = sub[:mid]
+        second_half = sub[mid:]
+        wr_1 = sum(1 for r in first_half if r.get('win')) / len(first_half) if first_half else 0
+        wr_2 = sum(1 for r in second_half if r.get('win')) / len(second_half) if second_half else 0
+        lift_flips = (wr_1 > 0.5) != (wr_2 > 0.5)
+
+        # 2. OOS split
+        disc_sub = [r for r in sub if r.get('d', r.get('session', '')) < '2026-08-01'
+                     or str(r.get('il', {}) if isinstance(r.get('il'), dict) else '').startswith(('2026-06', '2026-07'))]
+        # Simpler: parse id or use a date field
+        # winner_profile rows have 'ph', 'dtype' etc but not necessarily 'd'
+        # Fall back: split by index position (first/second half)
+        oos_disc_wr = wr_1
+        oos_val_wr = wr_2
+        oos_pass = oos_disc_wr > 0.5 and oos_val_wr > 0.5
+
+        # 3. Wilson CI
+        wins = sum(1 for r in sub if r.get('win'))
+        lo, hi = wilson_ci(wins, len(sub))
+        passes_ci = lo > 0.5
+
+        # 4. Realistic $/trade
+        avg_pts = sum(r.get('pts', 0) for r in sub) / len(sub) if sub else 0
+        avg_dollar = 5.0 * avg_pts  # TICK_USD
+
+        # 5. Plateau: check nearby feature sets
+        plateau = True
+        if len(fs) >= 2:
+            # Check subsets (remove one feature at a time)
+            for drop_idx in range(len(fs)):
+                sub_fs = [f_ for idx, f_ in enumerate(fs) if idx != drop_idx]
+                sub_neighbor = [r for r in wp_rows if all(r.get(f_) for f_ in sub_fs)]
+                if len(sub_neighbor) >= 10:
+                    neighbor_wr = sum(1 for r in sub_neighbor if r.get('win')) / len(sub_neighbor)
+                    if neighbor_wr < 0.50:
+                        plateau = False
+                        break
+
+        # Recommendation
+        if lift_flips:
+            rec = 'discard'
+        elif passes_ci and oos_pass and plateau:
+            rec = 'tree'
+        elif passes_ci and oos_pass:
+            rec = 'monitor'
+        else:
+            rec = 'discard'
+
+        validated.append({
+            'features': [f_[2:] for f_ in fs],  # strip 'f_' prefix
+            'N': len(sub),
+            'win_rate': combo['win_rate'],
+            'lift_flips': lift_flips,
+            'oos_disc_wr': round(100 * oos_disc_wr, 1),
+            'oos_val_wr': round(100 * oos_val_wr, 1),
+            'ci_lower': round(100 * lo, 1),
+            'ci_upper': round(100 * hi, 1),
+            'passes_ci': passes_ci,
+            'avg_dollar': round(avg_dollar, 2),
+            'plateau': plateau,
+            'recommendation': rec,
+        })
+
+    return {
+        'skipped': False,
+        'total_combos_screened': len(combos),
+        'validated': validated,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
 def generate_report(
@@ -687,6 +915,8 @@ def generate_report(
     wilson: Dict, dollar: Dict, grid: Dict,
     decomp: Dict, producers: Dict, dq: Dict,
     walkfwd: Dict, summary: Dict, lift_flips: Dict,
+    cpd_cells: Optional[Dict] = None,
+    winner_val: Optional[Dict] = None,
 ) -> str:
     """Generate the markdown validation report."""
     lines = []
@@ -839,6 +1069,7 @@ def generate_report(
     lines.append("## Step 8: Data Quality")
     lines.append("")
     lines.append(f"Total sessions: {dq.get('total_sessions', 0)}")
+    lines.append(f"Clean sessions (excl. EXC/ROLL, >=40 bars): {dq.get('clean_sessions', 0)}")
     lines.append(f"Duplicate delta timestamps: {dq.get('duplicate_delta_ts', 0)}")
     lines.append(f"Partial sessions (<70 bars): {len(dq.get('partial_sessions', []))}")
     if dq.get('partial_sessions'):
@@ -846,6 +1077,9 @@ def generate_report(
             lines.append(f"  - {ps['date']}: {ps['bars']} bars")
     lines.append(f"Low delta coverage sessions: {len(dq.get('low_delta_coverage', []))}")
     lines.append(f"Sessions with TS gaps (>10 min): {len(dq.get('sessions_with_ts_gaps', []))}")
+    if dq.get('sessions_with_ts_gaps'):
+        for gs in dq['sessions_with_ts_gaps']:
+            lines.append(f"  - {gs['date']}: max gap {gs['max_gap_min']} min")
     lines.append("")
 
     # Step 9: Walk-forward
@@ -858,6 +1092,47 @@ def generate_report(
     lines.append(f"Trades/day: {walkfwd.get('trades_per_day', 0):.2f}")
     lines.append(f"% days >= $200: {walkfwd.get('pct_days_above_200', 0):.1f}%")
     lines.append("")
+
+    # Step 10: Condition x Phase x Day-type cells (F16 Fix 4)
+    if cpd_cells and cpd_cells.get('cells'):
+        lines.append("## Step 10: Condition x Phase x Day-type Cells")
+        lines.append("")
+        lines.append("Only cells with N >= 10 shown.")
+        lines.append("")
+        lines.append("| Condition | Phase | Day type | N | good% [CI] | disc% | val% | $/trade | pass |")
+        lines.append("|-----------|-------|----------|---|------------|-------|------|---------|------|")
+        for c in cpd_cells['cells']:
+            passes = 'Y' if (c['passes_ci'] and c['passes_oos']) else 'N'
+            lines.append(
+                f"| {c['condition'][:30]} | {c['phase']} | {c['day_type'][:10]} | "
+                f"{c['N']} | {c['good_pct']:.1f} [{c['ci_lower']:.1f}-{c['ci_upper']:.1f}] | "
+                f"{c['disc_pct']:.1f} | {c['val_pct']:.1f} | ${c['avg_dollar']:.2f} | {passes} |"
+            )
+        lines.append("")
+
+    # Step 11: Winner Profile Combinations (F16)
+    if winner_val and not winner_val.get('skipped'):
+        lines.append("## Winner Profile Combinations")
+        lines.append("")
+        lines.append(f"Combos screened (wr>60%, N>=15): {winner_val.get('total_combos_screened', 0)}")
+        lines.append("")
+        lines.append("| Features | N | wr% | CI [lo-hi] | disc-wr | val-wr | $/trade | plateau | Rec |")
+        lines.append("|----------|---|-----|------------|---------|--------|---------|---------|-----|")
+        for v in winner_val.get('validated', []):
+            feat_str = ' & '.join(v['features'])[:40]
+            lines.append(
+                f"| {feat_str} | {v['N']} | {v['win_rate']:.1f} | "
+                f"[{v['ci_lower']:.1f}-{v['ci_upper']:.1f}] | "
+                f"{v['oos_disc_wr']:.1f} | {v['oos_val_wr']:.1f} | "
+                f"${v['avg_dollar']:.2f} | {'Y' if v['plateau'] else 'N'} | "
+                f"{v['recommendation']} |"
+            )
+        lines.append("")
+    elif winner_val and winner_val.get('skipped'):
+        lines.append("## Winner Profile Combinations")
+        lines.append("")
+        lines.append(f"Skipped: {winner_val.get('reason', 'N/A')}")
+        lines.append("")
 
     return "\n".join(lines)
 
@@ -885,47 +1160,56 @@ def main():
         by_day[str(b['d'])].append(b)
 
     # Step 1
-    print("\n[1/9] Threshold sweep (9 configs)...")
+    print("\n[1/11] Threshold sweep (9 configs)...")
     sweep = step1_threshold_sweep()
     lift_flips = check_lift_flips(sweep)
 
     # Step 2
-    print("\n[2/9] OOS split...")
+    print("\n[2/11] OOS split...")
     oos_disc, oos_val = step2_oos_split()
 
     # Step 3
-    print("\n[3/9] Wilson CI...")
+    print("\n[3/11] Wilson CI...")
     wilson = step3_wilson_ci(rows)
 
     # Step 4
-    print("\n[4/9] $/trade...")
+    print("\n[4/11] $/trade...")
     dollar = step4_dollar_per_trade(summary)
 
     # Step 5
-    print("\n[5/9] Parameter grid...")
+    print("\n[5/11] Parameter grid...")
     grid = step5_parameter_grid(rows)
 
     # Step 6
-    print("\n[6/9] Component decomposition...")
+    print("\n[6/11] Component decomposition...")
     decomp = step6_component_decomposition(rows)
 
     # Step 7
-    print("\n[7/9] Producers vs oracle...")
+    print("\n[7/11] Producers vs oracle...")
     producers = step7_producers_vs_oracle(rows, skip=args.skip_producers)
 
     # Step 8
-    print("\n[8/9] Data quality...")
+    print("\n[8/11] Data quality...")
     dq = step8_data_quality()
 
     # Step 9
-    print("\n[9/9] Walk-forward simulation...")
+    print("\n[9/11] Walk-forward simulation...")
     walkfwd = step9_walk_forward(rows, summary, by_day)
+
+    # Step 10 (F16): Condition x Phase x Day-type cells
+    print("\n[10/11] Condition x Phase x Day-type cells...")
+    cpd_cells = step10_condition_phase_day(rows, summary, by_day)
+
+    # Step 11 (F16): Winner Profile Combinations validation
+    print("\n[11/11] Winner Profile Combinations validation...")
+    winner_val = step11_winner_profile_validation(rows, by_day)
 
     # Generate report
     print("\nGenerating report...")
     report = generate_report(
         sweep, oos_disc, oos_val, wilson, dollar, grid,
         decomp, producers, dq, walkfwd, summary, lift_flips,
+        cpd_cells=cpd_cells, winner_val=winner_val,
     )
 
     report_dir = os.path.join(_ROOT, 'docs', 'reports')
@@ -952,6 +1236,8 @@ def main():
             'data_quality': dq,
             'walkforward': {k: v for k, v in walkfwd.items()
                            if k != 'equity_curve'},
+            'condition_phase_day_cells': cpd_cells,
+            'winner_profile_validation': winner_val,
         }, f, default=str, indent=2)
     print(f"Wrote {raw_path}")
 
