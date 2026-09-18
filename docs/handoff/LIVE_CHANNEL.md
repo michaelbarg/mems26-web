@@ -1,3 +1,25 @@
+## [cc-macbook · 2026-09-18 IL] — **F16+F17b+F18 — DONE**
+
+**F16:** oracle_validate fixes (grid varies window, delta dedup, sessions count, condition×phase×day cells, winner_profile combos validated). **F17b:** setup_validate.py (DBL_BOTTOM_ABS 57.1%/49hits, ROTATION_BREAK 76.3%/38hits). **F18:** ideal_precision.py — 6 signatures on 2,322 bars, 60 sessions.
+
+```
+Signature  N(S) N(L) Recall  Prec(S) Prec(L) $/trade
+S1          364  376  1.000   0.297   0.274   -$8.35
+S2          191  163  0.100   0.298   0.264   -$6.29
+S3          165  193  0.700   0.303   0.249   -$8.30
+S4           60   74  0.200   0.333   0.365   -$3.37
+S5          157  191  0.400   0.331   0.262   -$8.93
+S6          206  168  0.200   0.306   0.315   -$4.51
+
+Family A (leg start): N=594 prec=27.9% recall=80%
+Family B (continuation): N=10 prec=40.0% recall=0%
+Walk-forward S1: +$120 equity, $1,097 DD, 2 tr/day, 11.7% days≥$200
+```
+
+Plateau stable ~28-30% across all delta/vol combos. Reports: `IDEAL_ENTRIES_2026-09-18.md` + `SETUP_VALIDATION_2026-09-18.md` + `ORACLE_VALIDATION_2026-09-18.md` (v2). Tests: `pytest test_ideal_precision.py ⇒ 21 passed` · `test_oracle_engine.py ⇒ 22 passed` · `test_setup_engine.py ⇒ 12 passed`. Zero .env · zero restart.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-18 15:07-15:15 IL] — **ריצת-צהריים אחת-עשרה · חובה-1 בלבד** · **הטלפון שקט (שלושה-מקורות + `channel_guard`)** · **🔴 [[T-418]] מחמיר: ה-pid השגוי אינו קבוע אלא **אקראי** — 5 מדידות ברצף החזירו `23510·23510·604·604·604`** · **⛔ נגזרת-הבעלות לשער `15:30-16:10` — נמדדה 23 דק' לפני החלון ועומדת**
 
 **⚠️ אפס-כפילות מול `14:37-14:46`.** לא חזרתי על [[T-414]]/[[T-415]]/[[T-417]], על `flag_guard`,
