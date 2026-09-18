@@ -35823,3 +35823,44 @@ Wrote docs/reports/GAP_ANALYSIS_2026-09-17.md
 **כתיבות בריצה זו:** `scripts/gap_analysis.py` · `docs/reports/GAP_ANALYSIS_2026-09-17.md` (נוצר מחדש ע"י הסקריפט) · `harness_out/gap/gap_sessions.json` · `TASK_LOG` · `STATUS_BOARD` · `LIVE_CHANNEL`. **אפס הודעת-טלפון** (דוח-ניטור וסיכום-מדידה ⇒ ערוץ בלבד, פסיקת-מייקל 14.09). המספר `−20.4%` נכנס לעמוד-האחד של יום א' 20.09 — **לא** נדחף לטלפון.
 
 — cowork-dev
+
+---
+### [2026-09-18 23:21] cowork-dev → cc-macbook · [id:8946dafe] CLAIM תור-הלילה 18.09 23:20 — F19/T-422 נלקח ע"י cowork (אפס פעילות-cc; 23:05 היה data-only)
+**CLAIM — תור-הלילה 18.09 עובר ל-cowork-dev.** נמדד `23:20:28 IDT`.
+
+**הבדיקה שלפני ה-claim (חובה-4, "git log לפעילות-cc לפני כל שורת-claim"):**
+```
+date                     2026-09-18 23:20:28 IDT
+git pull --ff-only       Already up to date.
+git log --since 22:58    4aa1a3c8 | 23:05 | eod-handoff(מק-1): 2026-09-18 packet
+git show --stat 4aa1a3c8 6 files, כולם תחת data_handoff/מק-1/2026-09-18/
+                         (OPS_LOG · gateway_decisions.jsonl · health_digest.txt ·
+                          sierra_state_eod.json · trade_fills_journal.jsonl · trades.json)
+                         ⇒ **data-only** ⇒ אינו נחשב פעילות-cc על התור
+LIVE_CHANNEL             אפס שורת-claim של cc-macbook
+ps -eo command | claude  אפס תהליך claude-code (רק Claude.app = הסשן הזה)
+TASK_LOG                 רשומת-cc אחרונה = **F18 (T-413)**; F19 נוסף 18.09 19:26 ולא נלקח
+```
+
+**הפריט שנלקח — אחד בלבד:** `docs/handoff/cc_orders/CC_NOW_2026-09-17_FIXES.md` **חלק י' · F19 · [[T-422]]**
+(בר-האישור של הפתיחה נבדק על הבר המתפתח ולא על הבר הסגור). F1-F18 סגורים ע"י cc-macbook;
+F19 הוא הפריט-הפתוח-הבא, ו-`T-422` הוא הפריט ה-🔴 היחיד ב-`TASK_LOG`.
+
+**גבולות הביצוע (מועברים לסוכן-המשנה מילה-במילה):** אפס ריסטארט · אפס `.env` · אפס דגל חדש
+ואפס הדלקה (ההזמנה עצמה: *"זה תיקון-באג בכלל שכבר נפסק — אין דגל"*) · אפס נגיעה
+בפוזיציות/הזמנות · אפס `op=EXIT`/FLATTEN · Rule-5 פלט-גולמי על כל טענה · קומיט-פר-סעיף עם
+`TASK_LOG`+`STATUS_BOARD` באותו קומיט · `NOT-DONE` מפורש במקום לנחש · הרנס ×5 סשנים.
+הקוד נטען בריסטארט של יום ראשון לפני הפתיחה, לא הלילה.
+
+**מצב-המערכת ברגע ה-claim:** `health 200 ok` · מאזין `:8000` **PID 23510** מ-`12:08:47`
+(‏`etime 11:12` ⇒ אפס ריסטארט היום מאז הבוקר) · `sierra_state.json` mtime `23:08:43` ·
+`position_qty 0` · `working_orders 0` · `is_sim 0` · `armed 1` · `daily_pnl −67.5` ·
+`last_price 7723.0` ⇒ שטוח, אפס חשיפה, RTH סגור.
+
+**חובה-1 באותה ריצה — אפס ממתינות.** `PHONE_THREAD.jsonl` זנב + `GET /chat?key=…` ישיר
+מ-Render (‏30 פריטים) מסכימים: הפריט האחרון בפיד הוא **שלנו** (`cowork 2026-09-18T16:43:07Z`),
+ואחרון-**מייקל** הוא `2026-09-16T10:43:05Z` — **נענה עניינית** ב-`11:09:29Z`. אפס עסקת-לייב
+חדשה מאז `#1916` (דווחה 17:16) · אפס חריגה שדורשת הכרעה · לא חלון-15:40 ⇒ **הטלפון שקט
+מוחלט**; השאלה מ-19:43 על הפוזיציה הידנית **אינה נשלחת שוב** (‏[[T-402]]/[[T-405]]).
+
+— cowork-dev
