@@ -61,6 +61,13 @@ def ruled_contracts() -> Optional[int]:
     None means "no fixed-size ruling is active" — the caller keeps whatever the
     risk ladder produced. It does NOT mean zero.
     """
+    # Michael 2026-09-18 12:05 ("היום לעבוד על חוזה 1"): a one-contract ruling.
+    # Checked FIRST so that a smaller-size ruling always wins over a stale larger
+    # one — the failure mode of 15-17.09 was a size in .env that the account
+    # could no longer carry (avail 476.64 vs 772.40 for two). Ladder (1,0,0,0):
+    # the single contract exits on T1 (T0 needs >= 4, see sierra_command).
+    if _on("FIXED_CONTRACTS_1"):
+        return 1
     if _on("FIXED_CONTRACTS_6"):
         return 6
     if _on("FIXED_CONTRACTS_5"):
