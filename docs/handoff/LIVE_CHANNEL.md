@@ -1,3 +1,112 @@
+## 🟢 [cowork-dev · 2026-09-18 16:36-16:41 IL] — **חובה-3 · ניטור-RTH קצר** · **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון** · ⛔ **בעלות-הריסטארט אינה שלי ⇒ אפס ריסטארט · אפס GO/NO-GO** · 🔑 **שתי ההצתות הראשונות של RTH נחסמו — נמדד למה, ולא הונח**
+
+**נגיעות.** אפס ריסטארט · אפס `.env` · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס פוזיציה/סלוט/פקודה ·
+אפס קוד-ייצור · אפס הודעת-טלפון. **כתיבה: `LIVE_CHANNEL` בלבד.**
+
+---
+
+### 1 · חובה-1 · טלפון — אפס ממתינות ⇒ **שקט**
+
+```
+date                       Fri Sep 18 16:36:56 IDT 2026
+git pull --rebase          Already up to date
+GET /chat?key=…            30 items · אחרונה cowork 2026-09-17T14:41:24Z
+אחרונה של מייקל            2026-09-16T10:43:05Z ⇒ נענתה עניינית cowork 2026-09-16T11:09:29Z
+tail PHONE_THREAD.jsonl    זהה לפיד · אפס שורות ל-18.09
+```
+⇒ **(א)** אפס הודעת-מייקל · **(ב)** אפס עסקת-לייב (`mode=live` היום `= 0`) · **(ג)** אפס חריגה
+הדורשת הכרעה · **(ד)** שער — לא חל (בעלות). **⇒ אפס הודעות טלפון.**
+
+---
+
+### 2 · מצב-חי (נמדד 16:38-16:40)
+
+```
+/health                          http=200  t=0.0039s
+last bar v9_bars_5min_woodies    2026-09-18 16:35:00+03   גיל 3.1 דק'   ✅ טרי
+account/state                    is_sim 0 · armed 1 · position_qty 0 · working_orders 0
+                                 last_price 7706.0 · open_pnl 0.0 · daily_pnl 0.0
+                                 daily_total_qty_filled 0.0 · open_trade null · verdict flat
+gateway/risk                     cooldown ✗ · cluster_guard ✗ · SSV ✗ · chop EXPANDING
+lsof -nP -iTCP:8000 -sTCP:LISTEN Python 23510 · ps lstart Fri Sep 18 12:08:47 · %CPU 42.6 · RSS 114MB
+ERROR/CRITICAL מאז 16:30         1  (סעיף 4 — ריפא-עצמי)
+```
+**פוזיציה-מול-TM: תואם.** סיירה `position_qty=0 · working_orders=0`, TM `open_trade=null`,
+`v9_trades` לייב היום `=0` ⇒ אפס פער, אפס אזעקה. **הפוזיציה-הזרה של 17.09 (שורט 2 מ-7701.75)
+אינה קיימת יותר**: `daily_total_qty_filled=0.0` ו-`position_qty=0` ⇒ [[T-402]] נסגר בגלגול-היום,
+לא בהנחה. השאלה ששלחתי למייקל ב-17:41 אתמול ("היא שלך?") נותרה בלי מענה — **לא משוכפלת**
+לטלפון (חזרה על שאלה שנענתה בשטח היא בדיוק ההצפה שכלל-הטלפון מונע).
+
+---
+
+### 3 · 🔑 שתי ההצתות של 16:30 — **שתיהן נחסמו · אפס לייב · שני תאומי-צל**
+
+```
+$ psql -c "SELECT id,mode,firing_system,pattern_id_at_entry,direction,state,entry_ts::time,
+           entry_price,stop,t1,exit_ts::time,exit_price,exit_reason,pnl_usd FROM v9_trades
+           WHERE entry_ts::date=CURRENT_DATE ORDER BY entry_ts DESC;"
+ 1912 | shadow | 4 | VEGAS            | LONG | CLOSED | 16:30:03 | 7710.25 | 7705    | 7715.5  | 16:35:00 | 7705 | STOP_HIT | -26.25
+ 1911 | shadow | 2 | DALTON_EDGE_LONG | LONG | FILLED | 16:30:00 | 7709.25 | 7690.25 | 7728.25 |          |      |          |
+(2 rows)   ⇒ mode=live: 0
+```
+**הסיבה, מהלוג ולא מהשערה** (`backend.err.log`, לא `backend.log`):
+```
+16:30:00 [Gateway] BLOCKED system=2 DALTON_EDGE_LONG blocked_by=dalton_intent:stand_down
+                   ot=UNKNOWN hint=None bias=NONE kinds=[] il=16:30
+16:30:03 [Gateway] BLOCKED system=4 VEGAS        blocked_by=dalton_intent:stand_down  (אותו ot/bias)
+16:30:00/04 [Gateway] T-219 shadow_blocked → twin #1911 (1/150) · twin #1912 (2/150)
+blocked_by מאז 16:30:  6 × dalton_intent:stand_down   (אפס סיבה אחרת)
+```
+**זו אינה תקלה.** שתי ההצתות נורו ב**שנייה הראשונה** של RTH, כשסוג-הפתיחה טרם נוצר
+(`ot=UNKNOWN · bias=NONE`) — ובאותה שנייה בדיוק `[DayType] FIX-9 RTH-boundary reset: dropping
+carried pre-RTH state (day_type=UNKNOWN, bars=1) — fresh session, stages decide`. שער-דלתון
+עשה מה שנפסק לו: לא לאשר כיוון לפני שיש סוג-פתיחה. תאומי-הצל ([[T-219]]) הם המדידה של
+הנגד-עובדתי — ו-#1912 כבר נסגר `STOP_HIT -26.25` תוך 5 דקות, כלומר **החסימה חסכה** בהצתה הזו.
+
+**גודל — נקרא, לא הונח.** הלוג החי מאשר את מה שנמדד ב-16:08:
+`16:30:03 [SierraCmd] RISK_BUDGET: risk=5.2 pts → raw=8.6 → floor=8 → min(ruled=1)=1` ⇒
+**הפסיקה היום `1`**, וטקסט-המשימה המתוזמנת ("מ-16.09: 2") **מיושן**. אפס נגיעה בדגלי-גודל ([[T-225]]).
+ב-#1911: `RISK_BUDGET REJECT: risk=19.0 pts → n=2 < min=3 — entry too far from structure`.
+
+---
+
+### 4 · ה-CRITICAL היחיד — **ריפא-עצמי**, ובתוכו מלכודת-TZ שכמעט הפכה לדיווח-שקר
+
+```
+16:30:04 [CRITICAL] [DAYTYPE_WATCHDOG] ESCALATION-3: day_type_state stale 261 min …
+                    Day-type gates are running on stale state.
+16:30:07 [DayType]  FIX-9 RTH-boundary reset → שורה נכתבה
+$ psql -c "SELECT ts,day_type FROM v9_day_type_state ORDER BY ts DESC LIMIT 3;"
+ 2026-09-18 13:30:07 | UNKNOWN      ← הכתיבה שאחרי האיפוס
+ 2026-09-18 09:08:55 | UNKNOWN      ← 12:08:55 מקומי = רגע הריסטארט
+ 2026-09-17 20:25:03 | Normal
+```
+**הממצא:** בין `12:08` ל-`16:30` לא נכתבה שורת-יום — 261 דק' אמיתיות, והשומר צדק. **התיקון
+פעל מעצמו** 3 שניות אחרי הצעקה (איפוס-גבול-RTH כפה כתיבה), והתווית `UNKNOWN` עשר דקות לתוך
+RTH היא הצפוי — שלבי-הסיווג צריכים ברים. **אפס פעולה נדרשת.**
+
+**המלכודת (כלל-4 · TZ):** `v9_day_type_state.ts = timestamp WITHOUT time zone` (שומר UTC),
+בעוד `v9_bars_5min_woodies.ts = timestamp WITH time zone`. חישוב `now()-ts` על הטבלה הראשונה
+מנפח את הגיל ב-**180 דק'** בדיוק: השורה מ-16:30:07 נראית "189 דק' ישנה" בעוד גילה האמיתי ~10 דק'.
+מי שיקרא את המספר הזה גולמית ידווח "פער-סיווג של 3 שעות" שאינו קיים. **הגיל האמיתי: ~10 דק'.**
+
+---
+
+### 5 · שתי אזעקות-שווא שנבדקו ונשללו (Rule 2 — לאמת לפני שסומכים)
+
+| הנראה בלוג | הבדיקה | המסקנה |
+|---|---|---|
+| `[S2-DL] ts=2026-09-17 20:55:00+00:00` ב-16:30 — "S2 מזהה על נתוני-אתמול" | `grep S2-DL` ב-16:35 | **התקדם**: `ts=2026-09-18 13:30:00+00:00` (=16:30 מקומי). ב-16:30:00 זה היה פשוט הבר האחרון שנסגר לפני RTH. **אין תקלה.** |
+| `TS-OFFSET-GATE: non-advancing batch 59700s old` ×3 | `grep` — אחרון ב-`16:30:03` | **חולף**, בגבול-הסשן בלבד; אפס הישנות ב-10 הדקות שאחריו. הבר הקאנוני (`_woodies`) טרי 3.1 דק'. |
+
+**[[T-34]] מרג'ין — דיווח בלבד:** `acct_available_funds = 476.64` מתחת לסף `1,595`, אך בחוזה
+אחד **אינו חוסם מסחר** (אפס חסימת-מרג'ין בלוג; כל 6 החסימות הן `dalton_intent`) ⇒ **אין מקרה-(ג),
+אין טלפון**. נלווה: `acct_daily_net_loss_limit = -285.98` · `loss_limit_reached 0 · under_margin 0
+· trading_disabled 0`.
+
+**שורה תחתונה:** המערכת **חיה · חמושה · פוזיציה-0 · סלוט-פנוי · פיד-טרי · תואמת-TM**.
+אפס עסקת-לייב, שתי הצתות נחסמו כשורה, ה-CRITICAL היחיד ריפא את עצמו. **⇒ שקט בטלפון.**
+
 ## 🟢 [cowork-daily · 2026-09-18 16:06-16:14 IL] — **חובה-1 (שקט) · חובה-2 כבר נמסרה ב-15:58 ⇒ לא משוכפלת** · 🔑 **במקומה: אימות-עצמאי של הנגזרות-המתכלות 20 דק' לפני RTH — לא העתקה מהריצה הקודמת** · ⛔ **בעלות-הריסטארט אינה שלי ⇒ אפס ריסטארט · אפס GO/NO-GO · אפס טלפון**
 
 **למה זו לא ריצה כפולה.** `16:06` ∈ `15:30-16:10`, אבל חובה-2 **כבר בוצעה במלואה היום**
