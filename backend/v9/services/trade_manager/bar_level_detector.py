@@ -1519,8 +1519,16 @@ class BarLevelDetector:
                         price=float(bar_data.get("close", bar_data.get("c", 0)) or 0),
                         ts=str(bar_ts_raw),
                     )
+                    # cowork 18.09 10:15 [T-414]: the DB column v9_decision_vectors.ts
+                    # is `timestamp with time zone`, but bar_data["ts"] is a raw epoch
+                    # int for a FRESH bar -> str() produced '1789715100' and Postgres
+                    # rejected EVERY fresh-bar write with DatetimeFieldOverflow.
+                    # Only the stale hydration bars (ISO string) ever parsed, which is
+                    # why the table held 6,820 rows across just 91 distinct ts, all
+                    # stamped 23:55. Pass the already-parsed datetime instead --
+                    # `bar_ts` is guaranteed non-None here (_bld_bar_fresh requires it).
                     _bld_sv_log(
-                        ts=str(bar_ts_raw),
+                        ts=bar_ts.isoformat(),
                         kind="BAR",
                         vector=_bld_asdict(_bld_sv),
                     )
