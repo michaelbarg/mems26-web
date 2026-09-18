@@ -1236,3 +1236,44 @@ def get_opening_dir_fusion(oe_bars):
                                   pdh=pdh, pdl=pdl, prior_vah=pvah, prior_val=pval)
     except Exception:
         return None
+
+
+def get_closed_rth_bars_today():
+    """T-422 (F19, 2026-09-18) — today's CLOSED RTH 5-min bars from the
+    canonical LIVE table (docs/SOURCE_OF_TRUTH.md: v9_bars_5min_woodies).
+
+    Why this exists: `five_min_system._oe_bars` keeps ONE frozen snapshot per
+    bar, taken on that bar's FIRST push (process_bar returns early on every
+    duplicate push), so it can never supply a true CLOSE — not for [-1] and
+    not for [-2]. opening_first_trade_ok's rule ("the LAST closed bar must
+    close in the trigger direction") therefore needs the canonical table.
+
+    "Closed" uses the same definition as get_opening_dir_fusion's T7 root-fix
+    and as fwd_harness's `--oe-closed` counterfactual: ts <= now - 5 minutes.
+    Fail-safe: [] on any error (the caller then falls back to its age rule).
+    """
+    try:
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies "
+            "WHERE symbol='MES' "
+            "AND (ts AT TIME ZONE 'America/New_York')::date = "
+            "    (now() AT TIME ZONE 'America/New_York')::date "
+            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+            "AND ts <= now() - interval '5 minutes' "
+            "ORDER BY ts", {}) or []
+        out = []
+        for r in rows:
+            _ts = r["ts"]
+            out.append({
+                "ts": _ts.isoformat() if hasattr(_ts, "isoformat") else str(_ts),
+                "o": float(r["open"]), "h": float(r["high"]),
+                "l": float(r["low"]), "c": float(r["close"]),
+                "v": int(r["volume"] or 0),
+                "open": float(r["open"]), "high": float(r["high"]),
+                "low": float(r["low"]), "close": float(r["close"]),
+            })
+        return out
+    except Exception:
+        return []

@@ -388,9 +388,72 @@ def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
     return mom
 
 
+# ── T-422 (F19, 2026-09-18) — the confirmation bar must be a CLOSED bar.
+# A 5-min bar is still developing until it is 300s old; 270s leaves a 30s
+# margin for push jitter. Anything younger than this is a developing bar.
+DEVELOPING_BAR_MAX_AGE_S = 270.0
+
+
+def _bar_ts_utc(bar):
+    """UTC datetime of a bar's ts (epoch s/ms or ISO). None when unreadable."""
+    from datetime import datetime as _dt, timezone as _tz
+    v = bar.get("ts") if isinstance(bar, dict) else getattr(bar, "ts", None)
+    if v is None:
+        return None
+    try:
+        if isinstance(v, _dt):
+            return v if v.tzinfo else v.replace(tzinfo=_tz.utc)
+        if isinstance(v, (int, float)):
+            return _dt.fromtimestamp(v / 1000 if v > 1e12 else v, tz=_tz.utc)
+        p = _dt.fromisoformat(str(v).replace("Z", "+00:00"))
+        return p if p.tzinfo else p.replace(tzinfo=_tz.utc)
+    except (TypeError, ValueError, OSError, OverflowError):
+        return None
+
+
+def confirmation_bars(session_bars, closed_bars=None, now_utc=None):
+    """T-422 (F19) — return (bars_to_judge, source) where the LAST element is
+    the last CLOSED bar, per this gate's own docstring rule.
+
+    ROOT (measured, 2026-09-18): `five_min_system._oe_bars` holds ONE frozen
+    snapshot per 5-min bar, captured on that bar's FIRST push (process_bar
+    returns early on every duplicate push: `if not is_new_bar: return`), so
+    `_oe_bars[-1]` is the developing bar (o≈c, ~3s in) — and `[-2]` is the
+    previous bar's first-push snapshot too, NOT its close. Live log 18.09:
+    16:40:03 "(o=7705.25 c=7705.25)" while the canonical 16:40 bar closed
+    7705.0. So dropping the young last bar is necessary but NOT sufficient:
+    with frozen snapshots the only source of a true close is the canonical
+    closed-bar table, which the caller injects as `closed_bars` (same source
+    and the same `ts <= now-5min` definition as the fwd_harness `--oe-closed`
+    counterfactual and as get_opening_dir_fusion's T7 root-fix).
+
+      • closed_bars given  → use them verbatim ("canonical").
+      • otherwise          → drop a trailing bar younger than
+                             DEVELOPING_BAR_MAX_AGE_S ("age").
+      • ts unreadable      → cannot judge age; keep as-is ("age-unknown")
+                             rather than discard a possibly-closed bar.
+    """
+    if closed_bars:
+        return list(closed_bars), "canonical"
+    bars = list(session_bars or [])
+    if not bars:
+        return bars, "age"
+    from datetime import datetime as _dt, timezone as _tz
+    now = now_utc or _dt.now(_tz.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=_tz.utc)
+    ts = _bar_ts_utc(bars[-1])
+    if ts is None:
+        return bars, "age-unknown"
+    if (now - ts).total_seconds() < DEVELOPING_BAR_MAX_AGE_S:
+        return bars[:-1], "age"
+    return bars, "age"
+
+
 def opening_first_trade_ok(session_bars, direction, opening_conf,
                            min_conf=None, min_bars=None,
-                           trigger_type=None, opening_type=None):
+                           trigger_type=None, opening_type=None,
+                           closed_bars=None, now_utc=None):
     """OPENING_FIRST_TRADE_STRICT_V1 (Michael ruling 2026-07-31 18:20:
     "העסקה הראשונה צריכה להגיע רק בוודאות של סוג הפתיחה ולהחמיר כניסה").
 
@@ -453,14 +516,21 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
             if (_dir == "LONG" and _classified_down) or (_dir == "SHORT" and _classified_up):
                 return False, (f"binary veto: opening classifier says {_ot} "
                                f"conflicts with {_dir} — positive opposing signal")
-    if not session_bars or len(session_bars) < min_bars:
-        return False, f"only {len(session_bars or [])} bars < {min_bars} — confirmation bar required"
-    last = session_bars[-1]
+    # T-422 (F19): judge CLOSED bars only — min_bars counts closed bars, and
+    # the confirmation bar is the last CLOSED one (see confirmation_bars()).
+    _cbars, _src = confirmation_bars(session_bars, closed_bars, now_utc)
+    if not _cbars or len(_cbars) < min_bars:
+        return False, (f"only {len(_cbars or [])} closed bars < {min_bars} "
+                       f"[src={_src}] — confirmation bar required")
+    last = _cbars[-1]
     o, c = _f(last, "o", "open"), _f(last, "c", "close")
     if o is None or c is None:
-        return False, "last bar unreadable — fail-closed"
+        return False, f"last closed bar unreadable [src={_src}] — fail-closed"
+    _lts = last.get("ts") if isinstance(last, dict) else None
     confirmed = (c > o) if direction == "LONG" else (c < o)
     if not confirmed:
-        return False, f"last bar did not confirm {direction} (o={o} c={c})"
+        return False, (f"last closed bar did not confirm {direction} "
+                       f"(o={o} c={c} ts={_lts} src={_src})")
     _conf_s = f"{conf:.2f}" if conf is not None else "n/a"
-    return True, f"confirmed: conf={_conf_s}, {len(session_bars)} bars, last bar with-direction"
+    return True, (f"confirmed: conf={_conf_s}, {len(_cbars)} closed bars, "
+                  f"last closed bar with-direction (o={o} c={c} ts={_lts} src={_src})")

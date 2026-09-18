@@ -2493,11 +2493,30 @@ class FiveMinSystem(BaseV9TradingSystem):
                                         _ft_conf = getattr(_mc, "opening_conf", None) if _mc else None
                                     except Exception:
                                         _ft_conf = None
+                                    # T-422 (F19, 2026-09-18): the confirmation
+                                    # bar must be a CLOSED bar. _oe_bars holds
+                                    # one FROZEN first-push snapshot per bar
+                                    # (process_bar returns early on duplicate
+                                    # pushes), so neither [-1] nor [-2] carries
+                                    # a true close — 18.09 the gate read
+                                    # "(o=7705.25 c=7705.25)" while the 16:40
+                                    # bar actually closed 7705.0, and the drive
+                                    # was held bar-after-bar to 17:00 @7691.25.
+                                    # Inject the canonical closed bars (same
+                                    # source + same ts<=now-5min definition as
+                                    # the harness --oe-closed counterfactual).
+                                    try:
+                                        from backend.v9.services.trade_context import (
+                                            get_closed_rth_bars_today as _ft_closed_fn)
+                                        _ft_closed_bars = _ft_closed_fn()
+                                    except Exception:
+                                        _ft_closed_bars = None
                                     _ft_ok, _ft_why = _ft_ok_fn(
                                         self._oe_bars, _trig["direction"], _ft_conf,
                                         trigger_type=_trig.get("type"),
                                         opening_type=getattr(_mc, "opening_type",
-                                                             None) if _mc else None)
+                                                             None) if _mc else None,
+                                        closed_bars=_ft_closed_bars)
                                     if not _ft_ok:
                                         logger.warning(
                                             "[FiveMin] OPENING_FIRST_TRADE_STRICT held %s %s — %s",
