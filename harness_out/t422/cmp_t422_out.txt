@@ -1,0 +1,61 @@
+session      variant    routes   ww trades      PnL$  op_n  openPnL$
+--------------------------------------------------------------------------
+2026-09-18   BASE(pre-fix)     65    1      1     11.25     1     11.25
+2026-09-18   FIX            66    1      1     11.25     1     11.25
+2026-09-18   --oe-closed     66    1      1     11.25     1     11.25
+
+2026-09-17   BASE(pre-fix)     79    1      1    -30.00     0      0.00
+2026-09-17   FIX            80    1      1    -30.00     0      0.00
+2026-09-17   --oe-closed     79    1      1    -30.00     0      0.00
+
+2026-09-16   BASE(pre-fix)     73    2      2    113.75     0      0.00
+2026-09-16   FIX            75    2      2    113.75     0      0.00
+2026-09-16   --oe-closed     75    2      2    113.75     0      0.00
+
+2026-09-15   BASE(pre-fix)     69    2      2      0.00     0      0.00
+2026-09-15   FIX            70    2      2      0.00     0      0.00
+2026-09-15   --oe-closed     69    2      2      0.00     0      0.00
+
+2026-09-11   BASE(pre-fix)     78    1      1     27.50     0      0.00
+2026-09-11   FIX            79    1      1     27.50     0      0.00
+2026-09-11   --oe-closed     79    1      1     27.50     0      0.00
+
+==========================================================================
+OPENING TRADES per variant (classification, dir, fired_il, entry, outcome, $)
+
+2026-09-18:
+  BASE(pre-fix) [('OPENING_DRIVE', 'SHORT', '17:00:07', 7691.25, 'WIN', 11.25)]
+  FIX           [('OPENING_DRIVE', 'SHORT', '17:00:07', 7691.25, 'WIN', 11.25)]
+  --oe-closed   [('OPENING_DRIVE', 'SHORT', '17:00:07', 7691.25, 'WIN', 11.25)]
+
+2026-09-17:
+  BASE(pre-fix) []
+  FIX           []
+  --oe-closed   []
+
+2026-09-16:
+  BASE(pre-fix) []
+  FIX           []
+  --oe-closed   []
+
+2026-09-15:
+  BASE(pre-fix) []
+  FIX           []
+  --oe-closed   []
+
+2026-09-11:
+  BASE(pre-fix) []
+  FIX           []
+  --oe-closed   []
+
+==========================================================================
+DELTAS
+  2026-09-18  FIX vs BASE: routes +1, openPnL +0.00 | FIX == --oe-closed on opening trades+would_write: True
+  2026-09-17  FIX vs BASE: routes +1, openPnL +0.00 | FIX == --oe-closed on opening trades+would_write: True
+  2026-09-16  FIX vs BASE: routes +2, openPnL +0.00 | FIX == --oe-closed on opening trades+would_write: True
+  2026-09-15  FIX vs BASE: routes +1, openPnL +0.00 | FIX == --oe-closed on opening trades+would_write: True
+  2026-09-11  FIX vs BASE: routes +1, openPnL +0.00 | FIX == --oe-closed on opening trades+would_write: True
+
+  TOTAL PnL  base=122.50 fix=122.50 oeclosed=122.50
+  TOTAL opening PnL  base=11.25 fix=11.25 oeclosed=11.25  => fix-base +0.00
+  FIX == --oe-closed on every session (opening trades + would_write): True

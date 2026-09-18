@@ -1,0 +1,25 @@
+=== 2026-09-18 ===  base=65 fix=66 oe-closed=66
+  FIX routes == OE-CLOSED routes : True
+  + only in FIX : ('16:45:03', 2, 'OPENING_DRIVE', 'SHORT', 7705.0, 'dalton_intent:kind')
+  + only in OE-CLOSED: ('16:45:03', 2, 'OPENING_DRIVE', 'SHORT', 7705.0, 'dalton_intent:kind')
+
+=== 2026-09-17 ===  base=79 fix=80 oe-closed=79
+  FIX routes == OE-CLOSED routes : False
+  + only in FIX : ('16:45:03', 2, 'OPENING_DRIVE', 'SHORT', 7690.75, 'entry_location_quality')
+
+=== 2026-09-16 ===  base=73 fix=75 oe-closed=75
+  FIX routes == OE-CLOSED routes : False
+  + only in FIX : ('16:45:03', 2, 'OPENING_DRIVE', 'SHORT', 7669.75, 'dalton_intent:kind')
+  + only in FIX : ('16:50:03', 2, 'OPENING_ORR', 'LONG', 7681.0, 'entry_location_quality')
+  + only in OE-CLOSED: ('16:45:03', 2, 'OPENING_DRIVE', 'SHORT', 7669.75, 'dalton_intent:kind')
+  + only in OE-CLOSED: ('16:50:03', 2, 'OPENING_ORR', 'LONG', 7681.25, 'entry_location_quality')
+
+=== 2026-09-15 ===  base=69 fix=70 oe-closed=69
+  FIX routes == OE-CLOSED routes : False
+  + only in FIX : ('16:50:03', 2, 'OPENING_DRIVE', 'SHORT', 7676.5, 'dalton_intent:kind')
+
+=== 2026-09-11 ===  base=78 fix=79 oe-closed=79
+  FIX routes == OE-CLOSED routes : False
+  + only in FIX : ('16:55:03', 2, 'OPENING_DRIVE', 'LONG', 7669.0, 'dalton_intent:kind')
+  + only in OE-CLOSED: ('16:45:03', 2, 'OPENING_PULLBACK_CONT', 'SHORT', 7672.25, 'dalton_intent:kind')
+
