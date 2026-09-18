@@ -1,0 +1,19 @@
+=== T-422 GOLDEN - session 2026-09-16 - direction SHORT ===
+canonical opening bars (IL): 16:30 o7676.5/c7674 | 16:35 o7674/c7670 | 16:40 o7670.25/c7669.75 | 16:45 o7669.75/c7681.25 | 16:50 o7681/c7684.5 | 16:55 o7684.25/c7684.25 | 17:00 o7684.5/c7678.75
+
+IL time   LIVE (what actually happened)                          FIXED gate (canonical closed bars)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+16:35:01  HELD: only 2 bars < 3 — confirmation bar required      held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:50:04  HELD: last bar did not confirm LONG (o=7681.0 c=7681.0 CONFIRMED - confirmed: conf=n/a, 4 closed bars, last closed bar with-direction (o=7669.75 c=7681.25 ts=2026-09-16T13:45:00+00:00 src=canonical)
+16:55:04  HELD: last bar did not confirm LONG (o=7684.25 c=7684. CONFIRMED - confirmed: conf=n/a, 5 closed bars, last closed bar with-direction (o=7681.0 c=7684.5 ts=2026-09-16T13:50:00+00:00 src=canonical)
+17:00:02  HELD: last bar did not confirm LONG (o=7684.5 c=7684.5 held - last closed bar did not confirm LONG (o=7684.25 c=7684.25 ts=2026-09-16T13:55:00+00:00 src=canonical)
+
+=> FIXED gate confirms at 16:50:04 IL on the closed 16:45 bar (o=7669.75 c=7681.25); entry ~7681.25 instead of the live entry.
+
+--- HYPOTHETICAL: fixed gate at every bar open +5s (assumes a SHORT trigger is present; it may not have been) ---
+16:35:05  held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:40:05  held - only 2 closed bars < 3 [src=canonical] — confirmation bar required
+16:45:05  CONFIRMED - confirmed: conf=n/a, 3 closed bars, last closed bar with-direction (o=7670.25 c=7669.75 ts=2026-09-16T13:40:00+00:00 src=canonical)
+16:50:05  held - last closed bar did not confirm SHORT (o=7669.75 c=7681.25 ts=2026-09-16T13:45:00+00:00 src=canonical)
+16:55:05  held - last closed bar did not confirm SHORT (o=7681.0 c=7684.5 ts=2026-09-16T13:50:00+00:00 src=canonical)
+17:00:05  held - last closed bar did not confirm SHORT (o=7684.25 c=7684.25 ts=2026-09-16T13:55:00+00:00 src=canonical)

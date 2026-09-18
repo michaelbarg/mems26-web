@@ -1,0 +1,20 @@
+=== T-422 GOLDEN - session 2026-09-18 - direction SHORT ===
+canonical opening bars (IL): 16:30 o7710/c7707 | 16:35 o7706.75/c7705.25 | 16:40 o7705.25/c7705 | 16:45 o7705/c7700.75 | 16:50 o7700.75/c7695 | 16:55 o7695/c7693 | 17:00 o7692.75/c7686.25
+
+IL time   LIVE (what actually happened)                          FIXED gate (canonical closed bars)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+16:35:06  HELD: only 2 bars < 3 — confirmation bar required      held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:40:03  HELD: last bar did not confirm SHORT (o=7705.25 c=7705 held - only 2 closed bars < 3 [src=canonical] — confirmation bar required
+16:45:08  HELD: last bar did not confirm SHORT (o=7705.0 c=7705. CONFIRMED - confirmed: conf=n/a, 3 closed bars, last closed bar with-direction (o=7705.25 c=7705.0 ts=2026-09-18T13:40:00+00:00 src=canonical)
+16:50:12  HELD: last bar did not confirm SHORT (o=7700.75 c=7701 CONFIRMED - confirmed: conf=n/a, 4 closed bars, last closed bar with-direction (o=7705.0 c=7700.75 ts=2026-09-18T13:45:00+00:00 src=canonical)
+16:55:02  HELD: last bar did not confirm SHORT (o=7695.0 c=7695. CONFIRMED - confirmed: conf=n/a, 5 closed bars, last closed bar with-direction (o=7700.75 c=7695.0 ts=2026-09-18T13:50:00+00:00 src=canonical)
+
+=> FIXED gate confirms at 16:45:08 IL on the closed 16:40 bar (o=7705.25 c=7705); entry ~7705 instead of the live entry.
+
+--- HYPOTHETICAL: fixed gate at every bar open +5s (assumes a SHORT trigger is present; it may not have been) ---
+16:35:05  held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:40:05  held - only 2 closed bars < 3 [src=canonical] — confirmation bar required
+16:45:05  CONFIRMED - confirmed: conf=n/a, 3 closed bars, last closed bar with-direction (o=7705.25 c=7705.0 ts=2026-09-18T13:40:00+00:00 src=canonical)
+16:50:05  CONFIRMED - confirmed: conf=n/a, 4 closed bars, last closed bar with-direction (o=7705.0 c=7700.75 ts=2026-09-18T13:45:00+00:00 src=canonical)
+16:55:05  CONFIRMED - confirmed: conf=n/a, 5 closed bars, last closed bar with-direction (o=7700.75 c=7695.0 ts=2026-09-18T13:50:00+00:00 src=canonical)
+17:00:05  CONFIRMED - confirmed: conf=n/a, 6 closed bars, last closed bar with-direction (o=7695.0 c=7693.0 ts=2026-09-18T13:55:00+00:00 src=canonical)

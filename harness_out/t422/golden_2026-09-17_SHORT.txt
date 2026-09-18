@@ -1,0 +1,17 @@
+=== T-422 GOLDEN - session 2026-09-17 - direction SHORT ===
+canonical opening bars (IL): 16:30 o7713.5/c7695.75 | 16:35 o7695.75/c7692.75 | 16:40 o7693/c7690.75 | 16:45 o7690.75/c7694.75 | 16:50 o7695/c7691 | 16:55 o7691/c7693.5 | 17:00 o7693.75/c7687
+
+IL time   LIVE (what actually happened)                          FIXED gate (canonical closed bars)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+16:35:05  HELD: only 2 bars < 3 — confirmation bar required      held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:40:05  HELD: last bar did not confirm SHORT (o=7693.0 c=7693. held - only 2 closed bars < 3 [src=canonical] — confirmation bar required
+
+=> FIXED gate did NOT confirm at any logged instant.
+
+--- HYPOTHETICAL: fixed gate at every bar open +5s (assumes a SHORT trigger is present; it may not have been) ---
+16:35:05  held - only 1 closed bars < 3 [src=canonical] — confirmation bar required
+16:40:05  held - only 2 closed bars < 3 [src=canonical] — confirmation bar required
+16:45:05  CONFIRMED - confirmed: conf=n/a, 3 closed bars, last closed bar with-direction (o=7693.0 c=7690.75 ts=2026-09-17T13:40:00+00:00 src=canonical)
+16:50:05  held - last closed bar did not confirm SHORT (o=7690.75 c=7694.75 ts=2026-09-17T13:45:00+00:00 src=canonical)
+16:55:05  CONFIRMED - confirmed: conf=n/a, 5 closed bars, last closed bar with-direction (o=7695.0 c=7691.0 ts=2026-09-17T13:50:00+00:00 src=canonical)
+17:00:05  held - last closed bar did not confirm SHORT (o=7691.0 c=7693.5 ts=2026-09-17T13:55:00+00:00 src=canonical)
