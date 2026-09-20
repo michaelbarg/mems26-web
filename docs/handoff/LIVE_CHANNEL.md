@@ -1,3 +1,24 @@
+## 🟢 [cowork-daily · 2026-09-20 13:36-13:52 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · [[T-430]] שביעית · ⚠️ **שתי חדשות: מלכודת-קריאה `exit_ts is null`, ו-WARN-זיכרון ראשון היום**
+
+`date` ⇒ `2026-09-20 13:36:57 IDT (Sun)` — לא `15:30-16:10`, לא RTH, לא תור-לילה ⇒ **חובה-1 בלבד**. `git pull --rebase --autostash` ⇒ `Already up to date`. דוח-דלתא מול `13:06` (`e7a41c10`); המדידות המלאות שם ו-ב-`12:06`.
+
+**טלפון — אפס ממתינות (שלושה מקורות):** `tail PHONE_THREAD.jsonl` ⇒ `563` שורות, אחרון `2026-09-20T07:51:47Z <cowork>` · peek `GET /chat?key=…` ⇒ `http=200 bytes=14772`, `items: 30`, `senders = {cowork:23, מייקל:3, cc:3, --frm:1}` — **זהה למקומי**, הודעת-מייקל אחרונה `2026-09-16T10:43:05Z` נענתה עניינית `2026-09-16T11:09:29Z` · `phone_request_guard.py` ⇒ `dispositioned: 3    undispositioned: 0` · `✅ every request in the window is either a task or dispositioned`. ⇒ לא (א) · לא (ב) — אפס עסקאות היום · לא (ד) — לא שעת-שער. **(ג) נדחה שביעית מאותו נימוק:** פעולת-T-430 בידי מייקל מהודעת `07:51`; דחיפה שביעית היא בדיוק ההצפה שכלל-הטלפון נועד לעצור. **אפס `phone_reply.py`.**
+
+**מדוד עכשיו (דלתא):**
+- 🔴 **T-430** — `select max(ts), now(), age_h from v9_bars_5min_woodies` ⇒ `2026-09-18 23:55:00+03 | 2026-09-20 13:39:42 | **37.75**` (מ-`37.22` ב-13:06). `backend.err.log` ממשיך את אותה לולאה מנגנונית: `TS-OFFSET-GATE: non-advancing batch 135893s old — stale re-push` · `_route_bar BLOCKED stale bar: stale_ts (bar 2026-09-18T20:55:00+00:00 older than 1 day)` · `TS-OFFSET-GATE REJECTED batch: newest bar ts 135894s behind now`. הפעולה (File → Disconnect → Connect) של מייקל בלבד. **לא נגעתי.** MES סגור ממילא — המבחן המחייב הוא שער-15:30 של שני.
+- **מצב-חי** `/api/v9/mobile/data` ⇒ `position_qty 0` · `active []` · `order_placement_armed 1` · `send_orders_to_trade_service 1` · `is_sim 0` ⇒ **לייב+חמוש, flat** · `trading_paused false` · `today {"pnl":0.0,"n":0,"w":0}`. `select … from v9_trades where entry_ts::date = current_date` ⇒ **אפס שורות** (לא live ולא shadow) ⇒ מקרה (ב) לא חל.
+- **גודל — פסוק:** `ruled_contracts()` עם `.env` טעון ⇒ **`1`**; `mobile/data.contracts_cfg = 1` — שני מקורות מסכימים ✅ תואם פסיקת-מייקל 18.09 12:05. **לא נגעתי בדגלי-גודל.** (כרטיס-המשימה עדיין אומר "2 · `FIXED_CONTRACTS_2=1`" — מיושן מאז 18.09; רשום כאן פעם חמישית כדי שלא ייקרא כדריפט.)
+- **מאזין :8000** — `pid 23510`, `ps -o lstart` ⇒ `Fri Sep 18 12:08:47 2026`, `ETIME 02-01:30:55` ⇒ **אפס ריסטארט** (בעלות-הריסטארט של הסשן האינטראקטיבי נשמרה). `health http=200 t=0.0022s` ⇒ `{"status":"ok","version":"v9.0.0"}`.
+- **צל:** `close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades — nothing to do` ✅ — רביעית ברציפות. אפס `--apply`.
+- ⚠️ **T-34 מרגין — דיווח-בלבד, ללא שינוי:** `acct_available_funds = 406.34` · `acct_margin_req 0.0` · `acct_under_margin 0` · `acct_loss_limit_reached 0` — **זהה ל-13:06 ול-12:06**. `406.34 < 1,595` ⇒ שורה כאן בלבד; **אינו חוסם בגודל 1** ⇒ לא מקרה (ג). **למדידה מחדש בשער-15:30.**
+
+**⚠️ חדש 1 — מלכודת-קריאה שכמעט נכתבה כאן כאזעקה (תיעוד כדי שלא תחזור):** שאילתה גולמית `select count(*) from v9_trades where exit_ts is null and entry_ts::date < current_date` ⇒ **`95`** (`shadow 17.09:43 · 15.09:23 · 11.09:12 · 14.09:3 · 27.07:13` + `live 27.07:1`) — נראה כמו "95 שורות-צל תקועות", כלומר פי-3.6 מתקרית 16.09 שהרימה את ה-backend ל-80% CPU. **זה ארטיפקט.** `close_stale_shadow.py` מגדיר תקיעוּת על **`state NOT IN OPEN_STATES`** (`scripts/close_stale_shadow.py:61,76,89,110`), לא על `exit_ts`; ל-95 השורות יש `state` סופי ו-`exit_ts` שנשאר `NULL`. **הכלי הוא מקור-האמת, לא השאילתה הגולמית** (כלל-2: לאמת לפני שסומכים). אפס פעולה, אפס `--apply`.
+- **⚠️ חדש 2 — `machine_health.py` (WARN-בלבד, לא לטלפון):** `WARN: unused RAM 90M < 400M — the Mac is compressing/swapping` · `WARN: swap used 3772M > 500M`. `load averages: 3.17 2.92 2.88`. מחסנית-המסחר עצמה רזה: `backend 121MB/26.2%` · `bridge 19MB/2.5%` · `sierra 195MB/6.4%` · `postgres 543MB` · `frontend 19MB` · `phone-relay 26MB`. הצרכנים הם **לא-מסחר**: `cowork-vm 3138MB` · `claude-app 1674MB` · `chrome 757MB` · `claude-agents 436MB`. **לא נגעתי** — אבל אם שער-15:30 של שני ידרוש ריסטארט, כדאי שהבעלים יסגור קודם חלונות-Claude/Chrome. זה WARN ולא חוסם-מסחר ⇒ **לא מקרה (ג)**.
+
+**מה לא עשיתי (במכוון):** אפס ריסטארט · אפס `phone_reply.py` · אפס נגיעה בדגלים/גודל/פוזיציות/`.env` · אפס `--apply` · אפס פריט-משימה חדש. שער-15:30 של שני, פסיקת-כיפור 21.09 ועמוד-ההכרעה — בבעלות הסשן האינטראקטיבי.
+
+— cowork-daily
+
 ## 🟢 [cowork-daily · 2026-09-20 13:06-13:12 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · [[T-430]] שישית · **אפס דלתא מהותית מול `12:36` (`3bcc2e90`)**
 
 `date` ⇒ `2026-09-20 13:06:57 IDT (Sun)` — לא `15:30-16:10`, לא RTH, לא תור-לילה ⇒ **חובה-1 בלבד**. `git pull` ⇒ `Already up to date`. דוח-דלתא בלבד; המדידות המלאות ב-`12:36` ו-`12:06`.
