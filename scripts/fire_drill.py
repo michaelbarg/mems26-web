@@ -345,6 +345,31 @@ def stage_guards():
     check("guard_tests", result.returncode == 0, detail)
 
 
+def report_awareness():
+    """ציון-המודעות של הסשן האחרון שהושלם — **דיווח-בלבד** (T-159).
+
+    מדד, לא שער. נקרא *אחרי* שה-GO/NO-GO הוכרע והודפס, אינו נוגע ב-FAILS,
+    ואינו יכול לשנות את קוד-היציאה — גם לא דרך חריגה (הכל עטוף). ציון נמוך
+    הוא ממצא-למדידה, לא עילה לחסום סשן; וכשל-DB בכלי-מדידה בוודאי לא.
+    """
+    try:
+        from scripts.awareness_score import _connect, last_completed_session, measure, render
+        cn = _connect()
+        try:
+            day = last_completed_session(cn.cursor())
+        finally:
+            cn.close()
+        if day is None:
+            print("— ציון-המודעות (דיווח-בלבד · T-159) — לא-נמדד: אין סשן שהושלם ב-DB")
+            return
+        res = measure(day)
+        print("— ציון-המודעות (דיווח-בלבד · T-159) —")
+        print(render(res) if res else f"  לא-נמדד: אפס ברי-RTH ל-{day}")
+    except Exception as exc:  # כלי-מדידה לעולם לא מפיל את הדריל
+        print(f"— ציון-המודעות (דיווח-בלבד · T-159) — לא-נמדד: "
+              f"{type(exc).__name__}: {str(exc)[:120]}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-live", action="store_true", help="דלג על שלב D")
@@ -364,9 +389,13 @@ def main():
         print(f"🔴 NO-GO — {len(FAILS)} כשלים:")
         for f in FAILS:
             print(f"   · {f}")
-        return 1
-    print("🟢 GO — כל שרשרת ההחלטה כשרה לירי.")
-    return 0
+        rc = 1
+    else:
+        print("🟢 GO — כל שרשרת ההחלטה כשרה לירי.")
+        rc = 0
+    print()
+    report_awareness()   # אחרי ההכרעה בכוונה — מדד, לא שער (T-159)
+    return rc
 
 
 if __name__ == "__main__":

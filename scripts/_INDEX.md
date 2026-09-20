@@ -14,6 +14,7 @@
 | `agent_heartbeat.py` | ▶ entry/test | 67 | 2026-07-17 | Write docs/reports/AGENT_HEARTBEAT.json — the session-watch liveness beacon the |
 | `apply_targets_diff.py` | ▶ entry/test | 158 | 2026-07-12 | apply_targets_diff — learning-loop v3: apply a PROPOSED_TARGETS_DIFF file to |
 | `audit_pattern_miss.py` | ▶ entry/test | 1560 | 2026-07-18 | audit_pattern_miss.py — quantified, doctrine-aware audit of WHY the pattern |
+| `awareness_score.py` | ✅ 1 | 437 | — | awareness_score — ציון-המודעות היומי (T-159). READ-ONLY, מדד ולא שער. |
 | `backtest_counter_flow.py` | ▶ entry/test | 99 | 2026-07-05 | Research: WHEN does opposing volume win, and is exiting there worth it? |
 | `backtest_cvd_divergence.py` | ▶ entry/test | 85 | 2026-07-05 | Backtest cvd_divergence (literature-correct volume exit) on real trades. |
 | `backtest_exit_signals.py` | ▶ entry/test | 104 | 2026-07-05 | Backtest System 6 exit signals on real managed trades (2026-07-05). |
@@ -58,7 +59,7 @@
 | `extreme_detection_audit.py` | ▶ entry/test | 486 | 2026-08-23 | Extreme detection & bias audit — CC_NEXT_2026-08-23D. |
 | `f1_compass_replay.py` | ▶ entry/test | 205 | 2026-08-20 | F1 replay — would DIRECTION_COMPASS_V1 have prevented the +$576 direction family? |
 | `fill_truth.py` | ▶ entry/test | 130 | 2026-09-01 | אמת-המילויים — P&L ממחיר-מילוי בפועל, לא ממחיר-הפקודה. |
-| `fire_drill.py` | ▶ entry/test | 336 | 2026-09-02 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
+| `fire_drill.py` | ▶ entry/test | 402 | 2026-09-20 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
 | `fire_readiness_real.py` | ▶ entry/test | 549 | 2026-07-19 | Stage E: replay real RTH setups through read-only, pure readiness gates. |
 | `flag_guard.py` | ✅ 22 | 167 | 2026-09-03 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
 | `forward_gate.py` | ▶ entry/test | 226 | 2026-09-10 | forward_gate.py — forward production-path gate on golden sessions. |
@@ -106,7 +107,7 @@
 | `mobile_relay.py` | ▶ entry/test | 495 | 2026-08-31 | MEMS26 mobile relay — pushes snapshot + polls emergency commands from Render. |
 | `morning_briefing.py` | ▶ entry/test | 135 | 2026-07-13 | בריפינג-בוקר — מה כל מערכת מחפשת היום + חשבון הסטופים (מייקל 2026-07-08). |
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
-| `open_drive_branch_study.py` | ▶ entry/test | 216 | — | open_drive_branch_study.py — the opening-drive BRANCH on every past session |
+| `open_drive_branch_study.py` | ▶ entry/test | 216 | 2026-09-20 | open_drive_branch_study.py — the opening-drive BRANCH on every past session |
 | `opening_atr_audit.py` | ▶ entry/test | 179 | 2026-09-01 | Is the stop band at the open calibrated on pre-market volatility? |
 | `opening_signal_edge.py` | ▶ entry/test | 153 | 2026-07-24 | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
 | `ops_log.py` | ✅ 21 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
