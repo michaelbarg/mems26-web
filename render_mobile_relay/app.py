@@ -469,8 +469,15 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
     (כמו .num בשאר העמוד — בלי זה "-62.50$" נראה "62.50$-") · pre-wrap בבועה. */
  function fmtMsg(s){
   s=String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  // links (20.09): pull URLs out before the number-wrapping touches them;
+  // same-origin links get this page's ?key= appended so /doc/… opens with one tap.
+  var urls=[];
+  s=s.replace(/(https?:\\/\\/[^\\s<]+)/g,function(u){urls.push(u);return '@@URL'+(urls.length-1)+'@@';});
   s=s.replace(/[*][*]([^*]+)[*][*]/g,'<b>$1</b>');
   s=s.replace(/(^|[^0-9A-Za-z])([-+−]?[$]?[0-9][0-9,.:]*[$%]?)/g,'$1<span class="num">$2</span>');
+  s=s.replace(/@@URL(\\d+)@@/g,function(_,i){var u=urls[+i]||'';var h=u;
+   if(u.indexOf(location.host)>=0&&u.indexOf('key=')<0&&location.search){h=u+(u.indexOf('?')>=0?'&':'?')+location.search.slice(1);}
+   return '<a href="'+h+'" target="_blank" rel="noopener" style="color:#58a6ff;word-break:break-all;direction:ltr;unicode-bidi:embed">'+u+'</a>';});
   var lines=s.split('\\n');
   if(lines.length>1){lines[0]='<b>'+lines[0]+'</b>';}
   return lines.join('\\n');
@@ -975,6 +982,34 @@ _READINESS_PATHS = (
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                  "docs", "plans", "MONDAY_READINESS.html"),
 )
+
+
+# ── מסמכים לטלפון (מייקל 20.09: "תכין לי PDF מסודר לפלא") ──
+# קבצים סטטיים בלבד מ-render_mobile_relay/static/docs/ (נפרסים עם הקוד).
+# אותו מפתח-גישה כמו שאר הדפים; שם-קובץ מסונן; רק pdf/html/png/txt.
+_DOCS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "docs")
+_DOC_MIME = {".pdf": "application/pdf", ".html": "text/html; charset=utf-8",
+             ".png": "image/png", ".txt": "text/plain; charset=utf-8"}
+
+
+@app.get("/doc/{name}")
+async def doc_file(name: str, request: Request):
+    if not _page_key_ok(request):
+        return HTMLResponse(
+            "<html dir=rtl><body style='background:#0b0e14;color:#e6edf3;"
+            "font-family:-apple-system;padding:40px;text-align:center'>"
+            "<h2>🔒 נדרש מפתח-גישה</h2><p>פתח את הקישור מתוך דף-הצ'אט (המפתח מצורף שם אוטומטית).</p>"
+            "</body></html>", status_code=401)
+    safe = _safe_name(name)
+    ext = os.path.splitext(safe)[1].lower()
+    path = os.path.join(_DOCS_DIR, safe)
+    if ext not in _DOC_MIME or not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="no such document")
+    with open(path, "rb") as fh:
+        data = fh.read()
+    return Response(content=data, media_type=_DOC_MIME[ext],
+                    headers={"Content-Disposition": f"inline; filename=\"{safe}\"",
+                             "Cache-Control": "no-cache"})
 
 
 @app.get("/readiness", response_class=HTMLResponse)

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 — עדכון מצב 20.09.2026</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #111; margin: 0; padding: 16px 14px; line-height: 1.55; font-size: 15px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 2px solid #ddd; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 10px; }
+  .box { border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+  .red { background: #fdecec; border: 1px solid #f3b4b4; }
+  .green { background: #e9f7ee; border: 1px solid #b6e2c4; }
+  .amber { background: #fff6e0; border: 1px solid #f2dc9a; }
+  .gray { background: #f4f5f7; border: 1px solid #e1e4e8; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 6px 0; }
+  th, td { border: 1px solid #d9dce1; padding: 5px 6px; text-align: right; vertical-align: top; }
+  th { background: #f0f2f5; }
+  .num { direction: ltr; unicode-bidi: embed; font-variant-numeric: tabular-nums; }
+  code { font-family: Menlo, monospace; font-size: 12.5px; background: #f0f2f5; padding: 1px 4px; border-radius: 4px; direction: ltr; unicode-bidi: embed; }
+  ul { margin: 4px 0; padding-right: 20px; }
+  li { margin: 3px 0; }
+  .small { font-size: 12.5px; color: #555; }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+<h1>MEMS26 — עדכון מצב</h1>
+<div class="sub">יום ראשון 20.09.2026 · 11:40 IL · cowork-dev · חשבון APEX 37138283 · חוזה 1 (פסיקת 18.09)</div>
+
+<div class="box red">
+<b>🔴 הדחוף ביותר — פיד-הנתונים של סיירה מנותק מיום שישי 00:00 ועד עכשיו.</b><br>
+ביום שישי 19.09 המערכת <b>לא קיבלה אף בר</b> (הבר האחרון בטבלה: חמישי 23:55) ולכן <b>לא הייתה אף עסקה</b>. גם עכשיו הגרף בסיירה עומד על חמישי 18:55 IL, <code class="num">last_price=0</code>, בלי bid/ask; חיבור-המסחר (יתרה 406.34) עונה — חיבור-הנתונים לא.<br>
+<b>מה לעשות בסיירה (אתה, לא אני):</b> <code>File → Disconnect</code> ← ואז ← <code>File → Connect to Data Feed</code>, ולבדוק שהגרף MESZ26 זז (מחיר חי, לא 7725.50). אם לא — <code>Edit → Reload and Recalculate</code> על הגרף. <b>לפני כניסת יום-כיפור היום או מיד אחרי צאתו</b> — בלי פיד, שער-הבוקר של שני יחזיר NO-GO והמערכת לא תסחר.
+</div>
+
+<h2>1 · מה קרה בפועל</h2>
+<table>
+<tr><th>יום</th><th>מה היה</th><th>תוצאה</th></tr>
+<tr><td>חמישי 18.09</td><td>עסקת-מערכת אחת: #1916 שורט 17:00:10 @<span class="num">7691.25</span> — אחרי דרייב של 26 נק' (7710→7684) בין 16:30 ל-17:00. נכנסה אחרי 25 מתוך 26 הנקודות. אחה"צ: רוטציה של 13 נק' בתוך הערך (יום Normal) — נכון שלא נכנסה.</td><td class="num">+$6.25</td></tr>
+<tr><td>שישי 19.09</td><td>אפס ברים, אפס עסקאות — הפיד מת ב-00:24. ה-<span class="num">−67.50</span> שסיירה מציגה כ"יומי" = <span class="num">+7.50</span> של המערכת (חמישי) ועוד <span class="num">−75.00</span> של העסקה הידנית שלך (חמישי 19:25–19:52).</td><td class="num">0</td></tr>
+</table>
+
+<h2>2 · למה קנינו מאוחר מדי — ארבעה שורשים באותה שרשרת</h2>
+<table>
+<tr><th>#</th><th>השורש</th><th>הראיה</th><th>התיקון</th></tr>
+<tr><td>T-422</td><td>בר-האישור של הפתיחה נבדק על הבר <b>שנפתח לפני 3 שניות</b> (פתיחה≈סגירה), לא על הבר הסגור.</td><td>18.09: <code>held DRIVE SHORT — last bar did not confirm (o=7705.25 c=7705.25)</code> ×4, בעוד כל הברים הסגורים 16:40/16:45/16:50/16:55 אישרו שורט.</td><td>בוצע בתור-הלילה 18.09: בר-האישור = הבר הסגור האחרון מהטבלה.</td></tr>
+<tr><td>T-425</td><td><b>כל</b> מנוע-הפתיחה קרא צילום-קפוא של כל בר (o=h=l=c=open): רוחב טווח-הפתיחה 0, "סגירות" שהן פתיחות, סטופ-מבני על max(open).</td><td>קריאת-קוד: <code>process_bar</code> חוזר בדחיפות חוזרות, הרשימה שומרת את הצילום הראשון לנצח.</td><td>היום: מנוע-הפתיחה שופט ברים סגורים קנוניים בלבד.</td></tr>
+<tr><td>T-426</td><td>תווית-סוג-הפתיחה מפגרת: OPEN_DRIVE נקרא רק כשהפתיחה בתוך 20% מטווח-הסשן — מוקדם בדרייב הטווח קטן, אז הספייק-הנגדי של הבר הראשון (4.5 נק') חורג, והתווית נשארת AUCTION_IN עד שהטווח גדל פי 5.</td><td>18.09: התווית הפכה ל-OPEN_DRIVE ב-17:00. ב-16:45 שורת-הפלייבוק ל-AUCTION_IN מתירה רק EDGE_FADE ⇒ הדרייב המאושר נחסם <code>dalton_intent:kind</code>.</td><td>היום: דרייב <b>מאושר</b> ממנוע-הפתיחה נשפט כ-OPEN_DRIVE גם כשהתווית מפגרת (כלל בשער, הגלאי לא נגע).</td></tr>
+<tr><td>T-428</td><td>הסטופ המבני של הפתיחה לא סומן "מבני" ⇒ השער החליף אותו בסולם-ATR של 4.5 נק' וחישב יעדים מחדש ⇒ סולם לא-מונוטוני ⇒ הפקודה נדחתה.</td><td>ריפליי 18.09 16:45: <code class="num">[7689.75, 7691.5, 7682.5]</code> בשורט ⇒ T-335 דחה PLACE. בלייב #1916: סטופ 7.75 נק' עם יעד 2.25 נק' (0.29R) על תכנון 1.5R.</td><td>היום: סטופ-הפתיחה מסומן מבני — יישום פסיקתך מ-09.09 "הסטופ = העוגן המבני".</td></tr>
+</table>
+
+<h2>3 · ריפליי 18.09 — לפני ואחרי (נתיב-הייצור המלא)</h2>
+<table>
+<tr><th></th><th>כניסה</th><th>סטופ</th><th>T1</th><th>תוצאה (חוזה 1)</th></tr>
+<tr><td>לייב בפועל</td><td>17:00 @<span class="num">7691.25</span></td><td class="num">7699.00</td><td class="num">7689.00</td><td class="num">+$6.25</td></tr>
+<tr><td><b>אחרי התיקון</b></td><td><b>16:45 @<span class="num">7705.00</span></b></td><td class="num">7716.00</td><td class="num">7689.75</td><td class="num"><b>+$76.25</b></td></tr>
+</table>
+
+<h2>4 · המספרים (ריפליי לפני דגל — לא דעה)</h2>
+<div class="box gray">
+<b>56 סשנים נקיים (15.06–18.09), הפונקציות האמיתיות של מנוע-הפתיחה על ברים סגורים, מודל-הערכה קבוע (חוזה 1 ל-T1=1.5R):</b>
+<ul>
+<li>כניסות-דרייב, כולן: <span class="num">N=21 · 57% · Σ +$507 · +$24 לעסקה</span> (סולם 2 חוזים: +$964).</li>
+<li>מה שהעץ מתיר היום: <span class="num">N=7 · 43% · −$12</span>. <b>מה שפיגור-התווית חסם: <span class="num">N=14 · 64% · +$519</span></b> — החצי הטוב.</li>
+<li>לפי שעת-הכניסה: 16:45 <span class="num">N=8 +$81</span> · 16:50 <span class="num">N=8 +$98</span> · 16:55 <span class="num">N=3 +$108</span> · 17:00 <span class="num">N=2 +$220</span>.</li>
+<li>2 ברי-אישור במקום 3 ("לקנות בדרך"): הכניסות ב-16:40 <span class="num">N=16 · 50% · חציון +$1.5</span> — לא עדיף. נשאר 3.</li>
+<li>שאר משפחת-הפתיחה: ORR <span class="num">N=9 · 22% · −$274</span>, EXTREME_REJECT <span class="num">N=10 · −$209</span> — מפסידים, נשארים חסומים.</li>
+</ul>
+<b>10 הסשנים האחרונים בנתיב-הייצור המלא (הרנס):</b> עם התיקון <span class="num">+$232</span> מול בלעדיו <span class="num">+$273</span> — הדלתא על 4 עסקאות ≈ <span class="num">−$2</span> (18.09 +76 · 08.09 +39 · 16.09 −54 · 09.09 −52). <b>N=4 אינו הכרעה.</b>
+<br><b>ההחלטה:</b> דלוק לפי פסיקתך, נמדד קדימה שבוע (הדגל נושא את המספרים). מה שלא נגעתי: גלאי-התווית עצמו (מזין גם את סוג-היום — מדידה נפרדת), חוסם-הרדיפה ELQ (חסם נכון את 17.09, 25 נק' אחרי המהלך).
+</div>
+
+<h2>5 · מוכנות ליום שני 21.09</h2>
+<div class="box amber">
+<ul>
+<li><b>הקוד בגיט</b> (<code>63a78434</code>, 7 טסטים ירוקים, flag_guard 264 PASS, אפס Traceback ב-21 ריצות-ריפליי) — <b>אך עדיין לא נטען</b>: הריסטארט נחסם בסשן שלי. שתי דרכים: (א) לחיצה כפולה על <code>scripts/MEMS26_RESTART.command</code> במק (פוזיציה 0, בטוח); (ב) שער-הבוקר המתוזמן ב-15:30 של שני עושה <code>git pull</code> + ריסטארט-קדם-פתיחה לבד — <b>רק אם אפליקציית Claude פתוחה במק</b>.</li>
+<li><b>גודל:</b> חוזה 1 (פסיקת 18.09) — לא נגעתי.</li>
+<li><b>יום-כיפור:</b> אם הפיד חוזר והאפליקציה פתוחה — המערכת תסחר בשני אוטומטית על חוזה 1. אם אתה מעדיף שלא — הנשק בסיירה (armed) בידיך; אני לא נוגע.</li>
+<li><b>המחשב:</b> זיכרון על הקצה (VM של Cowork 3.3GB, Claude 1.2GB, Chrome 0.7GB; swap 2.2GB). לפני שני: לסגור Chrome וחלונות מיותרים.</li>
+</ul>
+</div>
+
+<div class="small">מקורות: <code>docs/reports/OPEN_DRIVE_BRANCH_2026-09-20.md</code> · <code>scripts/open_drive_branch_study.py</code> · <code>harness_out/t426/</code> · TASK_LOG T-422/425/426/428/429 · LIVE_CHANNEL 20.09.</div>
+</body>
+</html>
