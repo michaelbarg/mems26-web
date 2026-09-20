@@ -487,3 +487,41 @@ strings -a ~/SierraChart/TradeActivityLogs/TradeActivityLog_$(date +%F)_UTC.*.da
 (‏`CLAUDE.md` § *Rulings are one-time and standing*: *"'האם עדיין רוצה X?' היא
 הפרת-פרוטוקול"*). **ל-Render אין endpoint מחיקה, והודעת-תיקון היא בעצמה הפרה של
 כלל-הטלפון** ⇒ למחיר אין החזר: התיקון נכתב ל-`LIVE_CHANNEL`, והטלפון נשאר שקט.
+
+
+---
+
+### מלכודת 17 · `ORDER BY entry_ts DESC LIMIT 1` מחזיר ב-Postgres שורה **בלי זמן** (20.09)
+
+השאלה "מה העסקה האחרונה?" נשאלת בכל סיכום-יומי (חובה-2) ובכל ניטור-RTH (חובה-3).
+הניסוח האינטואיטיבי **עונה תשובה שגויה, בשקט, ובדיוק על השדה שאמור להכריע**:
+
+```sql
+-- ❌ הורץ 20.09 22:39 (Rule 5, פלט גולמי):
+select id, mode, entry_ts, state from v9_trades order by entry_ts desc limit 3;
+  398 | live |          | CANCELLED      ← entry_ts NULL
+-- ✅ אותה שאילתה, NULLS LAST:
+select id, mode, entry_ts, state from v9_trades order by entry_ts desc nulls last limit 3;
+ 2005 | shadow | 2026-09-18 22:55:10.356846+03 | CLOSED
+ 2004 | shadow | 2026-09-18 22:45:04.222773+03 | CLOSED
+-- כמה שורות חשופות:
+select count(*) null_entry_ts, count(*) filter (where state='CANCELLED') cancelled
+  from v9_trades where entry_ts is null;   ⇒  42 | 34
+```
+
+**השורש:** Postgres ממיין `NULL` כ**גדול מכל ערך**, כלומר ב-`DESC` הוא **ראשון**.
+SQLite ו-MySQL עושות את ההפך (NULL = הקטן ⇒ אחרון ב-`DESC`). הריפו **היגר מ-SQLite
+ל-Postgres** (`CLAUDE.md` § *DB — local Postgres*) ⇒ כל שאילתת-"אחרון" שנכתבה או
+הועתקה מתקופת-SQLite **התהפכה במשמעותה בלי שורת-שגיאה אחת**.
+
+**מה הדוח היה אומר:** *"העסקה האחרונה — לייב, CANCELLED"* — נשמע כמו כישלון-פקודה
+טרי שדורש בדיקה. בפועל `#398` היא שורת-ארכיון מ-07-27 בלי זמן-כניסה כלל, והעסקה
+האחרונה באמת היא `#2005` shadow מ-18.09 שנסגרה כרגיל. ⇒ **חקירה מומצאת על סמך
+מיון, ואזעקה אפשרית על "לייב שבוטל" שלא קרה.**
+
+**הכלל:** כל מיון לפי עמודת-זמן ב-`v9_trades` נושא `NULLS LAST` **או** מסנן
+`WHERE entry_ts IS NOT NULL`. אין יוצא-מן-הכלל — `entry_ts NULL` הוא מצב תקף
+(פקודה שלא מולאה), לא זבל, ולכן הוא לא ייעלם.
+
+**משפחה אחת עם מלכודת 14:** שתיהן קוראות ל-`NULL` בעמודת-זמן מידע שאין בו —
+14 קראה לו "עסקה פתוחה", 17 קוראת לו "העסקה האחרונה". **בשתיהן הפוסק הוא `state`.**
