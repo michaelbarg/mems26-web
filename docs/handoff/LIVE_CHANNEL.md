@@ -1,3 +1,34 @@
+## 🟢 [cowork-daily · 2026-09-20 12:36-12:50 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · **אפס דלתא מהותית מול `12:06-12:20` (`f8f33ee9`)** · [[T-430]] חמישית · ⚠️ שתי מלכודות-קריאה חדשות תועדו
+
+`date` ⇒ `2026-09-20 12:36:57 IDT (Sunday)` — לא `15:30-16:10`, לא RTH, לא תור-לילה ⇒ **חובה-1 בלבד**. כדי לא לשכפל את דוח-`12:06`, להלן רק **מה שנמדד עכשיו ושונה או חדש**.
+
+### טלפון — אפס ממתינות (שלושה מקורות, פלט גולמי)
+| מקור | פלט |
+|---|---|
+| `tail PHONE_THREAD.jsonl` | פריט אחרון `2026-09-20T07:51:47Z <cowork>` |
+| peek `GET /chat?key=…` (Render) | `http=200 bytes=14772`, `items: 30` — **זהה למקומי**; הודעת-מייקל אחרונה `2026-09-16T10:43:05Z`, נענתה עניינית `11:09:29Z` |
+| `phone_request_guard.py` | `dispositioned: 3    undispositioned: 0` · `✅ every request in the window is either a task or dispositioned` |
+
+⇒ לא (א) · לא (ב) — אפס עסקאות-לייב מאז 18.09 · לא (ד) — לא שעת-שער · (ג) נדחה **מאותו נימוק כמו 11:06 / 11:37 / 12:06**: פעולת-T-430 בידי מייקל מהודעת `07:51`; דחיפה חמישית היא בדיוק ההצפה שכלל-הטלפון נועד לעצור. **אפס `phone_reply.py`.**
+
+### מדוד עכשיו
+- **🔴 T-430 — אישור חמישי.** `select max(ts), now(), age_h from v9_bars_5min_woodies` ⇒ `2026-09-18 23:55:00+03 | 2026-09-20 09:38:09 | 33.72`. הפיד מת מאז שישי; הפעולה של מייקל בלבד. **לא נגעתי.** MES סגור ממילא — Globex נפתח `01:00 IL` ליל שני; המבחן המחייב הוא שער-15:30 של שני.
+- **מצב-חי (`/api/v9/agent/sierra_live_check`):** `verdict 🟢`, `sierra_alive.ok true age_s 0.1`, `armed 1`, `is_sim 0` ⇒ **לייב+חמוש**; `open_trade_detect` ⇒ `sierra_qty 0 · working_orders 0 · tm_open_trades 0 · tm_net_qty 0` = `flat בשני הצדדים`. `gateway/status` ⇒ `live_slot null` (פנוי) · `live_enabled_systems [2,4]` · `cooldown_active false` · `cluster_guard_active false` · `chop_state FOUND`.
+- **גודל — פסוק:** `ruled_contracts()` עם `.env` טעון ⇒ **`1`** (`FIXED_CONTRACTS_2=0`) ✅ תואם פסיקת-מייקל 18.09 12:05. **לא נגעתי בדגלי-גודל.**
+- **מאזין :8000** — `pid 23510`, `ps -o lstart` ⇒ `Fri Sep 18 12:08:47 2026`, `ETIME 02-00:29:21` ⇒ **אפס ריסטארט** (בעלות הסשן שהרים אותו ביום ו'). `health http=200 t=0.0025s`.
+- **צל:** `close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades — nothing to do` ✅ — שוב **למרות** `shadow_active_count = 15`. שתי ריצות רצופות עם אותה תוצאה ⇒ ה-15 אינן שאריות-אתמול; הסקריפט הוא הפוסק. אפס `--apply`.
+- **`machine_health.py` (WARN-בלבד):** `WARN unused RAM 196M < 400M` · `WARN swap used 3964M > 500M` (ירד מ-`4412M` ב-`11:06`). מקור: **לא-מסחרי** — `cowork-vm 3138MB`, `claude-app 1670MB`, `chrome 727MB`. מחסנית-המסחר עצמה רזה: `backend rss 121MB`, `bridge 19MB`, `sierra 177MB`, `postgres 481MB`.
+
+### שתי מלכודות-קריאה חדשות (Rule 5 — לתעד כדי שלא ייקראו כשקר)
+1. **`trades_today: 1` ו-`daily_pnl: 6.25` ב-`gateway/status` אינם של היום.** המאזין חי מ-**שישי 12:08**, והמונים הם של העסקה האחרונה (`OPENING_DRIVE` 18.09, `+6.25` בספרים). זו בדיוק מלכודת ה-`CURRENT_DATE`-אחרי-חצות מ-`COWORK_DAILY_READ` §, רק דרך תהליך ארוך-חיים. **קריאה נכונה:** אפס עסקאות היום — מאומת עצמאית ב-`sierra_live_check.closures_on_fills` ⇒ `closed_today 0 · day_n 0 · day_pnl 0.0`.
+2. **`git pull --rebase` יחף נכשל בריפו הזה:** `error: cannot pull with rebase: You have unstaged changes`. השורש: שני קבצים נכתבי-מכונה תמיד מלוכלכים — `config/news_calendar.yaml` ו-`docs/handoff/PHONE_THREAD.jsonl` (`54 insertions, 41 deletions`). דוח-`12:06` השתמש ב-`--autostash` ולכן לא נתקל בזה. **אימות שאין מה למשוך בלי לגעת בעץ-העבודה:** `git fetch` + `git rev-list --left-right --count HEAD...origin/HEAD` ⇒ `0	0`, `local=f8f33ee9 remote=f8f33ee9`. **המלצה לכרטיס-המשימה:** `git pull --rebase --autostash` (או `fetch`+השוואה) — לא `pull` יחף.
+- **`backend cpu 47.9%`** ב-`machine_health` הוא **ממוצע-חיים** של `ps`, לא רגעי — אחרי יומיים-רצוף זה לא אירוע-ה-80% של 16.09 (שם השורש היה 26 שורות-צל תקועות, וכאן הצל נקי). נרשם כדי שלא ייקרא כאזעקה.
+
+### מה **לא** עשיתי (במכוון)
+אפס ריסטארט · אפס `phone_reply.py` · אפס נגיעה בדגלים/גודל/פוזיציות/`.env` · אפס `--apply` על הצל · אפס פריט-משימה חדש · אפס `commit` על שני הקבצים המלוכלכים (נכתבי-מכונה, לא שלי) · שער-15:30 של שני, פסיקת-כיפור 21.09 ועמוד-ההכרעה — בבעלות הסשן האינטראקטיבי.
+
+— cowork-daily
+
 ## 🟢 [cowork-daily · 2026-09-20 12:06-12:20 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · [[T-430]] מאושר **פעם רביעית, עכשיו גם מנגנונית** · ⚠️ **מרגין פנוי 406.34 (T-34, דיווח-בלבד)** · אפס ריסטארט / אפס הודעת-טלפון
 
 `date` ⇒ `2026-09-20 12:06:56 IDT (Sun)` — לא `15:30-16:10`, לא RTH `16:30-23:00`, לא תור-לילה ⇒ **חובה-1 בלבד**. `git pull --rebase --autostash` ⇒ `Already up to date`, HEAD `823d516e`.
