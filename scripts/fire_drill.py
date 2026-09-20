@@ -225,6 +225,35 @@ def stage_d():
     p = api("/api/v9/live_price")
     check("feed טרי (<30s)", bool(p and p.get("age_ms", 1e9) < 30000),
           f"age={p.get('age_ms')}ms" if p else "no price")
+    # T-430 (20.09): the export files are rewritten every ~3s by the DLL even
+    # when Sierra's DATA feed is dead — Friday 19.09 the "feed" was fresh by
+    # mtime all day while the last bar in the canonical table was Thursday
+    # 23:55 and the session traded nothing. The truth is the newest BAR, and
+    # it must be young whenever the CME is open (Sun 18:00 ET → Fri 17:00 ET,
+    # 17:00-18:00 ET daily break excluded). Closed market → informational.
+    try:
+        from datetime import datetime as _fd_dt, timezone as _fd_tz
+        from zoneinfo import ZoneInfo as _fd_ZI
+        from backend.v9.db.read import read_scalar as _fd_rs
+        _fd_max = _fd_rs("SELECT max(ts) FROM v9_bars_5min_woodies WHERE symbol='MES'", {})
+        _fd_now_et = _fd_dt.now(_fd_tz.utc).astimezone(_fd_ZI("America/New_York"))
+        _fd_wd, _fd_hm = _fd_now_et.weekday(), _fd_now_et.hour * 60 + _fd_now_et.minute
+        _fd_open = (_fd_wd <= 4 and not (17 * 60 <= _fd_hm < 18 * 60)) \
+            or (_fd_wd == 6 and _fd_hm >= 18 * 60)
+        if _fd_wd == 4 and _fd_hm >= 17 * 60:
+            _fd_open = False
+        _fd_age_min = None
+        if _fd_max is not None:
+            _fd_mx = _fd_max if getattr(_fd_max, "tzinfo", None) else _fd_max.replace(tzinfo=_fd_tz.utc)
+            _fd_age_min = (_fd_dt.now(_fd_tz.utc) - _fd_mx).total_seconds() / 60.0
+        _fd_detail = (f"last bar {_fd_max} · age {_fd_age_min:.0f} min · market "
+                      f"{'OPEN' if _fd_open else 'closed'}") if _fd_age_min is not None else "no bars"
+        if _fd_open:
+            check("נתוני-ברים חיים (DB, <10 דק' כשהשוק פתוח)", _fd_age_min is not None and _fd_age_min < 10, _fd_detail)
+        else:
+            print(f"  ℹ נתוני-ברים (DB): {_fd_detail} — השוק סגור, מידע בלבד")
+    except Exception as _fd_e:
+        check("נתוני-ברים חיים (DB)", False, f"{type(_fd_e).__name__}: {_fd_e}")
     g = api("/api/v9/gateway/status")
     if g:
         check("live_slot פנוי", g.get("live_slot") is None, f"slot={g.get('live_slot')}")
