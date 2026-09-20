@@ -226,11 +226,19 @@ def stage_d():
     check("feed טרי (<30s)", bool(p and p.get("age_ms", 1e9) < 30000),
           f"age={p.get('age_ms')}ms" if p else "no price")
     # T-430 (20.09): the export files are rewritten every ~3s by the DLL even
-    # when Sierra's DATA feed is dead — Friday 19.09 the "feed" was fresh by
-    # mtime all day while the last bar in the canonical table was Thursday
-    # 23:55 and the session traded nothing. The truth is the newest BAR, and
-    # it must be young whenever the CME is open (Sun 18:00 ET → Fri 17:00 ET,
-    # 17:00-18:00 ET daily break excluded). Closed market → informational.
+    # when Sierra's DATA feed is dead, so mtime/`live_price.age_ms` can read
+    # "fresh" while the newest BAR is days old. The truth is the newest BAR,
+    # and it must be young whenever the CME is open (Sun 18:00 ET → Fri 17:00
+    # ET, 17:00-18:00 ET daily break excluded). Closed market → informational.
+    #
+    # NB (corrected 20.09 21:20, cowork-daily — raw output in LIVE_CHANNEL):
+    # the original T-430 write-up justified this guard with "Friday 19.09 had
+    # 0 bars and 0 trades". That premise is FALSE and must not be re-cited:
+    # 19.09 is a SATURDAY. Friday 18.09 traded a full session — 204 ET-day
+    # bars 00:00→16:55 ET, zero gaps, 78 RTH, 95 trades (1 live + 94 shadow).
+    # The freeze at Fri 16:55 ET is the CME weekly close, and it is identical
+    # on the six preceding Fridays (each 00:00→16:55 ET, n=204 to the bar).
+    # The guard below is right on its own merits; the anecdote was not.
     try:
         from datetime import datetime as _fd_dt, timezone as _fd_tz
         from zoneinfo import ZoneInfo as _fd_ZI
