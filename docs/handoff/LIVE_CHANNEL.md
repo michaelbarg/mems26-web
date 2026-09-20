@@ -1,3 +1,71 @@
+## 🌙 [cowork-daily · 2026-09-20 23:06-23:20 IL] — **חובה-4 · תור-הלילה: CLAIM חתום** — cc לא תפס את התור עד `23:20` ⇒ cowork מבצע **פריט אחד בלבד: [[T-159]]** (ציון-המודעות) · **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון (עשרים-ושש ברציפות)**
+
+`date` ⇒ `23:06:59 IDT` בכניסה, `23:20:09` ב-claim. `git pull` ⇒ `Already up to date` · `behind-origin 0`.
+
+### חובה-1 — אפס ממתינות (שני מקורות, פלט גולמי)
+
+```
+tail PHONE_THREAD.jsonl          ⇒ פריט אחרון 2026-09-20T07:51:47Z <cowork>
+GET /chat?key=… (peek Render)    ⇒ items n=30 — זהה לקובץ המקומי
+הודעת-מייקל האחרונה              ⇒ 2026-09-16T10:43:05Z, נענתה 11:09:29Z
+```
+
+⇒ **לא (א)** · **לא (ב)** `trades entry_ts >= 19.09 ⇒ 0`, `position_qty 0` · **לא (ג)** אפס נתון חדש · **לא (ד)** אין שער בראשון ⇒ **שקט מוחלט.**
+
+### בדיקת-בעלות לפני ה-claim (ההוראה: *"בדוק git log — אם cc כבר עובד על התור, אל תיגע"*)
+
+```
+git log --since='2026-09-20 23:00'  ⇒ קומיט יחיד:
+  1637452b | 23:05 | eod-handoff(מק-1): 2026-09-20 packet
+git show --stat 1637452b            ⇒ 5 files changed, 774 insertions(+)
+  data_handoff/מק-1/2026-09-20/{gateway_decisions.jsonl, health_digest.txt,
+                                 sierra_state_eod.json, trade_fills_journal.jsonl, trades.json}
+head -5 LIVE_CHANNEL.md | grep -ci claim ⇒ 0
+```
+
+⇒ **הקומיט היחיד אחרי `23:00` הוא `data-only`** (חמישה קבצי-נתונים תחת `data_handoff/`, אפס קוד) — ובדיוק המקרה שההוראה מחריגה (*"שאינם launchd/data-only"*). **אפס שורת-claim של cc.** ⇒ **התור פנוי; cowork תופס אותו ב-`23:20`.**
+
+### בחירת-הפריט — **אחד בלבד**
+
+קובץ-הערב העדכני הוא `docs/handoff/cc_orders/CC_NOW_2026-09-17_FIXES.md` (‏F1-F19). **כל פריטיו סגורים:**
+`F16+F17b+F18` — רשומת-cc `18.09` DONE · `F19`/[[T-422]] — `✅` ב-`TASK_LOG` · `F15`/[[T-409]] — `ORACLE_VALIDATION_2026-09-18.md` קיים (`Sep 18 12:06`) · `F14` — `harness_out/oracle/oracle_v1.json` (`Sep 17 18:38`).
+⇒ **אין פריט פתוח בקובץ-הערב.** הפריטים שנקבעו ב-`LIVE_CHANNEL` כפתוחים לתור-הלילה הם [[T-159]] · [[T-420]] · [[T-424]]. **נבחר [[T-159]]** — היחיד ב-🔴, והיחיד שחוסם **מדד יומי-חובה**: ציון-המודעות נדרש בחובה-2 בכל יום (`<80% = 🔴`) ומדווח `לא-נמדד` מאז `27.08` כי הסקריפט היה `/tmp/awareness_fix.py` שנמחק. [[T-420]] ו-[[T-424]] נשארים פתוחים — **לא נגעתי בהם** (כלל אחד-בלבד).
+
+### מדוד לפני המסירה (אפס דלתא מהותית מול `22:52`)
+
+```
+/health                      ⇒ {"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":212364.2}
+מאזין :8000                  ⇒ PID 23510, STARTED Fri Sep 18 12:08:47   ⇒ אפס ריסטארט
+max(ts) v9_bars_5min_woodies ⇒ 2026-09-18 23:55:00+03 · age_min 2833   (ראשון ⇒ MES סגור)
+account/state                ⇒ position_qty 0 · working_orders 0 · open_pnl 0.0 · verdict flat
+                                acct_available_funds 406.34  (ללא תזוזה, עשרים)  · MESZ26_FUT_CME
+trades entry_ts >= 19.09     ⇒ 0
+close_stale_shadow (dry-run) ⇒ no stale shadow trades — nothing to do   (חמש-עשרה)
+flag_guard                   ⇒ PASS — all 264 ruled flags match  (+ LIVENESS ירוק)
+ruled_contracts()            ⇒ 1   (set -a; . ./.env)
+machine_health               ⇒ WARN swap 4248M; backend cpu 14.5% / rss 122MB; cowork-vm 3138MB (לא-מסחרי)
+```
+
+⚠️ **swap עלה `3484M ⇒ 4248M` מאז `22:52`** (‏+764M ב-28 דק'). הצרכן הגדול נשאר **לא-מסחרי** (`cowork-vm 3138MB`); ה-stack המסחרי כולו `<1GB`. **מנוטר, אינו חוסם, אינו מקרה-(ג).**
+
+### עובדות-קלט ל-[[T-159]] שנמדדו בריצה הזו (כדי שהסוכן לא ינחש)
+
+```
+RTH bars 18.09 (16:30-23:00 IL) ⇒ 78          ← המכנה של שלושת הצירים
+ledger 18.09 event_type         ⇒ GATE_DECISION 79 · DETECTED 52 · EMIT_DECISION 56 · ROUTED 15
+rows without ts                 ⇒ 108 / 202   ← [[T-420]] חי: DETECTED+EMIT_DECISION בלי ts כלל
+v9_tpo_history cols             ⇒ id, ts, poc, vah, val, ib_high, ib_low, profile_shape,
+                                   poc_migration_direction, created_at
+```
+
+⇒ **ציר-ההחלטות ניתן לחיתוך-זמן רק מ-`GATE_DECISION`+`ROUTED`**; `DETECTED`/`EMIT_DECISION` **אינם בני-חיתוך** עד ש-[[T-420]] ייסגר ⇒ הסוכן מדווח אותם **NOT-DONE מפורש**, לא ממציא.
+
+**הצעד הבא:** הסוכן מוסר `scripts/awareness_score.py` + טסט + קומיט + `TASK_LOG`/`STATUS_BOARD`. **`10:00` שני** — שאילתת-ההכרעה של [[T-430]] + דדליין-הריקונקט. **שער-`15:30` שני** — `git pull` ⇒ ריסטארט-קדם-פתיחה ⇒ `fire_drill` שלב D על פיד חי ⇒ אימות `ruled_contracts()`. **אפס ריסטארט הלילה, אפס נגיעה בפוזיציות, אפס דגל.**
+
+— **cowork-daily**, 20.09 23:20
+
+---
+
 ## 🟢 [cowork-daily · 2026-09-20 22:37-22:52 IL] — **חובה-3, ריצה חמש-עשרה בחלון ⇒ דלתא בלבד** · **אפס ממתינות בטלפון (עשרים-וחמש ברציפות)** · 🐛 **מלכודת 17 נוסחה ותועדה: "העסקה האחרונה" מוחזרת ב-Postgres כשורה בלי זמן** · 🔑 **תחזית-הלוג של `22:15` נבדקה מול חלון ארוך פי 56 — וטעתה ב-18%**
 
 `date` ⇒ `Sun Sep 20 22:38:30 IDT 2026` · `TZ=America/New_York` ⇒ `2026-09-20 15:38 EDT (Sun)` — בתוך `16:30-23:00` ⇒ **חובה-3**. **ראשון ⇒ MES סגור**; Globex הבא `18:00 ET` = `01:00 IL` ⇒ **בעוד `2h22m`**. `git pull` ⇒ `Already up to date`. חובה-2 נמסרה `15:36-15:50` ⇒ **דלתא בלבד, אין מרשם שני**.
