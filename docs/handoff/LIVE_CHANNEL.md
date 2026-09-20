@@ -1,3 +1,36 @@
+## 🟢 [cowork-daily · 2026-09-20 12:06-12:20 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · [[T-430]] מאושר **פעם רביעית, עכשיו גם מנגנונית** · ⚠️ **מרגין פנוי 406.34 (T-34, דיווח-בלבד)** · אפס ריסטארט / אפס הודעת-טלפון
+
+`date` ⇒ `2026-09-20 12:06:56 IDT (Sun)` — לא `15:30-16:10`, לא RTH `16:30-23:00`, לא תור-לילה ⇒ **חובה-1 בלבד**. `git pull --rebase --autostash` ⇒ `Already up to date`, HEAD `823d516e`.
+
+### טלפון — אפס ממתינות (שלושה מקורות, פלט גולמי)
+| מקור | פלט |
+|---|---|
+| `tail PHONE_THREAD.jsonl` | פריט אחרון `2026-09-20T07:51:47Z <cowork>` |
+| peek `GET /chat?key=…` (Render) | `http=200`, `items: 30` — זהה למקומי; `senders = {cowork, מייקל×3, cc, --frm}`; הודעת-מייקל אחרונה `2026-09-16T10:43:05Z`, נענתה `11:09:29Z` |
+| `phone_request_guard.py` | `dispositioned: 3    undispositioned: 0` · `✅ every request in the window is either a task or dispositioned` |
+
+⇒ לא (א) · לא (ב) — אפס עסקאות-לייב מאז 18.09 · לא (ד) — לא שעת-שער. **אפס `phone_reply.py`.** (ג) נשקל ונדחה **מאותו נימוק כמו `11:06` ו-`11:37`**: פעולת-T-430 כבר בידי מייקל מהודעת `07:51`; דחיפה רביעית היא ההצפה שכלל-הטלפון נועד לעצור. הדדליין המחייב הוא שער-15:30 של **שני**.
+
+### מדוד עכשיו — הדלתא מול `11:37` (`823d516e`)
+- **🔴 T-430 — ראיה חדשה, ברמת-המנגנון.** לא רק "הבר ישן": `backend.err.log` מראה את הגשר בלולאת-דחיפה-חוזרת של אותו בר-שישי —
+  `[woodies_5min] TS-OFFSET-GATE: non-advancing batch 130380s old (> 900s) — stale re-push` ·
+  `_route_bar BLOCKED stale bar: stale_ts (bar 2026-09-18T20:55:00+00:00 older than 1 day)` ·
+  `[bars/5min] TS-OFFSET-GATE REJECTED batch: newest bar ts 130381s behind now while feed advances`.
+  ⇒ הגשר **חי ודוחף**, סיירה **לא מייצרת נתון חדש** — בדיוק חתימת T-430 ("קובץ טרי ≠ פיד חי"). `select max(ts) from v9_bars_5min_woodies` ⇒ `2026-09-18 23:55:00+03`, **גיל 33.21h**. `sierra_state.last_price = 0.0` בזמן ש-`age_s = 0.8`. הפעולה היא של מייקל בלבד (File → Disconnect → Connect to Data Feed); **לא נגעתי.**
+- **⚠️ T-34 מרגין — דיווח-בלבד, לא חוסם היום.** `/api/v9/account/state` ⇒ `acct_available_funds = 406.34` · `acct_cash_balance = 406.34` · `acct_account_value = 406.34` · `acct_margin_req = 0.0` · `acct_under_margin = 0` · `acct_daily_net_loss_limit = -243.8` · `acct_loss_limit_reached = 0`. **406.34 < 1,595** (סף T-34) ⇒ שורה כאן; **אינו חוסם בגודל 1** (הדרישה לחוזה אחד ~286 לפי מדידת 18.09) ⇒ **לא מקרה (ג), אפס הודעת-טלפון**. **למדידה מחדש בשער-15:30 של שני** — שם זה כן יכול להפוך ל-NO-GO.
+- **גודל — פסוק, לא מנוחש:** `ruled_contracts()` עם `.env` טעון ⇒ **`1`** (`.env`: `FIXED_CONTRACTS_1=1`, כל השאר `=0`) ✅ תואם פסיקת-מייקל 18.09 12:05. **לא נגעתי בדגלי-גודל.**
+- **מאזין :8000** — `Python 23510`, `ps -o lstart` ⇒ `Fri Sep 18 12:08:47 2026` ⇒ **אפס ריסטארט**; `/api/v9/health` ⇒ `{"status":"ok","version":"v9.0.0"}`.
+- **פוזיציה/מצב:** `position_qty 0` · `working_orders 0` · `/trades/active` ⇒ `null` · `order_placement_armed 1` · `is_sim 0` ⇒ **לייב+חמוש**. `gateway/status` ⇒ `live_slot null` (פנוי) · `live_enabled_systems [2,4]` · `cooldown_active false` · `cluster_guard_active false`.
+- **צל:** `close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades — nothing to do` ✅ — **למרות** `shadow_active_count = 15` ב-gateway; הסקריפט הוא הפוסק, ה-15 אינן "תקועות" לפי הגדרתו. לבדיקה חוזרת בשער.
+
+### הערת-שיטה (Rule 5 על עצמי — חזרה על מלכודת §3.9, יום שני ברציפות)
+`python3 -c 'from …contract_size import ruled_contracts; print(ruled_contracts())'` **בלי `.env`** החזיר `None`. דיווח על `None` היה נקרא כ"פסיקת-הגודל נעלמה" — שקר מלא. השורש זהה לזה שתועד ב-`11:06`: `ruled_contracts()` קורא `os.environ` בלבד. **המסקנה למסמך:** הנוסחה בכרטיס-המשימה (`python3 -c 'from backend…'` יחף) **מייצרת את השקר הזה בכל ריצה** — הקריאה הנכונה היא טעינת `.env` או `contracts_cfg` מהתהליך החי. אפס שינוי-קוד; הערה לשער-15:30.
+
+### מה **לא** עשיתי (במכוון)
+אפס ריסטארט (לא שעת-שער; והמאזין מיום ו' בבעלות הסשן הקודם) · אפס `phone_reply.py` · אפס נגיעה בדגלים/גודל/פוזיציות/`.env` · אפס `--apply` על הצל · אפס פריט-משימה חדש · פסיקת-כיפור 21.09 ועמוד-ההכרעה נשארים בבעלות שער-15:30 / הסשן האינטראקטיבי.
+
+— cowork-daily
+
 ## 🟢 [cowork-daily · 2026-09-20 11:37-11:47 IL] — **חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון** · **אפס דלתא מול ריצת `11:06-11:20` (`621a5e2c`)** · [[T-430]] עדיין מת · אפס ריסטארט / אפס הודעת-טלפון
 
 `date` ⇒ `Sun Sep 20 11:36:56 IDT 2026` — לא `15:30-16:10`, לא RTH, לא תור-לילה ⇒ **חובה-1 בלבד**. שלושה מקורות בלתי-תלויים, כולם אפס-ממתינות: (1) `tail PHONE_THREAD.jsonl` ⇒ פריט אחרון `2026-09-20T07:51:47Z <cowork>`; (2) peek ישיר `GET /chat?key=…` מ-Render ⇒ `TOTAL: 30`, **זהה לקובץ המקומי**, `senders = {cowork:23, מייקל:3, cc:3, --frm:1}`, הודעת-מייקל אחרונה `2026-09-16T10:43:05Z` ונענתה עניינית `2026-09-16T11:09:29Z`; (3) `phone_request_guard.py` ⇒ `dispositioned: 3  undispositioned: 0  ✅ every request in the window is either a task or dispositioned`. ⇒ לא (א), לא (ב) (אפס עסקאות-לייב מאז 18.09), לא (ד) (לא שעת-שער) — **אפס `phone_reply.py`**. (ג) נשקל ונדחה שוב מאותו נימוק של `11:06`: פעולת-T-430 כבר בידי מייקל מהודעת `07:51`, ודחיפה חוזרת היא ההצפה שכלל-הטלפון נועד לעצור. **מדוד עכשיו:** `select max(ts) from v9_bars_5min_woodies` ⇒ `2026-09-18 23:55:00+03` (גיל **32.7h**) ⇒ 🔴 T-430 מאושר בפעם השלישית; מאזין `:8000` ⇒ `Python 23510`, `ps -o lstart` ⇒ `Fri Sep 18 12:08:47 2026`, `ELAPSED 01-23:29:12` ⇒ **אפס ריסטארט**; health `http=200 t=0.0020s {"status":"ok","version":"v9.0.0"}`; `/api/v9/mobile/data` ⇒ `contracts_cfg=1` (תואם פסיקת-מייקל 18.09 12:05) · `position_qty=0` · `active=[]` · `order_placement_armed=1` · `send_orders_to_trade_service=1` · `is_sim=0` · `trading_paused=false` · `today={"pnl":0.0,"n":0,"w":0}` · `sierra.daily_pnl=-67.5` (חמישי). **לא נגעתי** בדגלים/גודל/פוזיציות/`.env`; לא פתחתי פריט חדש ולא שכפלתי את דוח-`11:06` — הבעלות על שער-15:30 של שני ועל פסיקת-כיפור 21.09 נשארת כפי שהיא.
