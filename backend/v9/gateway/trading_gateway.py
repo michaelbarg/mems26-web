@@ -1178,6 +1178,35 @@ class TradingGateway:
                     _dp_p15_ot = _P15_MAP.get(_dp_classification)
                     if _dp_p15_ot:
                         _dp_ot = _dp_p15_ot
+                # T-426 (Michael 20.09 "תתקן את הענף"): a CONFIRMED opening
+                # drive (OPENING_DRIVE/TEST_DRIVE from the opening engine: close
+                # beyond the OR, 3 closed bars + confirming closed bar) is
+                # judged as OPEN_DRIVE while the T-314 label still says
+                # AUCTION_IN/OUT — the label needs the session range to grow
+                # ~5× before it can call the drive (18.09: 17:00, after 25 of
+                # 26 points). Measured on 56 sessions: the label lag blocked the
+                # BETTER half of the drive entries (N=14, 64% win, +$519 vs the
+                # admitted N=7, 43%, −$12). Flag OPENING_DRIVE_PROVISIONAL_V1;
+                # OFF ⇒ byte-identical. Pure rule: opening_provisional.py.
+                if os.getenv("OPENING_DRIVE_PROVISIONAL_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        from backend.v9.systems.opening_provisional import (
+                            provisional_opening_type as _dp_prov)
+                        _dp_ot_new, _dp_dir_new, _dp_prov_applied = _dp_prov(
+                            _dp_ot,
+                            locked=bool(getattr(_dp_dtm_obj, "_opening_type_locked", False)),
+                            classification=_dp_classification,
+                            direction=(setup.get("direction") or "").upper())
+                        if _dp_prov_applied:
+                            logger.warning(
+                                "[Gateway] T-426 provisional opening type %s→%s for %s %s "
+                                "(T-314 label lag; drive confirmed by the opening engine)",
+                                _dp_ot, _dp_ot_new, _dp_classification, _dp_dir_new)
+                            _dp_ot = _dp_ot_new
+                            _dp_v2_dir = _dp_dir_new
+                    except Exception as _dp_prov_err:
+                        logger.warning("[Gateway] T-426 provisional opening type failed (unchanged): %s",
+                                       _dp_prov_err)
                 # IL time
                 from backend.v9.services.market_clock import now_et
                 _dp_et = now_et()

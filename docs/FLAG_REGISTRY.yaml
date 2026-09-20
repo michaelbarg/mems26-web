@@ -1909,3 +1909,25 @@ flags:
     why: "T-103: היום מועמדים שנחסמו ב-FHB/dedup/S4 decision-tree נעלמים. מדידה בלבד, ברירת-מחדל OFF, כשל בכתיבה לא נוגע בירי."
     status: deferred
     ref: "docs/spec_authority/CANDIDATE_LEDGER_CONTRACT.md"
+
+  OPENING_DRIVE_PROVISIONAL_V1:
+    category: cascade_gate
+    group: opening
+    what: "T-426 (20.09): a CONFIRMED opening drive from the opening engine (OPENING_DRIVE/OPENING_TEST_DRIVE — close beyond the OR, 3 closed bars + confirming closed bar) is judged by the playbook as OPEN_DRIVE/OPEN_TEST_DRIVE while the T-314 label is still OPEN_AUCTION_IN/OUT or UNKNOWN and not locked. Pure rule in backend/v9/systems/opening_provisional.py; the detector is untouched. OFF = byte-identical (the phase-B AUCTION row allows EDGE_FADE only ⇒ dalton_intent:kind)."
+    why: "Michael 20.09 09:40 'תתקן את הענף — שוב קנית מאוחר מדי'. The T-314 detector calls OPEN_DRIVE only once the open sits within 20% of the SESSION range from the extreme, so early in a drive (small range) the first bar's counter-spike exceeds the tolerance and the label lags until the range has grown ~5x (18.09: 17:00, after 25 of 26 points). Measured scripts/open_drive_branch_study.py (56 clean sessions, closed bars, fixed model 1c to T1=1.5R): DRIVE admitted today N=7 43% win −$12 vs BLOCKED by the label lag N=14 64% win +$519 (2c ladder +$1,270). Harness 18.09: OPENING_DRIVE SHORT 16:45:03 @7705 stop 7716 T1 7689.75 ⇒ +$76.25 (live got 17:00 @7691.25 ⇒ +$6.25)."
+    status: enabled
+    ref: "T-426 · docs/reports/OPEN_DRIVE_BRANCH_2026-09-20.md · harness_out/t426/"
+  OPENING_ENGINE_CLOSED_BARS_V1:
+    category: s2
+    group: opening
+    what: "T-425 (20.09, kill-switch, code default ON): the opening engine (evaluate_opening_entry, opening_dir_fusion, opening_first_trade_ok, build_opening_setup) judges CANONICAL CLOSED RTH bars from v9_bars_5min_woodies (ts <= now-5min, same source/definition as fwd_harness --oe-closed) instead of `_oe_bars`, which holds one frozen first-push snapshot per bar (o=h=l=c=open). `_oe_bars` still counts the window. 0 = old snapshots."
+    why: "Same root as T-422: the snapshots made the opening range width 0, every 'close' an open, the structural stop anchored on max(open) instead of the session extreme, and the fusion momentum measured on opens. 18.09 the gate printed (o=7705.25 c=7705.25) for a bar that closed 7705.0. The measured branch (56 sessions) assumes closed bars."
+    status: enabled
+    ref: "T-425 · T-422 · fwd_harness --oe-closed"
+  OPENING_STOP_STRUCTURAL_V1:
+    category: targets
+    group: opening
+    what: "T-428 (20.09, kill-switch, code default ON): build_opening_setup marks metadata.stop_is_structural=True — the opening stop (session-structure extreme + offset, capped 15 / skipped >25) IS the structural anchor, so STOP_RESOLVER / STOP_FLOOR_IB / STEP_SCALED_LADDER leave it and its R-ladder (T1 1.5R, T2 2.5R, T3 4R) alone; TARGET_REALISM still applies to T1. 0 = old behaviour."
+    why: "Michael ruling 09.09 10:20 'הסטופ = העוגן המבני, הגודל נגזר', applied to the opening family. Without it the gateway re-derived a 4.5-pt ATR rung on the 18.09 drive, STEP_SCALED_LADDER rescaled t2/t3 off that rung while TARGET_REALISM kept t1 ⇒ [7689.75, 7691.5, 7682.5] on a SHORT ⇒ T-335 rejected the PLACE (harness 20.09). Live #1916 got stop 7.75 pt / T1 2.25 pt (0.29R) on a 1.5R design."
+    status: enabled
+    ref: "T-428 · harness_out/t426/prov_2026-09-18.log"

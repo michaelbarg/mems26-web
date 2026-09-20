@@ -2435,12 +2435,42 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     self._oe_seed_bias = "LONG" if _seed == "UP" else "SHORT"
                             except Exception:
                                 pass
+                        # T-425 (Michael 20.09 "תתקן את הענף — שוב קנית מאוחר מדי"):
+                        # the opening engine judges CANONICAL CLOSED bars, not
+                        # `_oe_bars`. `_oe_bars` holds ONE frozen first-push
+                        # snapshot per bar (o=h=l=c=open, ~3s in — process_bar
+                        # returns early on every duplicate push), so every
+                        # consumer of it read fiction: evaluate_opening_entry saw
+                        # an opening range of width 0 and "closes" that were
+                        # opens, build_opening_setup anchored the structural
+                        # stop on max(open) instead of the true session extreme,
+                        # and the fusion measured momentum on opens. T-422 fixed
+                        # only the confirmation bar; this fixes the other three
+                        # consumers with the same source and the same
+                        # `ts <= now-5min` definition as the fwd_harness
+                        # `--oe-closed` counterfactual. `_oe_bars` still counts
+                        # the window (bars seen). Kill-switch
+                        # OPENING_ENGINE_CLOSED_BARS_V1=0 ⇒ old snapshots.
+                        # Measured (scripts/open_drive_branch_study.py, 56
+                        # sessions, closed bars): DRIVE N=21 57% win Σ$1c=+507.
+                        _oe_closed = None
+                        if os.getenv("OPENING_ENGINE_CLOSED_BARS_V1", "1").lower() in ("1", "true", "yes"):
+                            try:
+                                from backend.v9.services.trade_context import (
+                                    get_closed_rth_bars_today as _oe_closed_fn)
+                                _oe_closed = _oe_closed_fn() or None
+                            except Exception as _oe_cb_err:
+                                logger.warning("[FiveMin] T-425 closed-bar read failed (falling back to snapshots): %s",
+                                               _oe_cb_err)
+                                _oe_closed = None
+                        _oe_judge = _oe_closed if _oe_closed else self._oe_bars
+                        _oe_src = "canonical" if _oe_closed else "snapshot"
                         # OPENING_DIR_FUSION_V1: compute the volume-confirmed direction once
                         # the first 30 min are in (bar 6); cache UP/DOWN/None for the gate.
                         if _fusion_on and not getattr(self, "_oe_fusion_done", False) and len(self._oe_bars) >= 6:
                             try:
                                 from backend.v9.services.trade_context import get_opening_dir_fusion
-                                self._oe_fusion = get_opening_dir_fusion(self._oe_bars)
+                                self._oe_fusion = get_opening_dir_fusion(_oe_judge)
                                 logger.info("[FiveMin] OPENING_DIR_FUSION = %s", self._oe_fusion)
                             except Exception as _fx:
                                 self._oe_fusion = None
@@ -2464,10 +2494,15 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     "[FiveMin] OPENING_DIR_FUSION not ready yet "
                                     "(closed bars still catching up) — will retry next bar")
                         if 2 <= len(self._oe_bars) <= _oe_win and _anti_phantom_ok:
+                            # T-425: judge the closed bars (window still counted on bars seen)
                             _trig = evaluate_opening_entry(
-                                self._oe_bars, self._oe_fired,
+                                _oe_judge, self._oe_fired,
                                 window_last_bar=_oe_win, enable_pullback=_of_on,
                                 bias=getattr(self, "_oe_seed_bias", None))
+                            if _trig:
+                                logger.info("[FiveMin] OPENING_ENTRY trigger %s %s on %d %s bars (seen=%d)",
+                                            _trig.get("type"), _trig.get("direction"), len(_oe_judge),
+                                            _oe_src, len(self._oe_bars))
                             # direction gate: drop low-conviction (fusion None) or a trigger
                             # that fights the fusion direction. Only once fusion is computed.
                             if _trig and _fusion_on and getattr(self, "_oe_fusion_done", False):
@@ -2505,14 +2540,18 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     # Inject the canonical closed bars (same
                                     # source + same ts<=now-5min definition as
                                     # the harness --oe-closed counterfactual).
-                                    try:
-                                        from backend.v9.services.trade_context import (
-                                            get_closed_rth_bars_today as _ft_closed_fn)
-                                        _ft_closed_bars = _ft_closed_fn()
-                                    except Exception:
-                                        _ft_closed_bars = None
+                                    # T-425: one read per bar — reuse the closed
+                                    # bars the engine already judged (same source).
+                                    _ft_closed_bars = _oe_closed
+                                    if _ft_closed_bars is None:
+                                        try:
+                                            from backend.v9.services.trade_context import (
+                                                get_closed_rth_bars_today as _ft_closed_fn)
+                                            _ft_closed_bars = _ft_closed_fn()
+                                        except Exception:
+                                            _ft_closed_bars = None
                                     _ft_ok, _ft_why = _ft_ok_fn(
-                                        self._oe_bars, _trig["direction"], _ft_conf,
+                                        _oe_judge, _trig["direction"], _ft_conf,
                                         trigger_type=_trig.get("type"),
                                         opening_type=getattr(_mc, "opening_type",
                                                              None) if _mc else None,
@@ -2573,15 +2612,21 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     _trig = None
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
+                                # T-425: the structural stop anchors on the TRUE
+                                # session extreme (closed bars), not on max(open).
                                 _setup = build_opening_setup(
-                                    _trig, self._oe_bars,
+                                    _trig, _oe_judge,
                                     shadow_only=(_oe_mode == "shadow"))
                                 if _setup and self._gateway:
+                                    try:
+                                        _setup.setdefault("metadata", {})["opening_bars_src"] = _oe_src
+                                    except Exception:
+                                        pass
                                     logger.info(
-                                        "[FiveMin] OPENING_ENTRY %s %s entry=%.2f stop=%.2f t1=%.2f (%s)",
+                                        "[FiveMin] OPENING_ENTRY %s %s entry=%.2f stop=%.2f t1=%.2f (%s, bars=%s)",
                                         _trig["type"], _trig["direction"],
                                         _setup["entry_price"], _setup["stop"], _setup["t1"],
-                                        "SHADOW" if _oe_mode == "shadow" else "live-eligible")
+                                        "SHADOW" if _oe_mode == "shadow" else "live-eligible", _oe_src)
                                     self._gateway.route_setup(_setup, 2)
                 except Exception as _oe_err:
                     logger.warning("[FiveMin] opening-entry failed (non-fatal): %s", _oe_err)

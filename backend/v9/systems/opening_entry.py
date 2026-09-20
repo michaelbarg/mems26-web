@@ -322,6 +322,19 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
             "shadow_only": bool(shadow_only),
             "or_width": trigger.get("or_width"),
             "reverses": trigger.get("reverses"),
+            # T-428 (Michael 20.09 "תתקן את הענף"; ruling 09.09 10:20 "הסטופ =
+            # העוגן המבני, הגודל נגזר"): this stop IS the structural anchor
+            # (session-structure extreme + offset, capped 15 / skipped >25), and
+            # the ladder is R-multiples of it. Without this flag the gateway's
+            # STOP_RESOLVER re-derived a 4.5-pt ATR rung on the 18.09 drive,
+            # STEP_SCALED_LADDER rescaled t2/t3 off that rung while
+            # TARGET_REALISM kept t1 — [7689.75, 7691.5, 7682.5] for a SHORT —
+            # and T-335 rejected the PLACE as a non-monotonic ladder (harness
+            # 20.09). Live #1916 got the same treatment: stop 7.75 pt, T1 2.25
+            # pt (0.29R) on a 1.5R design. Kill-switch: OPENING_STOP_STRUCTURAL_V1=0.
+            "stop_is_structural": (
+                __import__("os").getenv("OPENING_STOP_STRUCTURAL_V1", "1").strip().lower()
+                in ("1", "true", "yes")),
         },
     }
 
