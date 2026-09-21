@@ -1,3 +1,102 @@
+## ☎️ [cowork-dev · 2026-09-21 22:05-22:10 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-1 + חובה-3)** · ☎️ **הודעה אחת בלבד — מקרה (ב), עסקת-לייב שביעית נפתחה** · 🟢 **פיד בר-22:05 גיל 2.84 דק' · באקנד 79317 בריא (3.8ms) · פוזיציה 1/1 תואמת, בעלות מוכחת לפי `order_id` · ליגר חי (2 שנ') · אפס ERROR/CRITICAL ב-21:00→22:10 · אפס ריסטארט · אפס נגיעה בדגלים/`.env`/פוזיציות**
+
+### חובה-1 · תור-הטלפון — **אין ממתינות ממייקל** (והרלה מוכח-חי, מלכודת-12)
+
+```
+$ launchctl print gui/$UID/com.mems26.mobile_relay | grep -E "state|pid"
+  state = running
+  pid   = 1857                                   ⇒ הרלה חי — "אפס ממתינות" אינה שלילה-כוזבת
+
+$ curl -s "$RENDER_MOBILE_URL/instruction/pending?key=..."   # peek, לא pop
+  {"items":[]}
+
+$ GET /chat  — הודעת-מייקל האחרונה
+  2026-09-21T16:10:27Z | מייקל | "לא הבנתי אם המערכת זיהתה שזה יום טרנד למה אין כניסה בכל מדרגה"
+  2026-09-21T16:17:01Z | (סוכן) | תשובה עניינית מלאה — Trend_Normal 17:55 / TREND_STEP בצל מ-23.08
+  ⇒ נענתה. אפס הודעות-מייקל ללא מענה.
+```
+
+### חובה-3 · ניטור-RTH — המדידות הגולמיות
+
+```
+$ date                                     2026-09-21 22:07:50 IDT
+
+$ psql -c "select max(ts), age_min from v9_bars_5min_woodies"
+  bar                 | age_min
+  2026-09-21 22:05:00 |  2.84                    ⇒ פיד חי (T-430: הבר קובע, לא גיל-קובץ-היצוא)
+
+$ curl -w "%{time_total}s http=%{http_code}" /api/v9/health
+  0.003841s http=200                              ⇒ {"status":"ok","version":"v9.0.0"}
+
+$ ps -o pid,lstart,etime,%cpu -p $(lsof -ti :8000)
+  79317  Mon Sep 21 15:42:40 2026  06:23:05  6.4%  uvicorn backend.main:app
+  ⇒ המאזין מהריסטארט של 15:42 (בעלות: cowork-האינטראקטיבי) — לא הורם ולא נגעתי
+
+$ psql -c "select id from v9_decision_vectors order by id desc limit 1"
+  31203 | 2026-09-21 22:08:00                    ⇒ 2 שנ' לפני הבדיקה — הליגר כותב
+
+$ tail -c 20MB /tmp/backend.err.log | grep -acE "^2026-09-21 (21|22):..:.. \[(ERROR|CRITICAL)\]"
+  0                                               ⇒ אפס בחלון 21:00→22:10
+```
+
+### עסקת-לייב 7 — `2076` REACTIVE_LONG, **עדיין פתוחה** (⇒ מקרה ב' בטלפון)
+
+```
+$ psql -c "... v9_trades where entry_ts>=date '2026-09-21' and lower(mode)='live'"
+  id  |sys|pattern        |dir |entry   |state |outcome| e    | x    | pnl
+  2017| 2 |OPENING_DRIVE  |LONG|7766.25 |CLOSED|WIN    |16:45 |16:52 |27.5
+  2029| 2 |REACTIVE_LONG  |LONG|7793.25 |CLOSED|WIN    |18:05 |18:12 |12.5
+  2033| 2 |BULL_FLAG_LONG |LONG|7796    |CLOSED|WIN    |18:15 |18:16 |12.5
+  2041| 2 |REACTIVE_LONG  |LONG|7804.75 |CLOSED|WIN    |18:45 |18:45 |12.5
+  2047| 2 |INITIATIVE_LONG|LONG|7814    |CLOSED|WIN    |19:20 |19:31 |27.5
+  2072| 4 |GHOST          |LONG|7830.25 |CLOSED|WIN    |21:05 |21:15 |11.25
+  2076| 2 |REACTIVE_LONG  |LONG|7842    |FILLED|       |21:50 |      |
+  (7 rows)  ⇒ 6 סגורות / 6 ניצחונות + אחת פתוחה
+
+  2076: stop 7831.25 · t1 7845.25 · t2 7870 · t3 7884 · confidence 0.75 · contracts 1
+        variant A_VSA · day_type Trend_Normal (conf 0.88) · net_delta 1291 · entry_bar_delta 817
+        zone above_value · phase D · opening_type OPEN_DRIVE · ib_width 32.75 · atr_causal 3.84
+
+$ curl /api/v9/account/state → sierra_state (age_s 0.5)
+  position_qty=1 · avg_price=7842.75 · working_orders=2 · last_price=7839.5
+  open_pnl=-16.25 · daily_pnl=78.75 · order_placement_armed=1 · acct_is_sim=0
+  ⇒ **בעלות לפי order_id, לא לפי ספירה**: TM 2076 מחזיק sierra_order_id=11312,
+    c1_target_id=11313, c1_stop_id=11314 ⇒ שני ה-working_orders הם הסטופ+היעד של 2076.
+    פוזיציה 1 מול TM 1 — תואם. **אין אזעקת-ownership, לא נגעתי בפוזיציה.**
+```
+
+**☎️ ההודעה היחידה שנשלחה (מקרה ב'), ואומתה מ-`GET /chat` ולא מה-`ok`:**
+`2026-09-21T19:07:27Z · cowork-dev · len=246 · backticks=False` — "עסקת-לייב שביעית נפתחה. נמדד 22:07: REACTIVE_LONG לונג, כניסה 7842, סטופ 7831.25, יעד ראשון 7845.25…". חותמת `{NOW}` נפתרה ל-`22:07` בזמן-השליחה ⇒ מדידה, לא ניחוש.
+
+### 🔑 שני ממצאים לתיעוד — **דיווח בלבד, אפס פעולה**
+
+**(1) `ruled_contracts() == 1`, לא 2 — נוסח-המשימה-המתוזמנת התיישן.** גוף המשימה אומר
+"מ-16.09: 2, FIXED_CONTRACTS_2=1". הקוד החי אומר אחרת:
+```
+$ set -a; source .env; set +a; python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+  1
+$ grep -nE "FIXED_CONTRACTS" .env
+  266:FIXED_CONTRACTS_1=1      267:FIXED_CONTRACTS_2=0      342:FIXED_CONTRACTS_4=0 …
+```
+⚠️ גם **בלי** `.env` בסביבה הפונקציה מחזירה `None` (לא 1, לא 2) — כלומר מי שיריץ אותה
+בלי `set -a; source .env` יקבל `None` ויתפתה "להשלים" ערך. זו בדיוק מלכודת-ההמצאה.
+עסקת `2076` נפתחה ב-**חוזה אחד** ⇒ הביצוע תואם את הפסיקה החיה. **לא נגעתי בשום דגל-גודל**
+(פסיקת 31.08; T-225 נגרם בדיוק מהנוסח הישן הזה). ⇒ לשער-המחר: לקרוא מ-`ruled_contracts()`
+**עם `.env` טעון**, ולצפות ל-**1**, לא ל-2 ולא ל-5.
+
+**(2) באג-שולח ב-`phone_reply.py` — הודעת `16:17:01Z` נרשמה עם שולח `--frm`.** החתימה היא
+**פוזיציונית** (`phone_reply.py <sender> "<text>"`), ומי ששלח ב-16:17 העביר `--frm cowork-dev`
+בסגנון `channel_post.py` ⇒ המחרוזת `--frm` נכנסה כשם-השולח והתשובה של מייקל מופיעה בטלפון
+בלי ייחוס-סוכן. התוכן נמסר במלואו, אז זה **קוסמטי** — אבל שתי סקריפטים עם שתי חתימות שונות
+הם מלכודת חוזרת. **הצעה (לא בוצע, לא בסמכותי לשנות סקריפט-שליחה בלי פסיקה):** לקבל ב-
+`phone_reply.py` גם `--frm` כאליאס לפוזיציוני, או להיכשל ברועש על שולח שאינו ברשימה הסגורה.
+
+**אפס פעולות-כתיבה מעבר לזה:** אפס ריסטארט (16:10-23:00 אסור) · אפס נגיעה ב-`.env`/דגלים/
+פוזיציות/פקודות · אפס `op=EXIT`. הצעד-הבא: הריצה הבאה מנטרת את סגירת `2076`, ואם נסגרה —
+מקרה (ב) בטלפון עם P&L.
+
+---
+
 ## ☎️ [cowork-dev · 2026-09-21 21:05-21:10 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-1 + חובה-3)** · ☎️ **הודעה אחת בלבד — מקרה (ב), עסקת-לייב נפתחה** · 🟢 **פיד בר-21:05 גיל 0.8 דק' · באקנד 79317 בריא (1.9ms) · פוזיציה 1/1 תואמת, בעלות-מערכת מוכחת לפי `order_id` · אפס ריסטארט · אפס נגיעה בדגלים/`.env`/פוזיציות**
 
 ☎️ **חובה-1 — אין הודעת-מייקל בלי תשובה עניינית.** האחרונה שלו נותרה `16:10:27Z`, נענתה עניינית `16:17:01Z`. **peek ישיר מ-Render זהה לזנב המקומי** (`items=30`, שורה אחרונה `cowork-dev 16:38:50Z`) ⇒ אפס ממתינות.
