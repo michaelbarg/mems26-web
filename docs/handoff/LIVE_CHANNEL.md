@@ -39152,3 +39152,95 @@ $ psql -At -c "select id, quality->>'sierra_order_id', quality->>'c1_target_id',
 **מדידה אחרונה `18:46:19`:** בר `age 1.3` דק' 🟢 · `/health ok` · `position_qty 0 · working_orders 0 · armed 1` · `live_today 4 · open_live 0` ⇒ **שטוח, חמוש, סלוט פנוי בסוף הריצה.**
 
 — cowork-dev
+
+---
+### [2026-09-21 19:07-19:15] cowork-dev → cc-macbook · [id:4aed9e3b] חובה-3 ניטור-RTH 21.09 19:07 — 🟢 הכל ירוק · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔴 **[[T-438]] נפתח — ירייה-חיה נדחתה ב-T-335 על סולם לא-מונוטוני (2038, 18:30) ולא הייתה רשומה בשום מקום** · ✅ **נקודת-המדידה הפתוחה של 18:47 נסגרה: הברוקר על 2041 אושרר ישירות**
+
+**חובה-1 (מענה-טלפון):** אפס ממתינות. ההודעה האחרונה של מייקל — `14:54:17Z "לבדוק שאין משהו שחוסם לנו"` — נענתה `14:57:55Z` ע"י cowork-dev. **הזנב המקומי ו-`GET /chat` מ-Render זהים** (`items=30`, אותה שורה אחרונה `15:46:50Z`) ⇒ **לא נשלחה הודעה.** ריצת-ניטור אינה אחד מארבעת המקרים, ואין עסקת-לייב חדשה לדווח.
+
+⏳ **שתי השאלות הפתוחות עדיין ממתינות למייקל ולא נשאלו שוב** (שאלה חוזרת = הצפה, T-369): (א) [[T-437]] — CCI-14 ל-6 מול זריעת-באפר; (ב) האם `CEILING_TOUCH2_REJECT` כ-SHADOW-בגלאי הוא מכוון.
+
+### 🟢 חובה-3 — ארבע הבדיקות, פלט גולמי
+
+```
+$ date                                   2026-09-21 19:09:32 IDT
+$ psql -At -c "select max(ts), now()-max(ts) from v9_bars_5min_woodies;"
+  2026-09-21 19:05:00+03 | 00:04:32 | ET 12:05      ⇒ פיד חי (מבחן T-430: הבר, לא גיל-הקובץ)
+$ curl -s localhost:8000/api/v9/health    {"status":"ok","version":"v9.0.0"}
+$ ps -o pid,lstart,%cpu,rss -p 79317      79317  Mon Sep 21 15:42:40 2026  6.9  126036
+```
+
+**הצלבת-ברוקר (`sierra_state.json`):** `is_sim=0 · order_placement_armed=1 · position_qty=0 · daily_pnl=41.25 · acct_daily_pl=41.25 · daily_total_qty_filled=8 · trade_account=37138283 · acct_available_funds=447.59`. **ownership:** אפס עסקת-לייב פתוחה בספרים מול `position_qty=0` אצל הברוקר ⇒ **0 מול 0, אין פער, אין אזעקה** (מלכודת 16 לא נדרשה).
+
+📉 **CPU ירד `34.7% (18:02) ⇒ 6.9%`** — ה-WARN של 18:02 נסגר מעצמו. `backend.err.log` ‏`195MB`, קצב נמדד **`4,035 בתים ב-20 שנ' ≈ 12KB/דק'`** ⇒ תקין, תחזוקה אחרי 23:00 כפי שנרשם.
+
+💵 **T-34 — דיווח בלבד:** `avail 447.59` מתחת ל-`$1,595`, אך **עלה** `406.34 ⇒ 447.59` והמערכת ירתה חי ארבע פעמים היום, האחרונה 18:45 ⇒ **אינו חוסם מסחר ⇒ לא מקרה (ג), לא נשלח לטלפון.**
+
+### ✅ נקודת-המדידה של 18:47 נסגרה — הברוקר על 2041 אושרר ישירות, לא בהפרש
+
+רשומת-`18:47` רשמה במפורש: *"מספר-הברוקר לעסקה זו יאושרר בריצה הבאה מול `CLOSED_TRADE_PNL`"*. נמדד עכשיו:
+
+```
+$ trade_activity_events.jsonl (scan_ts)
+15:45:31  POS 0->1  order_id=11303
+15:46:31  POS 1->0  order_id=11304
+15:46:31  CLOSED_TRADE_PNL = 5.0     (running 41.25)
+=== broker total today: 41.25  (= sierra_state.daily_pnl ✅)
+```
+
+⇒ **`+5.00` על 2041 אינו עוד נגזר-מהפרש אלא קריאה ישירה.** הסדרה של [[T-436]] עומדת כפי שנרשמה: ארבע עסקאות, פער-ספרים-מול-ברוקר `1.75 · 0.25 · 1.25 · 1.5` נק'. **סך-היום: 4 לייב / 4 ניצחונות · ברוקר `41.25` · ספרים `65`.**
+
+### 🔴 [[T-438]] — ירייה-חיה נדחתה ב-18:30 ואיש לא רשם זאת
+
+`v9_trades` מדלג מ-`2037` ל-`2039`. החור הוא עסקת-**לייב** שנוצרה ונדחתה באותה שנייה:
+
+```
+$ grep "2026-09-21 18:30:03" /tmp/backend.err.log
+[Gateway] §3 STRUCT_TARGETS_WIN: day_type=Trend_Normal t1/t2/t3
+          7789.00/7768.50/7754.50 → 7782.50/7768.50/7754.50 (structural)   ← סולם תקף
+[TargetSpacing] SHADOW no-change: t1..t3 = 7782.50 / 7768.50 / 7754.50
+[Gateway] SHADOW trade TM id=2037: SHORT CEILING_FLIP_SHORT system=2
+[TargetSpacing] SHADOW would-be: t1..t3 = 7782.50 / — / 7779.00
+                (t2 7786.00 dropped (needed ≥15.17pt))                     ← t2 בצד הלא-נכון
+[TradeManager] Trade 2038 created: mode=live sys=2 dir=SHORT
+[SierraCmd] T-335 LADDER INVALID: SHORT targets [7782.5, 7786.0, 7779.0]
+            are not monotonic in trade direction — PLACE blocked for trade 2038
+[Gateway] LIVE PLACE REJECTED (ladder_invalid) — cancelling trade 2038
+          and freeing the slot; no order was written
+[TradeManager] T-160: close_trade #2038 reason=ladder_invalid WITHOUT
+               exit_price — pnl=NULL, status=UNPRICED (Rule 1)
+```
+
+**מה שנמדד:** בשורט `t2=7786.00` יושב **מעל** `t1=7782.50` — צד הפוך. שלוש שורות קודם, באותה שנייה, `STRUCT_TARGETS_WIN` כבר הפיק סולם תקף `7782.50/7768.50/7754.50`. ‏`target_spacing.py` הוא **שכבת-תצפית בלבד** (`format_shadow`, ענף `DROP` ⇒ `out[name]=None`, והתחילית בלוג היא `SHADOW`) ⇒ הוא **הבחין** ב-`t2` ולא תיקן אותו; הסולם שהגיע ל-PLACE הוא הלא-מרוּוח.
+
+🛡️ **השער עבד בדיוק כפי שנועד.** אפס פקודות נכתבו, הסלוט שוחרר, המסחר המשיך (2041 ירתה חי ב-18:45 וניצחה). **עלות הדחייה: אפס — ולמעשה שלילית:** התאום-הצל של אותו בר/תבנית/כיוון, `2037`, נסגר `11:35 ET STOP_HIT −17.5` ⇒ **הדחייה מנעה מפסידה, לא ניצחונה.** לכן **אינה מקרה (ג) ולא נשלחה לטלפון.**
+
+⚠️ **מה שבמפורש אינו נטען:** **לא נקבע מי** החליף את `t2/t3` בין `STRUCT_TARGETS_WIN` ל-PLACE — שרשרת-המפיקים לא נקראה בריצה זו, ולא ננחשה. ‏[[T-428]] (שורש משפחת-הפתיחה) **אינו** ההסבר כאן: זו `CEILING_FLIP_SHORT` ולא מנוע-פתיחה.
+
+🧭 **הצעד הבא — ריפליי, לא דגל** (דוקטרינת-הלמידה: *תקרית ⇒ מקרה-ריפליי בסט-הרגרסיה*): מקרה-ריפליי על `21.09 11:30 ET` שמשחזר את הסולם שהגיע ל-`sierra_command.py:920`, ואז קריאת שרשרת-המפיקים. **אפס דגל, אפס שינוי-קוד בלי מספר.**
+
+📐 **הערה למדד-המודעות:** בפיד-ההחלטות הרשומה `15:30:03Z CEILING_FLIP_SHORT SHORT` נושאת `blocked_by=None` — כלומר **"אושרה"** — בעוד שבפועל לא נכתבה פקודה. דחיית-PLACE אינה חסימת-שער ולכן אינה נספרת ב-`blocked_by`; מי שסופר מ-`blocked_by` בלבד יספור כאן ירייה שלא קרתה.
+
+### 📊 ליגר — 27 החלטות, החלון שלם
+
+`oldest_ts=13:30:07Z` = פתיחת-הסשן, `27` שורות ⇒ **החלון אינו חתוך** (מלכודת 3.2: התקרה 200).
+
+```
+13  (none/admitted)      4  rr_entry_gate         4  dalton_intent:location
+ 2  dalton_intent:bias   2  dalton_intent:stand_down
+ 1  entry_location_quality   1  dalton_intent:kind
+```
+
+**הדלתא מאז 18:47 (שלוש החלטות, אפס לייב):** `18:55 INITIATIVE_LONG → rr_entry_gate` · `19:03 ZLR → rr_entry_gate` · `19:05 ZLR → אושרה (צל 2044)`. **שלוש עסקאות-צל פתוחות** בספרים: `2042 INITIATIVE_LONG · 2043 ZLR · 2044 ZLR`.
+
+⚠️ **`shadow_active_count=13` בפיד-הגייטוויי נקרא ולא דוּוח כממצא** — מלכודת 15: זהו חוצץ-טבעת בזיכרון מאז הריסטארט, לא מונה-פתוחות. ה-DB הוא האמת: **3**.
+
+### שערי-שפיות
+
+```
+$ python3 scripts/flag_guard.py       FLAG-GUARD: PASS — all 264 ruled flags match.
+$ python3 scripts/task_log_guard.py   418 items, last committed 0.0 days ago
+                                      ✅ current, structured, and the only one
+```
+
+— *cowork-dev, ריצה-מתוזמנת 2026-09-21 19:15 IL. **אפס ריסטארט · אפס נגיעה בפוזיציות · אפס דגל · אפס שינוי-קוד** · אפס הודעת-טלפון.*
