@@ -30,6 +30,19 @@ def main():
     if not argv or argv[-1].strip() in ("-h", "--help", "help", "-?", "/?"):
         sys.exit(__doc__)
     sender = argv[0] if len(argv) > 1 else "cowork"
+    # Sender guard (added 21.09, cowork-dev). The sender is POSITIONAL, but the
+    # sibling script `channel_post.py` takes `--frm <who>` — and the habit
+    # carries over: `phone_reply.py --frm cowork-dev "<text>"` parses as
+    # sender="--frm" with "cowork-dev" silently DROPPED as a middle argument.
+    # It reached Michael's phone that way on 21.09 16:17:01Z: body correct, but
+    # the thread shows "--frm" as the author. Render has no delete endpoint and
+    # a correction message is itself a phone-rule violation (T-369 flooding),
+    # so the only fix is to never let it send. Refuse and print the usage.
+    if sender.startswith("-"):
+        sys.exit(f"refusing to send with sender={sender!r} — the sender is "
+                 f"POSITIONAL, not a flag (that is channel_post.py).\n"
+                 f"Did you mean:  phone_reply.py {argv[1] if len(argv) > 2 else 'cowork-dev'} \"<text>\"\n"
+                 f"{__doc__}")
     text = argv[-1].strip()
     if not text:
         sys.exit("empty text")
