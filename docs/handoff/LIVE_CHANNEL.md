@@ -1,3 +1,121 @@
+## ☎️ [cowork-dev · 2026-09-21 17:37-17:55 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-1 + חובה-3)** · ☎️ **שתי תשובות נשלחו ואומתו · הוראה שלישית נרשמה ולא בוצעה** · 🟢 **פיד חי · באקנד בריא · פוזיציה 0 · אפס ריסטארט** · 🔑 **[[T-437]] נפתח — "חימוש אחרי 6 ברים"**
+
+☎️ **חובה-1 — שלוש הודעות-מייקל, כולן בלי תשובה עניינית (רק `-ack` של `cc`).** מקור: זנב `PHONE_THREAD.jsonl` + `GET /chat?key=…&n=200` מ-`RENDER_MOBILE_URL`.
+
+```
+14:36:46Z  מייקל  "מערכת 2 לא יורה כי היא לא חמושה ואתה עושה בלי לבדוק"   ⇒ נענה 14:43:41Z (467 ת')
+14:37:46Z  מייקל  "למה איני אטיב לונג נחסם"                              ⇒ נענה 14:48:13Z (403 ת')
+14:47:00Z  מייקל  "אבל אני לא רוצה חימוש אחרי יותר משעה וחצי             ⇒ נרשם [[T-437]], לא בוצע
+                   אני רוצה חימוש אחרי 6 ברים"
+```
+
+**אימות-מסירה מ-`GET /chat` ולא מה-`ok`:** `cowork-dev messages on Render today: 2 ['2026-09-21T14:43:41Z','2026-09-21T14:48:13Z']` · `backticks=False` בשתיהן.
+
+🪤 **מלכודת-מכשיר שכמעט הפכה לממצא-שווא, ונרשמת כי תחזור:** ה-peek הראשון רץ מול `mems26-web.onrender.com` והחזיר `503 Service Suspended` ×4 ⇒ כמעט נרשם "ערוץ-הטלפון מת" והוכן מקרה (ג). **זה המארח הלא-נכון** — `CLAUDE.md` §Bridge Local-Only אוסר עליו במפורש, והערוץ החי הוא `RENDER_MOBILE_URL` מ-`.env`, שהחזיר `200` בניסיון הראשון. ⇒ **peek נקרא מ-`.env`, לא מהזיכרון.**
+
+### 🟢 הממצא המרכזי — **"לא חמושה" נמדד, ומייקל צדק במה שראה ולא בסיבה**
+
+תפיסת-המעבר בשתי דגימות רצופות על התהליך החי `79317`, `GET /api/v9/build/pattern-status`:
+
+```
+ts 2026-09-21T14:39:15Z   buffer_size(raw)=14   cci_14_history buffer=13  present=False
+   ⇒ 8 מ-10 דפוסי-S2 "❌ Blocked — Missing: data.cci_14_history"
+ts 2026-09-21T14:42:49Z   buffer_size(raw)=15   cci_14_history buffer=14  present=True
+   ⇒ אותם 8 עברו ל-"armed": REACTIVE_LONG "Awaiting: b1_sellers" ·
+     HNS_TOP_SHORT "0 swing highs found" · BULL_FLAG_LONG "flag=2 bars (out of range 3-8)" …
+```
+
+**השורש, מהקוד ולא מהזיכרון** (`s2_inspector.py:144-145,227`): `bar_buffer = _raw_buffer[:-1] if len(_raw_buffer) >= 8 else _raw_buffer` · `cci_ok = actual_buffer_size >= 14` ⇒ **הבר המתהווה אינו נספר**, ולכן `raw=14` מוצג לצד `buffer=13` באותה תשובה — נראה כסתירה-פנימית, **ואינו**. החימום נפתח `10:40 ET` = **70 דק' אחרי הפתיחה**.
+
+**⇒ שלוש קביעות נפרדות, ושתיים מהן נגד הניסוח שלי מ-17:12:**
+**(1)** ✅ החימוש שקובע ירי **לא כבה לרגע** — `order_placement_armed=1` · `is_sim=0` · `live_enabled_systems=[2,4]` · `live_slot=null` · `cooldown/cluster_guard/SSV` כולם לא-פעילים.
+**(2)** 🟠 **אבל המסך שמייקל מסתכל בו באמת אמר "blocked" על 8 מ-10** — ולכן "אתה עושה בלי לבדוק" היה **צודק כתלונה**: הריצה הקודמת ענתה על השער (דלטון) ולא על החימוש, שהוא מה שהוא ראה.
+**(3)** 🔑 **והעלות אמיתית ונמדדת:** ארבעת הדפוסים תלויי-CCI-14 **מעולם לא ירו לפני `10:30 ET` ב-9 ימים** — `DOUBLE_BOTTOM_EE_LONG 16/10:30` · `DOUBLE_TOP_AA_SHORT 7/10:30` · `REACTIVE_LONG 13/11:00` · `REACTIVE_SHORT 2/12:25` ⇒ `38` ירי, **אפס** בחלון `09:30-10:25`; ובאותו חלון S2 ירה `53` פעמים — כולן מהדפוסים שאינם תלויי-CCI. **השער חוסם משפחה אחת בדיוק, בשעה הראשונה.**
+
+### 🟡 [[T-437]] — ההוראה נרשמה ולא בוצעה
+
+`14:47:00Z` היא **הוראת-התנהגות-מסחר**, לא שאלה. לפי כלל-הטלפון (*"מעבר — רשום ל-TASK_LOG+LIVE_CHANNEL וענה מה נרשם"*) ולפי דוקטרינת-הלמידה `09.09` (*"הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל"*) — **אפס נגיעה בסף.** שני מסלולים שונים מהותית, ומייקל ביקש את הראשון:
+- **(א)** `14 ⇒ 6` — מחשב CCI-**14** על 6 ברים ⇒ משנה את **משמעות האינדיקטור**, לא רק את העיתוי.
+- **(ב)** **זריעה מהסשן הקודם** — ולזה יש **תקדים בקוד לאותה בעיה בדיוק**: `five_min_system.py:2264-2285 OPENING_ATR_SEED` (`if _rth_count < 14: … date - 1 … ORDER BY ts ⇒ _prev_atr`) עושה זאת ל-ATR ⇒ חימוש ב-`09:30` עם מתמטיקת-CCI-14 שלמה.
+
+⚠️ **אינו נטען:** ש-(ב) עדיף (לא נמדד) · ש-38 הירי היו רווחיים בחלון-הפתיחה (**זו שאלת-הריפליי**) · שהסף נאכף גם במנוע ולא רק באינספקטור — `_det_buf` (`:2314`,`:2840`) הוא נתיב-הזיהוי האמיתי, ו**פער תצוגה⇄מנוע הוא מחלקת-[[T-266]] שלא נבדקה כאן.**
+
+### 🟢 ניטור-RTH (חובה-3), נמדד 17:38-17:53 — נקי
+
+```
+feed       v9_bars_5min_woodies max(ts)=2026-09-21 17:35:00+03 · age 3.6 דק' ✓ (מבחן T-430)
+health     GET /api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}
+backend    מאזין PID 79317 · אותו PID של שער-15:46 ⇒ אפס ריסטארט (אסור 16:10-23:00) ✓
+readiness  verdict=READY "all checks passed" · day_type=Normal · trend=BLUE · in_rth
+sierra     position_qty 0 · working_orders 0 · is_sim 0 · armed 1 · verdict=flat
+           daily_pnl 18.75 · acct_ok 1 · under_margin 0 · trading_disabled 0 · loss_limit 0
+gateway    live_slot=null · live_enabled=[2,4] · trades_today=1 · chop_state=FOUND
+```
+
+**מבחן-הבעלות (לפני אזעקה):** `position_qty 0` · `working_orders 0` · `live_slot null` ⇒ מסכימים, **אין פוזיציה זרה**.
+
+**📒 הספרים היום (‏10 שורות):** live `1` — `id 2017 OPENING_DRIVE LONG +27.5 T1_HIT` (דווח ב-17:07, לא שוכפל). shadow `9`: `2013/2014 CEILING_FLIP_TOUCH2 STOP_HIT −17.5/−13.75` · `2015 GB100 +28.75` · `2016 OPENING_DRIVE +27.5` · `2018 DALTON_EDGE_SHORT −28.75` · `2019/2020 GHOST +19.75` ×2 · `2021 INITIATIVE_LONG` **FILLED/פתוח** · `2022 FAILED_RE_IB STOP_HIT −18.75`.
+
+**⛔ הליגר — `9` החלטות היום, `8` חסומות.** זו התשובה להודעה `14:37:46Z`:
+
+```
+13:30:07Z sys2 CEILING_FLIP_TOUCH2  dalton_intent:stand_down
+13:35:03Z sys2 CEILING_FLIP_TOUCH2  dalton_intent:stand_down
+13:45:05Z sys4 GB100                dalton_intent:kind
+13:45:07Z sys2 OPENING_DRIVE        blocked_by=None            ← היחידה שעברה ⇒ הלייב
+14:05:03Z sys2 DALTON_EDGE_SHORT    dalton_intent:bias
+14:10:03Z sys4 GHOST                rr_entry_gate  (×2)
+14:30:08Z sys2 INITIATIVE_LONG      entry_location_quality
+          reason: "beyond_value: ex=0.26 > 0.25 (entry past value area)" · entry 7788.0
+14:35:04Z sys2 FAILED_RE_IB         dalton_intent:bias
+```
+
+⇒ `INITIATIVE_LONG` נפל **`0.01` מעבר לסף** `0.25`; הצל שלו (`id 2021`, סטופ `7754.25`, יעד `7793.75`) עדיין פתוח ⇒ **מחיר-החסימה יימדד בסגירה ולא עכשיו.** נמסר למייקל כפי שהוא, עם הצעה לפסוק על הסף — **ולא נגעתי בו.**
+
+⚠️ **מה שבמפורש אינו נטען:** שהסף `0.25` שגוי (נמדד בלבד) · שהצל `2021` היה מרוויח בלייב (אין החלקה/תחרות-סלוט) · שנבדק מה עוד תלוי ב-`cci_14_history` מחוץ ל-S2 · שהיום הסתיים.
+
+**אפס נגיעה** בדגלים · `.env` · פוזיציות · ריסטארט · קוד-ריצה. **הצעד הבא:** (1) ריפליי [[T-437]] — המספר לפני הדגל; (2) סגירת `2021` לכימות מחיר-החסימה; (3) [[T-434]] עמוד-הסטאפים; (4) [[T-436]] `pnl_sierra` ריק גם על `2017`.
+
+---
+
+### ➕ עדכון 17:56-18:02 (אותה ריצה) — שתי הודעות-מייקל נוספות, והממצא החדש אינו בשער
+
+`14:54:17Z` *"לבדוק שאין משהו שחוסם לנו"* ⇒ נענה `14:57:55Z` (‏417 ת', אומת ב-GET /chat). **הצטלבות שנייה באותה ריצה:** הודעתו נכנסה `14:54:17Z` בזמן שחיברתי את תשובת-[[T-437]] (`14:55:29Z`) ⇒ הן חצו זו את זו, ולכן נדרשה תשובה רביעית ולא הייתה כפילות. ⚠️ **ארבע הודעות ב-15 דק' — כל אחת מענה למקרה (א) נפרד, אך הצפיפות עצמה היא מה שכלל-הטלפון בא למנוע** ⇒ נרשם כאן, ומכאן שקט אלא-אם עסקת-לייב או חריגה.
+
+**נמדד `17:56:18` — שום דבר מערכתי אינו חוסם:**
+
+```
+gateway   live_slot=None · live_enabled=[2,4] · trades_today=1 · chop=FOUND
+          cooldown=False · cluster_guard=False · ssv=False
+sierra    pos 0 · armed 1 · is_sim 0 · avail 425.09 · under_margin 0
+          trading_disabled 0 · loss_limit 0 · last 7788.0
+patterns  S2 {armed:8, fired:1, blocked:1}  ·  S4 {armed:6, fired:3}
+          readiness verdict=READY "all checks passed"
+```
+
+(‏S2 `blocked:1` = `INITIATIVE_SHORT` על `Auth Table SKIP × Normal` — כלל-ספק, לא תקלה.)
+
+🔑 **והממצא החדש: החלטה שעברה את כל השערים ובכל-זאת לא נותבה — והעצירה אינה בשער אלא בגלאי.** `11` החלטות היום: `1` לייב · `9` חסומות (‏`dalton_intent` **6** = `stand_down 2 · bias 2 · location 1 · kind 1` · `rr_entry_gate 2` · `entry_location_quality 1`) · **`1` `blocked_by=None` שיצאה `shadow_only`**:
+
+```
+14:45:03Z sys2 CEILING_FLIP_TOUCH2 SHORT  blocked_by=None  outcome=shadow_only  trade 2023
+/tmp/backend.err.log 17:45:03 —
+  [CeilingFlipTouch2] CEILING_TOUCH2_REJECT → SHORT entry=7787.75 stop=7793.75
+    anchor=7793.50 T1=7758.50 T2=7758.25 (SHADOW)      ← הגלאי, לפני הגייטוויי
+  [Gateway] SHADOW trade TM id=2023: SHORT CEILING_FLIP_TOUCH2 system=2
+  [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+```
+
+⇒ **הווריאנט `CEILING_TOUCH2_REJECT` נולד `(SHADOW)` במערכת-5-הדקות עצמה**, ולא נעצר ע"י שער. **עקבי** עם כך ש-`CEILING_FLIP_TOUCH2` כן ירה **לייב פעמיים ב-9 ימים** ⇒ מדובר בענף אחר של אותו `pattern_id`, לא בכיבוי הדפוס. ⚠️ **אינו נטען:** שזה באג (`T-153` — *".env=shadow לכל החדש"* — הופך צל לברירת-מחדל לכל ענף חדש, ולכן **סביר שזה מכוון**); איזה דגל/ענף-קוד מציב את הסימון (**לא אותר בריצה זו**); שהיה מרוויח בלייב. **נשאל מייקל בכתב אם לבדוק לעומק.**
+
+🟠 **ממצא-נלווה שלא נבדק ונרשם כדי שלא יאבד:** באותה שנייה `[ECON-DIFF] trade=CEILING_FLIP_TOUCH2 chain: {'stop': 7793.75, 't1': 7758.5, 't2': 7758.25} | authority: {'stop': 7795.0, 't1': 7775.0, 't2': 7773.25, 't3': 7766.0, 'stop_rule': 'BEYOND_IB_EDGE', 'target_rule': 'POC'}` ⇒ **פער `16.5` נק' ב-`t1` בין השרשרת לסמכות** על אותה עסקה. צל בלבד, אפס חשיפת-לייב, **ולא נבדק** — נרשם כי `ECON-DIFF` הוא אזהרה שמופיעה ואיש לא מדד את התפלגותה.
+
+**ספרים מעודכנים:** `2023` shadow S2 `CEILING_FLIP_TOUCH2` SHORT FILLED `10:45` · `2024` shadow S4 `TREND_STEP` LONG FILLED `10:45` ⇒ live `1` · shadow `11`, שלוש פתוחות (`2021`/`2023`/`2024`).
+
+**הצעד הבא (מעודכן):** (1) ריפליי [[T-437]]; (2) **לאתר את מקור ה-`(SHADOW)` ב-`CEILING_TOUCH2_REJECT`** — דגל או ברירת-מחדל-בקוד — ולרשום אותו ב-`FLAG_INDEX` אם אינו שם; (3) התפלגות `ECON-DIFF` (כמה, כמה גדול, על אילו דפוסים); (4) סגירת `2021`/`2023`/`2024`; (5) [[T-434]]; (6) [[T-436]].
+
+---
+
 ## ☎️ [cowork-daily · 2026-09-21 17:07-17:14 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-3)** · 🟢 **ירייה-חיה ראשונה מאז 18.09 — נפתחה ונסגרה ברווח** · ☎️ **שתי הודעות לטלפון: מקרה (ב)+(א)** · 🟢 **פיד חי · באקנד בריא · פוזיציה 0**
 
 ☎️ **חובה-1 — שתי בקשות-מייקל ממתינות, שתיהן נענו.** זנב `PHONE_THREAD.jsonl` + `GET /chat?key=…` (‏`N=30`, אותה שורה אחרונה בשניהם):

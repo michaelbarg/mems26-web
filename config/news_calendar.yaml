@@ -4,8 +4,12 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-18 23:36 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-09-21 03:32 ET
 events:
+  - date: 2026-09-20
+    time_et: "20:00"
+    name: "UN General Assembly"
+    severity: orange
   - date: 2026-09-21
     time_et: "06:30"
     name: "Fed Goolsbee Speech"
@@ -22,6 +26,10 @@ events:
     time_et: "11:30"
     name: "6-Month Bill Auction"
     severity: yellow
+  - date: 2026-09-21
+    time_et: "20:00"
+    name: "UN General Assembly"
+    severity: orange
   - date: 2026-09-22
     time_et: "08:15"
     name: "ADP Employment Change Weekly"
@@ -69,6 +77,10 @@ events:
   - date: 2026-09-22
     time_et: "16:30"
     name: "API Crude Oil Stock Change"
+    severity: orange
+  - date: 2026-09-22
+    time_et: "20:00"
+    name: "UN General Assembly"
     severity: orange
   - date: 2026-09-23
     time_et: "07:00"
@@ -158,6 +170,10 @@ events:
     time_et: "20:00"
     name: "President Trump and President Xi Summit"
     severity: red
+  - date: 2026-09-23
+    time_et: "20:00"
+    name: "UN General Assembly"
+    severity: orange
   - date: 2026-09-24
     time_et: "04:10"
     name: "Fed Williams Speech"
@@ -246,6 +262,10 @@ events:
     time_et: "16:30"
     name: "Fed Balance Sheet"
     severity: yellow
+  - date: 2026-09-24
+    time_et: "20:00"
+    name: "UN General Assembly"
+    severity: orange
   - date: 2026-09-25
     time_et: "05:15"
     name: "Fed Williams Speech"
