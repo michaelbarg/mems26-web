@@ -1,3 +1,50 @@
+## ☎️ [cowork-dev · 2026-09-21 18:02-18:05 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-1 + חובה-3)** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🟢 **פיד בר-18:00 גיל 3.1 דק' · באקנד 79317 בריא · פוזיציה 0/0 מול הברוקר · אפס עסקת-לייב חדשה · אפס ריסטארט**
+
+☎️ **חובה-1 — אין הודעת-מייקל בלי תשובה עניינית.** האחרונה שלו `14:54:17Z "לבדוק שאין משהו שחוסם לנו"` נענתה `14:57:55Z` ע"י cowork-dev. **הזנב המקומי והפיד מ-Render זהים** (`count=30`, אותה שורה אחרונה) ⇒ **לא נשלחה הודעה** — ריצת-ניטור אינה אחד מארבעת המקרים.
+
+⏳ **שתי שאלות פתוחות ממתינות למייקל, לא לי — ולא נשאלו שוב** (שאלה חוזרת = הצפה, T-369): (א) [[T-437]] `14:55:29Z` — "להוריד CCI-14 ל-6" מול "לזרוע באפר מהסשן הקודם", ריפליי לפני דגל; (ב) `14:57:55Z` — האם `CEILING_TOUCH2_REJECT` כ-SHADOW-בגלאי הוא מכוון.
+
+### 🟢 חובה-3 — ארבע הבדיקות, פלט גולמי
+
+```
+$ date                          2026-09-21 18:02:59 IDT
+$ psql -c "select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1)
+           from v9_bars_5min_woodies;"
+  last_bar|age_min
+  2026-09-21 18:00:00+03|3.1          ⇒ פיד חי (T-430: הבר הוא הקובע, לא גיל-הקובץ)
+$ curl -s localhost:8000/api/v9/health   {"status":"ok","version":"v9.0.0"}
+$ ps -o pid,%cpu,rss,etime -p 79317      79317  34.7  127884  02:21:58   (עלה 15:42)
+$ uptime                                 load averages: 2.64 3.51 4.22  (יורד)
+$ python3 scripts/close_stale_shadow.py  no stale shadow trades — nothing to do
+```
+
+**הצלבת-ברוקר (`sierra_state.json`, נכתב 18:03:36):** `is_sim=0 · order_placement_armed=1 · position_qty=0 · daily_pnl=18.75 · acct_daily_pl=18.75 · daily_total_qty_filled=2 · trade_account=37138283`. **ownership:** אין עסקת-לייב פתוחה בספרים ו-`position_qty=0` אצל הברוקר ⇒ **0 מול 0, אין פער, אין אזעקה.**
+
+**אפס עסקת-לייב חדשה מאז 16:45.** היחידה של היום, `id 2017 OPENING_DRIVE LONG @7766.25`, נסגרה `16:52 T1_HIT +27.5` ו**כבר דווחה** לטלפון בריצה הקודמת ⇒ לא מקרה (ב). כל מה שנפתח אחריה הוא צל: `2021 INITIATIVE_LONG · 2023 CEILING_FLIP_TOUCH2 · 2024 TREND_STEP · 2025+2026 ZLR` (חמישה פתוחים).
+
+📐 **פער-מדידה שנרשם ולא פורש:** הספרים `pnl_usd=+27.5` על 2017 מול `daily_pnl=18.75` אצל הברוקר — **דלתא 8.75 על 2 חוזים**. עקבי עם הדיווח של 16:37 ושל 17:43 (שניהם 18.75), כלומר לא דריפט חדש. לא מומצא כאן הסבר — `pnl_sierra` על השורה ריק, וזו נקודת-המדידה שתסגור את זה.
+
+### 📊 ליגר — 13 החלטות, וההיסטוגרמה שלמה
+
+`oldest_ts=13:30:07Z` = פתיחת-הסשן ⇒ **החלון אינו חתוך** (מלכודת 3.2: התקרה 200, כאן 13).
+
+```
+13:30 CEILING_FLIP_TOUCH2 blocked dalton_intent:stand_down   14:30 INITIATIVE_LONG     blocked entry_location_quality
+13:35 CEILING_FLIP_TOUCH2 blocked dalton_intent:stand_down   14:35 FAILED_RE_IB        blocked dalton_intent:bias
+13:45 GB100               blocked dalton_intent:kind         14:45 CEILING_FLIP_TOUCH2 shadow_only
+13:45 OPENING_DRIVE       live                               14:45 TREND_STEP          blocked dalton_intent:location
+14:05 DALTON_EDGE_SHORT   blocked dalton_intent:bias         14:58 ZLR                 blocked dalton_intent:location
+14:10 GHOST ×2            blocked rr_entry_gate              15:00 ZLR                 blocked dalton_intent:location
+```
+
+**שתי החלטות חדשות מאז הדיווח של 17:57** — `17:58` ו-`18:00`, שתיהן ZLR/מערכת-4, שתיהן `dalton_intent:location`. הליגר כותב, ה-DETECTED→GATE→ROUTED שלם. **דלטון חוסם 8 מ-13 היום** (stand_down 2 · bias 2 · location 3 · kind 1) — נתון-מגמה לסיכום-היום, לא ממצא כאן.
+
+🟡 **WARN יחיד, לא חוסם:** `/tmp/backend.err.log` = **185MB**. קצב-הכתיבה הנוכחי תקין לחלוטין — `53-117 שורות/דק'`, `2,272 בתים ב-15 שנ'` (≈9KB/דק') — כלומר **זו אינה תקרית-16.09** (1,000 שורות/דק' + 80% CPU); הקובץ מצטבר על-פני ריסטארטים. **לא סובב ולא נגע** — הקובץ פתוח כ-fd אצל 79317 ואנחנו בתוך RTH. פריט-תחזוקה לחלון שאחרי 23:00.
+
+**אפס ריסטארט · אפס נגיעה בדגלים · אפס נגיעה בפוזיציות.** מצב: תקין, ממשיך לנטר.
+
+---
+
 ## ☎️ [cowork-dev · 2026-09-21 17:37-17:55 IL] — **ריצה-מתוזמנת · ניטור-RTH (חובה-1 + חובה-3)** · ☎️ **שתי תשובות נשלחו ואומתו · הוראה שלישית נרשמה ולא בוצעה** · 🟢 **פיד חי · באקנד בריא · פוזיציה 0 · אפס ריסטארט** · 🔑 **[[T-437]] נפתח — "חימוש אחרי 6 ברים"**
 
 ☎️ **חובה-1 — שלוש הודעות-מייקל, כולן בלי תשובה עניינית (רק `-ack` של `cc`).** מקור: זנב `PHONE_THREAD.jsonl` + `GET /chat?key=…&n=200` מ-`RENDER_MOBILE_URL`.
