@@ -39029,3 +39029,110 @@ TOTAL opening     base=11.25   fix=11.25   oeclosed=11.25   => fix-base **+0.00*
 `pytest_unit.txt` · 15 קובצי-הרנס) · `tests/v9/regression/test_opening_confirm_closed_bar.py`.
 
 — cowork-dev
+
+---
+### [2026-09-21 18:42] cowork-dev → cc-macbook · [id:c2f6cb8c] חובה-3 ניטור-RTH 21.09 18:45 — הכל ירוק · 2 עסקאות-לייב חדשות נסגרו WIN (סה״כ 3/3 היום) · מקרה (ב) נשלח ואומת · אפס ממתינות-טלפון
+**חובה-1 (מענה-טלפון):** אפס ממתינות. ההודעה האחרונה של מייקל — 14:54:17Z ("לבדוק שאין משהו שחוסם לנו") — קיבלה תשובה עניינית מ-cowork-dev ב-14:57:55Z. `channel_guard` מאשר עצמאית: `dispositioned: 6 · undispositioned: 0`.
+
+**חובה-3 (ניטור-RTH 18:37–18:45):** הכל ירוק, ו**שתי עסקאות-לייב חדשות** נסגרו מאז הדיווח האחרון לטלפון (17:57) ⇒ נשלח מקרה (ב) אחד, 283 תווים, אומת ב-GET /chat (ts 15:41:18Z).
+
+| בדיקה | ממצא | ראיה |
+|---|---|---|
+| פיד (T-430) | ✅ בר בן 4.9 דק' | `max_bar=2026-09-21 18:35:00+03` · `age_min=4.9` |
+| backend | ✅ בריא | `{"status":"ok","version":"v9.0.0"}` · uvicorn PID 79317 (עלה 15:42:40) |
+| backend.err.log | ✅ נקי | 0 ERROR/Traceback ב-400 השורות האחרונות · קצב ~40 שורות/דקה (לא 1,000 כמו 16.09) |
+| פוזיציה מול TM | ✅ תואם | ברוקר `position_qty=0`, `working_orders=0`, `orders=[]` · DB: 3 לייב כולן CLOSED · `daily_total_qty_filled=6` = 3 הלוך-ושוב |
+| חימוש | ✅ | `order_placement_armed=1` · `send_orders_to_trade_service=1` · חשבון 37138283 (חי) |
+
+**שלוש עסקאות-הלייב של היום — כולן מערכת 2, כולן לונג, כולן T1_HIT/WIN:**
+
+| id | תבנית | כניסה | שעה | יציאה | pnl_usd (ספרים) |
+|---|---|---|---|---|---|
+| 2017 | OPENING_DRIVE | 7766.25 | 16:45:10 | 16:52:44 | +27.5 (r 0.58) |
+| 2029 | REACTIVE_LONG | 7793.25 | 18:05:05 | 18:12:58 | +12.5 (r 0.23) |
+| 2033 | BULL_FLAG_LONG | 7796.00 | 18:15:09 | 18:16:12 | +12.5 (r 0.23) |
+
+**פער ספרים↔ברוקר — ראיה חדשה ל-[[T-436]], והפעם שלושה זוגות באותו יום.** ⚠️ **תיקון-עצמי בתוך הריצה, נרשם כי זו בדיוק מחלקת-Rule-1:** גזרתי תחילה 8.75 לעסקה מתוך ההפרש הכולל וכתבתי *"הטיה שיטתית ועקבית"* — **זו הייתה סינתזה מסכום, לא מדידה**. קראתי את `trade_activity_events.jsonl` ⇒ **המספרים שונים וההטיה אינה קבועה**:
+
+| id | order כניסה/יציאה | ברוקר `CLOSED_TRADE_PNL` | ספרים `pnl_usd` | פער | פער בנק' |
+|---|---|---|---|---|---|
+| 2017 | 11294 / 11295 | **18.75** | 27.5 | 8.75 | 1.75 |
+| 2029 | 11297 / 11298 | **11.25** | 12.5 | 1.25 | 0.25 |
+| 2033 | 11300 / 11301 | **6.25** | 12.5 | 6.25 | 1.25 |
+| | | **36.25** ✅ = `daily_pnl` | **52.5** | **16.25** | |
+
+**הכיוון קבוע — הברוקר תמיד נמוך מהספרים — אך הגודל אינו** (1.75 · 0.25 · 1.25 נק'). הספרים מחשבים כניסה→T1 בדיוק ($5/נק': 5.5·2.5·2.5 נק' ⇒ 27.5·12.5·12.5), כלומר **מילוי תיאורטי בלי החלקה ובלי עמלה**. ⚠️ **הסיבה לא נמדדה** — החלקת-כניסה/עמלה סבירות, וזו בדיוק ההנחה שסעיף (2) של [[T-436]] נועד להפסיק להניח. `pnl_sierra` **NULL בכל שלוש** ⇒ יום חמישי ברציפות בלי השוואה.
+
+✅ **ומבחן-הבעלות של [[T-436]] נקי היום, בניגוד ל-18.09:** כל שישה ה-order_id שהברוקר דיווח (`11294/95 · 11297/98 · 11300/01`) ממופים לשורה בספרים; ה"חורים" `11296/11299/11302` הם רגלי-הסטופ של ה-OCO שלא מולאו. ⇒ **אפס סבבים לא-משויכים היום** (18.09 היה `11292/11293 −75.00` ללא בעלים).
+
+**לתשומת-לב (לא חוסם, לא נשלח לטלפון):**
+- `acct_account_value = 442.59` מול `acct_daily_net_loss_limit = -243.8`. בדיקת-המרג'ין T-34 היא בסמכות ריצת-15:30 ולא ריצת-RTH, ומסחר מתבצע בפועל (3 מילויים חיים) — לכן דיווח בלבד.
+- עמודת `stop` בכל שלוש העסקאות היא 0.25 **מעל** הכניסה בלונג — עקבי עם השלמת stop→BE של `SYSTEM6_AUTOCORRECT=protective`, כלומר הסטופ הסופי ולא ההתחלתי. **לא אומת בקוד בריצה הזו** — לא הוכרז תקין ולא הוכרז תקלה.
+- **אין שום רשומת LIVE_CHANNEL מהיום (21.09)** עד הרשומה הזו, למרות שסשן-cowork אינטראקטיבי ענה לטלפון חמש פעמים בין 17:11 ל-17:57. הענפים האלה קיימים רק בפיד-הטלפון.
+
+**לא נגעתי:** אפס ריסטארט (18:37 > 16:10), אפס דגלים, אפס פוזיציות.
+
+<details><summary>פלט גולמי (Rule 5)</summary>
+
+```
+$ psql -c "select max(ts) max_bar, now() now_tz, round(extract(epoch from (now()-max(ts)))/60.0,1) age_min from v9_bars_5min_woodies;"
+        max_bar         |            now_tz            | age_min
+------------------------+------------------------------+---------
+ 2026-09-21 18:35:00+03 | 2026-09-21 18:39:52.64136+03 |     4.9
+
+$ curl -s http://localhost:8000/api/v9/health
+{"status":"ok","version":"v9.0.0"}
+
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN
+Python  79317 michael   18u  IPv4  TCP *:8000 (LISTEN)
+$ ps -eo pid,lstart,command | grep uvicorn
+79317 Mon Sep 21 15:42:40 2026  python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+$ psql -c "select mode,state,count(*) n,max(entry_ts),max(exit_ts) from v9_trades where (entry_ts at time zone 'America/New_York')::date=(now() at time zone 'America/New_York')::date group by 1,2;"
+  mode  | state  | n  |          last_entry           |       last_exit
+--------+--------+----+-------------------------------+------------------------
+ live   | CLOSED |  3 | 2026-09-21 18:15:09.543751+03 | 2026-09-21 18:16:12+03
+ shadow | CLOSED | 22 | 2026-09-21 18:30:03.033515+03 | 2026-09-21 18:35:00+03
+ shadow | FILLED |  1 | 2026-09-21 18:36:41.761677+03 |
+
+$ python3 -c "json.load(open('~/SierraChart_Data/v9_export/sierra_state.json'))"
+  acct_account_value = 442.59
+  acct_daily_net_loss_limit = -243.8
+  acct_daily_pl = 36.25
+  daily_pnl = 36.25
+  daily_total_qty_filled = 6
+  open_pnl = 0.0
+  order_placement_armed = 1
+  orders = []
+  position_qty = 0
+  send_orders_to_trade_service = 1
+  trade_account = 37138283
+  working_orders = 0
+
+$ tail -400 /tmp/backend.err.log | grep -cE "ERROR|Traceback|CRITICAL"
+0
+$ (log growth) lines_12s=8  => ~40 שורות/דקה
+
+$ GET /chat  (אימות-מסירה, לא ה-ok)
+[2026-09-21T15:41:18Z] <cowork-dev> (283c) שתי עסקאות-לייב נוספות נסגרו ברווח. נמדד 18:41: ...
+
+$ trade_activity_events.jsonl — כל אירועי היום (שדה-הזמן הוא scan_ts ולא ts)
+13:46:09  POS 0->1  order_id=11294  sim=False acct=37138283
+13:53:11  POS 1->0  order_id=11295  sim=False acct=37138283
+13:53:11  CLOSED_TRADE_PNL = 18.75   (running 18.75)
+15:05:24  POS 0->1  order_id=11297  sim=False acct=37138283
+15:13:25  POS 1->0  order_id=11298  sim=False acct=37138283
+15:13:25  CLOSED_TRADE_PNL = 11.25   (running 30.0)
+15:15:26  POS 0->1  order_id=11300  sim=False acct=37138283
+15:16:26  POS 1->0  order_id=11301  sim=False acct=37138283
+15:16:26  CLOSED_TRADE_PNL = 6.25    (running 36.25)
+=== broker total today: 36.25   (= sierra_state.daily_pnl ✅)
+
+$ psql -At -c "select id, quality->>'sierra_order_id', quality->>'c1_target_id', quality->>'c1_stop_id', quality->'exit_fills' ..."
+2017|11294|11295|11296|[{"kind":"T1","price":7771.75,"order_id":11295}]
+2029|11297|11298|11299|[{"kind":"T1","price":7795.75,"order_id":11298}]
+2033|11300|11301|11302|[{"kind":"T1","price":7798.5,"order_id":11301}]
+```
+</details>
+
+— cowork-dev
