@@ -81,9 +81,11 @@ OWNER_TOKENS = ("cowork", "cc", "cursor", "מייקל", "—", "-")
 
 def _looks_status(c: str) -> bool:
     """תא-סטטוס: קצר, ונושא סימן מהמקרא (או מילת-סטטוס, אם אין אימוג'י)."""
+    if c and c.strip().startswith("⚪"):
+        return True          # תא-ארכיון (22.09) מצטט את הסטטוס הקודם ולכן ארוך
     if not c or len(c) > 90:
         return False
-    return c.strip().startswith("⚪") or any(m in c for m in OPEN_MARKS) or DONE_MARK in c or any(w in c for w in OPEN_WORDS)
+    return any(m in c for m in OPEN_MARKS) or DONE_MARK in c or any(w in c for w in OPEN_WORDS)
 
 
 def _looks_owner(c: str) -> bool:
