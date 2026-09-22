@@ -135,7 +135,7 @@ def category(t, f):
 def explain(t, f):
     d = HEB_DIR.get(t["direction"], t["direction"]); cat = category(t, f)
     ctx = []
-    ctx.append(f"{d} {t['pat'] or '?'} ב{PH_HEB[f['phase']]}, יום {t['dt'] or '?'}.")
+    ctx.append(f"{d} {t['pat'] or '?'} ב{PH_HEB[f['phase']]}, יום {t['dt'] or 'טרם-סווג'}.")
     if f["day_dir"] in ("UP", "DOWN"):
         ctx.append(("עם כיוון-היום" if f["with_day"] else "נגד כיוון-היום") +
                    f" (היום {'עלה' if f['day_dir']=='UP' else 'ירד'} {abs(f['day_net']):.1f} נק׳ על טווח {f['day_rng']:.1f}).")
@@ -380,21 +380,21 @@ ledger = [r for r in recs]
 pats = sorted({r["pat"] for r in ledger if r["pat"]})
 body = ('<h1>📒 כל העסקאות</h1><div class="dim">לייב · דמו · צל — לחיצה על שורה פותחת את ההסבר; "יום" פותח את עמוד-היום עם הנרות.</div>'
         '<div class="filters">'
-        '<select id="fMode"><option value="">כל המצבים</option><option value="live">לייב</option><option value="demo">דמו</option><option value="shadow">צל</option></select>'
+        '<select id="fMode"><option value="live">לייב</option><option value="">כל המצבים</option><option value="demo">דמו</option><option value="shadow">צל</option></select>'
         '<select id="fDay"><option value="">כל הימים</option>' + "".join(f'<option value="{d}">{d[8:]}.{d[5:7]}</option>' for d in sorted(set(r["day"] for r in ledger), reverse=True)) + '</select>'
         '<select id="fDir"><option value="">כיוון</option><option value="LONG">לונג</option><option value="SHORT">שורט</option></select>'
         '<select id="fCat"><option value="">תוצאה</option><option value="WIN">ניצחון</option><option value="LOSS">הפסד</option><option value="SCRATCH">סקראץ׳</option><option value="UNPRICED">לא-נכתבה</option></select>'
         '<select id="fPat"><option value="">תבנית</option>' + "".join(f'<option value="{html.escape(p)}">{html.escape(p)}</option>' for p in pats) + '</select>'
         '</div><div class="summary" id="sum"></div>'
-        '<table><thead><tr><th>#</th><th>יום</th><th>שעה</th><th>מצב</th><th>תבנית</th><th>כיוון</th><th>$</th><th>יציאה</th></tr></thead><tbody id="tb"></tbody></table>')
+        '<table><thead><tr><th>#</th><th>יום</th><th>שעה</th><th>מצב</th><th>תבנית</th><th>כיוון</th><th>$</th></tr></thead><tbody id="tb"></tbody></table>')
 ljs = ("<script>var T=" + json.dumps(ledger, ensure_ascii=False) + ";"
        "var HD={LONG:'לונג',SHORT:'שורט'};"
        "function fmt(v){if(v===null||v===undefined)return '—';var s=(v>0?'+':'')+v.toFixed(2)+'$';return '<span class=\"num '+(v>0?'pos':v<0?'neg':'')+'\">'+s+'</span>';}"
        "function render(){var m=fMode.value,d=fDay.value,dr=fDir.value,c=fCat.value,p=fPat.value;var rows=T.filter(function(r){return (!m||r.mode==m)&&(!d||r.day==d)&&(!dr||r.dir==dr)&&(!c||r.cat==c)&&(!p||r.pat==p);});"
        "var n=rows.length,w=rows.filter(function(r){return r.pnl>0;}).length,s=rows.reduce(function(a,r){return a+(r.pnl||0);},0);"
        "document.getElementById('sum').innerHTML='<div>N='+n+'</div><div>ניצחונות '+w+' ('+(n?Math.round(100*w/n):0)+'%)</div><div>Σ '+fmt(s)+'</div>';"
-       "var h='';rows.slice().reverse().forEach(function(r){h+='<tr class=\"row\" onclick=\"tg('+r.id+')\"><td>'+r.id+'</td><td><a href=\"days/'+r.day+'.html#t'+r.id+'\">'+r.day.slice(8)+'.'+r.day.slice(5,7)+'</a></td><td class=num>'+r.time+'</td><td><span class=\"badge '+r.mode+'\">'+r.mode+'</span></td><td>'+r.pat+'</td><td>'+(HD[r.dir]||r.dir)+'</td><td>'+fmt(r.pnl)+'</td><td>'+r.reason_heb+'</td></tr>';"
-       "h+='<tr><td colspan=8><div class=detail id=\"d'+r.id+'\"><div class=\"dim num\">כניסה '+r.entry.toFixed(2)+' → '+(r.exit===null?'—':r.exit.toFixed(2))+' · T1 '+(r.t1p===null?'—':r.t1p)+' נק׳ · MFE-שעה '+(r.mfe60===null?'—':r.mfe60)+' · MAE '+(r.mae===null?'—':r.mae)+' · '+(r.zone||'')+'</div><div>'+r.ctx+'</div><div><b>'+r.why+'</b></div>'+(r.more?'<div>💡 '+r.more+'</div>':'')+(r.lesson?'<div class=dim>לקח: '+r.lesson+'</div>':'')+'</div></td></tr>';});"
+       "var h='';rows.slice().reverse().forEach(function(r){h+='<tr class=\"row\" onclick=\"tg('+r.id+')\"><td>'+r.id+'</td><td><a href=\"days/'+r.day+'.html#t'+r.id+'\">'+r.day.slice(8)+'.'+r.day.slice(5,7)+'</a></td><td class=num>'+r.time+'</td><td><span class=\"badge '+r.mode+'\">'+r.mode+'</span></td><td>'+r.pat+'</td><td>'+(HD[r.dir]||r.dir)+'</td><td>'+fmt(r.pnl)+'</td></tr>';"
+       "h+='<tr><td colspan=7><div class=detail id=\"d'+r.id+'\"><div class=\"dim\">'+r.reason_heb+'</div><div class=\"dim num\">כניסה '+r.entry.toFixed(2)+' → '+(r.exit===null?'—':r.exit.toFixed(2))+' · T1 '+(r.t1p===null?'—':r.t1p)+' נק׳ · MFE-שעה '+(r.mfe60===null?'—':r.mfe60)+' · MAE '+(r.mae===null?'—':r.mae)+' · '+(r.zone||'')+'</div><div>'+r.ctx+'</div><div><b>'+r.why+'</b></div>'+(r.more?'<div>💡 '+r.more+'</div>':'')+(r.lesson?'<div class=dim>לקח: '+r.lesson+'</div>':'')+'</div></td></tr>';});"
        "document.getElementById('tb').innerHTML=h;document.querySelectorAll('#tb a[href]').forEach(function(a){var x=a.getAttribute('href');if(x.indexOf('key=')<0)a.setAttribute('href',x.replace('#','?'+Q.slice(1)+'#'));});}"
        "function tg(id){var e=document.getElementById('d'+id);e.style.display=e.style.display=='block'?'none':'block';}"
        "['fMode','fDay','fDir','fCat','fPat'].forEach(function(i){document.getElementById(i).onchange=render;});render();</script>")
@@ -403,7 +403,7 @@ with open(os.path.join(OUT, "trades.html"), "w", encoding="utf-8") as fh:
 
 # ── lessons Gantt ─────────────────────────────────────────────────────────────
 LESSONS = json.load(open(os.path.join(ROOT, "docs", "plans", "LESSONS_TIMELINE.json"), encoding="utf-8"))
-tdays = [x["day"] for x in LESSONS["days"]]
+tdays = [x["day"] for x in LESSONS["days"]][::-1]
 threads = LESSONS["threads"]
 gantt = ['<h1>📈 לקחים וענפים — יום אחרי יום</h1><div class="dim">כל עמודה יום-מסחר; כל שורה חוט-עבודה. בתא: מה נלמד / איזה ענף נולד. צבע: ירוק=ענף/גרסה, כחול=מדידה, צהוב=באג שתוקן, אדום=תקרית, סגול=פסיקה.</div>',
          '<div class="gantt"><table><thead><tr><th></th>' + "".join(f'<th>{d[8:]}.{d[5:7]}</th>' for d in tdays) + '</tr></thead><tbody>']
@@ -421,7 +421,7 @@ for th in threads:
     gantt.append(f'<tr><td class="lbl">{html.escape(th["name"])}</td>' + "".join(cells) + '</tr>')
 gantt.append('</tbody></table></div>')
 gantt.append('<h2>הלקח של כל יום</h2>')
-for x in LESSONS["days"]:
+for x in LESSONS["days"][::-1]:
     gantt.append(f'<div class="card"><b>{x["day"][8:]}.{x["day"][5:7]}</b> — {html.escape(x["lesson"])}' + (f' <a href="days/{x["day"]}.html">↗ הנרות</a>' if x["day"] in days else "") + '</div>')
 with open(os.path.join(OUT, "lessons.html"), "w", encoding="utf-8") as fh:
     fh.write(page("MEMS26 · לקחים וענפים", "".join(gantt)))
