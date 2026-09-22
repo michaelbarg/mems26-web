@@ -1,3 +1,123 @@
+## 🌙 [cowork-dev · 2026-09-22 23:05-23:25 IL] — **חובה-1 + חובה-4 · EOD** · 🔴 **הספרים והברוקר נסגרו הערב ביד — והפער `45.00` מתפרק עד הסנט** · ⛔ **התיקון שכתבתי הבוקר לפריט 2/12 היה קורא את הקובץ הלא-נכון**
+
+**☎️ חובה-1 — אין ממתינות ממייקל ⇒ שקט מוחלט בטלפון.** הרלה חי (`launchctl print … com.mems26.mobile_relay ⇒ state = running · pid = 4842`) ⇒ "אפס ממתינות" הוא נתון ולא שלילה-כוזבת (מלכודת 12). `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}` · `GET /chat` ⇒ הודעת-מייקל האחרונה `2026-09-21T16:10:27Z`, נענתה. **הודעת-הטלפון היחידה הערב** היא דוח-היום (מקרה ב מורחב, פסיקת-מייקל 22.09 10:20).
+
+---
+
+### 🔴 הממצא — שער-ה-MAE חתך הפסד, והספרים לא ידעו על כך בכלל
+
+**הסיפור בשורה:** היום ירו 3 עסקאות-לייב. הספרים אומרים `+58.75`; הברוקר אומר `+13.75`. עד הערב הפער הזה היה "עמלות והחלקה, נסגור מתישהו". הוא לא — **`36.25` מתוך `45.00` הם הפסד שנחתך ונעלם מהספרים.**
+
+**(1) מה יש בטבלה — `v9_trades` (פלט גולמי):**
+```
+$ psql -At -F' | ' -c "select id, pattern_id_at_entry, direction, entry_price,
+    to_char(entry_ts at tz 'Asia/Jerusalem','HH24:MI'), to_char(exit_ts at tz …,'HH24:MI'),
+    state, exit_reason, pnl_usd, coalesce(pnl_sierra::text,'NULL') …"
+2106 | OPENING_DRIVE      | SHORT | 7835    | 17:00 | 17:13 | CLOSED | MAE_SCRATCH |      | NULL
+2140 | GB100              | SHORT | 7829.75 | 18:30 | 18:37 | CLOSED | T1_HIT      | 28.75 | NULL
+2152 | CEILING_FLIP_LONG  | LONG  | 7828.75 | 19:10 | 20:52 | CLOSED | T1_HIT      | 30.00 | NULL
+```
+‏`#2106` סגורה — **ו-`exit_price`, `pnl_usd`, `pnl_r` כולם `NULL`.** ⇒ הסכום `58.75` אינו "רווח-היום", הוא **סכום המנצחות בלבד**.
+
+**(2) כמה רחב זה — ‏14 יום אחורה, לפי סיבת-יציאה:**
+```
+$ psql -At -F' | ' -c "select exit_reason, mode, count(*) total,
+    count(*) filter (where pnl_usd is null) null_pnl, count(*) filter (where exit_price is null) null_px
+  from v9_trades where state='CLOSED' and entry_ts > now() - interval '14 days' group by 1,2 order by 4 desc;"
+MAE_SCRATCH        | live   |   3 |   3 |   3      ← 3 מתוך 3
+phantom_reconcile  | live   |   1 |   1 |   1
+STOP_HIT           | live   |  11 |   0 |   0
+T1_HIT             | live   |   9 |   0 |   9
+```
+**‏3/3 מסקרצ'י-ה-MAE החיים** (‏`#1712` 16.09 · `#1717` 16.09 · `#2106` היום) נסגרו בלי מחיר ובלי סכום. וזו דווקא **מכונת-חיתוך-ההפסדים** — כלומר הספרים משמיטים באופן שיטתי את מה שהמערכת חסכה, וקוראים טוב מהמציאות. *(‏[[T-227]] כבר כתב "‏`MAE_SCRATCH` מעולם לא רשם מחיר-יציאה (9/10)" — הפריט הועבר לארכיון היום בניקוי-ה-263; **התופעה לא הועברה לארכיון**.)*
+
+**(3) והנה הסגירה המלאה — מהמקור הקנוני של סיירה עצמה:**
+```
+$ strings ~/SierraChart/TradeActivityLogs/TradeActivityLog_2026-09-22_UTC.37138283.data \
+    | grep -oE "Closed Trade Profit/Loss: [-0-9.]+"
+Closed Trade Profit/Loss: -36.25.      ← #2106, הסקרצ'
+Closed Trade Profit/Loss: 26.25.       ← #2140 (ספרים 28.75)
+Closed Trade Profit/Loss: 23.75.       ← #2152 (ספרים 30.00)
+```
+`-36.25 + 26.25 + 23.75 = +13.75` — **זהה לספרה האחרונה** ל-`sierra.daily_pnl = 13.75` מ-`/api/v9/mobile/data`. והפער מול הספרים מתפרק **במלואו, בלי שארית**:
+
+| | |
+|---|---|
+| ספרים (`Σ pnl_usd`) | **+58.75** |
+| ‏`#2106` — סקרצ' שחסר לגמרי | **−36.25** |
+| ‏`#2140` עמלות/החלקה | −2.50 |
+| ‏`#2152` עמלות/החלקה | −6.25 |
+| **= ברוקר** | **+13.75** ✅ |
+
+---
+
+### ⛔ ולכן — תיקון להזמנה שאני עצמי כתבתי הבוקר (פריט 2/12)
+
+סעיף 1 של פריט 2/12 הורה לבנות את הרקונסיילר על `trade_activity_events.jsonl` + **`trade_fills_journal.jsonl`**. המדידה אומרת שזה **ייכשל בדיוק על השורה היחידה שמסבירה את הפער**:
+```
+$ python3 — כל הפילויים של היום מ-trade_fills_journal.jsonl
+ENTRY 11318 @7835.0 SHORT · ENTRY 11322 @7829.75 SHORT · T1 11323 @7824.0
+ENTRY 11325 @7828.75 LONG · T1 11326 @7834.75          ← חמש שורות. זה הכל.
+$ grep -c "11321" ~/SierraChart_Data/v9_export/trade_fills_journal.jsonl
+0        ← הזמנת-הסגירה של #2106 (סיירה: "Fill of InternalOrderID: 11321") אינה בז'ורנל
+```
+הז'ורנל רושם ENTRY ו-T1 — **לא את רגל-הסקרצ'**. רקונסיילר שנשען עליו יחזיר `NULL` לשלושת הסקרצ'ים, **יעבור את תנאי-האימות שכתבתי** ("למעט עסקאות בלי פילוי, מודפסות בשם") — ויסגור את הפריט בזמן שהפער הגדול ביותר נשאר פתוח. ⇒ **ההזמנה עודכנה** (`CC_NOW_2026-09-22.md`, פריט 2/12): המקור הראשון הוא `TradeActivityLog_<date>_UTC.37138283.data` שדה `Closed Trade Profit/Loss`, והז'ורנל הוא השלמה לזיהוי-ההזמנה בלבד. **גולדן לריצה-אחורה:** `2026-09-22 ⇒ -36.25 / +26.25 / +23.75`.
+
+---
+
+### מדידות-מצב (Rule 5)
+
+**פיד · בקאנד · מאזין — אותו תהליך של שער-הבוקר:**
+```
+$ psql -At -c "select to_char(max(ts) at tz 'Asia/Jerusalem','YYYY-MM-DD HH24:MI'),
+    round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies;"
+2026-09-22 23:05 | 1.6        ← בר מהיום ⇒ פיד חי (T-430 עובר)
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 20693 (LISTEN)   [עלה 15:41:28, לא הורם מחדש]
+$ curl -w "%{http_code} %{time_total}" localhost:8000/health ⇒ 200 0.0029s
+```
+**פוזיציה · גודל · שער:** `sierra.position_qty = 0` · `open_pnl = 0.0` · `active = []` (TM ריק) · `ruled_contracts() ⇒ 1` = `contracts_cfg = 1` (פסיקת-מייקל 18.09). שער-היום: `attempts 105 · fired 3 · blocked 81`, אחרון `dalton_intent:stand_down`.
+
+**שגיאות — סופת-הבוקר לא חזרה:** `grep -cE "^2026-09-22 (1[6-9]|2[0-3]):.*\[(ERROR|CRITICAL)\]" /tmp/backend.err.log ⇒ 1` (‏`17:45:01 [BarLevelDetector] Invalid transition: CLOSED -> CLOSED`, לא-חוסם, לא חזר).
+
+**שומרים:** `task_log_guard ⇒ ✅ 422 פריטים, עודכן לפני 0.1 יום` · `flag_guard ⇒ PASS — כל 264 הדגלים תואמים`.
+
+**בריאות-מכונה (WARN-בלבד, לא לטלפון):** `load 18.8 > 6.0` · `unused RAM 118M < 400M` · `swap 2494M > 500M`. הערימה עצמה צנועה — `backend 127MB/5.8% · bridge 33MB · sierra 196MB · postgres 639MB`; הצרכנים הם **לא-מסחריים**: `cowork-vm 1862MB · claude-app 1520MB · chrome 1115MB`. אין פעולה — תיעוד למחר.
+
+**שורות-צל:** `close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades`. ‏16 שורות `shadow/FILLED` **מהיום** פתוחות — לא "תקועות" לפי הגדרת-הסקריפט (בן-יום); **לבדוק אותן בריצת-קדם-הפתיחה של מחר** לפני הריסטארט (16.09: 26 שורות כאלה הרימו את הבאקנד ל-80% CPU).
+
+---
+
+### 📱 עמודי-הטלפון — רועננו ואומתו חיים
+
+```
+$ python3 scripts/gen_phone_pages.py --days 14
+pages: index, days (11), trades (673 rows), missed, lessons, tree → render_mobile_relay/static/docs
+$ for u in doc/days/2026-09-22.html doc/lessons.html doc/whatworks.html; do curl -o /dev/null -w "%{http_code}"; done
+200 · 200 · 200
+$ curl -s ".../doc/lessons.html?key=…" | grep -c "1,269"   ⇒ 1   ← התוכן החדש באמת מוגש, לא רק נדחף
+```
+`LESSONS_TIMELINE.json` — לקח-היום נכתב מחדש לגרסת-היום-המלא, ושני פריטים נולדו: **מדידה** `'מה עובד' — 1,269 כניסות` (‏`k=b`, ענף *עץ/מדידה*) · **תקרית** `3/3 סקרצ'י-MAE בלי מחיר-יציאה` (‏`k=d`, ענף *תקריות/באגים*). קומיט `2a53bca6`.
+
+---
+
+### 🌙 תור-הלילה
+
+**🔒 CLAIM חתום — `cowork-dev` לוקח את תור-הלילה (פסיקת-מייקל 27.08: מבוצע גם בלעדיו ליד המחשב).** הבדיקה נעשתה פעמיים, ב-`23:13` וב-`23:20:25`, והיא ריקה משני הצדדים:
+```
+$ git fetch -q && git log --all --since="23:00" --pretty="%h|%ad|%an|%s" --date=format:"%H:%M"
+2a53bca6|23:08|cowork-dev|phone-pages(…)                ← שלי
+b60abe0e|23:05|Michael Barg|eod-handoff(מק-1): packet    ← launchd, data-only
+$ grep -cE "cc-macbook · 2026-09-22" docs/handoff/LIVE_CHANNEL.md
+0        ← אפס שורת-claim מ-cc
+```
+⇒ **אין פעילות-cc.** מבוצע: **פריט 1/12 · [[T-438]]** מ-`CC_NOW_2026-09-22.md` — הפריט הפתוח הבא **ברשימה**, אחד בלבד (הסדר בקובץ הוא סדר-הכסף; לא מסדרים אותו מחדש הלילה למרות שממצא-הערב נוגע לפריט 2). דרך סוכן-משנה, עם כללי-הכנות: Rule-5 פלט-גולמי · קומיט-פר-סעיף · snapshot לפני כל משטח מחוץ-לגיט · **בלי הדלקת דגל שלא נפסק** · NOT-DONE מפורש במקום ניחוש. ההרצה מותרת: `23:20 ∉ 16:30-23:00`.
+
+**גבולות שנאמרו לסוכן-המשנה מראש:** אפס נגיעה ב-`.env` · בדגלי-גודל · ב-`RISK_*` · בפוזיציות · אפס ריסטארט · `SITUATION_VECTOR_LOG_V1=0` בהרנס.
+
+**התוצאה — בהמשך, בשורה חתומה נפרדת.**
+
+---
+
 ## 📊 [cowork-dev · 2026-09-22 22:35-22:40 IL] — **חובה-1 + חובה-3 · ניטור-RTH שנים-עשר** · ריצה ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס הודעת-טלפון**
 
 **☎️ חובה-1 — אין ממתינות ממייקל.** `GET /chat` מ-Render ⇒ 30 פריטים, שולחים `['--frm','cc','cowork','cowork-dev','מייקל']`; **הודעת-מייקל האחרונה `2026-09-21T16:10:27Z`** — נענתה. בדיקת-הכיסוי רצה על כל 609 שורות `PHONE_THREAD.jsonl` (112 הודעות-מייקל): לכל אחת מששת האחרונות יש תשובת-סוכן עניינית תוך ≤7 דק'. `GET /instruction/pending` ⇒ `{"items":[]}` · `GET /cmd/pending` ⇒ `{"cmd":null}`. ⇒ **שקט מוחלט בטלפון.**
