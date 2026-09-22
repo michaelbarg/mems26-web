@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""gen_phone_pages.py — the phone's trade-review pages (Michael 22.09 10:20):
+"""gen_phone_pages.py — the phone's trade-review app (Michael 22.09 10:20 + 10:50):
 
-  "עמוד של כל העסקאות שבוצעו עם הנרות, ליום, כדי לראות אם הן נכונות או לא — בראייה גדולה,
-   עם הסבר למה הצליחו, איך יכולנו להרוויח יותר, ואם הפסידו למה … עמוד של כל העסקאות
-   לייב/דמו/צל עם פילטרים … עמוד של דוחות ומשימות, מעין גאנט של הפקת-הלקחים מכל יום
-   והענף שנוצר … ותכין לי כבר עכשיו דוח ליום הקודם."
+  "עמוד של כל העסקאות עם הנרות, ליום, כדי לראות אם הן נכונות או לא — בראייה גדולה, עם הסבר
+   למה הצליחו, איך יכולנו להרוויח יותר, ואם הפסידו למה … כל העסקאות לייב/דמו/צל עם פילטרים …
+   גאנט של הפקת-הלקחים והענף שנוצר" · "header עם המבורגר של התפריט … יותר נוח למשתמש בכל
+   הכיוונים … רשימה של עסקאות שפספסנו — נרות, ווליום, מיקום".
 
 Static, self-contained HTML (no CDN, inline SVG candles, inline JSON) written to
-render_mobile_relay/static/docs/ and served by the relay at /doc/<name> (key-protected,
-deployed with git push). Read-only against the DB. Re-run daily (EOD) and push.
+render_mobile_relay/static/docs/ and served by the relay at /doc/<name> and /doc/days/<name>
+(key-protected, deployed with git push). Read-only against the DB. Re-run at EOD and push.
 
   python3 scripts/gen_phone_pages.py [--days 14] [--out render_mobile_relay/static/docs]
 
-Pages:
-  index.html          — home: links + today/yesterday summary
-  days/<date>.html    — day review: candles + live/shadow markers + per-trade explanation + tag buttons
-  trades.html         — ledger of every trade (live/demo/shadow) with filters
-  lessons.html        — Gantt of lessons per trading day + the branch/version born from each
+Pages: index.html · days/<date>.html · trades.html · missed.html (from data/missed.json, made by
+scripts/missed_trades_study.py) · lessons.html (from docs/plans/LESSONS_TIMELINE.json) · tree.html
 """
 import os, sys, json, argparse, collections, statistics, html, datetime as dt
 from zoneinfo import ZoneInfo
@@ -36,6 +33,8 @@ OUT = args.out
 os.makedirs(os.path.join(OUT, "days"), exist_ok=True)
 NOW = dt.datetime.now(IL)
 SINCE = (NOW - dt.timedelta(days=args.days)).date()
+HEB_WD = ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"]
+HEB_WD1 = ["ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳", "א׳"]
 
 # ── data ──────────────────────────────────────────────────────────────────────
 trades = read_all("""select id, mode, firing_system sys, direction, state, entry_ts, entry_price, stop, t1, t2,
@@ -49,7 +48,6 @@ bars_rows = read_all("""select ts, open o, high h, low l, close c, volume v from
 dth = {str(r["date"]): r for r in read_all(
     "select date, day_type, opening_type, ib_high, ib_low, ib_width_class from v9_day_type_history where date >= :d",
     {"d": SINCE})}
-
 by_day = collections.defaultdict(list)
 for b in bars_rows:
     t = b["ts"].astimezone(IL)
@@ -57,22 +55,17 @@ for b in bars_rows:
                                          "l": float(b["l"]), "c": float(b["c"]), "v": float(b["v"] or 0),
                                          "rth": t.hour * 60 + t.minute >= 16 * 60 + 30})
 days = sorted(d for d in by_day if sum(1 for b in by_day[d] if b["rth"]) >= 30)
-tr_by_day = collections.defaultdict(list)
-for t in trades:
-    tr_by_day[t["entry_ts"].astimezone(IL).date().isoformat()].append(t)
 
 def phase_of(il):
     hm = il.hour * 60 + il.minute
     return "A" if hm < 16 * 60 + 45 else "B" if hm < 17 * 60 + 30 else "C" if hm < 21 * 60 else "D"
 
 def dev_va(bars_so_far):
-    """developing value area from closes so far (POC = modal close, 70% of closes around it)."""
     cl = [round(b["c"] / TICK) * TICK for b in bars_so_far]
     if len(cl) < 3:
         return None
     cnt = collections.Counter(cl); poc = cnt.most_common(1)[0][0]
-    s = sorted(cl); n = len(s); k = int(round(0.7 * n))
-    best = None
+    s = sorted(cl); n = len(s); k = int(round(0.7 * n)); best = None
     for i in range(0, n - k + 1):
         w = s[i + k - 1] - s[i]
         if best is None or w < best[0]:
@@ -80,15 +73,13 @@ def dev_va(bars_so_far):
     return {"poc": poc, "val": best[1], "vah": best[2]}
 
 def zone_of(px, va):
-    if not va:
-        return "?"
+    if not va: return "?"
     if px > va["vah"]: return "מעל הבטן"
     if px < va["val"]: return "מתחת לבטן"
     return "חלק עליון של הבטן" if px >= va["poc"] else "חלק תחתון של הבטן"
 
 def facts(t, bars):
-    e_il = t["entry_ts"].astimezone(IL); e = float(t["entry_price"]); d = t["direction"]
-    sign = 1 if d == "LONG" else -1
+    e = float(t["entry_price"]); d = t["direction"]; sign = 1 if d == "LONG" else -1
     rth = [b for b in bars if b["rth"]]
     before = [b for b in rth if b["ts"] < t["entry_ts"]]
     after = [b for b in rth if b["ts"] >= t["entry_ts"] - dt.timedelta(minutes=5)]
@@ -109,11 +100,11 @@ def facts(t, bars):
     stop_p = None
     if t["stop"] is not None:
         sp = (e - float(t["stop"])) * sign
-        stop_p = sp if sp > 0.5 else None      # a stop already at/beyond entry = moved to BE → initial unknown
-    return {"phase": phase_of(e_il), "pos": pos, "zone": zone_of(e, va), "va": va,
+        stop_p = sp if sp > 0.5 else None
+    return {"phase": phase_of(t["entry_ts"].astimezone(IL)), "pos": pos, "zone": zone_of(e, va), "va": va,
             "mfe_x": mfe(in_trade), "mae_x": mae(in_trade), "mfe60": mfe(a60), "mfe_eod": mfe(after),
-            "realized": realized, "t1p": t1p, "stop_p": stop_p, "day_dir": day_dir, "day_net": net,
-            "day_rng": rng, "with_day": (day_dir == "UP" and d == "LONG") or (day_dir == "DOWN" and d == "SHORT"),
+            "realized": realized, "t1p": t1p, "stop_p": stop_p, "day_dir": day_dir, "day_net": net, "day_rng": rng,
+            "with_day": (day_dir == "UP" and d == "LONG") or (day_dir == "DOWN" and d == "SHORT"),
             "against_day": (day_dir == "UP" and d == "SHORT") or (day_dir == "DOWN" and d == "LONG"),
             "mins": (x_ts - t["entry_ts"]).total_seconds() / 60.0}
 
@@ -123,40 +114,38 @@ REASON_HEB = {"T1_HIT": "יעד ראשון", "T2_HIT": "יעד שני", "STOP_HI
               "EOD": "סגירת-יום", "EOD_FLATTEN": "סגירת-יום", "BE": "נקודת-איזון", "ladder_invalid": "סולם לא-תקין (לא נכתבה פקודה)",
               "STALE_UNRESOLVED": "לא נפתר (צל)", "CANCELLED": "בוטלה", "MANUAL": "ידני"}
 
-def category(t, f):
+def category(t):
     p = t["pnl_usd"]
-    if t["exit_reason"] == "ladder_invalid" or (p is None and t["state"] == "CLOSED"):
-        return "UNPRICED"
+    if t["exit_reason"] == "ladder_invalid" or (p is None and t["state"] == "CLOSED"): return "UNPRICED"
     if p is None: return "OPEN"
     if p > 2: return "WIN"
     if p < -2: return "LOSS"
     return "SCRATCH"
 
 def explain(t, f):
-    d = HEB_DIR.get(t["direction"], t["direction"]); cat = category(t, f)
-    ctx = []
-    ctx.append(f"{d} {t['pat'] or '?'} ב{PH_HEB[f['phase']]}, יום {t['dt'] or 'טרם-סווג'}.")
+    d = HEB_DIR.get(t["direction"], t["direction"]); cat = category(t)
+    ctx = [f"{d} {t['pat'] or '?'} ב{PH_HEB[f['phase']]}, יום {t['dt'] or 'טרם-סווג'}."]
     if f["day_dir"] in ("UP", "DOWN"):
         ctx.append(("עם כיוון-היום" if f["with_day"] else "נגד כיוון-היום") +
                    f" (היום {'עלה' if f['day_dir']=='UP' else 'ירד'} {abs(f['day_net']):.1f} נק׳ על טווח {f['day_rng']:.1f}).")
     else:
         ctx.append(f"יום-רוטציה (טווח {f['day_rng']:.1f} נק׳, סגירה {f['day_net']:+.1f} מהפתיחה).")
     if f["va"]:
-        ctx.append(f"מיקום-הכניסה: {f['zone']} (POC {f['va']['poc']:.2f}, VAH {f['va']['vah']:.2f}, VAL {f['va']['val']:.2f}).")
+        ctx.append(f"מיקום-הכניסה: {f['zone']} (POC {f['va']['poc']:.2f} · VAH {f['va']['vah']:.2f} · VAL {f['va']['val']:.2f}).")
     chase = (t["direction"] == "LONG" and f["pos"] >= 0.8) or (t["direction"] == "SHORT" and f["pos"] <= 0.2)
     ctx.append(f"מקום בטווח-היום עד הכניסה: {f['pos']*100:.0f}%" + (" — קצה הטווח (רדיפה)." if chase else "."))
     why, more, lesson = [], [], ""
     if cat == "WIN":
         why.append("ניצחה" + (" כי נכנסה עם כיוון-היום" if f["with_day"] else "") +
-                   (" ובחלק הנכון של הבטן" if (t["direction"]=="LONG" and "תחתון" in f["zone"]) or (t["direction"]=="SHORT" and "עליון" in f["zone"]) else "") + ".")
+                   (" ובחלק הנכון של הבטן" if (t["direction"] == "LONG" and "תחתון" in f["zone"]) or (t["direction"] == "SHORT" and "עליון" in f["zone"]) else "") + ".")
         if f["t1p"] is not None:
             gap = max(f["mfe60"] - (f["realized"] or 0), 0)
             if gap >= 6:
                 more.append(f"היעד היה {f['t1p']:.2f} נק׳ והמהלך נתן {f['mfe60']:.1f} נק׳ תוך שעה ({f['mfe_eod']:.1f} עד הסגירה) ⇒ נשארו ~{gap:.1f} נק׳ על השולחן. "
-                            "הסיבה: יעד מקוצץ (TARGET_REALISM) וחוזה אחד בלי רגל-ראנר — טריילינג-מבני על החוזה היחיד ביום-מגמה היה מרוויח יותר.")
-                lesson = "יציאה: ביום-מגמה היעד הקבוע קטן מהמהלך — לעבור לטריילינג/יעד-מבני."
+                            "הסיבה: יעד מקוצץ (TARGET_REALISM) וחוזה אחד בלי רגל-ראנר.")
+                lesson = "יציאה: ביום-מגמה היעד הקבוע קטן מהמהלך — טריילינג/יעד-מבני."
             else:
-                more.append(f"היעד ({f['t1p']:.2f} נק׳) מיצה את המהלך — לא היה הרבה יותר לקחת (MFE-שעה {f['mfe60']:.1f}).")
+                more.append(f"היעד ({f['t1p']:.2f} נק׳) מיצה את המהלך (MFE-שעה {f['mfe60']:.1f}).")
                 lesson = "כניסה ויציאה מתואמות — לשמר."
     elif cat == "LOSS":
         reasons = []
@@ -171,40 +160,36 @@ def explain(t, f):
             reasons.append(f"התזה נכשלה: הלכה רק {f['mfe_x']:.1f} נק׳ לטובתנו מול {f['mae_x']:.1f} נגד")
         why.append("הפסידה — " + "; ".join(reasons) + ".")
         if f["mfe_x"] >= 4:
-            more.append(f"היה רווח פתוח של {f['mfe_x']:.1f} נק׳ לפני הסטופ — העברת הסטופ לאיזון/יציאה חלקית הייתה הופכת אותה לסקראץ׳.")
+            more.append(f"היה רווח פתוח של {f['mfe_x']:.1f} נק׳ לפני הסטופ — סטופ-לאיזון/יציאה חלקית הייתה הופכת אותה לסקראץ׳.")
         lesson = reasons[0] + " — לבדוק אם השער צריך לחסום כניסה כזו."
     elif cat == "SCRATCH":
         why.append(f"נסגרה בסקראץ׳ ({REASON_HEB.get(t['exit_reason'], t['exit_reason'])}).")
         more.append(f"אחרי היציאה המהלך הגיע ל-{f['mfe_eod']:.1f} נק׳ לטובת הכיוון" + (" — היציאה הייתה מוקדמת." if f["mfe_eod"] >= 8 else " — היציאה הייתה נכונה."))
         lesson = "לבדוק את סף-הסקראץ׳ מול MFE אחרי היציאה."
     elif cat == "UNPRICED":
-        why.append("לא נכתבה פקודה: סולם-היעדים שהגיע לביצוע לא היה מונוטוני (T-335 / T-438) — העסקה בוטלה לפני שנשלחה.")
+        why.append("לא נכתבה פקודה: סולם-היעדים לא היה מונוטוני (T-335 / T-438) — בוטלה לפני שנשלחה.")
         more.append(f"מה היה קורה: MFE-שעה {f['mfe60']:.1f} נק׳, MAE {f['mae_x']:.1f}.")
         lesson = "באג-ביצוע, לא החלטת-מסחר — פריט T-438."
     else:
         why.append("פתוחה.")
     return " ".join(ctx), " ".join(why), " ".join(more), lesson
 
-# ── per-trade records ─────────────────────────────────────────────────────────
 recs = []
 for t in trades:
     d = t["entry_ts"].astimezone(IL).date().isoformat()
     bars = by_day.get(d, [])
     f = facts(t, bars) if bars else None
-    if f:
-        ctx, why, more, lesson = explain(t, f)
-    else:
-        ctx = why = more = lesson = ""
+    ctx, why, more, lesson = explain(t, f) if f else ("", "", "", "")
     e_il = t["entry_ts"].astimezone(IL)
     recs.append({
         "id": t["id"], "mode": t["mode"], "sys": t["sys"], "dir": t["direction"], "pat": t["pat"] or "",
         "day": d, "time": e_il.strftime("%H:%M"), "entry": float(t["entry_price"]),
-        "exit": float(t["exit_price"]) if t["exit_price"] is not None else None,
+        "exit": float(t["exit_price"]) if t["exit_price"] is not None else (float(t["t1"]) if (t["exit_reason"] == "T1_HIT" and t["t1"]) else None),
         "exit_time": t["exit_ts"].astimezone(IL).strftime("%H:%M") if t["exit_ts"] else "",
         "reason": t["exit_reason"] or "", "reason_heb": REASON_HEB.get(t["exit_reason"] or "", t["exit_reason"] or ""),
         "pnl": float(t["pnl_usd"]) if t["pnl_usd"] is not None else None,
         "pnl_broker": float(t["pnl_sierra"]) if t["pnl_sierra"] is not None else None,
-        "dt": t["dt"] or "", "phase": f["phase"] if f else "", "cat": category(t, f) if f else "OPEN",
+        "dt": t["dt"] or "", "phase": f["phase"] if f else "", "cat": category(t),
         "t1p": round(f["t1p"], 2) if f and f["t1p"] is not None else None,
         "mfe60": round(f["mfe60"], 2) if f else None, "mfe_eod": round(f["mfe_eod"], 2) if f else None,
         "mae": round(f["mae_x"], 2) if f else None, "pos": round(f["pos"], 2) if f else None,
@@ -212,69 +197,126 @@ for t in trades:
         "ctx": ctx, "why": why, "more": more, "lesson": lesson,
     })
 
-# ── HTML helpers ──────────────────────────────────────────────────────────────
+# ── app shell ─────────────────────────────────────────────────────────────────
 CSS = """
-:root{color-scheme:dark}
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
 *{box-sizing:border-box}
 html,body{max-width:100%;overflow-x:hidden}
-body{margin:0;background:#0b0e14;color:#e6edf3;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;padding:12px 12px 40px}
-a{color:#58a6ff;text-decoration:none}
-h1{font-size:21px;margin:4px 0 2px}h2{font-size:17px;margin:18px 0 8px;color:#c9d1d9}
-.dim{color:#8b949e;font-size:13px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 76px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;background:#0d1117;border-bottom:1px solid var(--line);padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))}
+.hdr .t{flex:1;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400}
+.hdr button,.hdr a.btn{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:20px;width:44px;height:40px;display:flex;align-items:center;justify-content:center}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:16px 12px;overflow-y:auto;padding-top:calc(16px + env(safe-area-inset-top))}
+.drawer h3{margin:8px 4px 4px;font-size:13px;color:var(--dim);font-weight:600;text-transform:uppercase}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:var(--fg);font-size:17px}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:13px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:22px;margin:6px 0 4px}
+h2{font-size:16px;margin:20px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+.dim{color:var(--dim);font-size:13px}
 .num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
-.nav{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
-.nav a{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:8px 12px;font-size:14px}
-.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:12px;margin:10px 0}
-.win{border-right:5px solid #3fb950}.loss{border-right:5px solid #f85149}.scratch{border-right:5px solid #d29922}.unpriced{border-right:5px solid #8b949e}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid #30363d;margin-left:4px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
 .badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
-.pnl{font-weight:700;font-size:18px}.pos{color:#3fb950}.neg{color:#f85149}
-.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:6px 0}
-.tags button{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:10px;padding:10px 14px;font-size:15px;margin:4px 2px}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:18px;transition:transform .15s}
+.card.open .chev{transform:rotate(90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:6px 0}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.tools button{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px}
+.tools button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 6px;font-size:15px}
 .tags button:active{background:#30363d}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.filters select,.filters input{background:#161b22;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:8px;font-size:15px}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{padding:8px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
-th{color:#8b949e;font-weight:600;position:sticky;top:0;background:#0b0e14}
-tr.row{cursor:pointer}tr.row:active{background:#161b22}
-.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:14px}
-.summary{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
-.summary div{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:8px 12px;font-size:14px}
-.gantt{overflow-x:auto}
-.gantt table{min-width:640px}.gantt td{padding:6px 4px;text-align:center;font-size:12px}
-.gantt td.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9}
-.g{display:block;border-radius:6px;padding:4px 6px;font-size:12px;color:#0b0e14;font-weight:600}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.filters select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600}.trow .b{font-size:13px;color:var(--dim)}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:block;border-radius:6px;padding:4px 6px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 0}
 .g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
-.zoom button{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:6px 10px;font-size:13px;margin-left:4px}
-.legend span{display:inline-block;margin-left:10px;font-size:12px;color:#8b949e}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:8px 2px 6px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:20px;font-weight:400}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 2px 2px 0}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
 """
-NAV = ('<div class="nav"><a href="index.html">🏠 בית</a><a href="trades.html">📒 כל העסקאות</a>'
-       '<a href="lessons.html">📈 לקחים וענפים</a><a href="status_2026-09-20.html">📄 עדכון 20.09</a></div>')
+MENU = [("index.html", "🏠", "בית", ""), ("/", "💬", "צ׳אט עם המערכת", "הודעות ופקודות"),
+        ("days.html", "📅", "ימי-מסחר", "נרות + עסקאות ליום"), ("trades.html", "📒", "כל העסקאות", "לייב · דמו · צל"),
+        ("missed.html", "⭕", "מה פספסנו", "10 סשנים אחרונים"), ("lessons.html", "📈", "לקחים וענפים", "גאנט"),
+        ("tree.html", "🌳", "עץ-דלתון", "הגרסאות והמצב"), ("status_2026-09-20.html", "📄", "עדכוני-מצב", "20.09"),
+        ("/readiness", "📋", "תיק-מוכנות", "משימות")]
+BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
+
+def shell(title, body, extra_js="", prefix="", sub="", active="", left_btn=""):
+    def href(h):
+        return h if h.startswith("/") else prefix + h
+    drawer = ''.join(f'<a class="item" href="{href(h)}"><span>{ic}</span><span>{html.escape(n)}</span><small>{html.escape(s)}</small></a>' for h, ic, n, s in MENU)
+    bottom = ''.join(f'<a href="{href(h)}" class="{"on" if h == active else ""}"><b>{ic}</b>{n}</a>' for h, ic, n in BOTTOM)
+    return (f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>{html.escape(title)}</title>'
+            f'<style>{CSS}</style></head><body>'
+            f'<div class="hdr"><button onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">{html.escape(title)}'
+            + (f'<div class="sub">{html.escape(sub)}</div>' if sub else '') + f'</div>{left_btn}</div>'
+            f'<div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><h3>MEMS26</h3>{drawer}</div></div>'
+            f'<div class="wrap">{body}</div><div class="bottom">{bottom}</div>'
+            + KEYJS + extra_js + '</body></html>')
+
 KEYJS = """
 <script>
 var Q=location.search||'';
-document.querySelectorAll('a[href]').forEach(function(a){var h=a.getAttribute('href');if(h&&!/^https?:|^#|^mailto:/.test(h)&&h.indexOf('key=')<0){a.setAttribute('href',h+(h.indexOf('?')>=0?'&':'?')+Q.slice(1));}});
+document.querySelectorAll('a[href]').forEach(function(a){var h=a.getAttribute('href');if(h&&!/^https?:|^#|^mailto:/.test(h)&&h.indexOf('key=')<0){var i=h.indexOf('#');var base=i>=0?h.slice(0,i):h,hash=i>=0?h.slice(i):'';a.setAttribute('href',base+(base.indexOf('?')>=0?'&':'?')+Q.slice(1)+hash);}});
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
 function tag(id, label, text){
-  var note = prompt(label+' — הערה (אופציונלי):','') ; if(note===null) return;
+  var note = prompt(label+' — הערה (אופציונלי):',''); if(note===null) return;
   var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
   fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
    .then(function(r){return r.json();}).then(function(d){alert(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){alert('שגיאה בשליחה');});
 }
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView();},50);}}
 </script>"""
 
-def page(title, body, extra_js="", prefix=""):
-    nav = NAV.replace('href="', f'href="{prefix}') if prefix else NAV
-    return (f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
-            f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{html.escape(title)}</title>'
-            f'<style>{CSS}</style></head><body>{nav}{body}{KEYJS}{extra_js}</body></html>')
-
-def money(v):
+def money(v, big=False):
     if v is None: return '<span class="dim">—</span>'
     cls = "pos" if v > 0 else "neg" if v < 0 else ""
-    return f'<span class="num {cls}">{v:+,.2f}$</span>'
+    return f'<span class="num {cls}{" pnl" if big else ""}">{v:+,.0f}$</span>' if big else f'<span class="num {cls}">{v:+,.2f}$</span>'
 
 def cat_cls(c): return {"WIN": "win", "LOSS": "loss", "SCRATCH": "scratch"}.get(c, "unpriced")
+
+def day_summary(d):
+    rs = [r for r in recs if r["day"] == d]
+    def s(xs):
+        p = [x["pnl"] for x in xs if x["pnl"] is not None]
+        return {"n": len(xs), "w": sum(1 for v in p if v > 0), "sum": sum(p) if p else 0.0}
+    return s([r for r in rs if r["mode"] == "live"]), s([r for r in rs if r["mode"] == "shadow"]), rs
 
 # ── candle SVG ────────────────────────────────────────────────────────────────
 def candle_svg(bars, day_recs, cw=9, H=340):
@@ -286,36 +328,34 @@ def candle_svg(bars, day_recs, cw=9, H=340):
     pad = (hi - lo) * 0.05 or 1; hi += pad; lo -= pad
     def y(p): return top + (hi - p) / (hi - lo) * (H - top - bot)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" style="display:block;direction:ltr">']
-    # grid: every 5 pts
     step = 5 if hi - lo < 60 else 10 if hi - lo < 120 else 25
     g = (int(lo / step) + 1) * step
     while g < hi:
-        out.append(f'<line x1="0" y1="{y(g):.1f}" x2="{W-66}" y2="{y(g):.1f}" stroke="#21262d" stroke-width="1"/>'
+        out.append(f'<line x1="0" y1="{y(g):.1f}" x2="{W-66}" y2="{y(g):.1f}" stroke="#21262d"/>'
                    f'<text x="{W-62}" y="{y(g)+4:.1f}" fill="#8b949e" font-size="11">{g:.0f}</text>')
         g += step
     for i, b in enumerate(bars):
         x = i * cw + cw / 2
-        up = b["c"] >= b["o"]; col = "#3fb950" if up else "#f85149"
-        if not b["rth"]: col = "#484f58"
-        out.append(f'<line x1="{x:.1f}" y1="{y(b["h"]):.1f}" x2="{x:.1f}" y2="{y(b["l"]):.1f}" stroke="{col}" stroke-width="1"/>')
+        col = ("#3fb950" if b["c"] >= b["o"] else "#f85149") if b["rth"] else "#484f58"
+        out.append(f'<line x1="{x:.1f}" y1="{y(b["h"]):.1f}" x2="{x:.1f}" y2="{y(b["l"]):.1f}" stroke="{col}"/>')
         yo, yc = y(b["o"]), y(b["c"]); h = max(abs(yc - yo), 1.2)
         out.append(f'<rect x="{x - cw*0.32:.1f}" y="{min(yo, yc):.1f}" width="{cw*0.64:.1f}" height="{h:.1f}" fill="{col}"/>')
         if b["il"].minute == 0:
             out.append(f'<text x="{x:.1f}" y="{H-8}" fill="#8b949e" font-size="11" text-anchor="middle">{b["il"].strftime("%H:%M")}</text>'
-                       f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{H-bot}" stroke="#161b22" stroke-width="1"/>')
+                       f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{H-bot}" stroke="#161b22"/>')
     idx = {b["il"].strftime("%H:%M"): i for i, b in enumerate(bars)}
     def xof(hhmm):
         i = idx.get(hhmm[:3] + str(int(hhmm[3:]) // 5 * 5).zfill(2))
         return None if i is None else i * cw + cw / 2
     for r in day_recs:
-        xe = xof(r["time"]);
+        xe = xof(r["time"])
         if xe is None: continue
         col = "#3fb950" if (r["pnl"] or 0) > 0 else "#f85149" if (r["pnl"] or 0) < 0 else "#d29922"
         ye = y(r["entry"])
         if r["dir"] == "LONG":
-            out.append(f'<polygon points="{xe:.1f},{ye+3:.1f} {xe-6:.1f},{ye+13:.1f} {xe+6:.1f},{ye+13:.1f}" fill="{col}" stroke="#0b0e14" stroke-width="1"/>')
+            out.append(f'<polygon points="{xe:.1f},{ye+3:.1f} {xe-6:.1f},{ye+13:.1f} {xe+6:.1f},{ye+13:.1f}" fill="{col}" stroke="#0b0e14"/>')
         else:
-            out.append(f'<polygon points="{xe:.1f},{ye-3:.1f} {xe-6:.1f},{ye-13:.1f} {xe+6:.1f},{ye-13:.1f}" fill="{col}" stroke="#0b0e14" stroke-width="1"/>')
+            out.append(f'<polygon points="{xe:.1f},{ye-3:.1f} {xe-6:.1f},{ye-13:.1f} {xe+6:.1f},{ye-13:.1f}" fill="{col}" stroke="#0b0e14"/>')
         if r["exit"] is not None and r["exit_time"]:
             xx = xof(r["exit_time"])
             if xx is not None:
@@ -325,114 +365,185 @@ def candle_svg(bars, day_recs, cw=9, H=340):
     out.append("</svg>")
     return "".join(out)
 
-# ── day pages ─────────────────────────────────────────────────────────────────
-def day_summary(d):
-    rs = [r for r in recs if r["day"] == d]
-    live = [r for r in rs if r["mode"] == "live"]; sh = [r for r in rs if r["mode"] == "shadow"]
-    def s(xs):
-        p = [x["pnl"] for x in xs if x["pnl"] is not None]
-        return {"n": len(xs), "w": sum(1 for v in p if v > 0), "sum": sum(p) if p else 0.0}
-    return s(live), s(sh), rs
+def trade_card(r, d):
+    hl = f'<span class="badge {r["mode"]}">{r["mode"]}</span>{r["time"]} · {HEB_DIR.get(r["dir"], r["dir"])} · {html.escape(r["pat"])}'
+    sub = f'#{r["id"]} · <span class="num">{r["entry"]:.2f} → {r["exit"] if r["exit"] is not None else "—"}</span> · {html.escape(r["reason_heb"])} · {r["mins"] or 0} דק׳'
+    lbl = f'{d} {r["time"]} {html.escape(r["pat"])} {r["dir"]}'
+    return (f'<div class="card {cat_cls(r["cat"])}" id="t{r["id"]}"><div class="row" onclick="tog(this.parentNode)">'
+            f'<div class="grow"><div class="hl">{hl}</div><div class="dim">{sub}</div></div>{money(r["pnl"], True)}<span class="chev">‹</span></div>'
+            f'<div class="body"><div>{html.escape(r["ctx"])}</div><div style="margin-top:8px"><b>{html.escape(r["why"])}</b></div>'
+            + (f'<div style="margin-top:8px">💡 {html.escape(r["more"])}</div>' if r["more"] else "")
+            + (f'<div class="dim" style="margin-top:8px">לקח: {html.escape(r["lesson"])}</div>' if r["lesson"] else "")
+            + f'<div class="tags"><button onclick="tag({r["id"]},\'✓ נכונה\',\'{lbl}\')">✓ נכונה</button>'
+            f'<button onclick="tag({r["id"]},\'✗ לא נכונה\',\'{lbl}\')">✗ לא נכונה</button>'
+            f'<button onclick="tag({r["id"]},\'💬 הערה\',\'{lbl}\')">💬 הערה</button></div></div></div>')
 
-for d in days:
+# ── day pages ─────────────────────────────────────────────────────────────────
+for k, d in enumerate(days):
     bars = by_day[d]; rth = [b for b in bars if b["rth"]]
     lv, sh, rs = day_summary(d)
     live_recs = [r for r in rs if r["mode"] == "live"]
-    meta = dth.get(d, {})
-    dd = dt.date.fromisoformat(d); heb_day = ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"][dd.weekday()]
+    meta = dth.get(d, {}); dd = dt.date.fromisoformat(d)
     o, h_, l_, c_ = rth[0]["o"], max(b["h"] for b in rth), min(b["l"] for b in rth), rth[-1]["c"]
-    head = (f'<h1>יום {heb_day} {dd.strftime("%d.%m.%Y")}</h1>'
-            f'<div class="dim">סוג-יום (EOD): <b>{meta.get("day_type") or "?"}</b> · פתיחה: {meta.get("opening_type") or "?"} · '
-            f'טווח <span class="num">{l_:.2f}–{h_:.2f}</span> ({h_-l_:.1f} נק׳) · פתיחה <span class="num">{o:.2f}</span> סגירה <span class="num">{c_:.2f}</span> ({c_-o:+.1f})</div>'
-            f'<div class="summary"><div>לייב: <b>{lv["n"]}</b> עסקאות · {lv["w"]} ניצחונות · {money(lv["sum"])}</div>'
-            f'<div>צל: {sh["n"]} · {sh["w"]} ניצחונות · {money(sh["sum"])}</div></div>')
-    chart = (f'<h2>הנרות ({len(rth)} ברי-5-דק׳) + עסקאות-הלייב</h2><div class="legend"><span>▲/▼ כניסה</span><span>● יציאה</span><span>אפור = לפני הפתיחה</span></div>'
-             f'<div class="zoom"><button onclick="zoomC(6)">צר</button><button onclick="zoomC(9)">רגיל</button><button onclick="zoomC(14)">רחב</button>'
-             f'<button onclick="toggleShadow()">צל: הצג/הסתר</button></div>'
-             f'<div class="chartwrap" id="cw">{candle_svg(bars, live_recs)}</div>')
+    prev_d = days[k - 1] if k > 0 else None; next_d = days[k + 1] if k + 1 < len(days) else None
+    nav = ((f'<a class="btn" href="{prev_d}.html">‹</a>' if prev_d else '<span></span>')
+           + (f'<a class="btn" href="{next_d}.html">›</a>' if next_d else ''))
+    kpis = (f'<div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v">{money(lv["sum"], True)}</div><div class="dim">{lv["n"]} עסקאות · {lv["w"]} ניצחונות</div></div>'
+            f'<div class="kpi"><div class="l">צל</div><div class="v">{money(sh["sum"], True)}</div><div class="dim">{sh["n"]} עסקאות · {sh["w"]} ניצחונות</div></div>'
+            f'<div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">{meta.get("day_type") or "?"}</div><div class="dim">פתיחה {meta.get("opening_type") or "?"}</div></div>'
+            f'<div class="kpi"><div class="l">טווח</div><div class="v num" style="font-size:16px">{l_:.0f}–{h_:.0f}</div><div class="dim num">{h_-l_:.1f} נק׳ · סגירה {c_-o:+.1f}</div></div></div>')
     svgs = {cw: candle_svg(bars, live_recs, cw=cw) for cw in (6, 9, 14)}
     svgs_sh = {cw: candle_svg(bars, [r for r in rs if r["mode"] in ("live", "shadow")], cw=cw) for cw in (6, 9, 14)}
-    cards = ['<h2>העסקאות — מה קרה ולמה</h2>']
+    chart = (f'<h2>הנרות <span class="dim">({len(rth)} ברי-5-דק׳)</span></h2>'
+             f'<div class="tools"><button id="z6" onclick="zoomC(6)">צר</button><button id="z9" class="on" onclick="zoomC(9)">רגיל</button><button id="z14" onclick="zoomC(14)">רחב</button>'
+             f'<button id="zs" onclick="toggleShadow()">+ צל</button></div>'
+             f'<div class="chartwrap" id="cw">{svgs[9]}</div><div class="legend"><span>▲/▼ כניסה</span><span>● יציאה</span><span>אפור = לפני הפתיחה</span></div>')
     order = live_recs + [r for r in rs if r["mode"] == "demo"] + [r for r in rs if r["mode"] == "shadow"]
-    if not order:
-        cards.append('<div class="card">אין עסקאות ביום זה.</div>')
-    for r in order:
-        cards.append(
-            f'<div class="card {cat_cls(r["cat"])}" id="t{r["id"]}">'
-            f'<div><span class="badge {r["mode"]}">{r["mode"]}</span><b>#{r["id"]}</b> · {r["time"]} · {HEB_DIR.get(r["dir"], r["dir"])} · {html.escape(r["pat"])}'
-            f' <span class="pnl">{money(r["pnl"])}</span></div>'
-            f'<div class="dim num">כניסה {r["entry"]:.2f} → יציאה {r["exit"] if r["exit"] is not None else "—"} ({r["exit_time"]}) · {html.escape(r["reason_heb"])} · {r["mins"] or 0} דק׳</div>'
-            f'<div style="margin-top:6px">{html.escape(r["ctx"])}</div>'
-            f'<div style="margin-top:6px"><b>{html.escape(r["why"])}</b></div>'
-            + (f'<div style="margin-top:6px">💡 {html.escape(r["more"])}</div>' if r["more"] else "")
-            + (f'<div class="dim" style="margin-top:6px">לקח: {html.escape(r["lesson"])}</div>' if r["lesson"] else "")
-            + f'<div class="tags"><button onclick="tag({r["id"]},\'✓ נכונה\',\'{d} {r["time"]} {html.escape(r["pat"])} {r["dir"]}\')">✓ נכונה</button>'
-            f'<button onclick="tag({r["id"]},\'✗ לא נכונה\',\'{d} {r["time"]} {html.escape(r["pat"])} {r["dir"]}\')">✗ לא נכונה</button>'
-            f'<button onclick="tag({r["id"]},\'💬 הערה\',\'{d} {r["time"]} {html.escape(r["pat"])} {r["dir"]}\')">💬 הערה</button></div></div>')
+    cards = [f'<h2>העסקאות <span class="dim">לחיצה = הסבר ותיוג</span></h2>']
+    if not order: cards.append('<div class="card">אין עסקאות ביום זה.</div>')
+    if live_recs: cards.append('<div class="dim">לייב</div>')
+    cards += [trade_card(r, d) for r in live_recs]
+    shadow_recs = [r for r in rs if r["mode"] == "shadow"]
+    if shadow_recs:
+        cards.append(f'<div class="card"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">צל — {len(shadow_recs)} עסקאות</div><div class="dim">{sh["w"]} ניצחונות · {money(sh["sum"])}</div></div><span class="chev">‹</span></div><div class="body">'
+                     + "".join(trade_card(r, d) for r in shadow_recs) + '</div></div>')
     js = ("<script>var SV=" + json.dumps(svgs) + ";var SVS=" + json.dumps(svgs_sh) + ";var _cw=9,_sh=false;"
-          "function draw(){document.getElementById('cw').innerHTML=(_sh?SVS:SV)[_cw];}"
+          "function draw(){document.getElementById('cw').innerHTML=(_sh?SVS:SV)[_cw];[6,9,14].forEach(function(w){document.getElementById('z'+w).classList.toggle('on',w==_cw);});document.getElementById('zs').classList.toggle('on',_sh);}"
           "function zoomC(w){_cw=w;draw();}function toggleShadow(){_sh=!_sh;draw();}</script>")
     with open(os.path.join(OUT, "days", f"{d}.html"), "w", encoding="utf-8") as fh:
-        fh.write(page(f"MEMS26 · {d}", head + chart + "".join(cards), js, prefix="../"))
+        fh.write(shell(f"יום {HEB_WD[dd.weekday()]} {dd.strftime('%d.%m.%Y')}", kpis + chart + "".join(cards), js, prefix="../",
+                       sub=f'{meta.get("day_type") or "?"} · לייב {lv["n"]} · {lv["sum"]:+.0f}$', active="days.html", left_btn=nav))
+
+# ── days index ────────────────────────────────────────────────────────────────
+dl = ['<h1>ימי-מסחר</h1><div class="dim">לחיצה על יום פותחת נרות, עסקאות והסברים.</div>']
+for d in reversed(days):
+    lv, sh, rs = day_summary(d); dd = dt.date.fromisoformat(d)
+    dl.append(f'<a href="days/{d}.html"><div class="card"><div class="row"><div class="grow"><div class="hl">{HEB_WD1[dd.weekday()]} {dd.strftime("%d.%m")} · {dth.get(d,{}).get("day_type") or "?"}</div>'
+              f'<div class="dim">לייב {lv["n"]} ({lv["w"]} ✓) · צל {sh["n"]} {money(sh["sum"])}</div></div>{money(lv["sum"], True)}<span class="chev">‹</span></div></div></a>')
+with open(os.path.join(OUT, "days.html"), "w", encoding="utf-8") as fh:
+    fh.write(shell("ימי-מסחר", "".join(dl), active="days.html"))
 
 # ── trades ledger ─────────────────────────────────────────────────────────────
-ledger = [r for r in recs]
-pats = sorted({r["pat"] for r in ledger if r["pat"]})
-body = ('<h1>📒 כל העסקאות</h1><div class="dim">לייב · דמו · צל — לחיצה על שורה פותחת את ההסבר; "יום" פותח את עמוד-היום עם הנרות.</div>'
+pats = sorted({r["pat"] for r in recs if r["pat"]})
+body = ('<h1>כל העסקאות</h1><div class="dim">ברירת-מחדל: לייב. לחיצה על שורה = הסבר; לחיצה על התאריך = הנרות של היום.</div>'
         '<div class="filters">'
         '<select id="fMode"><option value="live">לייב</option><option value="">כל המצבים</option><option value="demo">דמו</option><option value="shadow">צל</option></select>'
-        '<select id="fDay"><option value="">כל הימים</option>' + "".join(f'<option value="{d}">{d[8:]}.{d[5:7]}</option>' for d in sorted(set(r["day"] for r in ledger), reverse=True)) + '</select>'
-        '<select id="fDir"><option value="">כיוון</option><option value="LONG">לונג</option><option value="SHORT">שורט</option></select>'
-        '<select id="fCat"><option value="">תוצאה</option><option value="WIN">ניצחון</option><option value="LOSS">הפסד</option><option value="SCRATCH">סקראץ׳</option><option value="UNPRICED">לא-נכתבה</option></select>'
-        '<select id="fPat"><option value="">תבנית</option>' + "".join(f'<option value="{html.escape(p)}">{html.escape(p)}</option>' for p in pats) + '</select>'
-        '</div><div class="summary" id="sum"></div>'
-        '<table><thead><tr><th>#</th><th>יום</th><th>שעה</th><th>מצב</th><th>תבנית</th><th>כיוון</th><th>$</th></tr></thead><tbody id="tb"></tbody></table>')
-ljs = ("<script>var T=" + json.dumps(ledger, ensure_ascii=False) + ";"
-       "var HD={LONG:'לונג',SHORT:'שורט'};"
-       "function fmt(v){if(v===null||v===undefined)return '—';var s=(v>0?'+':'')+v.toFixed(2)+'$';return '<span class=\"num '+(v>0?'pos':v<0?'neg':'')+'\">'+s+'</span>';}"
+        '<select id="fDay"><option value="">כל הימים</option>' + "".join(f'<option value="{d}">{d[8:]}.{d[5:7]}</option>' for d in sorted(set(r["day"] for r in recs), reverse=True)) + '</select>'
+        '<select id="fDir"><option value="">כל הכיוונים</option><option value="LONG">לונג</option><option value="SHORT">שורט</option></select>'
+        '<select id="fCat"><option value="">כל התוצאות</option><option value="WIN">ניצחון</option><option value="LOSS">הפסד</option><option value="SCRATCH">סקראץ׳</option><option value="UNPRICED">לא-נכתבה</option></select>'
+        '<select id="fPat" style="grid-column:1/3"><option value="">כל התבניות</option>' + "".join(f'<option value="{html.escape(p)}">{html.escape(p)}</option>' for p in pats) + '</select>'
+        '</div><div class="kpis" id="sum"></div><div id="tb"></div>')
+ljs = ("<script>var T=" + json.dumps(recs, ensure_ascii=False) + ";var HD={LONG:'לונג',SHORT:'שורט'};"
+       "function fmt(v){if(v===null||v===undefined)return '<span class=dim>—</span>';return '<span class=\"num '+(v>0?'pos':v<0?'neg':'')+'\">'+(v>0?'+':'')+v.toFixed(2)+'$</span>';}"
        "function render(){var m=fMode.value,d=fDay.value,dr=fDir.value,c=fCat.value,p=fPat.value;var rows=T.filter(function(r){return (!m||r.mode==m)&&(!d||r.day==d)&&(!dr||r.dir==dr)&&(!c||r.cat==c)&&(!p||r.pat==p);});"
        "var n=rows.length,w=rows.filter(function(r){return r.pnl>0;}).length,s=rows.reduce(function(a,r){return a+(r.pnl||0);},0);"
-       "document.getElementById('sum').innerHTML='<div>N='+n+'</div><div>ניצחונות '+w+' ('+(n?Math.round(100*w/n):0)+'%)</div><div>Σ '+fmt(s)+'</div>';"
-       "var h='';rows.slice().reverse().forEach(function(r){h+='<tr class=\"row\" onclick=\"tg('+r.id+')\"><td>'+r.id+'</td><td><a href=\"days/'+r.day+'.html#t'+r.id+'\">'+r.day.slice(8)+'.'+r.day.slice(5,7)+'</a></td><td class=num>'+r.time+'</td><td><span class=\"badge '+r.mode+'\">'+r.mode+'</span></td><td>'+r.pat+'</td><td>'+(HD[r.dir]||r.dir)+'</td><td>'+fmt(r.pnl)+'</td></tr>';"
-       "h+='<tr><td colspan=7><div class=detail id=\"d'+r.id+'\"><div class=\"dim\">'+r.reason_heb+'</div><div class=\"dim num\">כניסה '+r.entry.toFixed(2)+' → '+(r.exit===null?'—':r.exit.toFixed(2))+' · T1 '+(r.t1p===null?'—':r.t1p)+' נק׳ · MFE-שעה '+(r.mfe60===null?'—':r.mfe60)+' · MAE '+(r.mae===null?'—':r.mae)+' · '+(r.zone||'')+'</div><div>'+r.ctx+'</div><div><b>'+r.why+'</b></div>'+(r.more?'<div>💡 '+r.more+'</div>':'')+(r.lesson?'<div class=dim>לקח: '+r.lesson+'</div>':'')+'</div></td></tr>';});"
-       "document.getElementById('tb').innerHTML=h;document.querySelectorAll('#tb a[href]').forEach(function(a){var x=a.getAttribute('href');if(x.indexOf('key=')<0)a.setAttribute('href',x.replace('#','?'+Q.slice(1)+'#'));});}"
+       "document.getElementById('sum').innerHTML='<div class=kpi><div class=l>עסקאות</div><div class=v>'+n+'</div></div><div class=kpi><div class=l>ניצחונות</div><div class=v>'+w+' <span class=dim style=\"font-size:13px\">('+(n?Math.round(100*w/n):0)+'%)</span></div></div><div class=kpi style=\"grid-column:1/3\"><div class=l>סה\"כ</div><div class=v>'+fmt(s)+'</div></div>';"
+       "var h='',last='';rows.slice().reverse().forEach(function(r){if(r.day!=last){last=r.day;var dd=rows.filter(function(x){return x.day==r.day;});var ds=dd.reduce(function(a,x){return a+(x.pnl||0);},0);h+='<div class=dayhdr><a href=\"days/'+r.day+'.html\">'+r.day.slice(8)+'.'+r.day.slice(5,7)+' ↗</a><span>'+dd.length+' · '+fmt(ds)+'</span></div>';}"
+       "h+='<div class=trow onclick=\"tg('+r.id+')\"><div class=grow><div class=a>'+r.time+' · '+(HD[r.dir]||r.dir)+' · '+r.pat+' <span class=\"badge '+r.mode+'\">'+r.mode+'</span></div><div class=b>#'+r.id+' · '+r.reason_heb+' · '+(r.mins||0)+' דק׳</div></div>'+fmt(r.pnl)+'</div>';"
+       "h+='<div class=detail id=\"d'+r.id+'\"><div class=\"dim num\">כניסה '+r.entry.toFixed(2)+' → '+(r.exit===null?'—':r.exit.toFixed(2))+' · T1 '+(r.t1p===null?'—':r.t1p)+' נק׳ · MFE-שעה '+(r.mfe60===null?'—':r.mfe60)+' · MAE '+(r.mae===null?'—':r.mae)+' · '+(r.zone||'')+'</div><div>'+r.ctx+'</div><div><b>'+r.why+'</b></div>'+(r.more?'<div>💡 '+r.more+'</div>':'')+(r.lesson?'<div class=dim>לקח: '+r.lesson+'</div>':'')+'<div><a href=\"days/'+r.day+'.html#t'+r.id+'\">↗ לנרות ולתיוג</a></div></div>';});"
+       "document.getElementById('tb').innerHTML=h||'<div class=card>אין עסקאות בפילטר הזה.</div>';document.querySelectorAll('#tb a[href]').forEach(function(a){var x=a.getAttribute('href');if(x.indexOf('key=')<0){var i=x.indexOf('#');var b=i>=0?x.slice(0,i):x,hh=i>=0?x.slice(i):'';a.setAttribute('href',b+'?'+Q.slice(1)+hh);}});}"
        "function tg(id){var e=document.getElementById('d'+id);e.style.display=e.style.display=='block'?'none':'block';}"
        "['fMode','fDay','fDir','fCat','fPat'].forEach(function(i){document.getElementById(i).onchange=render;});render();</script>")
 with open(os.path.join(OUT, "trades.html"), "w", encoding="utf-8") as fh:
-    fh.write(page("MEMS26 · כל העסקאות", body, ljs))
+    fh.write(shell("כל העסקאות", body, ljs, active="trades.html"))
+
+# ── missed trades ─────────────────────────────────────────────────────────────
+mp = os.path.join(OUT, "data", "missed.json")
+if os.path.exists(mp):
+    M = json.load(open(mp, encoding="utf-8"))
+    V_HEB = {"TOOK": ("✅ נלקחה", "ok"), "LATE": ("🕒 מאוחר", "warn"), "OPPOSITE": ("❌ הפוך", "bad"), "MISSED": ("⭕ פוספסה", "bad"), "UNCATCHABLE": ("⚪ לא ניתנת-לתפיסה", "")}
+    DEPTH = {"HIGH": "עומק גבוה", "NORMAL": "עומק רגיל", "LOW": "עומק נמוך"}
+    legs = M["legs"]; nm = sum(1 for r in legs if r["verdict"] == "MISSED"); nt = sum(1 for r in legs if r["verdict"] == "TOOK")
+    mb = [f'<h1>מה פספסנו</h1><div class="dim">{len(M["sessions"])} סשנים · מהלכים ≥ 12 נק׳ ו-≥ 3 ברים · נרות, ווליום ומיקום — לא תבניות · {M["generated"][:16]}</div>',
+          f'<div class="kpis"><div class="kpi"><div class="l">מהלכים</div><div class="v">{len(legs)}</div></div><div class="kpi"><div class="l">פוספסו (ניתנות-לתפיסה)</div><div class="v neg">{nm}</div><div class="dim num">{sum(r["pts"] for r in legs if r["verdict"]=="MISSED"):.0f} נק׳</div></div>'
+          f'<div class="kpi"><div class="l">נלקחו בזמן</div><div class="v pos">{nt}</div></div><div class="kpi"><div class="l">מאוחר / הפוך</div><div class="v">{sum(1 for r in legs if r["verdict"]=="LATE")} / {sum(1 for r in legs if r["verdict"]=="OPPOSITE")}</div></div></div>',
+          '<h2>לפי סוג-יום × עומק — מה משותף לכניסות שהיו נכונות</h2><div class="dim">החתימה = אחוז הכניסות-האידיאליות עם התכונה. ≥70% = חומר לענף.</div>']
+    for g in M["groups"]:
+        s = g["signature"] or {}
+        pills = "".join(f'<span class="pill {"ok" if v >= 70 else ""}">{k} {v}%</span>' for k, v in s.items() if isinstance(v, int) and k != "n")
+        mb.append(f'<div class="card"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">{html.escape(g["day_type"])} · {DEPTH[g["depth"]]}</div>'
+                  f'<div class="dim">{g["legs"]} מהלכים · פוספסו {g["missed"]} ({g["missed_pts"]} נק׳) · נלקחו {g["took"]} · מאוחר {g["late"]} · הפוך {g["opposite"]}</div></div><span class="chev">‹</span></div>'
+                  f'<div class="body">{pills}<div class="dim" style="margin-top:6px">אזורים: {html.escape(str(s.get("zones", {})))} · שלבים: {html.escape(str(s.get("phases", {})))}</div>'
+                  f'<div style="margin-top:6px"><b>ענף מוצע:</b> {html.escape(" + ".join(g["strong"]) if g["strong"] else "אין חתימה חזקה (N קטן) — לאסוף עוד ימים")}</div></div></div>')
+    mb.append('<h2>יום אחרי יום</h2>')
+    for d in M["sessions"]:
+        rs = [r for r in legs if r["day"] == d]
+        if not rs: continue
+        r0 = rs[0]; dd = dt.date.fromisoformat(d)
+        items = []
+        for r in rs:
+            vh, vc = V_HEB.get(r["verdict"], (r["verdict"], ""))
+            took = ("<br>" + " · ".join(f'#{t["id"]} {t["pat"]} {t["time"]} ({("%+.0f$" % t["pnl"]) if t["pnl"] is not None else "—"})' for t in r["took"])) if r["took"] else ""
+            ideal = ""
+            if r["ideal"]:
+                i = r["ideal"]
+                ideal = (f'<div style="margin-top:6px"><b>כניסה אידיאלית {i["time"]} @<span class="num">{i["price"]:.2f}</span></b> · סטופ {i["stop"]} נק׳ · היה נותן {i["captured"]} נק׳</div>'
+                         f'<div>{html.escape(i["desc"])}</div><div class="dim">מפיקי-צל שראו (±10 דק׳): {html.escape(", ".join(i["seen_by"]) if i["seen_by"] else "אף אחד")}</div>')
+            items.append(f'<div class="card"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl"><span class="num">{r["start"]}→{r["end"]}</span> {HEB_DIR[r["dir"]]} <span class="num">{r["pts"]}</span> נק׳</div>'
+                         f'<div class="dim"><span class="pill {vc}">{vh}</span></div></div><span class="chev">‹</span></div><div class="body"><div class="dim num">{r["from_px"]:.2f} → {r["to_px"]:.2f}{took}</div>{ideal}</div></div>')
+        mb.append(f'<div class="dayhdr"><a href="days/{d}.html">{HEB_WD1[dd.weekday()]} {dd.strftime("%d.%m")} · {html.escape(r0["day_type"])} · {DEPTH[r0["depth"]]} ↗</a><span>{len(rs)} מהלכים</span></div>' + "".join(items))
+    with open(os.path.join(OUT, "missed.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("מה פספסנו", "".join(mb), active="missed.html", sub="נרות · ווליום · מיקום"))
 
 # ── lessons Gantt ─────────────────────────────────────────────────────────────
 LESSONS = json.load(open(os.path.join(ROOT, "docs", "plans", "LESSONS_TIMELINE.json"), encoding="utf-8"))
 tdays = [x["day"] for x in LESSONS["days"]][::-1]
-threads = LESSONS["threads"]
-gantt = ['<h1>📈 לקחים וענפים — יום אחרי יום</h1><div class="dim">כל עמודה יום-מסחר; כל שורה חוט-עבודה. בתא: מה נלמד / איזה ענף נולד. צבע: ירוק=ענף/גרסה, כחול=מדידה, צהוב=באג שתוקן, אדום=תקרית, סגול=פסיקה.</div>',
-         '<div class="gantt"><table><thead><tr><th></th>' + "".join(f'<th>{d[8:]}.{d[5:7]}</th>' for d in tdays) + '</tr></thead><tbody>']
 live_by_day = {}
 for r in recs:
     if r["mode"] == "live" and r["pnl"] is not None:
         live_by_day.setdefault(r["day"], []).append(r["pnl"])
-gantt.append('<tr><td class="lbl">לייב $</td>' + "".join(
-    f'<td class="num">{("<span class=pos>" if sum(live_by_day.get(d, [0]))>0 else "<span class=neg>") + f"{sum(live_by_day.get(d, [0])):+.0f}" + "</span>" if d in live_by_day else "—"}</td>' for d in tdays) + '</tr>')
-for th in threads:
-    cells = []
-    for d in tdays:
-        items = [it for it in th["items"] if it["day"] == d]
-        cells.append('<td>' + "".join(f'<span class="g {it.get("k","b")}" title="{html.escape(it.get("ref",""))}">{html.escape(it["t"])}</span>' for it in items) + '</td>')
-    gantt.append(f'<tr><td class="lbl">{html.escape(th["name"])}</td>' + "".join(cells) + '</tr>')
-gantt.append('</tbody></table></div>')
-gantt.append('<h2>הלקח של כל יום</h2>')
+gl = ['<h1>לקחים וענפים</h1><div class="dim">חדש מימין. כל עמודה יום-מסחר, כל שורה חוט. ירוק=ענף/גרסה · כחול=מדידה · צהוב=באג שתוקן · אדום=תקרית · סגול=פסיקה. גלילה לצדדים.</div>',
+      '<div class="gantt"><table><thead><tr><th class="lbl"></th>' + "".join(f'<th>{d[8:]}.{d[5:7]}</th>' for d in tdays) + '</tr></thead><tbody>']
+gl.append('<tr><td class="lbl">לייב $</td>' + "".join(
+    (f'<td class="num"><span class="{"pos" if sum(live_by_day[d])>0 else "neg"}">{sum(live_by_day[d]):+.0f}</span></td>' if d in live_by_day else '<td class="dim">—</td>') for d in tdays) + '</tr>')
+for th in LESSONS["threads"]:
+    cells = ['<td>' + "".join(f'<span class="g {it.get("k","b")}" title="{html.escape(it.get("ref",""))}">{html.escape(it["t"])}</span>' for it in th["items"] if it["day"] == d) + '</td>' for d in tdays]
+    gl.append(f'<tr><td class="lbl">{html.escape(th["name"])}</td>' + "".join(cells) + '</tr>')
+gl.append('</tbody></table></div><h2>הלקח של כל יום</h2>')
 for x in LESSONS["days"][::-1]:
-    gantt.append(f'<div class="card"><b>{x["day"][8:]}.{x["day"][5:7]}</b> — {html.escape(x["lesson"])}' + (f' <a href="days/{x["day"]}.html">↗ הנרות</a>' if x["day"] in days else "") + '</div>')
+    gl.append(f'<div class="card"><b>{x["day"][8:]}.{x["day"][5:7]}</b> — {html.escape(x["lesson"])}' + (f' <a href="days/{x["day"]}.html">↗ הנרות</a>' if x["day"] in days else "") + '</div>')
 with open(os.path.join(OUT, "lessons.html"), "w", encoding="utf-8") as fh:
-    fh.write(page("MEMS26 · לקחים וענפים", "".join(gantt)))
+    fh.write(shell("לקחים וענפים", "".join(gl), active="lessons.html"))
+
+# ── tree identity page (from the markdown, simple render) ─────────────────────
+tp = os.path.join(ROOT, "docs", "spec_authority", "DALTON_TREE_IDENTITY.md")
+if os.path.exists(tp):
+    import re
+    md = open(tp, encoding="utf-8").read()
+    def md2html(md):
+        out, in_tbl = [], False
+        for line in md.split("\n"):
+            if line.startswith("|"):
+                cells = [c.strip() for c in line.strip("|").split("|")]
+                if all(set(c) <= set("-: ") for c in cells): continue
+                if not in_tbl: out.append('<div style="overflow-x:auto"><table class="plain">'); in_tbl = True
+                tag_ = "th" if len(out) and out[-1].endswith("<table class=\"plain\">") else "td"
+                out.append("<tr>" + "".join(f"<{tag_}>{c}</{tag_}>" for c in cells) + "</tr>")
+                continue
+            if in_tbl: out.append("</table></div>"); in_tbl = False
+            if line.startswith("# "): out.append(f"<h1>{line[2:]}</h1>")
+            elif line.startswith("## "): out.append(f"<h2>{line[3:]}</h2>")
+            elif line.startswith("- "): out.append(f"<div class='card' style='padding:8px 12px'>{line[2:]}</div>")
+            elif line.strip(): out.append(f"<p>{line}</p>")
+        if in_tbl: out.append("</table></div>")
+        h = "\n".join(out)
+        h = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", h); h = re.sub(r"`(.+?)`", r"<code>\1</code>", h)
+        return h
+    with open(os.path.join(OUT, "tree.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("עץ-דלתון", md2html(md), sub="תעודת-זהות וסקירה"))
 
 # ── index ─────────────────────────────────────────────────────────────────────
-idx = ['<h1>MEMS26 — תיעוד למסחר</h1><div class="dim">נוצר ' + NOW.strftime("%d.%m.%Y %H:%M") + ' · הדפים סטטיים ומתרעננים בכל ריצת-EOD</div>']
-idx.append('<h2>ימי-מסחר</h2>')
-for d in reversed(days):
-    lv, sh, rs = day_summary(d)
-    dd = dt.date.fromisoformat(d)
-    idx.append(f'<div class="card"><a href="days/{d}.html"><b>{["ב","ג","ד","ה","ו","ש","א"][dd.weekday()]}\' {dd.strftime("%d.%m")}</b> · {dth.get(d,{}).get("day_type") or "?"} · לייב {lv["n"]} ({lv["w"]} ✓) {money(lv["sum"])} · צל {sh["n"]} {money(sh["sum"])}</a></div>')
+last = days[-1] if days else None
+ib = [f'<h1>MEMS26</h1><div class="dim">תיעוד למסחר · נוצר {NOW.strftime("%d.%m %H:%M")} · מתרענן בכל EOD</div>']
+if last:
+    lv, sh, rs = day_summary(last); dd = dt.date.fromisoformat(last)
+    ib.append(f'<h2>הסשן האחרון — {HEB_WD[dd.weekday()]} {dd.strftime("%d.%m")}</h2>'
+              f'<div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v">{money(lv["sum"], True)}</div><div class="dim">{lv["n"]} עסקאות · {lv["w"]} ניצחונות</div></div>'
+              f'<div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">{dth.get(last,{}).get("day_type") or "?"}</div><div class="dim">צל {sh["n"]} · {money(sh["sum"])}</div></div></div>'
+              f'<a href="days/{last}.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📅 הנרות והעסקאות של {dd.strftime("%d.%m")}</div><div class="dim">הסבר לכל עסקה + תיוג</div></div><span class="chev">‹</span></div></div></a>')
+ib.append('<h2>מקומות</h2>')
+for h, ic, n, s in MENU[1:]:
+    ib.append(f'<a href="{h}"><div class="card"><div class="row"><div class="grow"><div class="hl">{ic} {html.escape(n)}</div><div class="dim">{html.escape(s)}</div></div><span class="chev">‹</span></div></div></a>')
 with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as fh:
-    fh.write(page("MEMS26 · תיעוד", "".join(idx)))
-print(f"pages: index, trades ({len(ledger)} rows), lessons, days ×{len(days)} → {OUT}")
+    fh.write(shell("MEMS26", "".join(ib), active="index.html"))
+print(f"pages: index, days ({len(days)}), trades ({len(recs)} rows), missed, lessons, tree → {OUT}")
