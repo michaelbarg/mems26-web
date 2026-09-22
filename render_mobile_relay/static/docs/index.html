@@ -2,82 +2,124 @@
 :root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
 *{box-sizing:border-box}
 html,body{max-width:100%;overflow-x:hidden}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 76px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
 a{color:var(--acc);text-decoration:none}
-.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;background:#0d1117;border-bottom:1px solid var(--line);padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))}
-.hdr .t{flex:1;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hdr .sub{font-size:12px;color:var(--dim);font-weight:400}
-.hdr button,.hdr a.btn{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:20px;width:44px;height:40px;display:flex;align-items:center;justify-content:center}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
 .drawer{position:fixed;inset:0;z-index:30;display:none}
 .drawer.open{display:block}
-.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
-.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:16px 12px;overflow-y:auto;padding-top:calc(16px + env(safe-area-inset-top))}
-.drawer h3{margin:8px 4px 4px;font-size:13px;color:var(--dim);font-weight:600;text-transform:uppercase}
-.drawer a.item{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:10px;color:var(--fg);font-size:17px}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
 .drawer a.item:active{background:var(--card)}
-.drawer a.item small{margin-right:auto;color:var(--dim);font-size:13px}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
 .wrap{padding:12px 12px 8px}
-h1{font-size:22px;margin:6px 0 4px}
-h2{font-size:16px;margin:20px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
 .dim{color:var(--dim);font-size:13px}
 .num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
 .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
 .win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
-.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
 .badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
 .pos{color:var(--up)}.neg{color:var(--dn)}
-.pnl{font-weight:700;font-size:18px}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
 .row{display:flex;align-items:center;gap:8px;cursor:pointer}
 .row .grow{flex:1;min-width:0}
 .row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chev{color:var(--dim);font-size:18px;transition:transform .15s}
-.card.open .chev{transform:rotate(90deg)}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
 .body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
 .card.open .body{display:block}
-.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:6px 0}
-.tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.tools button{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px}
-.tools button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
 .tags{display:flex;gap:6px;margin-top:10px}
-.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 6px;font-size:15px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
 .tags button:active{background:#30363d}
-.filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
-.filters select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
-.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between}
-.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
 .trow .grow{flex:1;min-width:0}
-.trow .a{font-weight:600}.trow .b{font-size:13px;color:var(--dim)}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
-.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
 .gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
 .gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
 .gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
-.g{display:block;border-radius:6px;padding:4px 6px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 0}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
 .g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
 .legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
 .bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.bottom a{flex:1;text-align:center;padding:8px 2px 6px;color:var(--dim);font-size:11px}
-.bottom a b{display:block;font-size:20px;font-weight:400}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
 .bottom a.on{color:var(--acc)}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 2px 2px 0}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
 .pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
 table.plain{border-collapse:collapse;width:100%;font-size:14px}
 table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
 table.plain th{color:var(--dim);font-weight:600}
-</style></head><body><div class="hdr"><button onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">MEMS26</div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><h3>MEMS26</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small></small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>10 סשנים אחרונים</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>גאנט</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכוני-מצב</span><small>20.09</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>משימות</small></a></div></div><div class="wrap"><h1>MEMS26</h1><div class="dim">תיעוד למסחר · נוצר 22.09 10:57 · מתרענן בכל EOD</div><h2>הסשן האחרון — שני 21.09</h2><div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v"><span class="num pos pnl">+120$</span></div><div class="dim">7 עסקאות · 7 ניצחונות</div></div><div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">Variation</div><div class="dim">צל 76 · <span class="num pos">+220.95$</span></div></div></div><a href="days/2026-09-21.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📅 הנרות והעסקאות של 21.09</div><div class="dim">הסבר לכל עסקה + תיוג</div></div><span class="chev">‹</span></div></div></a><h2>מקומות</h2><a href="/"><div class="card"><div class="row"><div class="grow"><div class="hl">💬 צ׳אט עם המערכת</div><div class="dim">הודעות ופקודות</div></div><span class="chev">‹</span></div></div></a><a href="days.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📅 ימי-מסחר</div><div class="dim">נרות + עסקאות ליום</div></div><span class="chev">‹</span></div></div></a><a href="trades.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📒 כל העסקאות</div><div class="dim">לייב · דמו · צל</div></div><span class="chev">‹</span></div></div></a><a href="missed.html"><div class="card"><div class="row"><div class="grow"><div class="hl">⭕ מה פספסנו</div><div class="dim">10 סשנים אחרונים</div></div><span class="chev">‹</span></div></div></a><a href="lessons.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📈 לקחים וענפים</div><div class="dim">גאנט</div></div><span class="chev">‹</span></div></div></a><a href="tree.html"><div class="card"><div class="row"><div class="grow"><div class="hl">🌳 עץ-דלתון</div><div class="dim">הגרסאות והמצב</div></div><span class="chev">‹</span></div></div></a><a href="status_2026-09-20.html"><div class="card"><div class="row"><div class="grow"><div class="hl">📄 עדכוני-מצב</div><div class="dim">20.09</div></div><span class="chev">‹</span></div></div></a><a href="/readiness"><div class="card"><div class="row"><div class="grow"><div class="hl">📋 תיק-מוכנות</div><div class="dim">משימות</div></div><span class="chev">‹</span></div></div></a></div><div class="bottom"><a href="index.html" class="on"><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">MEMS26<div class="sub">תיעוד למסחר</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item on" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><h3>ניהול</h3><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h2>הסשן האחרון <span class="dim">שני 21.09</span></h2><div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v"><span class="num pos pnl">+120$</span></div><div class="s">7 עסקאות · 7 ניצחונות</div></div><div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">Variation</div><div class="s">צל 76 · <span class="num pos">+220.95$</span></div></div><div class="kpi"><div class="l">השבוע (לייב)</div><div class="v"><span class="num neg pnl">-71$</span></div><div class="s">12 עסקאות · 9 ניצחונות</div></div><div class="kpi"><div class="l">חוזה</div><div class="v">1</div><div class="s">פסיקת 18.09</div></div></div><div class="card lnk"><a href="days/2026-09-21.html"><div class="row"><div class="grow"><div class="hl">📅 הנרות והעסקאות של 21.09</div><div class="dim">הסבר לכל עסקה + תיוג ✓/✗</div></div><span class="chev">‹</span></div></a></div><h2>מקומות</h2><div class="card lnk"><a href="/"><div class="row"><div class="grow"><div class="hl">💬 צ׳אט עם המערכת</div><div class="dim">הודעות ופקודות</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="days.html"><div class="row"><div class="grow"><div class="hl">📅 ימי-מסחר</div><div class="dim">נרות + עסקאות ליום</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="trades.html"><div class="row"><div class="grow"><div class="hl">📒 כל העסקאות</div><div class="dim">לייב · דמו · צל</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="missed.html"><div class="row"><div class="grow"><div class="hl">⭕ מה פספסנו</div><div class="dim">נרות · ווליום · מיקום</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="lessons.html"><div class="row"><div class="grow"><div class="hl">📈 לקחים וענפים</div><div class="dim">יום אחרי יום</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="tree.html"><div class="row"><div class="grow"><div class="hl">🌳 עץ-דלתון</div><div class="dim">הגרסאות והמצב</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="status_2026-09-20.html"><div class="row"><div class="grow"><div class="hl">📄 עדכון-מצב 20.09</div><div class="dim">ענף-הפתיחה</div></div><span class="chev">‹</span></div></a></div><div class="card lnk"><a href="/readiness"><div class="row"><div class="grow"><div class="hl">📋 תיק-מוכנות</div><div class="dim">48 פתוחים · 13 חוסמים</div></div><span class="chev">‹</span></div></a></div><div class="dim" style="margin-top:14px">נוצר 22.09 12:59 · מתרענן בכל EOD · תיוגים נשמרים כנתונים</div></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class="on"><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
 <script>
 var Q=location.search||'';
-document.querySelectorAll('a[href]').forEach(function(a){var h=a.getAttribute('href');if(h&&!/^https?:|^#|^mailto:/.test(h)&&h.indexOf('key=')<0){var i=h.indexOf('#');var base=i>=0?h.slice(0,i):h,hash=i>=0?h.slice(i):'';a.setAttribute('href',base+(base.indexOf('?')>=0?'&':'?')+Q.slice(1)+hash);}});
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
 function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
 function tog(el){el.classList.toggle('open');}
-function tag(id, label, text){
-  var note = prompt(label+' — הערה (אופציונלי):',''); if(note===null) return;
-  var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
-  fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
-   .then(function(r){return r.json();}).then(function(d){alert(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){alert('שגיאה בשליחה');});
-}
-if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView();},50);}}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
 </script></body></html>
