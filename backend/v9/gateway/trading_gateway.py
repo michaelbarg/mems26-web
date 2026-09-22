@@ -1693,13 +1693,18 @@ class TradingGateway:
                             entry=float(setup.get("entry_price") or 0),
                             phase=_sv_meta_ts.get("phase"),
                             blocked_by=_tree_decision,
-                            reason=f"row={_tree_result.get('row')} real={_real_decision}",
+                            # T-441 (22.09): was `{_real_decision}` — an undefined
+                            # name, so this NameError was swallowed by the bare
+                            # except below and NOT ONE TREE_SHADOW row was ever
+                            # written (v9_decision_vectors: kinds BAR/DECISION only,
+                            # 16.09→22.09). The v2 tree had no measurement at all.
+                            reason=f"row={_tree_result.get('row')} real={_real_canonical}({_real_raw})",
                             vector=_sv_meta_ts,
                         )
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as _tree_log_err:
+                    logger.warning("[TREE-DIFF] shadow row not written: %s", _tree_log_err)
+        except Exception as _tree_err:
+            logger.warning("[TREE-DIFF] evaluation failed (observation only): %s", _tree_err)
 
         # ── T-366: fresh-extreme gate — one rule, every producer ──────────────
         # Michael 14.09: "לא להיכנס בסוף העלייה ואז ככה נכשלת". Doctrine, not a
