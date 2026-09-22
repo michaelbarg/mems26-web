@@ -295,6 +295,7 @@ table.plain th{color:var(--dim);font-weight:600}
 MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"), ("/", "💬", "צ׳אט עם המערכת", "הודעות ופקודות", "עכשיו"),
         ("days.html", "📅", "ימי-מסחר", "נרות + עסקאות ליום", "מסחר"), ("trades.html", "📒", "כל העסקאות", "לייב · דמו · צל", "מסחר"),
         ("missed.html", "⭕", "מה פספסנו", "נרות · ווליום · מיקום", "מסחר"), ("lessons.html", "📈", "לקחים וענפים", "יום אחרי יום", "למידה"),
+        ("whatworks.html", "🧪", "מה עובד", "כניסות · מיקום · יציאות — במספרים", "למידה"),
         ("tree.html", "🌳", "עץ-דלתון", "הגרסאות והמצב", "למידה"), ("status_2026-09-20.html", "📄", "עדכון-מצב 20.09", "ענף-הפתיחה", "למידה"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
 BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
@@ -514,6 +515,25 @@ if os.path.exists(mp):
         mb.append(f'<div class="dayhdr"><a href="days/{d}.html">📅 {HEB_WD1[dd.weekday()]} {dd.strftime("%d.%m")} · {html.escape(r0["day_type"])} · {DEPTH[r0["depth"]]}</a><span>{len(rs)} מהלכים</span></div>' + "".join(items))
     with open(os.path.join(OUT, "missed.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("מה פספסנו", "".join(mb), active="missed.html", sub=f'{len(M["sessions"])} סשנים · {nm} פספוסים'))
+
+# ── what works (from scripts/what_works_study.py) ─────────────────────────────
+wp = os.path.join(OUT, "data", "whatworks.json")
+if os.path.exists(wp):
+    W = json.load(open(wp, encoding="utf-8"))
+    def cell(x, key, win=True):
+        v = x[key]["sum"]; cls = "pos" if v > 0 else "neg" if v < 0 else ""
+        return f'<span class="num {cls}">{v:+,}$</span>' + (f' <span class="dim">({x[key]["win"]}%)</span>' if win else "")
+    wb = [f'<h1>מה עובד</h1><div class="dim">{W["n"]:,} כניסות (לייב+צל) מאז {W["since"][8:]}.{W["since"][5:7]} · אותו מודל-הערכה לכולן · חדש: {W["generated"][:16]}</div>',
+          '<div class="card" style="font-size:14px"><b>איך לקרוא:</b> <b>ספרים</b> = מה שנרשם בפועל · <b>T1 קבוע</b> = חוזה אחד, סטופ 1×ATR, יעד 1.5×ATR · <b>סולם-2</b> = שני חוזים, T1 ו-T2=2.5×ATR · <b>טרייל</b> = סטופ רודף 1×ATR. אחוז = ניצחונות. N קטן מ-30 = רמז, לא הכרעה.</div>']
+    for tb in W["tables"]:
+        wb.append(f'<h2>{html.escape(tb["title"])}</h2>')
+        if not tb["rows"]: wb.append('<div class="empty">אין מספיק נתונים</div>'); continue
+        wb.append('<div style="overflow-x:auto"><table class="plain"><tr><th>קבוצה</th><th>N</th><th>ספרים</th><th>T1 קבוע</th><th>סולם-2</th><th>טרייל</th></tr>')
+        for r in tb["rows"]:
+            wb.append(f'<tr><td>{html.escape(r["name"])}</td><td class="num">{r["n"]}</td><td>{cell(r,"books")}</td><td>{cell(r,"m1")}</td><td>{cell(r,"m2",False)}</td><td>{cell(r,"trail")}</td></tr>')
+        wb.append('</table></div>')
+    with open(os.path.join(OUT, "whatworks.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("מה עובד", "".join(wb), sub="כניסות · מיקום · יציאות — במספרים"))
 
 # ── lessons: vertical timeline (default) + Gantt (toggle) ─────────────────────
 LESSONS = json.load(open(os.path.join(ROOT, "docs", "plans", "LESSONS_TIMELINE.json"), encoding="utf-8"))
