@@ -203,6 +203,21 @@ class TestValidLadderUntouched(_EnvPinned):
         self.assertEqual(ctx.get("t2"), STRUCT_T2)
         self.assertEqual(ctx.get("t3"), STRUCT_T3)
 
+    def test_absent_middle_rung_is_not_a_drop_and_does_not_truncate(self):
+        """`t2=None, t3=valid` is a state A7/I-59 already accept (RUNNER_TRAIL_V2
+        produces it on purpose). An absent rung must not be mistaken for an
+        invalid one, or the sanitizer would silently delete a live t3."""
+        from backend.v9.services.sierra_command import command_from_setup
+        cmd = command_from_setup(
+            _setup(t2=None, t3=STRUCT_T3), trade_id="t438-gap",
+            account="SIM", mode="demo")
+        self.assertFalse(cmd.get("rejected"), cmd.get("reason"))
+        ctx = cmd.get("context") or {}
+        self.assertEqual(cmd.get("target_price"), T1)
+        self.assertIn(ctx.get("t2"), (None, 0, 0.0))
+        self.assertEqual(ctx.get("t3"), STRUCT_T3,
+                         "an absent t2 must not truncate a valid t3")
+
     def test_monotonic_long_ladder_passes_through(self):
         from backend.v9.services.sierra_command import command_from_setup
         cmd = command_from_setup(
@@ -224,8 +239,34 @@ class TestNoUnprotectedContract(_EnvPinned):
     correct at the ruled 1-contract size (ladder (1,0,0,0)), not at three.
     """
 
+    def setUp(self):
+        super().setUp()
+        # The ruled size is 1 (FIXED_CONTRACTS_1, Michael 18.09) and
+        # `_effective_contracts_raw` forces it regardless of the setup, so this
+        # test must pin its own size or it silently measures a 1-contract fire.
+        self._fc = {k: os.environ.get(k) for k in
+                    ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_2",
+                     "FIXED_CONTRACTS_3", "FIXED_CONTRACTS_4",
+                     "FIXED_CONTRACTS_5", "FIXED_CONTRACTS_6")}
+        for k in self._fc:
+            os.environ[k] = "0"
+        os.environ["FIXED_CONTRACTS_3"] = "1"
+
+    def tearDown(self):
+        for k, v in self._fc.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        super().tearDown()
+
     def test_three_contracts_with_dropped_t3_is_still_rejected(self):
-        from backend.v9.services.sierra_command import command_from_setup
+        from backend.v9.services.sierra_command import (
+            command_from_setup, effective_contracts)
+        self.assertEqual(
+            effective_contracts(_setup(contracts=3)), 3,
+            "the fixture did not actually get 3 contracts — this test would "
+            "have measured nothing")
         cmd = command_from_setup(_setup(contracts=3),
                                  trade_id="t438-3c", account="SIM", mode="demo")
         self.assertTrue(

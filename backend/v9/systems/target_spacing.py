@@ -84,6 +84,112 @@ _CFG_FALLBACK = {
 }
 
 
+def sanitize_enabled() -> bool:
+    """LADDER_SANITIZE_V1 — kill-switch, code default ON.
+
+    Implements the 2026-09-22 T-438 ruling (CC_NOW_2026-09-22.md item 1/12 §3:
+    "a target on the wrong side is thrown away and not sent; if only T1 is left
+    after the drop, PLACE continues with T1 alone"). Per CLAUDE.md § "Rulings
+    are one-time and standing", code that implements an existing ruling ships
+    enabled; the flag exists so the behaviour can be reverted in one word
+    without a deploy, not as a second approval gate.
+
+    `LADDER_SANITIZE_V1=0` restores the pre-fix behaviour exactly: the invalid
+    ladder reaches the T-335 guard and the whole PLACE is rejected.
+    """
+    return (os.getenv("LADDER_SANITIZE_V1", "1") or "1").strip().lower() \
+        not in ("0", "off", "false", "no")
+
+
+def sanitize_ladder(*, direction: str, entry: Optional[float],
+                    t1: Optional[float], t2: Optional[float],
+                    t3: Optional[float]) -> Dict:
+    """Drop every rung that cannot legally be a rung. Pure; no I/O, no env.
+
+    This is VALIDITY, not spacing — which is why it is not gated on
+    TARGET_MIN_SPACING_V1 and why it can only DROP. It never moves a price and
+    never invents one (Rule 1); a leg is either exactly what the producer
+    computed, or absent.
+
+    Two conditions, both of which `sierra_command`'s T-335 guard rejects
+    downstream — the difference is that T-335 kills the entire PLACE while this
+    kills only the offending leg:
+
+      (a) WRONG_SIDE — the leg is not in the profit direction from entry.
+      (b) NOT_BEYOND — the leg is not strictly farther from entry than the last
+          surviving leg. This is the T-438 shape: live #2038 (21.09) had
+          t1=7782.50 (structural, 4R) with t2=7786.00 / t3=7779.00 (the R-clamp's
+          3R / 5R). Every leg was on the correct side of the SHORT entry
+          7796.50 — the defect was order alone, so a wrong-side-only check
+          would not have saved that fire.
+
+    T1 is the anchor and is only ever dropped by (a): it is the leg the R:R
+    gate, TARGET_REALISM and T1_BANK_R already ruled on.
+
+    TRUNCATION, and why it is not optional: the DLL maps contracts to rungs
+    POSITIONALLY (C1→t1, C2→t2, C3→t3 — MES_AI_DataExport.cpp PLACE handler).
+    Dropping a middle rung and keeping the outer one would leave a HOLE: at
+    three contracts C2 would go out with no target at all, which is precisely
+    the unprotected-contract defect the T-214 belt exists to prevent. So the
+    first invalid rung truncates every rung beyond it. That is also what the
+    ruling asks for in words ("if only T1 is left, PLACE continues with T1
+    alone"), and it keeps the old protective behaviour at larger sizes: with
+    t3 gone, T3_REQUIRED_V1 still rejects a >=3-contract PLACE.
+
+    An ABSENT rung (None/0) is not a drop and does NOT truncate — a missing t2
+    with a valid t3 is a state A7/I-59 already accept (RUNNER_TRAIL_V2 produces
+    it deliberately), so that ladder passes through untouched.
+
+    Returns {"t1","t2","t3","dropped":[{leg,price,why}],"changed":bool}.
+    `entry` unusable (None/0) → side cannot be judged, so only (b) is applied.
+    """
+    d = str(direction or "").upper()
+    sign = 1.0 if d == "LONG" else -1.0
+    try:
+        e = float(entry) if entry else 0.0
+    except (TypeError, ValueError):
+        e = 0.0
+
+    out: Dict[str, Optional[float]] = {}
+    dropped: List[Dict] = []
+    prev: Optional[float] = None
+    truncated = False
+    for name, raw in (("t1", t1), ("t2", t2), ("t3", t3)):
+        try:
+            p = float(raw) if raw else 0.0
+        except (TypeError, ValueError):
+            p = 0.0
+        if truncated:
+            out[name] = None
+            if p > 0:
+                dropped.append({"leg": name, "price": p, "why": "TRUNCATED",
+                                "after": dropped[0]["leg"]})
+            continue
+        if p <= 0:
+            out[name] = raw            # absent stays absent, untouched
+            continue
+        dv = (sign * (p - e)) if e else None
+        if dv is not None and dv <= EPS:
+            out[name] = None
+            dropped.append({"leg": name, "price": p, "why": "WRONG_SIDE",
+                            "entry": e, "direction": d})
+            truncated = True
+            continue
+        if prev is not None and dv is not None and dv <= prev + EPS:
+            out[name] = None
+            dropped.append({"leg": name, "price": p, "why": "NOT_BEYOND",
+                            "dist": round(dv, 4), "prev_dist": round(prev, 4)})
+            truncated = True
+            continue
+        out[name] = p
+        if dv is not None:
+            prev = dv
+
+    out["dropped"] = dropped
+    out["changed"] = bool(dropped)
+    return out
+
+
 def flag_mode() -> str:
     """Resolve TARGET_MIN_SPACING_V1 into off / shadow / apply."""
     raw = (os.getenv("TARGET_MIN_SPACING_V1", "0") or "0").strip().lower()

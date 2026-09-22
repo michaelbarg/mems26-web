@@ -58,6 +58,13 @@ GUARDS=(
   # P0 08.09: a rejected PLACE must never be announced as a trade,
   # and an opening setup must carry a full ladder (T3_REQUIRED_V1).
   tests/v9/regression/test_opening_ladder_and_reject.py
+  # T-438 (21.09 18:30:03): a live fire was LOST because the gateway R-clamp
+  # pulled t2/t3 inside a structural t1 and T-335 killed the whole PLACE. This
+  # is the replay case for that incident (learning doctrine 09.09: incident =>
+  # replay case, not a flag) and it keeps `T-335 = 0` a real gate condition —
+  # if the sanitizer regresses, the morning gate goes red instead of a fire
+  # going missing.
+  tests/v9/regression/test_t438_ladder_sanitize.py
   tests/v9/regression/test_dalton_edge_compass_exempt.py
   tests/v9/regression/test_rr_no_self_inflicted.py
   # T-284 (09.09, twice — 12:14 and 16:31): a bridge handler that holds an ORM

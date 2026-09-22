@@ -816,6 +816,21 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
         logger.warning("[SierraCmd] MARGIN SIZING %d → %d — %s", n, allowed, why)
     return allowed
 
+def _ladder_sanitize_enabled() -> bool:
+    """LADDER_SANITIZE_V1 (T-438, 2026-09-22) — kill-switch, code default ON.
+
+    Delegates to `target_spacing.sanitize_enabled` so the flag has exactly one
+    reading site; falls back to ON when that import fails, because the pre-fix
+    behaviour is "lose the whole fire" and the sanitizer can only drop legs.
+    """
+    try:
+        from backend.v9.systems.target_spacing import sanitize_enabled
+        return sanitize_enabled()
+    except Exception:
+        return os.getenv("LADDER_SANITIZE_V1", "1").strip().lower() \
+            not in ("0", "off", "false", "no")
+
+
 def _zlr_mgmt_enabled() -> bool:
     """ZLR_MGMT_V1 (Michael 2026-07-14) — default OFF, no env var needed for the
     code default. When unset the ZLR bracket/allocation is byte-identical to every
@@ -887,6 +902,65 @@ def command_from_setup(
     _c1_target = setup.get("t1") or setup.get("target_price")
     _c2_target = setup.get("t2")
     _c3_target = setup.get("t3")
+
+    # ── T-438 · LADDER_SANITIZE_V1 (Michael/cowork ruling 2026-09-22, order
+    #    CC_NOW_2026-09-22.md item 1/12 §3) — enforce a legal ladder BEFORE the
+    #    belts below, by DROPPING the offending leg instead of killing the fire.
+    #
+    # 21.09 18:30:03 lost a live fire: #2038 SHORT entry 7796.50 stop 7800.00
+    # arrived as [7782.50, 7786.00, 7779.00]. STRUCT_TARGETS_WIN had produced a
+    # healthy 7782.50/7768.50/7754.50, and then the gateway's R-clamp
+    # (trading_gateway.py:5531-5536) capped t2/t3 — and ONLY t2/t3 — at 3R/5R of
+    # a 3.50pt risk, i.e. 7786.00 / 7779.00, INSIDE the structural 4R t1. T-335
+    # (below) saw a non-monotonic ladder and blocked the whole PLACE; nothing
+    # reached Sierra and the trade closed UNPRICED.
+    #
+    # Note what that ladder was NOT: every leg sat below the SHORT entry, in the
+    # profit direction. The defect was ORDER, so the sanitizer checks both side
+    # and order (see target_spacing.sanitize_ladder).
+    #
+    # Ordering here is deliberate and load-bearing: this runs BEFORE the T-214
+    # t3 belt, so a dropped t3 on >=3 contracts is still a rejection — "continue
+    # with T1 alone" is correct at the ruled 1-contract size (ladder (1,0,0,0)),
+    # never at a size where a contract would go out with no target.
+    #
+    # It can only drop, never move or invent (Rule 1), and a ladder that was
+    # already legal is byte-identical.
+    if _ladder_sanitize_enabled():
+        try:
+            from backend.v9.systems.target_spacing import sanitize_ladder as _sl
+            _san = _sl(direction=direction, entry=setup.get("entry_price"),
+                       t1=_c1_target, t2=_c2_target, t3=_c3_target)
+            if _san.get("changed"):
+                _had_target = any(x for x in (_c1_target, _c2_target, _c3_target))
+                logger.warning(
+                    "[SierraCmd] T-438 LADDER SANITIZE trade %s: %s %s/%s/%s → "
+                    "%s/%s/%s — dropped %s (never moved, never invented)",
+                    trade_id, direction, _c1_target, _c2_target, _c3_target,
+                    _san.get("t1"), _san.get("t2"), _san.get("t3"),
+                    _san.get("dropped"))
+                _c1_target = _san.get("t1")
+                _c2_target = _san.get("t2")
+                _c3_target = _san.get("t3")
+                # Honest failure over a naked entry: if sanitising removed EVERY
+                # target the producer had, we are no better off than T-335 was —
+                # refuse rather than send an entry with no take-profit at all.
+                if _had_target and not any(
+                        x for x in (_c1_target, _c2_target, _c3_target)):
+                    logger.error(
+                        "[SierraCmd] T-438: every target was invalid for trade "
+                        "%s — PLACE blocked (no naked entry)", trade_id)
+                    return {"rejected": True, "reason": "ladder_invalid",
+                            "detail": f"all legs dropped: {_san.get('dropped')}"}
+                try:
+                    _m = setup.get("metadata")
+                    if isinstance(_m, dict):
+                        _m["ladder_sanitize"] = _san
+                except Exception:
+                    pass
+        except Exception as _san_err:   # a guard bug must never cost a fire
+            logger.warning("[SierraCmd] T-438 sanitize errored "
+                           "(ladder untouched): %s", _san_err)
 
     # T-214: t3 belt — a setup without a valid t3 must not PLACE.
     # 9/27 recent live trades had t3=NULL/0. The DLL sends these contracts

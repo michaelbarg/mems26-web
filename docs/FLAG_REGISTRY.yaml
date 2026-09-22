@@ -1924,6 +1924,14 @@ flags:
     why: "Same root as T-422: the snapshots made the opening range width 0, every 'close' an open, the structural stop anchored on max(open) instead of the session extreme, and the fusion momentum measured on opens. 18.09 the gate printed (o=7705.25 c=7705.25) for a bar that closed 7705.0. The measured branch (56 sessions) assumes closed bars."
     status: enabled
     ref: "T-425 · T-422 · fwd_harness --oe-closed"
+  LADDER_SANITIZE_V1:
+    category: targets
+    group: place
+    what: "T-438 (22.09, kill-switch, code default ON): before the T-214/T-335 belts in command_from_setup, target_spacing.sanitize_ladder DROPS every rung that is on the wrong side of entry or not strictly beyond the previous surviving rung, and truncates the ladder there (positional C1/C2/C3 mapping ⇒ a hole would ship a targetless contract). It can only drop — never moves a price, never invents one (Rule 1). If sanitising removes every target the producer had, the PLACE is still rejected (no naked entry). 0 = old behaviour: the invalid ladder reaches T-335 and the whole PLACE dies."
+    why: "21.09 18:30:03 lost a live fire. #2038 SHORT entry 7796.50 stop 7800.00 reached PLACE as [7782.50, 7786.00, 7779.00] and T-335 blocked it ⇒ trade closed UNPRICED, nothing reached Sierra. Root: trading_gateway.py:5531-5536 _clamp_targets_to_max_r caps ONLY t2/t3 at T2_MAX_R/T3_MAX_R × risk (3.0/5.0 × 3.50pt = 7786.00 / 7779.00) while t1 came from STRUCT_TARGETS_WIN as a structural 4R level and is not capped ⇒ t2/t3 landed INSIDE t1. Every leg was on the correct side — the defect was ORDER, so a wrong-side-only check would not have saved it. Same class as OPENING_STOP_STRUCTURAL_V1 / T-428."
+    risk: "Changes what reaches the broker: a fire that was previously blocked outright now places with the surviving (shorter) ladder. At the ruled 1-contract size the ladder is (1,0,0,0) so T1 alone is the whole ladder and nothing is lost. At >=3 contracts a dropped t3 still trips T3_REQUIRED_V1 ⇒ the old rejection stands and no contract goes out unprotected."
+    status: enabled
+    ref: "T-438 · docs/handoff/cc_orders/CC_NOW_2026-09-22.md item 1/12 §3 · tests/v9/regression/test_t438_ladder_sanitize.py"
   OPENING_STOP_STRUCTURAL_V1:
     category: targets
     group: opening
