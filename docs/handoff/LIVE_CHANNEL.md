@@ -1,3 +1,76 @@
+## 📊 [cowork-dev · 2026-09-22 20:35-20:44 IL] — **חובה-1 + חובה-3 · ניטור-RTH שמיני** · ריצה ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/`.env`/פוזיציות** · 🟢 **הכל תקין — שקט מוחלט בטלפון (אפס הודעות בריצה)**
+
+**☎️ חובה-1 — אין ממתינות ממייקל; השלילה קבילה (מלכודת 12).** הרלה **חי** — `launchctl print … mobile_relay ⇒ state = running · pid = 4842`. `GET /chat?key=…limit=60` ⇒ **30 פריטים**; `sender='מייקל'` ⇒ **5 מופעים, כולם 21.09**, האחרון `21.09 16:10:27Z` (*"לא הבנתי אם המערכת זיהתה שזה יום טרנד…"*) — **נענה עניינית** ב-`21.09 16:17:01Z`. האחרון בשרשור הוא **שלי** (`22.09 16:38:22Z`). `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}` · אפס תיוגי-עסקה ⇒ **אין (א) · אין (ג) · אין (ד)**.
+
+**📞 מקרה (ב) — לא חל. `#2152` עדיין `FILLED`, 1ש25ד בפוזיציה.** נפתחה 19:10, **דווחה ב-19:38**; **אפס פתיחה ואפס סגירה מאז** ⇒ דיווח חוזר = הצפה (כלל-הטלפון) ⇒ **לא נשלחה הודעה**.
+
+**בעלות-הריסטארט אינה שלי וממילא אסורה בשעה זו:** מאזין `:8000` = `pid 20693`, `lstart Tue Sep 22 15:41:28 2026` ⇒ **אותו תהליך מהשער, לא הורם מחדש**; והשעה `20:35 > 16:10` ⇒ **אפס ריסטארט, אפס GO/NO-GO** (T-369).
+
+---
+
+### מדידות (Rule 5 — פלט גולמי)
+
+**פיד — T-430 עובר** (בר חי מה-DB, לא mtime של קובץ-יצוא):
+```
+$ psql -tA -c "select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies;"
+2026-09-22 20:35:00+03 | 1.2        ← מול date ⇒ 20:35:56 IDT
+```
+
+**בקאנד:**
+```
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN -t ⇒ 20693   ← מאזין יחיד · ps lstart: Tue Sep 22 15:41:28 2026 · %CPU 44.9 · RSS 128MB
+GET /health ⇒ 200 {"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":17719.0,"v9_mounted":true}
+backend.err.log שורה אחרונה: 20:37:10 [WARNING] [bar_router] BarRouter: dispatch total 200.7ms for 5min   ← הלוג חי ועכשווי
+[ERROR]/[CRITICAL] מ-20:00 ⇒ 0 · ORPHAN ⇒ 0 · LIVE fire BLOCKED ⇒ 0 · COMMAND QUEUED ⇒ 8
+[Reconcile] 20:37:10 IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+```
+
+**פוזיציה ⟂ TM — תואם, הבעלות מוכחת ע"י ה-verdict ולא ע"י הפרש-כמות** (מלכודת 16 / T-402):
+```
+GET /api/v9/account/state   age_s 0.7 · stale false
+verdict "system" · position_qty 1 · avg_price 7830.0 · working_orders 2 · trade_account 37138283 · MESZ26_FUT_CME
+open_trade {"id":2152,"direction":"LONG","entry_price":7828.75,"stop":7822.25,
+            "t1":7834.75,"t2":7841.5,"t3":7842.75,"state":"FILLED","mode":"live","contracts":1}
+is_sim 0 (לייב) · order_placement_armed 1 · acct_trading_disabled 0 · acct_under_margin 0 · acct_loss_limit_reached 0
+open_pnl -5.0 · daily_pnl -10.0 · last_price 7829.0 · high_during_pos 7833.75 · low_during_pos 7823.0
+```
+
+**גודל פסוק — נקרא מ-`ruled_contracts()` עם `.env` טעון, לא מהנוסח ולא מהנחה:**
+```
+$ python3 -c "<.env loaded>; from contract_size import ruled_contracts; print(ruled_contracts())" ⇒ 1
+env: FIXED_CONTRACTS_1=1 · _2=0 · _3=0 · _4=0 · _5=0 · _6=0
+ps eww 20693 | grep FIXED_CONTRACTS_1 ⇒ FIXED_CONTRACTS_1=1   ← התהליך החי נושא את אותה פסיקה
+open_trade.contracts = 1 ⇒ תואם · position_qty = 1 ⇒ תואם אצל הברוקר
+```
+(שוב נתקלתי ב-`None` בקריאה בלי `.env` — המלכודת שכבר נרשמה ברשומת-20:05. מאשר אותה: זו תכונה של הקריאה, לא של המערכת.)
+
+**עסקאות-לייב היום (3, מתוכן 1 פתוחה) — ללא שינוי מ-20:05:**
+```
+id   | sys | pattern           | dir   | state  | entry | price   | exit  | reason      | pnl_usd
+2106 |  2  | OPENING_DRIVE     | SHORT | CLOSED | 17:00 | 7835    | 17:13 | MAE_SCRATCH |  (null) UNPRICED
+2140 |  4  | GB100             | SHORT | CLOSED | 18:30 | 7829.75 | 18:37 | T1_HIT      |  +28.75 WIN
+2152 |  2  | CEILING_FLIP_LONG | LONG  | FILLED | 19:10 | 7828.75 |   —   |      —      |    —    פתוחה
+ספרים live: +28.75 (2 מתומחרות) · ברוקר daily_pnl: -10.0
+```
+
+---
+
+### 🟠 שתי תצפיות לרישום (לא חוסמות · לא נשלחו לטלפון)
+
+**1 · `#2152` ירדה ל-`low_during_pos 7823.0` — **0.75 נק' מעל הסטופ `7822.25`** — ושרדה.**
+הסטופ **לא** נפגע ו-**אפס שורת `MAE SCRATCH` עבור 2152** בלוג (הופעות ה-MAE היחידות היום הן של #2106 ב-17:13, סף `7.1pt` עבור `OPENING_DRIVE`). אינני מייחס ל-`CEILING_FLIP_LONG` את סף-ה-7.1 — הוא **פר-תבנית** ולא נמדד כאן. הרישום נועד לריפליי: זו עסקה שנגעה כמעט-בסטופ ואז חזרה, ושווה לבדוק בערב אם ה-MAE-gate היה אמור לגעת בה.
+
+**2 · מרג'ין (T-34) — `acct_available_funds 187.38` מתחת לסף `$1,595`, **לא חוסם**.**
+```
+acct_cash_balance 477.79 · acct_account_value 474.04 · acct_available_funds 187.38 · acct_margin_req 286.66
+acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0 · order_placement_armed 1
+```
+ירידה מ-`193.63` ב-20:05 — תנודה של ה-P&L הפתוח, לא שינוי-מצב. `margin_req 286.66` תפוס בפוזיציה הפתוחה; הסלוט תפוס ממילא ע"י #2152 והחוזה הפסוק הוא 1 ⇒ **אין כניסה שנחסמה בפועל ⇒ לא מקרה (ג), אין הודעת-טלפון**. מדידה חוזרת אחרי הסגירה + בדיקת-שער מחר לפני 16:30.
+
+**הצעד הבא (ריצה הבאה):** האם `#2152` נסגרה (T1 `7834.75` / סטופ `7822.25` / MAE) ⇒ אם כן — **מקרה (ב) לטלפון**. אחרת שקט.
+
+---
+
 ## 📊 [cowork-dev · 2026-09-22 20:05-20:12 IL] — **חובה-1 + חובה-3 · ניטור-RTH שביעי** · ריצה ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס הודעת-שער · אפס נגיעה בדגלים/`.env`/פוזיציות** · 🟢 **הכל תקין — שקט מוחלט בטלפון (אפס הודעות בריצה)**
 
 **☎️ חובה-1 — אין ממתינות ממייקל; השלילה קבילה (מלכודת 12).** הרלה **חי** — `mobile_relay.py pid 4842`, `etime 09:26:53`. `GET /chat?key=…` ⇒ **200, 30 פריטים**, זהים לזנב `PHONE_THREAD.jsonl` — האחרון בשרשור הוא **שלי** (`22.09 16:38:22Z`, פתיחת #2152 מריצת-19:35). `sender='מייקל'` ⇒ **5 מופעים, כולם 21.09**, האחרון `21.09 16:10:27Z` **נענה עניינית** ב-`16:17:01Z`. `GET /instruction/pending` ⇒ `{"items":[]}` · `GET /cmd/pending` ⇒ `{"cmd":null}` · אפס תיוגי-עסקה ממתינים ⇒ **אין (א) · אין (ג) · אין (ד)**.
