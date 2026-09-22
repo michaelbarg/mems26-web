@@ -1,3 +1,61 @@
+## ☎️ [cowork-dev · 2026-09-22 15:05-15:14 IL] — **ריצה מחוץ-לחלונות (חובה-1 בלבד) · אפס-פעולה** · ☎️ **אין ממתינות — שקט מוחלט בטלפון** · 🟢 בר 15:05 (1.0 דק') · פוזיציה 0 · `ruled_contracts()=1`
+
+**שורת-חובה-1:** שלושת קצוות-התור ריקים (‏`GET /chat` http=200, 30 פריטים, אחרונת-מייקל
+`21.09 16:10:27Z` נענתה `16:17:01Z` · `/instruction/pending {"items":[]}` · `/cmd/pending
+{"cmd":null}`), הרלה חי (`mobile_relay.py` pid 4842) ⇒ אף לא אחד מארבעת המקרים ⇒ **אפס
+הודעת-טלפון**. 15:05 אינו אף חלון ⇒ אפס ריסטארט · אפס דגל · אפס נגיעה בפוזיציות.
+
+**המצב זהה לריצות 14:05 ו-14:35 שמעליי — אינו מדווח מחדש:** T-34 `avail 487.79` ללא שינוי,
+ועם `under_margin=0 · trading_disabled=0 · loss_limit_reached=0` ⇒ **אינו חוסם מסחר** ⇒ לא
+מקרה (ג) · `daily_pnl=91.25` = שארית-אתמול (מלכודת T-415), 0 עסקאות היום ו-RTH ב-16:30 ·
+פיד חי (T-430) · `:8000` pid 581 מ-09:34:44 (לפני 12:00) ⇒ **בעלות-הריסטארט טרם נתפסה**.
+ממצא-דלתא אחד, והוא ישירות על הצעד-הבא:
+
+### 🔎 ממצא-דלתא: `git pull` **נכשל** על עץ-עבודה מלוכלך — והוא התנאי לריסטארט-15:40
+
+הצעד הראשון של חובה-1 ושל שער-היום הוא `git pull` ("טוען את תיקוני-הבוקר"). הוא **לא רץ**
+היום — הוא יצא בשגיאה, לא בהצלחה-שקטה. היום זה לא הזיק כי `HEAD == origin` (אפס קומיטים
+משני הכיוונים), אבל זהו בדיוק מצב-הכשל שמחכה לריצת-15:30: אם cc ידחוף תיקון-בוקר בין עכשיו
+ל-15:40, ה-pull ייכשל באותה שגיאה, הריסטארט יעלה על **קוד ישן**, והריצה תדווח GO על בסיס
+שגוי. עץ-העבודה מלוכלך מקבצים שנכתבים בזמן-ריצה, לא מעריכה: `PHONE_THREAD.jsonl` (נוסף
+אליו בכל הודעה), `news_calendar.yaml`, `MONDAY_READINESS.html`, ועוד 383 קבצים לא-מעוקבים
+(רובם `docs/reports/postmortem/PM_*.md`).
+
+**המרשם לריצת-15:30:** לא להסתפק ב-`git pull`; לאמת שהוא הצליח, ובכישלון —
+`git -C … stash push -- <שלושת-הקבצים>` → `pull --rebase` → `stash pop`, ורק אז ריסטארט.
+
+```
+$ git -C /Users/michael/Downloads/mems26_web_git pull --rebase
+  error: cannot pull with rebase: You have unstaged changes.
+  error: please commit or stash them.                          ← לא "Already up to date"
+$ git fetch && git log HEAD..origin/<branch> --oneline         (ריק)   ← היום אין פער
+$ git log origin/<branch>..HEAD --oneline                      (ריק)
+$ git status --porcelain | grep '^ M'                          3 קבצים (זמן-ריצה)
+$ git status --porcelain | grep -c '^??'                       383
+$ curl -s "…onrender.com/chat?key=…"            http=200 size=13167  30 פריטים, אחרון cowork 10:02:29Z
+$ curl -s "…/instruction/pending?key=…"         {"items":[]}   http=200
+$ curl -s "…/cmd/pending?key=…"                 {"cmd":null}   http=200
+$ curl -s localhost:8000/api/v9/account/state   http=200
+  sierra_state: ok=true stale=false age_s=0.3 position_qty=0 working_orders=0
+  order_placement_armed=1 is_sim=0 acct=37138283 MESZ26_FUT_CME daily_pnl=91.25
+  acct_available_funds=487.79 under_margin=0 trading_disabled=0 loss_limit_reached=0
+  open_trade=null verdict=flat
+$ psql … select max(ts), age  from v9_bars_5min_woodies   2026-09-22 12:05:00 UTC (15:05 IL, 1 דק')
+$ psql … count(*) v9_trades where entry_ts >= current_date  0        ← RTH נפתח 16:30
+$ (set -a; . ./.env) python3 -c "…ruled_contracts()"        1        ← RULED_FLAGS.yaml:45
+$ ps -o lstart= -p 581  (המאזין :8000)                      Tue Sep 22 09:34:44   ← לפני 12:00
+```
+
+⚠️ **אזהרת-נוסח עומדת בעינה** (מ-13:34, 14:05, 14:35): נוסח-המשימה "מ-16.09: 2,
+FIXED_CONTRACTS_2=1" **מיושן** — הפסיקה התקפה **1** (מייקל 18.09 12:05), ונמדדה שוב עכשיו.
+
+**הבא:** ריצת 15:30-16:10 — היומית המלאה + שער-היום; היא הבעלים היחיד של הריסטארט (אין
+`mems26-preopen-restart-2209`, ו-pid 581 עלה לפני 12:00). לפניו: `pull` **מאומת** (ראה
+מרשם לעיל) · `close_stale_shadow.py` · `machine_health.py` · `fire_drill` · `flag_guard` ·
+אימות מול **1** חוזה.
+
+---
+
 ## ☎️ [cowork-dev · 2026-09-22 14:35-14:42 IL] — **ריצה מחוץ-לחלונות (חובה-1 בלבד) · אפס-פעולה** · ☎️ **אין ממתינות — שקט מוחלט בטלפון** · 🟢 בר 14:35 (1.0 דק') · פוזיציה 0 · `ruled_contracts()=1`
 
 **שורת-חובה-1:** שלושת קצוות-התור ריקים (‏`GET /chat` http=200, 30 פריטים, אחרונת-מייקל
