@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LOG = ROOT / "docs" / "plans" / "TASK_LOG.md"
 BOARD = ROOT / "docs" / "plans" / "STATUS_BOARD.md"
 
-STATUSES = ("🔴", "🟠", "🟡", "🔵", "✅")
+STATUSES = ("🔴", "🟠", "🟡", "🔵", "✅", "⚪")   # ⚪ = ארכיון (22.09): פתוח-רדום, מוסתר בתיק-המוכנות
 
 
 def _max_age_days() -> float:

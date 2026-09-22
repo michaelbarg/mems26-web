@@ -83,7 +83,7 @@ def _looks_status(c: str) -> bool:
     """תא-סטטוס: קצר, ונושא סימן מהמקרא (או מילת-סטטוס, אם אין אימוג'י)."""
     if not c or len(c) > 90:
         return False
-    return any(m in c for m in OPEN_MARKS) or DONE_MARK in c or any(w in c for w in OPEN_WORDS)
+    return c.strip().startswith("⚪") or any(m in c for m in OPEN_MARKS) or DONE_MARK in c or any(w in c for w in OPEN_WORDS)
 
 
 def _looks_owner(c: str) -> bool:
@@ -153,6 +153,10 @@ def classify(t: Task, today: _dt.date) -> Tuple[str, int, str, Optional[_dt.date
     ``🟠 true-up בוצע; תיקון פתוח`` היא פתוחה, לא סגורה.
     """
     st = t["status"]
+    # ⚪ = ארכיון מפורש (22.09, מייקל: "מלא משימות לא רלוונטיות") — נבדק ראשון,
+    # כי תא-הארכיון מצטט את הסטטוס הקודם ("היה: 🔴") ואסור שהציטוט יפתח אותו מחדש.
+    if st.strip().startswith("⚪"):
+        return "archived", 9, "s-low", None
     for mark in OPEN_MARKS:
         if mark in st:
             rank, cls, _ = SEV[mark]
