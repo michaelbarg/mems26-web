@@ -216,6 +216,7 @@ for t in trades:
 CSS = """
 :root{color-scheme:dark}
 *{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
 body{margin:0;background:#0b0e14;color:#e6edf3;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;padding:12px 12px 40px}
 a{color:#58a6ff;text-decoration:none}
 h1{font-size:21px;margin:4px 0 2px}h2{font-size:17px;margin:18px 0 8px;color:#c9d1d9}
@@ -228,7 +229,7 @@ h1{font-size:21px;margin:4px 0 2px}h2{font-size:17px;margin:18px 0 8px;color:#c9
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid #30363d;margin-left:4px}
 .badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
 .pnl{font-weight:700;font-size:18px}.pos{color:#3fb950}.neg{color:#f85149}
-.chartwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:6px 0}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:6px 0}
 .tags button{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:10px;padding:10px 14px;font-size:15px;margin:4px 2px}
 .tags button:active{background:#30363d}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
@@ -262,10 +263,11 @@ function tag(id, label, text){
 }
 </script>"""
 
-def page(title, body, extra_js=""):
+def page(title, body, extra_js="", prefix=""):
+    nav = NAV.replace('href="', f'href="{prefix}') if prefix else NAV
     return (f'<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{html.escape(title)}</title>'
-            f'<style>{CSS}</style></head><body>{NAV}{body}{KEYJS}{extra_js}</body></html>')
+            f'<style>{CSS}</style></head><body>{nav}{body}{KEYJS}{extra_js}</body></html>')
 
 def money(v):
     if v is None: return '<span class="dim">—</span>'
@@ -371,7 +373,7 @@ for d in days:
           "function draw(){document.getElementById('cw').innerHTML=(_sh?SVS:SV)[_cw];}"
           "function zoomC(w){_cw=w;draw();}function toggleShadow(){_sh=!_sh;draw();}</script>")
     with open(os.path.join(OUT, "days", f"{d}.html"), "w", encoding="utf-8") as fh:
-        fh.write(page(f"MEMS26 · {d}", head + chart + "".join(cards), js))
+        fh.write(page(f"MEMS26 · {d}", head + chart + "".join(cards), js, prefix="../"))
 
 # ── trades ledger ─────────────────────────────────────────────────────────────
 ledger = [r for r in recs]

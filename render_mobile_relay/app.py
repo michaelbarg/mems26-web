@@ -992,17 +992,26 @@ _DOC_MIME = {".pdf": "application/pdf", ".html": "text/html; charset=utf-8",
              ".png": "image/png", ".txt": "text/plain; charset=utf-8"}
 
 
+@app.get("/doc/{sub}/{name}")
+async def doc_file_sub(sub: str, name: str, request: Request):
+    """one level of sub-folder (e.g. /doc/days/2026-09-21.html)."""
+    sub_safe = "".join(c for c in sub if c.isalnum() or c in "_-")[:40]
+    if not sub_safe or sub_safe != sub:
+        raise HTTPException(status_code=404, detail="no such document")
+    return await doc_file(os.path.join(sub_safe, _safe_name(name)), request, _subdir=sub_safe)
+
+
 @app.get("/doc/{name}")
-async def doc_file(name: str, request: Request):
+async def doc_file(name: str, request: Request, _subdir: str = ""):
     if not _page_key_ok(request):
         return HTMLResponse(
             "<html dir=rtl><body style='background:#0b0e14;color:#e6edf3;"
             "font-family:-apple-system;padding:40px;text-align:center'>"
             "<h2>🔒 נדרש מפתח-גישה</h2><p>פתח את הקישור מתוך דף-הצ'אט (המפתח מצורף שם אוטומטית).</p>"
             "</body></html>", status_code=401)
-    safe = _safe_name(name)
+    safe = _safe_name(os.path.basename(name))
     ext = os.path.splitext(safe)[1].lower()
-    path = os.path.join(_DOCS_DIR, safe)
+    path = os.path.join(_DOCS_DIR, _subdir, safe) if _subdir else os.path.join(_DOCS_DIR, safe)
     if ext not in _DOC_MIME or not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="no such document")
     with open(path, "rb") as fh:
