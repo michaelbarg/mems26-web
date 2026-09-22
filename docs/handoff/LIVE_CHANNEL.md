@@ -1,3 +1,111 @@
+## 🚪 [cowork-daily · 2026-09-22 15:34-16:00 IL] — **שער-היום 🟢 GO** (אחרי 🔴 NO-GO ותיקון) · ☎️ **הודעת-טלפון אחת (מקרה ד)** · ריסטארט `15:41:31` → pid `20693` commit `859232aa` · `ruled_contracts()=1` · פוזיציה 0 · בר `15:40` (3 דק')
+
+**בעלות-הריסטארט: נתפסה על-ידי הריצה הזו.** `:8000` היה pid `581` מ-`09:34:44` (לפני 12:00) · אין משימה מתוזמנת `mems26-preopen-restart-2209` (‏`list_scheduled_tasks` — רק ישנות/מושבתות: 1009/1109/1509) · אין רשומת-cowork-dev מהיום על ריסטארט ⇒ אני הבעלים ⇒ ריסטארט **וגם** GO/NO-GO אחד לטלפון.
+
+---
+
+### חובה-1 · טלפון — **אין ממתינות ⇒ שקט מוחלט**
+
+`GET /chat` http=200, **30 פריטים**; אחרונת-מייקל `21.09 16:10:27Z` נענתה עניינית `16:17:01Z`. הפיד ב-Render **זהה** ל-`PHONE_THREAD.jsonl` המקומי (השוואה שורה-שורה על 12 האחרונות) ⇒ אף לא אחד מארבעת המקרים תחת חובה-1 ⇒ **אפס הודעה**. (ההודעה היחידה היום היא שער-ה-GO — מקרה ד.)
+
+---
+
+### חובה-2א · סיכום 21.09 (יום שני)
+
+| מה | מספר |
+|---|---|
+| **לייב** | **7 עסקאות · 7 ניצחונות · 0 הפסדים · ספרים +$120.00** |
+| ברוקר | **+$91.25** (מ-`sierra_state.daily_pnl`, שארית-אתמול) |
+| צל | 76 עסקאות · 44W/30L · **+$220.95** |
+| פיצול-מערכות (לייב) | S2 ×6 · S4 ×1 (‏`GHOST`) · **כל 7 היציאות `T1_HIT`** |
+
+**ליגר `gateway_decisions.jsonl` · 21.09 · 220 שורות (‏json-bad 0, no-usable-ts 0):**
+`DETECTED 70` → `EMIT_DECISION 74` → `GATE_DECISION 37` → `ROUTED 39` (‏**`live 7`** · `shadow_only 32`).
+✅ **הצלבה: ROUTED-live `7` == עסקאות-לייב ב-`v9_trades` `7`** — הליגר וה-DB מסכימים.
+
+**חוסמים (21.09):** `eod_entry_cutoff` **13** · `dalton_intent:bias` **11** · `rr_entry_gate` **4** · `dalton_intent:location` **4** · `dalton_intent:stand_down` **2** · `live_blocked_by=place_rejected` **1**.
+נימוק-הבייס החוזר: `bias=LONG rejects SHORT (day_type in [Trend_Normal,Trend_DD])` ×10 (phase C ×6, phase D ×4).
+**משפחות:** `S2 84` · `CONTINUATION 54` · `REVERSAL 6`.
+
+**ציון-מודעות 21.09 — `4/4` צירים ≥80% ✅:** יום `65/78` **83.3%** · רמות `78/78` **100%** · מועמדים `10/11` **90.9%** · החלטות `66/78` **84.6%**. נגיעת-VA יחידה בלי `DETECTED`: `10:00 (VAH)`.
+
+⚠️ **צל-S1DayDir ו-EntryGuard ל-21.09: לא ניתנים למדידה — ולא "אפס".** `/tmp/backend.err.log` מכיל **אך ורק `2026-09-22`** (‏`grep -c '^2026-09-21' ⇒ 0`; `grep -oE '^2026-09-[0-9]{2}' | sort -u ⇒ 2026-09-22` בלבד) — הלוג נמחק בריבוט של `09:34`. נפלתי בדיוק במלכודת שהרנבוק מזהיר עליה ("0 שורות = עיוורון, לא ממצא", מחלקת 19.08/T-61) ותפסתי לפני הדיווח. **היום** שניהם חיים: `S1DayDir` **2,387** שורות (‏`SHADOW accepted_break=none | s1_state=none→none | agree=n/a` — מצב קדם-RTH תקין), `EntryGuard` **0** (שומר-קדם-שליחה; אפס פקודות עד `16:30` ⇒ צפוי).
+
+**דוחות-cc:** `docs/handoff/cc_orders/CC_NOW_2026-09-22.md` (12 פריטים, הוקצה 11:15). **חריגים:** ראה הממצא למטה.
+
+---
+
+### 🔎 ממצא-היום: **[[T-435]] חזר — ואינו מקרה-קצה. הפעם הוא הפיל את השער ל-🔴 NO-GO**
+
+**זו אותה משימה שנפתחה `21.09 15:39` — לא פותחים חדשה** (איסור-מרשם-מתחרה). חדש היום: **מצב-כשל שני של אותו שורש**, שהרנבוק לא תיאר, ושהוא החמור מבין השניים.
+
+**השורש (מאומת היום מהקובץ):** `~/Library/LaunchAgents/com.mems26.backend.plist` = `RunAtLoad true` + `KeepAlive{SuccessfulExit:false}` + `ThrottleInterval 30` + `exec … uvicorn backend.main:app --port 8000` ⇒ **launchd הוא הבעלים הקנוני של הבאקנד.** `scripts/restart_all.sh` מריץ `stop_all.sh` (הורג את התהליך ⇒ launchd מתחיל לרדוף) ואז `start_all.sh` (מרים **עותק שני** תחת `screen`, שזוכה בפורט) ⇒ **שני סופרוויזרים, מירוץ קבוע.**
+
+**הסימפטום שנמדד (Rule 5 — פלט גולמי):**
+```
+$ grep -a '\[boot\] logging OK' /tmp/backend.err.log | tail -6
+  15:37:27 … pid=20071 commit=859232aa      ← קצב 30 שנ' מדויק,
+  15:37:57 … pid=20156 commit=859232aa         כל אחד תהליך אחר,
+  15:38:27 … pid=20224 commit=859232aa         ואף אחד מהם אינו המאזין
+  15:38:58 … pid=20284 commit=859232aa
+  15:39:28 … pid=20317 commit=859232aa
+  15:39:59 … pid=20339 commit=859232aa
+$ grep -ac 'address already in use' /tmp/backend.err.log      3 → 6 → 8   (אחת לכל 30 שנ')
+$ launchctl list | grep com.mems26.backend                    -    1    com.mems26.backend
+                                                              ↑ לא רץ   ↑ יצא בשגיאה 1
+$ pgrep -f 'uvicorn backend'                                  20003 20005 20006 20007   ← ארבעה
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN                            Python 20007 (LISTEN)     ← של screen
+$ python3 scripts/fire_drill.py
+  ✗ T-61 שכבת-INFO בלוג — newest boot probe is pid=20156 but the running backend is pid=20003
+  🔴 NO-GO — 1 כשלים
+```
+**למה זה נראה אחרת מ-21.09:** אז ה-`tee` הסיט את שורת-הבוט ל-`backend.log` והשאיר את `backend.err.log` ריק. **היום ההיפך** — כל שורות-הבוט הגיעו ל-`backend.err.log`, אבל **השורה החדשה-ביותר שייכת תמיד לילד בן-30-השניות שעומד למות**, ולכן `find_boot_probe` לא מצא התאמת-PID. אותו שורש, בדיקה אחרת נופלת.
+
+**התיקון שבוצע — שחזור-טופולוגיה, אפס דגל, אפס עריכת-plist, אפס נגיעה out-of-git (ולכן ללא snapshot):**
+```
+$ curl … /account/state   position_qty=0 working_orders=0 verdict=flat     ← לפני הנגיעה
+$ screen -S mems26_backend -X quit ; kill -TERM 20007                      15:41:04 / 15:41:15
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN -t                                      listener=20693 @ 15:41:31
+$ launchctl list | grep com.mems26.backend                                 20693  1  com.mems26.backend
+$ pgrep -f 'uvicorn backend'                                               20693            ← אחד בלבד
+$ grep -a '\[boot\] logging OK' … | tail -1
+  2026-09-22 15:41:30 … pid=20693 commit=859232aa stream=stderr            ← == המאזין ✅
+$ grep -ac 'address already in use' /tmp/backend.err.log                   8 (קפוא; אין חדשות)
+$ curl -o /dev/null -w '%{http_code} %{time_total}' localhost:8000/health  200  0.0033s
+```
+**💵 חשיפת-מסחר: אפס.** הלולאה חיה `15:37-15:41` — מחוץ ל-RTH, `position_qty 0`, `working_orders 0`, `v9_trades` היום `0`.
+
+**הריסטארט היה מוצדק לגופו:** pid `581` רץ על commit `47675958`; HEAD הוא `859232aa`, הכולל את `9158cda3` (‏`09:57`) — **[[T-441]]: שורות-הצל של עץ-v2 מעולם לא נכתבו (‏`NameError _real_decision` שנבלע ב-`except` עירום) — תוקן.** התיקון הזה **נטען עכשיו לראשונה**.
+
+**📌 מאשש את הצעד-הבא (1) שכבר כתוב ב-T-435, ומחדד לפקודה מדויקת:** מסלול-ההרמה של השער חייב להיות **`launchctl kickstart -k gui/$UID/com.mems26.backend`** — בעלים אחד, אפס מירוץ, 13 הדגלים של ה-plist מגיעים כמו שצריך. **`scripts/restart_all.sh` לא ישמש יותר בשער-הבוקר** עד שיתוקן. עודכן בתא-הצעד-הבא של T-435.
+**📌 מאשש גם את צעד (2):** `post_restart_verify.sh` חזר **🟢 GREEN** בזמן שהמערכת הייתה בלולאת-רספאון — **פער-הכיסוי מול `fire_drill` הוכח שוב, יומיים ברציפות.**
+
+---
+
+### חובה-2ב · שער-היום — הרצף המלא
+
+| שלב | תוצאה |
+|---|---|
+| `git pull` **מאומת** (מרשם 15:05) | `fetch` נקי · `HEAD..origin` ריק · `origin..HEAD` ריק ⇒ `859232aa` == origin. עץ מלוכלך (3 קבצי-זמן-ריצה + 383 לא-מעוקבים) אך **אפס פער** ⇒ לא נדרש stash |
+| `close_stale_shadow.py` (dry) | `no stale shadow trades — nothing to do` ⇒ **`--apply` לא נדרש** |
+| `machine_health.py` | ⚠️ **WARN ×2**: `unused RAM 197M < 400M` · `swap 2,814M > 500M`. load `2.89/4.91/6.04` (8 ליבות). צרכנים לא-מסחריים: cowork-vm `1,864MB` · claude-app `1,678MB` · spotlight `1,114MB` · adobe `689MB`. סיירה `152% CPU`. **דיווח בלבד** |
+| `ruled_contracts()` | **`1`** ✅ — ו-`fire_drill` שלב C: `effective_contracts == 1` |
+| ריסטארט (פוזיציה 0) | `15:41:31` → pid `20693`, בבעלות launchd |
+| `fire_drill` | 🔴 NO-GO → **🟢 GO** (אחרי התיקון). A: `flag_guard` PASS · B: 4/4 שרשרת-סטופ · C: חוזים+בר-אישור · Y: `264` דגלים פסוקים · G: `guard_tests` 159 passed/1 skipped, `wire_guard` 56 call-sites, `task_log_guard` 422 פריטים · D: health · **T-61 ✅ (129 שורות INFO אחרי הבוט)** · feed `252ms` · slot פנוי · `live_enabled [2,4]` |
+| **T-430 · פיד חי** | `v9_bars_5min_woodies` max = `2026-09-22 15:40:00+03` ⇒ **היום, גיל 3 דק'** ✅ |
+| T-34 מרג'ין | `avail $487.79` < `$1,595` — **דיווח בלבד**; ב-15:05 `under_margin=0 / trading_disabled=0 / loss_limit_reached=0` ⇒ **אינו חוסם מסחר** ⇒ **לא** מקרה (ג) |
+| מצב סופי | `position_qty 0` · `working_orders 0` · `order_placement_armed 1` · `is_sim 0` (**לייב**) · `verdict flat` |
+
+⚠️ **מלכודת-קריאה חדשה — נרשמת כדי שלא תדווח פעמיים:** `v9_bars_5min_woodies.ts` הוא **`timestamp with time zone`**. לכן `now() at time zone 'UTC' - max(ts)` עושה המרה-כפולה ומחזיר **`-179` דקות** — "פיד בן 3 שעות" שאינו קיים. **הצורה הנכונה: `now() - max(ts)`** (החזיר `1.3` דק'). כמעט הפך ל-NO-GO שקרי ונתפס מול `db_now`/`current_setting('TimeZone')`.
+
+⚠️ **אזהרת-נוסח — יום רביעי ברציפות:** נוסח-המשימה עדיין אומר *"מ-16.09: 2, FIXED_CONTRACTS_2=1"*. **מיושן.** הפסיקה התקפה היא **1 חוזה** (מייקל `18.09 12:05`), ונמדדה שוב עכשיו משני מקורות בלתי-תלויים (‏`ruled_contracts()=1` · `fire_drill` שלב C). **מי שמריץ את השער: לאמת מול 1, לא מול 2.**
+
+**☎️ הודעת-הטלפון (מקרה ד, היחידה היום):** GO + קומיט + PID + מה חי, `≤500` תווים.
+
+**הבא:** ריצות-RTH `16:30-23:00` — ניטור קצר בלבד (בר ≤10 דק' · backend בריא · פוזיציה-מול-TM לפי `order_id` לפני אזעקה). **אפס ריסטארט `16:10-23:00`.** מי שמריץ את שער-מחר: **לא `restart_all.sh`** — `launchctl kickstart -k gui/$UID/com.mems26.backend`.
+
+---
+
 ## ☎️ [cowork-dev · 2026-09-22 15:05-15:14 IL] — **ריצה מחוץ-לחלונות (חובה-1 בלבד) · אפס-פעולה** · ☎️ **אין ממתינות — שקט מוחלט בטלפון** · 🟢 בר 15:05 (1.0 דק') · פוזיציה 0 · `ruled_contracts()=1`
 
 **שורת-חובה-1:** שלושת קצוות-התור ריקים (‏`GET /chat` http=200, 30 פריטים, אחרונת-מייקל
