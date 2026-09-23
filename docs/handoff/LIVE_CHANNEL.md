@@ -1,3 +1,77 @@
+## 🟢 [cowork-dev · 2026-09-23 23:04-23:25 IL] — **EOD (חובה-1 + חובה-4): עמודי-הערב רצו, חמשת השלבים בסדר · תור-הלילה **לא נתפס** — cowork-האינטראקטיבי פעיל (T-456)** · ☎️ **הודעה אחת: קישור עמוד-היום**
+
+**חלון:** `23:04` ∈ `23:00-23:30` ⇒ **חובה-4**. `git pull ⇒ Already up to date` לפני, `commit`+`push` אחרי.
+
+### ☎️ חובה-1 — אפס ממתינות (שתי ראיות עצמאיות)
+
+זנב `PHONE_THREAD.jsonl` **ו-peek ישיר** `GET /chat?key=… ⇒ HTTP 200 · items=30` — זהים בזנב. הודעת-מייקל האחרונה בערוץ-הטלפון `08:42:23Z` (*"דיווח ממה שקלוד עשה … עם לינק"*) **נענתה** `09:19:51Z`. ⇒ **אין מקרה (א)**. הודעת-מייקל `22:45` (*"המערכת לא תפקדה טוב"*) הגיעה **בסשן-האינטראקטיבי, לא בטלפון**, והיא בטיפול שם ([[T-456]]) — לא נגעתי.
+
+### 🌙 תור-הלילה — ראיה לפעילות-cc ⇒ **אין claim ואין ביצוע** (לפי כלל-החובה)
+
+```
+git log --since='2026-09-23 23:00' (לפני הקומיט שלי):
+  66a164ad 23:06  TASK_LOG: opening-drive incident renumbered T-451→T-456
+  a981c93a 23:05  T-451/T-456 — תיקוני-שורש + 7 טסטי-רגרסיה
+                  קבצים: backend/v9/gateway/trading_gateway.py · backend/v9/systems/tpo/tpo_system.py
+                          docs/plans/{TASK_LOG,STATUS_BOARD,JOURNAL_DEFECTS}.* · 11 × DAY_REVIEW_*.md
+LIVE_CHANNEL:     ## 🔴 [cowork-dev · 2026-09-23 22:50-23:30 IL] — רשומת-claim חיה של הסשן האינטראקטיבי
+```
+
+**קוד-מוצר, לא launchd ולא data-only ⇒ התנאי "cc כבר עובד על התור" מתקיים.** לפי חובה-4: **אל תיגע — רק נטר וענה לטלפון.** אף פריט מ-`docs/handoff/cc_orders/CC_PROMPT_2026-09-23.md` לא נפתח על-ידי, ואף סוכן-משנה לא הורץ.
+
+### 📊 עמודי-הטלפון — חמשת השלבים, פלט גולמי (Rule 5)
+
+```
+(1) broker_truth.py --since 2026-09-01 --write
+    Σ books -596.25 · Σ broker (matched) -1765.00 · book error -1168.75
+    wrote pnl_sierra on 0 rows (pnl_usd untouched)   ← הכל כבר היה משודך, אין דלתא
+    היום: #2230 19:15 LONG REACTIVE_LONG qty1 · books -21.25 · broker -18.75 · order-joined · STOP_HIT
+    psql: live_n=1 · live_verified=1 · shadow_n=79   ⇒ n/N = 1/1, אין "אין רישום-ברוקר ל-#id"
+(2) day_review.py
+    2026-09-23: legs 5 took 0 late 0 opp 1 missed 4 (100.9 pts) · decisions 79 (blocked 63) · candidates 5
+    branch candidates across 11 reviewed days: 42 → data/review.json
+(2ב) review_report.py
+    days 11 · legs 55 · took 4 · missed 42 (1080 pts) · fixes 42 · gap 64 · pdf ok
+(2ג) gen_tree_board.py
+    16 live rows · 14 shadow rows · 20 buds · 856 decisions over 10 days
+(3) gen_phone_pages.py --days 14
+    pages: index, days (11), trades (669 rows), missed, lessons, tree   (1.1 שנ')
+פיד בזמן-המדידה: max(ts) v9_bars_5min_woodies = 2026-09-23 23:05:00 · גיל 00:01:08
+```
+
+**הערת-עקביות (Rule 2):** ה-`DAY_REVIEW` של היום נוצר אצלי `23:06`, שלוש דקות אחרי זה של הסשן-האינטראקטיבי (`23:03`) — **אחרי** תיקון-הכלי שלהם (*"day_review now sees legs from bar 0 + session-ATR fallback"*). ה-diff בין שתי הגרסאות הוא שתי שורות בלבד: `סגירה -50.0 → -51.5` (בר `23:05` נכנס) וחותמת-הזמן. **אין דריסה של תיקון ואין רגרסיה** — הגרסה שעלתה היא המאוחרת.
+
+### 🌳 ציר-הלקחים — `docs/plans/LESSONS_TIMELINE.json`
+
+שורת-היום הורחבה ב-EOD (הבוקר היא נכתבה `12:17`, לפני שהשורש נמצא): **ההטיה של כל היום נקבעה ע"י הרחבת-IB פנטום של `2.25` נק'** — בר קדם-פתיחה מסומן-שגוי (שיא `7828.75`) נכנס ל-`session_high` ולא אופס בגבול GLOBEX→CASH; שכבה-2 ("דורסת רק בשלב C" — תנאי שמעולם לא נאכף) הפכה אותו ל-`bias=LONG` עד `19:20`. המחיר: הדרייב-שורט המאושר של `16:45` נדחה, ובמקומו `REACTIVE_LONG #2230` — לונג ב-VAL ביום-ירידה, `−18.75$`. **הלקח שנרשם:** *שער בלי אכיפת-התנאי המתועד שלו הוא באג, לא הגדרה; ומספר-פנטום אחד בשכבת-ההקשר מרעיל יום שלם.*
+
+שלושה פריטים חדשים בצירים: `d` T-456 (התקרית) · `c` התיקון (איפוס-קיצונים ב-RTH + `IB_EXT_OVERRIDE_PHASE_GUARD_V1`, 7 טסטים) · `b` T-450 מבחן-החתימות (40 סשנים: תבנית-בר לבד −433$, ההקשר מנצח).
+
+### ✅ אימות-מסירה (לא מה-`ok`)
+
+```
+push 66a164ad..169f0569 ✓   (קומיט 169f0569 · 23:10)
+GET /doc/lessons.html        23:11:01 http=200 T-456=0   ← עדיין הגרסה הישנה
+                             23:11:27 http=200 T-456=1   ← הדיפלוי נחת
+GET /doc/days/2026-09-23.html  200 · "סגירה -51.5"  ⇐ הנתון החדש מוגש בפועל
+GET /doc/review.html 200 · /doc/review_report.html 200 · /doc/tree.html 200 · /doc/index.html 200
+```
+
+### 📞 הודעת-הטלפון היחידה (מקרה ב מורחב — דוח-היום שמייקל ביקש)
+
+**מלכודת שנמנעה בזכות ה-peek-לפני-השליחה:** הטיוטה שלי פתחה בהסבר-T-456 (הרחבת-הפנטום, הדרייב שנדחה, התיקון). ה-peek האחרון `23:13:31` גילה הודעה **חדשה** שלא הייתה ב-`23:04`: `20:06:42Z` מ-`cowork` (הסשן האינטראקטיבי) — **508 תווים, בדיוק אותו הסבר**. שליחה כזו הייתה [[T-369]] מספר-שתיים באותה שעה. ⇒ **חתכתי את כל חלק-השורש** והשארתי רק את מה שטרם נשלח: הקישור והמספרים.
+
+```
+נשלח 23:14 · phone_reply.py cowork-dev "<text>"   (הדגל --frm נדחה ע"י שומר-השולח — זה channel_post.py)
+אימות-מסירה (GET /chat, לא מה-ok): 2026-09-23T20:14:31Z · sender=cowork-dev · len=255 ✓
+"עמוד-היום עלה: https://mems26-mobile.onrender.com/doc/days/2026-09-23.html
+ נרות, כל מהלך שהיה שווה לתפוס ומה המערכת ראתה בכל אחד. היום: 5 מהלכים, 142.9 נקודות —
+ 0 נלקחו בזמן, 1 הפוך, 4 פוספסו (100.9). לייב אחת, מינוס 18.75 אצל הברוקר. 79 סטאפים, 63 נחסמו."
+```
+
+**אפס דוחות-ניטור, אפס רשימות, אפס backticks, ואפס חזרה על מה שכבר נאמר.** דוח-ה-EOD המלא — כאן, לא שם.
+
+---
 ## 🔴 [cowork-dev · 2026-09-23 22:50-23:30 IL] — **[[T-456]] היום: הדרייב-שורט המאושר של 16:45 נדחה בגלל "הרחבת-IB" פנטום של 2.25 נק׳ — שני תיקוני-שורש בקוד, נכנסים בשער-15:30 מחר** · ✅ **T-436b עובד בלייב (pnl_sierra −18.75 אוטומטית)** · **מייקל 22:45:** "לא סחרה את הפתיחה, לא זיהתה את סוג-היום, לא לקחה את העסקאות"
 
 **השרשרת (פלט גולמי):** `16:40:02 OPENING_ENTRY trigger DRIVE SHORT on 2 canonical bars` → STRICT החזיק (3 ברים) · **`16:45:05 OPENING_ENTRY DRIVE SHORT entry=7814.25 stop=7828.00 t1=7793.62 (live-eligible)` · `T-426 provisional OPEN_AUCTION_IN→OPEN_DRIVE` ✓ · `BLOCKED blocked_by=dalton_intent:bias ot=OPEN_DRIVE hint=LONG bias=LONG`** · `16:50:04 T-314: locked opening=OPEN_DRIVE dir=DOWN` (מאוחר בבר אחד) · `17:00+ OPENING_DIR_FUSION SKIP: opening_vol 95032 < median 110886` (הדרייב לא הוצע שוב) · `19:15:03 REACTIVE_LONG #2230 @7780.50` הותר (`day_type Normal conf 0.35 · hint LONG`) → סטופ 19:18, **−18.75$ ברוקר** · `19:15:13 ZLR SHORT blocked bias=LONG` · `19:20:05 extension=both 2.75 → hint SHORT` (ההרחבה האמיתית עברה סוף-סוף את הפנטום) · הרגל 19:40→20:00 (7777→7759): `S2_DELTA_DBL_SHORT`/`ZLR` עברו — **צל-בלבד**. **הפנטום:** וקטור-16:45 `extension=up 2.25 · ib_locked=true · ib_width=12.25`; `select … high between 7828.5 and 7829` ⇒ אפס ברים ב-woodies/continuous היום; הערך היחיד: `v9_bars_5min` (ערוץ ה-'5min' RTH-only, TS מסומן-שגוי) `09-22 23:55 high 7828.75`; `BarRouter: subscribed TPOSystem.process_bar to '5min'`; `_open_session` מאפס `session_high/low` רק בשינוי תאריך-מסחר — GLOBEX_2026-09-23→CASH_2026-09-23 לא איפס. **סוג-היום:** Normal 17:00 (0.35) → Trend_Normal 19:05 (0.62) → מתחלף Variation/Trend 20:20–20:45 → Variation (IB 48 / טווח 67.5 — "Variation" נכון-טכנית לפי דלתון; הכיוון הוא מה שהיה שבור). **תיקון:** `backend/v9/systems/tpo/tpo_system.py` (איפוס קיצונים בגבול-RTH, לוג `T-451 RTH boundary`) · `backend/v9/gateway/trading_gateway.py` (שכבה-2 IB-extension רק מ-17:30, `IB_EXT_OVERRIDE_PHASE_GUARD_V1` ברירת-מחדל "1"; "0" = הישן לריפליי) · `scripts/review_lib.py` (המבחן-היומי: מהלכים מבר 0 + ATR-סשן כגיבוי — הדרייב היה בלתי-נראה גם לכלי). **ראיה:** `tests/v9/regression/test_t451_phantom_ib_extension.py ⇒ 7 passed` · `28 passed` (T-451+hydrate+provisional+variation-ext) · `255 passed, 5 failed` על gateway/dalton/opening — **5 האדומים זהים על HEAD (T-432, פריט 4 של cc)** · `test_replay_tpo_causality` שגיאת-איסוף פרה-קיימת (`oracle_study.POINT_USD`). ⛔ **לא ריסטארטתי** (23:20; הכלל: שער-15:30). ⚠️ **מלכודת שלי:** `git stash --keep-index` נזרק בטעות בבדיקת-בסיס — הוחזר מיד (`stash pop`), אפס אובדן; נרשם כי זה אסור. **פתוח למדידה (לא לדגל):** הפיוז׳ן דחה דרייב של 48 נק׳ על ווליום-פתיחה מתחת לחציון — ריפליי "דרייב עם ווליום < חציון" על 85 סשנים; ומפיקי-השורט של הרגל השנייה כולם צל-בלבד (T-450/producer_not_live). **הצעד הבא:** שער-15:30 24.09 טוען (`grep "T-451 RTH boundary"` ב-16:30, וקטור-16:45 `extension=none`); ריפליי-רגרסיה של 23.09 עם השומר דלוק/כבוי.
