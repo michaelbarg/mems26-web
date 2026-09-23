@@ -525,3 +525,43 @@ SQLite ו-MySQL עושות את ההפך (NULL = הקטן ⇒ אחרון ב-`DES
 
 **משפחה אחת עם מלכודת 14:** שתיהן קוראות ל-`NULL` בעמודת-זמן מידע שאין בו —
 14 קראה לו "עסקה פתוחה", 17 קוראת לו "העסקה האחרונה". **בשתיהן הפוסק הוא `state`.**
+
+### מלכודת 18 · `ruled_contracts()` בלי `.env` מחזיר `None` — ו-`None` נקרא כ"אין פסיקה" (23.09)
+
+הפקודה שמצוטטת בכל מקום כמקור-האמת לגודל-העסקה **אינה עומדת בפני עצמה**:
+
+```bash
+$ python3 -c 'from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())'
+None                       # ← לא הפסיקה. ולא שגיאה.
+$ set -a && . ./.env && set +a && python3 -c '…אותה פקודה בדיוק…'
+1                          # ← הפסיקה
+```
+
+**השורש:** `ruled_contracts()` נשענת על `_on(name)` שקוראת `os.environ` בלבד
+(`backend/v9/services/contract_size.py`). הבאקנד טוען `.env` בעלייה, אבל
+`python3 -c` יבש **לא** — ולכן כל דגלי-`FIXED_CONTRACTS_*` נראים כבויים.
+
+**ולמה זו מלכודת ולא אי-נוחות:** הדוקסטרינג של הפונקציה אומר מפורשות
+*"None means 'no fixed-size ruling is active' — the caller keeps whatever the
+risk ladder produced. It does NOT mean zero."* ⇒ `None` הוא **ערך תקף בעל
+משמעות מסחרית** (סולם-סיכון חופשי), לא סימן-שגיאה. סוכן שמריץ את הפקודה
+היבשה ומדווח "אין פסיקת-גודל" מדווח **היפוכה של האמת**, בלי שורת-שגיאה אחת
+שתעצור אותו. זו אותה משפחה כמו מלכודות 14 ו-17: קריאת משמעות ל-`NULL`/`None`
+שאין בו.
+
+**המדידה הקבילה — שלוש, לא אחת:**
+
+```bash
+grep -E '^FIXED_CONTRACTS_' .env                       # מי דלוק בפועל
+grep -n 'FIXED_CONTRACTS_' config/RULED_FLAGS.yaml     # הפסיקה + התאריך + הציטוט
+set -a && . ./.env && set +a && python3 -c 'from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())'
+```
+
+**⚠️ והחצי השני, שהוא החשוב:** את הגודל קוראים מהשלושה האלה — **לעולם לא ממספר
+שכתוב בטקסט-משימה, בסקילל, או בזיכרון.** ב-23.09 טקסט-המשימה של cowork אמר
+`"מ-16.09: 2, FIXED_CONTRACTS_2=1"`, בעוד המדידה נתנה `FIXED_CONTRACTS_1=1`,
+‏`FIXED_CONTRACTS_2=0`, ו-`RULED_FLAGS.yaml:45` ⇒ פסיקת-מייקל **18.09 12:05**
+*"היום לעבוד על חוזה 1"* (המאוחרת גוברת; `FIXED_CONTRACTS_2 expected:"0"`
+בשורה 49). המספר בטקסט היה **פסיקה שנדרסה**, וההוראה עצמה מזהירה "אל תניח 5
+ואל תניח 3" — אותה מחלקה בדיוק. ⇒ גם טקסט-ההוראה הוא מקור-מיושן-אפשרי, ולכן
+`ruled_contracts()` **הוא** הפוסק, ובלבד ש-`.env` נטען.
