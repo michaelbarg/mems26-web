@@ -1,3 +1,65 @@
+## 🟢 [cowork-dev · 2026-09-23 22:34-22:39 IL] — **ניטור-RTH שלושה-עשר (חובה-1 + חובה-3)** · ☎️ **אין ממתינות ואין אירוע-לייב חדש ⇒ שקט מוחלט בטלפון** · 💵 **[[T-34]] מרג'ין: הסף נחצה אך *אינו חוסם* ⇒ דיווח-בלבד, בלי מקרה (ג)**
+
+**חלון:** `22:34` ∈ `16:30-23:00` ⇒ **חובה-3, ניטור-קצר**. `22:34 > 16:10` ⇒ **אפס ריסטארט**. בעלות-השער אינה שלי ([[T-369]]): `lsof :8000 -sTCP:LISTEN ⇒ מאזין יחיד`, `ps -o lstart ⇒ Wed Sep 23 15:37:06` ⇒ **אותו PID `95273`** שהודעת-השער של `15:41` ציטטה ⇒ אפס ריסטארט, אפס GO/NO-GO.
+
+**☎️ חובה-1 — אפס ממתינות, שתי ראיות עצמאיות (מלכודת-12):** זנב `PHONE_THREAD.jsonl` **ו-peek ישיר** `GET /chat?key=… ⇒ items=30` — **זהים בזנב**, אחרונה `2026-09-23T16:38:26Z` (מקרה-ב של `#2230`). אחרונת-מייקל `08:42:23Z` **נענתה עניינית** `09:19:51Z` (קישור `progress.html`) ⇒ אפס (א); לא חלון-15:40 ⇒ אפס (ד); אפס תיוגי-עסקה. `git pull ⇒ "Already up to date."`
+
+**📞 אין מקרה (ב)** — `mode='live'` היום ⇒ **שורה אחת בלבד**: `#2230 CLOSED · entry 19:15:05 · exit 19:18:32` שכבר דווחה `19:38:26Z`. **אפס פתיחה ואפס סגירה מאז `19:18:32`** (‏3:20 שעות). חיתוך-נגדי בו-זמנית: `position_qty 0 · working_orders 0 · daily_total_qty_filled 2.0 · acct_daily_pl −18.75`.
+
+### 🟢 ניטור ירוק (Rule 5, גולמי — נמדד 22:39:01)
+
+```
+[[T-430]] פיד-חי:  max(ts) v9_bars_5min_woodies = 2026-09-23 22:35:00 · גיל 4.0 דק' (≤10) · today=t
+מאזין:             lsof :8000 -sTCP:LISTEN ⇒ 1 שורה · ps 95273 ⇒ lstart Wed Sep 23 15:37:06 · %cpu 46.7
+sierra_state:      age_s 0.4 · stale false · is_sim 0 · armed 1 · position_qty 0 · working_orders 0
+                   under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · MESZ26_FUT_CME
+gateway/status:    live_slot null · trades_today 1 · daily_pnl −21.25 · consecutive_losses 1
+                   live_enabled_systems [2,4] · shadow_active_count 16 · chop EXPANDING
+                   cooldown_active false · cluster_guard_active false · ssv veto_active false
+v9_trades live:    n=1 · sum(pnl_usd) −21.25 · sum(pnl_sierra) −18.75   (ספרים מול ברוקר: פער 2.50)
+לוג-האפליקציה:     /tmp/backend.err.log · קצב 69-97 שורות/דק' (‏≪ 1,000/דק' של [[T-396]])
+                   היום: INFO 21,832 · WARNING 18,109 · ERROR 2 · CRITICAL 1 — כולם לפני 16:41, אפס מאז
+ruled_contracts()  ⇒ 1  (עם טעינת .env; FIXED_CONTRACTS_2=0) — מדידה, לא שינוי
+```
+
+- **פוזיציה `0` בספרים וגם אצל הברוקר ⇒ שאלת-ownership לפי `order_id` לא נדרשה.**
+- **`ruled_contracts() ⇒ 1`** — ריצה שלוש-עשרה שמאשרת שנוסח-המשימה *"מ-16.09: 2"* מיושן מול פסיקת-`18.09 12:05` ([[T-225]]). `daily_total_qty_filled 2.0` = **סיבוב אחד של חוזה אחד**, תואם. **לא נגעתי בדגלי-גודל.**
+
+### 💵 [[T-34]] — הסף נחצה, והבדיקה של *"האם זה חוסם"* היא שמכריעה
+
+`acct_available_funds = 478.59 < 1,595` ⇒ תנאי-הדיווח מתקיים. **אבל אינו חוסם, ולכן אין מקרה (ג)** — וזו הנקודה שראוי לרשום, כי מספר גולמי מתחת לסף מזמין אזעקה שגויה:
+
+```
+acct_under_margin      = 0        ← הברוקר עצמו אומר "לא מתחת למרג'ין"
+acct_trading_disabled  = 0
+acct_loss_limit_reached= 0        (daily_net_loss_limit −298.40 · היום −18.75)
+acct_margin_req        = 0.0      (שטוח ⇒ אין דרישה פתוחה)
+order_placement_armed  = 1
+grep -icE 'insufficient|margin.?reject|not enough|rejected.*fund|REJECT_FUNDS' ⇒ 22,104
+   ← כולן שורה אחת ויחידה: "[S2-CVD] insufficient coverage: 1/8 rows — returning None (Rule 1)"
+     כלומר **אפס** דחיות-מרג'ין. #2230 התמלא היום 19:15 באותה יתרה בדיוק.
+```
+
+**המסקנה:** הסף הוא סף-*קשב*, לא סף-*חסימה*. הראיה שהוא לא חוסם היא עסקה שהתמלאה באותה יתרה, לא היעדר-אזעקה. ⇒ שורה כאן, שקט בטלפון — בדיוק כפסיקת-המשימה.
+
+### 🔎 שתי תקלות-פתיחה שנסגרו מעצמן — נרשמות כדי שלא ייקראו כאזעקה חיה
+
+```
+16:30:03 [CRITICAL] [DAYTYPE_WATCHDOG] ESCALATION-3: day_type_state stale 53 min
+         "the 5min feed is ALIVE (newest bar 0.1 min old) — so this is NOT a dead feed"
+16:35:06 [ERROR] [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+16:40:02 [ERROR] [BarLevelDetector]  (אותה שורה, פעם אחרונה)
+```
+
+- **`DAYTYPE_WATCHDOG` — נסגר.** `0` הישנויות ב-6 שעות (סה"כ 4 שורות היום, כולן ב-`16:30`). השורה האחרונה בטבלה היא `id 12602 · 18:05:06 · B2 · Variation · LOCKED_LOW_CONF · with_extension(DOWN) · rib 1.399`.
+- **מלכודת שנמנעה:** `GET /api/v9/day_type/state` מחזיר `meta.source = "v9_day_type_state"` — כלומר **הוא קורא את אותה טבלה**, ולכן "ההסכמה" בינו לבין השורה אינה ראיה עצמאית (בדיוק אזהרת-CLAUDE.md על העוטף-המת). הראיה העצמאית שהמנוע חי היא נתיב אחר: `[S1DayDir]` ב-`22:37:36` מדפיס `s1_state=with_extension(DOWN)` — **זהה ל-`direction` של השורה** ⇒ החתימה לא השתנתה מאז `18:05`, והטבלה נכתבת *בשינוי ולא לכל בר* ⇒ **היעדר-כתיבה הוא ההתנהגות הנכונה, לא רעב-כותב**.
+
+### ⏭️ העברה לריצת-23:00-23:30 (חובה-4)
+
+`consecutive_stops = 33` במונה-הצינון (`cooldown_active false`). **16 עסקאות-צל פתוחות** ‏(`state='FILLED'`, כולן **מהיום** — אפס שורות-צל תקועות מימים קודמים, כלומר לא חוזר [[T-396]]). סגירה `23:00`; תור-הלילה ועמודי-הטלפון (‏`broker_truth.py` → `day_review.py` → `gen_phone_pages.py`) שייכים לריצה הבאה.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-23 22:04-22:12 IL] — **ניטור-RTH שנים-עשר (חובה-1 + חובה-3)** · ☎️ **אין ממתינות ואין אירוע-לייב חדש ⇒ שקט מוחלט בטלפון** · 🔑 **[[T-455]] שוחזר עצמאית ו*מורחב ללייב* + מנגנון מקוד**
 
 **חלון:** `22:04` ∈ `16:30-23:00` ⇒ **חובה-3, ניטור-קצר**. `22:04 > 16:10` ⇒ **אפס ריסטארט**. בעלות-השער אינה שלי ([[T-369]]): מאזין יחיד `95273`, `lstart Wed Sep 23 15:37:06` ⇒ **אותו PID** שהודעת-השער של `15:41` ציטטה ⇒ אפס ריסטארט בחלון, אפס GO/NO-GO.
