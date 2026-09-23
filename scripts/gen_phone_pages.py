@@ -341,6 +341,8 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("whatworks.html", "🧪", "מה עובד", "כניסות · מיקום · יציאות — במספרים", "למידה"),
         ("tree.html", "🌳", "עץ-דלתון", "הגרסאות והמצב", "למידה"), ("status_2026-09-20.html", "📄", "עדכון-מצב 20.09", "ענף-הפתיחה", "למידה"),
         ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
+        ("review_report.html", "📑", "דוח-ריפליי מסודר", "כל הימים: מה היה צריך · מה לתקן", "למידה"),
+        ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
         ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
 BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
@@ -704,6 +706,35 @@ if os.path.exists(rvp):
     rjs = "<script>document.querySelectorAll('#rdays .chip').forEach(function(c){c.onclick=function(){document.querySelectorAll('#rdays .chip').forEach(function(x){x.classList.remove('on');});c.classList.add('on');document.querySelectorAll('.rday').forEach(function(e){e.style.display='none';});document.getElementById('r'+c.getAttribute('data-d')).style.display='block';};});</script>"
     with open(os.path.join(OUT, "review.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("סקירת-יום", "".join(rb), rjs, active="review.html", sub=f"{len(rdays)} ימים · המבחן היומי"))
+
+# ── consolidated replay report (Michael 23.09 09:20: "דיווח מסודר לגבי ריפליי של כל הימים") ──
+rrp = os.path.join(OUT, "data", "review_report.json")
+if os.path.exists(rrp):
+    RR = json.load(open(rrp, encoding="utf-8"))
+    body = RR["html"] + (f'<div class="dim" style="margin-top:12px">גם כ-PDF: <a href="REPLAY_REVIEW_{RR["generated"][:10]}.pdf">להורדה</a> · מקור: docs/reports/REPLAY_REVIEW_{RR["generated"][:10]}.md</div>' if os.path.exists(os.path.join(OUT, f'REPLAY_REVIEW_{RR["generated"][:10]}.pdf')) else "")
+    with open(os.path.join(OUT, "review_report.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("דוח-ריפליי מסודר", body, active="review_report.html", sub=f'{len(RR["days"])} ימים · נוצר {RR["generated"][5:16].replace("T", " ")}'))
+
+# ── the tree board (Michael 23.09 09:20: "האם יש לנו עץ? יש לו צורה? לוח שגדל") ──
+tbp = os.path.join(OUT, "data", "tree_board.json")
+if os.path.exists(tbp) and os.path.exists(os.path.join(OUT, "data", "tree_board.html")):
+    TB = json.load(open(tbp, encoding="utf-8")); frag = open(os.path.join(OUT, "data", "tree_board.html"), encoding="utf-8").read()
+    c = TB["counts"]
+    intro = ('<h1>לוח-העץ</h1><div class="dim">עץ-דלתון כפי שהוא רץ: שורש → שלב-היום → תנאי (סוג-פתיחה בשלבים A/B, סוג-יום ב-C/D; הראשון שמתאים מנצח) → כוונה (הטיה · סוגי-כניסה מותרים · סטופ · יעד). '
+             f'על כל ענף — מה הוא עשה ב-{len(TB["days"])} הסשנים האחרונים ({TB["n_decisions"]} סטאפים): ראה · חסם · לייב ו-$. הלוח מתחדש בכל EOD.</div>'
+             f'<div class="kpis"><div class="kpi"><div class="l">ענפים חיים</div><div class="v">{c["live"]}</div><div class="s">config/dalton_playbook.yaml</div></div>'
+             f'<div class="kpi"><div class="l">ענפי-צל (v2)</div><div class="v" style="color:#79c0ff">{c["shadow"]}</div><div class="s">נמדדים בצל, בלי מספר עדיין</div></div>'
+             f'<div class="kpi"><div class="l">ניצנים 🌱</div><div class="v" style="color:var(--am)">{c["bud"]}</div><div class="s">מהמבחן-היומי · ≥3 ימים ⇒ ריפליי</div></div>'
+             f'<div class="kpi"><div class="l">איך הוא גדל</div><div class="v" style="font-size:13px;white-space:normal;line-height:1.3">ניצן → ריפליי → ענף-צל → פסיקה → ענף</div></div></div>'
+             '<div class="legend" style="margin:0 0 8px"><span>▬ ירוק/אדום: ענף חי עם עסקאות-לייב (רווח/הפסד)</span><span>▬ אפור: ענף חי בלי עסקאות</span><span>╌ כחול: ענף-צל v2</span><span>┈ ענבר: ניצן</span><span>● אדום: השער שחסם ≥20 סטאפים</span></div>'
+             '<div class="dim" style="margin-bottom:6px">גלילה לרוחב · צביטה להגדלה · הפירוט מתחת ללוח</div>')
+    det = ['<h2>הפירוט</h2>']
+    for ph in "ABCD":
+        items = [x for x in TB["details"] if x["phase"] == ph]
+        det.append(f'<div class="card"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">שלב {ph}</div><div class="dim">{len(items)} פריטים</div></div><span class="chev">‹</span></div><div class="body">'
+                   + "".join(f'<div class="line"><span class="ic">{"🌿" if x["kind"]=="live" else "🫧" if x["kind"]=="shadow" else "🌱"}</span><span><b>{html.escape(x["title"])}</b><br><span class="dim">{html.escape(x["body"])}</span></span></div>' for x in items) + '</div></div>')
+    with open(os.path.join(OUT, "tree_board.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("לוח-העץ", intro + frag + "".join(det), active="tree_board.html", sub=f'{c["live"]} ענפים · {c["shadow"]} צל · {c["bud"]} ניצנים'))
 
 # ── journal defects (Michael 23.09: "אני רוצה רשימה של כל הליקויים") ─────────
 dfp = os.path.join(ROOT, "docs", "plans", "JOURNAL_DEFECTS.json")
