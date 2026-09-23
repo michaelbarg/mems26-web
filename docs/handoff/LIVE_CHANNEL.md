@@ -1,3 +1,38 @@
+## 🌅 [cowork-dev · 2026-09-23 11:04 IL] — **ריצת-בוקר, חובה-1 בלבד** · ☎️ **אין ממתינות ⇒ שקט מוחלט בטלפון** · 🟠 **ממצא חדש: [[T-447]] — `flag_guard PASS 264/264` עיוור ל-6 דגלים דלוקים שאינם רשומים**
+
+**חלון:** `11:04` ∉ `15:30-16:10` · ∉ `16:30-23:00` · ∉ `23:00-23:30` ⇒ **חובה-1 בלבד**. אפס ריסטארט · אפס שער · אפס דגלים/`.env`/פוזיציות · **אפס טלפון**. `git fetch` ⇒ `0 0` מול `@{u}` (מסונכרן; `git pull --rebase` נחסם ע״י שינויים-לא-מבוימים בעץ — [[T-424]], לא ממצא חדש).
+
+**☎️ אין ממתינות — השלילה קבילה (מלכודת-12), ארבע ראיות:** `launchctl print … com.mems26.mobile_relay` ⇒ `state = running` · `pid = 4842` · `GET /instruction/pending` ⇒ `{"items":[]}` · `GET /cmd/pending` ⇒ `{"cmd":null}` · `GET /chat` ⇒ `n=30`, אחרונה `2026-09-23T05:47:32Z` מ-`cowork`; **`sender="מייקל"` ⇒ אפס מופעים ב-22.09 וב-23.09**, האחרון `2026-09-21T16:10:27Z` נענה `16:17:01Z`. אפס הודעות-`תיוג` ⇒ **אין (א)/(ב)/(ג)/(ד) ⇒ לא נשלחה הודעה.**
+
+**🟢 מצב (נמדד 11:05-11:12):** מאזין `:8000` `PID 20693` (‏`lstart Tue Sep 22 15:41:28` · `etime 19:24` · `%CPU 26.9`) · `/api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}` · **פיד חי לפי [[T-430]]**: `max(ts) v9_bars_5min_woodies = 2026-09-23 11:05:00+03`, גיל **37 שנ׳** · `ruled_contracts() ⇒ 1` (‏`.env` נטען — מלכודת #1 של 10:05; **לא נגעתי בדגלי-גודל**) · `state not in ('CLOSED','CANCELLED') ⇒ 0` · אפס עסקאות היום (קדם-פתיחה) · `flag_guard ⇒ PASS 264/264`.
+
+---
+
+### 🟠 [[T-447]] — הגלאי אינו יכול לצעוק על דגל שלא סופר לו עליו
+
+בדקתי את `flag_guard` עצמו במקום להסתפק ב-`PASS` שלו. **קריאת-קוד:** `scripts/flag_guard.py` מזין את עצמו מ-`parse_env('.env')` + `parse_ruled('config/RULED_FLAGS.yaml')` ורץ על **קבוצת-הפסוקים**; "השן השנייה" (`_second_tooth:117`) בודקת בכיוון **רישום→קוד** ("לכל דגל ON יש אתר-קריאה"), **ואין בדיקה בכיוון קוד→רישום** ⇒ דגל שקיים רק בקוד עם `os.getenv("X","1")` ואינו ב-`.env` ואינו ב-`RULED_FLAGS.yaml` **עובר בשקט**.
+
+**הסריקה (`backend/`+`bridge/`, ייצור בלבד, ללא tests/scripts/docs):**
+```
+code env-flags (prod)                     : 386
+in RULED_FLAGS.yaml                       : 264
+unregistered-in-RULED_FLAGS               : 188
+DEFAULT-ON *and* absent from RULED_FLAGS *and* .env : 6
+  LADDER_SANITIZE_V1        default="1"   backend/v9/systems/target_spacing.py:100
+  PRE_SEND_ENTRY_GUARD_V1   default="1"   backend/v9/services/entry_guard.py:87
+  STUCK_SLOT_ALARM_V1       default="1"   backend/v9/services/trade_manager/bar_level_detector.py:851
+  SITUATION_VECTOR_LOG_V1   default="1"   backend/v9/services/situation_vector.py:418
+  MEMS26_LOG_NOISE_CAP      default="1"   backend/logging_setup.py:211
+  V9_WOODIES_RTH_ONLY       default="1"   backend/v9/systems/woodies/woodies_system.py:55
+```
+**הצלבה מול ארבעת המשטחים:** שלושה ב-`docs/FLAG_REGISTRY.yaml` (LADDER · PRE_SEND · STUCK) · חמישה ב-`FLAG_INDEX.md` · **`V9_WOODIES_RTH_ONLY` באף אחד מהארבעה** — והוא נקרא **בזמן-import** (`_RTH_ONLY` ברמת-המודול) ⇒ שינוי דורש ריסטארט; בקריאת-הקוד הוא מגביל את עיבוד-Woodies ל-`09:30–16:00 ET`.
+
+⚠️ **מה שבמפורש אינו נטען:** שאחד מהששה **שגוי**. `V9_WOODIES_RTH_ONLY=1` נראה נכון לגופו (Woodies היא מערכת-RTH), ו-`LADDER_SANITIZE_V1` הוא יישום-פסיקה ([[T-438]] §4). הממצא הוא **בכלי ולא בערכים**: דוקטרינת-הלמידה 09.09 דורשת ש־*„`flag_guard` צועק על דגל דלוק בלי מספר"* — והוא אינו יכול. וגם **הסריקה חלקית במכוון**: היא תופסת `os.getenv("X","d")` חד-שורתי, לא קריאה דרך עוזר (`_on()`) או בפיצול-שורות ⇒ **`6` הוא רצפה, לא תקרה.**
+
+**לא בוצע, במכוון:** התיקון דורש שורת-`.env` לצד שורת-`RULED_FLAGS` (‏`flag_guard` דורש `have == want`; רישום בלי `.env` מפיל את שער-הבוקר ל-NO-GO — בדיוק מה שעצר את [[T-438]] §5), ו-`.env` הוא הגבול-שעוצר (פסיקת-מייקל 14.09). **שאלה אחת למייקל, לא דחופה ולא לטלפון:** לאשר רישום `expected:"1"` לששת הדגלים כמות-שהם — **כולם ON בפועל היום, ולכן הרישום אינו שינוי-התנהגות אלא הפיכת המצב-הקיים לגלוי.**
+
+**הצעד הבא:** ללא שינוי בתוכנית-היום — שער-15:30 כפי שנרשם ב-10:05 (`.env` נטען → `ruled_contracts()==1` → `close_stale_shadow` → `machine_health` → ריסטארט בפוזיציה-0 אחרי `ps -o lstart` → `fire_drill` שלב D → `flag_guard` → הודעת-שער אחת). בשער יש גם לאמת את [[T-441]] (‏`kind='TREE_SHADOW'` > 0 אחרי הטעינה) ואת [[T-442]] (הזרם-הרציף `v9_bars_5min` מתקדם ו-`TS-OFFSET-GATE` שקט).
+
 ## 🌅 [cowork-dev · 2026-09-23 10:34 IL] — **ריצת-ניטור, חובה-1 בלבד** · ☎️ **אין ממתינות ⇒ שקט מוחלט בטלפון** · 🟢 **אפס ממצאים** · 🟠 **הריצה נפלה במלכודת-14 הידועה ונתפסה**
 
 **חלון:** `10:34` ∉ שלושת החלונות ⇒ **חובה-1 בלבד**. אפס ריסטארט · אפס שער · אפס דגלים/`.env`/פוזיציות · **אפס טלפון**. מאמת-מחדש את ריצת-10:05 (29 דק' קודם), לא מחליף אותה.
