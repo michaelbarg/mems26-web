@@ -56,6 +56,34 @@ for b in bars_rows:
                                          "rth": t.hour * 60 + t.minute >= 16 * 60 + 30})
 days = sorted(d for d in by_day if sum(1 for b in by_day[d] if b["rth"]) >= 30)
 
+# ── broker truth (Michael 23.09: "חייבים לאמת מול סיירה מה ההפסד ומה הרווח") ──
+# scripts/broker_truth.py reconciles every live trade against Sierra's own closed-trade P&L
+# (trade_activity_events.jsonl: CLOSED_TRADE_PNL per round-trip, net of commission) and writes
+# v9_trades.pnl_sierra. For LIVE rows the broker figure is the number; the books (pnl_usd —
+# target-price arithmetic, no commission, no entry slippage) are shown next to it with Δ.
+_bp = os.path.join(OUT, "data", "broker.json")
+BROKER = {}
+if os.path.exists(_bp):
+    try:
+        BROKER = {int(r["id"]): r for r in json.load(open(_bp, encoding="utf-8")).get("trades", [])}
+    except Exception as _e:
+        print("broker.json unreadable:", _e)
+
+def broker_note(t):
+    """Why a live trade has no broker number (honest, Rule 1) — or a caveat on the one it has."""
+    if t["mode"] != "live": return ""
+    b = BROKER.get(int(t["id"]))
+    if b and b.get("mixed"): return f"מעורב: הפוזיציה אצל הברוקר הייתה {b.get('qty')} חוזים מול {b.get('contracts')} של המערכת (חוזים ידניים, T-402) — הרווח/הפסד של הפוזיציה כולה {b['broker']:+.2f}$"
+    if t["pnl_sierra"] is None:
+        if b and b.get("broker") is None: return "אין רישום-ברוקר לעסקה הזו (פיד-הפעילות לא רץ באותה שעה)"
+        return "טרם אומת מול הברוקר"
+    return ""
+
+def pnl_eff(t):
+    """The P&L we show: broker (pnl_sierra) for live when reconciled; books otherwise."""
+    if t["mode"] == "live" and t["pnl_sierra"] is not None: return float(t["pnl_sierra"])
+    return float(t["pnl_usd"]) if t["pnl_usd"] is not None else None
+
 def phase_of(il):
     hm = il.hour * 60 + il.minute
     return "A" if hm < 16 * 60 + 45 else "B" if hm < 17 * 60 + 30 else "C" if hm < 21 * 60 else "D"
@@ -115,7 +143,7 @@ REASON_HEB = {"T1_HIT": "יעד ראשון", "T2_HIT": "יעד שני", "STOP_HI
               "STALE_UNRESOLVED": "לא נפתר (צל)", "CANCELLED": "בוטלה", "MANUAL": "ידני"}
 
 def category(t):
-    p = t["pnl_usd"]
+    p = pnl_eff(t)   # broker-first for live (23.09): a MAE_SCRATCH with books NULL but broker −36.25 is a LOSS
     if t["exit_reason"] == "ladder_invalid" or (p is None and t["state"] == "CLOSED"): return "UNPRICED"
     if p is None: return "OPEN"
     if p > 2: return "WIN"
@@ -147,6 +175,10 @@ def explain(t, f):
             else:
                 more.append(f"היעד ({f['t1p']:.2f} נק׳) מיצה את המהלך (MFE-שעה {f['mfe60']:.1f}).")
                 lesson = "כניסה ויציאה מתואמות — לשמר."
+    elif cat == "LOSS" and t["exit_reason"] == "MAE_SCRATCH":
+        why.append(f"נסגרה ע״י שער-ה-MAE (הגנה) בהפסד של {abs(pnl_eff(t) or 0):.2f}$ לפי הברוקר — הספרים לא רשמו מחיר-יציאה ולכן הציגו אותה כ׳לא-נכתבה׳.")
+        more.append(f"אחרי היציאה המהלך הגיע ל-{f['mfe_eod']:.1f} נק׳ לטובת הכיוון" + (" — היציאה הייתה מוקדמת." if f["mfe_eod"] >= 8 else " — היציאה הייתה נכונה (הסטופ המלא היה עולה יותר)."))
+        lesson = "סקראץ׳-MAE = הפסד קטן במקום גדול; לבדוק את סף-ה-MAE מול MFE אחרי היציאה."
     elif cat == "LOSS":
         reasons = []
         if f["against_day"]: reasons.append("נגד כיוון-היום")
@@ -166,10 +198,14 @@ def explain(t, f):
         why.append(f"נסגרה בסקראץ׳ ({REASON_HEB.get(t['exit_reason'], t['exit_reason'])}).")
         more.append(f"אחרי היציאה המהלך הגיע ל-{f['mfe_eod']:.1f} נק׳ לטובת הכיוון" + (" — היציאה הייתה מוקדמת." if f["mfe_eod"] >= 8 else " — היציאה הייתה נכונה."))
         lesson = "לבדוק את סף-הסקראץ׳ מול MFE אחרי היציאה."
-    elif cat == "UNPRICED":
+    elif cat == "UNPRICED" and t["exit_reason"] == "ladder_invalid":
         why.append("לא נכתבה פקודה: סולם-היעדים לא היה מונוטוני (T-335 / T-438) — בוטלה לפני שנשלחה.")
         more.append(f"מה היה קורה: MFE-שעה {f['mfe60']:.1f} נק׳, MAE {f['mae_x']:.1f}.")
-        lesson = "באג-ביצוע, לא החלטת-מסחר — פריט T-438."
+        lesson = "באג-ביצוע, לא החלטת-מסחר — פריט T-438 (נסגר 22.09)."
+    elif cat == "UNPRICED":
+        why.append(f"נסגרה ({REASON_HEB.get(t['exit_reason'], t['exit_reason'])}) בלי מחיר-יציאה בספרים, ו" + (broker_note(t) or "אין מספר-ברוקר") + ".")
+        more.append(f"מה קרה אחרי: MFE עד הסגירה {f['mfe_eod']:.1f} נק׳, MAE בעסקה {f['mae_x']:.1f}.")
+        lesson = "ליקוי-רישום, לא החלטת-מסחר — רשימת-הליקויים 23.09."
     else:
         why.append("פתוחה.")
     return " ".join(ctx), " ".join(why), " ".join(more), lesson
@@ -185,10 +221,15 @@ for t in trades:
         "id": t["id"], "mode": t["mode"], "sys": t["sys"], "dir": t["direction"], "pat": t["pat"] or "",
         "day": d, "time": e_il.strftime("%H:%M"), "entry": float(t["entry_price"]),
         "exit": float(t["exit_price"]) if t["exit_price"] is not None else (float(t["t1"]) if (t["exit_reason"] == "T1_HIT" and t["t1"]) else None),
+        # 23.09: when exit_price was never written the number shown is the TARGET, not a fill — say so
+        "exit_is_target": t["exit_price"] is None and t["exit_reason"] == "T1_HIT" and bool(t["t1"]),
         "exit_time": t["exit_ts"].astimezone(IL).strftime("%H:%M") if t["exit_ts"] else "",
         "reason": t["exit_reason"] or "", "reason_heb": REASON_HEB.get(t["exit_reason"] or "", t["exit_reason"] or ""),
-        "pnl": float(t["pnl_usd"]) if t["pnl_usd"] is not None else None,
+        "pnl": pnl_eff(t),                                                        # what we show (broker-first for live)
+        "books": float(t["pnl_usd"]) if t["pnl_usd"] is not None else None,       # our arithmetic
         "pnl_broker": float(t["pnl_sierra"]) if t["pnl_sierra"] is not None else None,
+        "bnote": broker_note(t),
+        "src": "ברוקר" if (t["mode"] == "live" and t["pnl_sierra"] is not None) else ("ספרים" if t["mode"] == "live" else "תיאורטי"),
         "dt": t["dt"] or "", "phase": f["phase"] if f else "", "cat": category(t),
         "t1p": round(f["t1p"], 2) if f and f["t1p"] is not None else None,
         "mfe60": round(f["mfe60"], 2) if f else None, "mfe_eod": round(f["mfe_eod"], 2) if f else None,
@@ -297,6 +338,8 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("missed.html", "⭕", "מה פספסנו", "נרות · ווליום · מיקום", "מסחר"), ("lessons.html", "📈", "לקחים וענפים", "יום אחרי יום", "למידה"),
         ("whatworks.html", "🧪", "מה עובד", "כניסות · מיקום · יציאות — במספרים", "למידה"),
         ("tree.html", "🌳", "עץ-דלתון", "הגרסאות והמצב", "למידה"), ("status_2026-09-20.html", "📄", "עדכון-מצב 20.09", "ענף-הפתיחה", "למידה"),
+        ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
+        ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
 BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
 
@@ -367,7 +410,9 @@ def day_summary(d):
     rs = [r for r in recs if r["day"] == d]
     def s(xs):
         p = [x["pnl"] for x in xs if x["pnl"] is not None]
-        return {"n": len(xs), "w": sum(1 for v in p if v > 0), "sum": sum(p) if p else 0.0}
+        b = [x["books"] for x in xs if x["books"] is not None]
+        return {"n": len(xs), "w": sum(1 for v in p if v > 0), "sum": sum(p) if p else 0.0, "books": sum(b) if b else 0.0,
+                "nb": sum(1 for x in xs if x["mode"] == "live" and x["pnl_broker"] is not None)}
     return s([r for r in rs if r["mode"] == "live"]), s([r for r in rs if r["mode"] == "shadow"]), rs
 
 def fact(l, v): return f'<div><div class="l">{l}</div><div class="v">{v}</div></div>'
@@ -376,14 +421,24 @@ def trade_card(r, d, open_=False):
     hl = f'<span class="badge {r["mode"]}">{MODE_HEB[r["mode"]]}</span>{r["time"]} · {HEB_DIR.get(r["dir"], r["dir"])} · {html.escape(r["pat"])}'
     sub = f'#{r["id"]} · {html.escape(r["reason_heb"])} · {r["mins"] or 0} דק׳'
     lbl = f'{d} {r["time"]} {html.escape(r["pat"])} {r["dir"]}'
+    src_html = ""
+    if r["mode"] == "live":
+        if r["pnl_broker"] is not None:
+            delta = (r["pnl_broker"] - r["books"]) if r["books"] is not None else None
+            src_html = (fact("ברוקר (סיירה)", money(r["pnl_broker"]))
+                        + fact("ספרים · Δ", (money(r["books"]) + (f' <span class="dim num">Δ{delta:+.2f}</span>' if delta is not None else "")) if r["books"] is not None else '<span class="dim">לא נרשם</span>'))
+        else:
+            src_html = fact("ברוקר (סיירה)", '<span class="dim">—</span>') + fact("ספרים", money(r["books"]))
     facts_html = ('<div class="facts">' + fact("כניסה", f'<span class="num">{r["entry"]:.2f}</span>')
-                  + fact("יציאה", f'<span class="num">{r["exit"]:.2f}</span>' if r["exit"] is not None else "—")
+                  + fact("יעד (מילוי לא נרשם)" if r.get("exit_is_target") else "יציאה", f'<span class="num">{r["exit"]:.2f}</span>' if r["exit"] is not None else "—")
+                  + src_html
                   + fact("יעד (נק׳)", f'<span class="num">{r["t1p"]}</span>' if r["t1p"] is not None else "—")
                   + fact("MFE שעה", f'<span class="num">{r["mfe60"]}</span>' if r["mfe60"] is not None else "—")
                   + fact("MAE", f'<span class="num">{r["mae"]}</span>' if r["mae"] is not None else "—")
                   + fact("מקום בטווח", f'<span class="num">{int((r["pos"] or 0)*100)}%</span>' if r["pos"] is not None else "—")
                   + fact("בבטן", html.escape(r["zone"] or "—")) + fact("סוג-יום", html.escape(r["dt"] or "טרם")) + '</div>')
-    lines = (f'<div class="line"><span class="ic">🧭</span><span>{html.escape(r["ctx"])}</span></div>'
+    lines = ((f'<div class="line dim"><span class="ic">⚠️</span><span>{html.escape(r["bnote"])}</span></div>' if r.get("bnote") else "")
+             + f'<div class="line"><span class="ic">🧭</span><span>{html.escape(r["ctx"])}</span></div>'
              f'<div class="line"><span class="ic">{"✅" if r["cat"]=="WIN" else "❌" if r["cat"]=="LOSS" else "➖"}</span><b>{html.escape(r["why"])}</b></div>'
              + (f'<div class="line"><span class="ic">💡</span><span>{html.escape(r["more"])}</span></div>' if r["more"] else "")
              + (f'<div class="line dim"><span class="ic">📌</span><span>{html.escape(r["lesson"])}</span></div>' if r["lesson"] else ""))
@@ -407,7 +462,7 @@ for k, d in enumerate(days):
     prev_d = days[k - 1] if k > 0 else None; next_d = days[k + 1] if k + 1 < len(days) else None
     nav = ((f'<a class="ib" href="{prev_d}.html" title="יום קודם">‹</a>' if prev_d else '<span class="ib dis">‹</span>')
            + (f'<a class="ib" href="{next_d}.html" title="יום הבא">›</a>' if next_d else '<span class="ib dis">›</span>'))
-    kpis = (f'<div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v">{money(lv["sum"], True)}</div><div class="s">{lv["n"]} עסקאות · {lv["w"]} ניצחונות</div></div>'
+    kpis = (f'<div class="kpis"><div class="kpi"><div class="l">לייב · ברוקר {lv["nb"]}/{lv["n"]}</div><div class="v">{money(lv["sum"], True)}</div><div class="s">{lv["w"]} ניצחונות · ספרים {lv["books"]:+.0f}$</div></div>'
             f'<div class="kpi"><div class="l">צל</div><div class="v">{money(sh["sum"], True)}</div><div class="s">{sh["n"]} עסקאות · {sh["w"]} ניצחונות</div></div>'
             f'<div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">{meta.get("day_type") or "?"}</div><div class="s">פתיחה {meta.get("opening_type") or "?"}</div></div>'
             f'<div class="kpi"><div class="l">טווח</div><div class="v num" style="font-size:16px">{l_:.0f}–{h_:.0f}</div><div class="s num">{h_-l_:.1f} נק׳ · סגירה {c_-o:+.1f}</div></div></div>')
@@ -445,12 +500,13 @@ cut7 = (NOW - dt.timedelta(days=8)).date().isoformat()
 ledger = [r for r in recs if r["mode"] != "shadow" or r["day"] >= cut7]
 slim = []
 for r in ledger:
-    x = {k: r[k] for k in ("id", "mode", "dir", "pat", "day", "time", "entry", "exit", "reason_heb", "pnl", "cat", "t1p", "mfe60", "mae", "pos", "zone", "mins", "dt")}
+    x = {k: r[k] for k in ("id", "mode", "dir", "pat", "day", "time", "entry", "exit", "reason_heb", "pnl", "books", "src", "cat", "t1p", "mfe60", "mae", "pos", "zone", "mins", "dt")}
     if r["mode"] != "shadow": x.update(ctx=r["ctx"], why=r["why"], more=r["more"], lesson=r["lesson"])
     else: x.update(why=r["why"])
     slim.append(x)
 pats = sorted({r["pat"] for r in ledger if r["pat"]})
-body = ('<h1>כל העסקאות</h1><div class="dim">לייב מלא · צל 7 ימים. לחיצה על שורה = פרטים; על התאריך = הנרות.</div>'
+body = ('<h1>כל העסקאות</h1><div class="dim">לייב מלא · צל 7 ימים. לחיצה על שורה = פרטים; על התאריך = הנרות.<br>'
+        'לייב: המספר הוא <b>הרווח/הפסד של הברוקר (סיירה, נטו עמלות)</b>; הספרים שלנו בסוגריים. צל/דמו: תיאורטי.</div>'
         '<div class="chips" id="cm"><span class="chip on" data-v="live">לייב</span><span class="chip" data-v="demo">דמו</span><span class="chip" data-v="shadow">צל</span><span class="chip" data-v="">הכל</span></div>'
         '<div class="chips" id="cc"><span class="chip on" data-v="">כל התוצאות</span><span class="chip" data-v="WIN">✓ ניצחון</span><span class="chip" data-v="LOSS">✗ הפסד</span><span class="chip" data-v="SCRATCH">סקראץ׳</span><span class="chip" data-v="UNPRICED">לא-נכתבה</span></div>'
         '<div class="selrow"><select id="fDay"><option value="">כל הימים</option>' + "".join(f'<option value="{d}">{d[8:]}.{d[5:7]}</option>' for d in sorted(set(r["day"] for r in ledger), reverse=True)) + '</select>'
@@ -465,7 +521,7 @@ ljs = ("<script>var T=" + json.dumps(slim, ensure_ascii=False) + ";var HD={LONG:
        "var n=rows.length,w=rows.filter(function(r){return r.pnl>0;}).length,s=rows.reduce(function(a,r){return a+(r.pnl||0);},0);"
        "document.getElementById('sum').innerHTML='<div class=kpi><div class=l>עסקאות</div><div class=v>'+n+'</div></div><div class=kpi><div class=l>ניצחונות</div><div class=v>'+w+' <span class=dim style=\"font-size:13px\">('+(n?Math.round(100*w/n):0)+'%)</span></div></div><div class=kpi style=\"grid-column:1/3\"><div class=l>סה\"כ</div><div class=v>'+fmt(s)+'</div></div>';"
        "var h='',last='';rows.slice().reverse().forEach(function(r){if(r.day!=last){last=r.day;var dd=rows.filter(function(x){return x.day==r.day;});var ds=dd.reduce(function(a,x){return a+(x.pnl||0);},0);h+='<div class=dayhdr><a href=\"days/'+r.day+'.html\">📅 '+r.day.slice(8)+'.'+r.day.slice(5,7)+'</a><span>'+dd.length+' · '+fmt(ds)+'</span></div>';}"
-       "h+='<div class=trow onclick=\"tg('+r.id+')\"><div class=grow><div class=a>'+r.time+' · '+(HD[r.dir]||r.dir)+' · '+r.pat+' <span class=\"badge '+r.mode+'\">'+MH[r.mode]+'</span></div><div class=b>#'+r.id+' · '+r.reason_heb+' · '+(r.mins||0)+' דק׳'+(r.t1p!=null?' · יעד '+r.t1p+' · MFE '+(r.mfe60==null?'—':r.mfe60):'')+'</div></div>'+fmt(r.pnl)+'</div>';"
+       "h+='<div class=trow onclick=\"tg('+r.id+')\"><div class=grow><div class=a>'+r.time+' · '+(HD[r.dir]||r.dir)+' · '+r.pat+' <span class=\"badge '+r.mode+'\">'+MH[r.mode]+'</span></div><div class=b>#'+r.id+' · '+r.reason_heb+' · '+(r.mins||0)+' דק׳'+(r.t1p!=null?' · יעד '+r.t1p+' · MFE '+(r.mfe60==null?'—':r.mfe60):'')+(r.mode=='live'&&r.src=='ברוקר'&&r.books!=null?' · ספרים '+(r.books>0?'+':'')+r.books.toFixed(2):'')+(r.mode=='live'&&r.src!='ברוקר'?' · <span class=num>'+r.src+'</span>':'')+'</div></div>'+fmt(r.pnl)+'</div>';"
        "h+='<div class=detail id=\"d'+r.id+'\">'+(r.ctx?'<div>🧭 '+r.ctx+'</div>':'')+'<div><b>'+(r.why||'')+'</b></div>'+(r.more?'<div>💡 '+r.more+'</div>':'')+(r.lesson?'<div class=dim>📌 '+r.lesson+'</div>':'')+'<div style=\"margin-top:6px\"><a href=\"days/'+r.day+'.html#t'+r.id+'\">↗ הנרות, הפרטים והתיוג</a></div></div>';});"
        "document.getElementById('tb').innerHTML=h||'<div class=empty>אין עסקאות בפילטר הזה</div>';fixLinks(document.getElementById('tb'));}"
        "function tg(id){var e=document.getElementById('d'+id);e.style.display=e.style.display=='block'?'none':'block';}render();</script>")
@@ -591,6 +647,84 @@ if os.path.exists(tp):
     with open(os.path.join(OUT, "tree.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("עץ-דלתון", md2html(md), sub="תעודת-זהות וסקירה"))
 
+# ── day review — the daily exam (Michael 23.09: "מבחן על כל ימי המסחר … כלי עבודה יומי") ──
+rvp = os.path.join(OUT, "data", "review.json")
+if os.path.exists(rvp):
+    RV = json.load(open(rvp, encoding="utf-8"))
+    RV_HEB = {"TOOK": ("✅ נלקחה בזמן", "ok"), "LATE": ("🕒 נלקחה מאוחר", "warn"), "OPPOSITE": ("❌ נכנסנו הפוך", "bad"), "MISSED": ("⭕ פוספסה", "bad"), "UNCATCHABLE": ("⚪ בלי בר-אישור", "")}
+    KIND_HEB = {"relax_gate": "שער לבדיקה", "slot_priority": "עדיפות-סלוט", "producer_not_live": "מפיק צל-בלבד", "shadow_only": "צל בלי שער", "no_producer": "אף מפיק לא ראה"}
+    ZONE_R = {"ABOVE_VA": "מעל הבטן", "BELOW_VA": "מתחת לבטן", "IN_VA": "בתוך הבטן", "AT_POC": "על ה-POC", "UNKNOWN": "?"}
+    rdays = sorted(RV.get("days", {}), reverse=True)
+    rb = ['<h1>סקירת-יום</h1><div class="dim">שלושה שלבים לכל יום: (1) ראייה מלאה — איפה עסקה הייתה צריכה לצאת ואיך ממקסמים · (2) מה הגייטוויי ראה, מי נחסם ולמה · (3) מה לשנות כדי שזה ייתפס. רץ אחרי כל יום-מסחר.</div>',
+          '<div class="chips" id="rdays">' + "".join(f'<span class="chip{" on" if k == 0 else ""}" data-d="{d}">{d[8:]}.{d[5:7]}</span>' for k, d in enumerate(rdays)) + '</div>']
+    for k, d in enumerate(rdays):
+        R = RV["days"][d]; dd = dt.date.fromisoformat(d)
+        sec = [f'<div class="rday" id="r{d}" style="display:{"block" if k == 0 else "none"}">',
+               f'<h2>{HEB_WD[dd.weekday()]} {dd.strftime("%d.%m")} <span class="dim">{R["day_type"]} · פתיחה {R["opening"]} · טווח {R["range"]:.0f} · סגירה {R["net"]:+.1f}</span>' + (f' <a href="days/{d}.html">↗ נרות</a>' if d in days else "") + '</h2>',
+               f'<div class="kpis"><div class="kpi"><div class="l">מהלכים ששווה לתפוס</div><div class="v">{R["n_legs"]}</div><div class="s num">{R["available_pts"]:.0f} נק׳</div></div>'
+               f'<div class="kpi"><div class="l">פוספסו</div><div class="v neg">{R["missed"]}</div><div class="s num">{R["missed_pts"]:.0f} נק׳ · הפוך {R["opposite"]} · מאוחר {R["late"]}</div></div>'
+               f'<div class="kpi"><div class="l">נלקחו בזמן</div><div class="v pos">{R["took"]}</div><div class="s">לייב {R["live_n"]} · {money(R["live_pnl"])}</div></div>'
+               f'<div class="kpi"><div class="l">הגייטוויי ראה</div><div class="v">{R["decisions"]}</div><div class="s">נחסמו {R["blocked"]} · צל-בלבד {R.get("shadow_only", 0)} · נורו {R.get("fired", 0)}</div></div></div>']
+        if R.get("gates"):
+            sec.append('<div class="dim" style="margin:-4px 0 8px">שערים: ' + " · ".join(f'{html.escape(k.split(":")[-1])} {v}' for k, v in R["gates"].items()) + '</div>')
+        for l in R["legs"]:
+            lbl, cls = RV_HEB.get(l["verdict"], ("?", ""))
+            hl = f'{l["start"]}→{l["end"]} · {HEB_DIR.get(l["dir"], l["dir"])} · <span class="num">{l["pts"]:.1f}</span> נק׳'
+            body = []
+            if l["ideal"]:
+                i = l["ideal"]; m = l["maxim"] or {}
+                body.append(f'<div class="line"><span class="ic">🎯</span><span><b>כניסה-אידיאלית {i["time"]} @{i["price"]:.2f}</b> (סטופ {i["stop"]} · נתן {i["captured"]} נק׳): {html.escape(i["desc"])}</span></div>')
+                body.append(f'<div class="line"><span class="ic">📐</span><span>מיקסום: יעד-קבוע <b>{m.get("t1")}</b> · טריילינג <b>{m.get("trail")}</b> · מקסימום {m.get("max")} נק׳</span></div>')
+            else:
+                body.append('<div class="line dim"><span class="ic">🎯</span><span>אין בר-אישור עם סטופ ≤1 ATR בחצי הראשון — המהלך נסע בלי לתת כניסה.</span></div>')
+            s = l["seen"]; seen_txt = []
+            if s["passed_fired"]: seen_txt.append("עבר ונורה: " + ", ".join(f'{r["pat"]} {r["time"]}' for r in s["passed_fired"]))
+            if s["passed_not_fired"]: seen_txt.append("עבר ולא נורה: " + ", ".join(f'{r["pat"]} {r["time"]} ← {r["gate_heb"]}' for r in s["passed_not_fired"]))
+            if s.get("shadow_only"): seen_txt.append("עבר, מפיק-צל-בלבד: " + ", ".join(f'{r["pat"]} {r["time"]}' for r in s["shadow_only"]))
+            if s["blocked"]:
+                byg = collections.defaultdict(list)
+                for r in s["blocked"]: byg[r["gate_heb"]].append(f'{r["pat"]} {r["time"]}')
+                seen_txt.append("נחסם: " + " · ".join(f'{g} ← {", ".join(v)}' for g, v in byg.items()))
+            if s["opposite_passed"]: seen_txt.append("הפוך נורה: " + ", ".join(f'{r["pat"]} {r["time"]}' for r in s["opposite_passed"]))
+            body.append(f'<div class="line"><span class="ic">👁</span><span><b>מה המערכת ראתה:</b> {html.escape(" | ".join(seen_txt)) if seen_txt else "<b>אף אחד לא ראה.</b>"}</span></div>')
+            if l["took"]: body.append('<div class="line"><span class="ic">📒</span><span>לייב במהלך: ' + ", ".join(f'#{t["id"]} {t["pat"]} {t["time"]} ({money(t["pnl"]) if t["pnl"] is not None else "—"})' for t in l["took"]) + '</span></div>')
+            for c in l["change"]: body.append(f'<div class="line"><span class="ic">🔧</span><span>{html.escape(c)}</span></div>')
+            sec.append(f'<div class="card{" open" if l["verdict"] in ("MISSED", "OPPOSITE") else ""}"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">{hl}</div><div class="dim"><span class="pill {cls}">{lbl}</span></div></div><span class="chev">‹</span></div><div class="body">{"".join(body)}</div></div>')
+        if R["candidates"]:
+            sec.append('<h2>מועמדים לענפים מהיום</h2>' + "".join(f'<div class="card" style="padding:8px 12px"><b>{KIND_HEB.get(c["kind"], c["kind"])}</b> {html.escape(c.get("gate","").split(":")[-1])} · שלב {c["phase"]} · {c["day_type"]} · {ZONE_R.get(c["zone"], c["zone"])} · {HEB_DIR.get(c["dir"], c["dir"])} · {c["start"]} ({c["pts"]} נק׳)' + (f' · {", ".join(c["pats"])}' if c.get("pats") else "") + '</div>' for c in R["candidates"]))
+        sec.append('</div>')
+        rb.append("".join(sec))
+    tbl = RV.get("candidates", [])
+    if tbl:
+        rb.append('<h2>רשימת-הענפים המצטברת <span class="dim">מועמד שחוזר ב-≥3 ימים עולה לריפליי</span></h2><div style="overflow-x:auto"><table class="plain"><tr><th>סוג</th><th>שער</th><th>שלב</th><th>סוג-יום</th><th>אזור</th><th>כיוון</th><th>ימים</th><th>נק׳</th></tr>'
+                  + "".join(f'<tr><td>{KIND_HEB.get(r["kind"], r["kind"])}</td><td>{html.escape(r["gate"].split(":")[-1])}</td><td>{r["phase"]}</td><td>{r["day_type"]}</td><td>{ZONE_R.get(r["zone"], r["zone"])}</td><td>{HEB_DIR.get(r["dir"], r["dir"])}</td><td class="num"><b>{len(r["days"])}</b> ({r["n"]})</td><td class="num">{r["pts"]:.0f}</td></tr>' for r in tbl[:15]) + '</table></div>')
+    rb.append('<div class="card" style="padding:10px 12px"><b>איך זה הופך לענף:</b> מועמד שחוזר ב-≥3 ימים (או ≥15 מקרים בהרנס) ← שורה ב-v2 של עץ-דלתון בצל ← ריפליי על 56–85 סשנים עם מודל-ההערכה הקבוע ← אם המספר טוב יותר: פסיקה אחת של מייקל, דגל עם measured, גרסת-עץ חדשה. תקרית = מקרה-ריפליי, לא דגל.</div>')
+    rjs = "<script>document.querySelectorAll('#rdays .chip').forEach(function(c){c.onclick=function(){document.querySelectorAll('#rdays .chip').forEach(function(x){x.classList.remove('on');});c.classList.add('on');document.querySelectorAll('.rday').forEach(function(e){e.style.display='none';});document.getElementById('r'+c.getAttribute('data-d')).style.display='block';};});</script>"
+    with open(os.path.join(OUT, "review.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("סקירת-יום", "".join(rb), rjs, active="review.html", sub=f"{len(rdays)} ימים · המבחן היומי"))
+
+# ── journal defects (Michael 23.09: "אני רוצה רשימה של כל הליקויים") ─────────
+dfp = os.path.join(ROOT, "docs", "plans", "JOURNAL_DEFECTS.json")
+if os.path.exists(dfp):
+    DF = json.load(open(dfp, encoding="utf-8"))
+    ST = {"done": ("✅ תוקן ואומת", "ok"), "code": ("🔧 תוקן בקוד — נכנס בריסטארט", "warn"), "open": ("⏳ פתוח", "bad")}
+    nd = sum(1 for i in DF["items"] if i["status"] == "done"); nc = sum(1 for i in DF["items"] if i["status"] == "code"); no = sum(1 for i in DF["items"] if i["status"] == "open")
+    tt = DF.get("totals", {})
+    dl_ = [f'<h1>ליקויי יומן-המסחר</h1><div class="dim">עודכן {DF["updated"]} · {html.escape(DF["truth"])}</div>',
+           f'<div class="kpis"><div class="kpi"><div class="l">תוקן ואומת</div><div class="v pos">{nd}</div></div><div class="kpi"><div class="l">בקוד, ממתין לריסטארט</div><div class="v" style="color:var(--am)">{nc}</div></div>'
+           f'<div class="kpi"><div class="l">פתוח</div><div class="v neg">{no}</div></div><div class="kpi"><div class="l">21.09 · 22.09</div><div class="v num" style="font-size:15px">ספרים {tt.get("2026-09-21",{}).get("books",0):+.0f} / {tt.get("2026-09-22",{}).get("books",0):+.0f}</div><div class="s num">ברוקר {tt.get("2026-09-21",{}).get("broker",0):+.2f} / {tt.get("2026-09-22",{}).get("broker",0):+.2f}</div></div></div>']
+    if tt.get("_note"): dl_.append(f'<div class="card" style="padding:10px 12px"><b>{html.escape(tt["_note"])}</b></div>')
+    for i in DF["items"]:
+        lbl, cls = ST.get(i["status"], ("?", ""))
+        dl_.append(f'<div class="card{" open" if i["status"] != "done" else ""}"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">{i["id"]}. {html.escape(i["title"])}</div>'
+                   f'<div class="dim"><span class="pill {cls}">{lbl}</span>' + (f' <span class="pill">{html.escape(i["owner"])}</span>' if i.get("owner") else "") + '</div></div><span class="chev">‹</span></div>'
+                   f'<div class="body"><div class="line"><span class="ic">👁</span><span><b>מה נראה:</b> {html.escape(i["symptom"])}</span></div>'
+                   f'<div class="line"><span class="ic">🔍</span><span><b>שורש:</b> {html.escape(i["root"])}</span></div>'
+                   f'<div class="line"><span class="ic">🩹</span><span><b>תיקון:</b> {html.escape(i["fix"])}</span></div>'
+                   + (f'<div class="line dim"><span class="ic">🧾</span><span>{html.escape(i["evidence"])}</span></div>' if i.get("evidence") else "") + '</div></div>')
+    with open(os.path.join(OUT, "defects.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("ליקויי-היומן", "".join(dl_), active="defects.html", sub=f"{nd} תוקנו · {nc} בקוד · {no} פתוחים"))
+
 # ── home ──────────────────────────────────────────────────────────────────────
 last = days[-1] if days else None
 ib = []
@@ -599,9 +733,9 @@ if last:
     week = [d for d in days if d >= (dt.date.fromisoformat(last) - dt.timedelta(days=6)).isoformat()]
     wsum = sum(sum(live_by_day.get(d, [])) for d in week); wn = sum(len(live_by_day.get(d, [])) for d in week); ww = sum(1 for d in week for v in live_by_day.get(d, []) if v > 0)
     ib.append(f'<h2>הסשן האחרון <span class="dim">{HEB_WD[dd.weekday()]} {dd.strftime("%d.%m")}</span></h2>'
-              f'<div class="kpis"><div class="kpi"><div class="l">לייב</div><div class="v">{money(lv["sum"], True)}</div><div class="s">{lv["n"]} עסקאות · {lv["w"]} ניצחונות</div></div>'
+              f'<div class="kpis"><div class="kpi"><div class="l">לייב (ברוקר)</div><div class="v">{money(lv["sum"], True)}</div><div class="s">{lv["n"]} עסקאות · {lv["w"]} ניצחונות · ספרים {lv["books"]:+.0f}$</div></div>'
               f'<div class="kpi"><div class="l">סוג-יום</div><div class="v" style="font-size:16px">{dth.get(last,{}).get("day_type") or "?"}</div><div class="s">צל {sh["n"]} · {money(sh["sum"])}</div></div>'
-              f'<div class="kpi"><div class="l">השבוע (לייב)</div><div class="v">{money(wsum, True)}</div><div class="s">{wn} עסקאות · {ww} ניצחונות</div></div>'
+              f'<div class="kpi"><div class="l">השבוע (לייב, ברוקר)</div><div class="v">{money(wsum, True)}</div><div class="s">{wn} עסקאות · {ww} ניצחונות</div></div>'
               f'<div class="kpi"><div class="l">חוזה</div><div class="v">1</div><div class="s">פסיקת 18.09</div></div></div>'
               f'<div class="card lnk"><a href="days/{last}.html"><div class="row"><div class="grow"><div class="hl">📅 הנרות והעסקאות של {dd.strftime("%d.%m")}</div><div class="dim">הסבר לכל עסקה + תיוג ✓/✗</div></div><span class="chev">‹</span></div></a></div>')
 ib.append('<h2>מקומות</h2>')

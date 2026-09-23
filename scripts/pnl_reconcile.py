@@ -101,11 +101,18 @@ def main() -> int:
     # T-227 guardrail (Michael 2026-09-02): a retroactive P&L rewrite is a
     # ruling, not a chore. The tool exists so the delta can be SEEN; applying
     # it is a separate, explicit act.
-    if a.write and not a.i_have_michaels_ruling:
-        print("REFUSED: --write rewrites recorded P&L history. Michael's "
-              "written ruling is required (2026-09-02, same rule as T-211). "
-              "Re-run with --i-have-michaels-ruling once you have it, or drop "
-              "--write for the read-only report.", file=sys.stderr)
+    if a.write:
+        # T-436 (2026-09-23): this tool re-derives P&L from the DLL fills journal,
+        # which repeats the books' own order prices and lacks the MAE_SCRATCH
+        # flatten legs — so its "sierra" number is NOT the broker's. The broker's
+        # closed-trade P&L (CLOSED_TRADE_PNL, net of commission) is written by
+        # scripts/broker_truth.py --write and by fill_poller T-436b; writing from
+        # here would overwrite a true number with a books-equivalent one.
+        print("REFUSED: --write is retired (T-436, 2026-09-23). pnl_sierra is the "
+              "BROKER's number and comes from scripts/broker_truth.py --write "
+              "(order-id chain into trade_activity_events.jsonl) — this tool's "
+              "journal-derived value is books-equivalent and would overwrite it. "
+              "Drop --write for the read-only report.", file=sys.stderr)
         return 2
 
     fills = load_journal(a.journal)

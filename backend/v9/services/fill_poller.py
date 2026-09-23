@@ -14,7 +14,7 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -39,6 +39,15 @@ STATE_PATH = _SIGNALS_DIR / "sierra_state.json"
 
 # MES point value — shared with trade_manager for exit_price back-computation
 _MES_POINT_VALUE = 5.0  # $5 per point per contract
+
+# T-436b (2026-09-23): post-hoc attribution of CLOSED_TRADE_PNL → pnl_sierra.
+# scan_ts is the moment the feeder's 60s `strings` pass NOTICED the log line
+# (measured 23.09 on 22.09's closes: 21-43s after exit_ts), never the fill time.
+_PNL_POSTHOC_WINDOW_S = 300.0   # |trade.exit_ts - group scan_ts| tolerance (±5 min)
+_PNL_POSTHOC_SETTLE_S = 90.0    # wait > one feeder period past exit_ts so EVERY leg of that close is in
+_PNL_BUFFER_TTL_S = 1800.0      # an event nobody claims is dropped after 30 min (one warning)
+_PNL_ENTRY_SLACK_S = 60.0       # a line scanned before entry_ts - slack cannot be that trade's leg
+_PNL_POSTHOC_EVERY_S = 2.0      # cadence of the post-hoc DB lookup while events are held
 
 
 class FillPoller:
@@ -65,6 +74,14 @@ class FillPoller:
         # W2 (2026-07-25): activity-exit tracker — incremental read position in
         # trade_activity_events.jsonl for CLOSED_TRADE_PNL detection.
         self._activity_exit_pos: Optional[int] = None
+        # T-436b (2026-09-23): CLOSED_TRADE_PNL events not yet attributed to a
+        # trade — entries {"ev", "key": (account, line), "scan_dt", "first_seen",
+        # "held_at"}; see _check_activity_exits. `_pnl_consumed` remembers the
+        # (account, line) keys already attributed (TTL-pruned — `line` restarts
+        # with every daily TradeActivityLog file) so a feeder re-emission can
+        # never be booked twice.
+        self._pnl_unattributed: list = []
+        self._pnl_consumed: Dict[tuple, float] = {}
         # POSITION_TRUTH_SYNC_V1: when Sierra first reported flat (grace timer)
         self._flat_since: Optional[float] = None
         # F1 (2026-08-12): trade ids whose ORDER_FAILED was already retried once.
@@ -357,6 +374,12 @@ class FillPoller:
         attributed to the most recent FILLED non-shadow trade (same single-slot
         heuristic as ORDER_FAILED). Confirmed via sierra_state.json position_qty=0
         before acting (double-check: Sierra is actually flat).
+
+        T-436b (2026-09-23): events are BUFFERED, never act-or-drop. A trade
+        already closed by the normal path (the common case — the feeder lags
+        the fill by up to ~60s) gets the broker figure POST-HOC into
+        pnl_sierra only (`_pnl_attribute_posthoc`); an open trade keeps the
+        close path above unchanged.
         """
         if not os.getenv("EXIT_TRACK_ACTIVITY_V1", "0").lower() in ("1", "true", "yes"):
             return
@@ -399,14 +422,17 @@ class FillPoller:
                 # First run: start at EOF — never act on historical events
                 self._activity_exit_pos = size
                 return
-            if size <= self._activity_exit_pos:
-                if size < self._activity_exit_pos:
-                    self._activity_exit_pos = 0  # file rotated/truncated
-                return
-            with open(ACTIVITY_EVENTS_PATH, "r", encoding="utf-8") as f:
-                f.seek(self._activity_exit_pos)
-                new_lines = f.read().splitlines()
-            self._activity_exit_pos = size
+            # T-436b: no new bytes is no longer an early return — events already
+            # buffered still need their attribution attempt (the trade they
+            # belong to may have closed since the last poll).
+            new_lines: list = []
+            if size < self._activity_exit_pos:
+                self._activity_exit_pos = 0  # file rotated/truncated
+            if size > self._activity_exit_pos:
+                with open(ACTIVITY_EVENTS_PATH, "r", encoding="utf-8") as f:
+                    f.seek(self._activity_exit_pos)
+                    new_lines = f.read().splitlines()
+                self._activity_exit_pos = size
 
             # Collect CLOSED_TRADE_PNL events from new lines.
             #
@@ -439,7 +465,34 @@ class FillPoller:
                         continue
                     _seen_lines.add(_key)
                 pnl_events.append(ev)
-            if not pnl_events:
+
+            # ── T-436b (2026-09-23): buffer, never act-or-drop ────────────────
+            # Verified 23.09: pnl_sierra was NULL on essentially every closed
+            # live trade although the journal carried a CLOSED_TRADE_PNL for
+            # each close. The events were consumed here as a FALLBACK closer
+            # only: by the time the feeder's 60s `strings` pass surfaced the
+            # line, the trade had already been closed by the normal path (T1
+            # fill from the DLL fills journal, MAE_SCRATCH flatten via
+            # exit_verifier, stop fill) → "no open demo/live trade" → return,
+            # with `_activity_exit_pos` already past the line: the broker's
+            # number was gone for good. Second loss: an open trade with Sierra
+            # not flat yet (2-contract exits — the T1 leg's line lands while the
+            # runner still works) also `return`ed and dropped what was read.
+            # Now every event enters `_pnl_unattributed` and is attributed:
+            #   (a) an open FILLED/PENDING demo/live trade whose life the event
+            #       falls into → the existing close path below, byte-for-byte
+            #       (sum, Sierra-flat check, on_stop_hit, pnl_usd + pnl_sierra);
+            #       a wait (not flat / state missing) keeps the events buffered;
+            #   (b) otherwise POST-HOC (_pnl_attribute_posthoc): the CLOSED
+            #       live/demo trade with pnl_sierra NULL whose exit_ts is
+            #       nearest the group's scan_ts (±5 min) gets ONLY pnl_sierra —
+            #       never pnl_usd / state / outcome / exit_*.
+            # Unclaimed events wait for the trade to close (it may be seconds
+            # away) and expire after 30 min with one warning.
+            _now_wall = time.time()
+            self._pnl_buffer_add(pnl_events, _now_wall)
+            _buf = self._pnl_buffer()
+            if not _buf:
                 return
 
             # POSITION_TRUTH_SYNC_V1 (2026-07-27, Michael: "המערכת לא מסמנת
@@ -455,12 +508,33 @@ class FillPoller:
             filled = [t for t in self._tm.get_active_trades()
                       if getattr(t, "state", "") in ("FILLED", "PENDING")
                       and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
+
+            # T-436b partition: `own` = events that can belong to the open trade
+            # (scanned after its entry, minus slack — a line scanned BEFORE the
+            # trade existed is a previous trade's late close or a manual close
+            # and must never be summed into this one). Everything else goes
+            # post-hoc first; the open-trade path keeps its early returns.
+            own: list = []
+            if filled:
+                _floor = self._pnl_trade_floor(filled[-1])
+                own = [e for e in _buf if _floor is None or e["scan_dt"] >= _floor]
+                for e in own:
+                    e["held_at"] = _now_wall  # claimed by an open trade: not expirable
+            rest = [e for e in _buf if not any(e is o for o in own)]
+            self._pnl_buffer_expire(rest, _now_wall)
+            rest = [e for e in rest if any(e is b for b in _buf)]
+            if rest:
+                self._pnl_attribute_posthoc(rest, _now_wall)
             if not filled:
-                logger.warning(
-                    "[FillPoller] W2 CLOSED_TRADE_PNL seen (%d events) but no open "
-                    "demo/live trade — manual close or already processed",
-                    len(pnl_events))
+                if pnl_events:
+                    logger.info(
+                        "[FillPoller] T-436 CLOSED_TRADE_PNL seen (%d event(s)) with no "
+                        "open demo/live trade — held for post-hoc attribution "
+                        "(buffer=%d)", len(pnl_events), len(_buf))
                 return
+            if not own:
+                return
+            pnl_events = [e["ev"] for e in own]
 
             # Double-check: sierra_state.json says position is flat
             try:
@@ -470,12 +544,20 @@ class FillPoller:
                     state_data = json.loads(_re.sub(r':\s*-?inf\b', ':null', _raw))
                     sq = state_data.get("position_qty")
                     if sq is not None and int(sq) != 0:
-                        logger.warning(
+                        # T-436b: the events stay buffered (the T1 leg of a
+                        # 2-contract exit waits here for the runner); throttled
+                        # because this now repeats every poll until flat.
+                        self._warn_throttled(
+                            "w2_not_flat",
                             "[FillPoller] W2 CLOSED_TRADE_PNL but Sierra position_qty=%s "
-                            "(not flat) — waiting for full exit", sq)
+                            "(not flat) — waiting for full exit (%d event(s) held)",
+                            sq, len(pnl_events))
                         return
                 else:
-                    logger.warning("[FillPoller] W2 sierra_state.json missing — skipping")
+                    self._warn_throttled(
+                        "w2_state_missing",
+                        "[FillPoller] W2 sierra_state.json missing — skipping "
+                        "(%d event(s) held)", len(pnl_events))
                     return
             except (OSError, json.JSONDecodeError, ValueError):
                 return
@@ -582,9 +664,19 @@ class FillPoller:
                         except Exception:
                             pass
                 except Exception as e2:
-                    logger.error(
-                        "[FillPoller] W2 close_trade also failed for %d: %s", trade_id, e2)
+                    # T-436b: the events stay buffered — retried next poll, and
+                    # still attributable post-hoc once another path (POSITION_
+                    # TRUTH / SIERRA_FLAT) closes the trade. Throttled: this
+                    # now repeats every poll instead of dropping the P&L.
+                    self._warn_throttled(
+                        f"w2_close_failed_{trade_id}",
+                        "[FillPoller] W2 close_trade also failed for %d: %s "
+                        "(%d event(s) held)", trade_id, e2, len(pnl_events))
                     return
+
+            # T-436b: only the events actually summed into this close leave
+            # the buffer (their (account, line) keys are remembered).
+            self._pnl_buffer_take(own, _now_wall)
 
             # Free the gateway slot
             self._notify_gateway_close(trade_id, "BRACKET_EXIT_ACTIVITY")
@@ -605,6 +697,215 @@ class FillPoller:
 
         except Exception as e:
             self._warn_throttled("activity_exits", "[FillPoller] _check_activity_exits error (fail-safe): %s", e)
+
+    # ── T-436b helpers — the CLOSED_TRADE_PNL attribution buffer ──────────────
+
+    def _pnl_buffer(self) -> list:
+        """The unattributed-event buffer. Lazy: the regression fixtures build
+        the poller via __new__ (no __init__), and a missing attribute must not
+        turn the whole exit-tracking path into a throttled warning."""
+        buf = getattr(self, "_pnl_unattributed", None)
+        if buf is None:
+            buf = self._pnl_unattributed = []
+        if getattr(self, "_pnl_consumed", None) is None:
+            self._pnl_consumed = {}
+        return buf
+
+    @staticmethod
+    def _pnl_scan_dt(ev: Dict[str, Any]) -> datetime:
+        """Group key: the feeder's scan stamp (`scan_ts`; legacy `ts`), tz-aware
+        UTC. A line without either takes the wall clock — the same fallback
+        the close path has always used for exit_ts."""
+        raw = ev.get("scan_ts") or ev.get("ts")
+        if raw:
+            try:
+                dt = datetime.fromisoformat(str(raw))
+                return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                pass
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def _pnl_aware(ts) -> Optional[datetime]:
+        """tz-aware copy of a trade timestamp (naive → UTC: that is what the
+        manager writes); None for anything that is not a datetime."""
+        if not isinstance(ts, datetime):
+            return None
+        return ts if ts.tzinfo is not None else ts.replace(tzinfo=timezone.utc)
+
+    @classmethod
+    def _pnl_trade_floor(cls, trade) -> Optional[datetime]:
+        """Earliest scan stamp that can be one of `trade`'s legs: entry_ts (else
+        created_at) minus slack. A CLOSED_TRADE_PNL line is scanned ≥ the fill
+        that closed the lot ≥ the entry — anything scanned before the trade
+        existed belongs to an earlier trade or a manual close. None (no
+        timestamps on the object — test doubles) means no lower bound, i.e.
+        the pre-T-436 behaviour."""
+        for attr in ("entry_ts", "created_at"):
+            ts = cls._pnl_aware(getattr(trade, attr, None))
+            if ts is not None:
+                return ts - timedelta(seconds=_PNL_ENTRY_SLACK_S)
+        return None
+
+    def _pnl_buffer_add(self, pnl_events: list, now_wall: float) -> None:
+        """Append this poll's (already line-deduped) events, skipping any line
+        still buffered or attributed within the TTL (feeder re-emission)."""
+        buf = self._pnl_buffer()
+        held = {e["key"] for e in buf if e["key"][1] is not None}
+        for ev in pnl_events:
+            key = (ev.get("account"), ev.get("line"))
+            if key[1] is not None and (key in held or key in self._pnl_consumed):
+                logger.warning(
+                    "[FillPoller] T-436 duplicate CLOSED_TRADE_PNL (line %s) dropped "
+                    "— already buffered/attributed", key[1])
+                continue
+            buf.append({"ev": ev, "key": key, "scan_dt": self._pnl_scan_dt(ev),
+                        "first_seen": now_wall, "held_at": now_wall})
+            if key[1] is not None:
+                held.add(key)
+
+    def _pnl_buffer_take(self, entries: list, now_wall: float) -> None:
+        """Remove attributed entries from the buffer; remember their keys."""
+        buf = self._pnl_buffer()
+        gone = {id(e) for e in entries}
+        buf[:] = [e for e in buf if id(e) not in gone]
+        for e in entries:
+            if e["key"][1] is not None:
+                self._pnl_consumed[e["key"]] = now_wall
+
+    def _pnl_buffer_expire(self, candidates: list, now_wall: float) -> None:
+        """Drop events nobody claimed for 30 min — ONE warning per expiry pass.
+        `held_at` is refreshed while an open trade can still claim the entry
+        (the T1 leg of a long runner must outlive the TTL), so the clock only
+        runs while the event is unclaimed. Consumed keys age out the same way:
+        `line` restarts with each daily log file, so a key is only unique
+        within a short window."""
+        buf = self._pnl_buffer()
+        dead = [e for e in candidates
+                if now_wall - max(e["first_seen"], e.get("held_at", e["first_seen"]))
+                > _PNL_BUFFER_TTL_S]
+        if dead:
+            gone = {id(e) for e in dead}
+            buf[:] = [e for e in buf if id(e) not in gone]
+            stamps = sorted(e["scan_dt"] for e in dead)
+            logger.warning(
+                "[FillPoller] T-436 dropped %d unattributed CLOSED_TRADE_PNL event(s) "
+                "after %.0f min (pnl sum %.2f, scan %s..%s) — no CLOSED live/demo trade "
+                "with pnl_sierra NULL within ±%.0f min matched (manual close? position "
+                "not ours?)", len(dead), _PNL_BUFFER_TTL_S / 60.0,
+                sum(float(e["ev"].get("pnl") or 0.0) for e in dead),
+                stamps[0].isoformat(timespec="seconds"),
+                stamps[-1].isoformat(timespec="seconds"),
+                _PNL_POSTHOC_WINDOW_S / 60.0)
+        for key in [k for k, t in self._pnl_consumed.items()
+                    if now_wall - t > _PNL_BUFFER_TTL_S]:
+            self._pnl_consumed.pop(key, None)
+
+    def _pnl_attribute_posthoc(self, entries: list, now_wall: float) -> None:
+        """T-436b (b): give the broker's P&L to the trade that was ALREADY
+        closed by the normal path.
+
+        Per group (same scan_ts, oldest first): the CLOSED trade with mode in
+        (live, demo), pnl_sierra NULL, whose exit_ts is nearest the group's
+        scan_ts (±_PNL_POSTHOC_WINDOW_S) gets pnl_sierra = Σ pnl of every
+        buffered leg inside its life [entry_ts - slack, exit_ts + window] — a
+        2-contract trade's T1 leg was scanned minutes before the runner's
+        line, in another group, and belongs to the same trade. Nothing but
+        pnl_sierra is written (pnl_usd / state / outcome / exit_* untouched).
+        Attribution waits _PNL_POSTHOC_SETTLE_S past exit_ts so the feeder has
+        had a full pass to surface every leg of that close; an unmatched group
+        stays for the next poll (the trade may close a few seconds later).
+        Legs > contracts is written anyway but flagged MIXED? — Michael's
+        manual contracts in the same position (T-402) make the broker figure
+        the POSITION's P&L. Same DB session as the TradeManager; never raises.
+        Runs at most every _PNL_POSTHOC_EVERY_S — the poll loop is 0.25s and a
+        held event would otherwise cost a SELECT per tick for the whole wait.
+        """
+        if now_wall < getattr(self, "_pnl_posthoc_next", 0.0):
+            return
+        self._pnl_posthoc_next = now_wall + _PNL_POSTHOC_EVERY_S
+        try:
+            from backend.v9.db.models.trades import V9Trade
+            from backend.v9.services.trade_manager.manager import trade_contract_count
+            db = self._tm._db
+            win = timedelta(seconds=_PNL_POSTHOC_WINDOW_S)
+            now_utc = datetime.now(timezone.utc)
+            groups: Dict[datetime, list] = {}
+            for e in entries:
+                groups.setdefault(e["scan_dt"], []).append(e)
+            remaining = list(entries)
+            for scan_dt in sorted(groups):
+                group = [e for e in groups[scan_dt] if any(e is r for r in remaining)]
+                if not group:
+                    continue  # folded into an earlier group's trade
+                rows = (db.query(V9Trade)
+                          .filter(V9Trade.state == "CLOSED",
+                                  V9Trade.mode.in_(("live", "demo")),
+                                  V9Trade.pnl_sierra.is_(None),
+                                  V9Trade.exit_ts.isnot(None),
+                                  V9Trade.exit_ts >= scan_dt - win,
+                                  V9Trade.exit_ts <= scan_dt + win)
+                          .all())
+                # Re-checked in Python on purpose: the identity map can hand
+                # back an object whose row moved on, and a test double ignores
+                # SQL filters entirely — the decision must not depend on either.
+                best, best_ex, best_d, best_floor = None, None, None, None
+                for t in rows:
+                    ex = self._pnl_aware(getattr(t, "exit_ts", None))
+                    if (ex is None or getattr(t, "state", "") != "CLOSED"
+                            or getattr(t, "mode", "") not in ("live", "demo")
+                            or getattr(t, "pnl_sierra", None) is not None):
+                        continue
+                    d = abs((ex - scan_dt).total_seconds())
+                    if d > _PNL_POSTHOC_WINDOW_S:
+                        continue
+                    fl = self._pnl_trade_floor(t)
+                    if fl is not None and scan_dt < fl:
+                        continue  # scanned before this trade existed — not its leg
+                    if best is None or d < best_d:
+                        best, best_ex, best_d, best_floor = t, ex, d, fl
+                if best is None:
+                    continue  # not closed yet (or never ours) — next poll / expiry
+                if (now_utc - best_ex).total_seconds() < _PNL_POSTHOC_SETTLE_S:
+                    continue  # let the feeder surface every leg of this close first
+                if best_floor is None:
+                    legs = list(group)
+                else:
+                    legs = [e for e in remaining
+                            if best_floor <= e["scan_dt"] <= best_ex + win]
+                total = round(sum(float(e["ev"].get("pnl", 0)) for e in legs
+                                  if e["ev"].get("pnl") is not None), 2)
+                n_contracts = trade_contract_count(best)
+                mixed = ""
+                if len(legs) > n_contracts:
+                    mixed = " MIXED? (%d leg(s) > %d contract(s): position P&L, T-402)" % (
+                        len(legs), n_contracts)
+                best.pnl_sierra = float(total)
+                db.flush()
+                # The manager does not auto-commit (see _sync_position_truth):
+                # a flush alone would leave the number in an open transaction
+                # that the next rollback or restart erases. A failure here
+                # propagates to the except below (warning + ensure_clean) and
+                # the events stay buffered — retried on the next cadence.
+                db.commit()
+                logger.warning(
+                    "[FillPoller] T-436 pnl_sierra=%.2f attributed post-hoc to trade %d "
+                    "(%s %s closed %s, %d leg(s))%s",
+                    total, best.id, getattr(best, "mode", "?"),
+                    getattr(best, "direction", "?"),
+                    best_ex.isoformat(timespec="seconds"), len(legs), mixed)
+                self._pnl_buffer_take(legs, now_wall)
+                gone = {id(e) for e in legs}
+                remaining = [e for e in remaining if id(e) not in gone]
+        except Exception as e:
+            self._warn_throttled(
+                "t436_posthoc",
+                "[FillPoller] T-436 post-hoc attribution error (fail-safe): %s", e)
+            try:
+                from backend.v9.db.session_guard import ensure_clean
+                ensure_clean(getattr(self._tm, "_db", None), where="FillPoller.t436")
+            except Exception:
+                pass
 
     def _maybe_reconcile(self) -> None:
         """FIX-6 (SYS-3): compare TM vs Sierra position every ≤30s.
