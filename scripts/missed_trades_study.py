@@ -58,69 +58,10 @@ for t in trades:
 sess_vol = {d: sum(float(b["v"] or 0) for b in by_day[d]) for d in alld}
 med_vol = statistics.median([sess_vol[d] for d in alld[-10:]])
 
-def zigzag(bs, thr):
-    piv = []; mode = None; ext_i = 0; ext_p = bs[0]['c']
-    for i, b in enumerate(bs):
-        if mode is None:
-            if b['h'] - ext_p >= thr: mode = 'up'; ext_i, ext_p = i, b['h']; piv.append((0, bs[0]['l'], 'L'))
-            elif ext_p - b['l'] >= thr: mode = 'down'; ext_i, ext_p = i, b['l']; piv.append((0, bs[0]['h'], 'H'))
-            continue
-        if mode == 'up':
-            if b['h'] > ext_p: ext_i, ext_p = i, b['h']
-            elif ext_p - b['l'] >= thr: piv.append((ext_i, ext_p, 'H')); mode = 'down'; ext_i, ext_p = i, b['l']
-        else:
-            if b['l'] < ext_p: ext_i, ext_p = i, b['l']
-            elif b['h'] - ext_p >= thr: piv.append((ext_i, ext_p, 'L')); mode = 'up'; ext_i, ext_p = i, b['h']
-    piv.append((ext_i, ext_p, 'H' if mode == 'up' else 'L'))
-    return piv
-
-def features(bs, i, short, d):
-    atr = oe.compute_atr(bs, i) or 0
-    if atr <= 0: return None
-    b = bs[i]
-    deltas = [abs(float(x['delta'])) for x in bs[:i] if x['delta'] is not None]
-    med_d = statistics.median(deltas) if len(deltas) > 5 else None
-    dr = (float(b['delta']) / med_d) if (b['delta'] is not None and med_d) else None
-    dev = oe.compute_developing_va(bs, i - 1) if i >= 4 else {}
-    zone = oe.classify_zone_vs_developing_va(b['c'], dev) if dev else 'UNKNOWN'
-    pv = prev_va.get(d) or {}
-    near_prev = bool(pv) and (abs(b['c'] - pv.get('val', 1e9)) <= 0.5 * atr or abs(b['c'] - pv.get('vah', 1e9)) <= 0.5 * atr)
-    hi_i = max(range(i + 1), key=lambda k: bs[k]['h']); lo_i = min(range(i + 1), key=lambda k: bs[k]['l'])
-    bsh, bsl = i - hi_i, i - lo_i; at_extreme = (bsl == 0) if short else (bsh == 0)
-    mo = (b['c'] - bs[0]['o']) / atr; with_day = (mo <= -0.5) if short else (mo >= 0.5)
-    ib_h = max(x['h'] for x in bs[:12]); ib_l = min(x['l'] for x in bs[:12])
-    ext = 'up' if b['c'] > ib_h else 'down' if b['c'] < ib_l else 'none'; with_ext = (ext == 'down' and short) or (ext == 'up' and not short)
-    near_ib_edge = abs(b['c'] - ib_l) <= 0.5 * atr or abs(b['c'] - ib_h) <= 0.5 * atr
-    rng = b['h'] - b['l']; cp = ((b['c'] - b['l']) / rng) if rng > 0 else 0.5
-    trigger_ok = (cp >= 0.7) if not short else (cp <= 0.3); body = abs(b['c'] - b['o']) / rng if rng > 0 else 0
-    vols = [float(x['v'] or 0) for x in bs[max(0, i - 5):i]]; vmed = statistics.median(vols) if vols else 0
-    vr = (float(b['v']) / vmed) if vmed > 0 else None
-    seq = bs[max(0, i - 4):i]; pull = sum(1 for x in seq[-3:] if ((x['c'] < x['o']) if not short else (x['c'] > x['o'])))
-    prev5 = bs[max(0, i - 5):i]
-    brk = ((b['c'] < min(x['l'] for x in prev5)) if short else (b['c'] > max(x['h'] for x in prev5))) if prev5 else False
-    return dict(atr=round(atr, 2), hour=str(b['t'])[:5], ph=('A' if i < 3 else 'B' if i < 12 else 'C' if i < 54 else 'D'), zone=zone,
-                near_prev_edge=near_prev, near_ib_edge=near_ib_edge, at_extreme=at_extreme, bars_from_extreme=(bsl if short else bsh),
-                with_day=with_day, with_ext=with_ext, ext=ext, move_from_open_atr=round(mo, 2), trigger_ok=trigger_ok, body_ge_50=body >= 0.5,
-                range_atr=round(rng / atr, 2), range_ge_08atr=rng >= 0.8 * atr, vol_trig=(vr is not None and vr >= 1.3),
-                vol_ratio=round(vr, 2) if vr else None, delta_with=(dr is not None and ((dr <= -1) if short else (dr >= 1))),
-                delta_ratio=round(dr, 2) if dr is not None else None, pullback_before=pull >= 2, structure_break=brk,
-                ib_h=ib_h, ib_l=ib_l, poc=dev.get('poc') if dev else None, vah=dev.get('vah') if dev else None, val=dev.get('val') if dev else None)
-
-ZONE_HEB = {"ABOVE_VA": "מעל הבטן", "BELOW_VA": "מתחת לבטן", "IN_VA": "בתוך הבטן", "AT_POC": "על ה-POC", "UNKNOWN": "?"}
-
-def describe(f, short):
-    p = []
-    p.append("בר-טריגר חזק (סגירה ב-30% הקיצוניים)" if f["trigger_ok"] else "בר-טריגר חלש")
-    p.append(f"טווח {f['range_atr']}×ATR" + (" ✓" if f["range_ge_08atr"] else ""))
-    if f["vol_ratio"] is not None: p.append(f"ווליום ×{f['vol_ratio']} מול 5 הברים הקודמים" + (" ✓" if f["vol_trig"] else ""))
-    if f["delta_ratio"] is not None: p.append(f"דלתא ×{f['delta_ratio']} מהחציון" + (" עם-הכיוון ✓" if f["delta_with"] else ""))
-    p.append("שבירת-מבנה (סגירה מעבר ל-5 הברים הקודמים)" if f["structure_break"] else ("אחרי פולבק" if f["pullback_before"] else "המשך"))
-    loc = ZONE_HEB.get(f["zone"], f["zone"])
-    if f["near_ib_edge"]: loc += ", ליד קצה-IB"
-    if f["near_prev_edge"]: loc += ", ליד ערך-אתמול"
-    p.append("מיקום: " + loc + (f", {f['bars_from_extreme']} ברים מהקיצון" if f["bars_from_extreme"] else ", על הקיצון"))
-    p.append(("עם" if f["with_day"] else "נגד/בלי") + " כיוון-היום" + (", עם ההרחבה" if f["with_ext"] else ""))
-    return " · ".join(p)
+# zigzag / features / describe / ZONE_HEB live in scripts/review_lib.py (shared with day_review.py, 23.09)
+import review_lib as rl
+zigzag = rl.zigzag; ZONE_HEB = rl.ZONE_HEB; describe = rl.describe
+def features(bs, i, short, d): return rl.features(bs, i, short, prev_va.get(d))
 
 rows = []; groups = collections.defaultdict(list)
 for d in days:
@@ -183,7 +124,7 @@ for d in days:
         groups[(dtype, depth)].append(rows[-1])
 
 # ── group signatures → branch proposals ──────────────────────────────────────
-FLAGS = ['with_day', 'with_ext', 'at_extreme', 'near_ib_edge', 'near_prev_edge', 'trigger_ok', 'structure_break', 'pullback_before']
+FLAGS = rl.FLAGS
 def sig(rs):
     ideal = [r["ideal"] for r in rs if r["ideal"]]
     if not ideal: return {}
