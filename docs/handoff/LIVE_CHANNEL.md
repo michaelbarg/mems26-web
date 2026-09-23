@@ -93,10 +93,25 @@ scstructures.h:15:10: fatal error: 'windows.h' file not found
 
 ```bash
 scripts/mems26_snapshot.sh "t436d-entry-fill-price"
-./scripts/build_monolithic_cpp.sh --deploy-monolith
+./scripts/build_monolithic_cpp.sh --deploy      # נמדד בטוח: שומר את המונוליט ההנדסי, לא מרגנר
 # ואז: Remote Build בסיירה + רענון ה-study — מחוץ לשעות-מסחר בלבד
 ```
-⚠️ **לא `--deploy` ולא `--force-regen`.** שניהם מפעילים רגנרציה מהמודולרי הקפוא של `22.07` ⇒ מוחקים את נתיב-הלייב (זו בדיוק התקרית שהשומר בסקריפט מתעד מ-17.08).
+⚠️ **רק `--force-regen` אסור.**
+
+### ✅ תיקון-עצמי — הזהרתי מ-`--deploy` מקריאת-קוד, ומדדתי שזה שגוי
+
+הנוסח הראשון של הרשומה הזו אמר *"לא `--deploy` ולא `--force-regen` — שניהם מרגנרים ומוחקים את נתיב-הלייב"*. **זו הסקה מקריאה, לא מדידה — בדיוק מה ש-Rule 2 אוסר — ולכן בדקתי אותה בארגז-חול לפני שהיא מגיעה למי שמריץ את הדיפלוי.** הסביבה: עותק של `scripts/` + `sc_study/` לתיקייה זמנית עם `HOME` מזויף, כך ש-`DEPLOY_TARGETS` מצביעים לתוך ארגז-החול. **אפס נגיעה בסיירה האמיתית** (אומת אחרי-כן: `~/SierraChart/ACS_Source/MES_AI_DataExport.cpp` עדיין `Aug 17 04:07`).
+
+| ריצה | תוצאה נמדדת | המונוליט אחרי | הפרוס אחרי |
+|---|---|---|---|
+| ללא ארגומנט | `REFUSING TO REGENERATE` · **`exit 2`** | `3985` · `ENTRY_FILL=3` | לא נגע |
+| `--deploy` | `keeping existing monolith as-is (hand-edited); deploying it unchanged` | `3985` · `ENTRY_FILL=3` | `3985` · `ENTRY_FILL=3` |
+| `--deploy-monolith` | **פלט זהה ל-`--deploy`, בייט-בבייט** | `3985` · `ENTRY_FILL=3` | `3985` · `ENTRY_FILL=3` |
+| `--force-regen` | `--force-regen given → regenerating anyway` | **`4012` · `ENTRY_FILL=0` · `TradeFillsPath=0` · `OCOGroup4Quantity=0`** | — |
+
+⇒ **המסקנה המתוקנת:** `--deploy` ו-`--deploy-monolith` **בטוחים וזהים** — שני השומרים (`MONOLITH_ONLY_MARKERS` על `lq_sum`, ושומר-ה-mtime) מדליקים `SKIP_REGEN=1` והמונוליט נפרס כמות-שהוא; **`--force-regen` הוא ההרסני היחיד**, ומוחק את כל נתיב-הצבת-הפקודות (`TradeFillsPath`, ה-OCO של 4 החוזים, ו-`ENTRY_FILL` שלי) — בדיוק התקרית שהשומר מתעד מ-17.08. `--deploy` גם מבצע סנאפשוט-אוטומטי, ולכן הוא **עדיף** על `--deploy-monolith`.
+
+🪤 **ומלכודת-מכשיר שנתפסה תוך כדי:** הריצה ללא-ארגומנט **נראתה** כמוצלחת (`exitA=0`) — כי הפלט עבר ב-`| tail`, ש**מסתיר את קוד-היציאה**; בלי הצינור התקבל `exit=2` האמיתי. אותה מחלקה שכבר מתועדת בריפו, ונתפסה כאן שוב.
 
 **האימות אחרי יום-מסחר אחד על ה-DLL הפרוס:**
 ```
