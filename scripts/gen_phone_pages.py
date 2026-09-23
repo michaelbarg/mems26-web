@@ -335,7 +335,9 @@ table.plain th{color:var(--dim);font-weight:600}
 """
 MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"), ("/", "💬", "צ׳אט עם המערכת", "הודעות ופקודות", "עכשיו"),
         ("days.html", "📅", "ימי-מסחר", "נרות + עסקאות ליום", "מסחר"), ("trades.html", "📒", "כל העסקאות", "לייב · דמו · צל", "מסחר"),
-        ("missed.html", "⭕", "מה פספסנו", "נרות · ווליום · מיקום", "מסחר"), ("lessons.html", "📈", "לקחים וענפים", "יום אחרי יום", "למידה"),
+        ("missed.html", "⭕", "מה פספסנו", "נרות · ווליום · מיקום", "מסחר"),
+        ("progress.html", "📊", "התקדמות", "האם משתפר — לפי ענף וסוג-יום", "למידה"),
+        ("lessons.html", "📈", "לקחים וענפים", "יום אחרי יום", "למידה"),
         ("whatworks.html", "🧪", "מה עובד", "כניסות · מיקום · יציאות — במספרים", "למידה"),
         ("tree.html", "🌳", "עץ-דלתון", "הגרסאות והמצב", "למידה"), ("status_2026-09-20.html", "📄", "עדכון-מצב 20.09", "ענף-הפתיחה", "למידה"),
         ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
@@ -724,6 +726,186 @@ if os.path.exists(dfp):
                    + (f'<div class="line dim"><span class="ic">🧾</span><span>{html.escape(i["evidence"])}</span></div>' if i.get("evidence") else "") + '</div></div>')
     with open(os.path.join(OUT, "defects.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("ליקויי-היומן", "".join(dl_), active="defects.html", sub=f"{nd} תוקנו · {nc} בקוד · {no} פתוחים"))
+
+# ── progress: "האם יש שיפור מיום ליום?" (מייקל 23.09 11:42 — לכל ענף ולכל סוג-יום) ──
+pgp = os.path.join(OUT, "data", "progress.json")
+if os.path.exists(pgp):
+    P = json.load(open(pgp, encoding="utf-8"))
+    F, L, PD = P["halves"]["first"], P["halves"]["last"], P["days"]
+    def dm(d): return f'{d[8:]}.{d[5:7]}'
+    def pct(v): return "—" if v is None else f"{v:.0f}%"
+    def arrow(a, b, good_up=True):
+        """trend chip. good_up=None ⇒ context, not score: direction shown, no colour."""
+        if a is None or b is None: return '<span class="dim">—</span>'
+        same = abs(b - a) < 1e-9
+        glyph = "→" if same else ("▲" if b > a else "▼")
+        if good_up is None: return f'<span class="dim">{glyph}</span>'
+        cls = "" if same else ("pos" if ((b > a) == good_up) else "neg")
+        return f'<span class="num {cls}">{glyph}</span>'
+    def num(v, dec=1, suf=""):
+        return '<span class="dim">—</span>' if v is None else f'<span class="num">{v:,.{dec}f}{suf}</span>'
+    fh_, lh_ = f'{dm(F["days"][0])}–{dm(F["days"][-1])}', f'{dm(L["days"][0])}–{dm(L["days"][-1])}'
+    pb = [f'<h1>התקדמות</h1><div class="dim">{len(PD)} ימי-מסחר {dm(PD[0]["day"])}–{dm(PD[-1]["day"])} · '
+          f'השאלה אחת: <b>האם זה משתפר?</b> · לייב נמדד <b>ברוקר-קודם</b> (‏pnl_sierra), לא ספרים · '
+          f'חדש: {html.escape(P["generated"][:16])}</div>',
+          '<div class="card" style="padding:10px 12px;font-size:14px"><b>איך לקרוא:</b> '
+          '<b>נלקח בזמן</b> = מהלך אמיתי של היום שנכנסנו אליו לפני שנגמר (מתוך מהלכים שהיה להם בר-אישור) · '
+          '<b>נק׳ שנלקחו</b> = סכום הרווח בעסקאות המנצחות ÷ 5$ · <b>נק׳ פנויות</b> = כל המהלכים ששווה לתפוס באותו יום · '
+          '<b>צל R</b> = תוחלת ליחידת-סיכון בעסקאות-הצל (הן המדגם הגדול: ~90 ביום). '
+          'N קטן = רמז, לא הכרעה — ללייב יש 24 עסקאות בסך-הכול.</div>']
+
+    # ── the four verdicts ─────────────────────────────────────────────────────
+    VERD = [("כניסות", "🎯", F["live_win_pct"], L["live_win_pct"], True, "%",
+             f'{F["live_w"]}/{F["live_n"]} → {L["live_w"]}/{L["live_n"]} עסקאות-לייב'),
+            ("גודל-הניצחון", "✂️", F["avg_win_pts"], L["avg_win_pts"], True, " נק׳",
+             "ממוצע נקודות בעסקה מנצחת — הענף הפתוח"),
+            ("תפיסת-מהלכים", "⭕", F["in_time_pct"], L["in_time_pct"], True, "%",
+             f'{F["took"]}/{F["catchable"]} → {L["took"]}/{L["catchable"]} מהלכים שהיה להם בר-אישור'),
+            ("שורה-תחתונה", "💵", F["brok_sum"], L["brok_sum"], True, "$",
+             f'ברוקר · {F["brok_days"]}/{F["n_days"]} ו-{L["brok_days"]}/{L["n_days"]} ימים עם רישום-ברוקר')]
+    pb.append('<div class="kpis">')
+    for name, ic, a, b, up, suf, note in VERD:
+        cls = "" if (a is None or b is None) else ("pos" if ((b > a) == up) else "neg")
+        av = "—" if a is None else f"{a:,.1f}".rstrip("0").rstrip(".")
+        bv = "—" if b is None else f"{b:,.1f}".rstrip("0").rstrip(".")
+        pb.append(f'<div class="kpi"><div class="l">{ic} {name}</div>'
+                  f'<div class="v {cls}" style="font-size:17px">{av}{suf} → {bv}{suf}</div>'
+                  f'<div class="s">{html.escape(note)}</div></div>')
+    pb.append('</div>')
+
+    pb.append(f'<div class="card" style="padding:10px 12px"><b>התשובה הקצרה:</b> '
+              f'<b class="pos">כן</b> בכניסות — אחוז-הניצחון עלה מ-{pct(F["live_win_pct"])} ל-{pct(L["live_win_pct"])}, '
+              f'וההפסד הממוצע התכווץ מ-{abs(F["avg_loss_pts"] or 0):.1f} ל-{abs(L["avg_loss_pts"] or 0):.1f} נק׳. '
+              f'<b class="neg">לא</b> ביציאות — הניצחון הממוצע ירד מ-{F["avg_win_pts"]} ל-{L["avg_win_pts"]} נק׳, '
+              f'כלומר יחס-רווח/הפסד <b>הורע</b> ({(F["avg_win_pts"]/abs(F["avg_loss_pts"])):.2f} → '
+              f'{(L["avg_win_pts"]/abs(L["avg_loss_pts"])):.2f}). '
+              f'<b class="neg">לא</b> בתפיסה — {pct(F["in_time_pct"])} → {pct(L["in_time_pct"])} מהמהלכים נלקחו בזמן '
+              f'(עם מאוחרות: {pct(F["any_pct"])} → {pct(L["any_pct"])} — שטוח). '
+              f'מכאן ששורת-הברוקר השתפרה ({F["brok_sum"]:+.0f}$ → {L["brok_sum"]:+.0f}$) '
+              f'אבל עדיין <b class="neg">שלילית</b>: מנצחים לעיתים קרובות יותר, בסכומים קטנים מדי.</div>')
+
+    # ── first half vs last half ───────────────────────────────────────────────
+    ROWS = [("ניצחונות-לייב", "live_win_pct", "%", True, 0), ("עסקאות-לייב", "live_n", "", True, 0),
+            ("ברוקר $", "brok_sum", "$", True, 0), ("נק׳ בעסקה מנצחת", "avg_win_pts", "", True, 2),
+            ("נק׳ בעסקה מפסידה", "avg_loss_pts", "", True, 2),   # פחות שלילי = טוב
+            ("נלקח בזמן", "in_time_pct", "%", True, 0), ("נלקח בזמן+מאוחר", "any_pct", "%", True, 0),
+            ("נק׳ שנלקחו", "won_pts", "", True, 1),
+            ("נק׳ שהיו על השולחן", "avail_all_pts", "", None, 0),  # הקשר-שוק, לא ציון
+            ("צל — תוחלת R", "shadow_avg_r", "", True, 3),
+            ("החלטות שנחסמו", "blocked", "", False, 0), ("ירי בפועל", "fired", "", True, 0),
+            ("נק׳ שהשערים עלו", "gate_cost_pts", "", False, 1), ("קומיטים", "commits", "", None, 0)]
+    pb.append(f'<h2>חמישה ראשונים מול חמישה אחרונים</h2><div style="overflow-x:auto">'
+              f'<table class="plain"><tr><th>מדד</th><th>{fh_}</th><th>{lh_}</th><th></th></tr>')
+    for name, key, suf, up, dec in ROWS:
+        a, b = F.get(key), L.get(key)
+        pb.append(f'<tr><td>{name}</td><td>{num(a, dec, suf)}</td><td>{num(b, dec, suf)}</td>'
+                  f'<td>{arrow(a, b, up)}</td></tr>')
+    pb.append('</table></div>')
+
+    # ── day by day ────────────────────────────────────────────────────────────
+    pb.append('<h2>יום אחרי יום</h2><div style="overflow-x:auto"><table class="plain">'
+              '<tr><th>יום</th><th>סוג</th><th>נלקח / שווה-לתפוס</th><th>נק׳ פנויות</th>'
+              '<th>לייב</th><th>ברוקר $</th><th>נק׳ שנלקחו</th><th>צל R</th><th>נבנה</th></tr>')
+    for r in PD:
+        dd_ = dt.date.fromisoformat(r["day"])
+        # Rule 1 — a day the broker never recorded says so; a partly-recorded day says how many
+        bk = ('<span class="dim">אין רישום-ברוקר</span>' if r["live_brok"] is None
+              else f'<span class="num {"pos" if r["live_brok"]>0 else "neg"}">{r["live_brok"]:+,.2f}</span>'
+                   + (f' <span class="dim">({r["brok_n"]}/{r["live_n"]} בלבד)</span>'
+                      if r["brok_n"] < r["live_n"] else ""))
+        tk = f'{r["took"]}/{r["catchable"]}' + (f' <span class="dim">(+{r["late"]} מאוחר)</span>' if r["late"] else "")
+        sr = ('<span class="dim">—</span>' if r["shadow_avg_r"] is None
+              else f'<span class="num {"pos" if r["shadow_avg_r"]>0 else "neg"}">{r["shadow_avg_r"]:+.2f}</span>')
+        wp = ('<span class="dim">—</span>' if not r["won_pts"] else f'<span class="num">{r["won_pts"]:.1f}</span>')
+        ts = " ".join(r["t_items"][:4]) or "—"
+        link = f'<a href="days/{r["day"]}.html">{HEB_WD1[dd_.weekday()]} {dm(r["day"])}</a>' if r["day"] in days else f'{HEB_WD1[dd_.weekday()]} {dm(r["day"])}'
+        pb.append(f'<tr><td>{link}</td><td>{html.escape(r["day_type"])}</td><td>{tk}</td>'
+                  f'<td class="num">{r["available_pts"]:.0f}</td>'
+                  f'<td class="num">{r["live_w"]}/{r["live_n"]}</td><td>{bk}</td><td>{wp}</td><td>{sr}</td>'
+                  f'<td class="dim" style="font-size:12px">{r["commits"]} · {html.escape(ts)}</td></tr>')
+    pb.append('</table></div>')
+
+    # ── by day type ───────────────────────────────────────────────────────────
+    BT = sorted(P["by_type"].items(), key=lambda kv: -kv[1]["n_days"])
+    pb.append('<h2>לפי סוג-יום</h2><div class="dim" style="margin-bottom:6px">'
+              'מדגם קטן מאוד — 1–5 ימים לכל סוג. זה כיוון לבדוק, לא פסיקה.</div>'
+              '<div style="overflow-x:auto"><table class="plain">'
+              '<tr><th>סוג-יום</th><th>ימים</th><th>נלקח בזמן</th><th>ניצחונות-לייב</th>'
+              '<th>ברוקר $</th><th>נק׳ שנלקחו / פנויות</th><th>צל R</th></tr>')
+    for t, h in BT:
+        bs = ('<span class="dim">—</span>' if h["brok_sum"] is None
+              else f'<span class="num {"pos" if h["brok_sum"]>0 else "neg"}">{h["brok_sum"]:+,.2f}</span>')
+        pb.append(f'<tr><td><b>{html.escape(t)}</b></td><td class="num">{h["n_days"]}</td>'
+                  f'<td class="num">{h["took"]}/{h["catchable"]} <span class="dim">{pct(h["in_time_pct"])}</span></td>'
+                  f'<td class="num">{h["live_w"]}/{h["live_n"]}</td><td>{bs}</td>'
+                  f'<td class="num">{h["won_pts"]:.1f} / {h["avail_all_pts"]:.0f}</td>'
+                  f'<td>{num(h["shadow_avg_r"], 3)}</td></tr>')
+    pb.append('</table></div>')
+    v_ = P["by_type"].get("Variation", {})
+    nonvar = [h for t, h in P["by_type"].items() if t != "Variation"]
+    nv_n = sum(h["live_n"] for h in nonvar); nv_w = sum(h["live_w"] for h in nonvar)
+    nv_b = sum(h["brok_sum"] for h in nonvar if h["brok_sum"] is not None)
+    if v_:
+        pb.append(f'<div class="card" style="padding:10px 12px"><b>מה שהטבלה אומרת:</b> '
+                  f'כמעט כל הלייב קרה בימי <b>Variation</b> ({v_["live_n"]} מתוך '
+                  f'{v_["live_n"]+nv_n} עסקאות), ושם גם כל אחוז-הניצחון ({v_["live_w"]}/{v_["live_n"]}). '
+                  f'בכל שאר סוגי-היום יחד: {nv_w}/{nv_n} עסקאות, ברוקר {nv_b:+,.2f}$ — '
+                  f'ותפיסת-המהלכים שם נמוכה בהרבה. '
+                  f'זה לא אומר ש-Variation "טוב" — זה אומר שכמעט לא מסחרנו בסוגים האחרים, '
+                  f'ולכן <b>אין לנו עליהם מדידה</b>.</div>')
+
+    # ── by branch ─────────────────────────────────────────────────────────────
+    BR = [("🎯 כניסות / ענפים", "ok" if (L["live_win_pct"] or 0) > (F["live_win_pct"] or 0) else "bad",
+           f'אחוז-ניצחון {pct(F["live_win_pct"])} → {pct(L["live_win_pct"])} · '
+           f'ההפסד הממוצע {F["avg_loss_pts"]:.1f} → {L["avg_loss_pts"]:.1f} נק׳',
+           "משתפר. ענף-הפתיחה (v1.2, 20.09) ושער-הקיצון-הטרי נכנסו ממש לפני הקפיצה — אבל זו סמיכות-זמנים, לא הוכחת-סיבה: 24 עסקאות-לייב לא מספיקות כדי לייחס. ההוכחה תבוא מריפליי, לא מהטבלה הזו."),
+          ("✂️ יציאות / יעדים", "bad",
+           f'ניצחון ממוצע {F["avg_win_pts"]:.2f} → {L["avg_win_pts"]:.2f} נק׳ · '
+           f'נלקחו {L["won_pts"]:.0f} מתוך {L["avail_all_pts"]:.0f} נק׳ שהיו על השולחן',
+           "לא משתפר — מחמיר. אנחנו צודקים יותר ולוקחים פחות. זה הענף הפתוח היחיד שמסביר למה שורת-הברוקר עדיין שלילית."),
+          ("🌳 עץ-דלתון / שערים", "warn",
+           f'נחסמו {F["blocked"]} → {L["blocked"]} החלטות · ירי {F["fired"]} → {L["fired"]} · '
+           f'מועמדי-שער עלו {L["gate_cost_pts"]:.0f} נק׳ בחמישה האחרונים',
+           "פתוח למדידה. יותר ירי זה שיפור, אבל השערים עדיין חוסמים מהלכים אמיתיים — כל מועמד כזה צריך ריפליי לפני דגל (דוקטרינת-הלמידה 09.09)."),
+          ("📒 אמת-הנתונים", "ok",
+           f'ימים עם רישום-ברוקר: {F["brok_days"]}/{F["n_days"]} → {L["brok_days"]}/{L["n_days"]}',
+           "משתפר. broker_truth (23.09) משדך כל עסקה לסיבוב אצל סיירה לפי מזהה-פקודה; לפניו חצי מהימים נמדדו מהספרים בלבד — ולכן כל מספר ישן כאן חלש יותר מהחדש.")]
+    pb.append('<h2>לפי ענף</h2>')
+    for name, cls, nums, verdict in BR:
+        pb.append(f'<div class="card" style="padding:10px 12px"><div class="hl">{name} '
+                  f'<span class="pill {cls}">{"משתפר" if cls=="ok" else ("מחמיר" if cls=="bad" else "פתוח")}</span></div>'
+                  f'<div class="num" style="margin:4px 0">{nums}</div>'
+                  f'<div class="dim">{html.escape(verdict)}</div></div>')
+
+    # ── what the machine built ────────────────────────────────────────────────
+    recent = [r for r in PD if r["commits"]][-5:]
+    pb.append('<h2>מה נבנה במחשב</h2><div class="dim" style="margin-bottom:6px">'
+              'ספירת-קומיטים אמיתית מ-git לכל יום-מסחר, עם מספרי-המשימות שהוזכרו בהם.</div>')
+    TD = P.get("today", {})
+    if TD.get("commits"):
+        tdd = dt.date.fromisoformat(TD["day"])
+        pb.append(f'<div class="card open"><div class="row" onclick="tog(this.parentNode)"><div class="grow">'
+                  f'<div class="hl">🖥️ היום — {HEB_WD1[tdd.weekday()]} {dm(TD["day"])} · '
+                  f'{len(TD["commits"])} קומיטים</div><div class="dim">מה נעשה במחשב עד עכשיו</div></div>'
+                  f'<span class="chev">‹</span></div><div class="body">'
+                  + "".join(f'<div class="line"><span class="ic">{c["t"]}</span>'
+                            f'<span>{html.escape(c["s"])}</span></div>' for c in TD["commits"])
+                  + '</div></div>')
+    for r in reversed(recent):
+        dd_ = dt.date.fromisoformat(r["day"])
+        pb.append(f'<div class="card" style="padding:8px 12px"><b>{HEB_WD1[dd_.weekday()]} {dm(r["day"])}</b> · '
+                  f'<span class="num">{r["commits"]}</span> קומיטים'
+                  + (f' · <span class="dim">{html.escape(" ".join(r["t_items"][:8]))}</span>' if r["t_items"] else "")
+                  + '</div>')
+    pb.append('<div class="card lnk"><a href="lessons.html"><div class="row"><div class="grow">'
+              '<div class="hl">📈 מה נלמד בכל יום — ציר-הלקחים</div><div class="dim">הענף/המדידה/הפסיקה שנולדו מכל יום</div>'
+              '</div><span class="chev">‹</span></div></a></div>')
+    pb.append('<div class="card lnk"><a href="review.html"><div class="row"><div class="grow">'
+              '<div class="hl">🔎 המבחן-היומי — למה כל מהלך פוספס</div><div class="dim">מה הגייטוויי ראה וחסם, מהלך-מהלך</div>'
+              '</div><span class="chev">‹</span></div></a></div>')
+    with open(os.path.join(OUT, "progress.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("התקדמות", "".join(pb), active="progress.html",
+                       sub=f'{len(PD)} ימים · שיפור לפי ענף וסוג-יום'))
 
 # ── home ──────────────────────────────────────────────────────────────────────
 last = days[-1] if days else None
