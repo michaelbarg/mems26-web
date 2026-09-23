@@ -1235,9 +1235,25 @@ class TradingGateway:
                             _dp_dir_hint = _dp_setup_dir
                 # Layer 2 (5b): IB extension direction — OVERRIDES only in phase C
                 # when there IS extension. No extension → keep Layer 1.
+                # T-451 (2026-09-23): the "phase C only" above was never enforced —
+                # the override ran at 16:45 on a DEVELOPING IB (the TPO IB grows
+                # with the session until 17:30, and hydration had left
+                # ib_locked=True from yesterday), read a phantom 2.25-pt
+                # "extension up" (a mislabeled pre-open bar as session_high, see
+                # tpo_system T-451) and flipped the bias to LONG on a 48-point
+                # opening drive DOWN: the confirmed OPENING_DRIVE SHORT was
+                # rejected (bias=LONG rejects SHORT) and the bias stayed LONG until
+                # 19:20. An IB extension only exists once the IB is complete —
+                # phase C+ (17:30 IL). Before that Layer 1 (opening direction)
+                # stands. Flag IB_EXT_OVERRIDE_PHASE_GUARD_V1 (default ON; "0"
+                # restores the old behaviour for replay comparison).
+                _dp_ib_ext_ok = (os.getenv("IB_EXT_OVERRIDE_PHASE_GUARD_V1", "1").lower() not in ("1", "true", "yes")
+                                 or _dp_il_hhmm >= "17:30")
                 try:
                     _dp_tpo = (cross_context.get("tpo_system")
                                if isinstance(cross_context, dict) else None) or {}
+                    if not _dp_ib_ext_ok:
+                        _dp_tpo = {}  # T-451: no IB before 17:30 ⇒ no extension override
                     if isinstance(_dp_tpo, dict):
                         _dp_ibh = float(_dp_tpo.get("ib_high") or 0)
                         _dp_ibl = float(_dp_tpo.get("ib_low") or 0)

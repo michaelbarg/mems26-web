@@ -648,6 +648,22 @@ class TPOSystem(BaseV9TradingSystem):
             # #68: reset session extremes for new trading day
             self.current_state["session_high"] = None
             self.current_state["session_low"] = None
+        # T-451 (2026-09-23, live loss + the day's opening drive blocked): the
+        # extremes are RTH extremes (#68) but were reset only on a trading-DATE
+        # change, so the GLOBEX_<date> → CASH_<date> boundary (same date) carried
+        # the pre-open bars' high/low into the RTH session. On 23.09 a mislabeled
+        # pre-open bar (high 7828.75, above the whole RTH range) became
+        # session_high, the gateway's Layer-2 read a phantom "extension up 2.25"
+        # against the IB high 7826.50, flipped the day's bias to LONG, rejected
+        # the confirmed OPENING_DRIVE SHORT at 16:45 (bias=LONG rejects SHORT)
+        # and admitted REACTIVE_LONG #2230 at the IB low (−$18.75). Reset at the
+        # RTH boundary regardless of date; the T-330 DB seed (RTH bars only)
+        # re-fills them honestly after a mid-session restart.
+        if session_type == "CASH" and prev_session_id and not str(prev_session_id).startswith("CASH_"):
+            self.current_state["session_high"] = None
+            self.current_state["session_low"] = None
+            logger.warning("[TPO] T-451 RTH boundary: session extremes reset (prev session %s → %s)",
+                           prev_session_id, session_id)
         from backend.v9.db.safe_writer import safe_execute
         safe_execute(
             "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",

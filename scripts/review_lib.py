@@ -36,13 +36,16 @@ def legs_of(bs, atr0, min_pts=None, top=5, mult=1.5, floor=12.0):
     for (i0, p0, k0), (i1, p1, k1) in zip(piv, piv[1:]):
         if i1 > i0: legs.append(dict(i0=i0, i1=i1, pts=abs(p1 - p0), short=(p1 < p0), p0=p0, p1=p1))
     thr = min_pts if min_pts is not None else max(floor, mult * atr0)
-    legs = [l for l in legs if l['pts'] >= thr and l['i0'] >= 2 and (l['i1'] - l['i0']) >= 3]
+    # 23.09: a leg may start at the first bar — an opening DRIVE is the biggest move of many days
+    # (23.09: 7826.50 → 7778.25 from bar 0); the ideal-entry search starts at bar 1 regardless.
+    legs = [l for l in legs if l['pts'] >= thr and (l['i1'] - l['i0']) >= 3]
     legs = sorted(legs, key=lambda l: -l['pts'])[:top]; legs.sort(key=lambda l: l['i0'])
     return legs
 
 
-def features(bs, i, short, prev_va=None):
-    atr = oe.compute_atr(bs, i) or 0
+def features(bs, i, short, prev_va=None, atr_fallback=None):
+    # 23.09: compute_atr needs its window; in phase A/B (the opening drive!) fall back to the session ATR
+    atr = oe.compute_atr(bs, i) or atr_fallback or 0
     if atr <= 0: return None
     b = bs[i]
     deltas = [abs(float(x['delta'])) for x in bs[:i] if x.get('delta') is not None]
@@ -94,7 +97,7 @@ def ideal_entry(bs, leg, atr0, prev_va=None, stop_atr=1.0, target_atr=1.5):
     Returns dict(i, ep, stop, captured, f) or None (the move gave no confirmable bar)."""
     short = leg['short']
     half = leg['i0'] + max(1, (leg['i1'] - leg['i0']) // 2)
-    for i in range(leg['i0'], half + 1):
+    for i in range(max(leg['i0'], 1), half + 1):
         atr = oe.compute_atr(bs, i) or atr0
         b = bs[i]; ep = b['c']
         stop = (min(b['h'] + 0.25, ep + stop_atr * atr) if short else max(b['l'] - 0.25, ep - stop_atr * atr))
@@ -106,11 +109,11 @@ def ideal_entry(bs, leg, atr0, prev_va=None, stop_atr=1.0, target_atr=1.5):
             if hit_s: break
             if hit_t: ok = True; break
         if ok:
-            f = features(bs, i, short, prev_va)
+            f = features(bs, i, short, prev_va, atr_fallback=atr0)
             if f:
                 captured = (ep - bs[leg['i1']]['l']) if short else (bs[leg['i1']]['h'] - ep)
                 return dict(i=i, ep=ep, stop=round(abs(stop - ep), 2), captured=round(captured, 2), atr=round(atr, 2), f=f)
-            return None
+            continue  # no ATR yet on the very first bars — try the next bar of the leg
     return None
 
 
