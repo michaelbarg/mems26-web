@@ -1493,6 +1493,31 @@ class FillPoller:
                     logger.info("[FillPoller] mapped %d per-contract order ids → trade %s",
                                 sum(1 for v in sierra_ids.values() if v is not None), trade_id)
 
+            elif kind == "ENTRY_FILL":
+                # T-436d (2026-09-23): the REAL entry fill price. The ENTRY event
+                # above is emitted at ORDER_SUBMITTED time and carries the price
+                # we ASKED for; this one carries Sierra's AvgFillPrice once the
+                # parent actually filled (3-5 ticks worse, measured 16-22.09 on
+                # #2017/#2041/#2152 — invisible in the books until now).
+                # Price-only correction: no state transition, no slot/gateway
+                # notification, no phone push.
+                if price is not None:
+                    _slip = self._tm.set_entry_fill_price(trade_id, float(price))
+                    logger.info(
+                        "[FillPoller] T-436d ENTRY_FILL: trade %s @ %s (slippage=%s pt)",
+                        trade_id, price, _slip,
+                    )
+                    if _existing is not None and getattr(_existing, "state", "") == "CLOSED":
+                        # Rule 1 / no-silent-failures: the trade closed before its
+                        # own entry fill was reported, so pnl_usd was booked off
+                        # the order price. Say so — never re-derive P&L here.
+                        logger.warning(
+                            "[FillPoller] T-436d: ENTRY_FILL arrived for trade %s AFTER it "
+                            "closed — entry_price corrected but pnl_usd was booked off the "
+                            "order price. Broker truth: pnl_sierra / broker_truth.py",
+                            trade_id,
+                        )
+
             elif kind in ("T1", "T2", "T3", "T4"):
                 # Pass Sierra fill price so PnL uses real execution, not intended level
                 _fill_px = float(price) if price is not None else None

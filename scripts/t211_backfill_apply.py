@@ -55,7 +55,10 @@ def journal_fills():
             d = json.loads(ln)
         except Exception:
             continue
-        if d.get("kind") == "ENTRY" or not d.get("order_id"):
+        # T-436d: ENTRY_FILL is an entry-price correction, NOT an exit leg. This
+        # filter is a blacklist ("anything that isn't ENTRY is an exit"), so a new
+        # entry-side kind would silently be booked as an exit fill here.
+        if d.get("kind") in ("ENTRY", "ENTRY_FILL") or not d.get("order_id"):
             continue
         out.setdefault(int(d["order_id"]), []).append(d)
     return out

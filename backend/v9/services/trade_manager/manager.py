@@ -488,6 +488,65 @@ class TradeManager:
         logger.info("[TradeManager] Sierra IDs stored on trade %d: %s",
                      trade_id, {k: v for k, v in ids.items() if v})
 
+    def set_entry_fill_price(self, trade_id: int, fill_price: float) -> Optional[float]:
+        """T-436d: correct `entry_price` to the broker's REAL fill price.
+
+        The DLL's ENTRY event is written at ORDER_SUBMITTED time and carries the
+        COMMAND price, so until now every book row held the price we asked for,
+        not the price we got (3-5 ticks worse, measured 16-22.09). The DLL now
+        emits a second `ENTRY_FILL` event with `AvgFillPrice` once Sierra reports
+        the parent filled; this applies it.
+
+        Deliberately NOT on_fill(): that transitions PENDING→FILLED, rewrites
+        entry_ts to now() and re-pushes the phone alert. This is a price
+        correction on an already-filled trade — nothing else may move.
+
+        The order price is preserved in quality.order_price and the difference in
+        quality.entry_slippage_pts so the slippage becomes measurable instead of
+        merely gone. Returns the slippage in points (signed, positive = worse
+        than asked), or None when nothing was applied.
+        """
+        trade = self._get_trade(trade_id)
+        if trade is None:
+            return None
+        try:
+            fill_price = float(fill_price)
+        except (TypeError, ValueError):
+            return None
+        if fill_price <= 0:
+            return None
+
+        order_price = trade.entry_price
+        # Idempotent: a re-delivered ENTRY_FILL must not re-baseline the slippage
+        # against the already-corrected price.
+        q = dict(trade.quality) if isinstance(getattr(trade, "quality", None), dict) else {}
+        if q.get("entry_fill_applied"):
+            return q.get("entry_slippage_pts")
+
+        slippage = None
+        if order_price is not None:
+            try:
+                delta = float(fill_price) - float(order_price)
+                # Positive = filled worse than asked, for both directions.
+                slippage = round(
+                    delta if str(getattr(trade, "direction", "")) == "LONG" else -delta, 2)
+            except (TypeError, ValueError):
+                slippage = None
+            q["order_price"] = float(order_price)
+        if slippage is not None:
+            q["entry_slippage_pts"] = slippage
+        q["entry_fill_applied"] = True
+        trade.quality = q
+        trade.entry_price = fill_price
+        self._db.flush()
+
+        logger.info(
+            "[TradeManager] T-436d entry_price corrected on trade %d: "
+            "order=%s → fill=%s (slippage=%s pt)",
+            trade_id, order_price, fill_price, slippage,
+        )
+        return slippage
+
     def _emit_exit(self, trade, contracts: int) -> None:
         """Emit an EXIT command to Sierra (DEMO mode only)."""
         if not self._is_demo_mode(trade):

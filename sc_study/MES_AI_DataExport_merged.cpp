@@ -2993,6 +2993,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 sc.GetPersistentInt64(9) = o.Stop4InternalOrderID;
                                 sc.GetPersistentInt(103) = 0;
                                 sc.GetPersistentInt(107) = is_buy ? 1 : -1;  // D1: store direction for EXIT fallback
+                                // T-436d (2026-09-23): arm the ENTRY_FILL watcher for THIS
+                                // entry. The ENTRY line below carries the COMMAND price
+                                // (order not filled yet) — the real fill price arrives in a
+                                // separate ENTRY_FILL event once Sierra reports the parent
+                                // FILLED. 0 = not yet emitted.
+                                sc.GetPersistentInt(108) = 0;
 
                                 // Write ENTRY fill + the 3 order IDs
                                 const char* fills_path = TradeFillsPath.GetString();
@@ -3709,6 +3715,42 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             const char* fills_path = TradeFillsPath.GetString();
             if (fills_path[0] != '\0')
             {
+                // ── T-436d (2026-09-23): REAL entry fill price ────────────────
+                // The ENTRY line is written at ORDER_SUBMITTED time and carries
+                // the COMMAND price, so every book entry was the price we ASKED
+                // for, never the price we GOT (measured 16-22.09: 3-5 ticks worse
+                // on #2017/#2041/#2152, invisible in books AND in the journal —
+                // `strings` on the binary TradeActivityLog does not recover fill
+                // prices). Emit ONE additional event when Sierra reports the
+                // parent FILLED, carrying AvgFillPrice — the same field the exit
+                // legs below already use and that is already proven in the books.
+                // Additive on purpose: the ENTRY line still goes out immediately
+                // because the backend's order-id map is built from it; delaying
+                // it would orphan any T1/STOP fill that beats the map.
+                // Never synthesized: no fill → no event (CLAUDE.md Rule 1).
+                int& p5_entry_fill_written = sc.GetPersistentInt(108);
+                if (p5_entry_fill_written == 0)
+                {
+                    s_SCTradeOrder pe;
+                    if (sc.GetOrderByOrderID(static_cast<int>(p5_parent), pe) != SCTRADING_ORDER_ERROR
+                        && pe.OrderStatusCode == SCT_OSC_FILLED
+                        && pe.AvgFillPrice > 0)
+                    {
+                        char eb[512];
+                        int el = snprintf(eb, sizeof(eb),
+                            "{\"kind\":\"ENTRY_FILL\",\"ts\":%lld,\"order_id\":%lld,"
+                            "\"price\":%.2f,\"contracts\":%d}\n",
+                            (long long)time(nullptr), (long long)p5_parent,
+                            pe.AvgFillPrice, (int)pe.FilledQuantity);
+                        if (el > 0 && el < (int)sizeof(eb))
+                        {
+                            std::ofstream ef(fills_path, std::ios::app);
+                            if (ef.is_open()) { ef.write(eb, el); ef.close(); }
+                        }
+                        p5_entry_fill_written = 1;
+                    }
+                }
+
                 // Check each group's target + stop (2/3=C1, 4/5=C2, 6/7=C3, 8/9=C4)
                 const char* tgt_kinds[] = {"T1", "T2", "T3", "T4"};
                 for (int gi = 0; gi < 4; gi++)

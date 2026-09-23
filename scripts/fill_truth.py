@@ -66,7 +66,10 @@ def main():
         e["_exits"] = []
     orphan = []
     for r in todays:
-        if r.get("kind") == "ENTRY":
+        # T-436d: ENTRY_FILL carries the real entry fill price, not an exit leg.
+        # Blacklist filter — without it the line lands in `orphan` and the report
+        # claims an unowned fill that never existed.
+        if r.get("kind") in ("ENTRY", "ENTRY_FILL"):
             continue
         own = exit_owner.get(int(r.get("order_id") or 0))
         (own["_exits"] if own else orphan).append(r)
