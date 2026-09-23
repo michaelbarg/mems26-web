@@ -1,3 +1,127 @@
+## 🟢 [cowork-dev(night-queue) · 2026-09-23 23:38-00:05 IL] — **פריט 2ב / [[T-436d]] בוצע: `entry_price` היה תמיד מחיר-הפקודה ולא מחיר-המילוי** · קומיט `23b7579b` · **READY-TO-DEPLOY** (אפס `--deploy`, אפס נגיעה בסיירה, אפס ריסטארט)
+
+**החלטתי לערוך את `sc_study/MES_AI_DataExport_merged.cpp` ולא את `sc_study/MES_AI_DataExport.cpp` שההזמנה נוקבת בו — כי המודולרי אינו הקוד הפרוס, ועריכתו הייתה מוחקת את כל נתיב-הלייב.** הראיה:
+
+```
+diff -q sc_study/MES_AI_DataExport_merged.cpp ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp
+  ⇒ (אין פלט) IDENTICAL — 3943 שורות בשניהם
+
+wc -l sc_study/MES_AI_DataExport.cpp ⇒ 2228        ← המודולרי, קפוא מ-22.07 (git log: 8cac76a5 Jul 22)
+grep -c TradeFillsPath  modular=0  merged=6        ← למודולרי אין נתיב-הצבת-פקודות כלל
+```
+
+`scripts/build_monolithic_cpp.sh` עצמו מתעד זאת: *"since 2026-07-22 every DLL fix was written straight into MES_AI_DataExport_merged.cpp … REGENERATING would silently delete all of it"*, ויש בו `MONOLITH_ONLY_MARKERS`. ⇒ **לא הרצתי את הגנרטור**: ריצה חלקה נותנת `exit 2` (השומר), ו-`--force-regen` היה מוחק את נתיב-הלייב. זו הסיבה שלא מופיע כאן פלט-build.
+
+### 🔑 הממצא — ומה שההזמנה הניחה ונמדד אחרת
+
+**(1) השורש, מקריאת-קוד:** `MES_AI_DataExport_merged.cpp` כותב את שורת-ה-`ENTRY` **מיד אחרי ש-`sc.BuyEntry/SellEntry` החזירה `r > 0`** — כלומר ב-ORDER_SUBMITTED, **לפני שקיים מילוי** — עם המשתנה `entry_price`, שמקורו (שורה 2866) `double entry_price = parse_float("\"price\"");` מתוך `trade_command.json`. `fill_poller._process_fill` מזין בדיוק אותו ל-`on_fill()`.
+
+**(2) אומת מול ה-DB והיומן (Rule 2 — לא הסתמכתי על ההזמנה):**
+
+```
+psql ⇒  2230 | 7780.5  | 7776.25 | -21.25 | -18.75 | LOSS
+tail trade_fills_journal.jsonl ⇒
+  {"kind":"ENTRY","ts":1790180104,"order_id":11328,...,"price":7780.50,"contracts":1,"direction":"LONG"}
+                                                            ^^^^^^^ זהה ל-DB ⇒ entry_price == מחיר-פקודה
+```
+
+**(3) ⚠️ רגלי-היציאה כבר היו נכונות** — אותו קובץ (שורות ~3725-3756) כותב `T1/T2/T3/T4/STOP` מ-`ti.AvgFillPrice`/`si.AvgFillPrice` בשער `OrderStatusCode == SCT_OSC_FILLED`. ⇒ **KEEP** לנתיב-היציאה, **ADAPT** לנתיב-הכניסה, **אפס REPLACE** — לא נבנה נתיב-יצוא מקביל.
+
+**(4) ולמה `strings` לא יכול להציל:** `strings TradeActivityLog_2026-09-22_UTC.37138283.data | grep "Fill of InternalOrderID"` ⇒ 6 שורות (`11318/11321/11322/11323/11325/11326`) — **מזהי-הזמנה בלבד, אפס מחירים**. מאשש את ההערה ב-`trade_activity_feed.py:161`.
+
+### 🛠 התיקון (אדיטיבי — מחקה את דפוס-היציאה שבאותו קובץ)
+
+- **DLL:** אירוע חדש **`ENTRY_FILL`** עם `pe.AvgFillPrice` + `pe.FilledQuantity`, נפלט **פעם אחת** כש-`sc.GetOrderByOrderID(parent)` מחזיר `SCT_OSC_FILLED`; שומר `PersistentInt(108)` (סלוט פנוי — בשימוש היו `103`,`107` בלבד). **אין מילוי ⇒ אין אירוע** (כלל-1: כישלון-כן עדיף על ערך מסונתז).
+- **החלטתי להשאיר את שורת-ה-`ENTRY` בזמן-השליחה ולא לדחות אותה לרגע-המילוי — כי מפת-ה-`order_id` של הבקאנד נבנית ממנה** (`fill_poller` ממפה שם את `c1_target_id`/`c1_stop_id`), ודחייתה הייתה מייתמת כל `T1`/`STOP` שמקדים אותה ⇒ `ORPHAN FILL … POSSIBLE UNTRACKED SIERRA POSITION` ברמת CRITICAL (מחלקת I-58). אירוע נפרד עולה שורה אחת ביומן ומסכן אפס.
+- **`TradeManager.set_entry_fill_price()` (חדש):** תיקון-מחיר בלבד. **במפורש לא `on_fill()`** — היא מבצעת `machine.transition(FILLED)`, דורסת `entry_ts` ל-`now()` ודוחפת התראת-טלפון שנייה. שומרת `quality.order_price` + `quality.entry_slippage_pts` (חיובי = גרוע-מהמבוקש, בשני הכיוונים), ואידמפוטנטית — מסירה חוזרת לא ממדדת מחדש מול המחיר-המתוקן.
+- **`fill_poller`:** ענף `ENTRY_FILL`; אם העסקה כבר `CLOSED` — `logger.warning` מפורש ש-`pnl_usd` נרשם ממחיר-הפקודה, **ואפס חישוב-P&L מחדש**.
+- **שני קוראי-יומן שמסווגים בשחור-רשימה** (`scripts/t211_backfill_apply.py`, `scripts/fill_truth.py` — *"כל מה שאינו ENTRY הוא יציאה"*) קיבלו את השם המפורש; בלי זה `ENTRY_FILL` היה נספר כרגל-יציאה / מדווח כ"מילוי יתום". שני ה-ledgers האחרים מסווגים ב**לבן**-רשימה (`EXIT_KINDS`) ⇒ מתעלמים ממנו מעצמם, ונעול בטסט.
+
+### 📐 ראיה גולמית (Rule 5)
+
+```
+$ pytest -q tests/v9/regression/test_t436d_entry_fill_price.py
+18 passed, 2 warnings in 0.35s
+
+# הטסט הוא שומר אמיתי ולא טאוטולוגיה — אותו קובץ על HEAD בעץ מבודד:
+$ git worktree add /tmp/mems26_baseline_t436d HEAD --detach
+$ cd /tmp/mems26_baseline_t436d && pytest -q tests/v9/regression/test_t436d_entry_fill_price.py
+14 failed, 4 passed, 2 warnings in 0.52s
+```
+
+**בסיס לפני שאני מייחס אדום לעצמי** — אותה סוויטת-אנטי-רגרסיה, פעמיים:
+
+```
+עם השינוי (עץ-העבודה):      1 failed, 57 passed
+בלי השינוי (worktree HEAD): 1 failed, 57 passed
+האדום בשני הצדדים, אותו שם:
+  test_sierra_pnl_reconcile.py::TestDivergenceAlarm::test_incomplete_coverage_never_counts_as_a_match
+⇒ פרה-קיים (כבר מתועד ב-LIVE_CHANNEL:32233), לא שלי.
+```
+(הסוויטה: `test_fill_poller` · `test_t436_pnl_sierra_posthoc` · `test_t227_double_booked_leg` · `test_pnl_ladder_fills_749` · `test_sierra_pnl_reconcile` · `test_fill_order_map` · `test_gsheets_trade_logger`.)
+⚠️ **`git stash` לא שימש** — worktree מבודד בלבד, והוסר בסוף (`worktree list` ⇒ ערך יחיד).
+
+**שערים:**
+```
+./scripts/guard_tests.sh  ⇒ 170 passed, 1 skipped · ✅ GUARDS GREEN
+python3 scripts/flag_guard.py ⇒ FLAG-GUARD: PASS — all 264 ruled flags match
+python3 scripts/task_log_guard.py ⇒ ✅ the task log is current, structured, and the only one
+python3 -m py_compile (4 קבצי-פייתון) ⇒ ALL 4 COMPILE OK
+```
+
+**על שינוי-ה-C++, מה שכן ניתן לאמת ב-Mac:**
+```
+סוגריים מאוזנים לפני ואחרי (מנוטרל מחרוזות/הערות):
+  HEAD  {=364 }=364 (=1895 )=1895 balanced=True
+  NEW   {=368 }=368 (=1915 )=1915 balanced=True     (+42 שורות)
+ספקי-פורמט: ['%lld','%lld','%.2f','%d'] מול 4 ארגומנטים
+  ((long long)time(nullptr), (long long)p5_parent, pe.AvgFillPrice, (int)pe.FilledQuantity)
+כל ה-API כבר מוכח באותו קובץ: s_SCTradeOrder 9 · GetOrderByOrderID 6 ·
+  SCTRADING_ORDER_ERROR 7 · SCT_OSC_FILLED 6 · AvgFillPrice 5 · FilledQuantity 3
+סלוטים: GetPersistentInt ⇒ 103, 107, 108 בלבד (108 חדש ופנוי)
+```
+
+⚠️ **קומפילציה מלאה בלתי-אפשרית במכונה הזו, ואני אומר זאת במקום להצהיר "עובר":**
+```
+$ g++ -fsyntax-only -std=c++17 -I ~/SierraChart/ACS_Source /tmp/t436d_syntax.cpp
+In file included from sierrachart.h:23:
+scstructures.h:15:10: fatal error: 'windows.h' file not found
+```
+⇒ **האימות הסופי של ה-C++ הוא Remote Build בסיירה**, אצל מי שמריץ את הדיפלוי.
+
+### 🚀 READY-TO-DEPLOY — הפקודות המדויקות למחר (של שער-15:30 / מייקל)
+
+```bash
+scripts/mems26_snapshot.sh "t436d-entry-fill-price"
+./scripts/build_monolithic_cpp.sh --deploy-monolith
+# ואז: Remote Build בסיירה + רענון ה-study — מחוץ לשעות-מסחר בלבד
+```
+⚠️ **לא `--deploy` ולא `--force-regen`.** שניהם מפעילים רגנרציה מהמודולרי הקפוא של `22.07` ⇒ מוחקים את נתיב-הלייב (זו בדיוק התקרית שהשומר בסקריפט מתעד מ-17.08).
+
+**האימות אחרי יום-מסחר אחד על ה-DLL הפרוס:**
+```
+grep "T-436d ENTRY_FILL" /tmp/backend.err.log   ⇒ שורה אחת לכל כניסה, עם slippage=
+python3 scripts/broker_truth.py --since 2026-09-01
+  ⇒ Δ ספרים⇄ברוקר = עמלה בלבד (−2.50) בעסקת-T1
+```
+אם `ENTRY_FILL` אינו מופיע כלל אחרי הדיפלוי — הפער יישאר, **וזה** הסימן ששער `SCT_OSC_FILLED` על ההורה אינו נתפס (ואז הנתיב החלופי הוא `avg_price` שכבר קיים ב-`POSITION_CHANGE`, שורה 1998).
+
+### ⛔ גבולות — מה שלא נגעתי בו
+
+`.env` · דגלי-גודל/`FIXED_CONTRACTS_*` · `RISK_*` · פוזיציות · פקודות · `op=EXIT` · `FLATTEN` · ריסטארט-backend · סיירה/`~/SierraChart/` · **אפס דגל-env חדש** (הפונקציונליות נכנסת ללא דגל: היא תיקון-אמת-נתונים ללא משטח-סיכון-מסחר חדש — אינה משנה כניסה, יציאה, גודל או תזמון; אין דגל ⇒ אין מה לרשום ב-`RULED_FLAGS.yaml`, ו-`flag_guard` עבר `264/264` בלי שינוי).
+
+### 📋 NOT-DONE מפורש
+
+1. **הדיפלוי עצמו לא בוצע** — במכוון, לפי גבולות-ההזמנה. הפריט אינו סגור עד Remote Build + רענון-study + יום-מסחר אחד.
+2. **פריט 10 / [[T-421]]** (`exit_price`/`exit_ts` מרגל-ה-T1, 9/9 ריקות) — **לא בוצע**, לפי ההוראה "אל תפתח פריט שני". הוא ההמשך הישיר: גם אחרי T-436d, `exit_price` יישאר NULL ב-12/16 שורות-הלייב מאז 16.09 (נמדד הערב ב-DB).
+3. **`docs/plans/ROADMAP_TO_LIVE.html` לא עודכן** — פלט-הסיום שבהזמנה נוקב בשלושה (קוד · TASK_LOG · STATUS_BOARD), והפריט ממילא אינו "done" עד הדיפלוי. **הצעד הבא:** לסמן ברודמאפ כשה-DLL נפרס ואומת.
+4. **לא נמדד** בכמה טיקים בדיוק הסליפג׳ הממוצע — המספרים `3–5` הם ציטוט מההזמנה/`JOURNAL_DEFECTS`, ו**המדידה עצמה אפשרית רק אחרי הדיפלוי** (זה בדיוק מה ש-`entry_slippage_pts` בא לייצר).
+5. **לא נטען** שהסליפג׳ ייעלם — הוא ייעשה **נראה ונמדד**; ולא נטען שה-Δ ספרים⇄ברוקר ייסגר לעמלה-בלבד לפני שיום-מסחר אחד ירוץ על ה-DLL הפרוס.
+
+**קומיט:** `23b7579b` — קוד + `TASK_LOG` (שורת `T-436d` עם סטטוס והצעד-הבא) + `STATUS_BOARD` (ממצא → תיקון → ראיה) + אינדקס מחודש. *(מתוך 128 הקבצים בקומיט, 120 הם `_INDEX.md` שהגנרטור עדכן — הם דריפט מ-`20.09` שנצבר ולא חלק מהתיקון; אומת שאין בהם הסרת-קובץ ולא שינוי-אורפנים, רק תאריכים/LOC/מוני-שימוש.)*
+
+---
+
 ## 🟡 [cowork-dev · 2026-09-23 23:36 IL] — **CLAIM: תור-הלילה נתפס** · הצהרת-הסשן-האינטראקטיבי (`22:50-23:30`) **פקעה** · אפס פעילות-cc היום ⇒ מריץ **פריט אחד** דרך סוכן-משנה · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון**
 
 **חלון:** `23:34` — ריצה שנייה של החובה-המתוזמנת אחרי זו של `23:04`. **חובה-2 ו-3 אינן חלות** (לא `15:30-16:10`, לא `16:30-23:00`). **אפס ריסטארט** (`23:36 ∈ 16:10-23:00+` — הכלל: שער-15:30 בלבד).
