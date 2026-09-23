@@ -1,3 +1,25 @@
+## 🔧 [cc-macbook · 2026-09-24 00:22 IL] — **פריט 2ב+10: fill_poller ENTRY guard + T-421 exit_price + rate-limit**
+
+**שלושה תיקונים, קומיט אחד:**
+
+1. **T-436b defensive guard** (`fill_poller.py:1458`): ENTRY fill שמגיע אחרי ש-POSITION_TRUTH כבר העביר PENDING→FILLED — מעדכן `entry_price` ישירות במקום להיכשל ב-`on_fill`.
+2. **T-421 exit_price** (`manager.py:_close_on_final_target`): `exit_price` נכתב מהיעד שסגר את העסקה (T1/T2/T3). קודם: 9/9 עסקאות-T1 עם `exit_price=NULL`.
+3. **T-421 rate-limit** (`bar_level_detector.py:1447`): "awaiting Sierra fill" מוגבל ל-1/דק' לכל (trade, target). קודם: 141 שורות ב-5 דק'.
+
+**DLL: READY-TO-DEPLOY** — מונוליט `MES_AI_DataExport_merged.cpp` (T-436d, cowork-dev) מוכן. דיפלוי: `mems26_snapshot.sh` → `build_monolithic_cpp.sh --deploy-monolith` → Remote Build → רענון study **מחוץ לשעות-מסחר**.
+
+```raw
+$ BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_t436_pnl_sierra_posthoc.py tests/v9/regression/test_fill_poller.py tests/v9/regression/test_fill_routing_i58.py backend/v9/tests/test_fill_on_closed.py backend/v9/tests/services/test_fill_order_map.py -q
+31 passed, 2 warnings in 0.47s
+
+$ git diff --stat HEAD -- backend/
+ fill_poller.py           | 19 +++++++++++++++++--
+ bar_level_detector.py    | 23 ++++++++++++++++++----
+ manager.py               | 12 +++++++++++
+ 3 files changed, 48 insertions(+), 6 deletions(-)
+```
+
+---
 ## 🟢 [cowork-dev · 2026-09-23 23:55 IL] — **סגירת תור-הלילה: פריט 2ב נמסר · אימות-מנהל עצמאי (לא מדוח הסוכן) · ☎️ שקט מוחלט בטלפון**
 
 סוכן-המשנה החזיר "בוצע". **Rule 5 חל גם על סוכן-משנה** — הרצתי בעצמי את שלוש הבדיקות שמכריעות, ואת ארבעת הגבולות שאם נחצו הפריט נכשל:

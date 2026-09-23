@@ -1458,8 +1458,23 @@ class FillPoller:
             if kind == "ENTRY":
                 # Entry fill — transition PENDING→FILLED via on_fill
                 if price is not None:
-                    self._tm.on_fill(trade_id, float(price))
-                    logger.info("[FillPoller] ENTRY fill: trade %s @ %s", trade_id, price)
+                    # T-436b: if POSITION_TRUTH already advanced PENDING→FILLED
+                    # before the DLL fill event arrived, on_fill would fail on the
+                    # state transition. Update entry_price directly with the broker
+                    # fill price (supersedes the command price or avg_price fallback).
+                    _st = getattr(_existing, "state", "") if _existing else ""
+                    if _st in ("FILLED", "PARTIAL"):
+                        _existing.entry_price = float(price)
+                        try:
+                            self._tm._db.flush()
+                        except Exception:
+                            pass
+                        logger.info(
+                            "[FillPoller] ENTRY fill (already %s): broker price → "
+                            "entry_price=%s for trade %s", _st, price, trade_id)
+                    else:
+                        self._tm.on_fill(trade_id, float(price))
+                        logger.info("[FillPoller] ENTRY fill: trade %s @ %s", trade_id, price)
 
                     # Store Sierra order IDs from the ENTRY fill (up to 8 per-contract IDs)
                     sierra_ids = {

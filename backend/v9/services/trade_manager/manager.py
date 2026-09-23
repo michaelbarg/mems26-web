@@ -939,6 +939,18 @@ class TradeManager:
         trade.state = TradeState.CLOSED.value
         trade.exit_ts = hit_ts
         trade.exit_reason = exit_reason
+        # T-421: set exit_price from the target that closed the trade.
+        # Without this, 9/9 T1 trades had exit_price=NULL because only
+        # on_stop_hit writes exit_price; target exits never did.
+        _tgt_attr = {"T1_HIT": "t1", "T2_HIT": "t2", "T3_HIT": "t3",
+                     "T0_HIT": "t0", "T4_HIT": "t4"}.get(exit_reason)
+        if _tgt_attr:
+            _tpx = getattr(trade, _tgt_attr, None)
+            if _tpx is not None:
+                try:
+                    trade.exit_price = float(_tpx)
+                except (TypeError, ValueError):
+                    pass
         self._calculate_pnl(trade)
         self._set_outcome(trade)
         self._cleanup_machine(trade.id)

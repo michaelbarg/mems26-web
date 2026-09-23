@@ -59,6 +59,8 @@ class BarLevelDetector:
         # the commit after the on_bar loop fails (any trade in the batch
         # raises), the t2_hit_ts flush is rolled back and the next bar re-hits.
         self._target_hit_dedup: set = set()  # {(trade_id, target_name), ...}
+        # T-421: rate-limit "awaiting Sierra fill" log — 1 per (trade, target) per 60s
+        self._infer_logged_at: dict = {}  # {(trade_id, target): epoch}
 
     def _trade_still_open(self, trade_id: int) -> bool:
         """T4 helper: is this trade still active in the books?
@@ -1395,8 +1397,14 @@ class BarLevelDetector:
                        (direction == "SHORT" and bar_high >= stop):
                         if _is_demo_live:
                             # I-62: demo/live → log but do NOT close (wait for Sierra fill)
-                            logger.info("[BarLevelDetector] STOP INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
-                                        trade.id, stop)
+                            # T-421: rate-limit to 1/min — was ~30 lines/min on trade 1916.
+                            import time as _time_mod
+                            _ik = (trade.id, "STOP")
+                            _now = _time_mod.time()
+                            if _ik not in self._infer_logged_at or (_now - self._infer_logged_at[_ik]) >= 60:
+                                logger.info("[BarLevelDetector] STOP INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
+                                            trade.id, stop)
+                                self._infer_logged_at[_ik] = _now
                             continue
                         self._tm.on_stop_hit(trade.id, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] STOP HIT: trade %d at %.2f", trade.id, stop)
@@ -1444,8 +1452,15 @@ class BarLevelDetector:
                             # 7622; Sierra had already STOPPED the runner at ~7610)
                             # closed live 350 as a fictional +$112.5 WIN while
                             # reality was +$52.5. Same rule as the stop path above.
-                            logger.info("[BarLevelDetector] %s INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
-                                        target_name, trade.id, target_price)
+                            # T-421: rate-limit to 1/min per (trade, target) —
+                            # was 141 lines in 5 min on trade 1916.
+                            import time as _time_mod
+                            _ik = (trade.id, target_name)
+                            _now = _time_mod.time()
+                            if _ik not in self._infer_logged_at or (_now - self._infer_logged_at[_ik]) >= 60:
+                                logger.info("[BarLevelDetector] %s INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
+                                            target_name, trade.id, target_price)
+                                self._infer_logged_at[_ik] = _now
                             continue
                         # T-396: dedup — if we already fired this target for this
                         # trade (in a previous bar whose commit failed), skip it.
