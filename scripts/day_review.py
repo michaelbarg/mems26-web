@@ -41,6 +41,12 @@ ap.add_argument("--day", default=None, help="session date (IL), default = last s
 ap.add_argument("--days", type=int, default=1, help="review the last N sessions (ignored with --day)")
 ap.add_argument("--out", default=os.path.join(ROOT, "render_mobile_relay", "static", "docs", "data"))
 ap.add_argument("--md_dir", default=os.path.join(ROOT, "docs", "reports"))
+# sensitivity knobs (23.09: "האם הדוח אמין?") — the defaults are the fixed evaluation model
+ap.add_argument("--leg-mult", type=float, default=1.5, help="leg threshold = max(--leg-floor, mult×ATR)")
+ap.add_argument("--leg-floor", type=float, default=12.0)
+ap.add_argument("--stop-atr", type=float, default=1.0)
+ap.add_argument("--target-atr", type=float, default=1.5)
+ap.add_argument("--suffix", default="", help="write data/review<suffix>.json + no md (sensitivity runs)")
 args = ap.parse_args()
 
 # ── data ──────────────────────────────────────────────────────────────────────
@@ -118,7 +124,7 @@ def window(dec, dirn, t_from, t_to):
 def review_day(d):
     bs = by_day[d]
     atr0 = oe.compute_atr(bs, min(20, len(bs) - 1)) or 6.0
-    legs = rl.legs_of(bs, atr0)
+    legs = rl.legs_of(bs, atr0, mult=args.leg_mult, floor=args.leg_floor)
     vr = sess_vol[d] / med_vol if med_vol else 1.0
     depth = "HIGH" if vr >= 1.2 else "LOW" if vr <= 0.8 else "NORMAL"
     meta = dth.get(d, {}); dtype = meta.get("day_type") or "?"
@@ -129,7 +135,7 @@ def review_day(d):
     for leg in legs:
         short = leg["short"]; dirn = "SHORT" if short else "LONG"
         t0 = bs[leg["i0"]]["ts"]; t1 = bs[leg["i1"]]["ts"]
-        ideal = rl.ideal_entry(bs, leg, atr0, prev_va.get(d))
+        ideal = rl.ideal_entry(bs, leg, atr0, prev_va.get(d), stop_atr=args.stop_atr, target_atr=args.target_atr)
         # ── 1. full vision: maximization from the ideal bar
         maxim = None
         if ideal:
@@ -222,7 +228,7 @@ def review_day(d):
 os.makedirs(os.path.join(args.out, "review"), exist_ok=True); os.makedirs(args.md_dir, exist_ok=True)
 V_HEB = {"TOOK": "✅ נלקחה בזמן", "LATE": "🕒 נלקחה מאוחר", "OPPOSITE": "❌ נכנסנו הפוך", "MISSED": "⭕ פוספסה", "UNCATCHABLE": "⚪ בלי בר-אישור"}
 DEPTH_HEB = {"HIGH": "עומק גבוה", "NORMAL": "עומק רגיל", "LOW": "עומק נמוך"}
-merged_p = os.path.join(args.out, "review.json")
+merged_p = os.path.join(args.out, f"review{args.suffix}.json")
 merged = json.load(open(merged_p, encoding="utf-8")) if os.path.exists(merged_p) else {"days": {}}
 BRANCH_PATH = [
     "## איך זה הופך לענף (הנתיב, לפי דוקטרינת-הלמידה 09.09)",
@@ -236,7 +242,7 @@ agg = collections.defaultdict(list)
 for d in days:
     R = review_day(d)
     merged["days"][d] = R
-    json.dump(R, open(os.path.join(args.out, "review", f"{d}.json"), "w"), ensure_ascii=False, default=str, indent=0)
+    if not args.suffix: json.dump(R, open(os.path.join(args.out, "review", f"{d}.json"), "w"), ensure_ascii=False, default=str, indent=0)
     for c in R["candidates"]: agg[(c["kind"], c.get("gate", ""), c["phase"], c["day_type"], c["zone"], c["dir"])].append(c)
     md = [f"# מבחן-היום — {d} · {R['day_type']} · פתיחה {R['opening']} · {DEPTH_HEB[R['depth']]} (×{R['vol_ratio']}) · טווח {R['range']} נק׳ · סגירה {R['net']:+.1f}", "",
           f"**מהלכים ששווה לתפוס:** {R['n_legs']} ({R['available_pts']} נק׳) · נלקחו בזמן {R['took']} · מאוחר {R['late']} · הפוך {R['opposite']} · **פוספסו {R['missed']} ({R['missed_pts']} נק׳)** · לייב {R['live_n']} עסקאות {R['live_pnl']:+.2f}$ (ברוקר)",
@@ -268,7 +274,7 @@ for d in days:
     else:
         md.append("- אין (כל המהלכים נלקחו בזמן או לא ניתנים-לתפיסה)")
     md += [""] + BRANCH_PATH
-    open(os.path.join(args.md_dir, f"DAY_REVIEW_{d}.md"), "w", encoding="utf-8").write("\n".join(md))
+    if not args.suffix: open(os.path.join(args.md_dir, f"DAY_REVIEW_{d}.md"), "w", encoding="utf-8").write("\n".join(md))
     print(f"{d}: legs {R['n_legs']} took {R['took']} late {R['late']} opp {R['opposite']} missed {R['missed']} ({R['missed_pts']} pts) · decisions {R['decisions']} (blocked {R['blocked']}) · candidates {len(R['candidates'])}")
 
 # aggregate candidate table across all reviewed days (the branch list)

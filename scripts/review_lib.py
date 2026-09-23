@@ -29,13 +29,13 @@ def zigzag(bs, thr):
     return piv
 
 
-def legs_of(bs, atr0, min_pts=None, top=5):
-    """Zigzag legs worth catching: ≥ max(12, 1.5×ATR) pts, ≥3 bars, not the first 2 bars."""
+def legs_of(bs, atr0, min_pts=None, top=5, mult=1.5, floor=12.0):
+    """Zigzag legs worth catching: ≥ max(floor, mult×ATR) pts, ≥3 bars, not the first 2 bars."""
     piv = zigzag(bs, max(4.0, 1.0 * atr0))
     legs = []
     for (i0, p0, k0), (i1, p1, k1) in zip(piv, piv[1:]):
         if i1 > i0: legs.append(dict(i0=i0, i1=i1, pts=abs(p1 - p0), short=(p1 < p0), p0=p0, p1=p1))
-    thr = min_pts if min_pts is not None else max(12.0, 1.5 * atr0)
+    thr = min_pts if min_pts is not None else max(floor, mult * atr0)
     legs = [l for l in legs if l['pts'] >= thr and l['i0'] >= 2 and (l['i1'] - l['i0']) >= 3]
     legs = sorted(legs, key=lambda l: -l['pts'])[:top]; legs.sort(key=lambda l: l['i0'])
     return legs
@@ -66,7 +66,7 @@ def features(bs, i, short, prev_va=None):
     prev5 = bs[max(0, i - 5):i]
     brk = ((b['c'] < min(x['l'] for x in prev5)) if short else (b['c'] > max(x['h'] for x in prev5))) if prev5 else False
     return dict(atr=round(atr, 2), hour=str(b['t'])[:5], ph=('A' if i < 3 else 'B' if i < 12 else 'C' if i < 54 else 'D'), zone=zone,
-                near_prev_edge=near_prev, near_ib_edge=near_ib_edge, at_extreme=at_extreme, bars_from_extreme=(bsl if short else bsh),
+                near_prev_edge=near_prev, near_ib_edge=near_ib_edge, at_extreme=at_extreme, bars_from_extreme=(bsl if short else bsh), bars_since_high=bsh, bars_since_low=bsl,
                 with_day=with_day, with_ext=with_ext, ext=ext, move_from_open_atr=round(mo, 2), trigger_ok=trigger_ok, body_ge_50=body >= 0.5,
                 range_atr=round(rng / atr, 2), range_ge_08atr=rng >= 0.8 * atr, vol_trig=(vr is not None and vr >= 1.3),
                 vol_ratio=round(vr, 2) if vr else None, delta_with=(dr is not None and ((dr <= -1) if short else (dr >= 1))),
@@ -89,16 +89,16 @@ def describe(f, short):
     return " · ".join(p)
 
 
-def ideal_entry(bs, leg, atr0, prev_va=None):
-    """First bar in the leg's first half from which stop ≤1 ATR behind the bar holds until 1.5×ATR.
+def ideal_entry(bs, leg, atr0, prev_va=None, stop_atr=1.0, target_atr=1.5):
+    """First bar in the leg's first half from which stop ≤stop_atr×ATR behind the bar holds until target_atr×ATR.
     Returns dict(i, ep, stop, captured, f) or None (the move gave no confirmable bar)."""
     short = leg['short']
     half = leg['i0'] + max(1, (leg['i1'] - leg['i0']) // 2)
     for i in range(leg['i0'], half + 1):
         atr = oe.compute_atr(bs, i) or atr0
         b = bs[i]; ep = b['c']
-        stop = (min(b['h'] + 0.25, ep + 1.0 * atr) if short else max(b['l'] - 0.25, ep - 1.0 * atr))
-        target = ep - 1.5 * atr if short else ep + 1.5 * atr
+        stop = (min(b['h'] + 0.25, ep + stop_atr * atr) if short else max(b['l'] - 0.25, ep - stop_atr * atr))
+        target = ep - target_atr * atr if short else ep + target_atr * atr
         ok = False
         for x in bs[i + 1:leg['i1'] + 1]:
             hit_s = (x['h'] >= stop) if short else (x['l'] <= stop)
@@ -114,20 +114,30 @@ def ideal_entry(bs, leg, atr0, prev_va=None):
     return None
 
 
-def exit_models(bs, i, short, atr, until=None):
+def exit_models(bs, i, short, atr, until=None, time_stop_bars=6, time_stop_mfe=0.5, be_after=1.0):
     """What each exit style captures from bar i (entry at close of i), first-touch on 5-min bars, to EOD or `until`.
     stop 1×ATR (min 5) · t1 = 1.5×ATR · trail = chandelier 1×ATR from the extreme, armed after +1×ATR ·
     max = best excursion. Points, one contract, no costs."""
     ep = bs[i]['c']; sgn = -1 if short else 1
     stop_d = max(5.0, 1.0 * atr); t1_d = 1.5 * atr
     end = until if until is not None else len(bs) - 1
-    fixed = None; trail = None; mfe = 0.0; ext = ep; armed = False; trail_stop = None
-    for x in bs[i + 1:end + 1]:
+    fixed = None; trail = None; mfe = 0.0; ext = ep; armed = False; trail_stop = None; fixed_i = end
+    tstop = None; be = None; be_armed = False   # time-stop variant · break-even variant (S6 management candidates)
+    for j, x in enumerate(bs[i + 1:end + 1], start=i + 1):
         fav = (ep - x['l']) if short else (x['h'] - ep); adv = (x['h'] - ep) if short else (ep - x['l'])
         mfe = max(mfe, fav)
         if fixed is None:
-            if adv >= stop_d: fixed = -stop_d
-            elif fav >= t1_d: fixed = t1_d
+            if adv >= stop_d: fixed = -stop_d; fixed_i = j
+            elif fav >= t1_d: fixed = t1_d; fixed_i = j
+        if tstop is None:   # same as fixed, but scratch at the close of bar i+time_stop_bars if the move never showed ≥time_stop_mfe×ATR
+            if adv >= stop_d: tstop = -stop_d
+            elif fav >= t1_d: tstop = t1_d
+            elif j - i >= time_stop_bars and mfe < time_stop_mfe * atr: tstop = (ep - x['c']) if short else (x['c'] - ep)
+        if be is None:      # same as fixed, but the stop moves to entry once the move showed ≥be_after×ATR
+            if be_armed and adv >= 0: be = 0.0
+            elif adv >= stop_d: be = -stop_d
+            elif fav >= t1_d: be = t1_d
+            elif fav >= be_after * atr: be_armed = True
         if trail is None:
             if not armed:
                 if adv >= stop_d: trail = -stop_d
@@ -139,4 +149,5 @@ def exit_models(bs, i, short, atr, until=None):
                 if hit: trail = (ep - trail_stop) if short else (trail_stop - ep)
         if fixed is not None and trail is not None: break
     last = bs[end]['c']; eod = (ep - last) if short else (last - ep)
-    return dict(t1=round(fixed if fixed is not None else eod, 2), trail=round(trail if trail is not None else eod, 2), max=round(mfe, 2))
+    return dict(t1=round(fixed if fixed is not None else eod, 2), trail=round(trail if trail is not None else eod, 2), max=round(mfe, 2), end_i=fixed_i, resolved=fixed is not None,
+                tstop=round(tstop if tstop is not None else eod, 2), be=round(be if be is not None else eod, 2))

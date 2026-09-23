@@ -1,0 +1,125 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>מבחן-החתימות</title><style>
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
+.tags button:active{background:#30363d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
+.g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">מבחן-החתימות<div class="sub">15 כללים · 40 סשנים</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="progress.html"><span>📊</span><span>התקדמות</span><small>האם משתפר — לפי ענף וסוג-יום</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="whatworks.html"><span>🧪</span><span>מה עובד</span><small>כניסות · מיקום · יציאות — במספרים</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><a class="item" href="review.html"><span>🔎</span><span>סקירת-יום</span><small>מה היה צריך לצאת · מה המערכת ראתה</small></a><a class="item" href="review_report.html"><span>📑</span><span>דוח-ריפליי מסודר</span><small>כל הימים: מה היה צריך · מה לתקן</small></a><a class="item" href="tree_board.html"><span>🌲</span><span>לוח-העץ</span><small>הצורה · המספרים · הניצנים</small></a><a class="item on" href="signatures.html"><span>🧬</span><span>מבחן-החתימות</span><small>מיקום · ווליום · נרות — כלל על כל בר</small></a><h3>ניהול</h3><a class="item" href="defects.html"><span>🩹</span><span>ליקויי-היומן</span><small>ספרים מול ברוקר — הרשימה והתיקונים</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h1>מבחן-החתימות</h1><div class="dim">האם כלל של מיקום / ווליום / נרות מוצא עסקאות מנצחות <b>לבד</b>? כל כלל נורה על כל בר אחרי ה-IB ב-40 סשנים ונשפט במודל-ההערכה הקבוע — אפס ראייה-לאחור. כלל שדרוש לו ההקשר (סוג-יום) כדי לנצח = ענף בעץ; כלל שלילי = שער.</div><div class="dim" style="margin:6px 0 10px">stop max(5,1×ATR) · T1 1.5×ATR · first-touch 5m · EOD · $5/pt · $1.30/side · one open trade per rule per session · after IB</div><div style="overflow-x:auto"><table class="plain"><tr><th>כלל</th><th>N</th><th>win%</th><th>Σ$ יעד</th><th>$/עסקה</th><th>time-stop</th><th>BE</th><th>טריילינג</th><th>פסק-דין</th></tr><tr><td>R0 בסיס: בר-טריגר חזק (כל מיקום)<div class="dim" style="font-size:11px">Variation 169/42%/-689$ · Neutral_Center 61/48%/+253$ · Neutral_Extreme 29/45%/+9$ · Normal 12/42%/-45$</div></td><td class="num">288</td><td class="num">44</td><td class="num"><span class="neg">-433</span></td><td class="num">-1.50</td><td class="num">-212</td><td class="num">-453</td><td class="num">-2252</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R1 קצה-הערך: לונג מתחת/ב-VAL · שורט מעל/ב-VAH, טריגר חזק, קיצון טרי (≤2 ברים)<div class="dim" style="font-size:11px">Variation 33/36%/-131$ · Neutral_Center 6/67%/+106$ · Neutral_Extreme 4/50%/+1$ · Trend_Normal 2/50%/-5$</div></td><td class="num">45</td><td class="num">42</td><td class="num"><span class="neg">-29</span></td><td class="num">-0.65</td><td class="num">+6</td><td class="num">+47</td><td class="num">-318</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R1v קצה-הערך + ווליום ≥1.3×<div class="dim" style="font-size:11px">Variation 13/15%/-288$ · Neutral_Extreme 2/50%/+6$</div></td><td class="num">15</td><td class="num">20</td><td class="num"><span class="neg">-282</span></td><td class="num">-18.82</td><td class="num">-256</td><td class="num">-231</td><td class="num">-303</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R1p קצה-ערך-אתמול (±0.5 ATR מ-VAL/VAH של אתמול), טריגר חזק<div class="dim" style="font-size:11px">Variation 3/33%/-24$ · Neutral_Center 1/100%/+73$ · Neutral_Extreme 1/100%/+33$</div></td><td class="num">5</td><td class="num">60</td><td class="num"><span class="pos">+82</span></td><td class="num">+16.34</td><td class="num">+98</td><td class="num">+44</td><td class="num">+14</td><td><span class="pill ">N קטן</span></td></tr><tr><td>R2 עם-היום אחרי פולבק (≥2 ברים נגד), טריגר חזק<div class="dim" style="font-size:11px">Variation 93/44%/-194$ · Neutral_Extreme 19/26%/-298$ · Neutral_Center 19/42%/-34$ · Normal 5/0%/-148$</div></td><td class="num">143</td><td class="num">40</td><td class="num"><span class="neg">-712</span></td><td class="num">-4.98</td><td class="num">-622</td><td class="num">-510</td><td class="num">-1237</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R2d R2 + דלתא עם-הכיוון<div class="dim" style="font-size:11px">Variation 40/48%/+50$ · Neutral_Center 12/50%/+51$ · Neutral_Extreme 9/22%/-186$ · Normal 4/0%/-120$</div></td><td class="num">69</td><td class="num">42</td><td class="num"><span class="neg">-208</span></td><td class="num">-3.02</td><td class="num">-194</td><td class="num">-148</td><td class="num">-567</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R3 שבירת-מבנה (סגירה מעבר ל-5 ברים) + ווליום ≥1.3×<div class="dim" style="font-size:11px">Variation 79/39%/-497$ · Neutral_Center 21/67%/+349$ · Neutral_Extreme 17/41%/-278$ · Trend_Normal 4/75%/+76$</div></td><td class="num">128</td><td class="num">47</td><td class="num"><span class="neg">-305</span></td><td class="num">-2.38</td><td class="num">-326</td><td class="num">-329</td><td class="num">-1165</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R3e R3 + עם ההרחבה מה-IB<div class="dim" style="font-size:11px">Variation 38/32%/-318$ · Neutral_Center 10/50%/+102$ · Neutral_Extreme 8/38%/-239$ · Trend_Normal 3/67%/+61$</div></td><td class="num">61</td><td class="num">39</td><td class="num"><span class="neg">-353</span></td><td class="num">-5.78</td><td class="num">-372</td><td class="num">-472</td><td class="num">-839</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R4 IB-edge: דחייה בקצה-IB (≤0.5 ATR), טריגר חזק, נגד ההרחבה<div class="dim" style="font-size:11px">Variation 35/34%/-333$ · Neutral_Center 17/53%/+139$ · Neutral_Extreme 7/71%/+152$ · Trend_DD 1/0%/-28$</div></td><td class="num">60</td><td class="num">43</td><td class="num"><span class="neg">-70</span></td><td class="num">-1.17</td><td class="num">+28</td><td class="num">-122</td><td class="num">-707</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R2t R2 רק בימי-מגמה (Trend_*)<div class="dim" style="font-size:11px">Trend_Normal 4/25%/-59$ · Trend_DD 3/67%/+22$</div></td><td class="num">7</td><td class="num">43</td><td class="num"><span class="neg">-37</span></td><td class="num">-5.34</td><td class="num">-37</td><td class="num">-68</td><td class="num">-81</td><td><span class="pill ">N קטן</span></td></tr><tr><td>R4n R4 רק בימי Normal/Neutral<div class="dim" style="font-size:11px">Neutral_Center 17/53%/+139$ · Neutral_Extreme 7/71%/+152$</div></td><td class="num">24</td><td class="num">58</td><td class="num"><span class="pos">+291</span></td><td class="num">+12.14</td><td class="num">+314</td><td class="num">+280</td><td class="num">+6</td><td><span class="pill ok">EDGE ⇒ מפיק-צל</span></td></tr><tr><td>R1n R1 רק בימי Normal/Neutral/Variation (רוטציה)<div class="dim" style="font-size:11px">Variation 33/36%/-131$ · Neutral_Center 6/67%/+106$ · Neutral_Extreme 4/50%/+1$</div></td><td class="num">43</td><td class="num">42</td><td class="num"><span class="neg">-24</span></td><td class="num">-0.56</td><td class="num">+11</td><td class="num">+52</td><td class="num">-292</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>R5 עם-ההרחבה-מה-IB, פולבק, טריגר חזק, ווליום (המשך-הרחבה)<div class="dim" style="font-size:11px">Variation 18/50%/+130$ · Neutral_Extreme 5/20%/-222$ · Trend_Normal 3/0%/-83$ · Neutral_Center 1/0%/-48$</div></td><td class="num">27</td><td class="num">37</td><td class="num"><span class="neg">-223</span></td><td class="num">-8.25</td><td class="num">-271</td><td class="num">-223</td><td class="num">-423</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>N1 (בדיקת-הנחיה) כניסה ליד ה-POC (≤0.25 ATR), טריגר חזק<div class="dim" style="font-size:11px">Variation 32/38%/-97$ · Neutral_Center 13/38%/-59$ · Normal 7/57%/+16$ · Neutral_Extreme 6/33%/-17$</div></td><td class="num">61</td><td class="num">38</td><td class="num"><span class="neg">-253</span></td><td class="num">-4.15</td><td class="num">-253</td><td class="num">-25</td><td class="num">-497</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr><tr><td>N2 (בדיקת-הנחיה) המשך אחרי ≥12 ברים מהקיצון, בתוך הבטן<div class="dim" style="font-size:11px">Variation 71/49%/+46$ · Neutral_Center 21/43%/-70$ · Neutral_Extreme 13/31%/-136$ · Normal 7/29%/-74$</div></td><td class="num">115</td><td class="num">45</td><td class="num"><span class="neg">-212</span></td><td class="num">-1.84</td><td class="num">-84</td><td class="num">-209</td><td class="num">-954</td><td><span class="pill bad">שלילי ⇒ שער</span></td></tr></table></div><h2>המסקנות</h2><div class="card" style="padding:8px 12px">1. נרות/מיקום/ווליום כתבנית-בר לבד — אין קצה: הבסיס (בר-טריגר חזק בכל מיקום) 288 עסקאות, 44% ניצחון, -433$. גם קצה-הערך לבד (45 עסקאות, -29$) לא. ווליום-שיא בקצה-הערך שלילי (15 עסקאות, 20%, -282$) — שיא-ווליום בקצה הוא פריצה, לא דחייה.</div><div class="card" style="padding:8px 12px">2. ההקשר (סוג-יום × שלב) הוא מה שעושה את ההבדל — זו בדיוק צורת-העץ: R0 בסיס: בר-טריגר חזק (כל מיקום): Neutral_Center 61/48%/+253$, Neutral_Extreme 29/45%/+9$ מול Variation 169/42%/-689$, Normal 12/42%/-45$; R3 שבירת-מבנה (סגירה מעבר ל-5 ברים) + וו: Neutral_Center 21/67%/+349$ מול Variation 79/39%/-497$, Neutral_Extreme 17/41%/-278$; R3e R3 + עם ההרחבה מה-IB: Neutral_Center 10/50%/+102$ מול Variation 38/32%/-318$; R4 IB-edge: דחייה בקצה-IB (≤0.5 ATR), טר: Neutral_Center 17/53%/+139$ מול Variation 35/34%/-333$.</div><div class="card" style="padding:8px 12px">3. מה שיש לו קצה עכשיו: R4n R4 רק בימי Normal/Neutral — 24 עסקאות, 58%, +291$ (+12.14$/עסקה) ⇒ מפיק-צל בהקשר הזה בלבד.</div><div class="card" style="padding:8px 12px">4. ההנחיות השליליות מאושרות במספרים: כניסה ליד ה-POC 61 עסקאות 38% -253$ · המשך בתוך הבטן אחרי ≥12 ברים 115 עסקאות 45% -212$ ⇒ שערים, לא מפיקים.</div><div class="card" style="padding:8px 12px">5. ניהול (מערכת 6): time-stop של 6 ברים (סקראץ׳ אם המהלך לא הראה ≥0.5×ATR) שיפר את Σ$ ב-9 מתוך 13 הכללים עם N≥15 (הבסיס: -433$ → -212$); BE אחרי +1×ATR שיפר ב-7/13; טריילינג 1×ATR שיפר ב-0/13 (המדגם רוטציוני). ⇒ המועמד הראשון לענף-ניהול: time-stop, אחריו BE — כל אחד נמדד לפי סוג-יום לפני דגל.</div><h2>איך זה מגדיל את העץ</h2><div class="card" style="padding:8px 12px">1. כלל עם EDGE נכתב כמפיק-צל (`shadow_only`) — יורה ונרשם ב-`v9_trades` כצל בלי לסחור.</div><div class="card" style="padding:8px 12px">2. אחרי ≥15 עסקאות-צל אמיתיות (לא ריפליי) שמאשרות את המספר — פסיקת-מייקל ⇒ המפיק מחובר ללייב בהקשר שבו הוא מנצח (סוג-יום × שלב × אזור), לא בכל מקום.</div><div class="card" style="padding:8px 12px">3. כלל שלילי הופך לשער (למשל: כניסה ליד ה-POC) — גם זה ענף.</div><div class="card" style="padding:8px 12px">4. הכלל שרץ פה הוא הבסיס; המבחן-היומי ממשיך למדוד אותו כל ערב, וההרנס מאשר על 56–85 סשנים לפני דגל.</div></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class=""><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+<script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
+</script></body></html>

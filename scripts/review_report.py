@@ -109,6 +109,38 @@ for k, b in sorted(by_dt.items(), key=lambda kv: -kv[1]["missed_pts"]):
     H.append(f'<tr><td>{h(k)}</td><td class="num">{b["days"]}</td><td class="num">{b["legs"]} ({b["pts"]:.0f})</td><td class="num">{b["took"]}</td><td class="num">{b["missed"]} ({b["missed_pts"]:.0f})</td></tr>')
 H.append('</table>')
 
+# § A2 reliability — sensitivity to the evaluation model (alternative runs of day_review.py --suffix)
+ALT = {"A": "מהלכים ≥2.0×ATR / 15 נק׳", "B": "סטופ 0.75×ATR", "C": "יעד 2.0×ATR", "D": "מהלכים ≥1.2×ATR / 10 נק׳"}
+alts = []
+for tag, label in ALT.items():
+    pth = os.path.join(OUT, "data", f"review_{tag}.json")
+    if not os.path.exists(pth): continue
+    A = json.load(open(pth, encoding="utf-8"))["days"]
+    gh = collections.Counter()
+    for dd in A.values():
+        for l in dd["legs"]:
+            if l["verdict"] in ("MISSED", "OPPOSITE", "LATE") and l["ideal"]:
+                for r in l["seen"]["blocked"]: gh[r["gate"].split(" ")[0].split(":")[-1]] += 1
+    alts.append(dict(label=label, legs=sum(x["n_legs"] for x in A.values()), took=sum(x["took"] for x in A.values()), missed=sum(x["missed"] for x in A.values()),
+                     missed_pts=sum(x["missed_pts"] for x in A.values()), gates=", ".join(f"{k} {v}" for k, v in gh.most_common(3))))
+if alts:
+    base_gh = collections.Counter()
+    for dd in D.values():
+        for l in dd["legs"]:
+            if l["verdict"] in ("MISSED", "OPPOSITE", "LATE") and l["ideal"]:
+                for r in l["seen"]["blocked"]: base_gh[r["gate"].split(" ")[0].split(":")[-1]] += 1
+    md += ["", "### א2 · האם הדוח אמין — רגישות למודל-ההערכה", "", "אותם 10 ימים, ארבעה מודלים חלופיים. אם דירוג-השערים ומספר-הפספוסים נשארים — הדיאגנוזה לא תלויה בבחירת הספים.", "",
+           "| מודל | מהלכים | בזמן | פוספסו (נק׳) | 3 השערים העליונים |", "|---|---|---|---|---|",
+           f"| **בסיס** (≥1.5×ATR/12 · סטופ 1.0 · יעד 1.5) | {tot['legs']} | {tot['took']} | {tot['missed']} ({tot['missed_pts']:.0f}) | {', '.join(f'{k} {v}' for k, v in base_gh.most_common(3))} |"]
+    H.append('<h3>א2 · האם הדוח אמין — רגישות למודל-ההערכה</h3><div class="dim">אותם 10 ימים, ארבעה מודלים חלופיים: אם דירוג-השערים ומספר-הפספוסים נשארים — הדיאגנוזה לא תלויה בספים.</div><table class="plain"><tr><th>מודל</th><th>מהלכים</th><th>בזמן</th><th>פוספסו (נק׳)</th><th>3 השערים העליונים</th></tr>'
+             f'<tr><td><b>בסיס</b></td><td class="num">{tot["legs"]}</td><td class="num">{tot["took"]}</td><td class="num">{tot["missed"]} ({tot["missed_pts"]:.0f})</td><td>{h(", ".join(f"{k} {v}" for k, v in base_gh.most_common(3)))}</td></tr>')
+    for a in alts:
+        md.append(f"| {a['label']} | {a['legs']} | {a['took']} | {a['missed']} ({a['missed_pts']:.0f}) | {a['gates']} |")
+        H.append(f'<tr><td>{h(a["label"])}</td><td class="num">{a["legs"]}</td><td class="num">{a["took"]}</td><td class="num">{a["missed"]} ({a["missed_pts"]:.0f})</td><td>{h(a["gates"])}</td></tr>')
+    H.append('</table>')
+    both("**מה הדוח כן ולא:** הוא אמין כדיאגנוזה (ברים אמיתיים, P&L של הברוקר, פיד-ההחלטות הסופי של הגייטוויי, תכונות סיבתיות בלבד) — ומספרי-הפספוס הם **תקרת-ראייה-מלאה**, לא מה שכלל היה תופס בזמן-אמת; לכן כל 'מה לתקן' עובר ריפליי כ-כלל-על-כל-הברים (מבחן-החתימות) לפני שהוא נוגע בעץ.",
+         '<div class="card" style="padding:10px 12px"><b>מה הדוח כן ולא:</b> אמין כדיאגנוזה (ברים אמיתיים, P&L של הברוקר, פיד-ההחלטות הסופי, תכונות סיבתיות בלבד) — ומספרי-הפספוס הם <b>תקרת-ראייה-מלאה</b>, לא מה שכלל היה תופס בזמן-אמת; לכן כל "מה לתקן" עובר ריפליי כ-כלל-על-כל-הברים (מבחן-החתימות, <a href="signatures.html">signatures.html</a>) לפני שהוא נוגע בעץ.</div>')
+
 # § B day by day
 md += ["", "## ב · יום אחרי יום — מה היה צריך לבצע, ומה המערכת עשתה", ""]
 H.append('<h2>ב · יום אחרי יום — מה היה צריך לבצע, ומה המערכת עשתה</h2>')

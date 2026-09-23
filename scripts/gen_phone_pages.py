@@ -16,7 +16,7 @@ render_mobile_relay/static/docs/ and served by the relay at /doc/<name> and /doc
 Pages: index.html · days/<date>.html · trades.html · missed.html (from data/missed.json, made by
 scripts/missed_trades_study.py) · lessons.html (from docs/plans/LESSONS_TIMELINE.json) · tree.html
 """
-import os, sys, json, argparse, collections, statistics, html, datetime as dt
+import os, sys, json, glob, argparse, collections, statistics, html, datetime as dt
 from zoneinfo import ZoneInfo
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT); os.chdir(ROOT)
@@ -343,6 +343,7 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
         ("review_report.html", "📑", "דוח-ריפליי מסודר", "כל הימים: מה היה צריך · מה לתקן", "למידה"),
         ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
+        ("signatures.html", "🧬", "מבחן-החתימות", "מיקום · ווליום · נרות — כלל על כל בר", "למידה"),
         ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
 BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
@@ -714,6 +715,34 @@ if os.path.exists(rrp):
     body = RR["html"] + (f'<div class="dim" style="margin-top:12px">גם כ-PDF: <a href="REPLAY_REVIEW_{RR["generated"][:10]}.pdf">להורדה</a> · מקור: docs/reports/REPLAY_REVIEW_{RR["generated"][:10]}.md</div>' if os.path.exists(os.path.join(OUT, f'REPLAY_REVIEW_{RR["generated"][:10]}.pdf')) else "")
     with open(os.path.join(OUT, "review_report.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("דוח-ריפליי מסודר", body, active="review_report.html", sub=f'{len(RR["days"])} ימים · נוצר {RR["generated"][5:16].replace("T", " ")}'))
+
+# ── signature rules test (Michael 23.09 14:30: "איך מזהים עסקאות לפי מיקום, ווליום ונרות") ──
+sgp = os.path.join(OUT, "data", "signature_rules.json")
+if os.path.exists(sgp):
+    SG = json.load(open(sgp, encoding="utf-8"))
+    VCLS = {"EDGE": "ok", "חלש": "warn", "שלילי": "bad", "N קטן": ""}
+    def vcls(v): return next((c for k, c in VCLS.items() if v.startswith(k)), "")
+    sb = ['<h1>מבחן-החתימות</h1><div class="dim">האם כלל של מיקום / ווליום / נרות מוצא עסקאות מנצחות <b>לבד</b>? כל כלל נורה על כל בר אחרי ה-IB ב-' + str(len(SG["sessions"])) + ' סשנים ונשפט במודל-ההערכה הקבוע — אפס ראייה-לאחור. כלל שדרוש לו ההקשר (סוג-יום) כדי לנצח = ענף בעץ; כלל שלילי = שער.</div>',
+          f'<div class="dim" style="margin:6px 0 10px">{html.escape(SG["model"])}</div>',
+          '<div style="overflow-x:auto"><table class="plain"><tr><th>כלל</th><th>N</th><th>win%</th><th>Σ$ יעד</th><th>$/עסקה</th><th>time-stop</th><th>BE</th><th>טריילינג</th><th>פסק-דין</th></tr>']
+    for o in SG["rules"]:
+        sb.append(f'<tr><td>{html.escape(o["rule"])}<div class="dim" style="font-size:11px">' + " · ".join(f'{k} {v["n"]}/{v["win"]}%/{v["usd"]:+.0f}$' for k, v in list(o["by_day_type"].items())[:4]) + '</div></td>'
+                  f'<td class="num">{o["n"]}</td><td class="num">{o["win"]}</td><td class="num"><span class="{"pos" if o["usd"]>0 else "neg"}">{o["usd"]:+.0f}</span></td><td class="num">{o.get("per",0):+.2f}</td>'
+                  f'<td class="num">{o.get("tstop_usd",0):+.0f}</td><td class="num">{o.get("be_usd",0):+.0f}</td><td class="num">{o["trail_usd"]:+.0f}</td><td><span class="pill {vcls(o["verdict"])}">{html.escape(o["verdict"])}</span></td></tr>')
+    sb.append('</table></div>')
+    # conclusions from the md (section "המסקנות")
+    mdp = sorted(glob.glob(os.path.join(ROOT, "docs", "reports", "SIGNATURE_RULES_*.md")))
+    if mdp:
+        txt = open(mdp[-1], encoding="utf-8").read()
+        i = txt.find("## המסקנות")
+        if i >= 0:
+            sec = txt[i:].split("\n")
+            sb.append('<h2>המסקנות</h2>')
+            for line in sec[1:]:
+                if line.startswith("## "): sb.append(f'<h2>{html.escape(line[3:])}</h2>')
+                elif line.strip() and line[0].isdigit(): sb.append(f'<div class="card" style="padding:8px 12px">{html.escape(line).replace("**","")}</div>')
+    with open(os.path.join(OUT, "signatures.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("מבחן-החתימות", "".join(sb), active="signatures.html", sub=f'{len(SG["rules"])} כללים · {len(SG["sessions"])} סשנים'))
 
 # ── the tree board (Michael 23.09 09:20: "האם יש לנו עץ? יש לו צורה? לוח שגדל") ──
 tbp = os.path.join(OUT, "data", "tree_board.json")
