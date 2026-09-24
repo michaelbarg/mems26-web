@@ -1917,6 +1917,27 @@ flags:
     why: "Michael 20.09 09:40 'תתקן את הענף — שוב קנית מאוחר מדי'. The T-314 detector calls OPEN_DRIVE only once the open sits within 20% of the SESSION range from the extreme, so early in a drive (small range) the first bar's counter-spike exceeds the tolerance and the label lags until the range has grown ~5x (18.09: 17:00, after 25 of 26 points). Measured scripts/open_drive_branch_study.py (56 clean sessions, closed bars, fixed model 1c to T1=1.5R): DRIVE admitted today N=7 43% win −$12 vs BLOCKED by the label lag N=14 64% win +$519 (2c ladder +$1,270). Harness 18.09: OPENING_DRIVE SHORT 16:45:03 @7705 stop 7716 T1 7689.75 ⇒ +$76.25 (live got 17:00 @7691.25 ⇒ +$6.25)."
     status: enabled
     ref: "T-426 · docs/reports/OPEN_DRIVE_BRANCH_2026-09-20.md · harness_out/t426/"
+  OPENING_DRIVE_BRANCH_V1:
+    category: cascade_gate
+    group: opening
+    what: "T-457 (24.09, code default OFF — pending Michael's ruling): the opening-drive branch for ONE contract. Three parts under one flag, for OPENING_DRIVE / OPENING_TEST_DRIVE setups only: (1) build_opening_setup: t1 = 2.5R (OPENING_DRIVE_T1_R), ladder t2 = 4R, no t3; (2) gateway: ELQ (entry_location_quality) skipped — a confirmed drive is 'beyond value' by definition at 16:45; (3) gateway: TARGET_REALISM skipped — the realism ceiling is the session extreme, i.e. the drive's own front. 0 = byte-identical."
+    why: "Measured scripts/variation_playbook_test.py (60 sessions, 21 confirmed opening drives, 1c, first touch, $1.30/side): T1=1.5R Σ+$442 57% · T2=2.5R Σ+$712 48% · T3=4R Σ+$725 48% · trail +$26. 23.09 replay after T-451 (harness_out/t456): the confirmed drive SHORT @7814.25 passed the tree and died at ELQ beyond_value ex=1.08>0.25; with ELQ off TARGET_REALISM clamped t1 7793.62→7812.50 (1.75 pts) on a 48-pt drive; with both off the structural T1 (20.6 pts) hit at 17:10 ≈ +$100; the 2.5R exit on 23.09's drive = +37.5 pts ≈ +$185."
+    status: disabled
+    ref: "T-457 · docs/reports/VARIATION_PLAYBOOK_2026-09-24.md · tests/v9/regression/test_t457_opening_drive_branch.py"
+  OPENING_DRIVE_T1_R:
+    category: param
+    group: opening
+    what: "R-multiple of the single-contract target for OPENING_DRIVE/TEST_DRIVE when OPENING_DRIVE_BRANCH_V1 is on (default 2.5). Inert while the branch flag is off."
+    why: "T-457 measurement: 2.5R Σ+$712 vs 1.5R Σ+$442 on 21 drives (60 sessions)."
+    status: param
+    ref: "T-457"
+  IB_EXT_OVERRIDE_PHASE_GUARD_V1:
+    category: cascade_gate
+    group: dalton
+    what: "T-451/T-456 (23.09, code default ON = the documented intent): the gateway's Layer-2 'IB extension direction' bias override runs only from 17:30 IL (phase C+), when an initial balance exists. 0 = the pre-23.09 behaviour (override on a developing IB) for replay comparison only."
+    why: "23.09: a mislabeled pre-open bar (high 7828.75) became TPO session_high across the GLOBEX→CASH boundary; the override read a phantom 'extension up 2.25' at 16:45 on a DEVELOPING IB and flipped the day's bias to LONG on a 48-point opening drive DOWN — the confirmed OPENING_DRIVE SHORT was rejected (bias=LONG rejects SHORT), REACTIVE_LONG #2230 admitted at the IB low (−$18.75), ZLR SHORT blocked, bias LONG until 19:20. Paired with the TPO fix (session extremes reset at the RTH boundary). tests/v9/regression/test_t451_phantom_ib_extension.py."
+    status: enabled
+    ref: "T-456 · harness_out/t456/ · docs/reports/REPLAY_2026-09-23_AFTER_FIX.md"
   OPENING_ENGINE_CLOSED_BARS_V1:
     category: s2
     group: opening

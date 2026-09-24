@@ -170,3 +170,26 @@ rules:
 
   # ── FRESH_EXTREME (T-366) ──────────────────────────────────────────────
   # Measured negative, Michael turned off.  NO ROW in tree v2.
+
+  # ── T-457 (24.09): the Variation-day branches, measured on 60 sessions ──────
+  # scripts/variation_playbook_test.py — causal rules on every bar, one contract,
+  # first touch on 5-min bars, $1.30/side. Structure-break ("BREAK") entries lose
+  # on every non-trend day type; with-extension pullback continuation ("CONT")
+  # wins only on days that extend one-sidedly; the opening drive wins with a 2.5R
+  # target. Shadow rows here; the drive branch itself is OPENING_DRIVE_BRANCH_V1
+  # (default OFF, pending ruling).
+  - id: t457_break_blocked_off_trend
+    phase: [C, D]
+    condition: "expr: day_type in ['Variation','Normal_Variation','Normal','Neutral_Center','Neutral_Extreme','Nontrend','Nonconviction'] and entry_kind == 'BREAK'"
+    decision: block
+    source: T-457
+    measured: "variation_playbook_test 24.09, 60 sessions: BREAK N=142 T1 -$591 39% (Variation n=85 -$548 · Neutral_Extreme -$131 · Normal -$242) vs Trend_Normal n=10 +$135 (T2 +$290). Caveat: the measured rule is 'structure break on a trigger bar while extended'; the producers mapped to BREAK (INITIATIVE/GB100/GHOST/ZLR/VEGAS/FAMIR/DOUBLE_*) are judged here by the TREE_SHADOW diff before any ruling."
+    note: "Rotation/variation days: the break is the chase. Allowed only on Trend_* (kept by the phase-C trend row)."
+
+  - id: t457_cont_pullback_with_extension
+    phase: [C]
+    condition: "expr: day_type in ['Variation','Normal_Variation'] and entry_kind == 'PULLBACK' and extension != 'none' and ((extension == 'down' and direction == 'SHORT') or (extension == 'up' and direction == 'LONG'))"
+    decision: allow
+    source: T-457
+    measured: "variation_playbook_test 24.09: CONT_1S (one-sided extension or drive day + pullback ≥2 bars + trigger bar) N=113 T1=1.5R +$156 42%; Variation n=78 +$459 45%; T2/T3/trail negative -> fixed 1.5R only. 23.09: 18:45 SHORT +15.0 · 20:20 -8.25 · 21:00 +13.9 pts."
+    note: "The self-correction branch: fires whether or not the opening drive was taken. Candidate shadow producer VAR_CONT (cc). 1.5R fixed target — bigger targets give it back on rotation days."

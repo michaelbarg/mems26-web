@@ -2522,7 +2522,27 @@ class TradingGateway:
         if _elq_skip_d and _elq_mode in ("1", "true", "shadow"):
             logger.info("[Gateway] ELQ skipped: phase D with-trend %s (%s)",
                         direction, getattr(_dalton_intent, "reason", ""))
-        if _elq_mode in ("1", "true", "shadow") and not _elq_skip_d:
+        # T-457 / OPENING_DRIVE_BRANCH_V1 (measured 24.09, scripts/variation_playbook_test.py,
+        # 60 sessions, 21 opening drives: T1=1.5R +$442 57% · T2=2.5R +$712 48% · T3 +$725):
+        # a confirmed opening drive (OPENING_DRIVE / OPENING_TEST_DRIVE from the opening
+        # engine — 3 closed bars beyond the opening range) is "beyond value" by
+        # definition: at 16:45 the value area IS the 3-bar opening range. 23.09 replay:
+        # the drive SHORT @7814.25 passed the tree and died here (beyond_value ex=1.08
+        # > 0.25) while the day fell 48 points. Dalton: on an open-drive the market
+        # is not coming back to value — that is the reason to trade it. Skipped only
+        # for the engine's own drive setups; every other producer keeps ELQ.
+        # Flag default OFF — pending Michael's ruling (trading-risk surface).
+        try:
+            _elq_skip_drive = (
+                os.getenv("OPENING_DRIVE_BRANCH_V1", "0").lower() in ("1", "true", "yes")
+                and str(setup.get("classification") or "").upper() in ("OPENING_DRIVE", "OPENING_TEST_DRIVE"))
+        except Exception:
+            _elq_skip_drive = False
+        if _elq_skip_drive and _elq_mode in ("1", "true", "shadow"):
+            logger.warning("[Gateway] T-457 ELQ skipped for confirmed opening drive %s %s "
+                           "(OPENING_DRIVE_BRANCH_V1)", setup.get("classification"), direction)
+            result["elq_skipped"] = "opening_drive_branch"
+        if _elq_mode in ("1", "true", "shadow") and not _elq_skip_d and not _elq_skip_drive:
             try:
                 from backend.v9.systems.entry_location_quality import assess_entry_quality
                 _elq_entry = setup.get("entry_price")
@@ -4446,7 +4466,19 @@ class TradingGateway:
         # word on t1 after all producers: ceiling = session extreme + today's
         # average breakout step. Tighten-only; honest skip when bars missing.
         # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
-        if (not _confluence_fixed) and (not _edge_fade) and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+        # T-457 / OPENING_DRIVE_BRANCH_V1: the realism ceiling is "session extreme +
+        # average breakout step" — during an opening drive the session extreme IS
+        # the front of the drive, so the ceiling clamps the drive's target to a
+        # couple of ticks (23.09 replay: t1 7793.62 → 7812.50 on a short from
+        # 7814.25; the day went to 7759). The drive keeps its structural R-ladder.
+        _realism_exempt_drive = (
+            os.getenv("OPENING_DRIVE_BRANCH_V1", "0").lower() in ("1", "true", "yes")
+            and str(setup.get("classification") or "").upper() in ("OPENING_DRIVE", "OPENING_TEST_DRIVE"))
+        if _realism_exempt_drive and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+            logger.warning("[Gateway] T-457 TARGET_REALISM skipped for opening drive %s (structural ladder kept: t1=%s t2=%s t3=%s)",
+                           setup.get("classification"), setup.get("t1"), setup.get("t2"), setup.get("t3"))
+            result["target_realism"] = {"skipped": "opening_drive_branch"}
+        if (not _confluence_fixed) and (not _edge_fade) and (not _realism_exempt_drive) and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.structural_targets import realism_ceiling as _rc
                 _rc_entry = setup.get("entry_price")

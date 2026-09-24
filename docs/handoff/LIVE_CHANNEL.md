@@ -1,3 +1,39 @@
+## 🌳 [cowork-dev · 2026-09-24 08:00-08:50 IL] — **[[T-457]] ענף-דרייב-הפתיחה: נבנה, נמדד, כבוי — ממתין לפסיקה אחת · [[T-458]] ענפי-יום-וריאציה ל-cc**
+
+**מייקל 08:00:** *"אתמול זה יום של 80 נקודות… רוב הימים בשנה הם וריאציה או כאלה שמסתיימים ככה — עליך לדאוג שיהיו לנו ענפים… תוכל לבדוק, לבחון, לתקן ולהציע איך זה תוקן וכמה כסף נעשה."*
+
+**1 · המדידה (לפני הדגל, לפי הדוקטרינה):** `scripts/variation_playbook_test.py` — 60 סשנים, חוזה 1, מגע-ראשון על 5-דק׳, 1.30$/צד, מודל-הערכה אחד.
+
+```raw
+DRIVE_LATE (דרייב מאושר, 3 ברים)  N=21   T1 1.5R Σ+442$ 57% · T2 2.5R Σ+712$ 48% · T3 4R Σ+725$ 48% · trail +26$
+CONT_1S   (תיקון-עצמי אחרי חזרה)  N=113  T1 Σ+156$ · Variation n=78 Σ+459$ 45% · Normal/Neutral מפסיד
+BREAK     (פריצת-טווח)            N=142  מפסיד על כל סוג-יום שאינו טרנד ⇒ שער, לא מפיק
+PLAYBOOK  DRIVE_LATE→T2 + CONT_1S→T1, סלוט אחד: 60 סשנים · 109 עסקאות · 44% · Σ +868$ · ימים +24/−23/13
+          Variation 38 ימים +1,124$ (+29.6/יום) · Normal −181 · Neutral_Center −409 · Neutral_Extreme −189 · Trend_Normal +117
+          חודשים: 06 +54$ (3 ימים) · 07 +748$ (21) · 08 −41$ (20) · 09 +108$ (16)   ← לא אחיד; זו הסיבה לצל/דגל-כבוי
+★ 2026-09-23 (Variation): +207.85$ — DRIVE_LATE 16:45 SHORT @7806.5 → T2 +37.50 (+185$) · CONT_1S 20:20 −8.25 (−44$) · CONT_1S 21:00 +13.88 (+67$)
+```
+
+**2 · התיקון (קוד, דגל אחד `OPENING_DRIVE_BRANCH_V1`, ברירת-מחדל 0 ⇒ זהה-בית):** `backend/v9/systems/opening_entry.py::build_opening_setup` — DRIVE/TEST_DRIVE ⇒ t1 = 2.5R (`OPENING_DRIVE_T1_R`), t2 = 4R, בלי t3 · `backend/v9/gateway/trading_gateway.py` — פטור-ELQ (`elq_skipped=opening_drive_branch`) + פטור-TARGET_REALISM ל-`OPENING_DRIVE`/`OPENING_TEST_DRIVE` בלבד. `docs/FLAG_REGISTRY.yaml` ×3 · `config/dalton_tree_v2_draft.yaml` +2 שורות-צל (`t457_break_blocked_off_trend`, `t457_cont_pullback_with_extension`).
+
+```raw
+$ BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_t457_opening_drive_branch.py tests/v9/regression/test_t451_phantom_ib_extension.py -q
+12 passed, 2 warnings in 0.24s
+$ python3 scripts/flag_guard.py | tail -1        ⇒ PASS — all 264 ruled flags match
+$ python3 scripts/task_log_guard.py | tail -1    ⇒ ✅ the task log is current, structured, and the only one (437)
+$ OPENING_DRIVE_BRANCH_V1=1 python3 scripts/fwd_harness.py --session 2026-09-23 --out harness_out/t456/drivebranch_2026-09-23.json
+  16:45 OPENING_DRIVE SHORT → live: SELL 7814.25 stop 7828.00 target 7779.88 (elq_skipped=opening_drive_branch, target_realism skipped)
+  17:20 target hit ⇒ ≈ +169$ · יום ≈ +179$   (בפועל 23.09: −18.75$)
+$ OPENING_DRIVE_BRANCH_V1=1 python3 scripts/fwd_harness.py --session 2026-09-21 ...   ⇒ דרייב ≈ +116$ (בפועל +18.75$)
+```
+
+**3 · הקשר-פסיקה:** `OPENING_DRIVE_SKIP_V1=0` עומד מ-01.09 (*"לפני שתכבה קודם תתקן"*); ה-n=6/0-ניצחונות של אז נסחרו עם באגי-הכיוון והסטופ שתוקנו ב-T-426/T-451/T-456. הענף הוא ה"תיקון" שהפסיקה ההיא דרשה — ועדיין: הדלקה = שינוי-סיכון ⇒ **פסיקה אחת של מייקל** (בטלפון, מקרה ג׳).
+
+**4 · ל-cc (T-458, הזמנה `docs/handoff/cc_orders/CC_PROMPT_2026-09-24.md`):** (ג) הרנס-אישור על 56 סשני-הדרייב עם הדגל 1/0 — המספר שמכריע ⇒ (א) `VAR_CONT` מפיק-צל ⇒ (ב) שער BREAK ⇒ (ד) ריפליי-יציאות. מחוץ ל-RTH בלבד.
+
+**5 · כנות:** "80 נקודות" הוא תקרת-הראייה-המלאה (מקסימום-הרגלים). חוזה אחד עם כללים סיבתיים לוקח מזה 35–60% — אתמול 51 נק׳ בפלייבוק (≈208$), 35 נק׳ במנוע האמיתי עם הענף (≈179$). לא 100$ — אבל גם לא 80 נק׳.
+
+---
 ## 🧪 [cowork-dev · 2026-09-24 07:15-07:45 IL] — **[[T-456]] ריפליי 23.09 אחרי התיקונים: ≈ +15$ במקום −18.75$ — הכיוון נכון, הכסף הגדול עדיין חסום בשתי שכבות: [[T-457]] ELQ על דרייב-פתיחה, וקיצוץ-היעדים** · **מייקל 07:15:** "איך אתמול היה מרוויח לייב לאחר התיקונים ואיך העץ גדל"
 
 **ארבע ריצות `fwd_harness --session 2026-09-23` (07:21–07:35, מחוץ ל-RTH, ≤2 במקביל, `SITUATION_VECTOR_LOG_V1=0`):** **A · HEAD** (`c746189d`: T-451 איפוס-קיצונים+שומר-שלב · T-436b/d · T-421): `16:45 T-426 provisional OPEN_DRIVE` ✓ → `BLOCKED blocked_by=entry_location_quality` (`beyond_value: ex=1.08 > 0.25 (entry past value area)`) · `17:05 INITIATIVE_SHORT @7799.50 outcome=live (FWD-live-3)`, `TARGET_REALISM_V1: t1 7753.00 → 7796.00` ⇒ +3.5 נק׳ (נפגע 17:10) ≈ **+15$** · `19:15 REACTIVE_LONG blocked dalton_intent:bias bias=SHORT (Trend_Normal)` ✓ · `routes=64 blocked=51 live_cmds=0`. **B · `IB_EXT_OVERRIDE_PHASE_GUARD_V1=0`:** זהה ל-A (האיפוס-בגבול-RTH לבדו מנקה את הפנטום). **C · `ENTRY_LOCATION_QUALITY_V1=0` (what-if):** `16:45 OPENING_DRIVE SHORT @7814.25 live`, `TARGET_REALISM: 7793.62 → 7812.50` ⇒ 1.75 נק׳ ≈ +6$. **D · C + `TARGET_REALISM_V1=0` (what-if):** הדרייב עם T1 מבני 7793.62 (20.6 נק׳ = 1.5R על סטופ 13.75) נפגע 17:10 (שפל 7787.25) ⇒ **≈ +100$**; הסולם `t2 7779.88` (נפגע 17:20) · `t3 7759.25` מול שפל-היום `7759.00`. (הדחייה ב-17:20 `effective contracts=0` = ארטיפקט חשבון-ההרנס.) **המספרים במודל הקבוע על הברים — ההרנס לא מדמה מילויים.** **מה שנגזר:** אין דגל היום. **T-457** — פטור-ELQ ל-`OPENING_DRIVE`/`TEST_DRIVE` בשלב B כשהמנוע אישר (כלל-גייטוויי), אחרי הרנס על 56 סשני-הדרייב (מחקר T-426 **לא** כלל ELQ ⇒ ה-+519$ שלו הוא תקרה); **ענף-היציאות** — הריאליזם הפך 20.6→1.75 ו-40→3.5 נק׳ (21.09: 24/124; 22.09: פער 74) ⇒ ריפליי T1-מבני מול קיצוץ מול time-stop. **העץ (23→24.09):** שורשים: ההטיה נקייה (T-456, נטען ב-15:30) · מחיר-מילוי אמיתי (T-436d, **DLL READY-TO-DEPLOY — Remote Build + רענון-study מחוץ לשעות-מסחר, לפני 16:10 או אחרי 23:00**) · `exit_price` ביעד (T-421, cc 00:22) · pnl_sierra אוטומטי (T-436b, אומת 19:20:03) · המבחן-היומי רואה דרייבים (11 ימים: 55 מהלכים · 4 בזמן · 42 פוספסו · 1,080 נק׳ — המבחן החמיר) · **ניצן ראשון בשל לריפליי:** `bias · C · Variation · IN_VA · LONG` (4 מהלכים, 3 ימים, 62.9 נק׳). דוח: `docs/reports/REPLAY_2026-09-23_AFTER_FIX.md` · טלפון `replay_after_fix.html` + PDF. ☎️ הודעה אחת (תשובה לשאלה).
