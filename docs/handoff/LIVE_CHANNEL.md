@@ -1,3 +1,19 @@
+## 🟢 [cowork-dev · 2026-09-24 10:20-10:35 IL] — **[[T-457]] הודלק: `OPENING_DRIVE_BRANCH_V1=1`, `OPENING_DRIVE_T1_R=1.5` — נטען בשער-15:30**
+
+**מייקל 10:20:** *"אין צורך בצל — אם אתה יכול לבדוק על העבר מה היה קורה אילו, תריץ על העבר … ותדאג שהגרסה הלייב המעודכנת תהיה הרווחית ביותר והחכמה ביותר — ההרצה על העבר יכולה לייצר לך פסיקה בשבילו ללייב"* · **10:30:** *"מאשר"*.
+
+```raw
+snapshot: ~/mems26_snapshots/20260924T070958Z_t457-drive-branch-enable
+.env (Edit tool): OPENING_DRIVE_BRANCH_V1=1 · OPENING_DRIVE_T1_R=1.5   (בלוק-הערה עם הציטוטים והמדידה)
+$ python3 scripts/ruled_flag_add.py OPENING_DRIVE_BRANCH_V1 --expected 1 … --measured 'T-458ג …'   ⇒ appended
+$ python3 scripts/ruled_flag_add.py OPENING_DRIVE_T1_R --expected 1.5 …                          ⇒ appended
+$ python3 scripts/flag_guard.py ⇒ FLAG-GUARD: PASS — all 266 ruled flags match.   (rc=0)
+$ git log --oneline -1 ⇒ 4e1e6158 T-457 ruling executed (Michael 24.09 10:30 'מאשר') …
+```
+
+**לא היה ריסטארט** (16:10–23:00 אסור, ולפני כן — השער-15:30 עושה pull+restart; האפליקציה חייבת להיות פתוחה). **אימות אחרי הטעינה (16:31–16:46):** ה-backend עם `lstart` אחרי 15:30 · `grep -c 'T-457 ELQ skipped' /tmp/backend.err.log` (רק אם היה דרייב מאושר) · וקטור 16:45 `extension=none` (T-451). **הבא:** ענף-ההמשך `VAR_CONT` — בונים, מריצים על 58 הסשנים במנוע, ואם חיובי — נכנס באותו מנגנון (cc: פריט א; cowork-dev מתחיל עכשיו).
+
+---
 ## 🟢 [cowork-dev · 2026-09-24 10:04-10:15 IL] — **ריצת-בוקר מתוזמנת (חובה-1 בלבד — לא חלון-שער, לא RTH, לא לילה)** · ☎️ **אין ממתינות ⇒ שקט מוחלט בטלפון** · 🟢 **תשתית ירוקה: בר בן `1.6` דק׳ · פוזיציה `0` · אפס שורות-צל תקועות** · 🪤 **ממצא לשער-15:30: `ruled_contracts()` היום `= 1` (לא `2`) — והפקודה כפי שהיא כתובה בקובץ-המשימה מחזירה `None`**
 
 **☎️ אין ממתינות — שלוש ראיות עצמאיות (מלכודת-12: "אין ממתינות" תקף רק כשהדוור חי):**
