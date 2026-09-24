@@ -1,3 +1,75 @@
+## 🔵 [cowork-dev · 2026-09-24 20:04-20:08 IL] — **ניטור-RTH שלישי של הערב · תקין** · 🔑 **הממצא: 4 החלטות חדשות מאז 19:42, שלוש מהן חסימת-מיקום על ראלי 7730→7779 (מחיר מעל VAH) ⇒ אין (ב), אין (ג), שקט-טלפון**
+
+`20:04` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (מאזין `77380 Thu Sep 24
+15:38:41` > 12:00 ⇒ [[T-369]]) ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה
+בדגלים/`.env`/פוזיציות.** כתיבות: `LIVE_CHANNEL.md` בלבד.
+
+### ☎️ חובה-1 — **אפס ממתינות · שקט מוחלט בטלפון**
+
+```raw
+זנב PHONE_THREAD.jsonl + peek GET /chat?key=…  ⇒ http=200 · items n=30 · שני המקורות זהים בתו
+last_michael  2026-09-24T15:49:13Z  id=a9513278  "למה אין עסקאות מה מונע איך לתקן"
+last_agent    2026-09-24T16:08:55Z  sender=cowork  len=415  (תשובה עניינית, לא -ack)
+```
+
+ההודעה האחרונה בפיד היא **תשובת-הסוכן**, לא שאלת-מייקל ⇒ `PENDING=False` ⇒ אין (א).
+אפס עסקת-לייב ⇒ אין (ב) · אפס חריגה-חוסמת ⇒ אין (ג) · אינו שער ⇒ אין (ד).
+**אפס `phone_reply.py` בריצה הזו.**
+
+### 🩺 חובה-3 — **המערכת מוכחת-חיה לפני שנקבע "לא ירתה"**
+
+```raw
+feed (T-430)  select max(ts), round(extract(epoch from (now()-max(ts)))/60,1)
+              from v9_bars_5min_woodies ⇒ 2026-09-24 20:05:00+03 | age_min 0.3   ✅ פיד חי
+health        GET /health      ⇒ 200  t=0.018s
+              GET /api/v9/health ⇒ 200  t=0.003s          (סף 100ms — עבר)
+listener      pid 77380  lstart Thu Sep 24 15:38:41 2026  etime 04:27:35  (ללא ריסטארט נוסף)
+gateway       live_enabled_systems=[2,4] · live_slot=null · demo_slot=null · trades_today=0
+              shadow_active=7 · cooldown_active=false · cluster_guard=false · SSV veto=false
+              chop_state=FOUND · consecutive_stops=21 (צל — לא הפעיל cooldown)
+sierra/broker position_qty=0 · avg_price=0.0 · working_orders=0 · daily_total_qty_filled=0
+              armed=1 · is_sim=0 · acct 37138283 · stale=false age_s=0.3 · last_price 7779.0
+TM/DB         state NOT IN ('CLOSED','CANCELLED') ⇒ shadow|FILLED|4 (#2330-2333, 19:55-20:05)
+              live ⇒ 0                                            ⇒ AGREED_FLAT
+```
+
+⇒ **חמוש, סלוט פנוי, פיד חי, פוזיציה 0 בשני הצדדים. אין קונפליקט-בעלות ⇒ אין אזעקה.**
+ארבע שורות-הצל הפתוחות נולדו ב-10 הדקות האחרונות — **אינן** דפוס-התקיעה של 16.09
+(שם היו שורות מאתמול); אין מה לסגור.
+
+### 📊 הדלתא מאז 19:42 — **4 החלטות, אפס פריצה ללייב**
+
+```raw
+curl /api/v9/gateway/decisions?limit=2000  (מלכודת 3.2 — לא ברירת-המחדל 200)
+n_returned=49 < 200 ⇒ ההיסטוגרמה שלמה; oldest_ts 13:32:08Z = פתיחת-הסשן ⇒ "כל היום" מותר
+today  n=49   outcome: blocked=42 · shadow_only=7 · fired=0
+מאז 16:42Z (4):
+  17:05:04  S4 LONG  blocked      zone=above_value price=7777.75 vah=7762.75 val=7726.75
+  17:05:01  S4 LONG  blocked      zone=above_value price=7776.50 vah=7762.75 val=7726.75
+  16:57:12  S4 LONG  blocked      zone=above_value price=7781.50 vah=7758.75 val=7727.00
+  16:55:04  S2 SHORT shadow_only  (נולד צל-בלבד — לא ניתן-ניתוב, T-464/T-465)
+חוסמים מובילים היום: counter-bias 8 · phase=A 5 · near_val 4 · above_value 3
+```
+
+**מה זה אומר:** המחיר עלה 7730→7779 בשעה האחרונה, והמיקום דחף את כל שלושת מועמדי-S4
+אל מעל ה-VAH — כלומר החוסם החדש היחיד הוא **מיקום**, בדיוק הקטגוריה שסומנה בדוח-הריפליי
+כשווה 151 נק׳. זו מדידה לריפליי, **לא** תקלה: אין פסיקה לשנות בה דבר בזמן-אמת.
+
+### 🧾 לוג — **שטף-השגיאות נשאר מת מאז הריסטארט**
+
+```raw
+ERROR today=18,140  (מתוכם 18,119 עד 15:38 — TS-OFFSET-GATE, ≈1,190/שעה)
+ERROR אחרי 15:38 = 21 בלבד, כולן:
+  [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+קצב-לוג נוכחי: 281 שורות ב-2 דק' ≈ 140/דק'  (16.09 הפתולוגי = 1,000/דק' ⇒ פי-7 מתחת)
+backend CPU 52-82% · RSS 132MB · load 4.03 — עקבי עם ניהול 49 עסקאות-צל, לא פתולוגיה
+Traceback today=0 · ORPHAN today=0 · LIVE fire BLOCKED today=0
+```
+
+`CLOSED -> CLOSED` הוא מרוץ-סגירה-כפולה בצל (אשכול 19:15 — שש שורות-צל נסגרו באותה שנייה);
+קוסמטי, אפס נגיעה בלייב. נרשם כאן כדי שלא ייקרא כרגרסיה בריצה הבאה.
+
+---
 ## 🔵 [cowork-dev · 2026-09-24 19:34-19:42 IL] — **ניטור-RTH שני של הערב · תקין** · 🔑 **הממצא: שום דבר לא השתנה מאז 16:08 — 5 החלטות חדשות, כולן חסומות בשערים מוכרים ⇒ אין (ב), אין (ג), שקט-טלפון**
 
 `19:34` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (מאזין `77380 Thu Sep 24
