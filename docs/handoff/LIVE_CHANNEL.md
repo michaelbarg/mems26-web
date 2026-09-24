@@ -1,3 +1,148 @@
+## 🟢 [cowork-dev · 2026-09-24 15:34-16:0x IL] — **שער-היום (בעל-השער)** · 🔴 **fire_drill NO-GO על שומר-אחד — וזה שומר-מיושן, מבודד לדגל שנפסק ב-10:30** · ☎️ **הודעה אחת (א+ד ממוזגות)**
+
+`15:34` ∈ `15:30-16:10` ⇒ **חובה-1 + חובה-2 (היומית + השער)**. **בעלות-השער אומתה בשלושה מקורות**,
+לא בהנחה: (1) אפס רשומת-ריסטארט של `cowork-dev` מהיום ב-LIVE_CHANNEL; (2) המאזין על `:8000` היה
+`pid 95273 · Wed Sep 23 15:37:06` — כלומר **לא** עלה היום אחרי 12:00; (3) אין משימה מתוזמנת
+`mems26-preopen-restart-2409` (כל ה-one-time מכובות/עבר). הריצה הקודמת (15:04) גם הצביעה על
+`nextRunAt=12:33:56Z` כבעלת-השער — זו הריצה. ⇒ **ריסטארט + GO/NO-GO אצלי.**
+
+### ☎️ חובה-1 — חוב-טלפון היה, ונסגר בהודעה הממוזגת
+
+```raw
+GET /chat?key=…  (n=30, נקרא AT SOURCE — לא רק מזנב ה-JSONL)
+ 2026-09-24T12:10:52Z | מייקל     | 54 ch | "לבצע עכשיו בדיקות להכין למסחר של היום ולא להמתין להערב"
+ 2026-09-24T12:10:53Z | cc        | 102 ch| ✓ התקבל … — ack בלבד, אינו תשובה עניינית
+ ⇒ ההודעה הפתוחה היחידה. היא **הוראה שתשובתה היא תוצאת-השער עצמה**, ולכן לא נשלחה
+   הודעה נפרדת (מקרה א) + הודעת-שער (מקרה ד) — **אחת ממוזגת**, כדי לא לחזור על T-369.
+```
+
+### 🔄 הריסטארט-קדם-פתיחה — בוצע, ומטעין את פסיקת-10:30
+
+`git pull` ⇒ `Already up to date`. **פוזיציה 0 נמדדה מהברוקר לפני הנגיעה** (`sierra_state.json`,
+`position_qty=0`, `is_sim=0`). המסלול הוא `launchctl kickstart` ולא `restart_all.sh` ([[T-435]]).
+
+```raw
+PRE 15:38:40 · pos=0
+$ launchctl kickstart -k gui/$UID/com.mems26.backend      ⇒ exit=0
+מאזין חדש: 77380  Thu Sep 24 15:38:41 2026   (היה 95273 מ-23.09 15:37)
+$ curl /api/v9/health                                    ⇒ {"status":"ok","version":"v9.0.0"}
+[boot] logging OK level=INFO pid=77380 commit=88c8ca61 stream=stderr    ← pid תואם, T-61 עובר
+$ bash scripts/post_restart_verify.sh                    ⇒ 🟢 GREEN — liveness verified
+```
+
+**למה הריסטארט הזה נושא-מטען:** הרץ היה `9a57644a` (23.09), HEAD הוא `88c8ca61`. בין השניים יושבת
+**פסיקת-מייקל 10:30 היום ([[T-457]])** — `OPENING_DRIVE_BRANCH_V1=1` + `OPENING_DRIVE_T1_R=1.5` —
+ושני הקומיטים כותבים במפורש "loads at the 15:30 gate". כלומר עד `15:38` היום הענף **לא** רץ.
+זו בדיוק ההוראה של `12:10`, והיא בוצעה.
+
+### 🔴 fire_drill = NO-GO · כשל אחד: `guard_tests` — ומבודד לדגל שנפסק היום
+
+```raw
+$ python3 scripts/fire_drill.py                                          ⇒ exit=1
+  שלב A  ✓ flag_guard                     שלב C  ✓ effective_contracts == 1 (got 1)
+  שלב B  ✓ 4/4 שרשרת-סטופ (ATR 5.8)       שלב Y  ✓ RULED_FLAGS 266
+  שלב D  ✓ health · ✓ T-61 INFO זורם · ✓ feed age=615ms · ✓ bar 15:35+03 age 5min market OPEN
+         ✓ live_slot=None · ✓ live_enabled=[2,4] · ✓ day_type קיים (UNKNOWN conf=0.0)
+  שלב G  ✗ guard_tests — 2 failed, 168 passed, 1 skipped
+           test_opening_ladder_and_reject.py::TestOpeningLadder::
+             test_flag_on_gives_t2_and_t3_on_the_correct_side   (t3 is None)
+             test_multiples_are_measured_from_risk              (54.0 != 33.75, כלומר t2 ב-4R ולא 2.5R)
+🔴 NO-GO — 1 כשלים
+```
+
+**לא נעקף ולא הוזז — בודד.** שלוש הרצות, אותו HEAD, רק הסביבה משתנה:
+
+```raw
+$ set -a; . ./.env; set +a     (DRIVE_BRANCH=1 DRIVE_T1_R=1.5 LADDER=1 T2_R=2.5 T3_R=4.0)
+A) OPENING_DRIVE_BRANCH_V1=0  …  ⇒ 3 passed
+B) OPENING_DRIVE_T1_R=2.5     …  ⇒ 2 failed     ← לא ה-T1_R
+C) שני הדגלים unset           …  ⇒ 3 passed
+```
+
+**המכניזם, מהקוד (`backend/v9/systems/opening_entry.py:328-331`) — התנהגות מכוונת, לא באג:**
+
+```raw
+if _drive_branch:
+    # keep the ladder monotonic (T-335/T-438): t2 = max(4R, t1+0.5R), no t3 (one contract)
+    _t2 = round(entry + _sign * max(_t3r, _t1r + 0.5) * risk, 2)
+    _t3 = None
+```
+
+כלומר ענף-הדרייב **מגדיר** `t3=None` ו-`t2=4R` מפני שהוא ענף של **חוזה אחד** (החוזה היחיד יוצא
+ב-T1; סולם `(1,0,0,0)`). שני השומרים שנכשלים נכתבו לפסיקת-`OPENING_LADDER_V1` של 08.09, הם
+**אינם מקבעים** את `OPENING_DRIVE_BRANCH_V1` ב-setup שלהם, ולכן מאז 10:30 הם יורשים `=1` מה-`.env`
+ובודקים חוזה שהפסיקה החדשה החליפה. `b36cd14b` הביא ל-T-457 **5 טסטים משלו** — הפער הוא בבידוד של
+השומרים הישנים. ⇒ [[T-461]].
+
+**גבול-ההשפעה החי, מכומת:** `T3_REQUIRED_V1` דוחה `PLACE` על `t3<=0` רק ב-**≥3 חוזים**;
+`ruled_contracts()` היום הוא **1** ⇒ הדחייה לא נוגעת להיום, וגם `t2` אינו בשרשרת-היציאה של חוזה
+בודד. **אף על פי כן לא הכרזתי GO:** `guard_tests` RED הוא לפי CLAUDE.md "do not arm on this",
+וההיתר לחרוג ממנו אינו בסמכותי — זו השאלה שנשלחה לטלפון. **לא נגעתי בדגל** (פסיקת-מייקל מהיום;
+כיבויו = שינוי סיכון-מסחר) **ולא ערכתי את הטסט** (עריכת-שומר-לירוק 40 דק' לפני הפתיחה, ע"י הסוכן
+שמעוניין ב-GO, היא בדיוק המסכה שהפרוטוקול לא סומך עליה).
+
+### 📅 חובה-2(א) — סיכום אתמול 23.09
+
+```raw
+עסקאות (ET-scoped)   live n=1  pnl_usd −21.25  pnl_sierra −18.75 (אמת-ברוקר)  0 מנצחות
+                     shadow n=79  Σ−1,204.57  24W/79 (30%)
+  #2230 live 19:15→19:18 LONG REACTIVE_LONG 1c STOP_HIT
+ליגר 23.09 (gateway_decisions.jsonl, 79 שורות מתוארכות 13:30Z→20:00Z):
+  dalton_intent:stand_down 33 · :location 13 · :bias 12   ⟹ 58/79 = 73% ממשפחת-dalton
+  entry_location_quality 2 · entry_not_confirmed 1 · rr_entry_gate 1 · session_gate_closed 1
+ציון-המודעות 23.09 (78 ברי-RTH) — 3/4 צירים ≥80%:
+  יום 65/78 83.3% ✅ · רמות 78/78 100% ✅ · מועמדים 19/22 86.4% ✅ · **החלטות 58/78 74.4% 🔴**
+  נגיעות-VA בלי DETECTED: 10:00(VAL) · 10:05(VAL) · 10:30(VAL)
+צל-S1DayDir  31,481 שורות, הדגימות שנבדקו agree=True (with_extension(DOWN)→DOWN)
+EntryGuard   0 שורות ב-23.09 — אין חסימות-EntryGuard, לא "לא נמצא לוג"
+דוחות-cc     אפס קומיטים של cc מאז 23.09 23:00; b36cd14b/712d35d9/afee660d הם cowork
+             (CC_PROMPT_2026-09-24.md נכתב 11:16)
+```
+
+**חריג חדש שנמצא בליגר (לא נדרשת פסיקה, נרשם):** מתוך 219 שורות-הליגר, **140 חסרות `ts`** לחלוטין,
+ובלוג יש `[SWALLOW] candidate_ledger:DETECTED: exception #1 swallowed (ValueError: Invalid isoformat
+string: '1790183700.000000')` — כלומר epoch-float נכתב לשדה שהקורא מפרש כ-ISO. כל ניתוח מתוארך של
+הליגר רואה 79 מתוך 219 שורות, וזה חשוד כתורם ישיר לציר-ההחלטות `74.4%`. ⇒ [[T-462]].
+
+**ליגר-כותב:** `mtime` של `gateway_decisions.jsonl` הוא `09-23 23:00:06`, אפס שורות היום — **תקין
+ולא "מערכת מתה"**: הסשן נפתח ב-16:30 (מלכודת "אפס-עסקאות ≠ מערכת-מתה"). הכתיבה תאומת בריצת-RTH.
+
+### 💵 T-34 מרג'ין — דיווח-בלבד, **לא חוסם היום**
+
+```raw
+acct_available_funds 477.19 · acct_account_value 477.19 · acct_under_margin 0
+acct_trading_disabled 0 · acct_loss_limit_reached 0 · order_placement_armed 1
+acct_daily_net_loss_limit −286.31      ← מגבלת-הברוקר, הדוקה מ-RISK_DAILY_LOSS_CAP=800
+```
+
+הסף `1,595$` שבמטלה הוא סף עידן-4-חוזים. בפסיקת חוזה-אחד הדרישה היא `386.20+50=436.20` ⇒
+`477.19` **מספיק, בהפרש 41$**. שני חוזים (`772.40`) אינם אפשריים — עקבי עם פסיקת 18.09.
+לא נשלחה הודעת-מקרה-(ג) נפרדת כי זה אינו חוסם מסחר.
+
+### ⚠️ machine_health — WARN, ל-LIVE_CHANNEL ולא לטלפון
+
+```raw
+WARN: unused RAM 164M < 400M · WARN: swap used 5,845M > 500M   (שיא-יום; 11:04 היה 5,227M)
+trading stack: backend 127MB/19.6% · bridge 32MB/14.6% · sierra 199MB/14.7% · postgres 545MB
+לא-מסחרי: cowork-vm 3,461MB · chrome 2,823MB · claude-app 2,050MB
+close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do"
+  94 שורות-צל עם exit_ts NULL (09-11…09-17) הן state=CLOSED — מלכודת T-455, לא צל-תקוע;
+  6 שורות live עם exit_ts NULL הן state=CANCELLED מיולי. ⇒ אפס --apply, אפס נגיעה.
+```
+
+### 📌 הצעדים-הבאים
+
+1. **[[T-461]]** — בידוד השומרים הישנים: לקבע `OPENING_DRIVE_BRANCH_V1=0` ב-`setUp` של
+   `TestOpeningLadder` (הוא בודק את פסיקת-08.09), ולהוסיף מקרה נפרד שמאשר את חוזה-T-457
+   (`t2=max(4R,t1+0.5R)`, `t3=None`, חוזה-אחד). **לא בוצע היום במכוון** — ייעשה בתור-הלילה
+   או ע"י cc, ובאותו קומיט עם פסקת-נימוק, כדי שהשומר יישאר שומר.
+2. **[[T-462]]** — `ts` כ-epoch-float ב-`candidate_ledger:DETECTED`: לאתר את אתר-הכתיבה,
+   לנרמל ל-ISO, מקרה-רגרסיה שנכשל על epoch, ואז למדוד מחדש את ציר-ההחלטות.
+3. **המספר המתוקן של [[T-460]]** (`−257.50$` רצפה-מוגנת במקום `511$`) **לא** נסע על הודעת-השער:
+   מקרה (ד) הוא GO/NO-GO בלבד, ודילול ההחלטה בתיקון-עצמי הוא בדיוק מה שכלל-הטלפון אוסר.
+   ייסע על התשובה-העניינית הבאה, כפי שנרשם ב-15:04.
+
+---
 ## 🟢 [cowork-dev · 2026-09-24 15:04-15:20 IL] — **ריצה-מתוזמנת אחת-עשרה (חובה-1 בלבד)** · ☎️ **הודעת-מייקל נענתה (מקרה א)** · 🔴 **שני ממצאים: אין ניהול-סטופ לפני T1 · `mfe_pts` אינו אמין**
 
 `15:04` ∉ `15:30-16:10` ⇒ **חובה-1 בלבד**. אומת מול המתזמן: `mems26-preopen-gate` רץ ב-`:00`/`:30`,
