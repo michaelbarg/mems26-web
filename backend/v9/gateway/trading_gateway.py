@@ -1305,6 +1305,43 @@ class TradingGateway:
                                     _dp_classification, setup.get("direction"))
                 except Exception as _sb_err:
                     logger.warning("[Gateway] T-466 structure-before-label failed (label kept): %s", _sb_err)
+                # ── T-464 AUCTION_OUT_WITH_DIRECTION_V1 (24.09, default OFF — replay decides):
+                # phase B on an OPEN_AUCTION_OUT opening. The phase-B row treats an open-auction
+                # like an in-range rotation (EDGE_FADE only) — but Dalton separates them: an
+                # auction OUT of yesterday's range that then leaves the opening range on one
+                # side has directional potential. 24.09: 7734 → 7758 by 17:05, INITIATIVE_LONG
+                # ×2 @7753.5/7753.75 and TREND_STEP LONG refused "not in [EDGE_FADE]". When the
+                # last closed bar sits ≥ 2 pts beyond the 3-bar opening range on one side and the
+                # other side was never exceeded, the tree is fed opening_type=OPEN_DRIVE with that
+                # direction (the same hand-off T-426 uses for a provisional drive): with-direction
+                # kinds pass, counter-direction stays vetoed. Bars: the canonical closed RTH bars.
+                try:
+                    _ao_types = tuple(x.strip().upper() for x in
+                                      (os.getenv("AUCTION_OUT_WITH_DIRECTION_TYPES", "OPEN_AUCTION_OUT") or "").split(",") if x.strip())
+                    if (os.getenv("AUCTION_OUT_WITH_DIRECTION_V1", "0").strip().lower() in ("1", "true", "yes")
+                            and str(_dp_ot or "").upper() in _ao_types
+                            and "16:45" <= _dp_il_hhmm < "17:30"):
+                        from backend.v9.services.trade_context import get_closed_rth_bars_today as _ao_bars
+                        _ao = _ao_bars() or []
+                        if len(_ao) >= 4:
+                            _ao_orh = max(float(b["h"]) for b in _ao[:3]); _ao_orl = min(float(b["l"]) for b in _ao[:3])
+                            _ao_last = float(_ao[-1]["c"])
+                            _ao_hi = max(float(b["h"]) for b in _ao[3:]); _ao_lo = min(float(b["l"]) for b in _ao[3:])
+                            _ao_dir = None
+                            if _ao_last >= _ao_orh + 2.0 and _ao_lo >= _ao_orl - 0.25:
+                                _ao_dir = "LONG"
+                            elif _ao_last <= _ao_orl - 2.0 and _ao_hi <= _ao_orh + 0.25:
+                                _ao_dir = "SHORT"
+                            if _ao_dir:
+                                result["auction_out_with_direction"] = {"or_h": _ao_orh, "or_l": _ao_orl, "last": _ao_last, "dir": _ao_dir}
+                                logger.warning(
+                                    "[Gateway] T-464 auction-out with direction: OPEN_AUCTION_OUT → tree sees OPEN_DRIVE %s "
+                                    "(OR %.2f-%.2f, last close %.2f, one-sided) for %s %s",
+                                    _ao_dir, _ao_orl, _ao_orh, _ao_last, _dp_classification, setup.get("direction"))
+                                _dp_ot = "OPEN_DRIVE"
+                                _dp_dir_hint = _ao_dir
+                except Exception as _ao_err:
+                    logger.warning("[Gateway] T-464 auction-out rule failed (unchanged): %s", _ao_err)
                 _dalton_intent = _dp_intent(
                     opening_type=_dp_ot, day_type=_dp_dt,
                     now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
