@@ -1,3 +1,78 @@
+## 🔵 [cowork-dev · 2026-09-24 20:34-20:38 IL] — **ניטור-RTH רביעי · עסקת-הלייב הראשונה של היום נפתחה** · 🔑 **הממצא: #2340 SHORT נכנסה 20:35:06 — 55 החלטות היום, אחת פרצה ללייב; ברוקר ו-DB מסכימים**
+
+`20:34` > `16:10` ⇒ מחוץ לחלון-השער **וגם** המאזין `77380 Thu Sep 24 15:38:41` > 12:00
+⇒ [[T-369]] ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בדגלים/`.env`/פוזיציות.**
+
+### ☎️ חובה-1 — **אפס ממתינות ממייקל**
+
+```raw
+זנב PHONE_THREAD.jsonl + peek GET /chat?key=…  ⇒ http=200 · n=30 · שני המקורות זהים
+last_michael  2026-09-24T15:49:13Z  id=a9513278  "למה אין עסקאות מה מונע איך לתקן"
+last_agent    2026-09-24T16:08:55Z  sender=cowork  len=415  (תשובה עניינית, לא -ack)
+```
+
+ההודעה האחרונה בפיד היא תשובת-הסוכן ⇒ `PENDING=False` ⇒ **אין (א)**. אינו שער ⇒ אין (ד).
+
+### 🩺 חובה-3 — **המערכת חיה, והפעם היא גם ירתה**
+
+```raw
+feed (T-430)  select max(ts), round(extract(epoch from (now()-max(ts)))/60,1)
+              from v9_bars_5min_woodies ⇒ 2026-09-24 20:35:00+03 | age_min 0.6   ✅ פיד חי
+health        GET /health ⇒ 200  t=0.0018s                     (סף 100ms — עבר)
+listener      pid 77380  lstart Thu Sep 24 15:38:41 2026  (ללא ריסטארט נוסף)
+              pid 19995 = bridge/json_bridge.py (לקוח על :8000, לא המאזין) — לא לבלבל
+err.log       tail -4 backend.err.log ⇒ ריק
+```
+
+### 🟢 **עסקת-לייב #2340 — DOUBLE_TOP_AA_SHORT**
+
+```raw
+DB      id=2340 mode=live sys=2 SHORT FILLED entry 7762.25 @ 20:35:06.543+03
+        stop 7770 (סיכון 7.75 נק) · t1 7748.25 · t2 7739 · t3 7730 · t4 NULL · contracts=1
+        day_type_at_entry=Neutral_Center (conf 0.67) · pattern=DOUBLE_TOP_AA_SHORT
+        session=PM_SESSION · zone=near_vah · phase=C · vol_ratio=2.08
+        net_delta=-1403 · entry_bar_delta=-656 · confidence=0.75 · blocked_by=null
+        sierra_order_id=11331 · c1_target_id=11332 · c1_stop_id=11333
+gateway GET /api/v9/gateway/decisions?limit=2000 ⇒ n=55 (מלכודת 3.2 — לא 200)
+        blocked=44 · shadow_only=10 · live=1 ⇒ ts 17:35:03Z sys2 SHORT trade_id=2340
+        blocked_by=None · reason=None
+ברוקר   sierra_state.json age 0.1s · position_qty=-1 · avg_price=7762.0 · working_orders=2
+        is_sim=0 · armed=1 · trade_account 37138283 · MESZ26_FUT_CME · daily_total_qty_filled=1
+```
+
+**בדיקת-בעלות (order_id לפני אזעקה):** ברוקר `-1 @7762.0` · DB `#2340 SHORT 1 @7762.25` ·
+שתי פקודות-עבודה ⇔ `c1_target_id 11332` + `c1_stop_id 11333` ⇒ **AGREED_SHORT_1 — אין קונפליקט.**
+גודל 1 חוזה = הפסיקה (`sizing:1`, `contracts:1` בשדה `quality`) — לא נגעתי בדגלי-גודל.
+
+### 💵 T-34 מרג'ין — **דיווח בלבד, אינו חוסם**
+
+```raw
+acct_cash_balance 477.19 · acct_account_value 473.44 · acct_available_funds 186.16
+acct_margin_req 288.53 · acct_under_margin=0 · acct_trading_disabled=0
+acct_daily_net_loss_limit -286.31 · acct_loss_limit_reached=0 · acct_daily_pl 0.0
+```
+
+`avail 186.16 < 1,595` ⇒ שורת-דיווח. **אינו חוסם כרגע:** הפוזיציה כבר מולאה, המרג'ין
+שלה מכוסה, `under_margin=0`, `trading_disabled=0`, והסלוט תפוס ממילא ⇒ **אין (ג) בטלפון.**
+הפער ייפתח רק אם ייסגר הסלוט ויידרש מועמד נוסף באותו יום — לניטור הריצה הבאה.
+
+### ☎️ הודעת-טלפון אחת — **מקרה (ב) בלבד**
+
+```raw
+python3 scripts/phone_reply.py cowork-dev "עסקת-לייב נפתחה 20:35 · #2340 …" ⇒ ok
+אימות-מסירה GET /chat ⇒ 2026-09-24T17:37:19Z | cowork-dev | len 258  ✅ (≤300, אפס backticks)
+בדיקת-כפילות לפני השליחה: any-2340 in feed ⇒ False (אף סוכן לא דיווח עליה)
+```
+
+**אפס (א) · אפס (ג) · אפס (ד) · אפס דוח-ניטור לטלפון.** כל השאר כאן.
+
+### הצעד הבא
+
+הריצה הבאה: לבדוק אם #2340 נסגרה (t1 7748.25 / סטופ 7770) ⇒ מקרה (ב) עם P&L.
+`scripts/broker_truth.py` בתור-הלילה יאמת מול `pnl_sierra` — זו עסקת-הלייב היחידה של היום.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-24 20:04-20:08 IL] — **ניטור-RTH שלישי של הערב · תקין** · 🔑 **הממצא: 4 החלטות חדשות מאז 19:42, שלוש מהן חסימת-מיקום על ראלי 7730→7779 (מחיר מעל VAH) ⇒ אין (ב), אין (ג), שקט-טלפון**
 
 `20:04` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (מאזין `77380 Thu Sep 24
