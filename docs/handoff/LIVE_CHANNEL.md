@@ -1,3 +1,101 @@
+## 🔵 [cowork-dev · 2026-09-24 19:34-19:42 IL] — **ניטור-RTH שני של הערב · תקין** · 🔑 **הממצא: שום דבר לא השתנה מאז 16:08 — 5 החלטות חדשות, כולן חסומות בשערים מוכרים ⇒ אין (ב), אין (ג), שקט-טלפון**
+
+`19:34` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (מאזין `77380 Thu Sep 24
+15:38:41` > 12:00 ⇒ [[T-369]]) ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה
+בדגלים/`.env`/פוזיציות.** כתיבות: `LIVE_CHANNEL.md` בלבד.
+
+### ☎️ חובה-1 — **אפס ממתינות · שקט מוחלט בטלפון**
+
+```raw
+זנב PHONE_THREAD.jsonl + peek GET /chat?key=…  ⇒ n=12 אחרונות · שני המקורות זהים בתו
+last_michael  2026-09-24T15:49:13Z  id=a9513278  "למה אין עסקאות מה מונע איך לתקן"
+last_agent    2026-09-24T16:08:55Z  sender=cowork  len=415  (תשובה עניינית, לא -ack)
+```
+
+ההודעה האחרונה בפיד היא **תשובת-הסוכן**, לא שאלת-מייקל ⇒ `PENDING=False` ⇒ אין (א).
+אפס עסקת-לייב ⇒ אין (ב) · אפס חריגה-חוסמת ⇒ אין (ג) · אינו שער ⇒ אין (ד).
+**אפס `phone_reply.py` בריצה הזו.**
+
+### 🩺 חובה-3 — **המערכת מוכחת-חיה לפני שנקבע "לא ירתה"**
+
+```raw
+feed (T-430)  select max(ts), round(extract(epoch from (now()-max(ts)))/60,1)
+              from v9_bars_5min_woodies ⇒ 2026-09-24 19:35:00+03 | age_min 0.3   ✅ פיד חי
+health        {"status":"ok","version":"v9.0.0"}
+listener      pid 77380  lstart Thu Sep 24 15:38:41 2026  etime 03:56:32  (ללא ריסטארט נוסף)
+gateway       live_enabled_systems=[2,4] · live_slot=null · demo_slot=null · trades_today=0
+              cooldown_active=false · cluster_guard=false · SSV veto=false · chop_state=FOUND
+sierra/broker position_qty=0 · avg_price=0.0 · daily_total_qty_filled=0 · armed=1 · is_sim=0
+              acct 37138283 · available 477.19 · last_price 7765.25
+TM/DB         state NOT IN ('CLOSED','CANCELLED') ⇒ shadow|FILLED|1 · live ⇒ 0   ⇒ AGREED_FLAT
+```
+
+⇒ **חמוש, סלוט פנוי, פיד חי, פוזיציה 0 בשני הצדדים. אין קונפליקט-בעלות ⇒ אין אזעקה.**
+
+### 📊 הדלתא מאז 16:08 — **5 החלטות, אפס חדש**
+
+```raw
+curl /api/v9/gateway/decisions?limit=2000  (מלכודת 3.2 — לא ברירת-המחדל 200)
+today  n=45   outcome: blocked=39 · shadow_only=6 · fired=0
+מאז 16:08Z (5):
+  16:20:03  S2 DOUBLE_BOTTOM_EE_LONG  blocked entry_location_quality  beyond_value ex=0.34>0.25
+  16:20:03  S2 REACTIVE_LONG          blocked entry_location_quality  beyond_value ex=0.34>0.25
+  16:15:04  S2 CEILING_FLIP_TOUCH2    blocked dalton_intent:bias      bias=SHORT rejects LONG
+  16:11:04  S4 ZLR                    blocked extreme_chase_guard     dist=5.75 < 8.5
+  16:10:02  S4 ZLR                    blocked extreme_chase_guard     dist=6.50 < 8.5
+shadow_only האחרון: 15:55:02Z (CEILING_FLIP_TOUCH2) — אפס חדש מאז
+```
+
+כל חמשת החדשים נחסמו ע"י שערים **מוכרים וכבר-מדווחים**. הפער היחיד נשאר אותו פער:
+6 מועמדים שעברו את כל השערים אך נולדו **צל-בלבד** (`CEILING_FLIP_TOUCH2` ×5, `ZLR` ×1) —
+[[T-464]]/[[T-465]], **הקידום דורש פסיקת-מייקל**. חזרה על זה בטלפון = [[T-369]] ⇒ לא נשלח.
+
+### 🧾 מדידות-לוואי (דיווח בלבד — לא בוצעה פעולה)
+
+```raw
+גודל  python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(...)"
+      ללא .env ⇒ None   ·   עם .env טעון ⇒ 1        ⇔ contracts_cfg=1 מ-/mobile/data
+      .env: FIXED_CONTRACTS_1=1 · FIXED_CONTRACTS_2=0    ⇒ עקבי עם שער 12:47 ("חוזה 1 כפסיקה")
+      ⚠️ קובץ-המשימה המתוזמן עדיין נושא את הנוסח הישן "מ-16.09: 2, FIXED_CONTRACTS_2=1".
+         הפוסק הוא ruled_contracts() ⇒ **1**. לא נגעתי בדגלי-גודל (פסיקת 31.08 · [[T-225]]).
+צל    v9_trades entry_ts>=today ⇒ 45 שורות · sum(pnl_usd) = -188.78 · 0 לייב
+      python3 scripts/close_stale_shadow.py (dry-run, הפוסק) ⇒ "no stale shadow trades"
+      gateway shadow_active_count=6 **התעלמתי** — מלכודת 15: חוצץ-טבעת בזיכרון, לא פתוחות
+מרג'ין available 477.19 < 1,595 ([[T-34]]) — **אינו חוסם**: margin_req=0, גודל-פסוק 1,
+      וכבר דווח בשער 12:47. דיווח-בלבד ⇒ אין (ג) ואין הודעת-טלפון.
+```
+
+### 🔎 ממצא חדש (לא נרשם עד כה) — **18,133 שגיאות `TS-OFFSET-GATE REJECTED` הלילה, ונעצרו בשנייה של הריסטארט**
+
+הניטור של 19:04 ספר `ERROR|CRITICAL` בחלון `^2026-09-24 1[89]:` בלבד ⇒ החזיר `1`.
+בספירה על **כל היום** התמונה אחרת לגמרי:
+
+```raw
+grep -cE "^2026-09-24 .*(ERROR|CRITICAL)" /tmp/backend.err.log          ⇒ 18140
+לפי שעה: 00→673 · 01-14→~1,190 לשעה · 15→773 · 16→1 · 18→1 · 19→5
+
+grep -E "^2026-09-24 .*\[ERROR\].*TS-OFFSET-GATE REJECTED" | wc -l      ⇒ 18133
+ראשון  2026-09-24 00:10:43 [bars/5min] REJECTED batch: newest bar ts 944s behind now (>900s)
+אחרון  2026-09-24 15:38:39 [bars/5min] REJECTED batch: newest bar ts 56620s behind now (>900s)
+אחרי 15:38                                                              ⇒ 0
+הזרם: [bars/5min] ×18133 · [woodies] ×0
+```
+
+**הקריאה:** ‏`15:38:39` הוא **בדיוק** שניית-הריסטארט (`lstart 15:38:41`) ⇒ התופעה שייכת
+לתהליך-הקודם ו**נפסקה מעצמה עם ההחלפה**. הפער גדל מ-`944s` ל-`56,620s` לאורך הלילה —
+כלומר דחיפות-חוזרות של אצווה ישנה, לא פיד-שנעצר. **המסחר לא נפגע**: הזרם הפוסל הוא
+‏`[bars/5min]` הלגסי, בעוד אמת-המסחר היא `v9_bars_5min_woodies` (‏`docs/SOURCE_OF_TRUTH.md`)
+שהייתה טרייה כל הזמן. ‏18,133 שורות/יום גם מסבירות חלק מנפח `backend.err.log` (‏46.8MB).
+
+⚠️ **מה שאינו נטען:** שזה הסיבה לאפס-לייב (החסימות מדודות ומיוחסות לשערים) · שזה יחזור
+מחר (התהליך הוחלף) · שמדובר בבאג חדש — **לא בוצעה פעולה, לא נפתח דגל, לא בוצע ריסטארט.**
+**הצעה לתור-הערב (לא בוצעה — RTH):** לפתוח פריט-מדידה "למה `[bars/5min]` צובר דחיפות-ישנות
+בן-לילה" — אם זה חוזר בלילה הבא, זו מדידה ולא ניחוש.
+
+**סיכום:** תקין. אין מה לתקן בשרשרת-ההרצה; אין עסקת-לייב לדווח; אין החלטה חדשה שנדרשת.
+— *cowork-dev*
+
+---
 ## 🔵 [cowork-dev · 2026-09-24 19:04-19:12 IL] — **ניטור-RTH חמישי + מקרה (א): "למה אין עסקאות" נענה במספרים** · 🔑 **הממצא: אפס-לייב היום הוא *שני* מנגנונים נפרדים, והשערים היו נטו-חיוביים — 34 חסימות = מינוס 327.50$ בצל**
 
 `19:04` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (7 רשומות cowork-dev מהיום ·
