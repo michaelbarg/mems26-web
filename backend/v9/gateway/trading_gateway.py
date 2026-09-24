@@ -1292,8 +1292,21 @@ class TradingGateway:
                     _dp_phase_now = _t319_phase(_dp_il_hhmm, _t319_cfg())
                 except Exception:
                     _dp_phase_now = None
+                # T-458א VAR_CONT: the producer's structural condition (one-sided IB
+                # extension or confirmed drive + pullback + trigger, all on closed bars)
+                # is its own location and kind test — the day-type LABEL lags the
+                # structure (23.09 18:45: label Normal, blocked "edge-fade only", the
+                # day closed a 48-pt Variation). Under its flag VAR_CONT skips the
+                # T-319b location gate and the kinds veto; bias and stand_down (phase D)
+                # still apply — it is never admitted counter-bias or in manage-only.
+                try:
+                    _vc_branch = (
+                        os.getenv("VAR_CONT_V1", "0").strip().lower() in ("1", "true", "yes", "shadow")
+                        and str(setup.get("classification") or "").upper() == "VAR_CONT")
+                except Exception:
+                    _vc_branch = False
                 if (_dp_dt in ("Normal", "Neutral_Center", "Neutral_Extreme")
-                        and _dp_phase_now != "D"):
+                        and _dp_phase_now != "D" and not _vc_branch):
                     try:
                         _dp_tpo_loc = (cross_context.get("tpo_system")
                                        if isinstance(cross_context, dict) else None) or {}
@@ -1362,6 +1375,10 @@ class TradingGateway:
                 if _dp_block and _dp_location_checked:
                     if _dp_block.get("blocked_by") == "dalton_intent:kind":
                         _dp_block = None  # location approved → kinds check skipped
+                # T-458א VAR_CONT: kinds veto skipped (bias / stand_down kept, see above)
+                if _dp_block and _vc_branch and _dp_block.get("blocked_by") == "dalton_intent:kind":
+                    result["vc_kind_exempt"] = _dp_block.get("reason")
+                    _dp_block = None
                 # T-329 (Michael 11.09 18:25 — "missed 2 big trades the system
                 # must know how to trade"): a CONFIRMED double ceiling/floor
                 # sitting ON the extension extreme is, in Dalton terms, the
@@ -2538,7 +2555,20 @@ class TradingGateway:
                 and str(setup.get("classification") or "").upper() in ("OPENING_DRIVE", "OPENING_TEST_DRIVE"))
         except Exception:
             _elq_skip_drive = False
-        if _elq_skip_drive and _elq_mode in ("1", "true", "shadow"):
+        # T-458א — VAR_CONT (with-extension pullback-continuation): the producer's own
+        # condition IS a location test (close beyond the IB edge, other edge never exceeded,
+        # pullback then trigger). "beyond_value" is what it trades. 23.09 replay: 20:20
+        # SHORT @7766 died here (ex=0.33 > 0.25). Skipped only for VAR_CONT under its flag.
+        try:
+            _elq_skip_vc = (
+                os.getenv("VAR_CONT_V1", "0").strip().lower() in ("1", "true", "yes", "shadow")
+                and str(setup.get("classification") or "").upper() == "VAR_CONT")
+        except Exception:
+            _elq_skip_vc = False
+        if _elq_skip_vc and _elq_mode in ("1", "true", "shadow"):
+            result["elq_skipped"] = "var_cont_branch"
+            _elq_skip_drive = True
+        elif _elq_skip_drive and _elq_mode in ("1", "true", "shadow"):
             logger.warning("[Gateway] T-457 ELQ skipped for confirmed opening drive %s %s "
                            "(OPENING_DRIVE_BRANCH_V1)", setup.get("classification"), direction)
             result["elq_skipped"] = "opening_drive_branch"
@@ -3690,6 +3720,17 @@ class TradingGateway:
                 logger.warning("[Gateway] edge_fade_targets errored (fail-open): %s", _ef_err)
 
         _edge_fade = bool((setup.get("metadata") or {}).get("edge_fade_targets"))
+        # T-458א VAR_CONT: the producer's ladder IS the measured rule (t1 = T1_BANK_R, t2 2.5R,
+        # t3 4R off the structural 4-bar stop) — the chain is FINAL for it, the same hand-off
+        # edge_fade_targets uses (23.09 replay: structural_targets/zones/§3 cut the 15-pt t1 to
+        # 1.25 pts and rr_hard_floor then refused it). Own flag; every other producer unchanged.
+        try:
+            if (os.getenv("VAR_CONT_V1", "0").strip().lower() in ("1", "true", "yes", "shadow")
+                    and str(setup.get("classification") or "").upper() == "VAR_CONT"):
+                _edge_fade = True
+                result["target_chain"] = "var_cont_final"
+        except Exception:
+            pass
 
         # ── TRADE_ECONOMICS_AUTHORITY_V1=diff: log what the authority WOULD set,
         # without changing the setup. =1 (not today) would write + skip the chain.
@@ -4344,7 +4385,13 @@ class TradingGateway:
         # When structural targets (from structural_targets.py) exist and day_type
         # is known, they override the m×risk ladder. m×risk = fallback only.
         # Applied AFTER step-scaled-ladder so it wins; BEFORE I-61/TP-1 safety guards.
-        if (not _edge_fade) and os.getenv("STRUCT_TARGETS_WIN_V1", "0").strip().lower() in ("1", "true", "yes"):
+        # T-458א VAR_CONT keeps its measured m×risk ladder (23.09 replay: struct_c1 cut the
+        # 1.5R target 7764.47 → 7773.25/7778.25 and rr_entry_gate then refused 40 of 171
+        # candidates on the ratio the cut created). Own flag; every other producer unchanged.
+        _vc_keep_targets = (
+            os.getenv("VAR_CONT_V1", "0").strip().lower() in ("1", "true", "yes", "shadow")
+            and str(setup.get("classification") or "").upper() == "VAR_CONT")
+        if (not _edge_fade) and (not _vc_keep_targets) and os.getenv("STRUCT_TARGETS_WIN_V1", "0").strip().lower() in ("1", "true", "yes"):
             _stw_meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
             _stw_sl = _stw_meta.get("spacing_levels") or []
             _stw_dt = (setup.get("day_type_at_entry")
@@ -4474,7 +4521,15 @@ class TradingGateway:
         _realism_exempt_drive = (
             os.getenv("OPENING_DRIVE_BRANCH_V1", "0").lower() in ("1", "true", "yes")
             and str(setup.get("classification") or "").upper() in ("OPENING_DRIVE", "OPENING_TEST_DRIVE"))
-        if _realism_exempt_drive and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+        # T-458א VAR_CONT: a with-extension continuation sits AT the session extreme by
+        # construction — the same clamp would cut its 1.5R target to ticks. Own flag.
+        _realism_exempt_vc = (
+            os.getenv("VAR_CONT_V1", "0").strip().lower() in ("1", "true", "yes", "shadow")
+            and str(setup.get("classification") or "").upper() == "VAR_CONT")
+        if _realism_exempt_vc and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+            result["target_realism"] = {"skipped": "var_cont_branch"}
+            _realism_exempt_drive = True
+        elif _realism_exempt_drive and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
             logger.warning("[Gateway] T-457 TARGET_REALISM skipped for opening drive %s (structural ladder kept: t1=%s t2=%s t3=%s)",
                            setup.get("classification"), setup.get("t1"), setup.get("t2"), setup.get("t3"))
             result["target_realism"] = {"skipped": "opening_drive_branch"}

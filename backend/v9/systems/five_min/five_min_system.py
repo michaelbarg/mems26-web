@@ -1803,6 +1803,57 @@ class FiveMinSystem(BaseV9TradingSystem):
         except Exception as e:
             logger.warning("[RE_ACCEPTANCE] failed (non-fatal): %s", e)
 
+    def _maybe_var_cont(self) -> None:
+        """VAR_CONT_V1 (T-458א, 24.09): with-extension pullback-continuation, one contract.
+
+        Same cadence as _maybe_dalton_edge: all-session, every new closed bar. Reads the
+        session's CLOSED canonical RTH bars (trade_context.get_closed_rth_bars_today — the
+        same source and "closed" definition as the opening engine / fwd_harness), evaluates
+        the last closed bar with backend.v9.systems.var_cont.detect (the measured model rule
+        CONT_1S, 1:1), and routes the setup through the gateway. Two measured limits live
+        here: at most VAR_CONT_MAX_PER_DAY LIVE entries per session (further triggers route
+        as shadow) and no new entry from VAR_CONT_CUTOFF_IL (inside detect).
+        Flag off ⇒ returns immediately (byte-identical).
+        """
+        try:
+            from backend.v9.systems import var_cont as _vc
+        except Exception:
+            return
+        if not _vc.enabled() or not self._gateway:
+            return
+        try:
+            from backend.v9.services.trade_context import get_closed_rth_bars_today
+            bars = get_closed_rth_bars_today() or []
+            if len(bars) < 13:
+                return
+            last_ts = _canon_bar_ts(bars[-1].get("ts", ""))
+            st = getattr(self, "_vc_state", None)
+            day = str(bars[0].get("ts", ""))[:10]
+            if not st or st.get("date") != day:
+                st = {"date": day, "live": 0, "last_ts": None, "emitted": 0}
+                self._vc_state = st
+            if st.get("last_ts") == last_ts:
+                return  # this closed bar was already judged
+            st["last_ts"] = last_ts
+            trig = _vc.detect(bars)
+            if not trig:
+                return
+            cap = _vc.max_per_day()
+            shadow = _vc.is_shadow() or st["live"] >= cap
+            setup = _vc.build_setup(trig, shadow=shadow)
+            st["emitted"] += 1
+            logger.warning(
+                "[VAR_CONT] %s @%.2f stop %.2f t1 %.2f via=%s ext=%s atr=%.2f bar=%s "
+                "live_today=%d/%d → gateway%s",
+                trig["direction"], trig["entry"], trig["stop"], trig["t1"], trig.get("via"),
+                trig.get("ext"), trig.get("atr") or 0, trig.get("bar_il"), st["live"], cap,
+                " (shadow)" if shadow else "")
+            result = self._gateway.route_setup(setup, 2) or {}
+            if result.get("live"):
+                st["live"] += 1
+        except Exception as e:
+            logger.warning("[VAR_CONT] failed (non-fatal): %s", e)
+
     def _maybe_va_fade(self) -> None:
         """VA_FADE_V1: value-area rotation generator — ALL SESSION.
 
@@ -2784,6 +2835,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self._maybe_failed_re_ib()
         self._maybe_re_acceptance()
         self._maybe_va_fade()   # T-285: was nested under FIRST_HOUR → 0 decisions ever
+        self._maybe_var_cont()  # T-458א: with-extension pullback-continuation (VAR_CONT_V1)
 
         # ── CEILING_FLOOR_STATE_V1 (Michael 28.08, CC_SUNDAY_BUILD ב-1):
         # double-ceiling / double-floor failure state. Detection + reporting

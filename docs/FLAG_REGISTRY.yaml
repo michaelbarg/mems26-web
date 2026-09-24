@@ -1931,6 +1931,27 @@ flags:
     why: "T-458ג real-engine (29 drives, day totals): 1.5R Δ+$601 vs 2.5R Δ+$326 vs HEAD — the far target holds the one slot all day and turns near wins into stops (07-15, 07-30, 09-01, 09-14). The model's 2.5R > 1.5R (+$712 vs +$442) ignored the slot."
     status: param
     ref: "T-457"
+  VAR_CONT_V1:
+    category: cascade_gate
+    group: dalton
+    what: "T-458א (24.09): VAR_CONT — with-extension pullback-continuation producer, one contract (backend/v9/systems/var_cont.py, hooked in five_min_system._maybe_var_cont every closed bar, all-session). The measured model rule CONT_1S ported 1:1: IB locked (12 bars), trigger bar closes in the extreme 30% in direction d with range ≥ 0.8×ATR, ≥2 of the 3 prior bars closed against d (pullback), one-sided day (close beyond the IB edge in d and the other edge never exceeded — or a confirmed opening drive in d with (close−open)/ATR ≥ 0.5), stop = 4-bar extreme ± tick capped 1.5×ATR, t1 = T1_BANK_R×risk. Two measured limits: at most VAR_CONT_MAX_PER_DAY live entries per session (further ones route as shadow) and no new entry from VAR_CONT_CUTOFF_IL. Under this flag the gateway skips for VAR_CONT only: ELQ, TARGET_REALISM, the T-319b location gate and the tree's kinds veto (bias and phase-D stand_down still apply). 0 = byte-identical · shadow = routed shadow_only · 1 = live."
+    why: "Michael 24.09 10:00: 'you must reach, within the day, even with several trades, maximization — exploit the pullback'. Model (60 sessions, one slot): drive-only +$442 → drive + ≤2 CONT before 22:00 +$738 (Variation +$29/day); first CONT of a Variation day n=26 Σ+$642 62%, 3rd+ Σ−$272, 22:xx Σ−$183. 23.09 engine replay before the exemptions: all three candidates blocked (location under a lagging 'Normal' label · ELQ beyond_value ex=0.33 · phase-D stand_down); after: 18:45 SHORT +$31, 20:20 STOP −$35, 21:00 blocked phase D. REAL ENGINE (fwd_harness, 58 clean sessions 15.06–23.09, baseline = drive branch ON @1.5R, harness_out/t458a/COMPARE_v2.txt): day totals baseline Σ+$1,220 → +VAR_CONT Σ+$1,301, Δ +$81 gross / ≈ +$16 net of the 25 extra round-trips; sessions better 13 / worse 14 / same 31; by month Δ Jun −12 · Jul +126 · Aug −88 · Sep +55; VAR_CONT trades n=40, 42% win, Σ+$183 gross / +$79 net. 169 candidates: live 44 · live_slot_occupied 75 (another producer held the single slot) · phase-D stand_down 36. VERDICT 24.09 11:15: inconclusive — NOT enabled (the model's +$296 came from a world with only drive+CONT; the engine's slot is already taken by other producers in those minutes). Next number: slot-priority replay (was the holder better than VAR_CONT?) and phase-D on Variation."
+    status: disabled
+    ref: "T-458 · tests/v9/regression/test_t458a_var_cont.py · docs/reports/VARIATION_PLAYBOOK_2026-09-24.md"
+  VAR_CONT_MAX_PER_DAY:
+    category: param
+    group: dalton
+    what: "Maximum LIVE VAR_CONT entries per session (default 2); further triggers are routed shadow_only. Inert while VAR_CONT_V1 is off."
+    why: "Measured 24.09 (60 sessions): first CONT of a Variation day +$642/26/62%, second +$12, third and later Σ−$272."
+    status: param
+    ref: "T-458"
+  VAR_CONT_CUTOFF_IL:
+    category: param
+    group: dalton
+    what: "No new VAR_CONT entry from this Asia/Jerusalem clock time (default 22:00; the bar's own IL time). Inert while VAR_CONT_V1 is off."
+    why: "Measured 24.09: 22:xx entries n=14 Σ−$183 21% — the EOD close cuts them before 1.5R."
+    status: param
+    ref: "T-458"
   IB_EXT_OVERRIDE_PHASE_GUARD_V1:
     category: cascade_gate
     group: dalton
