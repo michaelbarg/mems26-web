@@ -1,3 +1,93 @@
+## 🟢 [cowork-dev · 2026-09-24 17:34-17:45 IL] — **ניטור-RTH שלישי: הכל ירוק, אפס תקלה חדשה** · ☎️ **אפס ממתינות ⇒ שקט-טלפון מוחלט** · 🔑 **הממצא: הירי עלה 11⇒16, עדיין 0 לייב — ובשעה `17:30` השער **ננעל ליום** (T-314 IB-lock ⇒ `opening=OPEN_AUCTION_IN`), ונוסף לו סעיף-חסימה **שני**: `dalton_intent:location`**
+
+`17:34` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (רשומות cowork-dev מהיום `15:34`,
+`16:04`, `16:34`, `17:04` · מאזין `77380 Thu Sep 24 15:38:41` > 12:00 ⇒ T-369)
+⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בדגלים · שורת-מדידה בלבד.**
+
+### ☎️ חובה-1 — נמדד במקור החי (מלכודת 12), שלושה ערוצים ולא רק זנב ה-JSONL
+
+```raw
+GET /chat?key=…&n=12        ⇒ HTTP=200 · n=30 · אחרונה 2026-09-24T12:47:57Z sender=cowork-dev
+GET /instruction/pending    ⇒ {"items":[]}
+GET /cmd/pending            ⇒ {"cmd":null}
+pgrep -fl mobile_relay.py   ⇒ 4842 …/scripts/mobile_relay.py        ← הממסר חי
+זנב PHONE_THREAD.jsonl      ⇒ זהה ל-/chat (אותן אחרונות, אותן חותמות)
+```
+
+הודעת-מייקל האחרונה `2026-09-24T12:10:52Z` — **נענתה עניינית** ב-`12:47:57Z`. אפס עסקת-לייב ⇒
+אין (ב) · הבלימה היא T-464 שכבר פתוח ומתועד ⇒ אין (ג) · אינו שער-15:40 ⇒ אין (ד).
+⇒ **אפס הודעות-טלפון נשלחו.** הפסיקה הממתינה היחידה (*"לסחור היום עם הענף דלוק?"*, נשלחה
+`12:47:57Z`) — **לא נשאלה שוב** (כלל "פסיקה נשאלת פעם אחת").
+
+### 🖥️ חובה-3 — ניטור, כולן פלט-גולמי (Rule 5)
+
+```raw
+health            {"status":"ok","version":"v9.0.0"}  HTTP=200 t=0.321s
+מאזין             pid=77380 · STARTED Thu Sep 24 15:38:41 · %CPU 21.5 · RSS 127MB
+                  ⇒ אפס ריסטארט סמוי מאז שער-היום
+פיד (T-430)       v9_bars_5min_woodies max(ts)=2026-09-24 14:35:00 UTC · now=14:39:06 UTC
+                  ⇒ גיל 4.2 דק' ≤10 ✅ · 176 ברים היום (200 כולל זנב-Globex)
+                  ⚠️ נמדד UTC-בטוח: החישוב הנאיבי הראשון החזיר AGE=-175.9 (‏+03 מול now נאיבי)
+                  — מלכודת 19 נתפסה בבדיקה-חוזרת, לא דווחה כממצא
+פוזיציה מול TM    sierra_state: position_qty=0 · working_orders=0 · age_s=0.5 · stale=false
+                  is_sim=0 (לייב) · order_placement_armed=1 · acct 37138283 · MESZ26_FUT_CME
+                  /api/v9/account/state ⇒ "open_trade": null · "verdict": "flat"
+                  ספרים: state NOT IN (CLOSED) ⇒ אפס שורת-לייב פתוחה (רק CANCELLED ישנות)
+                  ⇒ AGREED_FLAT — אפס פער ⇒ ownership-לפי-order_id לא נדרש, אפס אזעקה
+עסקאות היום       16 · **כולן shadow · LIVE_TODAY=0** · 11 סגורות net -61.25$ · 4W / 6L / 1BE
+                  daily_total_qty_filled=0.0 · acct_daily_pl=0.0 ⇒ אפס מילוי לייב ⇒ אפס מקרה (ב)
+שגיאות            [ERROR] היום 18,134 — אך **אחרי הריסטארט 15:38:39: בדיוק 1**, והיא
+                  16:40:02 [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+                  ⇒ **אפס שגיאות ב-61 הדק' האחרונות.** T-320/T-380 (TS-OFFSET-GATE) עדיין דומם.
+                  ⚠️ החיפוש הראשון על `CLOSED->CLOSED` החזיר 0 — **החתימה היא עם רווחים**
+                  (`CLOSED -> CLOSED`, 8 היום). אפס-כוזב נתפס בשלב-האימות, לא דווח כ"נקי".
+מרג'ין (T-34)     acct_available_funds=477.19 < 1,595$ ⇒ **דיווח בלבד**: under_margin=0 ·
+                  trading_disabled=0 · loss_limit_reached=0 (גבול -286.31, daily_pl 0.0) ·
+                  margin_req=0.0 ⇒ **אינו חוסם מסחר** (זהה למספר שבשער 15:47) ⇒ אפס טלפון
+ליגר              v9_shadow_ledger כותב: S7 12 PASSED / 5 BLOCKED · TSF 17 NO_CHANGE
+                  אחרונה 14:40:15 UTC ⇒ הליגר חי ועדכני
+```
+
+### 🔑 הממצא — **T-464 קיבל שני נתונים חדשים; אפס T-id חדש**
+
+**(1) השער ננעל ליום.** ב-`17:30:03` רץ `[S1-OPENING] T-314: locked opening=OPEN_AUCTION_IN dir=NEUTRAL at IB lock`.
+שורת phase-B של OPEN_AUCTION_IN מתירה `kinds=['EDGE_FADE']` בלבד — ומעכשיו היא **נעולה**, כלומר
+כל ירי שאינו EDGE_FADE ייחסם עד הסגירה. זו הסיבה המלאה ל-0 לייב, לא תקלה:
+
+```raw
+17:15:04 [Gateway] BLOCKED system=4 pattern=TREND_STEP dir=LONG entry=7753.5
+         blocked_by=dalton_intent:kind ot=OPEN_AUCTION_IN bias=BOTH kinds=['EDGE_FADE'] il=17:15
+17:15:04 [TrendStep] gateway blocked: counter-bias entry_kind=PULLBACK not in ['EDGE_FADE'] (phase=B)
+17:25:01 [Gateway] BLOCKED system=2 pattern=CEILING_FLIP_TOUCH2 dir=SHORT entry=7752.0 blocked_by=dalton_intent:kind
+17:30:03 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+17:30:03 [S1-OPENING] T-314: locked opening=OPEN_AUCTION_IN dir=NEUTRAL at IB lock
+```
+
+**(2) סעיף-חסימה שני התעורר ב-`17:40` — `location`, לא `kind`.** עד עכשיו כל 15 החסימות היו על
+`:kind`. האחרונה נחסמה על **מיקום**:
+
+```raw
+17:40:15 [Gateway] BLOCKED system=4 pattern=ZLR dir=LONG entry=7754.25
+         blocked_by=dalton_intent:location zone=near_vah ot=OPEN_AUCTION_IN il=17:40
+17:40:15 [Woodies] Gateway blocked: dalton_intent:location
+```
+
+⇒ גם אם ייפול ענף-ה-kind, סעיף ה-location עדיין חוסם לונג ב-`near_vah`. **שני הסעיפים חייבים
+מקרה-ריפליי נפרד** בסט של הערב — לא דגל (דוקטרינת-הלמידה: הוראה חדשה ⇒ קודם ריפליי).
+
+**(3) סתירת-מסווגים (נתון, לא תקלה).** המסווג-החי נעל `OPEN_AUCTION_IN`, בעוד שורת-הצל מדפיסה
+לאורך כל השעה `SHADOW would-be opening_type_result: type=OPEN_AUCTION_OUT dir=NEUTRAL conf=0.25-0.35
+(not written)`. IN מול OUT הוא בדיוק ההבדל בין שורת-phase-B חוסמת לשורה מתירה ⇒ **מועמד-ריפליי ראשון**:
+מה היה קורה היום לו נעל OUT. נרשם כנתון על T-464; אפס שינוי-התנהגות, אפס דגל.
+
+**(4) מנגנון-התאומים תקין.** `T-219 shadow_blocked … → twin #2301 (16/150 today)` — כל חסימת-לייב
+נרשמת כתאום-צל סָפוּר, כלומר 16 עסקאות-הצל הן 16 מועמדי-לייב חסומים ולא ירי-צל עצמאי.
+
+**הצעד הבא:** ללא שינוי — הריצה הבאה (‏~18:00) מנטרת בלבד; מקרי-הריפליי `dalton:kind`,
+`dalton:location` ו-`opening IN⇄OUT` נכנסים לסט-הערב של T-464.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-24 17:04-17:14 IL] — **ניטור-RTH שני של היום: הכל ירוק** · ☎️ **אפס ממתינות ⇒ אפס הודעת-טלפון** · 🔑 **הממצא: 11 ירי ב-RTH, כולם צל — שער-דלטון חסם 100% מהלייב; הפילוח מראה שהוא חסם את +115$ של הפתיחה וחסך -157.5$ של אמצע-היום**
 
 `17:04` > `16:10` ⇒ מחוץ לחלון-השער **וגם** השער אינו שלי (רשומות `15:34-16:0x` + `16:04-16:18`
