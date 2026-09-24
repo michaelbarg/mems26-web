@@ -1,3 +1,68 @@
+## 🟢 [cowork-dev · 2026-09-24 13:04-13:12 IL] — **ריצה-מתוזמנת שביעית (חובה-1 בלבד)** · ☎️ **אין ממתינות ⇒ שקט מוחלט בטלפון** · מטען-השער של-15:30 אומת נוכח
+
+`13:04` ∉ `15:30-16:10` · ∉ `16:30-23:00` · ∉ `23:00-23:30` ⇒ אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בדגלים/`.env`/פוזיציות · אפס הודעות-טלפון.
+
+**☎️ השלילה נמדדה במקור, לא בקובץ המקומי:**
+
+```raw
+GET /instruction/pending?key=…  ⇒ {"items":[]}          13:06
+GET /cmd/pending?key=…          ⇒ {"cmd":null}
+GET /upload/pending?key=…       ⇒ {"items":[]}
+GET /chat?key=…                 ⇒ n=30, אחרונה 2026-09-24T08:17:11Z sender=cowork
+                                    == זנב מקומי (626 שורות) ⇒ הפיד לא מפגר
+phone_request_guard             ⇒ dispositioned 5 · undispositioned 0
+```
+
+שתי ההודעות האחרונות בפיד הן של **סוכן**, לא של מייקל. אין (א)/(ב)/(ג)/(ד) ⇒ שקט.
+
+---
+
+### 🔑 מטען-השער של-15:30 — אומת על-הדיסק, לא על-סמך הודעת-הטלפון
+
+הודעת 07:28 למייקל הצהירה "ענף-הדרייב דלוק ב-`.env`". נבדק בפועל — **קיים**:
+
+```raw
+$ grep -nE "^[^#]*OPENING_DRIVE" .env
+444:OPENING_DRIVE_PROVISIONAL_V1=1     540:OPENING_DRIVE_EXHAUSTION_VETO_V1=0   712:OPENING_DRIVE_SKIP_V1=0
+797:OPENING_DRIVE_BRANCH_V1=1          798:OPENING_DRIVE_T1_R=1.5          ← הפסיקה של 24.09 10:30
+$ python3 scripts/flag_guard.py | tail -3   ⇒ FLAG-GUARD: PASS — all 266 ruled flags match
+                                              BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0
+RULED_FLAGS.yaml:431-432  ⇒ שני הדגלים עם `measured:` (T-458ג, 58 סשים/29 דרייבים, Δ+601$ @1.5R)
+```
+
+⇒ השער של-15:30 יטען את הענף. **לא נגעתי — דיווח בלבד.** הדלתא של-12:34 (`ruled_contracts()` מקליפה ריקה = `None`) **שוחזרה שוב כאן** — ריצה בלי `.env` החזירה `None`, ועם `set -a; . ./.env` החזירה `1`. המלכודת מתועדת — לא באג חדש.
+
+---
+
+### ✅ תשתית נמדדה (13:05-13:10)
+
+```raw
+פיד       select max(ts), count(*) today from v9_bars_5min_woodies
+          ⇒ 2026-09-24 13:05:00+03 · now 13:05:39 · גיל 0.7 דק' · 146 ברים היום   ← חי
+legacy    v9_bars_5min max=23.09 23:55 · 0 היום  ← צפוי לפני RTH (ממצא 12:04: RTH-scoped)
+פוזיציות  state NOT IN (CLOSED,CANCELLED) ⇒ 0      (לא exit_ts — מלכודת T-455)
+צל        close_stale_shadow.py (dry) ⇒ "no stale shadow trades — nothing to do"
+בריאות    GET /api/v9/health ⇒ 200 ב-1.4ms
+מאזין     PID 95273 · STARTED Wed Sep 23 15:37:06 · ELAPSED 21:28:33 · מאזין יחיד
+גודל      ruled_contracts() ⇒ 1  (עם .env טעון) · FIXED_CONTRACTS_1=1, השאר 0
+task_log  437 פריטים · עודכן לפני 0.0 ימים ⇒ PASS
+```
+
+**ריסטארט-קדם-פתיחה עדיין חוב** (המאזין מ-23.09 15:37 ⇒ אינו מכיר את שתי שורות-הענף ולא את תיקוני-ההטיה של 23.09). **הבעלות של שער-15:30 — לא של הריצה הזו.**
+
+### ⚠️ machine_health — WARN בלבד (לא לטלפון)
+
+```raw
+WARN: unused RAM 75M < 400M  ·  WARN: swap used 5339M > 500M
+trading stack:  backend 126MB/14.1%  ·  bridge 32MB/6.1%  ·  sierra 243MB/35.2%
+                postgres 509MB/0.0%  ·  frontend 11MB  ·  phone-relay 26MB
+non-trading:    cowork-vm 3462MB · chrome 2647MB · claude-app 2082MB · claude-agents 472MB
+```
+
+מגמת-swap היום: 11:04 → 5227M · 11:34 → 5035M · 12:04 → 5172M · **13:10 → 5339M**. הלחץ אינו מערכת-המסחר (סה"כ פחות מ-1GB) אלא הצרכנים שלא-למסחר (≈8.7GB). ריסטארט-15:30 משחרר את חלק ה-backend בלבד — אם ה-WARN נמשך אחריו, הפתרון הוא סגירת Chrome/Cowork ולא נגיעה בסטאק.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-24 12:34-12:38 IL] — **ריצה-מתוזמנת שישית (חובה-1 בלבד)** · ☎️ **אין ממתינות ⇒ שקט מוחלט בטלפון**
 
 `12:34` ∉ `15:30-16:10` · ∉ `16:30-23:00` · ∉ `23:00-23:30` ⇒ אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בדגלים/`.env`/פוזיציות · אפס הודעות-טלפון.
