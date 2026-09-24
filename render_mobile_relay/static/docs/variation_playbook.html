@@ -1,0 +1,180 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>פלייבוק-וריאציה</title><style>
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
+.tags button:active{background:#30363d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
+.g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">פלייבוק-וריאציה<div class="sub">24.09 · 60 סשנים · חוזה 1 · דגל כבוי עד פסיקה</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="progress.html"><span>📊</span><span>התקדמות</span><small>האם משתפר — לפי ענף וסוג-יום</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="whatworks.html"><span>🧪</span><span>מה עובד</span><small>כניסות · מיקום · יציאות — במספרים</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><a class="item" href="review.html"><span>🔎</span><span>סקירת-יום</span><small>מה היה צריך לצאת · מה המערכת ראתה</small></a><a class="item" href="review_report.html"><span>📑</span><span>דוח-ריפליי מסודר</span><small>כל הימים: מה היה צריך · מה לתקן</small></a><a class="item" href="tree_board.html"><span>🌲</span><span>לוח-העץ</span><small>הצורה · המספרים · הניצנים</small></a><a class="item on" href="variation_playbook.html"><span>📗</span><span>פלייבוק-וריאציה</span><small>דרייב · תיקון-עצמי · כמה כסף (24.09)</small></a><a class="item" href="signatures.html"><span>🧬</span><span>מבחן-החתימות</span><small>מיקום · ווליום · נרות — כלל על כל בר</small></a><h3>ניהול</h3><a class="item" href="defects.html"><span>🩹</span><span>ליקויי-היומן</span><small>ספרים מול ברוקר — הרשימה והתיקונים</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h1>ענפי-הוריאציה — מה מרוויח ביום שנפתח בדרייב ונגמר רחוק מהפתיחה, עם חוזה אחד (cowork-dev, 24.09 09:30)</h1>
+<p><b>מייקל 24.09 08:00:</b> *"אתמול זה יום של 80 נקודות… רוב הימים בשנה הם וריאציה או כאלה שמסתיימים ככה — עליך לדאוג שיהיו לנו ענפים… גם אם תהיה טעות המערכת תדע לבצע תיקון ומקסום נקודות היום עם חוזה 1… תוכל לבדוק, לבחון, לתקן ולהציע איך זה תוקן וכמה כסף נעשה."*</p>
+<p><b>השיטה:</b> <code>scripts/variation_playbook_test.py</code> — כללי-כניסה <b>סיבתיים</b> (בלי תווית-סוף-יום, בלי ראייה-לאחור: כל תנאי משתמש בברים עד הבר הנוכחי) שיורים על <b>כל</b> בר ב-60 סשנים (2026-06-26 … 2026-09-23), חוזה אחד, מגע-ראשון על ברי-5-דק׳, סגירת-יום, 5$/נק׳, 1.30$/צד. ששה סגנונות-יציאה לחוזה היחיד: T1=1.5R · T2=2.5R · T3=4R · טריילינג 1×ATR אחרי +1R · BE (סטופ לכניסה אחרי +1R) · time-stop (סקראץ׳ בבר ה-6 בלי +0.5×ATR). התווית 'סוג-יום' בטבלאות היא של סוף-היום — <b>לקריאה בלבד</b>, לא תנאי.</p>
+<h2>1 · הכללים והמספרים</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>כלל (סיבתי)</th><th>N</th><th>Σ$ T1</th><th>Σ$ T2</th><th>Σ$ T3</th><th>Σ$ TRAIL</th><th>Σ$ BE</th><th>Σ$ TSTOP</th></tr>
+<tr><td>DRIVE — בר 3 סוגר מעבר לטווח-הפתיחה (2 ברים), כיוון מונוטוני; סטופ מבני (קצה 3 הברים+טיק, תקרה 15)</td><td>8</td><td>+22 (50%)</td><td>+182 (50%)</td><td>+328 (50%)</td><td>-87 (50%)</td><td>+22 (50%)</td><td>+22 (50%)</td></tr>
+<tr><td>DRIVE-lite — בר 3 מעבר לטווח-הפתיחה, בלי דרישת-מונוטוניות</td><td>13</td><td>+162 (54%)</td><td>+87 (38%)</td><td>+346 (38%)</td><td>-149 (54%)</td><td>+162 (54%)</td><td>+162 (54%)</td></tr>
+<tr><td><b>DRIVE-late — הבר הראשון 4–6 שסוגר מעבר לטווח-3-הברים, כשהקודם באותו צד</b> (הדרייב של המנוע)</td><td>21</td><td>+442 (57%)</td><td>+712 (48%)</td><td>+725 (48%)</td><td>+26 (62%)</td><td>+513 (57%)</td><td>+359 (52%)</td></tr>
+<tr><td>CONT — אחרי ה-IB: הרחבה או יום-דרייב + פולבק ≥2 ברים + בר-טריגר עם הכיוון; סטופ = קצה-הפולבק</td><td>141</td><td>-58 (40%)</td><td>-279 (32%)</td><td>-230 (30%)</td><td>-914 (49%)</td><td>-191 (30%)</td><td>-127 (40%)</td></tr>
+<tr><td>CONT-X — כמו CONT אבל רק עם הרחבה ≥0.25×IB</td><td>134</td><td>-481 (37%)</td><td>-127 (32%)</td><td>-131 (31%)</td><td>-1070 (46%)</td><td>-655 (28%)</td><td>-492 (37%)</td></tr>
+<tr><td><b>CONT-1S — כמו CONT אבל רק כשההרחבה חד-צדדית</b> (לא יצא מה-IB בצד השני) — ענף-התיקון-העצמי</td><td>113</td><td>+156 (42%)</td><td>-332 (31%)</td><td>-502 (29%)</td><td>-669 (49%)</td><td>-65 (31%)</td><td>+63 (41%)</td></tr>
+<tr><td>BREAK — שבירת-מבנה (סגירה מעבר ל-5 ברים) על בר-טריגר כשכבר מורחב</td><td>142</td><td>-591 (39%)</td><td>-1226 (27%)</td><td>-2026 (22%)</td><td>-1790 (47%)</td><td>-848 (29%)</td><td>-407 (39%)</td></tr>
+</table></div>
+<p><b>לפי סוג-יום (תווית-סוף-יום, לקריאה):</b></p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>כלל</th><th>סוג-יום</th><th>N</th><th>Σ$ T1</th><th>Σ$ T2</th><th>Σ$ TRAIL</th><th>הכי-טוב</th></tr>
+<tr><td>DRIVE_LATE</td><td>Variation</td><td>11</td><td>+471</td><td>+741</td><td>+187</td><td>T3 +835$ (64%)</td></tr>
+<tr><td>CONT_1S</td><td>Variation</td><td>78</td><td>+459</td><td>-125</td><td>-73</td><td>T1 +459$ (45%)</td></tr>
+<tr><td>CONT_1S</td><td>Neutral_Extreme</td><td>9</td><td>-144</td><td>-426</td><td>-212</td><td>BE -118$ (22%)</td></tr>
+<tr><td>CONT_1S</td><td>Normal</td><td>8</td><td>-312</td><td>-283</td><td>-323</td><td>T3 -240$ (12%)</td></tr>
+<tr><td>CONT_1S</td><td>Trend_Normal</td><td>6</td><td>+117</td><td>+276</td><td>+70</td><td>T2 +276$ (50%)</td></tr>
+<tr><td>BREAK</td><td>Variation</td><td>85</td><td>-548</td><td>-828</td><td>-973</td><td>TSTOP -511$ (35%)</td></tr>
+<tr><td>BREAK</td><td>Neutral_Center</td><td>17</td><td>+64</td><td>-166</td><td>-206</td><td>TSTOP +78$ (41%)</td></tr>
+<tr><td>BREAK</td><td>Neutral_Extreme</td><td>11</td><td>-131</td><td>-305</td><td>-278</td><td>T1 -131$ (45%)</td></tr>
+<tr><td>BREAK</td><td>Trend_Normal</td><td>10</td><td>+135</td><td>+290</td><td>+63</td><td>T2 +290$ (40%)</td></tr>
+<tr><td>BREAK</td><td>Normal</td><td>9</td><td>-242</td><td>-393</td><td>-328</td><td>TSTOP -221$ (11%)</td></tr>
+</table></div>
+<h2>2 · הפלייבוק כחשבון אחד — חוזה אחד, פוזיציה אחת בכל רגע: DRIVE-late → T2 (2.5R) · CONT-1S → T1 (1.5R) · BREAK = שער</h2>
+<p><b>60 סשנים · 109 עסקאות · 44% ניצחון · Σ +868$ · ימים חיוביים 24 / שליליים 23 / שטוחים 13</b></p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>סוג-יום</th><th>ימים</th><th>Σ$</th><th>ממוצע/יום</th></tr>
+<tr><td>Variation</td><td>38</td><td>+1124</td><td>+29.6</td></tr>
+<tr><td>Neutral_Center</td><td>7</td><td>-409</td><td>-58.4</td></tr>
+<tr><td>Normal</td><td>5</td><td>-181</td><td>-36.3</td></tr>
+<tr><td>Neutral_Extreme</td><td>4</td><td>-189</td><td>-47.2</td></tr>
+<tr><td>Trend_Normal</td><td>3</td><td>+117</td><td>+38.9</td></tr>
+<tr><td>?</td><td>1</td><td>+62</td><td>+61.8</td></tr>
+<tr><td>Normal_Variation</td><td>1</td><td>+210</td><td>+209.8</td></tr>
+<tr><td>Trend_DD</td><td>1</td><td>+135</td><td>+134.9</td></tr>
+</table></div>
+<p><b>23.09 בפלייבוק: +208$</b> — DRIVE_LATE 16:45 SHORT @7806.5 → T2 +37.50 נק׳ (+185$) · CONT_1S 20:20 SHORT @7766.0 → T1 -8.25 נק׳ (-44$) · CONT_1S 21:00 SHORT @7776.25 → T1 +13.88 נק׳ (+67$) — הדרייב ל-2.5R נפגע ב-19:50, הסלוט התפנה, והתיקון-העצמי לקח עוד רגל ב-21:00.</p>
+<p><b>לפי חודש (כנות — הקצה לא אחיד):</b> 2026-06: 3 ימים +54$ · 2026-07: 21 ימים +748$ · 2026-08: 20 ימים −41$ · 2026-09: 16 ימים +108$. יולי נושא את הרוב; אוגוסט שטוח. זה מספר-ריפליי אמיתי, לא הבטחה — ולכן הענפים נכנסים בצל/בדגל-כבוי עד פסיקה, ונמדדים הלאה כל ערב במבחן-היומי.</p>
+<h2>3 · ההוכחה במנוע האמיתי (לא רק במודל): <code>fwd_harness</code> עם הענף דלוק</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>יום</th><th>בלי הענף (HEAD, מה שנטען היום ב-15:30)</th><th>עם <code>OPENING_DRIVE_BRANCH_V1=1</code></th></tr>
+<tr><td><b>23.09</b> (הדרייב למטה, 48 נק׳ בשעה)</td><td>הדרייב עובר את העץ ונחסם ב-ELQ (<code>beyond_value 1.08 > 0.25</code>); <code>INITIATIVE_SHORT 17:05</code> עם T1 מקוצץ 3.5 נק׳ ⇒ ≈ <b>+15$</b></td><td><code>T-457 ELQ skipped</code> · <code>TARGET_REALISM skipped (ladder kept: t1=7779.88)</code> ⇒ <b>SELL 7814.25 · סטופ 7828 · יעד 7779.88 (2.5R = 34.4 נק׳) — נפגע 17:20</b> ⇒ <b>+169$</b>; ואז <code>GB100 SHORT 19:44 @7772</code> (T1 מקוצץ 2.5 נק׳, +10$) ⇒ <b>≈ +179$</b> במקום −18.75$ בפועל</td></tr>
+<tr><td><b>21.09</b> (הדרייב למעלה, יום-המגמה של 7/7)</td><td><code>OPENING_DRIVE LONG 16:45 @7766.25</code> עם T1 7771.75 (5.5 נק׳) ⇒ +18.75$ ברוקר</td><td><code>BUY 7766.25 · סטופ 7756.75 · יעד 7790.0 (2.5R = 23.75 נק׳)</code> ⇒ <b>≈ +116$</b> על אותה עסקה (השאר ללא שינוי)</td></tr>
+</table></div>
+<h2>4 · מה תוקן, מה מוכן, ומה צריך פסיקה</h2>
+<div class='card' style='padding:8px 12px'>1. <b>תוקן ונטען היום ב-15:30 (T-456):</b> ההטיה לא נקבעת עוד ע״י קיצונים של סשן אחר; שכבה-2 לא דורסת לפני 17:30. בלי זה שום ענף לא היה עוזר — הדרייב נדחה על "bias=LONG".</div>
+<div class='card' style='padding:8px 12px'>2. <b>מוכן בקוד, דגל כבוי — <code>OPENING_DRIVE_BRANCH_V1</code> (T-457), ממתין לפסיקה:</b> לדרייב מאושר ע״י המנוע (OPENING_DRIVE/TEST_DRIVE בלבד): (א) יעד החוזה היחיד = 2.5R (במקום 1.5R) — נמדד: +712$ מול +442$ על 21 דרייבים; (ב) ELQ לא נבדק — דרייב הוא "מעבר לערך" בהגדרה; (ג) קיצוץ-הריאליזם לא חל — התקרה היא חזית-הדרייב עצמה. 5 טסטי-רגרסיה (<code>test_t457_opening_drive_branch.py</code>), דגל-כבוי = זהה-בייט. <b>הפסיקה הנדרשת: להדליק <code>OPENING_DRIVE_BRANCH_V1=1</code>.</b> אם כן — נכנס ב-<code>.env</code> (אחרי סנאפשוט) + <code>RULED_FLAGS</code> עם <code>measured:</code>, ונטען בשער-15:30 הבא.</div>
+<div class='card' style='padding:8px 12px'>3. <b>ענף-התיקון-העצמי — <code>VAR_CONT</code> (CONT-1S) כמפיק-צל:</b> ירייה על פולבק עם ההרחבה החד-צדדית, יעד 1.5R קבוע; נמדד +459$ על 78 עסקאות בימי-Variation (45%), שלילי בימים בלי הרחבה; <b>לצל תחילה</b> (≥15 עסקאות-צל אמיתיות ⇒ פסיקה). שורת-v2 <code>t457_cont_pullback_with_extension</code> נכתבה; היישום כמפיק — cc.</div>
+<div class='card' style='padding:8px 12px'>4. <b>BREAK = שער:</b> שבירת-מבנה על יום שאינו מגמה מפסידה (85 עסקאות, −548$ ב-Variation). שורת-v2 <code>t457_break_blocked_off_trend</code> בצל — נמדדת ב-TREE_SHADOW מול המפיקים האמיתיים לפני פסיקה.</div>
+<div class='card' style='padding:8px 12px'>5. <b>הריאליזם על עסקאות-המשך:</b> גם ב-23.09 עם הענף, <code>GB100 19:44</code> קיבל יעד של 2.5 נק׳ במקום 22.5 (1.5R). זה ענף-היציאות של T-449 — הריפליי הבא: T1 מבני מול הקיצוץ על כל המפיקים לפי סוג-יום.</div>
+<p><b>כמה כסף:</b> על 60 סשנים הפלייבוק המלא (דרייב 2.5R + תיקון-עצמי 1.5R, חוזה אחד) = <b>+868$</b>, 109 עסקאות, 44% — לא אחיד לפי חודש. אתמול: <b>≈ +179$ במנוע האמיתי עם הענף</b> (ו-≈ +208$ בפלייבוק המלא כש-CONT מחובר), מול −18.75$ בפועל. "80 נקודות" (400$) הם התקרה של ראייה-מלאה ביום כזה; חוזה אחד עם כללים סיבתיים לוקח ממנה 35–60% — וזה מה שהמספרים תומכים בו היום.</p></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class=""><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+<script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
+</script></body></html>

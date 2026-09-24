@@ -343,6 +343,7 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
         ("review_report.html", "📑", "דוח-ריפליי מסודר", "כל הימים: מה היה צריך · מה לתקן", "למידה"),
         ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
+        ("variation_playbook.html", "📗", "פלייבוק-וריאציה", "דרייב · תיקון-עצמי · כמה כסף (24.09)", "למידה"),
         ("signatures.html", "🧬", "מבחן-החתימות", "מיקום · ווליום · נרות — כלל על כל בר", "למידה"),
         ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
@@ -651,6 +652,27 @@ if os.path.exists(tp):
         return h
     with open(os.path.join(OUT, "tree.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("עץ-דלתון", md2html(md), sub="תעודת-זהות וסקירה"))
+
+# ── variation playbook report (Michael 24.09: "רוב הימים וריאציה — תדאג לענפים … כמה כסף נעשה") ──
+vpp = os.path.join(ROOT, "docs", "reports", "VARIATION_PLAYBOOK_2026-09-24.md")
+if os.path.exists(vpp) and "md2html" in globals():
+    vmd = open(vpp, encoding="utf-8").read()
+    with open(os.path.join(OUT, "variation_playbook.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("פלייבוק-וריאציה", md2html(vmd), active="variation_playbook.html", sub="24.09 · 60 סשנים · חוזה 1 · דגל כבוי עד פסיקה"))
+    CH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if os.path.exists(CH):
+        import subprocess, html as _h
+        css = ("body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;direction:rtl;color:#111;background:#fff;font-size:12.5px;line-height:1.45;margin:18px}"
+               "h1{font-size:19px;margin:0 0 4px}h2{font-size:15px;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}"
+               "table.plain{border-collapse:collapse;width:100%;font-size:11px;margin:4px 0}table.plain th,table.plain td{border:1px solid #ddd;padding:4px 5px;text-align:right;vertical-align:top}"
+               "table.plain th{background:#f2f2f2}code{font-family:Menlo,monospace;font-size:11px;direction:ltr;unicode-bidi:embed}.card{border:1px solid #ddd;border-radius:6px;padding:8px 10px;margin:6px 0;page-break-inside:avoid}")
+        tmp = os.path.join(OUT, "data", "_print_variation_playbook.html")
+        open(tmp, "w", encoding="utf-8").write('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>פלייבוק-וריאציה 24.09</title><style>' + css + '</style></head><body>' + md2html(vmd) + '</body></html>')
+        try:
+            subprocess.run([CH, "--headless=new", "--disable-gpu", "--no-pdf-header-footer", f"--print-to-pdf={os.path.join(OUT, 'VARIATION_PLAYBOOK_2026-09-24.pdf')}", f"file://{tmp}"], capture_output=True, timeout=90)
+            os.remove(tmp)
+        except Exception as e:
+            print("playbook pdf failed:", e)
 
 # ── day review — the daily exam (Michael 23.09: "מבחן על כל ימי המסחר … כלי עבודה יומי") ──
 rvp = os.path.join(OUT, "data", "review.json")
