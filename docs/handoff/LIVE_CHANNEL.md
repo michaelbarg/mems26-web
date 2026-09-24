@@ -45360,3 +45360,57 @@ $ grep -n 'LADDER_SANITIZE_V1' backend/v9/systems/target_spacing.py
 אימות-פרסום: `doc/days/2026-09-22.html ⇒ 200` · `doc/lessons.html ⇒ 200`.
 
 — cowork-dev
+
+---
+### [2026-09-24 18:10] cowork-dev → cowork-dev · [id:81ea7331] ניטור-RTH 18:10 — תקין · פיד חי 1.3 דק' · פוזיציה 0 תואמת · 0 live היום · שקט בטלפון
+ניטור-RTH 18:05-18:10 (ריצה מתוזמנת, חובה 1+3) — תקין, אפס הודעות-טלפון.
+
+**טלפון (חובה 1):** אין הודעת-מייקל בלי תשובה עניינית. האחרונה 15:10 ("לבצע עכשיו בדיקות
+להכין למסחר של היום") — נענתה בדוח-השער 15:47. peek ישיר מ-Render: הרשומה האחרונה בפיד היא
+15:47:57 cowork-dev, זהה לזנב PHONE_THREAD.jsonl. ⇒ שקט מוחלט בטלפון, בלי דוח.
+**ממתין למייקל (לא נשאל מחדש):** שאלת-השער של cowork-האינטראקטיבי מ-15:47 — "לסחור היום עם
+הענף דלוק?" — עדיין בלי מענה. לא חוזר עליה בטלפון (כלל-הטלפון, T-369).
+
+**בעלות-ריסטארט:** cowork-האינטראקטיבי הוא הבעלים היום — המאזין על :8000 הוא pid 77380
+שעלה `Thu Sep 24 15:38:41 2026` (ps -o lstart), וקיימת רשומת-שער שלו מהיום. לא הרמתי ריסטארט
+ולא שלחתי GO/NO-GO.
+
+**מדידות (פלט גולמי, Rule 5):**
+- פיד חי (T-430 — לא "קובץ טרי"): `select max(ts), age from v9_bars_5min_woodies`
+  ⇒ `2026-09-24 18:05:00+03 | 1.3` דקות. אותו דבר ב-v9_bars_5min. 206 ברים היום.
+- backend: `curl /api/v9/health` ⇒ `http=200 t=0.0033s {"status":"ok","version":"v9.0.0"}`.
+  `/api/v9/status` ⇒ mode=live · session CASH_HOURS · is_trading_active=true ·
+  sierra.writing=true last_write_age_s=1.1 · day_type Normal LOCKED conf 0.56 stage B2.
+- פוזיציה מול TM — **תואם, אין אזעקה**: sierra_state.json (ts 18:07) `is_sim=0`,
+  `order_placement_armed=1`, `send_orders_to_trade_service=1`, `position_qty=0`,
+  `working_orders=0`, `orders=[]`, `daily_total_qty_filled=0`; ובצד TM אין שורת-live פתוחה
+  (כל ה-non-CLOSED הישנות הן CANCELLED טרמינליות) ⇒ אין מה לבדוק לפי order_id.
+- עסקאות: **live היום = 0** (`count(*) where mode='live' and entry_ts>=today` ⇒ 0), אין מה
+  לדווח בטלפון (מקרה ב). צל היום: 22 — 17 סגורות, 5 פתוחות, −33.75$. ה-live האחרון הוא
+  #2230 מאתמול (STOP_HIT, pnl_sierra −18.75) — זה גם ה-−18.75 שמופיע ב-ack של הטלפון.
+- ליגר כותב: `v9_decision_vectors` 3,250 שורות היום, אחרונה 18:07:34 ·
+  `v9_shadow_ledger` היום PASSED 16 / BLOCKED 6 / NO_CHANGE 22, אחרונה 18:05:04.
+- אין שורות-צל תקועות מאתמול (הכשל של 16.09) — כל הפתוחות מהיום, מ-17:05 והלאה.
+- מכונה: `load averages: 3.28 4.14 4.56`, backend %CPU 24.5 / %MEM 0.7, uptime 2 ימים.
+
+**גודל (דיווח, לא נגיעה):** `ruled_contracts()` עם .env טעון ⇒ **1** (פסיקת-מייקל 18.09
+"היום לעבוד על חוזה 1"; `FIXED_CONTRACTS_1=1` ב-.env שורה 266, כל השאר 0). ⚠️ נוסח-המשימה
+המתוזמנת עדיין אומר "מ-16.09: 2, FIXED_CONTRACTS_2=1" — **מיושן מול הפסיקה בקוד**; זה בדיוק
+הנוסח שהוליד את T-225, ולכן נקרא מ-ruled_contracts() ולא מהטקסט. לא נגעתי בדגלי-גודל.
+הערה למי שיריץ בלי env: קריאה מ-python3 חשוף מחזירה None (הפונקציה קוראת os.environ) — None
+פירושו "אין פסיקת-גודל קבועה", לא אפס, ולא מספר להניח.
+
+**T-34 מרג'ין (דיווח בלבד):** `acct_available_funds=477.19` < 1,595$ — אבל
+`acct_under_margin=0`, `acct_trading_disabled=0`, `acct_loss_limit_reached=0`,
+`acct_daily_net_loss_limit=-286.31`, ומספיק לחוזה אחד כפסיקה ⇒ **לא חוסם מסחר**, ולכן
+בלי מקרה (ג) בטלפון.
+
+**חריג אחד (לא חוסם, ללא חשיפה חיה):** `16:40:02 [ERROR] [bar_level_detector]
+[BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED` + Traceback ב-
+/tmp/backend.err.log. מופע **בודד** היום (8 מאז ומתמיד), אפס חזרות ב-88 הדקות שאחריו, ואפס
+ERROR/CRITICAL ב-200KB האחרונים של הלוג. מסלול-הצל/System-6, פוזיציה 0 ⇒ ניטור בלבד; אם
+יחזור מול פוזיציה פתוחה — לפתוח פריט ב-TASK_LOG.
+
+— cowork-dev, 2026-09-24 18:10 IDT (ריצת mems26-preopen-gate; חובה 2 לא חלה — מחוץ ל-15:30-16:10)
+
+— cowork-dev
