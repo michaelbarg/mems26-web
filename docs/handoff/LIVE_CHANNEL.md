@@ -1,3 +1,106 @@
+## 🔵 [cowork-dev · 2026-09-24 21:04-21:08 IL] — **ניטור-RTH חמישי · המערכת חיה והעסקה מנוהלת** · 🔑 **הממצא: `ruled_contracts()` מחזיר `None` כשמריצים את הפקודה שבמשימה-המתוזמנת כלשונה — היא לא טוענת `.env`**
+
+`21:04` > `16:10` ⇒ מחוץ לחלון-השער **וגם** המאזין `77380 Thu Sep 24 15:38:41` > 12:00
+⇒ [[T-369]] ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בדגלים/`.env`/פוזיציות.**
+
+### ☎️ חובה-1 — **אפס ממתינות ממייקל · שקט בטלפון**
+
+```raw
+זנב PHONE_THREAD.jsonl + peek GET /chat?key=…  ⇒ http=200 · n=30 · שני המקורות זהים
+last_michael  2026-09-24T15:49:13Z  id=a9513278  "למה אין עסקאות מה מונע איך לתקן"
+last_agent    2026-09-24T16:08:55Z  sender=cowork  (תשובה עניינית, לא -ack)
+last_item     2026-09-24T17:37:19Z  sender=cowork-dev  (פתיחת #2340)
+```
+
+ההודעה האחרונה בפיד היא הודעת-סוכן ⇒ `PENDING=False` ⇒ **אין (א)**. העסקה כבר דווחה
+בפתיחה ולא נסגרה ⇒ **אין (ב)**. אין חריגה חוסמת ⇒ **אין (ג)**. אינו שער ⇒ **אין (ד)**.
+
+### 🩺 חובה-3 — **בר טרי · בקאנד נקי · פוזיציה מוסכמת בשלושה מקורות**
+
+```raw
+feed (T-430)  pg_typeof(ts)=timestamp with time zone
+              max_ts 2026-09-24 21:05:00 IDT | correct_age_min 0.7 | wrong_tz_form_min -179.3
+              (שתי הצורות זו-לצד-זו כפסיקת 13.09 — ההפרש 180 גלוי, ולא מ-הזיכרון)   ✅ פיד חי
+health        GET /api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}
+listener      pid 77380  lstart Thu Sep 24 15:38:41 2026  (ללא ריסטארט נוסף)
+err.log       tail -2000 backend.err.log | grep -c -E "ERROR|Traceback|CRITICAL" ⇒ 0
+              [Reconcile] IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+              [System6] active trade healthy                     ← חוזר כל 3-4 שנ'
+load          load avg 3.57 · backend %CPU 44.6 · RSS 136MB      (לא מצב-16.09 של 80%)
+```
+
+### 🟢 **עסקת-לייב #2340 — פתוחה, בכסף, עטופה כהלכה**
+
+```raw
+DB        id=2340 mode=live sys=2 DOUBLE_TOP_AA_SHORT SHORT state=FILLED
+          entry 7762.25 @ 13:35 ET · exit_ts NULL · נקרא 2026-09-24 21:07:07.760772+03
+ברוקר     sierra_state.json ts=21:06:00 · position_qty -1 · avg_price 7762.00
+          open_pnl +47.50 · last_price 7752.50 · daily_total_qty_filled 1
+          working_orders 2 → id 11332 type=1 (לימיט) קנייה 7748.00 qty1  = T1
+                             id 11333 type=3 (סטופ-לימיט) קנייה 7769.75 qty1 = סטופ
+gateway   live_slot "2340" · live_slot_system 2 · live_enabled_systems [2,4]
+```
+
+**שלושת המקורות מסכימים** — DB, ברוקר וסלוט-הגייטוויי. הברקט שלם: חוזה אחד, יעד אחד,
+סטופ אחד, אפס חוזים חשופים. התנועה לטובתנו `+47.50$` היא `open_pnl` ולא רווח-ממומש.
+
+### 🆕 **הממצא — הפקודה שבמשימה-המתוזמנת מחזירה `None`, לא את הפסיקה**
+
+המשימה מורה: *"הגודל פסוק — נקרא רק מ-`python3 -c 'from …contract_size import
+ruled_contracts; print(ruled_contracts())'`"*. הרצתי אותה **כלשונה**, מהריפו:
+
+```raw
+$ python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+None                                   ← לא 1, לא 2 — None
+
+$ set -a; . ./.env; set +a          # ואז אותה פקודה בדיוק
+FIXED_CONTRACTS_1= 1  FIXED_CONTRACTS_2= 0
+ruled_contracts() = 1                  ← הפסיקה האמיתית
+```
+
+**השורש:** `ruled_contracts()` קורא `os.environ` בלבד (`_on()` ב-`contract_size.py:57`);
+`.env` נטען ע"י הבקאנד בעלייתו, **לא** ע"י `python3 -c` מעטפת-נקייה. ה-docstring של
+הפונקציה מזהיר במפורש ש-`None` פירושו *"אין פסיקת-גודל פעילה"* ו**לא** אפס — כלומר
+בשער-15:40 הפקודה-כלשונה מחזירה "אין פסיקה" על מערכת שיש לה פסיקה חתומה.
+
+**ומה הפסיקה בפועל:** `.env:266 FIXED_CONTRACTS_1=1` ⇒ **חוזה אחד** (מייקל 18.09 12:05,
+*"היום לעבוד על חוזה 1"*), ו-`FIXED_CONTRACTS_2=0`. כלומר **נוסח-המשימה עצמו מיושן** —
+הוא אומר *"מ-16.09: 2, FIXED_CONTRACTS_2=1"*, וזה נדרס ע"י פסיקת-18.09. הקוד מיישם
+"הקטן-מנצח" במכוון (`FIXED_CONTRACTS_1` נבדק **ראשון**) בדיוק בשביל המקרה הזה.
+**עסקת #2340 נכנסה בחוזה אחד ⇒ תואמת את הפסיקה.** לא נגעתי בשום דגל-גודל (פסיקת 31.08).
+
+→ נפתח **[[T-466]]**: לתקן את נוסח-הפקודה בכל מקום שבו היא מצוטטת, כך שתטען `.env`.
+
+### ⚠️ אזעקת-שווא שעצרתי לפני שנכנסה לדוח — שחזור עצמאי של [[T-455]]
+
+```raw
+שאילתה  WHERE mode='shadow' AND exit_ts IS NULL AND entry_et_date < היום
+        ⇒ 94 שורות (17.09:43 · 15.09:23 · 14.09:3 · 11.09:12 · 27.07:13)
+בדיקה   SELECT state, exit_reason … על אותן 94 ⇒ CLOSED | STALE_UNRESOLVED | 94
+הסקריפט python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+```
+
+כל 94 **כבר סגורות** — `close_stale_shadow.py` משאיר `exit_ts` ריק **במכוון** (לא ממציא
+תוצאה לעסקה שלא הוכרעה). `exit_ts IS NULL` אינו מודד "תקוע"; המודד הוא `state`/`exit_reason`.
+זה בדיוק [[T-455]] ("המפתח `exit_ts` שקרי בשני המצבים") — **שחזור עצמאי, לא פריט חדש.**
+אין 94 שורות-צל תקועות, ואין מקור-עומס כזה על הבקאנד.
+
+### 💵 מרג'ין [[T-34]] — **דיווח בלבד, לא חוסם**
+
+```raw
+acct_available_funds 234.91  <  1595  ⇒ מתחת לסף-הדיווח
+acct_margin_req 288.53 · acct_cash_balance 477.19 · acct_account_value 523.44
+acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0
+```
+
+אינו חוסם מסחר **עכשיו**: הסלוט תפוס ממילא ע"י #2340, הפוזיציה הקיימת מכוסה, והברוקר
+אינו מדווח under-margin. ⇒ שורה כאן, **לא** מקרה (ג) בטלפון. אם #2340 תיסגר והסלוט
+יתפנה — `234.91` נמוך מ-`288.53` הנדרש לחוזה, וזה **כן** יהפוך לחוסם.
+
+**שורה-תחתונה:** תקין. שקט בטלפון (אפס הודעות בריצה הזו). אפס שינויי-מסחר.
+
+---
+
 ## 🔵 [cowork-dev · 2026-09-24 20:34-20:38 IL] — **ניטור-RTH רביעי · עסקת-הלייב הראשונה של היום נפתחה** · 🔑 **הממצא: #2340 SHORT נכנסה 20:35:06 — 55 החלטות היום, אחת פרצה ללייב; ברוקר ו-DB מסכימים**
 
 `20:34` > `16:10` ⇒ מחוץ לחלון-השער **וגם** המאזין `77380 Thu Sep 24 15:38:41` > 12:00
