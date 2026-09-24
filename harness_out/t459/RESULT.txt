@@ -1,0 +1,30 @@
+live trades replayed: 128 over 54 sessions · T1 missed by ≤1 tick (MFE within a tick of T1): 1
+variant           Σ$  win%  STOP    T1   EOD  Δ vs V0
+V0           +1042.8    57    55    72     1      +0.0
+VA           +1094.1    56    56    71     1     +51.2
+VB            +952.8    59    62    65     1     -90.0
+VC            +737.8    44    72    56     0    -305.0
+VD            +876.6    59    62    65     1    -166.2
+VE            +952.8    57    55    72     1     -90.0
+
+by producer (V0 → best variant):
+  CEILING_FLIP_SHORT         n= 27  V0     +8.5  VA   -20.2  VB   +51.1  VC   -81.5  VD  -100.2  VE    -5.2   best=VB
+  OPENING_DRIVE              n= 26  V0   +964.3  VA  +964.3  VB  +964.3  VC  +839.3  VD  +874.3  VE  +943.1   best=V0
+  REACTIVE_LONG              n= 14  V0   -213.9  VA  -213.9  VB  -248.9  VC  -170.1  VD  -213.9  VE  -223.9   best=VC
+  INITIATIVE_LONG            n= 11  V0    -61.1  VA   -61.1  VB   -88.6  VC   -89.8  VD   -61.1  VE   -68.6   best=V0
+  CEILING_FLIP_LONG          n= 10  V0    +24.0  VA   +79.0  VB   +26.5  VC   +24.0  VD   +96.5  VE   +17.8   best=VD
+  REACTIVE_SHORT             n=  9  V0     -8.4  VA    -8.4  VB   -53.4  VC   -82.2  VD    -8.4  VE   -14.7   best=V0
+  GHOST                      n=  8  V0   +155.5  VA  +155.5  VB  +145.5  VC  +113.0  VD  +130.5  VE  +148.0   best=V0
+  GB100                      n=  5  V0    +63.2  VA   +63.2  VB   +52.0  VC    +7.0  VD   +63.2  VE   +58.2   best=V0
+  INITIATIVE_SHORT           n=  5  V0    -56.8  VA   -56.8  VB  -103.0  VC  -104.2  VD   -56.8  VE   -59.3   best=V0
+  OPENING_TEST_DRIVE         n=  3  V0   +123.5  VA  +123.5  VB  +123.5  VC  +123.5  VD   +77.2  VE  +121.0   best=V0
+  DOUBLE_TOP_AA_SHORT        n=  2  V0    -11.5  VA   +13.5  VB   -11.5  VC   +13.5  VD   +19.8  VE   -12.7   best=VD
+  DOUBLE_BOTTOM_EE_LONG      n=  2  V0     -0.2  VA    -0.2  VB    -0.2  VC   +26.0  VD    -0.2  VE    -1.5   best=VC
+  HNS_TOP_SHORT              n=  1  V0    -41.4  VA   -41.4  VB    -1.4  VC    -2.6  VD   -41.4  VE   -41.4   best=VB
+  OPENING_PULLBACK_CONT      n=  1  V0    +82.4  VA   +82.4  VB   +82.4  VC   +82.4  VD   +82.4  VE   +81.2   best=V0
+  TREND_STEP                 n=  1  V0    -27.6  VA   -27.6  VB   -27.6  VC    -2.6  VD   -27.6  VE   -27.6   best=VC
+  SCALE_IN                   n=  1  V0    +16.1  VA   +16.1  VB   +16.1  VC   +16.1  VD   +16.1  VE   +14.9   best=V0
+  CONFLUENCE_RI_ZLR          n=  1  V0    +17.4  VA   +17.4  VB   +17.4  VC   +17.4  VD   +17.4  VE   +16.1   best=V0
+  BULL_FLAG_LONG             n=  1  V0     +8.7  VA    +8.7  VB    +8.7  VC    +8.7  VD    +8.7  VE    +7.4   best=V0
+
+sanity: V0 agrees with the harness outcome on 124/128 trades

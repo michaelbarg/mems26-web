@@ -1269,6 +1269,46 @@ class TradingGateway:
                             # else: no extension → keep Layer 1
                 except Exception:
                     pass
+                # ── T-466 STRUCTURE_BEFORE_LABEL_V1 (24.09, default OFF — replay decides):
+                # the day-type LABEL lags the structure by 2-3 bars and flip-flops (24.09:
+                # six flips; 18:05 TREND_STEP SHORT @7737 refused under "Normal" while the IB
+                # low was already broken — the label said Variation at 18:15, price 7725).
+                # When the IB is complete and the session shows a ONE-SIDED extension
+                # (≥ max(2 pts, 10% of the IB width) beyond one edge, the other edge never
+                # exceeded), the tree is fed day_type=Variation for a non-trend/unknown label
+                # — the same structural definition var_cont.detect uses. Trend and Variation
+                # labels are left alone; the label itself is untouched (only what the tree sees).
+                _dp_dt_label = _dp_dt
+                try:
+                    if (os.getenv("STRUCTURE_BEFORE_LABEL_V1", "0").strip().lower() in ("1", "true", "yes")
+                            and _dp_ib_ext_ok and isinstance(_dp_tpo, dict)):
+                        _sb_ibh = float(_dp_tpo.get("ib_high") or 0)
+                        _sb_ibl = float(_dp_tpo.get("ib_low") or 0)
+                        _sb_sh = float(_dp_tpo.get("session_high") or _dp_tpo.get("rth_high") or 0)
+                        _sb_sl = float(_dp_tpo.get("session_low") or _dp_tpo.get("rth_low") or 0)
+                        if _sb_ibh > _sb_ibl > 0 and _sb_sh > 0 and _sb_sl > 0:
+                            _sb_min = max(2.0, 0.10 * (_sb_ibh - _sb_ibl))
+                            _sb_up = _sb_sh - _sb_ibh
+                            _sb_dn = _sb_ibl - _sb_sl
+                            _sb_one_sided = None
+                            if _sb_up >= _sb_min and _sb_dn <= 0.25:
+                                _sb_one_sided = "LONG"
+                            elif _sb_dn >= _sb_min and _sb_up <= 0.25:
+                                _sb_one_sided = "SHORT"
+                            if (_sb_one_sided and str(_dp_dt or "").strip() in
+                                    ("", "UNKNOWN", "None", "Normal", "Neutral_Center", "Neutral_Extreme", "Nontrend", "Nonconviction")):
+                                _dp_dt = "Variation"
+                                if _dp_dir_hint is None:
+                                    _dp_dir_hint = _sb_one_sided
+                                result["structure_before_label"] = {"label": _dp_dt_label, "effective": "Variation",
+                                                                    "ext": _sb_one_sided, "up": round(_sb_up, 2), "dn": round(_sb_dn, 2)}
+                                logger.warning(
+                                    "[Gateway] T-466 structure-before-label: label=%s → tree sees Variation "
+                                    "(one-sided IB extension %s: up=%.2f dn=%.2f ibw=%.2f) for %s %s",
+                                    _dp_dt_label, _sb_one_sided, _sb_up, _sb_dn, _sb_ibh - _sb_ibl,
+                                    _dp_classification, setup.get("direction"))
+                except Exception as _sb_err:
+                    logger.warning("[Gateway] T-466 structure-before-label failed (label kept): %s", _sb_err)
                 _dalton_intent = _dp_intent(
                     opening_type=_dp_ot, day_type=_dp_dt,
                     now_il_hhmm=_dp_il_hhmm, direction_hint=_dp_dir_hint)
@@ -3729,6 +3769,11 @@ class TradingGateway:
                     and str(setup.get("classification") or "").upper() == "VAR_CONT"):
                 _edge_fade = True
                 result["target_chain"] = "var_cont_final"
+            # T-465: a producer branch that ships its measured ladder says so explicitly
+            # (metadata.target_chain_final, set only by flag-gated branches).
+            elif bool((setup.get("metadata") or {}).get("target_chain_final")):
+                _edge_fade = True
+                result["target_chain"] = "producer_final"
         except Exception:
             pass
 

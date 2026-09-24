@@ -2073,6 +2073,33 @@ class FiveMinSystem(BaseV9TradingSystem):
                         if _t2_t2 is None:
                             _t2_sign = -1.0 if _t2_dir == "SHORT" else 1.0
                             _t2_t2 = round(_t2_entry + _t2_sign * 2.0 * _t2_risk, 2)
+                        # T-465 TOUCH2_SHORT_EARLY_V1 (24.09, default OFF — replay decides): the
+                        # measured branch of this producer. On the 58 clean sessions' routes
+                        # (one at a time, first touch, 1.5R off the structural stop): TOUCH2 as
+                        # a whole n=687 −$1,361 (LONG −$1,798); SHORT 16:30–18:00 n=113, 50%,
+                        # +$905 (16h +$723 56% · 17h +$182). With its own VAL target the same
+                        # window is negative (−$120/−$278) ⇒ the branch takes t1 = 1.5R, t2 =
+                        # 2.5R, no t3, and asks the gateway to keep that ladder (final chain).
+                        # 24.09 17:30: CEILING_FLIP_TOUCH2 SHORT @7754.50 at VAH 7755.25 routed
+                        # shadow_only; the day fell 7755 → 7735 by 17:55.
+                        _t2_shadow = (_t2_mode == "shadow")
+                        _t2_branch = False
+                        try:
+                            if (_t2_shadow and _t2_dir == "SHORT"
+                                    and os.getenv("TOUCH2_SHORT_EARLY_V1", "0").strip().lower() in ("1", "true", "yes")):
+                                _t2_until = (os.getenv("TOUCH2_EARLY_UNTIL_IL", "18:00") or "18:00").strip()
+                                from backend.v9.services.market_clock import now_et as _t2_now_et
+                                from zoneinfo import ZoneInfo as _t2_ZI
+                                _t2_il = _t2_now_et().astimezone(_t2_ZI("Asia/Jerusalem"))
+                                _t2_hhmm = f"{_t2_il.hour:02d}:{_t2_il.minute:02d}"
+                                if "16:30" <= _t2_hhmm < _t2_until and _t2_risk >= 1.0:
+                                    _t2_branch = True
+                                    _t2_shadow = False
+                                    _t2_t1 = round(_t2_entry - 1.5 * _t2_risk, 2)
+                                    _t2_t2 = round(_t2_entry - 2.5 * _t2_risk, 2)
+                                    _t2_t3 = None
+                        except Exception as _t2_br_err:
+                            logger.warning("[CeilingFlipTouch2] early-short branch failed (shadow kept): %s", _t2_br_err)
                         _t2_setup = {
                             "direction": _t2_dir,
                             "entry_price": _t2_entry,
@@ -2082,12 +2109,14 @@ class FiveMinSystem(BaseV9TradingSystem):
                             "pattern": "CEILING_FLIP_TOUCH2",
                             "structural_anchor": _t2_extreme,
                             "metadata": {
-                                "shadow_only": (_t2_mode == "shadow"),
+                                "shadow_only": _t2_shadow,
                                 "stop_is_structural": True,
                                 "pattern": "CEILING_FLIP_TOUCH2",
                                 "p1": _t2_st["p1"], "p2": _t2_st["p2"],
                                 "edge": _t2_st.get("edge"),
                                 "edge_source": _t2_st.get("edge_source"),
+                                "touch2_short_early": _t2_branch,
+                                "target_chain_final": _t2_branch,
                             },
                         }
                         logger.warning(
@@ -2095,7 +2124,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                             "anchor=%.2f T1=%.2f T2=%s (%s)",
                             _t2_st["state"], _t2_dir, _t2_entry, _t2_stop,
                             _t2_extreme, _t2_t1, _t2_t2,
-                            "SHADOW" if _t2_mode == "shadow" else "live")
+                            "SHADOW" if _t2_shadow else ("live T-465 early-short branch" if _t2_branch else "live"))
                         if self._gateway:
                             self._gateway.route_setup(_t2_setup, 2)
                 except Exception as _t2_err:
