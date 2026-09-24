@@ -1282,21 +1282,17 @@ class TradingGateway:
                 try:
                     if (os.getenv("STRUCTURE_BEFORE_LABEL_V1", "0").strip().lower() in ("1", "true", "yes")
                             and _dp_ib_ext_ok and isinstance(_dp_tpo, dict)):
+                        from backend.v9.systems.structure_before_label import (
+                            one_sided_extension as _sb_ext, effective_day_type as _sb_eff)
                         _sb_ibh = float(_dp_tpo.get("ib_high") or 0)
                         _sb_ibl = float(_dp_tpo.get("ib_low") or 0)
                         _sb_sh = float(_dp_tpo.get("session_high") or _dp_tpo.get("rth_high") or 0)
                         _sb_sl = float(_dp_tpo.get("session_low") or _dp_tpo.get("rth_low") or 0)
-                        if _sb_ibh > _sb_ibl > 0 and _sb_sh > 0 and _sb_sl > 0:
-                            _sb_min = max(2.0, 0.10 * (_sb_ibh - _sb_ibl))
+                        _sb_one_sided = _sb_ext(_sb_ibh, _sb_ibl, _sb_sh, _sb_sl)
+                        if _sb_one_sided:
                             _sb_up = _sb_sh - _sb_ibh
                             _sb_dn = _sb_ibl - _sb_sl
-                            _sb_one_sided = None
-                            if _sb_up >= _sb_min and _sb_dn <= 0.25:
-                                _sb_one_sided = "LONG"
-                            elif _sb_dn >= _sb_min and _sb_up <= 0.25:
-                                _sb_one_sided = "SHORT"
-                            if (_sb_one_sided and str(_dp_dt or "").strip() in
-                                    ("", "UNKNOWN", "None", "Normal", "Neutral_Center", "Neutral_Extreme", "Nontrend", "Nonconviction")):
+                            if _sb_eff(_dp_dt, _sb_one_sided) == "Variation" and str(_dp_dt or "").strip() != "Variation":
                                 _dp_dt = "Variation"
                                 if _dp_dir_hint is None:
                                     _dp_dir_hint = _sb_one_sided
