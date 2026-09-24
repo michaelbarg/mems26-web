@@ -27,7 +27,14 @@ class TestOpeningLadder(unittest.TestCase):
 
     def setUp(self):
         self._prev = {k: os.environ.get(k) for k in
-                      ("OPENING_LADDER_V1", "OPENING_T2_R", "OPENING_T3_R", "T1_BANK_R")}
+                      ("OPENING_LADDER_V1", "OPENING_T2_R", "OPENING_T3_R", "T1_BANK_R",
+                       "OPENING_DRIVE_BRANCH_V1")}
+        # T-461 (24.09): these pin the OPENING_LADDER_V1 ruling of 08.09 for the ordinary ladder.
+        # The opening-drive branch (OPENING_DRIVE_BRANCH_V1=1 in .env since Michael's 24.09
+        # ruling) deliberately ships t2 = max(4R, t1+0.5R) and no t3 for DRIVE triggers — a
+        # one-contract ladder with its own tests (test_t457_opening_drive_branch). Pin it off
+        # here so the guard measures what it was written for, not the flag it inherits.
+        os.environ["OPENING_DRIVE_BRANCH_V1"] = "0"
 
     def tearDown(self):
         for k, v in self._prev.items():
