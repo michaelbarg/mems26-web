@@ -155,7 +155,7 @@ def day_dir_so_far(bs, i, atr):
     mo = (bs[i]["c"] - bs[0]["o"]) / atr
     return "SHORT" if mo <= -0.5 else "LONG" if mo >= 0.5 else None
 
-RULES = ["DRIVE", "DRIVE_LITE", "DRIVE_LATE", "CONT", "CONT_X", "CONT_1S", "BREAK"]
+RULES = ["DRIVE", "DRIVE_LITE", "DRIVE_LATE", "CONT", "CONT_X", "CONT_1S", "BREAK", "REV"]
 res = {r: [] for r in RULES}
 for d in days:
     bs = by_day[d]; meta = dth.get(d, {}); dtype = meta.get("day_type") or "?"
@@ -178,6 +178,31 @@ for d in days:
         k, short, stop = dlt; s = simulate(bs, k, short, stop, atr0)
         if s: res["DRIVE_LATE"].append(dict(day=d, dt=dtype, t=str(bs[k]["t"])[:5], dir="SHORT" if short else "LONG", ep=bs[k]["c"], stop=stop, **s))
         if not drive_dir: drive_dir = "SHORT" if short else "LONG"
+        # REV — the failed-drive reversal (Dalton: a rejected open-drive is the day's strongest reversal tell).
+        # Causal: the bar j that stops the drive (touches its stop) or closes back through the OR midpoint against
+        # it; then the first bar m in j..j+6 that closes in the reversal direction with range ≥ 0.8 ATR.
+        # Stop = extreme of the last 4 bars + tick (cap 1.5×ATR, min 1 pt). One per day.
+        or_hi3 = max(x["h"] for x in bs[:3]); or_lo3 = min(x["l"] for x in bs[:3]); mid3 = (or_hi3 + or_lo3) / 2
+        j_fail = None
+        for j in range(k + 1, min(len(bs), k + 24)):
+            b = bs[j]
+            hit = (b["h"] >= stop) if short else (b["l"] <= stop)
+            back = (b["c"] > mid3) if short else (b["c"] < mid3)
+            if hit or back: j_fail = j; break
+        if j_fail is not None:
+            rshort = not short
+            for m in range(j_fail, min(len(bs) - 3, j_fail + 7)):
+                f = rl.features(bs, m, rshort, None, atr_fallback=atr0)
+                if not f or not (f["trigger_ok"] and f["range_ge_08atr"]): continue
+                atr_m = oe.compute_atr(bs, m) or atr0
+                seq = bs[max(0, m - 4):m + 1]
+                rstop = (max(x["h"] for x in seq) + TICK) if rshort else (min(x["l"] for x in seq) - TICK)
+                risk = abs(rstop - bs[m]["c"])
+                if risk > 1.5 * atr_m: rstop = bs[m]["c"] + 1.5 * atr_m if rshort else bs[m]["c"] - 1.5 * atr_m
+                if risk < 1.0: continue
+                s = simulate(bs, m, rshort, rstop, atr_m)
+                if s: res["REV"].append(dict(day=d, dt=dtype, t=str(bs[m]["t"])[:5], dir="SHORT" if rshort else "LONG", ep=bs[m]["c"], stop=round(rstop, 2), i=m, **s))
+                break
     ib_h = max(x["h"] for x in bs[:12]); ib_l = min(x["l"] for x in bs[:12])
     for i in range(12, len(bs) - 3):
         atr = oe.compute_atr(bs, i) or atr0
@@ -277,21 +302,61 @@ def _end_index(bs, i, short, ep, R, ex):
         b = bs[j]; adv = (b["h"] - ep) if short else (ep - b["l"]); fav = (ep - b["l"]) if short else (b["h"] - ep)
         if adv >= R or fav >= mult * R: return j
     return len(bs) - 1
-pb_days = {}
-for d in days:
-    bs = by_day[d]; taken = []; free_from = -1; cands = []
-    for x in res["DRIVE_LATE"]:
-        if x["day"] == d:
-            k = next((j for j in range(3, 6) if str(bs[j]["t"])[:5] == x["t"]), 3); cands.append((k, "DRIVE_LATE", x))
-    for x in res["CONT_1S"]:
-        if x["day"] == d: cands.append((x["i"], "CONT_1S", x))
-    cands.sort(key=lambda c: c[0])
-    for i, rule, x in cands:
-        if i <= free_from: continue
-        ex = PB[rule]; pts = x["pts"][ex]
-        taken.append(dict(rule=rule, t=x["t"], dir=x["dir"], ep=x["ep"], stop=x["stop"], exit=ex, pts=pts, usd=round(pts * 5 - COMM, 2)))
-        free_from = _end_index(bs, i, x["dir"] == "SHORT", x["ep"], x["R"], ex)
-    pb_days[d] = dict(dt=dth.get(d, {}).get("day_type") or "?", trades=taken, usd=round(sum(t["usd"] for t in taken), 2))
+def run_playbook(PB, max_cont=99, cont_cutoff_h=24):
+    """One account, one contract, one position at a time. PB maps rule → exit style; rules absent from PB are not traded.
+    max_cont / cont_cutoff_h limit CONT_1S entries per day / by IL hour (measured 24.09: 1st CONT of a Variation day
+    +642$/26/62%, 3rd+ −272$, 22:xx −183$)."""
+    pb_days = {}
+    for d in days:
+        bs = by_day[d]; taken = []; free_from = -1; cands = []; n_cont = 0
+        for x in res["DRIVE_LATE"]:
+            if x["day"] == d and "DRIVE_LATE" in PB:
+                k = next((j for j in range(3, 6) if str(bs[j]["t"])[:5] == x["t"]), 3); cands.append((k, "DRIVE_LATE", x))
+        for rule in ("CONT_1S", "REV"):
+            if rule in PB:
+                for x in res[rule]:
+                    if x["day"] == d: cands.append((x["i"], rule, x))
+        cands.sort(key=lambda c: c[0])
+        for i, rule, x in cands:
+            if i <= free_from: continue
+            if rule == "CONT_1S":
+                if n_cont >= max_cont or int(x["t"][:2]) >= cont_cutoff_h: continue
+                n_cont += 1
+            ex = PB[rule]; pts = x["pts"][ex]
+            taken.append(dict(rule=rule, t=x["t"], dir=x["dir"], ep=x["ep"], stop=x["stop"], exit=ex, pts=pts, usd=round(pts * 5 - COMM, 2)))
+            free_from = _end_index(bs, i, x["dir"] == "SHORT", x["ep"], x["R"], ex)
+        pb_days[d] = dict(dt=dth.get(d, {}).get("day_type") or "?", trades=taken, usd=round(sum(t["usd"] for t in taken), 2))
+    return pb_days
+
+def pb_report(name, pb_days):
+    tot = sum(v["usd"] for v in pb_days.values()); pos = sum(1 for v in pb_days.values() if v["usd"] > 0); neg = sum(1 for v in pb_days.values() if v["usd"] < 0)
+    ntr = sum(len(v["trades"]) for v in pb_days.values()); nw = sum(1 for v in pb_days.values() for t in v["trades"] if t["pts"] > 0)
+    byt = collections.defaultdict(list)
+    for d, v in pb_days.items(): byt[v["dt"]].append(v["usd"])
+    bym = collections.defaultdict(list)
+    for d, v in pb_days.items(): bym[d[:7]].append(v["usd"])
+    var = byt.get("Variation", [])
+    print(f"PB {name:34s} {ntr:3d} tr · win {100*nw/max(ntr,1):3.0f}% · Σ {tot:+6.0f}$ · days +{pos}/−{neg}/={len(pb_days)-pos-neg} · Variation {len(var)}d Σ{sum(var):+.0f}$ ({sum(var)/max(len(var),1):+.1f}/d) · months " + " ".join(f"{k[5:]}:{sum(v):+.0f}" for k, v in sorted(bym.items())) + (f" · ★{args.focus} {pb_days[args.focus]['usd']:+.0f}$ ({len(pb_days[args.focus]['trades'])} tr)" if args.focus in pb_days else ""))
+    return dict(rules=name, trades=ntr, win=round(100 * nw / max(ntr, 1)), usd=round(tot, 2), days_pos=pos, days_neg=neg,
+                by_day_type={k: dict(days=len(v), usd=round(sum(v), 2), avg=round(sum(v) / len(v), 2)) for k, v in byt.items()},
+                by_month={k: round(sum(v), 2) for k, v in bym.items()})
+
+print("\nPLAYBOOK VARIANTS — one contract, one position at a time (Michael 24.09: 'several trades with one contract to a higher sum'):")
+variants = {
+    "A drive→T1 only":                       (dict(DRIVE_LATE="T1"), 99, 24),
+    "B drive→T1 + CONT→T1 (≤2, <22h)":       (dict(DRIVE_LATE="T1", CONT_1S="T1"), 2, 22),
+    "C B + failed-drive REV→T1":             (dict(DRIVE_LATE="T1", CONT_1S="T1", REV="T1"), 2, 22),
+    "C2 B + REV→T2":                         (dict(DRIVE_LATE="T1", CONT_1S="T1", REV="T2"), 2, 22),
+    "D drive→T2 + CONT→T1 (old, unlimited)": (dict(DRIVE_LATE="T2", CONT_1S="T1"), 99, 24),
+    "E drive→T2 + CONT (≤2,<22h) + REV→T1":  (dict(DRIVE_LATE="T2", CONT_1S="T1", REV="T1"), 2, 22),
+    "F REV→T1 only":                         (dict(REV="T1"), 99, 24),
+    "G CONT→T1 only (≤2,<22h)":              (dict(CONT_1S="T1"), 2, 22),
+}
+out["playbook_variants"] = {}
+for name, (pb, mc, ch) in variants.items():
+    out["playbook_variants"][name] = pb_report(name, run_playbook(pb, mc, ch))
+print()
+pb_days = run_playbook(PB)
 tot = sum(v["usd"] for v in pb_days.values()); pos = sum(1 for v in pb_days.values() if v["usd"] > 0); neg = sum(1 for v in pb_days.values() if v["usd"] < 0)
 ntr = sum(len(v["trades"]) for v in pb_days.values()); nw = sum(1 for v in pb_days.values() for t in v["trades"] if t["pts"] > 0)
 print(f"\nPLAYBOOK (one contract, one position at a time: DRIVE_LATE→T2, CONT_1S→T1): {len(days)} sessions · {ntr} trades · win {100*nw/max(ntr,1):.0f}% · Σ {tot:+.0f}$ · days + {pos} / − {neg} / flat {len(days)-pos-neg}")
