@@ -1920,15 +1920,15 @@ flags:
   OPENING_DRIVE_BRANCH_V1:
     category: cascade_gate
     group: opening
-    what: "T-457 (24.09, code default OFF — pending Michael's ruling): the opening-drive branch for ONE contract. Three parts under one flag, for OPENING_DRIVE / OPENING_TEST_DRIVE setups only: (1) build_opening_setup: t1 = 2.5R (OPENING_DRIVE_T1_R), ladder t2 = 4R, no t3; (2) gateway: ELQ (entry_location_quality) skipped — a confirmed drive is 'beyond value' by definition at 16:45; (3) gateway: TARGET_REALISM skipped — the realism ceiling is the session extreme, i.e. the drive's own front. 0 = byte-identical."
-    why: "Measured scripts/variation_playbook_test.py (60 sessions, 21 confirmed opening drives, 1c, first touch, $1.30/side): T1=1.5R Σ+$442 57% · T2=2.5R Σ+$712 48% · T3=4R Σ+$725 48% · trail +$26. 23.09 replay after T-451 (harness_out/t456): the confirmed drive SHORT @7814.25 passed the tree and died at ELQ beyond_value ex=1.08>0.25; with ELQ off TARGET_REALISM clamped t1 7793.62→7812.50 (1.75 pts) on a 48-pt drive; with both off the structural T1 (20.6 pts) hit at 17:10 ≈ +$100; the 2.5R exit on 23.09's drive = +37.5 pts ≈ +$185."
+    what: "T-457 (24.09, code default OFF — pending Michael's ruling): the opening-drive branch for ONE contract. Three parts under one flag, for OPENING_DRIVE / OPENING_TEST_DRIVE setups only: (1) build_opening_setup: t1 = OPENING_DRIVE_T1_R (default the ruled 1.5R), ladder t2 = max(4R, t1+0.5R), no t3; (2) gateway: ELQ (entry_location_quality) skipped — a confirmed drive is 'beyond value' by definition at 16:45; (3) gateway: TARGET_REALISM skipped — the realism ceiling is the session extreme, i.e. the drive's own front. 0 = byte-identical."
+    why: "REAL ENGINE (fwd_harness, T-458ג, 24.09: 58 clean sessions 15.06–23.09, 29 confirmed drives live, harness_out/t458): day totals on the 29 drive sessions HEAD +$721 · branch@1.5R +$1,323 (Δ+$601, better 14 / worse 8, drives 62% Σ+$849) · branch@2.5R +$1,047 (Δ+$326, 11/13, drives 48% Σ+$727); by month Δ(1.5R) Jun +208 · Jul +165 · Aug −94 · Sep +322; the worse sessions are single −$75 stops on false drives HEAD never took. Model first (scripts/variation_playbook_test.py, 60 sessions, 21 drives, 1c, first touch, $1.30/side): T1=1.5R Σ+$442 57% · T2=2.5R Σ+$712 48% · T3=4R Σ+$725 48% · trail +$26 — the model ignores the single slot, the engine does not. 23.09 replay after T-451 (harness_out/t456): the confirmed drive SHORT @7814.25 passed the tree and died at ELQ beyond_value ex=1.08>0.25; with ELQ off TARGET_REALISM clamped t1 7793.62→7812.50 (1.75 pts) on a 48-pt drive; with both off the structural T1 (20.6 pts) hit at 17:10 ≈ +$100; the 2.5R exit on 23.09's drive = +37.5 pts ≈ +$185."
     status: disabled
     ref: "T-457 · docs/reports/VARIATION_PLAYBOOK_2026-09-24.md · tests/v9/regression/test_t457_opening_drive_branch.py"
   OPENING_DRIVE_T1_R:
     category: param
     group: opening
-    what: "R-multiple of the single-contract target for OPENING_DRIVE/TEST_DRIVE when OPENING_DRIVE_BRANCH_V1 is on (default 2.5). Inert while the branch flag is off."
-    why: "T-457 measurement: 2.5R Σ+$712 vs 1.5R Σ+$442 on 21 drives (60 sessions)."
+    what: "R-multiple of the single-contract target for OPENING_DRIVE/TEST_DRIVE when OPENING_DRIVE_BRANCH_V1 is on (default 1.5 = the ruled T1_BANK_R). Inert while the branch flag is off; a replay knob, not a live tunable."
+    why: "T-458ג real-engine (29 drives, day totals): 1.5R Δ+$601 vs 2.5R Δ+$326 vs HEAD — the far target holds the one slot all day and turns near wins into stops (07-15, 07-30, 09-01, 09-14). The model's 2.5R > 1.5R (+$712 vs +$442) ignored the slot."
     status: param
     ref: "T-457"
   IB_EXT_OVERRIDE_PHASE_GUARD_V1:

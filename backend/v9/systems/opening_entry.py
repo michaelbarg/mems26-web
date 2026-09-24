@@ -280,20 +280,25 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
             _t1r = float(__import__("os").getenv("T1_BANK_R", "1.0") or 1.0)
         except (TypeError, ValueError):
             _t1r = 1.0
-    # T-457 / OPENING_DRIVE_BRANCH_V1 (measured 24.09, scripts/variation_playbook_test.py:
-    # 60 sessions, 21 confirmed opening drives, one contract, first touch on 5-min bars,
-    # $1.30/side): T1=1.5R Σ+$442 (57%) · T2=2.5R Σ+$712 (48%) · T3=4R Σ+$725 (48%, holds
-    # to EOD) · trail 1×ATR +$26. With ONE contract the exit is a single target, and on
-    # a drive 2.5R takes ~60% more than 1.5R (23.09: 22.5 vs 37.5 pts). Only the
-    # engine's DRIVE/TEST_DRIVE triggers; PULLBACK-CONT keeps its ruled 1.5R.
-    # Flag default OFF — pending Michael's ruling (trading-risk surface).
+    # T-457 / OPENING_DRIVE_BRANCH_V1 — the opening-drive branch for ONE contract.
+    # Model (scripts/variation_playbook_test.py, 60 sessions, 21 drives) favoured 2.5R
+    # (Σ+$712 vs +$442 at 1.5R) — but the REAL ENGINE (fwd_harness, T-458ג, 24.09 09:30,
+    # 58 clean sessions 15.06–23.09, 29 confirmed drives live, harness_out/t458) says the
+    # day-total decides, not the trade: a far target holds the single slot all day and
+    # turns near wins into stops.  Day totals on the 29 drive sessions:
+    #   HEAD +$721 · branch 2.5R +$1,047 (Δ+$326, better 11/worse 13)
+    #                branch 1.5R +$1,323 (Δ+$601, better 14/worse 8; drives 62% Σ+$849)
+    # ⇒ default target = the ruled 1.5R (T1_BANK_R); the branch's value is the two gate
+    # exemptions (ELQ + TARGET_REALISM) for a confirmed drive, not a far target.
+    # OPENING_DRIVE_T1_R stays a param for replay. Only the engine's DRIVE/TEST_DRIVE
+    # triggers; PULLBACK-CONT untouched. Flag default OFF — pending Michael's ruling.
     _drive_branch = (__import__("os").getenv("OPENING_DRIVE_BRANCH_V1", "0").strip().lower() in ("1", "true", "yes")
                      and str(trigger.get("type") or "").upper() in ("DRIVE", "TEST_DRIVE"))
     if _drive_branch:
         try:
-            _t1r = float(__import__("os").getenv("OPENING_DRIVE_T1_R", "2.5") or 2.5)
+            _t1r = float(__import__("os").getenv("OPENING_DRIVE_T1_R", "1.5") or 1.5)
         except (TypeError, ValueError):
-            _t1r = 2.5
+            _t1r = 1.5
     t1 = entry + _t1r * risk if direction == "LONG" else entry - _t1r * risk
 
     # OPENING_LADDER_V1 (Michael ruling 2026-09-08 16:52 "לתקן ואני מאשר").
@@ -321,7 +326,7 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
         _t2 = round(entry + _sign * _t2r * risk, 2)
         _t3 = round(entry + _sign * _t3r * risk, 2)
         if _drive_branch:
-            # t1 is already 2.5R — keep the ladder monotonic (T-335/T-438): t2 = 4R, no t3
+            # keep the ladder monotonic (T-335/T-438): t2 = max(4R, t1+0.5R), no t3 (one contract)
             _t2 = round(entry + _sign * max(_t3r, _t1r + 0.5) * risk, 2)
             _t3 = None
 

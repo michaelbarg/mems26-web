@@ -11,8 +11,9 @@ passed the tree and died at entry_location_quality (beyond_value ex=1.08 > 0.25)
 off, TARGET_REALISM clamped t1 7793.62 → 7812.50 (1.75 pts) on a 48-point drive.
 
 The branch (one flag, three parts, all measured together):
-  1. build_opening_setup: DRIVE / TEST_DRIVE triggers take t1 = 2.5R (OPENING_DRIVE_T1_R),
-     ladder t2 = 4R, no t3 — other triggers untouched.
+  1. build_opening_setup: DRIVE / TEST_DRIVE triggers take t1 = OPENING_DRIVE_T1_R (default the
+     ruled 1.5R — real-engine T-458ג: 1.5R day-Δ +$601 vs 2.5R +$326 on 29 drives), ladder
+     t2 = max(4R, t1+0.5R), no t3 — other triggers untouched.
   2. gateway: ELQ skipped for OPENING_DRIVE / OPENING_TEST_DRIVE setups (logged).
   3. gateway: TARGET_REALISM skipped for the same setups (structural ladder kept).
 Flag OFF ⇒ byte-identical (pinned below).
@@ -51,15 +52,25 @@ class TestT457DriveTarget(unittest.TestCase):
         risk = abs(float(s["entry_price"]) - float(s["stop"]))
         self.assertAlmostEqual(abs(float(s["t1"]) - float(s["entry_price"])), 1.5 * risk, delta=0.02)
 
-    def test_flag_on_drive_takes_2_5R_and_a_monotonic_ladder(self):
+    def test_flag_on_default_target_is_the_ruled_1_5R_with_a_monotonic_ladder(self):
+        # T-458ג (real engine, 29 drives): 1.5R day-Δ +$601 vs 2.5R +$326 ⇒ default 1.5R
         s = self._setup({"OPENING_DRIVE_BRANCH_V1": "1", "T1_BANK_R": "1.5", "OPENING_LADDER_V1": "1", "OPENING_STOP_STRUCTURAL_V1": "1"})
         self.assertIsNotNone(s)
         entry, stop = float(s["entry_price"]), float(s["stop"]); risk = abs(entry - stop)
-        self.assertAlmostEqual(abs(float(s["t1"]) - entry), 2.5 * risk, delta=0.02)
+        self.assertAlmostEqual(abs(float(s["t1"]) - entry), 1.5 * risk, delta=0.02)
         self.assertEqual(s["direction"], "SHORT")
         self.assertLess(float(s["t1"]), entry)                       # short: target below entry
         if s.get("t2") is not None:
             self.assertLess(float(s["t2"]), float(s["t1"]))          # monotonic: t2 beyond t1
+        self.assertIsNone(s.get("t3"))
+
+    def test_flag_on_param_2_5R_is_honoured_for_replay(self):
+        s = self._setup({"OPENING_DRIVE_BRANCH_V1": "1", "OPENING_DRIVE_T1_R": "2.5", "T1_BANK_R": "1.5", "OPENING_LADDER_V1": "1", "OPENING_STOP_STRUCTURAL_V1": "1"})
+        self.assertIsNotNone(s)
+        entry, stop = float(s["entry_price"]), float(s["stop"]); risk = abs(entry - stop)
+        self.assertAlmostEqual(abs(float(s["t1"]) - entry), 2.5 * risk, delta=0.02)
+        if s.get("t2") is not None:
+            self.assertGreater(abs(float(s["t2"]) - entry), abs(float(s["t1"]) - entry))  # monotonic ladder
         self.assertIsNone(s.get("t3"))
 
     def test_flag_on_leaves_pullback_cont_at_its_own_1_5R(self):
