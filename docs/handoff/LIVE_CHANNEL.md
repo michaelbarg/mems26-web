@@ -1,3 +1,90 @@
+## 🟢 [cowork-dev · 2026-09-25 19:34-19:45 IL] — **ריצה 20 · חובה-1 + חובה-3** · 🔑 **הממצא: העסקה החיה הראשונה שהעץ המתוקן הוציא — ומדד-הקבלה קפץ מ-4/39 ל-9/11 בעשרים הדקות שאחרי הריסטארט**
+
+`19:34` ⇒ **לא שער** · בתוך RTH · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד. HEAD `84eae202`.
+
+### ⛔ בעלות-הריסטארט — ראשונה
+
+```raw
+$ ps -o pid,lstart,etime,%cpu,rss -p 11167
+  PID STARTED                      ELAPSED  %CPU    RSS
+11167 Fri Sep 25 19:15:31 2026       19:57  20.8 128384
+```
+
+מאזין **חדש** — הריסטארט של `19:15` הוא של cowork-האינטראקטיבי באישור מייקל (קומיט `84eae202`) ⇒ **אפס ריסטארט, אפס GO/NO-GO** ([[T-369]]); וממילא `19:34 > 16:10`.
+
+### חובה-1 · הטלפון — אפס (א)/(ג)/(ד) · **(ב) התממש ⇒ הודעה אחת**
+
+```raw
+$ launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 87365
+$ curl ".../instruction/pending?key=…" ⇒ {"items":[]}
+$ curl ".../chat?key=…"               ⇒ http 200 · n=30 · אחרונה 2026-09-25T14:25:33Z cowork-dev
+$ # אחרונת-מייקל 2026-09-25T12:07:30Z ← נענתה עניינית 12:17:53Z
+```
+
+⇒ אין (א) · אין (ג) — חריגת-המרג'ין של `14:25:33Z` נסגרה מעצמה (`under_margin 0`) · אין (ד) — לא שער.
+**(ב) — עסקת-לייב `#2408` נפתחה `19:25`, אחרי סיום ריצה 19 (`19:20`) ⇒ מעולם לא דווחה** ⇒ נשלחה **הודעה אחת**, `276` תווים, `backticks=False`, **מאומתת ב-`GET /chat`** (`16:40:00Z`, cowork-dev) ולא מה-`ok`.
+
+### חובה-3 · ארבע הבדיקות — כולן ירוקות
+
+```raw
+$ psql -c "select max(ts), round(extract(epoch from now()-max(ts))/60.0,1) from v9_bars_5min_woodies"
+2026-09-25 19:35:00+03 | 0.6          ← בר בן 0.6 דק' < 10 ⇒ פיד חי ([[T-430]])
+$ curl -o /dev/null -w "health=%{http_code} t=%{time_total}" localhost:8000/health ⇒ health=200 t=0.019837s
+$ awk '$0>="2026-09-25 19:15"' /tmp/backend.err.log | grep -cE "\[ERROR\]|\[CRITICAL\]" ⇒ 0
+$ set -a; . ./.env; python3 -c "…ruled_contracts()" ⇒ 1     ← מדידה, אפס נגיעה בדגלי-גודל
+```
+
+**א** פיד חי · **ב** backend בריא (uptime 19:57, `[ERROR]/[CRITICAL]` מאז הריסטארט = **0**) · **ג** **פוזיציה⇄TM⇄ברוקר מוסכם משלושה צדדים, ו-ownership הוכחה לפי `order_id`** (מלכודת-16):
+
+```raw
+sierra_state.json  position_qty 1 · avg 7794.75 · working_orders 2 · is_sim 0
+                   orders [ 11345 target 7809.25 q1 · 11346 stop 7786.50 q1 ]
+DB   live AND state <> CLOSED ⇒ #2408 בלבד
+log  19:25:09  Sierra IDs stored on trade 2408: {'sierra_order_id': 11344, 'c1_target_id': 11345, 'c1_stop_id': 11346}
+log  19:36:53  [Reconcile] IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+jsonl 16:25:23Z POSITION_CHANGE prev_qty 0 → new_qty 1 · order_id 11344 · is_sim false
+```
+
+⇒ אותו `order_id` בארבעה מקורות ⇒ **הפוזיציה שלנו, אין T-43/ORPHAN, אפס אזעקה**.
+**ד** · [[T-34]] דיווח-בלבד: `avail 163.14 < 1,595$` אך `margin_req 287.65 · under_margin 0 · trading_disabled 0 · loss_limit_reached 0` (סף `−262.22`, `daily_pl −20.00`) ⇒ **אינו חוסם ⇒ אינו מקרה (ג)**.
+
+### 🔑 הממצא · העסקה החיה הראשונה של העץ, ומדד-הקבלה שקפץ
+
+`#2408` · sys 2 · `DOUBLE_BOTTOM_EE_LONG` LONG · כניסה `7795.25` (ברוקר `7794.75`) · סטופ `7786.50` · `t1 7809.25 · t2 7821.50 · t3 7839` · **חוזה 1** · `day_type Variation` · `session MIDDAY`. ה-"למה עברה" מהלוג ולא מניחוש:
+
+```raw
+19:25:06 [Gateway] TREE_V3 DOUBLE_BOTTOM_EE_LONG LONG 7795.25 → TAKE
+         [opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*/rel_bias=with]
+19:25:06 [SierraCmd] RISK_BUDGET: risk=8.8 pts → raw=5.1 → floor=5 → min(ruled=1)=1
+19:25:06 COMMAND QUEUED #404 (op=PLACE)  →  19:25:09 ACK confirmed
+```
+
+`rel_bias=with` = **עם-ההרחבה**, בדיוק הענף שנפסק חי ב-`19:11` (`e4ca62d0`, "המחיר מחליט לפני התוית") ⇒ **הפסיקה נמדדת לראשונה על כסף אמיתי**, והגודל תואם `ruled_contracts()=1`.
+
+**מדד-הקבלה:** `TREE_V3` היום `13 TAKE / 37 SKIP`; **מאז `19:15` בלבד: `9 TAKE / 2 SKIP`** ⇒ לפני הריסטארט `4/39 = 10.3%`, אחריו `9/11 = 81.8%`. ⚠️ **אינו נטען** שזה שיפור-רווח — זה שיפור-**קבלה** בלבד, על 20 דקות ויום אחד; ההכרעה מהריפליי ולא מהמדגם (`LEARNING_DOCTRINE`).
+
+**ולמה רק אחת מתשע הגיעה לחשבון:** סלוט-לייב יחיד (תפוס מ-`19:25`), ובנוסף **דחייה אחת בסיבת-גודל**:
+
+```raw
+19:25:05 [Gateway] LIVE fire SKIPPED — effective contracts <= 0 (margin cap / SKIP):
+         SHORT CEILING_FLIP_SHORT sys=2 — no trade row, no slot, no Sierra command
+19:25:05 [ECON-DIFF] CEILING_FLIP_SHORT … 'reject': 'risk_exceeds_budget (risk=20.25pt → n=2 < 3)'
+$ grep -c "LIVE fire SKIPPED" /tmp/backend.err.log ⇒ 1     (הלוג מכסה 09-22..09-25)
+```
+
+⚠️ **לא הוסלם למקרה (ג), והנימוק מפורש:** הסף שנפסק 24.09 הוא `under_margin=1` **או** חסימת-לייב בסיבת-מרג'ין — וכאן `under_margin 0`, הסיבה הקרובה היא `risk=20.25pt` (סיכון רחב ⇒ `n<3`) ולא חוסר-כסף, **והשנייה שאחריה הוכיחה שהמסחר פתוח** (`#2408` נכנסה `19:25:06`). ⇒ נרשם למעקב; **מופע שני על TAKE שאין מולו פוזיציה — זה כן (ג)**.
+
+### 📊 מספרי-היום (`19:42`)
+
+צל **40 סגורות `−104.93$` · 10 פתוחות** · לייב **1 פתוחה** (`#2408`, פתוח `+31.25$`, `last 7801.00`) · RTH `n=39 · 7784.75 → 7801.00 · high 7811 · low 7752.75` · `daily_pnl` ברוקר `−20.00` (הידניות של הבוקר, ללא שינוי).
+✅ **תיקון-מדידה שנתפס בזמן:** `exit_ts is null` החזיר **95 שורות "פתוחות"** מ-27.07 — אך כולן `state=CLOSED` (94 צל) או `CANCELLED` (1) ⇒ **שאריות-סגירה, לא פוזיציות**; `close_stale_shadow.py` dry-run ⇒ *"no stale shadow trades"*, והוא הפוסק — לא שאילתת-`exit_ts` (מלכודה שכבר נרשמה 23.09). אזעקת-שוא נמנעה.
+
+⚠️ **אפס נגיעה:** ריסטארט · `.env` · דגלים · דגלי-גודל · `RISK_*` · פוזיציות/פקודות · `op=EXIT`/`FLATTEN` · קוד-ייצור. כתיבות: `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד.
+
+**הצעד הבא:** (1) הניטור הבא — האם `#2408` נסגרה (⇒ מקרה (ב) עם P&L) ובאיזה ענף — `t1 7809.25` מול סטופ `7786.50`; (2) האם `LIVE fire SKIPPED` חוזר — מופע שני על TAKE ללא פוזיציה מסלים ל-(ג); (3) הערב — מקרה-ריפליי `rel_bias=with · extension=up · day_type=Variation` על 58 הסשנים, כדי ש-`9/11` יישפט על התפלגות ולא על 20 דקות; (4) הערב, הסדר הפסוק — `broker_truth --write` → `day_review` → `review_report` → `gen_tree_board` → `gen_phone_pages --days 14` → `LESSONS_TIMELINE.json` → push → אימות 200, ולטלפון שורה אחת עם קישור עמוד-היום.
+
+— cowork-dev, 2026-09-25 19:45 IL
+
 ## 🟢 [cowork-dev · 2026-09-25 19:04-19:20 IL] — **ריצה 19 · חובה-1 + חובה-3** · 🔑 **הממצא: וטו-המיקום נמדד לראשונה על רגל-עלייה שלמה — ושני חצאיו נפרדים בסימן: חצי-השורט חסך 307.50$, חצי-הלונג עלה 240.00$**
 
 `19:04` ⇒ **לא שער** · בתוך RTH · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד. HEAD `94e32437`.
