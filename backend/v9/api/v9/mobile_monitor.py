@@ -534,6 +534,13 @@ async def mobile_data(request: Request):
     except Exception:
         out["alerts"] = []
 
+    # T-480 (25.09, Michael: "שאראה אותו בחי בפלאפון"): where the decision tree is now + its plan
+    # (read-only; the relay pushes this payload to the phone every 5s). Never breaks the page.
+    try:
+        from backend.v9.api.v9.tree_routes import build_state as _tree_state
+        out["tree"] = _tree_state(request.app, recent_n=8)
+    except Exception as _te:
+        out["tree"] = {"error": str(_te)[:80]}
     # ── narrator_he: 4-line Hebrew narrative for the phone ──
     # Michael: "אני רוצה לראות מה המערכת רואה בעברית"
     # try/except around everything: missing field → narrator_he=null, page doesn't break.
@@ -798,6 +805,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="radar" style="font-size:12.5px;line-height:1.8">—</div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
+<div class="card" style="border:1px solid #2ea043"><div class="row"><span class="dim">🌳 עץ-ההחלטות — איפה הוא עכשיו ומה הוא מתכנן</span><span id="tmeta" class="dim"></span></div>
+<div id="tree" style="font-size:12.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
 <div id="gate" style="font-size:12px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">תבניות — מי יורה, למה לא, ומה חוסם</div>
@@ -858,6 +867,22 @@ async function load(){
     '<div class="row"><span class="dim">מסחר</span><span>'+(canTrade?'<span class="green">✓ מוכן · עד '+tr.contracts_allowed+' חוזים</span>':'<span class="red">'+(tr.stale?'נתונים לא-טריים':tr.armed!==1?'לא-חמוש':'אין מרג\\'ין')+'</span>')+'</span></div>';
    document.getElementById('rmeta').textContent = (tr.is_sim===0?'לייב':'סים');
   } else { rEl.innerHTML='<span class="dim">'+(d.radar_err?'רדאר-שגיאה: '+d.radar_err:'רדאר לא-זמין (מכונה מרוחקת ישנה?)')+'</span>'; }
+  // T-480: the decision tree's current node + plan (payload.tree, built on the Mac from the gateway's own sources)
+  try{ const T = d.tree; const te = document.getElementById('tree'); const tm = document.getElementById('tmeta');
+   if(T && !T.error && T.context){
+    const KH={WITH_DRIVE:'עם-הדרייב',REVERSAL:'היפוך',EDGE_FADE:'דהיית-קצה',PULLBACK:'פולבק',BREAK:'פריצה',VALUE_RETURN:'חזרה-לערך'};
+    const LC={TAKE:'#3fb950',SHADOW:'#58a6ff',SKIP:'#6e7681'}; const LM={TAKE:'✓',SHADOW:'◐',SKIP:'×'};
+    const chips=(dir)=>Object.keys(KH).map(k=>{const L=(T.plan&&T.plan[dir]&&T.plan[dir][k])||{leaf:'SKIP'}; const on=L.leaf!=='SKIP';
+      return '<span style="display:inline-block;margin:1px 2px;padding:1px 6px;border-radius:6px;font-size:11px;border:1px solid '+(on?LC[L.leaf]:'#30363d')+';color:'+(on?'#e6edf3':'#6e7681')+';background:'+(on?LC[L.leaf]+'33':'transparent')+'">'+LM[L.leaf]+' '+KH[k]+'</span>';}).join('');
+    let h='<div style="font-weight:700;color:#e6edf3">'+(T.where_he||'')+'</div>';
+    h+='<div style="margin-top:4px"><span style="color:#3fb950;font-weight:700">לונג</span> '+chips('LONG')+'</div><div><span style="color:#f85149;font-weight:700">שורט</span> '+chips('SHORT')+'</div>';
+    if(T.plan_he) h+='<div class="dim" style="font-size:11.5px;margin-top:3px">לונג: '+T.plan_he.LONG+' · שורט: '+T.plan_he.SHORT+'</div>';
+    const R=T.recent||[]; if(R.length){ h+='<div style="margin-top:6px;border-top:1px solid #2a3140;padding-top:5px" class="dim">ההליכות האחרונות בעץ</div>';
+      R.slice(0,6).forEach(r=>{ h+='<div style="font-size:11px;font-family:ui-monospace,monospace;direction:ltr;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span class="dim">'+r.il+'</span> <span style="color:'+(r.direction==='LONG'?'#3fb950':'#f85149')+'">'+(r.direction==='LONG'?'▲':'▼')+' '+(r.pattern||'?')+'</span> @'+(r.entry??'—')+' <b style="color:'+(LC[r.leaf]||'#8b949e')+'">'+(LM[r.leaf]||'?')+' '+r.leaf+(r.id?':'+r.id:'')+'</b>'+(r.legacy?' <span class="dim">ישן:'+r.legacy+'</span>':'')+' <span class="dim">'+(r.path||'')+'</span></div>'; }); }
+    te.innerHTML=h; tm.textContent=(T.mode==='on'?'העץ מחליט':T.mode==='shadow'?'העץ בצל — השרשרת הישנה מחליטה':'העץ כבוי')+(T.ts?' · '+T.ts:'');
+   } else if(T && T.error){ te.innerHTML='<span class="dim">שגיאה: '+T.error+'</span>'; tm.textContent=''; }
+   else { te.innerHTML='<span class="dim">אין נתוני-עץ ב-snapshot (הבקאנד עוד לא נטען מחדש)</span>'; tm.textContent=''; }
+  }catch(e){}
   const g = d.gate; const ge = document.getElementById('gate');
   if(g && g.last){
    const L = g.last; const t = L.ts? new Date(L.ts).toTimeString().slice(0,5) : '';

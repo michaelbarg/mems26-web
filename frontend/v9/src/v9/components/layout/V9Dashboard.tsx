@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
+import { TreeV3Strip } from './TreeV3Strip';
 import { SierraTruthStrip } from './SierraTruthStrip';
 import { ContextRadar } from './ContextRadar';
 import { MultidayProfilePanel } from './MultidayProfilePanel';
@@ -123,6 +124,8 @@ export function V9Dashboard() {
           {/* מייקל 04.08: שורת-הרמות הועברה מהכותרת אל הפאנל-הצדדי (SidePanel) */}
           {/* מייקל 07-21: פאנל סוג-פתיחה — סוג הפתיחה + מה הוא מבשר + התבניות הרלוונטיות */}
           <OpeningTypePanel />
+          {/* T-480 (מייקל 25.09): איפה עץ-ההחלטות עכשיו ומה הוא מתכנן — הצומת, מה ייקח/יצל/יסרב לכל כיוון וסוג-כניסה, ההליכות האחרונות */}
+          <TreeV3Strip />
           <div className="flex flex-1 min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
               {/* Chart area — flex-1 fills vertical space, min-height from drag */}

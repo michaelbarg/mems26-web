@@ -43,7 +43,7 @@ def _price() -> Optional[float]:
         return None
 
 
-def _context(request: Request) -> Dict[str, Any]:
+def _context(request) -> Dict[str, Any]:
     """The situation as the gateway would see it for a candidate routed right now."""
     from backend.v9.services import decision_tree as dt3
     from backend.v9.services.dalton_playbook import _resolve_phase, load_config as _pb_cfg
@@ -129,13 +129,20 @@ def _mode() -> str:
     return "on" if v in ("1", "true", "yes") else "shadow" if v == "shadow" else "off"
 
 
-@router.get("/state")
-async def tree_state(request: Request):
+class _AppRequest:
+    """Minimal stand-in so build_state(app) can reuse the request-based helpers."""
+    def __init__(self, app):
+        self.app = app
+
+
+def build_state(app, *, recent_n: int = 20) -> Dict[str, Any]:
+    """The live tree state for any caller (the /state route, the phone snapshot payload)."""
     from backend.v9.services import decision_tree as dt3
+    request = _AppRequest(app)
     t0 = time.time()
     out: Dict[str, Any] = {"mode": _mode(), "ts": time.strftime("%H:%M:%S")}
     try:
-        ctx = _context(request)
+        ctx = _context(request)  # type: ignore[arg-type]
     except Exception as e:
         return {"error": f"context failed: {e}"[:160], **out}
     out["context"] = ctx
@@ -173,7 +180,7 @@ async def tree_state(request: Request):
     # recent walks from the gateway's decision feed
     recent: List[Dict[str, Any]] = []
     try:
-        gw = getattr(request.app.state, "trading_gateway", None)
+        gw = getattr(app.state, "trading_gateway", None)
         from datetime import datetime
         from zoneinfo import ZoneInfo
         for d in reversed(list(getattr(gw, "decisions", []) or [])):
@@ -187,7 +194,7 @@ async def tree_state(request: Request):
             recent.append({"il": il, "pattern": d.get("pattern"), "direction": d.get("direction"), "entry": d.get("entry"),
                            "leaf": tv.get("leaf"), "id": tv.get("id"), "path": tv.get("path"), "legacy": tv.get("legacy"),
                            "outcome": d.get("outcome"), "blocked_by": d.get("blocked_by") or d.get("live_blocked_by")})
-            if len(recent) >= 20:
+            if len(recent) >= recent_n:
                 break
     except Exception:
         pass
@@ -196,3 +203,8 @@ async def tree_state(request: Request):
                               for lf in dt3.leaves(tree) if lf.get("leaf") == "SHADOW"]
     out["latency_ms"] = round((time.time() - t0) * 1000, 1)
     return out
+
+
+@router.get("/state")
+async def tree_state(request: Request):
+    return build_state(request.app)
