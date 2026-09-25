@@ -919,34 +919,44 @@ if os.path.exists(t3p):
     import math as _m3
     _pts = []; _edges = []
     def _count_leaves(nd): return 1 if "leaf" in nd else max(1, sum(_count_leaves(c) for c in nd["children"].values()))
-    def _lay(nd, depth, a0, a1, parent_xy, key):
+    def _lay(nd, depth, a0, a1, parent_xy, key, raw, parent_idx):
         cx, cy = 460, 460; R = 0 if depth == 0 else 52 + depth * 58
         am = (a0 + a1) / 2; x = cx + R * _m3.cos(am); y = cy + R * _m3.sin(am)
         n = nd.get("n", 0); r = 2.2 + (min(n, 900) ** 0.5) * 0.55 if "leaf" in nd else 2.0 + (min(n, 3000) ** 0.5) * 0.28
         act = nd.get("leaf"); col = HEB_ACT.get(act, ("", "var(--dim)"))[1] if act else ("var(--acc)" if n else "#3a4250")
-        idx = len(_pts); _pts.append(dict(x=round(x, 1), y=round(y, 1), r=round(r, 1), col=col, key=key, n=n, win=nd.get("win"), usd=nd.get("usd", 0),
+        idx = len(_pts); _pts.append(dict(x=round(x, 1), y=round(y, 1), r=round(r, 1), col=col, key=key, raw=raw, d=depth, p=parent_idx, n=n, win=nd.get("win"), usd=nd.get("usd", 0),
                                           n_live=nd.get("n_live", 0), usd_live=nd.get("usd_live", 0), leaf=act, split=nd.get("split"), note=nd.get("note"),
-                                          take=nd.get("take", 0), skip=nd.get("skip", 0)))
-        if parent_xy: _edges.append((parent_xy[0], parent_xy[1], round(x, 1), round(y, 1), 0.4 + min(n, 800) ** 0.5 * 0.05, act))
+                                          take=nd.get("take", 0), skip=nd.get("skip", 0), kids=[]))
+        if parent_xy: _edges.append((parent_xy[0], parent_xy[1], round(x, 1), round(y, 1), 0.4 + min(n, 800) ** 0.5 * 0.05, act, depth))
         if "children" in nd:
             tot = sum(_count_leaves(c) for c in nd["children"].values()) or 1; a = a0
             for k, c in nd["children"].items():
-                w = (a1 - a0) * _count_leaves(c) / tot; _lay(c, depth + 1, a, a + w, (x, y), (key + " › " if key else "") + f"{HEB_FEAT.get(nd['split'], nd['split'])}={k}"); a += w
+                w = (a1 - a0) * _count_leaves(c) / tot
+                ci = _lay(c, depth + 1, a, a + w, (x, y), (key + " › " if key else "") + f"{HEB_FEAT.get(nd['split'], nd['split'])}={k}", raw + [[nd["split"], str(k)]], idx); a += w
+                _pts[idx]["kids"].append(ci)
         return idx
-    _lay(T3["tree"], 0, -_m3.pi / 2, 1.5 * _m3.pi, None, "")
-    svg = ['<svg viewBox="0 0 920 920" style="width:100%;max-width:920px;display:block;margin:0 auto;background:radial-gradient(circle at 50% 50%,#121826 0,#0b0e14 70%);border-radius:14px" id="t3svg">']
-    for x0, y0, x1, y1, w, act in _edges:
+    _lay(T3["tree"], 0, -_m3.pi / 2, 1.5 * _m3.pi, None, "", [], -1)
+    svg = ['<div id="t3wrap" style="position:relative;background:radial-gradient(circle at 50% 50%,#121826 0,#0b0e14 70%);border-radius:14px;overflow:hidden;touch-action:none">'
+           '<svg viewBox="0 0 920 920" style="width:100%;height:auto;display:block;user-select:none" id="t3svg"><g id="t3g">']
+    for x0, y0, x1, y1, w, act, dp in _edges:
         col = {"TAKE": "#3fb95066", "SKIP": "#f8514933", "SHADOW": "#79c0ff55"}.get(act, "#8b949e33")
-        svg.append(f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y1}" stroke="{col}" stroke-width="{w:.1f}"/>')
+        svg.append(f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y1}" stroke="{col}" stroke-width="{w:.1f}" class="t3e" style="animation-delay:{dp * 140}ms"/>')
     for i, p in enumerate(_pts):
-        glow = "" if p["n"] == 0 else f' style="filter:drop-shadow(0 0 {min(8, 2 + p["n"] ** 0.5 * 0.2):.1f}px {p["col"]})"'
-        svg.append(f'<circle cx="{p["x"]}" cy="{p["y"]}" r="{p["r"]}" fill="{p["col"]}" fill-opacity="{0.35 if p["n"] == 0 else 0.9}" data-i="{i}" class="t3n"{glow}/>')
-    svg.append('</svg>')
+        glow = f'filter:drop-shadow(0 0 {min(8, 2 + p["n"] ** 0.5 * 0.2):.1f}px {p["col"]});' if p["n"] else ""
+        svg.append(f'<circle cx="{p["x"]}" cy="{p["y"]}" r="{p["r"]}" fill="{p["col"]}" fill-opacity="{0.35 if p["n"] == 0 else 0.9}" data-i="{i}" class="t3n" style="{glow}animation-delay:{p["d"] * 140}ms"/>')
+    svg.append('<circle id="t3live" r="0" fill="none" stroke="#facc15" stroke-width="3" opacity="0"/><circle id="t3live2" r="0" fill="none" stroke="#facc15" stroke-width="1.5" opacity="0"/></g></svg>'
+               '<div style="position:absolute;top:8px;left:8px;display:flex;gap:6px">'
+               '<button class="ib" onclick="t3zoom(1.35)" title="הגדל">＋</button><button class="ib" onclick="t3zoom(1/1.35)" title="הקטן">－</button>'
+               '<button class="ib" onclick="t3reset()" title="כל העץ">⌂</button><button class="ib" onclick="t3full()" title="מסך מלא">⛶</button><button class="ib" id="t3follow" onclick="t3toggleFollow()" title="עקוב אחרי המצב החי">◎</button></div>'
+               '<div id="t3livebar" style="position:absolute;bottom:8px;right:8px;left:8px;background:rgba(11,14,20,0.82);border:1px solid #2a3140;border-radius:10px;padding:6px 10px;font-size:12.5px;line-height:1.5;display:none"></div>'
+               '<style>@keyframes t3in{from{opacity:0;transform:scale(0.2)}to{opacity:1;transform:scale(1)}} .t3n{transform-box:fill-box;transform-origin:center;animation:t3in .7s ease-out both} .t3e{animation:t3in .7s ease-out both;transform-box:fill-box;transform-origin:center}'
+               '@keyframes t3pulse{0%{r:8;opacity:.95}70%{r:34;opacity:0}100%{r:34;opacity:0}} #t3live{animation:t3pulse 1.6s ease-out infinite} #t3live2{animation:t3pulse 1.6s ease-out .8s infinite}'
+               '#t3wrap.full{position:fixed;inset:0;z-index:9999;border-radius:0;display:flex;align-items:center;justify-content:center} #t3wrap.full svg{max-height:100vh;width:auto;height:100vh}</style></div>')
     lv = T3.get("leaves") or []; ripe = [r for r in lv if r.get("ripe")]
     tk = [r for r in lv if r["leaf"] == "TAKE"]; sk = [r for r in lv if r["leaf"] == "SKIP"]
     intro = ('<h1>עץ-ההחלטות V3</h1><div class="dim">עץ אחד מקונן, בסדר של מייקל: <b>סוג-פתיחה → שלב → סוג-יום → תבנית → הנסיבות של התבנית</b> (כיוון · מול ההטיה · מיקום מול הערך · קצה). '
              'כל צומת שואל שאלה אחת; כל עלה הוא פעולה מפורשת — לקחת / צל / לא — בלי ציון. השדה: השורש במרכז, טבעת לכל שלב-שאלה, גודל-הכוכב = כמה מועמדים עברו בו, צבע = הפעולה בעלה. '
-             f'המספרים מ-{T3["sessions"]} סשנים ({T3["routes"]} מועמדים, {T3.get("tag")}), נמדד {T3["generated"][:16].replace("T", " ")}. נקישה על כוכב — הפרטים.</div>'
+             f'המספרים מ-{T3["sessions"]} סשנים ({T3["routes"]} מועמדים, {T3.get("tag")}), נמדד {T3["generated"][:16].replace("T", " ")}. נקישה על כוכב — הפרטים. <b>גרירה</b> = תזוזה · <b>צביטה/גלגלת</b> = זום · ⛶ = מסך מלא · ◎ = לעקוב אחרי הכוכב הצהוב הפועם — המקום שבו המערכת נמצאת <b>עכשיו</b> (מתעדכן כל 15 ש׳).</div>'
              f'<div class="kpis"><div class="kpi"><div class="l">עלים פעילים</div><div class="v">{len(lv)}</div><div class="s">{len(tk)} לקחת · {len(sk)} לא</div></div>'
              f'<div class="kpi"><div class="l">מועמדים</div><div class="v">{T3["routes"]}</div><div class="s">{T3["sessions"]} סשנים</div></div>'
              f'<div class="kpi"><div class="l">בשלים לפיצול 🌱</div><div class="v" style="color:var(--am)">{len(ripe)}</div><div class="s">n≥30 · תוצאה מעורבת · Σ$ סותר</div></div>'
@@ -968,9 +978,42 @@ if os.path.exists(t3p):
                 f'<div class="body">{kids}' + (f'<div class="dim" style="padding:4px 10px">+{hidden} ענפים בלי תנועה</div>' if hidden else "") + '</div></div>')
     det = ['<h2>העץ, צומת אחר צומת</h2><div class="dim">ענפים בלי תנועה מוסתרים מהרמה השלישית ומטה.</div>', _nest(T3["tree"], "שורש", 0)]
     js = "<script>const T3P=" + json.dumps(_pts, ensure_ascii=False) + r""";
-document.querySelectorAll('.t3n').forEach(el=>{el.style.cursor='pointer';el.addEventListener('click',()=>{const p=T3P[+el.dataset.i];const a={TAKE:'✅ לקחת',SKIP:'⛔ לא',SHADOW:'🫧 צל'}[p.leaf]||('שאלה: '+(p.split||''));
-document.getElementById('t3panel').innerHTML='<div class="hl">'+(p.key||'שורש')+'</div><div style="margin:4px 0">'+a+'</div><div class="dim">מועמדים '+p.n+(p.n?(' · win '+(p.win==null?'—':p.win+'%')+' · Σ'+(p.usd>=0?'+':'')+Math.round(p.usd)+'$ אילו נלקחו'):'')+(p.n_live?(' · <b>לייב '+p.n_live+' · '+(p.usd_live>=0?'+':'')+Math.round(p.usd_live)+'$</b>'):'')+'</div>'+(p.note?('<div class="dim">'+p.note+'</div>'):'');
-document.getElementById('t3panel').scrollIntoView({behavior:'smooth',block:'nearest'});});});
+const T3K=(new URLSearchParams(location.search)).get('key')||'';
+const T3S=document.getElementById('t3svg'), T3W=document.getElementById('t3wrap'); let VB={x:0,y:0,w:920,h:920}; let t3f=true;
+function t3vb(){T3S.setAttribute('viewBox',VB.x+' '+VB.y+' '+VB.w+' '+VB.h);}
+function t3zoom(f,cx,cy){ if(cx==null){cx=VB.x+VB.w/2;cy=VB.y+VB.h/2;} const nw=Math.max(60,Math.min(1600,VB.w/f)); const nh=nw; VB={x:cx-(cx-VB.x)*(nw/VB.w),y:cy-(cy-VB.y)*(nh/VB.h),w:nw,h:nh}; t3vb(); }
+function t3reset(){VB={x:0,y:0,w:920,h:920}; t3vb();}
+function t3full(){ T3W.classList.toggle('full'); }
+function t3center(i,zoomW){ const p=T3P[i]; const w=zoomW||Math.min(VB.w,420); VB={x:p.x-w/2,y:p.y-w/2,w:w,h:w}; t3vb(); }
+function t3toggleFollow(){ t3f=!t3f; document.getElementById('t3follow').style.color=t3f?'#facc15':''; }
+document.getElementById('t3follow').style.color='#facc15';
+// pan (mouse/finger) + pinch + wheel
+let pd=null, pinch=null; const pts=new Map();
+function svgPt(ev){ const r=T3S.getBoundingClientRect(); return {x:VB.x+(ev.clientX-r.left)/r.width*VB.w, y:VB.y+(ev.clientY-r.top)/r.height*VB.h}; }
+T3S.addEventListener('pointerdown',ev=>{ pts.set(ev.pointerId,ev); if(pts.size===1){ pd={x:ev.clientX,y:ev.clientY,vb:{...VB},moved:false}; } else if(pts.size===2){ const a=[...pts.values()]; pinch={d:Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY),vb:{...VB}}; pd=null; } T3S.setPointerCapture(ev.pointerId); });
+T3S.addEventListener('pointermove',ev=>{ if(!pts.has(ev.pointerId)) return; pts.set(ev.pointerId,ev); const r=T3S.getBoundingClientRect();
+  if(pinch&&pts.size===2){ const a=[...pts.values()]; const d=Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY); const f=d/pinch.d; const cx=pinch.vb.x+pinch.vb.w/2, cy=pinch.vb.y+pinch.vb.h/2; const nw=Math.max(60,Math.min(1600,pinch.vb.w/f)); VB={x:cx-nw/2,y:cy-nw/2,w:nw,h:nw}; t3vb(); t3f=false; document.getElementById('t3follow').style.color=''; }
+  else if(pd){ const dx=(ev.clientX-pd.x)/r.width*VB.w, dy=(ev.clientY-pd.y)/r.height*VB.h; if(Math.abs(ev.clientX-pd.x)+Math.abs(ev.clientY-pd.y)>6) pd.moved=true; VB={x:pd.vb.x-dx,y:pd.vb.y-dy,w:VB.w,h:VB.h}; t3vb(); } });
+function t3up(ev){ pts.delete(ev.pointerId); if(pts.size<2) pinch=null; if(pts.size===0){ if(pd&&pd.moved){ t3f=false; document.getElementById('t3follow').style.color=''; } pd=null; } }
+T3S.addEventListener('pointerup',t3up); T3S.addEventListener('pointercancel',t3up);
+T3S.addEventListener('wheel',ev=>{ ev.preventDefault(); const q=svgPt(ev); t3zoom(ev.deltaY<0?1.2:1/1.2,q.x,q.y); },{passive:false});
+document.querySelectorAll('.t3n').forEach(el=>{el.style.cursor='pointer';el.addEventListener('click',()=>{ if(pd&&pd.moved) return; t3show(+el.dataset.i,true);});});
+function t3show(i,scroll){ const p=T3P[i]; const a={TAKE:'✅ לקחת',SKIP:'⛔ לא',SHADOW:'🫧 צל'}[p.leaf]||('שאלה: '+(p.split||''));
+  document.getElementById('t3panel').innerHTML='<div class="hl">'+(p.key||'שורש')+'</div><div style="margin:4px 0">'+a+'</div><div class="dim">מועמדים '+p.n+(p.n?(' · win '+(p.win==null?'—':p.win+'%')+' · Σ'+(p.usd>=0?'+':'')+Math.round(p.usd)+'$ אילו נלקחו'):'')+(p.n_live?(' · <b>לייב '+p.n_live+' · '+(p.usd_live>=0?'+':'')+Math.round(p.usd_live)+'$</b>'):'')+'</div>'+(p.note?('<div class="dim">'+p.note+'</div>'):'');
+  if(scroll) document.getElementById('t3panel').scrollIntoView({behavior:'smooth',block:'nearest'}); }
+// walk the field with a situation (values by feature) — same rule as the engine: exact / A|B list / "*" default
+function t3walk(vals){ let i=0, path=[0]; while(true){ const p=T3P[i]; if(!p.kids||!p.kids.length||!p.split) break; const v=vals[p.split]; if(v===undefined) break;
+  let hit=null, star=null; for(const k of p.kids){ const rk=T3P[k].raw[T3P[k].raw.length-1][1]; if(rk==='*'){star=k;continue;} if(rk.split('|').some(x=>x.toUpperCase()===String(v).toUpperCase())) {hit=k;break;} }
+  const nx=hit!=null?hit:star; if(nx==null) break; i=nx; path.push(i); } return path; }
+function t3parsePath(s){ const o={}; (s||'').split('/').forEach(seg=>{ const j=seg.indexOf('='); if(j>0){ let v=seg.slice(j+1); const m=v.match(/^\*\((.*)\)$/); if(m) v=m[1]; o[seg.slice(0,j)]=v; } }); return o; }
+async function t3live(){ try{ const r=await fetch('/api/v9/mobile/data?key='+encodeURIComponent(T3K),{cache:'no-store'}); if(!r.ok) return; const d=await r.json(); const T=d.tree; if(!T||!T.context) return; const c=T.context;
+  const path=t3walk({opening_type:c.opening_type,phase:c.phase,day_type:c.day_type}); const i=path[path.length-1]; const p=T3P[i];
+  const L=document.getElementById('t3live'), L2=document.getElementById('t3live2'); L.setAttribute('cx',p.x); L.setAttribute('cy',p.y); L.style.opacity=1; L2.setAttribute('cx',p.x); L2.setAttribute('cy',p.y); L2.style.opacity=1;
+  document.querySelectorAll('.t3n.on').forEach(e=>e.classList.remove('on')); path.forEach(k=>{ const e=document.querySelector('.t3n[data-i="'+k+'"]'); if(e){ e.setAttribute('stroke','#facc15'); e.setAttribute('stroke-width','1.5'); e.classList.add('on'); } });
+  const R=(T.recent||[]).slice(0,5); R.forEach(rw=>{ const pp=t3walk(t3parsePath(rw.path)); const e=document.querySelector('.t3n[data-i="'+pp[pp.length-1]+'"]'); if(e){ e.setAttribute('stroke',rw.leaf==='TAKE'?'#3fb950':rw.leaf==='SHADOW'?'#58a6ff':'#f85149'); e.setAttribute('stroke-width','2'); } });
+  const bar=document.getElementById('t3livebar'); bar.style.display='block'; bar.innerHTML='<b style="color:#facc15">● עכשיו</b> '+(T.where_he||'')+' <span class="dim">· '+(T.mode==='on'?'העץ מחליט':T.mode==='shadow'?'העץ בצל':'העץ כבוי')+' · '+(T.ts||'')+'</span>'+(T.plan_he?('<div class="dim" style="font-size:11.5px">לונג: '+T.plan_he.LONG+' · שורט: '+T.plan_he.SHORT+'</div>'):'')+(R.length?('<div class="dim" style="font-size:11px;direction:ltr;text-align:left">'+R.slice(0,3).map(x=>x.il+' '+(x.direction==='LONG'?'▲':'▼')+' '+x.pattern+' → '+x.leaf+(x.id?':'+x.id:'')).join(' · ')+'</div>'):'');
+  if(t3f){ t3center(i, Math.max(260, 120+p.d*60)); } }catch(e){} }
+t3live(); setInterval(t3live,15000);
 </script>"""
     with open(os.path.join(OUT, "tree_v3.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("עץ-ההחלטות V3", intro + "".join(svg) + panel + "".join(det), extra_js=js, active="tree_v3.html", sub=f'{len(lv)} עלים · {T3["routes"]} מועמדים · {len(ripe)} 🌱'))
