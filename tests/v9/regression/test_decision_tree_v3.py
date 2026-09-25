@@ -183,6 +183,52 @@ class TestParityWithLegacyChain(unittest.TestCase):
         self.assertEqual(tree_verdict(self.tree, direction="SHORT", zone="above_value", **kw)[0], "TAKE")
 
 
+class TestStructureBeforeLabel(unittest.TestCase):
+    """25.09 19:05 (Michael: "בכלל זה כבר לא יום נורמלי"): under a Normal label the tree asks what the price
+    did to the IB first. 25.09: IB 7752.75–7793.75, price to 7805.75 on +3,752 delta — every long refused by
+    `location` because the label stayed Normal."""
+
+    def setUp(self):
+        dt3.invalidate_cache()
+        self.tree = dt3.load_tree()
+
+    def _walk(self, **kw):
+        vec = {"opening_type": "OPEN_AUCTION_IN", "phase": "C", "day_type": "Normal", "structure": "none",
+               "pattern": "DOUBLE_BOTTOM_EE_LONG", "kind": "BREAK", "direction": "LONG", "rel_bias": "none",
+               "zone": "mid_value", "edge": "none"}
+        vec.update(kw)
+        return dt3.walk(self.tree, vec)
+
+    def test_extension_up_with_the_extension_is_taken_and_skips_elq(self):
+        leaf, path = self._walk(structure="up", rel_bias="with", zone="above_value")
+        self.assertEqual((leaf["leaf"], leaf["id"]), ("TAKE", "take_with_extension"), path)
+        self.assertIn("entry_location_quality", leaf.get("skip_gates") or [])
+        self.assertTrue(leaf.get("ruling") and leaf.get("measured"))
+
+    def test_extension_up_against_is_refused_unless_failed_extension(self):
+        leaf, _ = self._walk(structure="up", rel_bias="against", direction="SHORT", zone="near_vah",
+                             pattern="REACTIVE_SHORT", kind="EDGE_FADE")
+        self.assertEqual((leaf["leaf"], leaf["id"]), ("SKIP", "bias"))
+        leaf, _ = self._walk(structure="up", rel_bias="against", direction="SHORT", zone="near_vah",
+                             pattern="CEILING_FLIP_SHORT", kind="REVERSAL", edge="failed_extension")
+        self.assertEqual(leaf["leaf"], "TAKE")
+
+    def test_no_extension_keeps_the_normal_template(self):
+        self.assertEqual(self._walk(structure="none", zone="mid_value")[0]["id"], "location")
+        self.assertEqual(self._walk(structure="none", zone="near_val")[0]["id"], "take_location")
+        self.assertEqual(self._walk(structure="none", direction="SHORT", zone="near_vah")[0]["id"], "take_location")
+
+    def test_two_sided_is_the_neutral_template(self):
+        self.assertEqual(self._walk(structure="two_sided", zone="below_value")[0]["id"], "take_location")
+        self.assertEqual(self._walk(structure="two_sided", zone="mid_value")[0]["id"], "location")
+
+    def test_the_25_09_1900_long_is_now_taken(self):
+        # 19:00:08 DOUBLE_BOTTOM_EE_LONG @7790.25 — IB high 7793.75 broken (session high 7805.75), hint LONG
+        leaf, path = self._walk(structure=dt3.structure_of(7793.75, 7752.75, 7805.75, 7752.75, "C"),
+                                rel_bias="with", zone="near_vah")
+        self.assertEqual(leaf["id"], "take_with_extension", path)
+
+
 class TestGatewayHook(unittest.TestCase):
     """The gateway source carries the hook and its parity guarantees."""
 

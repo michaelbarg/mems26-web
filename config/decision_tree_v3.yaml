@@ -208,13 +208,46 @@ library:
       against: *against_fallback
       "*": *take_location
 
+  # ── the price decides before the label (Michael 25.09 19:05: "בכלל זה כבר לא יום נורמלי — איפה המערכת?").
+  # 25.09: IB 7752.75–7793.75, the label stayed "Normal" while price broke the IB high to 7805.75 on the
+  # day's biggest delta (+3,752 / +3,102) — and the tree refused EVERY long 18:10–19:00 with `location`
+  # (Normal = responsive only). Dalton: a Normal day is a day the IB contains; once the IB is extended
+  # one-sidedly the day IS a Normal-Variation day — trade WITH the extension, fade only its failure.
+  # So under a Normal label the tree now asks first what the price did to the IB (`structure`):
+  #   none      → the Normal template: sell VAH / buy VAL (T-319b location rule), target the middle
+  #   up | down → the extension template: WITH the extension = TAKE (beyond value is the thesis ⇒ the
+  #               ELQ "beyond value / chaser" gate does not apply on this leaf); AGAINST it only the
+  #               failed-extension flip (T-329); no directional hint ⇒ the Variation kinds
+  #   two_sided → the Neutral template: fade both extremes
+  # Measured as T-466 (the same relabel, 58 sessions): Δ −85$ ≈ −1.5$/day — neutral; ruled live by
+  # Michael 25.09 19:05 ("אני רוצה את זה על לייב … מתוקן עכשיו כולל הכל וריסטארט"). Re-measured nightly.
+  take_with_extension: &take_with_extension
+    leaf: TAKE
+    id: take_with_extension
+    skip_gates: [entry_location_quality]
+    ruling: "Michael 2026-09-25 19:05 — 'אני רוצה את זה על לייב ואני רוצה את זה מתוקן עכשיו כולל הכל וריסטארט' (the tree must fire with the day, not by a lagging label)"
+    measured: {n: 58, usd: -85.0, sessions: 58, source: "T-466 STRUCTURE_BEFORE_LABEL (same relabel) harness_out/t466/sbl vs baseline", date: "2026-09-24", rule: "ruled live; re-measure nightly with the leaf's own gate policy"}
+    note: "the IB is extended one-sidedly — the day is Normal-Variation by price; with the extension any kind is taken"
+  extension_row: &extension_row
+    split: rel_bias
+    branches:
+      with: *take_with_extension
+      against: *against_fallback
+      "*": *kinds_variation
+  normal_by_structure: &normal_by_structure
+    split: structure
+    branches:
+      up|down: *extension_row
+      two_sided: *responsive_neutral
+      "*": *responsive_normal
+
   # phase C — by day type (opening type no longer decides; Dalton: the IB and the extension do)
   phase_C: &phase_C
     split: day_type
     branches:
       Trend_Normal|Trend_DD: *trend_row
       Variation|Normal_Variation: *variation_row
-      Normal: *responsive_normal
+      Normal: *normal_by_structure
       Neutral_Center|Neutral_Extreme: *responsive_neutral
       Nontrend|Nonconviction: *skip_stand_down
       "*": *skip_stand_down

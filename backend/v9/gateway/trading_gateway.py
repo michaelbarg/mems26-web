@@ -1484,7 +1484,10 @@ class TradingGateway:
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
                         result["tree_v3"] = {"leaf": _t3_action, "id": _tree_leaf.get("id"),
                                              "path": _t3_path_s, "mode": "shadow" if _dt3.is_shadow() else "on",
-                                             "vec": {k: v for k, v in _t3_vec.items() if k in _dt3.FEATURES}}
+                                             "vec": {k: v for k, v in _t3_vec.items() if k in _dt3.FEATURES},
+                                             # the leaf's gate policy (plan §6 stage 2): gates that do not apply
+                                             # in this circumstance — honoured only when the tree decides
+                                             "skip_gates": [str(g) for g in (_tree_leaf.get("skip_gates") or [])]}
                         if not _dt3.is_shadow():
                             _tree_used = True
                             if _t3_action == "SKIP":
@@ -2779,6 +2782,20 @@ class TradingGateway:
                 and str(setup.get("classification") or "").upper() == "VAR_CONT")
         except Exception:
             _elq_skip_vc = False
+        # T-480 leaf gate policy (Michael 25.09 19:05): a TAKE leaf may declare gates that do not apply in its
+        # circumstance — take_with_extension (the IB extended one-sidedly, entry WITH the extension) is
+        # "beyond value" by definition, exactly like the drive branch and VAR_CONT above. Only when the tree
+        # decides (DECISION_TREE_V3=1) and only for the gates the leaf names.
+        try:
+            _t3v = result.get("tree_v3") if isinstance(result.get("tree_v3"), dict) else {}
+            _elq_skip_tree = (_t3v.get("mode") == "on" and str(_t3v.get("leaf") or "").upper() == "TAKE"
+                              and "entry_location_quality" in (_t3v.get("skip_gates") or []))
+        except Exception:
+            _elq_skip_tree = False
+        if _elq_skip_tree and _elq_mode in ("1", "true", "shadow") and not _elq_skip_vc:
+            result["elq_skipped"] = f"tree_leaf:{_t3v.get('id')}"
+            logger.warning("[Gateway] T-480 ELQ skipped by the tree leaf %s for %s %s @%s",
+                           _t3v.get("id"), setup.get("classification"), direction, setup.get("entry_price"))
         if _elq_skip_vc and _elq_mode in ("1", "true", "shadow"):
             result["elq_skipped"] = "var_cont_branch"
             _elq_skip_drive = True
@@ -2786,7 +2803,8 @@ class TradingGateway:
             logger.warning("[Gateway] T-457 ELQ skipped for confirmed opening drive %s %s "
                            "(OPENING_DRIVE_BRANCH_V1)", setup.get("classification"), direction)
             result["elq_skipped"] = "opening_drive_branch"
-        if _elq_mode in ("1", "true", "shadow") and not _elq_skip_d and not _elq_skip_drive:
+        if (_elq_mode in ("1", "true", "shadow") and not _elq_skip_d and not _elq_skip_drive
+                and not _elq_skip_tree):
             try:
                 from backend.v9.systems.entry_location_quality import assess_entry_quality
                 _elq_entry = setup.get("entry_price")
