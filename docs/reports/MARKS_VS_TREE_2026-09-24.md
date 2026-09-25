@@ -1,0 +1,15 @@
+# הסימונים מול העץ — 2026-09-24 (2026-09-25)
+
+**9 סימונים** (4 של מייקל · 5 שלנו) מול 62 החלטות-גייטוויי (replay). חלון: 10 דק׳ לפני הסימון עד 15 אחריו, באותו כיוון.
+
+| מי | כיוון | כניסה | יציאה | נק׳ | מה קרה | מי ראה (העץ · התוצאה) |
+|---|---|---|---|---|---|---|
+| מייקל | LONG | 16:40 @7740.25 | 17:05 @7758.25 | 18.0 | ⛔ העץ סירב — עלה stand_down ⇒ מועמד-לפיצול | 16:34 ZLR → SKIP:stand_down / blocked tree:stand_down · 16:35 CEILING_FLIP_TOUCH2 → SKIP:stand_down / shadow tree:stand_down · 16:39 GB100 → SKIP:stand_down / blocked tree:stand_down |
+| מייקל | LONG | 19:25 @7752.0 | 20:05 @7778.5 | 26.5 | 🚧 העץ אישר, שער אחרי-העץ סירב: entry_location_quality | 19:15 CEILING_FLIP_TOUCH2 → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with / shadow rr_entry_gate · 19:20 REACTIVE_LONG → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with / blocked entry_location_quality · 19:20 DOUBLE_BOTTOM_EE_LONG → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with / blocked entry_location_quality |
+| מייקל | SHORT | 17:25 @7758.0 | 19:15 @7726.0 | 32.0 | 🚧 העץ אישר, שער אחרי-העץ סירב: entry_not_confirmed | 17:25 CEILING_FLIP_TOUCH2 → SHADOW:auction_B_trend_break / shadow · 17:30 CEILING_FLIP_TOUCH2 → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK / shadow entry_not_confirmed |
+| מייקל | SHORT | 20:05 @7778.0 | 21:00 @7749.25 | 28.75 | 🫧 העץ אישר — המפיק צל-בלבד | 19:55 CEILING_FLIP_TOUCH2 → TAKE:take_location / shadow · 20:10 CEILING_FLIP_TOUCH2 → TAKE:take_location / shadow |
+| שלנו | LONG | 16:40 @7740.25 | 17:05 @7758.25 | 18.0 | ⛔ העץ סירב — עלה stand_down ⇒ מועמד-לפיצול | 16:34 ZLR → SKIP:stand_down / blocked tree:stand_down · 16:35 CEILING_FLIP_TOUCH2 → SKIP:stand_down / shadow tree:stand_down · 16:39 GB100 → SKIP:stand_down / blocked tree:stand_down |
+| שלנו | SHORT | 17:25 @7754.5 | 18:10 @7725.25 | 29.25 | 🚧 העץ אישר, שער אחרי-העץ סירב: entry_not_confirmed | 17:25 CEILING_FLIP_TOUCH2 → SHADOW:auction_B_trend_break / shadow · 17:30 CEILING_FLIP_TOUCH2 → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK / shadow entry_not_confirmed |
+| שלנו | LONG | 19:25 @7765.25 | 19:40 @7783.0 | 17.75 | 🚧 העץ אישר, שער אחרי-העץ סירב: entry_location_quality | 19:15 CEILING_FLIP_TOUCH2 → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with / shadow rr_entry_gate · 19:20 REACTIVE_LONG → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with / blocked entry_location_quality · 19:20 DOUBLE_BOTTOM_EE_LONG → TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with / blocked entry_location_quality |
+| שלנו | SHORT | 20:10 @7777.75 | 20:25 @7759.5 | 18.25 | 🫧 העץ אישר — המפיק צל-בלבד | 20:10 CEILING_FLIP_TOUCH2 → TAKE:take_location / shadow |
+| שלנו | LONG | 21:00 @7750.5 | 21:15 @7769.25 | 18.75 | ⭕ אף מפיק לא ראה — שאלה למפיק, לא לעץ | — |
