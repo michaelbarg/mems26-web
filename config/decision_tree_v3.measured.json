@@ -1,0 +1,2054 @@
+{
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Variation)": {
+  "n": 447,
+  "win": 36,
+  "usd": -4327.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)": {
+  "n": 173,
+  "win": 46,
+  "usd": -125.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=*(Variation)": {
+  "n": 144,
+  "win": 37,
+  "usd": -1192.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
+  "n": 127,
+  "win": 47,
+  "usd": 553.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
+  "n": 126,
+  "win": 33,
+  "usd": -2432.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
+  "n": 116,
+  "win": 40,
+  "usd": -450.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=*(BREAK)/edge=*(none)": {
+  "n": 112,
+  "win": 58,
+  "usd": 1860.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 92,
+  "win": 45,
+  "usd": -450.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=*(Variation)": {
+  "n": 92,
+  "win": 50,
+  "usd": 915.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)": {
+  "n": 81,
+  "win": 40,
+  "usd": -580.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
+  "n": 64,
+  "win": 39,
+  "usd": -431.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=near_vah": {
+  "n": 50,
+  "win": 26,
+  "usd": -581.9,
+  "n_live": 1,
+  "usd_live": -38.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)": {
+  "n": 49,
+  "win": 20,
+  "usd": -1371.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=with": {
+  "n": 44,
+  "win": 82,
+  "usd": 2544.4,
+  "n_live": 11,
+  "usd_live": 158.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)": {
+  "n": 37,
+  "win": 51,
+  "usd": 636.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
+  "n": 36,
+  "win": 28,
+  "usd": -460.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
+  "n": 36,
+  "win": 44,
+  "usd": -19.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
+  "n": 35,
+  "win": 14,
+  "usd": -434.1,
+  "n_live": 4,
+  "usd_live": 6.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
+  "n": 34,
+  "win": 24,
+  "usd": -422.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=near_val": {
+  "n": 34,
+  "win": 38,
+  "usd": -261.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(REVERSAL)/edge=*(none)": {
+  "n": 33,
+  "win": 48,
+  "usd": 496.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
+  "n": 33,
+  "win": 45,
+  "usd": -258.3,
+  "n_live": 1,
+  "usd_live": 18.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=near_val": {
+  "n": 33,
+  "win": 12,
+  "usd": -675.8,
+  "n_live": 1,
+  "usd_live": -57.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)": {
+  "n": 32,
+  "win": 62,
+  "usd": 936.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)": {
+  "n": 30,
+  "win": 33,
+  "usd": -106.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+  "n": 29,
+  "win": 79,
+  "usd": 1833.4,
+  "n_live": 8,
+  "usd_live": 268.1,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)": {
+  "n": 26,
+  "win": 15,
+  "usd": -1275.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(near_vah)": {
+  "n": 26,
+  "win": 38,
+  "usd": 14.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)": {
+  "n": 26,
+  "win": 35,
+  "usd": -408.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)": {
+  "n": 26,
+  "win": 58,
+  "usd": 569.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+  "n": 25,
+  "win": 56,
+  "usd": 499.4,
+  "n_live": 19,
+  "usd_live": 746.3,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)": {
+  "n": 25,
+  "win": 28,
+  "usd": -669.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(near_val)": {
+  "n": 25,
+  "win": 68,
+  "usd": 901.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=with": {
+  "n": 24,
+  "win": 62,
+  "usd": 675.1,
+  "n_live": 1,
+  "usd_live": 57.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(Trend_Normal)/rel_bias=against/edge=*(none)": {
+  "n": 24,
+  "win": 42,
+  "usd": -182.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 23,
+  "win": 70,
+  "usd": 1283.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 23,
+  "win": 65,
+  "usd": 74.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=against/edge=*(none)": {
+  "n": 22,
+  "win": 36,
+  "usd": -294.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)": {
+  "n": 22,
+  "win": 18,
+  "usd": -865.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 21,
+  "win": 57,
+  "usd": 667.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
+  "n": 21,
+  "win": 43,
+  "usd": -50.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(Trend_Normal)/rel_bias=with": {
+  "n": 21,
+  "win": 19,
+  "usd": -925.2,
+  "n_live": 3,
+  "usd_live": 12.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension": {
+  "n": 20,
+  "win": 40,
+  "usd": -97.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=*(Normal)": {
+  "n": 20,
+  "win": 20,
+  "usd": -710.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
+  "n": 20,
+  "win": 60,
+  "usd": 157.4,
+  "n_live": 1,
+  "usd_live": -41.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=with": {
+  "n": 19,
+  "win": 68,
+  "usd": 313.1,
+  "n_live": 1,
+  "usd_live": 28.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=above_value": {
+  "n": 19,
+  "win": 32,
+  "usd": -276.9,
+  "n_live": 2,
+  "usd_live": 22.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
+  "n": 18,
+  "win": 28,
+  "usd": -119.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
+  "n": 18,
+  "win": 61,
+  "usd": 344.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Normal)": {
+  "n": 18,
+  "win": 50,
+  "usd": -145.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
+  "n": 18,
+  "win": 39,
+  "usd": 390.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 18,
+  "win": 33,
+  "usd": -522.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with": {
+  "n": 18,
+  "win": 56,
+  "usd": 430.7,
+  "n_live": 2,
+  "usd_live": 63.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=EDGE_FADE": {
+  "n": 17,
+  "win": 47,
+  "usd": 52.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=near_vah": {
+  "n": 17,
+  "win": 59,
+  "usd": 124.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=BREAK": {
+  "n": 17,
+  "win": 53,
+  "usd": 94.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
+  "n": 16,
+  "win": 31,
+  "usd": -108.5,
+  "n_live": 2,
+  "usd_live": 36.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=with": {
+  "n": 16,
+  "win": 38,
+  "usd": -115.3,
+  "n_live": 4,
+  "usd_live": 32.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
+  "n": 16,
+  "win": 44,
+  "usd": 212.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)": {
+  "n": 15,
+  "win": 33,
+  "usd": -214.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=with": {
+  "n": 15,
+  "win": 7,
+  "usd": -670.9,
+  "n_live": 2,
+  "usd_live": 27.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
+  "n": 14,
+  "win": 29,
+  "usd": -606.4,
+  "n_live": 4,
+  "usd_live": 112.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
+  "n": 14,
+  "win": 36,
+  "usd": -188.3,
+  "n_live": 3,
+  "usd_live": -55.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=*(near_val)": {
+  "n": 14,
+  "win": 43,
+  "usd": -170.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 13,
+  "win": 69,
+  "usd": 529.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
+  "n": 13,
+  "win": 54,
+  "usd": 426.2,
+  "n_live": 7,
+  "usd_live": 61.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
+  "n": 13,
+  "win": 23,
+  "usd": -276.3,
+  "n_live": 3,
+  "usd_live": -88.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Nontrend": {
+  "n": 13,
+  "win": 46,
+  "usd": 344.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=EDGE_FADE": {
+  "n": 13,
+  "win": 69,
+  "usd": 633.1,
+  "n_live": 1,
+  "usd_live": -38.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=above_value": {
+  "n": 13,
+  "win": 31,
+  "usd": -124.4,
+  "n_live": 3,
+  "usd_live": -6.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
+  "n": 13,
+  "win": 23,
+  "usd": -306.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)": {
+  "n": 13,
+  "win": 62,
+  "usd": 224.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=above_value": {
+  "n": 13,
+  "win": 0,
+  "usd": -360.1,
+  "n_live": 1,
+  "usd_live": -31.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=*(near_vah)": {
+  "n": 13,
+  "win": 46,
+  "usd": 89.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=*(REVERSAL)/edge=*(none)": {
+  "n": 12,
+  "win": 58,
+  "usd": 491.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with": {
+  "n": 12,
+  "win": 50,
+  "usd": -74.9,
+  "n_live": 5,
+  "usd_live": -185.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(mid_value)": {
+  "n": 12,
+  "win": 17,
+  "usd": -565.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=below_value": {
+  "n": 12,
+  "win": 33,
+  "usd": -105.6,
+  "n_live": 1,
+  "usd_live": -26.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
+  "n": 12,
+  "win": 33,
+  "usd": -229.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)": {
+  "n": 11,
+  "win": 0,
+  "usd": -719.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
+  "n": 11,
+  "win": 36,
+  "usd": -99.8,
+  "n_live": 1,
+  "usd_live": -28.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(below_value)": {
+  "n": 11,
+  "win": 36,
+  "usd": 176.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 11,
+  "win": 27,
+  "usd": -321.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)": {
+  "n": 11,
+  "win": 27,
+  "usd": -337.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK": {
+  "n": 11,
+  "win": 36,
+  "usd": -162.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)": {
+  "n": 11,
+  "win": 9,
+  "usd": -645.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with": {
+  "n": 10,
+  "win": 20,
+  "usd": -402.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(above_value)": {
+  "n": 10,
+  "win": 0,
+  "usd": -980.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with": {
+  "n": 10,
+  "win": 40,
+  "usd": -121.6,
+  "n_live": 5,
+  "usd_live": -27.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 10,
+  "win": 60,
+  "usd": 271.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(Variation)": {
+  "n": 9,
+  "win": 67,
+  "usd": 322.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 9,
+  "win": 22,
+  "usd": -274.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=*(none)": {
+  "n": 9,
+  "win": 56,
+  "usd": -242.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_DD/rel_bias=with": {
+  "n": 9,
+  "win": 100,
+  "usd": 204.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
+  "n": 9,
+  "win": 33,
+  "usd": -82.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=*(Neutral_Center)": {
+  "n": 9,
+  "win": 100,
+  "usd": 499.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
+  "n": 8,
+  "win": 50,
+  "usd": -59.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(below_value)": {
+  "n": 8,
+  "win": 38,
+  "usd": -80.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
+  "n": 8,
+  "win": 50,
+  "usd": 72.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
+  "n": 8,
+  "win": 62,
+  "usd": 106.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK": {
+  "n": 8,
+  "win": 50,
+  "usd": 219.2,
+  "n_live": 1,
+  "usd_live": 31.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=*(near_val)": {
+  "n": 8,
+  "win": 62,
+  "usd": 37.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=near_vah": {
+  "n": 8,
+  "win": 25,
+  "usd": -107.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=*(above_value)": {
+  "n": 8,
+  "win": 88,
+  "usd": 487.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=near_val": {
+  "n": 8,
+  "win": 25,
+  "usd": -160.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 7,
+  "win": 43,
+  "usd": -0.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=with": {
+  "n": 7,
+  "win": 100,
+  "usd": 459.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=EDGE_FADE": {
+  "n": 7,
+  "win": 43,
+  "usd": 10.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 7,
+  "win": 29,
+  "usd": -68.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
+  "n": 7,
+  "win": 29,
+  "usd": -35.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=near_val": {
+  "n": 7,
+  "win": 14,
+  "usd": -264.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 7,
+  "win": 57,
+  "usd": -56.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension": {
+  "n": 7,
+  "win": 0,
+  "usd": -159.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)": {
+  "n": 7,
+  "win": 0,
+  "usd": -535.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
+  "n": 6,
+  "win": 67,
+  "usd": 71.9,
+  "n_live": 1,
+  "usd_live": 70.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=below_value": {
+  "n": 6,
+  "win": 17,
+  "usd": -128.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 6,
+  "win": 50,
+  "usd": 96.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
+  "n": 6,
+  "win": 50,
+  "usd": 36.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
+  "n": 6,
+  "win": 50,
+  "usd": -32.5,
+  "n_live": 2,
+  "usd_live": 13.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=*(below_value)": {
+  "n": 6,
+  "win": 33,
+  "usd": -193.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 6,
+  "win": 83,
+  "usd": 488.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 6,
+  "win": 83,
+  "usd": 371.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with": {
+  "n": 6,
+  "win": 33,
+  "usd": -91.8,
+  "n_live": 1,
+  "usd_live": -31.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
+  "n": 5,
+  "win": 40,
+  "usd": -37.4,
+  "n_live": 1,
+  "usd_live": 37.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
+  "n": 5,
+  "win": 0,
+  "usd": -106.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(mid_value)": {
+  "n": 5,
+  "win": 0,
+  "usd": -184.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)": {
+  "n": 5,
+  "win": 60,
+  "usd": 145.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(FORMING)": {
+  "n": 5,
+  "win": 40,
+  "usd": -71.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK": {
+  "n": 5,
+  "win": 60,
+  "usd": 93.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=near_val": {
+  "n": 5,
+  "win": 40,
+  "usd": -86.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 5,
+  "win": 80,
+  "usd": 286.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
+  "n": 5,
+  "win": 80,
+  "usd": 123.3,
+  "n_live": 1,
+  "usd_live": 42.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=with": {
+  "n": 4,
+  "win": 50,
+  "usd": 45.2,
+  "n_live": 1,
+  "usd_live": -25.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with": {
+  "n": 4,
+  "win": 75,
+  "usd": 281.5,
+  "n_live": 2,
+  "usd_live": 3.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 50,
+  "usd": -6.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
+  "n": 4,
+  "win": 25,
+  "usd": 2.1,
+  "n_live": 1,
+  "usd_live": 37.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=with": {
+  "n": 4,
+  "win": 50,
+  "usd": 81.5,
+  "n_live": 1,
+  "usd_live": 36.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=A/day_type=*(FORMING)/rel_bias=with": {
+  "n": 4,
+  "win": 0,
+  "usd": -202.9,
+  "n_live": 1,
+  "usd_live": -23.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 50,
+  "usd": 129.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
+  "n": 4,
+  "win": 0,
+  "usd": -104.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 25,
+  "usd": -174.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK": {
+  "n": 4,
+  "win": 50,
+  "usd": 90.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 25,
+  "usd": -99.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=below_value": {
+  "n": 4,
+  "win": 75,
+  "usd": 102.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
+  "n": 4,
+  "win": 50,
+  "usd": 11.5,
+  "n_live": 3,
+  "usd_live": -51.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
+  "n": 4,
+  "win": 0,
+  "usd": -329.1,
+  "n_live": 1,
+  "usd_live": -37.5,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(near_val)": {
+  "n": 4,
+  "win": 50,
+  "usd": 44.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
+  "n": 4,
+  "win": 50,
+  "usd": 74.6,
+  "n_live": 1,
+  "usd_live": -36.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
+  "n": 3,
+  "win": 33,
+  "usd": -25.3,
+  "n_live": 1,
+  "usd_live": 60.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=*(none)": {
+  "n": 3,
+  "win": 0,
+  "usd": -84.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(below_value)": {
+  "n": 3,
+  "win": 0,
+  "usd": -120.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=*(none)/kind=BREAK": {
+  "n": 3,
+  "win": 0,
+  "usd": -311.5,
+  "n_live": 2,
+  "usd_live": 5.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
+  "n": 3,
+  "win": 33,
+  "usd": 45.3,
+  "n_live": 1,
+  "usd_live": -46.2,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with": {
+  "n": 3,
+  "win": 33,
+  "usd": -115.3,
+  "n_live": 1,
+  "usd_live": 25.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 3,
+  "win": 67,
+  "usd": 66.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with": {
+  "n": 3,
+  "win": 33,
+  "usd": -38.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=below_value": {
+  "n": 3,
+  "win": 0,
+  "usd": -55.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
+  "n": 3,
+  "win": 0,
+  "usd": -32.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(near_val)": {
+  "n": 3,
+  "win": 100,
+  "usd": 341.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)": {
+  "n": 3,
+  "win": 67,
+  "usd": 89.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
+  "n": 3,
+  "win": 100,
+  "usd": 110.3,
+  "n_live": 1,
+  "usd_live": 70.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 3,
+  "win": 0,
+  "usd": -184.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 0,
+  "usd": -79.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": 37.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(Variation)/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 100,
+  "usd": 169.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=below_value": {
+  "n": 2,
+  "win": 50,
+  "usd": -31.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
+  "n": 2,
+  "win": 100,
+  "usd": 219.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=LONG/zone=*(above_value)": {
+  "n": 2,
+  "win": 100,
+  "usd": 193.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": -53.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(REVERSAL)/edge=*(none)": {
+  "n": 2,
+  "win": 0,
+  "usd": -180.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
+  "n": 2,
+  "win": 0,
+  "usd": -41.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
+  "n": 2,
+  "win": 100,
+  "usd": 52.9,
+  "n_live": 1,
+  "usd_live": 48.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HNS_TOP_SHORT)/rel_bias=with": {
+  "n": 2,
+  "win": 100,
+  "usd": 132.3,
+  "n_live": 1,
+  "usd_live": -38.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=*(below_value)": {
+  "n": 2,
+  "win": 0,
+  "usd": -7.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TREND_STEP)/rel_bias=with": {
+  "n": 2,
+  "win": 0,
+  "usd": -56.5,
+  "n_live": 1,
+  "usd_live": -25.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Variation)/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": 47.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+  "n": 2,
+  "win": 50,
+  "usd": 13.6,
+  "n_live": 2,
+  "usd_live": 18.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
+  "n": 2,
+  "win": 50,
+  "usd": 6.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": -67.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": 44.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=*(none)/kind=BREAK": {
+  "n": 2,
+  "win": 100,
+  "usd": 212.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with": {
+  "n": 2,
+  "win": 0,
+  "usd": -55.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=A/day_type=*(FORMING)": {
+  "n": 2,
+  "win": 100,
+  "usd": 257.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 82.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(WITH_DRIVE)/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -77.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(mid_value)": {
+  "n": 1,
+  "win": 0,
+  "usd": -77.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TLB)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 109.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 49.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=SHORT/zone=above_value": {
+  "n": 1,
+  "win": 0,
+  "usd": -18.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=*(none)/kind=BREAK": {
+  "n": 1,
+  "win": 100,
+  "usd": 68.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 139.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -30.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 44.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 19.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 187.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 126.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=*(near_vah)": {
+  "n": 1,
+  "win": 100,
+  "usd": 190.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BEAR_FLAG_SHORT)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -45.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(BEAR_FLAG_SHORT)/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 102.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(SCALE_IN)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -35.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -27.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Variation)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -43.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TREND_STEP)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -20.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(SCALE_IN)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -32.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": -1.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
+  "n": 1,
+  "win": 100,
+  "usd": 63.0,
+  "n_live": 1,
+  "usd_live": 35.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -56.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 42.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -22.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=with": {
+  "n": 1,
+  "win": 100,
+  "usd": 48.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -18.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
+  "n": 1,
+  "win": 0,
+  "usd": -46.4,
+  "n_live": 1,
+  "usd_live": -43.8,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -71.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -37.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -17.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -38.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -20.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VEGAS)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -22.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(FAMIR)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -27.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 0,
+  "usd": -76.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 117.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 153.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=SHORT/zone=*(below_value)": {
+  "n": 1,
+  "win": 100,
+  "usd": 109.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=LONG/zone=below_value": {
+  "n": 1,
+  "win": 0,
+  "usd": -20.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 143.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 100.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=above_value": {
+  "n": 1,
+  "win": 0,
+  "usd": -32.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 66.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/treev3 · 58 sessions",
+  "date": "2026-09-25"
+ }
+}

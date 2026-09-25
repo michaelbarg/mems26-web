@@ -658,6 +658,10 @@ def _route_setup_capture(setup, system_id):
     rec["dp_intent"] = _DP_TRACE.get("intent")
     rec["dp_dir_hint"] = _DP_TRACE.get("dir_hint")
     rec["dp_day_type"] = _DP_TRACE.get("day_type")
+    # DECISION_TREE_V3 (25.09): the leaf + path the tree walked for this candidate ("1" or "shadow"),
+    # so scripts/tree_measure.py can measure every leaf from the replay
+    if isinstance(res.get("tree_v3"), dict):
+        rec["tree_v3"] = dict(res["tree_v3"])
     return res
 
 

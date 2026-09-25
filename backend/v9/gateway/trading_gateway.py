@@ -1378,8 +1378,105 @@ class TradingGateway:
                         and str(setup.get("classification") or "").upper() == "VAR_CONT")
                 except Exception:
                     _vc_branch = False
+                # ── DECISION_TREE_V3 (Michael 25.09 12:10: "ממש צריך להיות עץ! ולא טבלה שפועלת"):
+                # ONE nested tree — opening type → phase → day type → pattern → the pattern's own
+                # circumstances (direction · rel_bias · zone · edge) — walked once per candidate,
+                # replaces the playbook rows + the T-319b location gate + the kinds veto + the
+                # T-329 exemption with one explicit path to a leaf (TAKE / SHADOW / SKIP). The
+                # seed tree (config/decision_tree_v3.yaml) encodes today's behaviour exactly
+                # (parity milestone, docs/plans/DECISION_TREE_V3_PLAN_2026-09-25.md §3); every
+                # later split is a branch with `measured:`. "1" = the tree decides (the legacy
+                # blocks below are inert: they key on `dalton_intent:*`, the tree writes
+                # `tree:*`); "shadow" = walk + log the diff, legacy decides; unset = untouched.
+                # A tree crash falls back to the legacy path LOUDLY (warning + result field).
+                _tree_used = False
+                _tree_block = None
+                _tree_leaf = None
+                try:
+                    from backend.v9.services import decision_tree as _dt3
+                    if _dt3.enabled():
+                        _t3_tpo = (cross_context.get("tpo_system")
+                                   if isinstance(cross_context, dict) else None) or {}
+                        _t3_ibh = float(_t3_tpo.get("ib_high") or 0)
+                        _t3_ibl = float(_t3_tpo.get("ib_low") or 0)
+                        _t3_sh = float(_t3_tpo.get("session_high") or _t3_tpo.get("rth_high") or 0)
+                        _t3_sl = float(_t3_tpo.get("session_low") or _t3_tpo.get("rth_low") or 0)
+                        _t3_vah = float(_t3_tpo.get("vah") or 0)
+                        _t3_val = float(_t3_tpo.get("val") or 0)
+                        _t3_ibw = (_t3_ibh - _t3_ibl) if (_t3_ibh > 0 and _t3_ibl > 0) else None
+                        # zone — the T-319b geometry: the pattern's anchor while the entry is
+                        # within 2×tol of it, else the entry (chase guard, 11.09 18:15)
+                        _t3_zone = "unknown"
+                        if _t3_vah > 0 and _t3_val > 0:
+                            from backend.v9.systems.location_gate import zone_of as _t3_zone_of, _tol as _t3_tol
+                            _t3_entry = float(setup.get("entry_price") or 0)
+                            _t3_anchor = (setup.get("structural_anchor")
+                                          or (setup.get("metadata") or {}).get("structural_anchor"))
+                            _t3_price = _t3_entry
+                            try:
+                                if _t3_anchor is not None and _t3_entry > 0:
+                                    _t3_anchor = float(_t3_anchor)
+                                    if abs(_t3_entry - _t3_anchor) <= 2.0 * _t3_tol(_t3_ibw):
+                                        _t3_price = _t3_anchor
+                            except (TypeError, ValueError):
+                                pass
+                            _t3_zone = _t3_zone_of(_t3_price, _t3_vah, _t3_val, _t3_ibw)
+                        # edge — T-329: a CONFIRMED double at the extension extreme (the
+                        # extension failing) for CEILING_FLIP patterns only
+                        _t3_edge = "none"
+                        try:
+                            _t3_cls = str(_dp_classification or "")
+                            _t3_dir = (setup.get("direction") or "").upper()
+                            _t3_anc = (setup.get("structural_anchor")
+                                       or (setup.get("metadata") or {}).get("structural_anchor"))
+                            if (_t3_cls.startswith("CEILING_FLIP") and _t3_anc is not None
+                                    and _t3_ibh > 0 and _t3_ibl > 0 and _t3_sh > 0 and _t3_sl > 0):
+                                _t3_anc = float(_t3_anc)
+                                _t3_ftol = min(max(0.25 * (_t3_ibh - _t3_ibl), 1.0), 4.0)
+                                if ((_t3_dir == "LONG" and _t3_sl < _t3_ibl and abs(_t3_anc - _t3_sl) <= _t3_ftol)
+                                        or (_t3_dir == "SHORT" and _t3_sh > _t3_ibh and abs(_t3_anc - _t3_sh) <= _t3_ftol)):
+                                    _t3_edge = "failed_extension"
+                        except (TypeError, ValueError):
+                            pass
+                        # rel_bias — vs the session hint; the rejection-reverse rows (phase A/B)
+                        # expect the REVERSAL direction (the hint carries the drive direction)
+                        _t3_hint = _dp_dir_hint
+                        if (_dp_ot == "OPEN_REJECTION_REVERSE" and _dp_phase_now in ("A", "B")
+                                and _t3_hint in ("LONG", "SHORT")):
+                            _t3_hint = "SHORT" if _t3_hint == "LONG" else "LONG"
+                        _t3_phase = _dp_phase_now or "D"
+                        _t3_vec = _dt3.features_of_setup(
+                            setup, opening_type=_dp_ot, phase=_t3_phase, day_type=_dp_dt,
+                            structure=_dt3.structure_of(_t3_ibh, _t3_ibl, _t3_sh, _t3_sl, _t3_phase),
+                            dir_hint=_t3_hint, zone=_t3_zone, kind=_dp_ek(_dp_classification),
+                            atr=None, hour=_dp_il.hour)
+                        _t3_vec["edge"] = _t3_edge
+                        _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
+                        _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
+                        _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
+                        result["tree_v3"] = {"leaf": _t3_action, "id": _tree_leaf.get("id"),
+                                             "path": _t3_path_s, "mode": "shadow" if _dt3.is_shadow() else "on"}
+                        if not _dt3.is_shadow():
+                            _tree_used = True
+                            if _t3_action == "SKIP":
+                                _tree_block = {
+                                    "blocked_by": f"tree:{_tree_leaf.get('id')}",
+                                    "reason": f"{_tree_leaf.get('note') or ''} [{_t3_path_s}]",
+                                }
+                            elif _t3_action == "SHADOW":
+                                setup.setdefault("metadata", {})["shadow_only"] = True
+                                result["tree_v3"]["shadow_only"] = True
+                            else:
+                                _dp_location_checked = (_tree_leaf.get("id") == "take_location")
+                            logger.info("[Gateway] TREE_V3 %s %s %s → %s [%s]", _dp_classification,
+                                        setup.get("direction"), setup.get("entry_price"), _t3_action, _t3_path_s)
+                except Exception as _t3_err:
+                    _tree_used = False
+                    _tree_block = None
+                    result["tree_v3_error"] = str(_t3_err)
+                    logger.warning("[Gateway] DECISION_TREE_V3 failed — legacy playbook path decides: %s", _t3_err)
                 if (_dp_dt in ("Normal", "Neutral_Center", "Neutral_Extreme")
-                        and _dp_phase_now != "D" and not _vc_branch):
+                        and _dp_phase_now != "D" and not _vc_branch and not _tree_used):
                     try:
                         _dp_tpo_loc = (cross_context.get("tpo_system")
                                        if isinstance(cross_context, dict) else None) or {}
@@ -1443,7 +1540,9 @@ class TradingGateway:
                     except Exception as _loc_err:
                         logger.warning("[Gateway] T-319b location check failed "
                                        "(falling through to kinds): %s", _loc_err)
-                _dp_block = _dp_eval(setup, _dalton_intent)
+                # DECISION_TREE_V3=1: the tree's leaf IS the decision; the legacy exemptions
+                # below key on `dalton_intent:*` and never touch a `tree:*` block.
+                _dp_block = _tree_block if _tree_used else _dp_eval(setup, _dalton_intent)
                 # T-319b-lite: skip kinds block when location already approved
                 if _dp_block and _dp_location_checked:
                     if _dp_block.get("blocked_by") == "dalton_intent:kind":
@@ -1709,6 +1808,19 @@ class TradingGateway:
                     logger.warning("[Gateway] T-390 SituationVector compute failed "
                                    "(fail-open, continuing): %s", _sv_err)
 
+                # DECISION_TREE_V3=shadow: the legacy chain decided; log where the tree differs
+                if _tree_leaf is not None and not _tree_used:
+                    try:
+                        _t3_legacy = "SKIP" if _dp_block else "TAKE"
+                        _t3_tree = str(_tree_leaf.get("leaf") or "SKIP").upper()
+                        result["tree_v3"]["legacy"] = (_dp_block or {}).get("blocked_by") or "allow"
+                        if _t3_tree != _t3_legacy:
+                            logger.warning("[TREE-V3 DIFF] legacy=%s(%s) tree=%s id=%s path=%s for %s %s @%s",
+                                           _t3_legacy, (_dp_block or {}).get("blocked_by"), _t3_tree,
+                                           _tree_leaf.get("id"), result["tree_v3"].get("path"),
+                                           _dp_classification, setup.get("direction"), setup.get("entry_price"))
+                    except Exception:
+                        pass
                 if _dp_block:
                     result["blocked_by"] = _dp_block["blocked_by"]
                     result["reason"] = _dp_block["reason"]

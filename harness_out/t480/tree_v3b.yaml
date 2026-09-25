@@ -1,0 +1,466 @@
+# config/decision_tree_v3.yaml — DECISION_TREE_V3: the one nested decision tree (Michael 25.09 12:10:
+# "עץ ההחלטות שלנו צריך להיות בשלבים: קודם סוג פתיחה, סוג היום, תבנית מתאימה… הענפים של כל מערכת
+#  אנחנו צריכים לפצל כדי לדייק למצב בפועל. ממש צריך להיות עץ! ולא טבלה שפועלת").
+#
+# ORDER OF THE QUESTIONS (fixed, the doctrine's order — Dalton: opening → structure → day type;
+# Zohar: pattern → location → volume):
+#   opening_type → phase → day_type → [structure] → pattern / kind → circumstance splits
+#   (direction · rel_bias · zone · edge · test · volume · delta · R_atr · hour)
+# Every node asks ONE question ("split") and has ONE branch per answer ("branches"); "*" is the
+# default branch; "A|B" lists several answers. A leaf is an explicit ACTION — never a score:
+#   TAKE   — admit to the safety gates (R:R floor, slot, EOD, position) with this stop/target policy
+#   SHADOW — record only (metadata.shadow_only)
+#   SKIP   — refuse; blocked_by = tree:<id>
+# `measured:` on a leaf = {n, win, usd, source, date} written by scripts/tree_measure.py — the number
+# never decides by itself; it confirms or refutes a doctrinal split (LEARNING_DOCTRINE 09.09).
+#
+# FEATURES (backend/v9/services/decision_tree.py::features_of_setup — all computed by the gateway
+# from what it already knows, no look-ahead):
+#   opening_type  OPEN_DRIVE · OPEN_TEST_DRIVE · OPEN_REJECTION_REVERSE · OPEN_AUCTION_IN · OPEN_AUCTION_OUT · UNKNOWN
+#   phase         A 16:30–16:45 · B –17:30 · C –21:00 · D 21:00+ (IL)
+#   day_type      the live label (post-hysteresis): Trend_Normal · Trend_DD · Variation · Normal_Variation ·
+#                 Normal · Neutral_Center · Neutral_Extreme · Nontrend · Nonconviction · FORMING
+#   structure     what the price DID vs the completed IB: forming (phase A/B) · none · up · down · two_sided
+#   pattern       the producer's classification (OPENING_DRIVE, REACTIVE_SHORT, GB100, CEILING_FLIP_LONG, VAR_CONT…)
+#   kind          entry kind of the pattern (dalton_playbook.entry_kind_map): WITH_DRIVE · REVERSAL · EDGE_FADE ·
+#                 PULLBACK · BREAK · VALUE_RETURN
+#   direction     LONG · SHORT
+#   rel_bias      the setup's direction vs the session's directional hint (opening direction, then the IB
+#                 extension from 17:30): with · against · none (no hint)
+#   zone          entry (or the pattern's anchor when the entry is still within 2×tol of it) vs today's value
+#                 area: above_value · near_vah · mid_value · near_val · below_value · unknown (no VA yet)
+#   edge          failed_extension (T-329: a CONFIRMED double at the extension extreme — the extension
+#                 failing) · none
+#   R_atr, hour, volume, delta, test — available for splits, unused by the seed
+#
+# SEED = PARITY (milestone 1, plan §3): this tree encodes exactly today's live behaviour
+# (dalton_playbook.yaml phases A–D · kinds_apply_to=counter_bias_only · phase_d=manage_only ·
+# T-319b location rule · T-329 failed-extension exemption). The 58-session harness with
+# DECISION_TREE_V3=1 must equal the baseline before any split is added. From there every
+# split is a branch with `measured:` and a day-total replay (Michael 24.09: positive ⇒ live).
+
+version: "3.0.0"
+seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity"
+
+# ── library of shared sub-trees (YAML anchors; the loader reads only `root`) ────────────────────
+library:
+  skip_stand_down: &skip_stand_down
+    leaf: SKIP
+    id: stand_down
+    note: "no doctrine row for this circumstance — stand down"
+  skip_bias: &skip_bias
+    leaf: SKIP
+    id: bias
+    note: "against the session's directional hint"
+  skip_kind: &skip_kind
+    leaf: SKIP
+    id: kind
+    note: "entry kind not in this row's list (bias BOTH)"
+  skip_location: &skip_location
+    leaf: SKIP
+    id: location
+    note: "responsive day: LONG only near/below VAL, SHORT only near/above VAH (T-319b)"
+  take_with_hint: &take_with_hint
+    leaf: TAKE
+    note: "with the directional hint — any kind (kinds_apply_to=counter_bias_only)"
+  take_failed_ext: &take_failed_ext
+    leaf: TAKE
+    note: "T-329: confirmed double at the extension extreme negates the bias"
+  take_location: &take_location
+    leaf: TAKE
+    id: take_location        # the gateway marks location_checked on this leaf (EDGE_FADE_TARGETS_V1 parity)
+    note: "responsive entry at the value edge (T-319b) — kinds skipped"
+
+  # after a kind mismatch: only the failed-extension flip is still admitted
+  kind_fallback: &kind_fallback
+    split: edge
+    branches:
+      failed_extension: *take_failed_ext
+      "*": *skip_kind
+  against_fallback: &against_fallback
+    split: edge
+    branches:
+      failed_extension: *take_failed_ext
+      "*": *skip_bias
+
+  # kinds lists per row (bias BOTH or no hint ⇒ the list decides)
+  kinds_drive_A: &kinds_drive_A
+    split: kind
+    branches:
+      WITH_DRIVE: {leaf: TAKE, note: "phase A: with-drive entries only"}
+      "*": *kind_fallback
+  kinds_drive_B: &kinds_drive_B
+    split: kind
+    branches:
+      WITH_DRIVE|PULLBACK: {leaf: TAKE, note: "phase B drive: with-drive + pullback"}
+      "*": *kind_fallback
+  kinds_orr_B: &kinds_orr_B
+    split: kind
+    branches:
+      REVERSAL|PULLBACK: {leaf: TAKE, note: "phase B rejection-reverse: reversal + pullback"}
+      "*": *kind_fallback
+  kinds_auction_B: &kinds_auction_B
+    split: kind
+    branches:
+      EDGE_FADE: {leaf: TAKE, note: "phase B open-auction: edge fades only"}
+      "*": *kind_fallback
+  kinds_trend: &kinds_trend
+    split: kind
+    branches:
+      PULLBACK|BREAK: {leaf: TAKE, note: "trend day: pullback / break (with the trend when hinted)"}
+      "*": *kind_fallback
+  kinds_variation: &kinds_variation
+    split: kind
+    branches:
+      BREAK|VALUE_RETURN: {leaf: TAKE, note: "variation day: break / value return"}
+      "*": *kind_fallback
+  kinds_normal: &kinds_normal
+    split: kind
+    branches:
+      EDGE_FADE|VALUE_RETURN: {leaf: TAKE, note: "normal day, no VA yet: edge fade / value return"}
+      "*": *kind_fallback
+  kinds_neutral: &kinds_neutral
+    split: kind
+    branches:
+      EDGE_FADE: {leaf: TAKE, note: "neutral day, no VA yet: edge fades only"}
+      "*": *kind_fallback
+
+  # directional row: with the hint → any kind · against → refused (unless failed extension) · no hint → kinds
+  drive_A: &drive_A
+    split: rel_bias
+    branches:
+      with: *take_with_hint
+      against: *against_fallback
+      "*": *kinds_drive_A
+  drive_B: &drive_B
+    split: rel_bias
+    branches:
+      with: *take_with_hint
+      against: *against_fallback
+      "*": *kinds_drive_B
+  orr_B: &orr_B
+    split: rel_bias
+    branches:
+      with: *take_with_hint
+      against: *against_fallback
+      "*": *kinds_orr_B
+  trend_row: &trend_row
+    split: rel_bias
+    branches:
+      with: *take_with_hint
+      against: *against_fallback
+      "*": *kinds_trend
+  variation_row: &variation_row
+    split: pattern
+    branches:
+      VAR_CONT:            # T-458א producer (flag VAR_CONT_V1, measured Δ+16$ net ⇒ OFF): kinds/location skipped, bias kept
+        split: rel_bias
+        branches:
+          against: *skip_bias
+          "*": {leaf: TAKE, note: "VAR_CONT: structural pullback-continuation with the extension"}
+      "*":
+        split: rel_bias
+        branches:
+          with: *take_with_hint
+          against: *against_fallback
+          "*": *kinds_variation
+
+  # responsive rows (Normal / Neutral, phase C): location decides; no VA yet → kinds
+  responsive_normal: &responsive_normal
+    split: direction
+    branches:
+      LONG:
+        split: zone
+        branches:
+          near_val|below_value: *take_location
+          unknown: *kinds_normal
+          "*": *skip_location
+      SHORT:
+        split: zone
+        branches:
+          near_vah|above_value: *take_location
+          unknown: *kinds_normal
+          "*": *skip_location
+      "*": *skip_stand_down
+  responsive_neutral: &responsive_neutral
+    split: direction
+    branches:
+      LONG:
+        split: zone
+        branches:
+          near_val|below_value: *take_location
+          unknown: *kinds_neutral
+          "*": *skip_location
+      SHORT:
+        split: zone
+        branches:
+          near_vah|above_value: *take_location
+          unknown: *kinds_neutral
+          "*": *skip_location
+      "*": *skip_stand_down
+
+  # a provisional Normal/Neutral label in phase A/B (the label flows pre-lock, T-47/F6): the T-319b
+  # location rule runs first; approved ⇒ kinds skipped, the row's bias still applies (written out
+  # per opening type under `root` below)
+  loc_ok_then_bias: &loc_ok_then_bias
+    split: rel_bias
+    branches:
+      against: *against_fallback
+      "*": *take_location
+
+  # phase C — by day type (opening type no longer decides; Dalton: the IB and the extension do)
+  phase_C: &phase_C
+    split: day_type
+    branches:
+      Trend_Normal|Trend_DD: *trend_row
+      Variation|Normal_Variation: *variation_row
+      Normal: *responsive_normal
+      Neutral_Center|Neutral_Extreme: *responsive_neutral
+      Nontrend|Nonconviction: *skip_stand_down
+      "*": *skip_stand_down
+  # phase D — manage only, except with-trend on trend days / with-extension on Neutral_Extreme (Michael 17.09 14:05)
+  phase_D: &phase_D
+    split: day_type
+    branches:
+      Trend_Normal|Trend_DD|Neutral_Extreme: *trend_row
+      "*": *skip_stand_down
+
+# ── the tree ────────────────────────────────────────────────────────────────────────────────────
+root:
+  split: opening_type
+  branches:
+
+    OPEN_DRIVE:
+      split: phase
+      branches:
+        A:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *loc_ok_then_bias
+                    unknown: *drive_A
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *loc_ok_then_bias
+                    unknown: *drive_A
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *drive_A
+        B:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *loc_ok_then_bias
+                    unknown: *drive_B
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *loc_ok_then_bias
+                    unknown: *drive_B
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *drive_B
+        C: *phase_C
+        D: *phase_D
+
+    OPEN_TEST_DRIVE:
+      split: phase
+      branches:
+        A:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *skip_stand_down     # phase A has no test-drive row: stand-down wins
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *skip_stand_down
+        B:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *loc_ok_then_bias
+                    unknown: *drive_B
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *loc_ok_then_bias
+                    unknown: *drive_B
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *drive_B
+        C: *phase_C
+        D: *phase_D
+
+    OPEN_REJECTION_REVERSE:
+      split: phase
+      branches:
+        A:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *skip_stand_down
+        B:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *loc_ok_then_bias
+                    unknown: *orr_B
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *loc_ok_then_bias
+                    unknown: *orr_B
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *orr_B
+        C: *phase_C
+        D: *phase_D
+
+    OPEN_AUCTION_IN|OPEN_AUCTION_OUT:
+      split: phase
+      branches:
+        A:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *skip_stand_down
+        B:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *take_location        # bias BOTH on the auction row
+                    unknown: *kinds_auction_B
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *take_location
+                    unknown: *kinds_auction_B
+                    "*": *skip_location
+                "*": *skip_stand_down
+            Trend_Normal|Trend_DD|Variation|Normal_Variation:
+              split: kind
+              branches:
+                BREAK: {leaf: TAKE, note: "T-480 split V3: open-auction whose first hour already reads Trend/Variation (provisional label) — initiative BREAK admitted; measured candidate-level Trend n=112 +1,861$ · Variation n=32 62% +937$"}
+                "*": *kinds_auction_B
+            "*": *kinds_auction_B
+        C: *phase_C
+        D: *phase_D
+
+    "*":     # UNKNOWN / not yet classified opening
+      split: phase
+      branches:
+        A:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *skip_stand_down
+        B:
+          split: day_type
+          branches:
+            Normal|Neutral_Center|Neutral_Extreme:
+              split: direction
+              branches:
+                LONG:
+                  split: zone
+                  branches:
+                    near_val|below_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                SHORT:
+                  split: zone
+                  branches:
+                    near_vah|above_value: *skip_stand_down
+                    unknown: *skip_stand_down
+                    "*": *skip_location
+                "*": *skip_stand_down
+            "*": *skip_stand_down
+        C: *phase_C
+        D: *phase_D

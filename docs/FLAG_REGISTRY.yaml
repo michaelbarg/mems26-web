@@ -1931,6 +1931,13 @@ flags:
     why: "T-458ג real-engine (29 drives, day totals): 1.5R Δ+$601 vs 2.5R Δ+$326 vs HEAD — the far target holds the one slot all day and turns near wins into stops (07-15, 07-30, 09-01, 09-14). The model's 2.5R > 1.5R (+$712 vs +$442) ignored the slot."
     status: param
     ref: "T-457"
+  DECISION_TREE_V3:
+    category: cascade_gate
+    group: dalton
+    what: "T-480 (25.09): ONE nested decision tree (config/decision_tree_v3.yaml, walked by backend/v9/services/decision_tree.py) in Michael's order — opening type → phase → day type → pattern → the pattern's own circumstances (direction · rel_bias · zone · edge) — evaluated once per candidate in the gateway in place of the playbook rows + the T-319b location gate + the kinds veto + the T-329 exemption. Every node asks one question, every leaf is an explicit action (TAKE / SHADOW / SKIP; blocked_by=tree:<id>; the full path is recorded on the decision and in the harness routes). No score anywhere. '1' = the tree decides · 'shadow' = walk + [TREE-V3 DIFF] log, legacy decides · unset = byte-identical. A tree crash falls back to the legacy path loudly (warning + result.tree_v3_error)."
+    why: "Michael 25.09 12:10: 'עץ ההחלטות שלנו צריך להיות בשלבים: קודם סוג פתיחה, סוג היום, תבנית מתאימה… ממש צריך להיות עץ! ולא טבלה שפועלת'; 11:50: 'אני נגד ציונים'. The seed tree encodes today's live behaviour exactly (parity milestone): exhaustive unit grid of >20k circumstances tree == legacy chain (tests/v9/regression/test_decision_tree_v3.py); real engine 23.09: 64 candidates, identical verdicts and trades (+$115.65). Full 58-session harness parity: see TASK_LOG T-480. From here every doctrinal split is a branch with measured: (scripts/tree_measure.py nightly, board tree_v3.html) and a day-total replay; live only when ≥ baseline (Michael 24.09)."
+    status: disabled
+    ref: "T-480 · docs/plans/DECISION_TREE_V3_PLAN_2026-09-25.md · tests/v9/regression/test_decision_tree_v3.py"
   VAR_CONT_V1:
     category: cascade_gate
     group: dalton

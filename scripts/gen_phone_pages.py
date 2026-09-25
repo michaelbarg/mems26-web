@@ -343,6 +343,7 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("review.html", "🔎", "סקירת-יום", "מה היה צריך לצאת · מה המערכת ראתה", "למידה"),
         ("review_report.html", "📑", "דוח-ריפליי מסודר", "כל הימים: מה היה צריך · מה לתקן", "למידה"),
         ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
+        ("tree_v3.html", "🌌", "עץ-ההחלטות V3", "סוג-פתיחה → שלב → סוג-יום → תבנית → נסיבות — שדה הכוכבים", "למידה"),
         ("variation_playbook.html", "📗", "פלייבוק-וריאציה", "דרייב · תיקון-עצמי · כמה כסף (24.09)", "למידה"),
         ("improvement.html", "📈", "שיפור המערכת", "לפני/אחרי התיקונים — כל הימים, יום-אחר-יום", "למידה"),
         ("oracle_vs_engine.html", "🔭", "הראייה-המלאה מול המנוע", "246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם", "למידה"),
@@ -798,6 +799,74 @@ if os.path.exists(tbp) and os.path.exists(os.path.join(OUT, "data", "tree_board.
                    + "".join(f'<div class="line"><span class="ic">{"🌿" if x["kind"]=="live" else "🫧" if x["kind"]=="shadow" else "🌱"}</span><span><b>{html.escape(x["title"])}</b><br><span class="dim">{html.escape(x["body"])}</span></span></div>' for x in items) + '</div></div>')
     with open(os.path.join(OUT, "tree_board.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("לוח-העץ", intro + frag + "".join(det), active="tree_board.html", sub=f'{c["live"]} ענפים · {c["shadow"]} צל · {c["bud"]} ניצנים'))
+
+# ── DECISION_TREE_V3 board (Michael 25.09: "ממש צריך להיות עץ!" + 24.09: "שדה נוירונים/כוכבים שאראה איך הענפים גדלים") ──
+t3p = os.path.join(OUT, "data", "tree_v3.json")
+if os.path.exists(t3p):
+    T3 = json.load(open(t3p, encoding="utf-8"))
+    HEB_FEAT = {"opening_type": "סוג-פתיחה", "phase": "שלב", "day_type": "סוג-יום", "structure": "מבנה", "pattern": "תבנית", "kind": "סוג-כניסה",
+                "direction": "כיוון", "rel_bias": "מול ההטיה", "zone": "מיקום מול הערך", "edge": "קצה", "test": "test", "volume": "ווליום",
+                "delta": "דלתא", "R_atr": "סטופ/ATR", "hour": "שעה", "system": "מערכת"}
+    HEB_ACT = {"TAKE": ("✅ לקחת", "var(--up)"), "SKIP": ("⛔ לא", "var(--dn)"), "SHADOW": ("🫧 צל", "#79c0ff")}
+    # 1 · radial field: root in the centre, one ring per depth, leaves spread by angle; node size ∝ √n, colour = action
+    import math as _m3
+    _pts = []; _edges = []
+    def _count_leaves(nd): return 1 if "leaf" in nd else max(1, sum(_count_leaves(c) for c in nd["children"].values()))
+    def _lay(nd, depth, a0, a1, parent_xy, key):
+        cx, cy = 460, 460; R = 0 if depth == 0 else 52 + depth * 58
+        am = (a0 + a1) / 2; x = cx + R * _m3.cos(am); y = cy + R * _m3.sin(am)
+        n = nd.get("n", 0); r = 2.2 + (min(n, 900) ** 0.5) * 0.55 if "leaf" in nd else 2.0 + (min(n, 3000) ** 0.5) * 0.28
+        act = nd.get("leaf"); col = HEB_ACT.get(act, ("", "var(--dim)"))[1] if act else ("var(--acc)" if n else "#3a4250")
+        idx = len(_pts); _pts.append(dict(x=round(x, 1), y=round(y, 1), r=round(r, 1), col=col, key=key, n=n, win=nd.get("win"), usd=nd.get("usd", 0),
+                                          n_live=nd.get("n_live", 0), usd_live=nd.get("usd_live", 0), leaf=act, split=nd.get("split"), note=nd.get("note"),
+                                          take=nd.get("take", 0), skip=nd.get("skip", 0)))
+        if parent_xy: _edges.append((parent_xy[0], parent_xy[1], round(x, 1), round(y, 1), 0.4 + min(n, 800) ** 0.5 * 0.05, act))
+        if "children" in nd:
+            tot = sum(_count_leaves(c) for c in nd["children"].values()) or 1; a = a0
+            for k, c in nd["children"].items():
+                w = (a1 - a0) * _count_leaves(c) / tot; _lay(c, depth + 1, a, a + w, (x, y), (key + " › " if key else "") + f"{HEB_FEAT.get(nd['split'], nd['split'])}={k}"); a += w
+        return idx
+    _lay(T3["tree"], 0, -_m3.pi / 2, 1.5 * _m3.pi, None, "")
+    svg = ['<svg viewBox="0 0 920 920" style="width:100%;max-width:920px;display:block;margin:0 auto;background:radial-gradient(circle at 50% 50%,#121826 0,#0b0e14 70%);border-radius:14px" id="t3svg">']
+    for x0, y0, x1, y1, w, act in _edges:
+        col = {"TAKE": "#3fb95066", "SKIP": "#f8514933", "SHADOW": "#79c0ff55"}.get(act, "#8b949e33")
+        svg.append(f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y1}" stroke="{col}" stroke-width="{w:.1f}"/>')
+    for i, p in enumerate(_pts):
+        glow = "" if p["n"] == 0 else f' style="filter:drop-shadow(0 0 {min(8, 2 + p["n"] ** 0.5 * 0.2):.1f}px {p["col"]})"'
+        svg.append(f'<circle cx="{p["x"]}" cy="{p["y"]}" r="{p["r"]}" fill="{p["col"]}" fill-opacity="{0.35 if p["n"] == 0 else 0.9}" data-i="{i}" class="t3n"{glow}/>')
+    svg.append('</svg>')
+    lv = T3.get("leaves") or []; ripe = [r for r in lv if r.get("ripe")]
+    tk = [r for r in lv if r["leaf"] == "TAKE"]; sk = [r for r in lv if r["leaf"] == "SKIP"]
+    intro = ('<h1>עץ-ההחלטות V3</h1><div class="dim">עץ אחד מקונן, בסדר של מייקל: <b>סוג-פתיחה → שלב → סוג-יום → תבנית → הנסיבות של התבנית</b> (כיוון · מול ההטיה · מיקום מול הערך · קצה). '
+             'כל צומת שואל שאלה אחת; כל עלה הוא פעולה מפורשת — לקחת / צל / לא — בלי ציון. השדה: השורש במרכז, טבעת לכל שלב-שאלה, גודל-הכוכב = כמה מועמדים עברו בו, צבע = הפעולה בעלה. '
+             f'המספרים מ-{T3["sessions"]} סשנים ({T3["routes"]} מועמדים, {T3.get("tag")}), נמדד {T3["generated"][:16].replace("T", " ")}. נקישה על כוכב — הפרטים.</div>'
+             f'<div class="kpis"><div class="kpi"><div class="l">עלים פעילים</div><div class="v">{len(lv)}</div><div class="s">{len(tk)} לקחת · {len(sk)} לא</div></div>'
+             f'<div class="kpi"><div class="l">מועמדים</div><div class="v">{T3["routes"]}</div><div class="s">{T3["sessions"]} סשנים</div></div>'
+             f'<div class="kpi"><div class="l">בשלים לפיצול 🌱</div><div class="v" style="color:var(--am)">{len(ripe)}</div><div class="s">n≥30 · תוצאה מעורבת · Σ$ סותר</div></div>'
+             f'<div class="kpi"><div class="l">איך הוא גדל</div><div class="v" style="font-size:13px;white-space:normal;line-height:1.3">עלה בשל → השאלה הבאה בסדר הדוקטרינרי → ריפליי יום-כולל → ענף עם מספר</div></div></div>')
+    panel = '<div class="card" id="t3panel" style="margin-top:8px"><div class="dim">נקישה על כוכב בשדה מציגה כאן את הנתיב, המספרים והפעולה.</div></div>'
+    # 2 · the nested detail (collapsible)
+    def _nest(nd, key, depth):
+        n = nd.get("n", 0); win = nd.get("win"); usd = nd.get("usd", 0); nl = nd.get("n_live", 0); ul = nd.get("usd_live", 0)
+        nums = f'<span class="dim">n={n}' + (f' · {win}% · Σ{usd:+,.0f}$' if n else "") + (f' · <b>לייב {nl} · {ul:+,.0f}$</b>' if nl else "") + '</span>'
+        if "leaf" in nd:
+            a, col = HEB_ACT.get(nd["leaf"], (nd["leaf"], "var(--dim)"))
+            r_ = next((r for r in lv if r["path"] and key.endswith(r["path"].split("/")[-1].split("=")[-1]) and r["n"] == n and r["leaf"] == nd["leaf"]), None)
+            ripe_s = ' <span style="color:var(--am)">🌱 בשל לפיצול</span>' if (r_ and r_.get("ripe")) else ""
+            return f'<div class="line" style="padding-right:{depth * 10}px"><span class="ic" style="color:{col}">●</span><span><b>{html.escape(str(key))}</b> → <span style="color:{col}">{a}</span>{ripe_s}<br>{nums}' + (f'<br><span class="dim">{html.escape(nd.get("note") or "")}</span>' if nd.get("note") else "") + '</span></div>'
+        kids = "".join(_nest(c, k, depth + 1) for k, c in nd["children"].items() if (c.get("n", 0) or c.get("n_live", 0) or depth < 2))
+        hidden = sum(1 for c in nd["children"].values() if not (c.get("n", 0) or c.get("n_live", 0) or depth < 2))
+        title = f'{html.escape(str(key))} — <span style="color:var(--acc)">{HEB_FEAT.get(nd["split"], nd["split"])}?</span>'
+        return (f'<div class="card" style="margin:6px 0 6px {0}px"><div class="row" onclick="tog(this.parentNode)"><div class="grow"><div class="hl">{title}</div>{nums}</div><span class="chev">‹</span></div>'
+                f'<div class="body">{kids}' + (f'<div class="dim" style="padding:4px 10px">+{hidden} ענפים בלי תנועה</div>' if hidden else "") + '</div></div>')
+    det = ['<h2>העץ, צומת אחר צומת</h2><div class="dim">ענפים בלי תנועה מוסתרים מהרמה השלישית ומטה.</div>', _nest(T3["tree"], "שורש", 0)]
+    js = "<script>const T3P=" + json.dumps(_pts, ensure_ascii=False) + r""";
+document.querySelectorAll('.t3n').forEach(el=>{el.style.cursor='pointer';el.addEventListener('click',()=>{const p=T3P[+el.dataset.i];const a={TAKE:'✅ לקחת',SKIP:'⛔ לא',SHADOW:'🫧 צל'}[p.leaf]||('שאלה: '+(p.split||''));
+document.getElementById('t3panel').innerHTML='<div class="hl">'+(p.key||'שורש')+'</div><div style="margin:4px 0">'+a+'</div><div class="dim">מועמדים '+p.n+(p.n?(' · win '+(p.win==null?'—':p.win+'%')+' · Σ'+(p.usd>=0?'+':'')+Math.round(p.usd)+'$ אילו נלקחו'):'')+(p.n_live?(' · <b>לייב '+p.n_live+' · '+(p.usd_live>=0?'+':'')+Math.round(p.usd_live)+'$</b>'):'')+'</div>'+(p.note?('<div class="dim">'+p.note+'</div>'):'');
+document.getElementById('t3panel').scrollIntoView({behavior:'smooth',block:'nearest'});});});
+</script>"""
+    with open(os.path.join(OUT, "tree_v3.html"), "w", encoding="utf-8") as fh:
+        fh.write(shell("עץ-ההחלטות V3", intro + "".join(svg) + panel + "".join(det), extra_js=js, active="tree_v3.html", sub=f'{len(lv)} עלים · {T3["routes"]} מועמדים · {len(ripe)} 🌱'))
 
 # ── journal defects (Michael 23.09: "אני רוצה רשימה של כל הליקויים") ─────────
 dfp = os.path.join(ROOT, "docs", "plans", "JOURNAL_DEFECTS.json")
