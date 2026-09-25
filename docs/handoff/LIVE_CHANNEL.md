@@ -1,3 +1,100 @@
+## 🌙 [cowork-dev · 2026-09-25 23:04-23:30 IL] — **ריצה 27 · חובה-1 + חובה-4 (EOD שישי)** · 🔑 **הממצא: מונה-ההסלמה של מועמדי-הענפים התאפס בשקט ביום שהעץ עלה לאוויר — אותו שער (T-319b), באותה נסיבה בדיוק, נספר תחת שני שמות: `dalton_intent:location` (המנוע הישן) ו-`tree:location` (עץ-V3) ⇒ [[T-491]].**
+
+`23:04` ⇒ **לא שער** · אחרי סגירת-RTH · אפס דגל · אפס `.env` · אפס נגיעה בפוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `039e31e2`.
+
+### חובה-1 · טלפון ⇒ **(א) אין · (ב) עמוד-היום נשלח · (ג) אין · (ד) לא שער**
+
+```raw
+$ curl -s "$RENDER_MOBILE_URL/chat?key=***" ⇒ http=200 bytes=13983 total=30
+last מייקל: 2026-09-25T12:07:30Z "למה העץ שלי כבוי? ממתי? מה עשינו כל הימים האלה האם הוא גדל"
+            ⇒ נענתה עניינית 12:17:53Z ע"י ריצה קודמת; כל מה שאחריה בפיד הוא סוכן
+$ tail -12 docs/handoff/PHONE_THREAD.jsonl   ⇒ מסכים עם ה-peek (אין דלתא)
+```
+
+⇒ **אין (א)** ⇒ שקט מוחלט בטלפון פרט להודעה אחת: עמוד-היום, שהוא דוח-היום שמייקל ביקש (22.09 10:20) ⇒ **(ב) מורחב**.
+
+### חובה-4 · בעלות תור-הלילה ⇒ **אפס פעילות-cc ⇒ הערב פתוח, ואני לקחתי רק את עמודי-הערב**
+
+```raw
+$ git log --since "2026-09-25 23:00" --pretty='%h %ad %s'
+039e31e2 23:05 eod-handoff(מק-1): 2026-09-25 packet — trades/decisions/fills/state/health
+$ git show --stat 039e31e2 | tail -2
+ 6 files changed, 9074 insertions(+)      ⇒ OPS_LOG + gateway_decisions + fills + state + trades + health
+                                          ⇒ **data-only** ⇒ אינו נחשב פעילות-cc לפי כלל-החובה
+$ ps aux | grep -Ei "fwd_harness|run_variant|replay_|dalton_tree_v2_draft" | grep -v grep | wc -l
+0
+$ grep -c "cc-macbook · 2026-09-25" docs/handoff/LIVE_CHANNEL.md
+0
+```
+
+⇒ **אפס claim · אפס הרנס · אפס פריט-הזמנה בוצע.** לא פתחתי סוכן-משנה על `cc_orders`: הפריט הפתוח הבא הוא `CC_ORDER_2026-09-25_FOOTPRINT_FEED` (פיד-פוטפרינט, נוגע ב-`sc_study/`+בריג' — משטח out-of-git שדורש snapshot ושייך ל-cc-macbook על המכונה שסוחרת), והחלון שנשאר מהריצה הזו קצר מלבצע אותו כראוי. ⇒ נשאר פתוח ל-cc; רשום כאן כדי שלא ייעלם.
+
+### עמודי-הערב — חמישה, בסדר, עם פלט גולמי (Rule 5)
+
+```raw
+$ python3 scripts/broker_truth.py --since 2026-09-01 --write | tail -3
+  2408 2026-09-25 19:25 LONG  DOUBLE_BOTTOM_EE_LON  1   +70.00   +72.50   +2.50 order  1  T1_HIT
+Σ books -563.75 · Σ broker (matched) -1731.25 · book error -1167.50
+wrote pnl_sierra on 0 rows (pnl_usd untouched)      ⇒ כולן כבר מאומתות מריצות קודמות
+$ psql -t -c "select count(*) filter (where pnl_sierra is not null)||'/'||count(*) from v9_trades where entry_ts::date='2026-09-25' and mode='live';"
+ 1/1                                                 ⇒ **אימות-ברוקר מלא להיום** (אין "אין רישום-ברוקר ל-#id")
+$ python3 scripts/day_review.py | head -3
+2026-09-25: legs 5 took 0 late 0 opp 0 missed 5 (138.8 pts) · decisions 106 (blocked 97) · candidates 5
+branch candidates across 13 reviewed days: 50 → …/data/review.json
+$ python3 scripts/review_report.py
+report → docs/reports/REPLAY_REVIEW_2026-09-25.md · pdf ok · days 13 · legs 65 took 4 missed 52 (1339 pts) · fixes 50 · gap 64
+$ python3 scripts/gen_tree_board.py | tail -1
+tree board: 16 live rows · 16 shadow rows · 20 buds · 909 decisions over 10 days → …/data/tree_board.html
+$ python3 scripts/gen_phone_pages.py --days 14 | tail -1
+pages: index, days (11), trades (676 rows), missed, lessons, tree → render_mobile_relay/static/docs   (real 5.578s)
+```
+
+### היום, מה-DB ולא מהזיכרון
+
+```raw
+$ psql -c "select mode, count(*) n, count(*) filter (where outcome='WIN') wins, sum(pnl_usd) pnl, count(*) filter (where state<>'CLOSED') open_rows from v9_trades where entry_ts::date='2026-09-25' group by mode;"
+ live   |   1 |  1 |  70.00 | 0
+ shadow | 106 | 55 | 174.75 | 4
+$ psql -c "select id, pattern_id_at_entry, direction, state, outcome, pnl_usd, pnl_sierra, pnl_r, exit_reason from v9_trades where id=2408;"
+ 2408 | DOUBLE_BOTTOM_EE_LONG | LONG | CLOSED | WIN | 70 | 72.5 | 1.6 | T1_HIT
+$ set -a; . ./.env; set +a; python3 -c "…ruled_contracts()…"
+ruled_contracts() = 1 | FIXED_CONTRACTS_2 = 0        ⇒ [[T-489]]: חייב source; תואם qty-ברוקר 1
+$ python3 scripts/task_log_guard.py
+✅ the task log is current, structured, and the only one
+```
+
+**היום הראשון שהעץ מחליט חי, בשתי שורות:** הוא ירה **אחת** מ-106 והיא ניצחה (`#2408`, 1.6R, ברוקר **+72.50$**) — ו-**78 מ-97 החסימות היו שלו עצמו** (`tree:stand_down` 39 · `tree:location` T-319b 29 · `tree:bias` 6 · `tree:kind` 4). המבחן-היומי מתרגם את זה למחיר: 5 מהלכים שווים, **138.8 נק', 0 נלקחו בזמן**, ו-**ארבעה מחמשתם נחסמו ע"י T-319b באותה חתימה בדיוק** — `ph=C · Variation · IN_VA`. זה מועמד-ענף עם חתימה, לא תלונה.
+
+### [[T-491]] — הראיה, ולמה לא תיקנתי הלילה
+
+```raw
+$ python3 -c "…json.load(review.json) … rows with 'location' in gate…"
+{"kind":"relax_gate","gate":"dalton_intent:location","phase":"C","day_type":"Variation","zone":"IN_VA","dir":"SHORT","n":1,"days":["2026-09-23"],"pts":42.0}
+{"kind":"relax_gate","gate":"tree:location",          "phase":"C","day_type":"Variation","zone":"IN_VA","dir":"SHORT","n":1,"days":["2026-09-25"],"pts":24.0}
+                       ⇒ phase · day_type · zone · dir **זהים**; רק ה-gate שונה
+$ grep -n GATE_HEB -A2 scripts/day_review.py | sed -n '1,3p'
+117: "tree:location": "עץ-V3: מיקום מול הערך (T-319b)" … "dalton_intent:location": "עץ-דלתון: מיקום (T-319b)"
+                       ⇒ **שתי התוויות מפנות לאותו שער** — זה שם, לא מנגנון
+$ python3 -c "…Counter(gate)…"
+'dalton_intent:stand_down' 9 · 'dalton_intent:location' 6 · 'dalton_intent:bias' 5 · 'dalton_intent:kind' 4
+'tree:location' 2 · 'tree:stand_down' 1            ⇒ אותו פיצול בכל ארבעת צירי-העץ
+$ python3 -c "…top candidate…"
+{"gate":"dalton_intent:bias","phase":"C","day_type":"Variation","zone":"IN_VA","dir":"LONG","n":4,"days":["2026-09-15","2026-09-22","2026-09-23"],"pts":62.9}
+                       ⇒ **כבר חצה את רף-3-הימים**, ואינו כולל את היום כי בלוקי-היום נרשמו tree:*
+```
+
+**המכניזם:** הצבירה ב-`day_review.py` מקבצת לפי מחרוזת-ה-`gate` הגולמית, והגייטוויי החל להחזיר `tree:*` מהריסטארט של `16:00:21` ⇒ כל היסטוריית `dalton_intent:*` נותרה בצד אחד של הגדר. **כיוון-הנזק:** דוקטרינת-הלמידה מסלימה ב-≥3 ימים או ≥15 מקרים ⇒ מונה מפוצל **מאחר** ענף ולא מקדים אותו — עיכוב-שקט, לא ירי שגוי. ⛔ **לא תיקנתי:** שינוי מפתח-הצבירה משנה אילו מועמדים חוצים את הרף, כלומר זו אריתמטיקה של ספר-הלמידה ⇒ **מספר לפני קומיט**. הצעד-הבא המלא ב-[[T-491]] (מיפוי בצבירה בלבד → הרצה-מחדש על 13 הימים עם הפרש-מונים לפני/אחרי → מבחן-רגרסיה → רק אז `fwd_harness`).
+
+### פתוח לבוקר הבא (לא נגעתי, במכוון)
+
+- **4 שורות-צל `state<>'CLOSED'` מהיום** ⇒ `close_stale_shadow.py` של קדם-הפתיחה יטפל ([[T-396]]: 26 שורות כאלה הרימו פעם את ה-backend ל-80% CPU). אין ריסטארט ואין ניקוי-DB בחלון הזה.
+- **`CC_ORDER_2026-09-25_FOOTPRINT_FEED`** — הפריט הפתוח הבא, `sc_study/`+בריג' ⇒ snapshot לפני, ושייך ל-cc-macbook.
+- **[[T-491]]** הצעד-הבא, ו-[[T-490]] (מלכודת-18 בראנבוק) שנשאר מריצה 25.
+
+**עמוד-היום לטלפון:** https://mems26-mobile.onrender.com/doc/days/2026-09-25.html · לוח-העץ, המפוספסים ועמוד-הלקחים עודכנו באותו קומיט (‏`LESSONS_TIMELINE.json`: שורת-היום + ‏4 פריטי-ציר — `a` העץ-מחליט-חי, `b` חתימת-T-319b, `c` T-489, `e` ה"כן" של 14:11).
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-25 22:34-22:55 IL] — **ריצה 26 · חובה-1 + חובה-3** · 🔑 **הממצא: `#2408` משחזרת את [[T-385]] חיה, ובראיה הנקייה ביותר שהייתה לו — כל פער ה-$2.50 בין `pnl_usd 70` ל-`pnl_sierra 72.50` הוא חצי-נקודה אחת במחיר-הכניסה, ומחיר-היציאה זהה בשני המקורות.**
 
 `22:34` ⇒ **לא שער** · בתוך RTH (`16:30-23:00`) · אפס דגל · אפס `.env` · אפס נגיעה בפוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `9ec0c132`.
