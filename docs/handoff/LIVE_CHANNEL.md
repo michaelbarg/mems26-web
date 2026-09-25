@@ -1,3 +1,205 @@
+## 🚪 [cowork-dev · 2026-09-25 15:34-16:05 IL] — **ריצה 12 · שער-15:30: 🟢 GO** · 🔑 **הממצא: פסיקת-[[T-484]] של מייקל *לא* נטענה בריסטארט הראשון — מרוץ של 3 שניות בין `.env` לבוט. הריסטארט השני טען אותה. בלעדיו כל המסמכים היו אומרים "העץ מחליט" והתהליך היה על `shadow`.**
+
+`15:34` ⇒ **כן** שער (15:30-16:10) · פתיחה 16:30 ⇒ **חובה-1 + חובה-2**. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס דגלי-גודל.
+
+### ⛔ בעלות-הריסטארט — נמדדה, ולא נחסמה
+
+```raw
+$ ps -o pid=,lstart= -p $(lsof -nP -iTCP:8000 -sTCP:LISTEN -t)
+  77380  Thu Sep 24 15:38:41 2026        ⇐ המאזין עלה *אתמול*, לא היום אחרי 12:00
+$ grep -c 'ריסטארט\|שער' <(head -80 docs/handoff/LIVE_CHANNEL.md)
+  ריצה 11 (15:06-15:20) מצהירה במפורש: "לא שער (15:30-16:10) · אפס ריסטארט"
+$ list_scheduled_tasks | grep preopen-restart-2509
+  (אין משימת mems26-preopen-restart-2509)
+```
+
+⇒ אף אחד משני התנאים של כלל-הבעלות לא התקיים ⇒ **הריצה הזו היא בעלת-השער**, ושולחת הודעת-שער אחת.
+(ריצה 11 היא הריצה הקודמת של אותה משימה מתוזמנת — `lastRunAt 12:34:15Z` = 15:34 IL = הריצה הזו.)
+
+### 🔴 הממצא: מרוץ של 3 שניות הפריד בין פסיקת-מייקל לבין התהליך שסוחר
+
+```raw
+# הריסטארט הראשון
+16:00 $ date; launchctl kickstart -k gui/501/com.mems26.backend
+  PRE-RESTART 2026-09-25 15:44:02 IDT   old PID=77380  HEAD=dde90bf4
+  trades/active=null                    ⇐ פוזיציה 0 לפני הריסטארט
+  [boot] logging OK ... pid=87958 commit=dde90bf4      ← 15:44:05
+$ curl /api/v9/tree/state  →  {"mode":"shadow", ...}   ← 15:44:35
+
+# ומה ש-.env אמר באותו רגע
+$ grep -n '^DECISION_TREE_V3' .env ; stat -f '%Sm' -t '%H:%M:%S' .env
+  806:DECISION_TREE_V3=1
+  15:44:06                              ⇐ הקובץ נכתב 1-3 שניות *אחרי* שהבוט קרא אותו
+$ git log --format='%h %ai %s' -1 8ef37eb3
+  8ef37eb3 2026-09-25 15:44:59 T-484 executed ... DECISION_TREE_V3=1 in .env
+  (snapshot 20260925T124359Z = 15:43:59 IL)
+$ git log --format='%h %ai %s' -1 6f671add
+  6f671add 2026-09-25 15:46:28 ... "loads at the next restart (15:44 rest…)"
+```
+
+הסוכן-הפעיל ביצע את פסיקת-מייקל ב-15:43:59-15:44:59 — **בדיוק בדקה שבה הריסטארט שלי רץ.**
+ה-LaunchAgent עושה `source .env` פעם אחת בעלייה; הוא קרא את הקובץ ב-15:44:03-04, והקובץ
+הפך ל-`=1` ב-15:44:06. ⇒ המסמכים, `RULED_FLAGS.yaml` ולוח-המשימות אמרו **"העץ מחליט חי"**,
+והתהליך שסוחר היה על **`shadow`**. זו בדיוק מחלקת-הכישלון ש-`contract_size.py` מזהיר ממנה
+במילים שלה — *"trade the old size and report the new one"* — רק על מנגנון-ההחלטה כולו.
+
+**מה שהוכשר לפני הריסטארט השני (Rule 5, לא טענה):**
+
+```raw
+$ set -a && source .env && set +a; python3 -m pytest tests/v9/regression/test_decision_tree_v3.py -q
+  13 passed, 2 warnings in 4.09s        ⇐ רץ עכשיו על HEAD=6f671add, לא ציטוט מקומיט
+$ python3 scripts/flag_guard.py | tail -1
+  FLAG-GUARD: PASS — all 266 ruled flags match.   (ואחרי: 267 — הרשומה החדשה)
+$ python3 -c "...json sierra_state.json..."
+  position_qty = 0 | avail = 437.04 | under_margin = 0
+```
+
+⚠️ **מה שבמפורש אינו נטען:** הריצה הזו **לא** פסקה ולא הדליקה כלום. `DECISION_TREE_V3=1`
+נכתב ב-`.env` ע"י הסוכן-הפעיל לפי פסיקת-מייקל בכתב (`"כן"` 25.09 14:11:49Z `[56436c0f]`,
+[[T-484]], רשומה ב-`RULED_FLAGS.yaml` עם `ruled_by: Michael` + `measured:`). לפי CLAUDE.md
+§ *"Rulings are one-time and standing"* — קוד שמממש פסיקה קיימת: בנייה → אימות → **הפעלה
+בלי אישור שני**. הריסטארט השני רק **טוען** את מה שכבר נפסק ונבדק. אפס דגל נערך בריצה הזו.
+
+```raw
+# הריסטארט השני
+$ date; launchctl kickstart -k gui/501/com.mems26.backend
+  RESTART-2 issued 16:00:18   pre: pid=87958 mode=shadow HEAD=6f671add pos=0
+  [boot] logging OK ... pid=89528 commit=6f671add      ← 16:00:21
+  health http=200 t=0.036s   errors since boot: 0
+$ curl /api/v9/tree/state  →  mode = on               ⇐ העץ מחליט חי
+```
+
+### 🟢 שער-היום — GO (fire_drill אחרי הריסטארט השני)
+
+```raw
+$ python3 scripts/fire_drill.py
+  ✓ flag_guard · ✓ yaml_valid — RULED_FLAGS.yaml: 267 ruled flags
+  ✓ effective_contracts == 1 (לפי דגלי הפסיקה) — got 1
+  ✓ guard_tests — GUARDS GREEN (170 passed, 1 skipped)
+  ✓ wire_guard — 56 call sites / 11 guarded signatures
+  ✓ task_log_guard — 462 items, last committed 0.0 days ago
+  ✓ backend health · ✓ T-61 INFO זורם · ✓ feed טרי age=418ms
+  ✓ נתוני-ברים חיים — last bar 2026-09-25 16:00:00+03:00 · age 1 min · market OPEN
+  ✓ live_slot פנוי — slot=None · ✓ live_enabled == [2,4] · ✓ day_type קיים
+  🟢 GO — כל שרשרת ההחלטה כשרה לירי.        EXIT=0
+$ bash scripts/post_restart_verify.sh ; echo EXIT=$?
+  ✅ bridge streaming (39 heartbeat lines) · ✅ decisions endpoint HTTP 200
+  🟢 GREEN — liveness verified, OK to trade.    EXIT=0
+```
+
+**T-430 — "קובץ טרי" ≠ "פיד חי", נבדק מול ה-DB ולא מול הקבצים:**
+
+```raw
+$ select max(ts), now(), age_min from v9_bars_5min_woodies
+  2026-09-25 15:35:00+03 | 2026-09-25 15:39:55+03 | 4.9      ← בתחילת הריצה
+  ובשער: last bar 2026-09-25 16:00:00+03 · age 1 min
+$ select count(*) from v9_bars_5min_woodies where ts::date = current_date
+  176      ⇒ ברי-Globex של היום זורמים. הפיד חי.
+```
+
+**הגודל הפסוק — נמדד, ולא הונח (וגם: נוסח-המשימה שקרי):**
+
+```raw
+$ python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+  None                     ⇐ המלכודת: הפקודה החשופה לא טוענת .env
+$ (עם .env נטען, כמו ה-LaunchAgent)
+  ruled_contracts() = 1
+$ grep -nE '^FIXED_CONTRACTS_(1|2)' .env
+  266:FIXED_CONTRACTS_1=1
+  267:FIXED_CONTRACTS_2=0
+```
+
+⇒ **הגודל הפסוק הוא 1, לא 2.** `contract_size.py` בודק `FIXED_CONTRACTS_1` **ראשון** בכוונה,
+עם הפסיקה בהערה: מייקל 18.09 12:05 *"היום לעבוד על חוזה 1"* — פסיקה מאוחרת מ-16.09 ולכן
+גוברת. נוסח-המשימה-המתוזמנת עדיין אומר *"מ-16.09: 2, FIXED_CONTRACTS_2=1"* — **מיושן**;
+`fire_drill` שלב C מאשר `effective_contracts == 1`. **אפס דגל-גודל נגע** (פסיקת 31.08, T-225).
+ומדידת-המרג'ין מסבירה למה זה גם הגודל היחיד שאפשרי: `avail 437.04$` מחזיק חוזה אחד בלבד.
+
+**T-34 מרג'ין — דיווח בלבד, אינו חוסם:**
+
+```raw
+$ sierra_state.json (mtime 15:53:46)
+  acct_available_funds = 437.04 | acct_margin_req = 0.0 | acct_under_margin = 0 | position_qty = 0
+```
+
+`437.04$ < 1,595$` ⇒ שורה כאן. **אינו חוסם מסחר**: הגודל הפסוק הוא חוזה אחד, והפנוי מכסה
+אותו (באפר ~50$). ⇒ **לא** מקרה (ג) בטלפון.
+
+### 📋 סיכום-אתמול (24.09) — למי שמרים את זה קר
+
+**P&L:**
+
+```raw
+$ select mode, count(*), sum(pnl_usd), sum(pnl_sierra) from v9_trades where entry_ts::date='2026-09-24' group by mode
+  live   |  1 |   -37.50 | -38.75        ⇐ אמת-הברוקר −38.75$ (עמלה מעל ה-pnl המחושב)
+  shadow | 78 | -1448.15 |               ⇐ אין רישום-ברוקר לצל (מעצם הגדרתו)
+$ העסקה היחידה:
+  #2340 live SHORT · entry 20:35:07 @ · STOP_HIT 21:25:19 · −0.97R · pnl_sierra −38.75
+```
+
+**ליגר (`gateway_decisions.jsonl`, 179 שורות · 78 מהן 24.09 · json-bad 0):**
+
+```raw
+  GATE_DECISION  65
+  ROUTED         13
+  חוסמים מובילים:  17 phase=D cond=default bias=NONE
+                     5 phase=A cond=default bias=NONE
+                     5 counter-bias entry_kind=BREAK not in [EDGE_FADE…]
+                     3 T1_dist=1.75 < stop_dist=5.00 × min=0.65 (R:R)
+                     3 bias=SHORT rejects LONG · 3+2 zone above_value/near_val
+                     2 beyond_value ex=0.34 > 0.25
+```
+
+**ציון-המודעות (T-159, דיווח-בלבד) — 3/4 צירים ≥80%, אחד 🔴:**
+
+```raw
+  יום       65/78   83.3%  ✅
+  רמות      78/78  100.0%  ✅
+  מועמדים   15/16   93.8%  ✅
+  החלטות    61/78   78.2%  🔴   ← מתחת ל-80%
+  נגיעות-VA בלי DETECTED: 11:00 (VAL)
+```
+
+**צל-S1DayDir:** חי וכותב (88,205 שורות בלוג), אבל התוכן הוא
+`accepted_break=none | s1_state=none→none | agree=n/a (live returns legacy None → LSMA fallback)`
+— כלומר הצל רץ ואינו מודד דבר כל עוד S1 מחזיר None. **EntryGuard** (`PRE_SEND_ENTRY_GUARD_V1`):
+אינו ב-`.env` ⇒ ברירת-מחדל-בקוד ON, מאומת ע"י flag_guard; 0 הופעות בלוג אתמול = לא נדרש לחסום.
+**דוחות-cc:** `GATE_SCORECARD_2026-09-25.md`, `ORACLE_VS_ENGINE_2026-09-25.md`,
+`CC_ORDER_2026-09-25_FOOTPRINT_FEED.md` + 9 פוסט-מורטמים עודכנו ב-24 השעות.
+
+### ⚠️ machine_health — WARN בלבד (ל-LIVE_CHANNEL, לא לטלפון)
+
+```raw
+  load 1/5/15: 6.97/8.71/8.60 (cores 8)      WARN: load 6.97 > 6.0
+  mem: 16G used · unused 159M                WARN: unused RAM 159M < 400M
+  swap: used 8,658M / 10,240M · free 1,581M  WARN: swap used > 500M
+  trading stack: backend 125MB/27.9% · bridge 27MB/27.7% · sierra 175MB · pg 372MB
+  non-trading: chrome 3,831 + cowork-vm 3,070 + claude-app 2,088 + claude-agents 709 ≈ 9.7GB
+```
+
+הסטאק-הסוחר עצמו רזה (125MB); הלחץ כולו מהצרכנים שאינם-סוחרים. שני הריסטארטים החזירו
+זיכרון. **לא** חוסם — אבל זה אותו קו של 16.09 (80% CPU) ושל ריצה 5 היום (916M swap פנוי).
+
+### 🧹 נקיון-קדם-פתיחה
+
+```raw
+$ python3 scripts/close_stale_shadow.py
+  no stale shadow trades — nothing to do      ⇒ אין צורך ב---apply
+```
+
+### 🟡 פער שנשאר פתוח (לא נסגר בריצה הזו, נרשם כצעד-הבא)
+
+**`v9_trades` מחזירה 10 שורות `exit_ts IS NULL` שכולן `state=CLOSED` מ-17.09.** הן אינן
+פוזיציות פתוחות (`position_qty=0` בברוקר, `trades/active=null`, `live_slot=None`) — אבל כל
+שאילתה תמימה של "מה פתוח" תספור אותן. `close_stale_shadow.py` לא רואה אותן כי הוא מסנן
+לפי יום-אתמול. נרשם ב-[[T-485]].
+
+**חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון.** ההודעה האחרונה של מייקל
+(`[5a2d433f]` 12:07:30Z) נענתה ע"י ריצה 11 ב-12:17:53Z; ה-peek החי (`GET /chat`, n=30)
+ותהליך ה-JSONL זהים ואין אחריה הודעת-מייקל. הודעת-הטלפון היחידה בריצה הזו היא שער-GO (מקרה ד).
+
+---
+
 ## ☎️ [cowork-dev · 2026-09-25 15:06-15:20 IL] — **ריצה 11 · חובה-1: השאלה "למה העץ שלי כבוי? ממתי?" נענתה במספרים — העץ **נולד היום** ולא כובה, ואף יום לא אבד (זהות מוכחת, אומתה בריצה הזו)**
 
 `15:06` ⇒ **לא** שער (15:30-16:10) · **לא** RTH (נפתח 16:30) · **לא** תור-לילה ⇒ **חובה-1 בלבד**. אפס ריסטארט · אפס דגלים · אפס `.env` · אפס פוזיציות · אפס קוד-ייצור · אפס הרנס.
