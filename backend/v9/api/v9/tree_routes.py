@@ -75,10 +75,20 @@ def _context(request) -> Dict[str, Any]:
         else:
             from backend.v9.gateway.trading_gateway import _resolve_live_cls
             cls = _resolve_live_cls() or {}
-            if isinstance(cls, dict) and cls.get("opening_type"):
+            if isinstance(cls, dict) and cls.get("opening_type") and str(cls.get("opening_type")) not in ("UNKNOWN", "NA", "None", ""):
                 ot = str(cls.get("opening_type") or "UNKNOWN"); ot_src = "live"
                 d = cls.get("open_dir") or cls.get("dir_bias")
                 hint = "LONG" if d in ("UP", "LONG") else "SHORT" if d in ("DOWN", "SHORT") else None
+            else:
+                # the gateway's Source 2: the v2 detector on the machine's opening-gate bars (bar 3+)
+                ogb = list(getattr(dtm, "_opening_gate_bars", None) or []) if dtm is not None else []
+                if len(ogb) >= 3:
+                    from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type
+                    r = detect_opening_type([{"o": b.get("o", 0), "h": b.get("h", 0), "l": b.get("l", 0), "c": b.get("c", 0), "v": b.get("v", 0)} for b in ogb[:6]], ogb[0].get("o", 0)) or {}
+                    if r.get("opening_type"):
+                        ot = str(r.get("opening_type") or "UNKNOWN"); ot_src = "v2"
+                        d = r.get("direction")
+                        hint = "LONG" if d in ("UP", "LONG") else "SHORT" if d in ("DOWN", "SHORT") else None
         if ot == "OPEN_REJECTION_REVERSE" and hint:
             hint = "SHORT" if hint == "LONG" else "LONG"      # the gateway's ORR sign fix (drive direction)
     except Exception:

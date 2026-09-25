@@ -73,29 +73,54 @@ def is_shadow() -> bool:
     return os.getenv("DECISION_TREE_V3", "0").strip().lower() == "shadow"
 
 
+_CACHE_MTIME: float = 0.0
+
+
 def load_tree(path: Optional[str] = None) -> Dict[str, Any]:
-    """The tree from config/decision_tree_v3.yaml; DECISION_TREE_V3_PATH (replay variants) overrides the file."""
-    global _CACHE
-    if _CACHE is not None and path is None:
-        return _CACHE
+    """The tree from config/decision_tree_v3.yaml; DECISION_TREE_V3_PATH (replay variants) overrides the file.
+
+    Hot-reload (Michael 25.09 17:08 "לתקן מייד"): the cached tree is re-read when the file's mtime changes, so
+    a branch fix applies on the next candidate without a restart. A file that fails to parse keeps the last
+    good tree and logs loudly — a typo can never turn the tree off or into a SKIP-everything."""
+    global _CACHE, _CACHE_MTIME
     if path is None and os.getenv("DECISION_TREE_V3_PATH"):
         path = os.getenv("DECISION_TREE_V3_PATH")
         _use_cache = True
     else:
         _use_cache = path is None
-    with open(Path(path) if path else _PATH, encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
-    root = data.get("root") if isinstance(data, dict) else None
-    if not isinstance(root, dict):
-        raise ValueError("decision_tree_v3.yaml: missing 'root' node")
+    fpath = Path(path) if path else _PATH
+    if _use_cache and _CACHE is not None:
+        try:
+            if fpath.stat().st_mtime == _CACHE_MTIME:
+                return _CACHE
+        except OSError:
+            return _CACHE
+    try:
+        with open(fpath, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        root = data.get("root") if isinstance(data, dict) else None
+        if not isinstance(root, dict):
+            raise ValueError("decision_tree_v3.yaml: missing 'root' node")
+    except Exception as e:
+        if _use_cache and _CACHE is not None:
+            logger.error("[decision_tree] %s failed to load (%s) — keeping the last good tree", fpath.name, e)
+            return _CACHE
+        raise
     if _use_cache:
+        if _CACHE is not None:
+            logger.warning("[decision_tree] %s reloaded (file changed) — %d leaves", fpath.name, len(leaves(root)))
         _CACHE = root
+        try:
+            _CACHE_MTIME = fpath.stat().st_mtime
+        except OSError:
+            _CACHE_MTIME = 0.0
     return root
 
 
 def invalidate_cache() -> None:
-    global _CACHE
+    global _CACHE, _CACHE_MTIME
     _CACHE = None
+    _CACHE_MTIME = 0.0
 
 
 def _match(key: str, value: Any) -> bool:

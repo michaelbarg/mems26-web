@@ -30,6 +30,7 @@ entry_kind_map:
   DALTON_EDGE_LONG: REVERSAL
   DALTON_EDGE_SHORT: REVERSAL
   CEILING_FLIP: REVERSAL
+  CEILING_FLIP_TOUCH2: EDGE_FADE   # T-480 (25.09 17:00): the 2nd touch of a ceiling/floor at the value edge is the edge fade itself — it fell to the BREAK default and phase B refused it by kind (17:00 @7787.5 at VAH, +58.75 in shadow)
   CEILING_FLIP_LONG: REVERSAL
   CEILING_FLIP_SHORT: REVERSAL
   OPENING_EXTREME_REJECT: REVERSAL

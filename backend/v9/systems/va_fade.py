@@ -30,6 +30,13 @@ VA_MIN_IB_WIDTH_PTS = 12.0
 VA_STOP_OFFSET_PTS = 1.5
 # Stop cap
 VA_STOP_CAP_PTS = 12.0
+# T-481 (Michael 25.09 13:14 "המהלך מגיע כשהוא כבר נגמר" · 17:08 "המחיר בקצה הערך ולא ירתה"): the entry
+# is the bar CLOSE — on 25.09 17:00 the VAH probe (7788.5) closed 22 pts lower and the "fade" became a
+# SHORT at 7766 = the bottom of value. A responsive edge trade is taken AT the edge or not at all:
+# the close must sit within VA_MAX_CHASE_PTS of the edge it rejected. And a rejection may close a hair
+# beyond the edge (17:05: VAL 7767.5, close 7766.25 — the LONG never triggered by 1.25 pts).
+VA_MAX_CHASE_PTS = 4.0
+VA_EDGE_CLOSE_SLACK_PTS = 2.0
 # Variation + Trend days: eligible subtypes
 VA_FADE_DAY_TYPES = frozenset({
     "Variation", "Normal_Variation", "Normal",
@@ -101,7 +108,8 @@ def detect_va_fade(
     if ("VA_FADE_HIGH" not in fired
             and lh >= vah - _ez
             and close_pos <= _cp
-            and lc < vah):
+            and lc < vah + VA_EDGE_CLOSE_SLACK_PTS
+            and vah - lc <= VA_MAX_CHASE_PTS):
         stop = min(lh + _so, lc + VA_STOP_CAP_PTS)
         return {
             "type": "VA_FADE_HIGH",
@@ -119,7 +127,8 @@ def detect_va_fade(
     if ("VA_FADE_LOW" not in fired
             and ll <= val + _ez
             and close_pos >= (1.0 - _cp)
-            and lc > val):
+            and lc > val - VA_EDGE_CLOSE_SLACK_PTS
+            and lc - val <= VA_MAX_CHASE_PTS):
         stop = max(ll - _so, lc - VA_STOP_CAP_PTS)
         return {
             "type": "VA_FADE_LOW",
