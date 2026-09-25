@@ -331,14 +331,21 @@ flags:
     category: s3
     what: "S3 footprint thresholds relative/ATR-scaled."
     why: "SHADOW calibration (Michael 31/5). (S3 itself is disabled — see FOOTPRINT_DISABLED.)"
+  S2_READ_FOOTPRINT_V1:
+    category: cascade_gate
+    group: five_min
+    what: "T-478 (25.09): gate on FiveMinSystem._footprint_state() — S2's belly / COT / AMT reads from the Footprint System (P31-02b injection). 0 (default) = returns {} so S2 sees no footprint state at all, exactly as it has traded since June; 1 = S2 reads the live footprint state and its Reactive/Initiative conditions gain the belly vetoes (b3_belly, belly_ratio_ok) and, with S2_REQUIRE_COT_AMT, the COT>AMT filter."
+    why: "Michael 25.09 17:00: 'האם חיברת את מערכת 3 לשדואו כי צריך לדייק אותה' — S3 returns in SHADOW on real footprint bars (root cause of the dead feed: vap_recompute.py tailed the JUNE contract's SCID file after the roll; fixed to the live contract by mtime). Bringing the data back must not change S2's live behaviour unmeasured: with data present the belly conditions VETO fires that pass today on None. Replay day-total on 15-20 sessions of real footprint bars decides; then a ruling."
+    status: disabled
+    ref: "T-478 · tests/v9/regression/test_t478_s3_shadow_isolation.py · docs/handoff/cc_orders/CC_ORDER_2026-09-25_FOOTPRINT_FEED.md"
   S3_MUTE:
     category: s3
     what: "Mute S3 fires (footprint signals computed but not routed)."
-    why: "S3 muted pre-LIVE (I-11)."
+    why: "S3 muted pre-LIVE (I-11). T-478 (Michael 25.09 17:00 'לחבר את מערכת 3 לשדואו'): set to 0 — S3 fires again into the gateway, which routes system 3 shadow-only (never registered live/demo); the dead feed's root cause (SCID path on the June contract) fixed the same day; S2 isolated by S2_READ_FOOTPRINT_V1=0."
   FOOTPRINT_DISABLED:
     category: s3
     what: "Fully disable S3 footprint processing AND writing (process_bar returns immediately) — not just fires."
-    why: "Michael 2026-06-08: take S3 down until after LIVE; it has not ingested a bar all session (I-11)."
+    why: "Michael 2026-06-08: take S3 down until after LIVE; it has not ingested a bar all session (I-11). T-478 (Michael 25.09 17:00): back to 0 — the FootprintSystem processes real footprint bars (bridge SCID path fixed to the live contract); S3 shadow-only, S2 isolated (S2_READ_FOOTPRINT_V1=0)."
     standing_decision: true
     ref: "CLAUDE.md §S3 Footprint"
 

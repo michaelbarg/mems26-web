@@ -165,6 +165,25 @@ class FootprintBar:
         }
 
 
+def resolve_mes_scid_path() -> str:
+    """The SCID tick file of the LIVE MES contract: MES_SCID_PATH env, else the newest-modified
+    ~/SierraChart/Data/MES*_FUT_CME.scid (Sierra writes only the front contract), else the legacy default."""
+    env = (os.getenv("MES_SCID_PATH") or "").strip()
+    if env:
+        return os.path.expanduser(env)
+    data_dir = os.path.expanduser("~/SierraChart/Data")
+    try:
+        cands = [os.path.join(data_dir, f) for f in os.listdir(data_dir)
+                 if f.upper().startswith("MES") and f.upper().endswith("_FUT_CME.SCID")]
+        if cands:
+            newest = max(cands, key=os.path.getmtime)
+            logger.info("[vap] MES SCID resolved by mtime: %s (%d candidates)", os.path.basename(newest), len(cands))
+            return newest
+    except Exception as e:
+        logger.warning("[vap] MES SCID resolve failed (%s) — falling back to the legacy default", e)
+    return os.path.join(data_dir, "MESM26_FUT_CME.scid")
+
+
 # ── SCID Reader ───────────────────────────────────────────────
 
 def scid_ts_to_unix(scid_us: int) -> float:
@@ -199,9 +218,13 @@ class VAPRecomputer:
     """
 
     def __init__(self, scid_path: Optional[str] = None):
-        self.scid_path = scid_path or os.path.expanduser(
-            "~/SierraChart/Data/MESM26_FUT_CME.scid"
-        )
+        # T-478 (25.09, ROOT of "footprint feed dead since mid-June"): the path was hard-coded to the
+        # JUNE contract (MESM26). The contract rolled to MESU26 and then MESZ26 — the recomputer kept
+        # tailing a file nobody writes to, so poll_scid() returned 0 new ticks forever and S3 starved.
+        # Now: MES_SCID_PATH env if set, else the most recently MODIFIED ~/SierraChart/Data/MES*_FUT_CME.scid
+        # (the live contract is the one Sierra writes to), else the old default. Re-resolved on every
+        # (re)start; a roll mid-run still needs a bridge restart (logged loudly when the file goes quiet).
+        self.scid_path = scid_path or resolve_mes_scid_path()
         self.bars: deque = deque(maxlen=MAX_BARS)
         self._current_bar: Optional[FootprintBar] = None
         self._current_bar_end_ts: float = 0

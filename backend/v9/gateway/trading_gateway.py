@@ -1450,17 +1450,41 @@ class TradingGateway:
                                 and _t3_hint in ("LONG", "SHORT")):
                             _t3_hint = "SHORT" if _t3_hint == "LONG" else "LONG"
                         _t3_phase = _dp_phase_now or "D"
+                        # the day profile as features (Michael 25.09 17:00): yesterday's value area — one DB
+                        # read per day, cached on the gateway — the POC side and the value migration
+                        _t3_prior_zone, _t3_pocside, _t3_migr = "unknown", "unknown", "unknown"
+                        try:
+                            _t3_day = _dp_il.date().isoformat()
+                            _pv = getattr(self, "_t3_prev_va", None)
+                            if not isinstance(_pv, dict) or _pv.get("day") != _t3_day:
+                                from backend.v9.api.v9.tpo_routes import _load_previous_cash_session as _t3_prev
+                                _row = _t3_prev() or {}
+                                _pv = {"day": _t3_day, "vah": float(_row.get("vah") or 0), "val": float(_row.get("val") or 0),
+                                       "poc": float(_row.get("poc") or 0)}
+                                self._t3_prev_va = _pv
+                            _t3_ep = float(setup.get("entry_price") or 0)
+                            if _pv["vah"] > 0 and _pv["val"] > 0 and _t3_ep > 0:
+                                from backend.v9.systems.location_gate import zone_of as _t3_zone_of2, _tol as _t3_tol2
+                                _t3_prior_zone = _t3_zone_of2(_t3_ep, _pv["vah"], _pv["val"], _t3_ibw)
+                                _t3_migr = _dt3.value_migration(_t3_vah, _t3_val, _pv["vah"], _pv["val"])
+                            _t3_pocv = float(_t3_tpo.get("poc") or 0)
+                            if _t3_pocv > 0 and _t3_ep > 0:
+                                from backend.v9.systems.location_gate import _tol as _t3_tol3
+                                _t3_pocside = _dt3.poc_side(_t3_ep, _t3_pocv, 0.5 * _t3_tol3(_t3_ibw))
+                        except Exception as _t3_pe:
+                            logger.info("[Gateway] TREE_V3 profile features unavailable: %s", _t3_pe)
                         _t3_vec = _dt3.features_of_setup(
                             setup, opening_type=_dp_ot, phase=_t3_phase, day_type=_dp_dt,
                             structure=_dt3.structure_of(_t3_ibh, _t3_ibl, _t3_sh, _t3_sl, _t3_phase),
                             dir_hint=_t3_hint, zone=_t3_zone, kind=_dp_ek(_dp_classification),
-                            atr=None, hour=_dp_il.hour)
+                            atr=None, hour=_dp_il.hour, prior_zone=_t3_prior_zone, poc_side_=_t3_pocside, migration=_t3_migr)
                         _t3_vec["edge"] = _t3_edge
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
                         _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
                         result["tree_v3"] = {"leaf": _t3_action, "id": _tree_leaf.get("id"),
-                                             "path": _t3_path_s, "mode": "shadow" if _dt3.is_shadow() else "on"}
+                                             "path": _t3_path_s, "mode": "shadow" if _dt3.is_shadow() else "on",
+                                             "vec": {k: v for k, v in _t3_vec.items() if k in _dt3.FEATURES}}
                         if not _dt3.is_shadow():
                             _tree_used = True
                             if _t3_action == "SKIP":

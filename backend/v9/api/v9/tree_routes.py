@@ -112,6 +112,21 @@ def _context(request) -> Dict[str, Any]:
             zone = zone_of(price, vah, val, (ibh - ibl) if (ibh > 0 and ibl > 0) else None)
     except Exception:
         pass
+    # the day profile: yesterday's value (the location reference before today's VA forms), POC side, migration
+    prior_zone, migr, pside, prev = "unknown", "unknown", "unknown", {}
+    try:
+        from backend.v9.api.v9.tpo_routes import _load_previous_cash_session
+        prev = _load_previous_cash_session() or {}
+        pvah, pval = float(prev.get("vah") or 0), float(prev.get("val") or 0)
+        from backend.v9.systems.location_gate import zone_of as _zo, _tol as _tl
+        ibw = (ibh - ibl) if (ibh > 0 and ibl > 0) else None
+        if price and pvah > 0 and pval > 0:
+            prior_zone = _zo(price, pvah, pval, ibw)
+            migr = dt3.value_migration(vah, val, pvah, pval)
+        if price and poc > 0:
+            pside = dt3.poc_side(price, poc, 0.5 * _tl(ibw))
+    except Exception:
+        pass
     # the tree's own ORR convention: rel_bias vs the REVERSAL direction in phases A/B
     tree_hint = hint
     if ot == "OPEN_REJECTION_REVERSE" and phase in ("A", "B") and hint in ("LONG", "SHORT"):
@@ -121,6 +136,8 @@ def _context(request) -> Dict[str, Any]:
         "hint": hint, "tree_hint": tree_hint, "structure": structure, "price": price, "zone": zone,
         "ib": [ibl or None, ibh or None], "session": [sl or None, sh or None], "va": [val or None, vah or None], "poc": poc or None,
         "ext_up": round(ext_up, 2), "ext_dn": round(ext_dn, 2),
+        "prior_zone": prior_zone, "value_migration": migr, "poc_side": pside,
+        "prev_va": [float(prev.get("val") or 0) or None, float(prev.get("vah") or 0) or None, float(prev.get("poc") or 0) or None],
     }
 
 
@@ -154,7 +171,8 @@ def build_state(app, *, recent_n: int = 20) -> Dict[str, Any]:
         for kind in KINDS:
             vec = {"opening_type": ctx["opening_type"], "phase": ctx["phase"], "day_type": ctx["day_type"],
                    "structure": ctx["structure"], "pattern": "?", "kind": kind, "direction": direction, "rel_bias": rel,
-                   "zone": ctx["zone"], "edge": "none"}
+                   "zone": ctx["zone"], "prior_zone": ctx.get("prior_zone"), "poc_side": ctx.get("poc_side"),
+                   "value_migration": ctx.get("value_migration"), "edge": "none"}
             leaf, path = dt3.walk(tree, vec)
             plan[direction][kind] = {"leaf": leaf.get("leaf"), "id": leaf.get("id"), "note": leaf.get("note"),
                                      "path": "/".join(f"{f}={v}" for f, v in path)}
@@ -176,7 +194,8 @@ def build_state(app, *, recent_n: int = 20) -> Dict[str, Any]:
     out["where_he"] = (f"{OT_HEB.get(c['opening_type'], c['opening_type'])} · שלב {c['phase']} · {DT_HEB.get(c['day_type'], c['day_type'])}"
                        + (f" · {STRUCT_HEB.get(c['structure'], c['structure'])}" if c["phase"] in ("C", "D") else "")
                        + (f" · הטיה {('לונג' if c['hint'] == 'LONG' else 'שורט')}" if c["hint"] else " · בלי הטיה")
-                       + (f" · המחיר {ZONE_HEB.get(c['zone'], c['zone'])}" if c["zone"] != "unknown" else ""))
+                       + (f" · המחיר {ZONE_HEB.get(c['zone'], c['zone'])}" if c["zone"] != "unknown" else (f" · מול הערך של אתמול: {ZONE_HEB.get(c.get('prior_zone'), c.get('prior_zone'))}" if c.get("prior_zone") not in (None, "unknown") else ""))
+                       + ({"higher": " · ערך נודד למעלה", "lower": " · ערך נודד למטה", "overlap_high": " · ערך חופף-גבוה", "overlap_low": " · ערך חופף-נמוך", "inside": " · ערך בתוך של אתמול", "outside": " · ערך רחב מאתמול"}.get(c.get("value_migration"), "")))
     # recent walks from the gateway's decision feed
     recent: List[Dict[str, Any]] = []
     try:

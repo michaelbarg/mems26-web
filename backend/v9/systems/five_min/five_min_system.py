@@ -644,6 +644,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         Tests inject a mock. The HTTP fallback preserves backward compatibility
         for instances created without the wire-up — slow but functional.
         """
+        # T-478 (Michael 25.09 17:00 "לחבר את מערכת 3 לשדואו כי צריך לדייק אותה"): S3 comes back in SHADOW on
+        # real footprint bars (the SCID path fix). S2 must NOT start reading belly / COT / AMT from it until
+        # that is measured on replay — with data present b3_belly and belly_ratio_ok VETO Reactive/Initiative
+        # fires, while None passes today. Default 0 ⇒ S2 sees exactly what it sees now (nothing).
+        # S2_READ_FOOTPRINT_V1=1 is a trading-risk-surface change: replay day-total first (LEARNING_DOCTRINE).
+        import os as _fp_os
+        if _fp_os.getenv("S2_READ_FOOTPRINT_V1", "0").strip().lower() not in ("1", "true", "yes"):
+            return {}
         if self._footprint_system is not None:
             try:
                 state = self._footprint_system.get_current()

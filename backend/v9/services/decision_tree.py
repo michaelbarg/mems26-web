@@ -29,7 +29,40 @@ logger = logging.getLogger(__name__)
 _PATH = Path(__file__).resolve().parent.parent.parent.parent / "config" / "decision_tree_v3.yaml"
 _CACHE: Optional[Dict[str, Any]] = None
 FEATURES = ("opening_type", "phase", "day_type", "structure", "pattern", "kind", "direction", "rel_bias",
-            "zone", "edge", "test", "volume", "delta", "R_atr", "hour", "system")
+            "zone", "prior_zone", "poc_side", "value_migration", "edge", "test", "volume", "delta", "R_atr", "hour", "system")
+
+
+def value_migration(vah: float, val: float, prev_vah: float, prev_val: float) -> str:
+    """Today's developing value vs yesterday's (Dalton): higher · lower · overlap_high · overlap_low · inside ·
+    outside · unknown. The read that says whether the market is accepting new prices or rotating in old value."""
+    try:
+        vah, val, pvah, pval = float(vah or 0), float(val or 0), float(prev_vah or 0), float(prev_val or 0)
+    except (TypeError, ValueError):
+        return "unknown"
+    if not (vah > val > 0 and pvah > pval > 0):
+        return "unknown"
+    if val >= pvah:
+        return "higher"
+    if vah <= pval:
+        return "lower"
+    if vah > pvah and val >= pval:
+        return "overlap_high"
+    if val < pval and vah <= pvah:
+        return "overlap_low"
+    if vah <= pvah and val >= pval:
+        return "inside"
+    return "outside"
+
+
+def poc_side(price: float, poc: float, tol: float) -> str:
+    """Where the entry sits vs the day's point of control: above · at · below · unknown."""
+    try:
+        price, poc = float(price or 0), float(poc or 0)
+    except (TypeError, ValueError):
+        return "unknown"
+    if price <= 0 or poc <= 0:
+        return "unknown"
+    return "above" if price > poc + tol else "below" if price < poc - tol else "at"
 
 
 def enabled() -> bool:
@@ -126,7 +159,8 @@ def structure_of(ib_high: Any, ib_low: Any, session_high: Any, session_low: Any,
 
 
 def features_of_setup(setup: Dict[str, Any], *, opening_type: str, phase: str, day_type: str, structure: str,
-                      dir_hint: Optional[str], zone: Optional[str], kind: str, atr: Optional[float], hour: Optional[int]) -> Dict[str, Any]:
+                      dir_hint: Optional[str], zone: Optional[str], kind: str, atr: Optional[float], hour: Optional[int],
+                      prior_zone: Optional[str] = None, poc_side_: Optional[str] = None, migration: Optional[str] = None) -> Dict[str, Any]:
     """The situation vector the tree walks, from what the gateway already knows about a setup."""
     direction = (setup.get("direction") or "").upper()
     meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
@@ -140,6 +174,10 @@ def features_of_setup(setup: Dict[str, Any], *, opening_type: str, phase: str, d
         "opening_type": (opening_type or "UNKNOWN").upper(), "phase": phase, "day_type": day_type or "FORMING",
         "structure": structure, "pattern": str(setup.get("classification") or setup.get("pattern") or "?").upper(),
         "kind": kind, "direction": direction, "rel_bias": rel, "zone": zone or "unknown",
+        # the day profile (T-480, Michael 25.09 17:00 "האם לעץ מחוברים גם פרופיל היום"): where the entry sits vs
+        # YESTERDAY's value (the only location reference before today's VA forms), vs today's POC, and how today's
+        # value is migrating against yesterday's — all splittable, none used by the seed (parity)
+        "prior_zone": prior_zone or "unknown", "poc_side": poc_side_ or "unknown", "value_migration": migration or "unknown",
         "edge": "ib" if meta.get("near_ib_edge") else ("value" if (zone or "").startswith("near_") else "none"),
         "test": "retest" if meta.get("pullback_before") else ("break" if meta.get("structure_break") else "none"),
         "volume": "high" if meta.get("vol_trig") else "normal", "delta": "with" if meta.get("delta_with") else "none",
