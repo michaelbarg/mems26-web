@@ -108,7 +108,14 @@ def main() -> int:
         rid = r.get("id") or ""
         if not rid or text in NOT_A_REQUEST or len(text) < 8:
             continue
-        if not any(m in text for m in MARKERS):
+        # T-482 (25.09): an attachment-only message from Michael carries no
+        # Hebrew request marker — its body is just "📎 IMG_4193.jpeg" — so the
+        # marker test skipped it and the guard reported undispositioned: 0 on a
+        # message nobody had answered. That is precisely the class this guard
+        # exists for: the docstring above cites T-208 / IMG_3375, a LOST IMAGE.
+        # A file Michael sends is a request in its own right, whatever the
+        # accompanying text says (it often arrives in a separate message).
+        if not any(m in text for m in MARKERS) and not r.get("att"):
             continue
         try:
             ts = datetime.fromisoformat(str(r["ts"]).replace("Z", "+00:00"))
