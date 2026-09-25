@@ -414,16 +414,19 @@ root:
             # auction — Dalton: the IB being extended one-sidedly in the first hour is the tell of a
             # potential trend day, and initiative (BREAK) activity is then WITH the developing structure.
             # Day-total replay, 58 sessions: Δ +101.25$ gross / +83$ net on 8 trades (6 wins) — positive
-            # but under-sampled (< 15) ⇒ SHADOW until the replay holds ≥ 15 trades, then TAKE if still ≥ 0.
+            # but under-sampled (< 15); was SHADOW. RULED TAKE by Michael 25.09 14:11:49Z "כן" [56436c0f]
+            # (T-484) — his explicit answer to "enable it live today despite 8 trades vs the 15 floor?";
+            # the ruling overrides the n≥15 rule written here. Standing until he revokes it.
             # (V3b = the same with a Variation label: Δ +86$ — the Variation part is negative ⇒ not added.)
             Trend_Normal|Trend_DD:
               split: kind
               branches:
                 BREAK:
-                  leaf: SHADOW
+                  leaf: TAKE
                   id: auction_B_trend_break
-                  note: "open-auction whose first hour already reads Trend — initiative BREAK with the developing structure (split V2, under-sampled ⇒ shadow)"
-                  measured: {n: 8, win: 75, usd: 101.25, usd_net: 83.05, sessions: 58, better: 5, worse: 2, source: "harness_out/t466/t3v2 vs t458 baseline", date: "2026-09-25", rule: "TAKE when n>=15 and usd>=0"}
+                  note: "open-auction whose first hour already reads Trend — initiative BREAK with the developing structure (split V2; ruled live by Michael 25.09 T-484)"
+                  ruling: "Michael 2026-09-25 14:11:49Z 'כן' [56436c0f] — T-484: live today despite n=8 < 15"
+                  measured: {n: 8, win: 75, usd: 101.25, usd_net: 83.05, sessions: 58, better: 5, worse: 2, source: "harness_out/t466/t3v2 vs t458 baseline", date: "2026-09-25", rule: "ruled TAKE (T-484); re-measure nightly, report if Σ turns negative"}
                 "*": *kinds_auction_B
             "*": *kinds_auction_B
         C: *phase_C

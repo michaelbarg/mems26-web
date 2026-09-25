@@ -60,16 +60,21 @@ def tree_verdict(tree, *, opening, phase, day_type, direction, hint, pattern, zo
     vec["edge"] = edge
     leaf, path = dt3.walk(tree, vec)
     act = str(leaf.get("leaf")).upper()
+    tree_verdict.last_leaf = leaf
     return ("SKIP:" + str(leaf.get("id"))) if act == "SKIP" else act, path
 
 
 LEGACY_IDS = ("stand_down", "bias", "kind", "location")
 
 
-def live_equivalent(exp, got):
+def live_equivalent(exp, got, leaf=None):
     """Parity of the LIVE path: a SHADOW leaf never fires live (it records only), so it is equivalent to
     the legacy refusal; a seed SKIP leaf must carry the legacy reason; a measured split may refine the
-    reason id (e.g. a SHADOW branch under a legacy `kind` cell)."""
+    reason id (e.g. a branch under a legacy `kind` cell). A TAKE where the legacy chain refused is allowed
+    ONLY on a leaf that carries an explicit `ruling:` (Michael's written word) AND `measured:` — a silent
+    divergence is a bug."""
+    if got == "TAKE" and exp != "TAKE":
+        return bool(leaf and leaf.get("ruling") and leaf.get("measured"))
     if exp == "TAKE" or got == "TAKE":
         return exp == got
     if got == "SHADOW":
@@ -130,7 +135,7 @@ class TestParityWithLegacyChain(unittest.TestCase):
             got, path = tree_verdict(self.tree, opening=opening, phase=phase, day_type=day_type,
                                      direction=direction, hint=hint, pattern=pattern, zone=zone, edge=edge)
             n += 1
-            if not live_equivalent(exp, got):
+            if not live_equivalent(exp, got, getattr(tree_verdict, "last_leaf", None)):
                 mismatches.append((opening, phase, day_type, direction, hint, pattern, zone, edge, exp, got, path))
         self.assertGreater(n, 20000)
         self.assertEqual(mismatches, [], f"{len(mismatches)} of {n} circumstances differ; first: {mismatches[:5]}")
@@ -140,6 +145,19 @@ class TestParityWithLegacyChain(unittest.TestCase):
         for lf in dt3.leaves(self.tree):
             if lf["leaf"] == "SHADOW":
                 self.assertTrue(lf.get("measured"), f"SHADOW leaf without measured: {lf.get('path')}")
+
+    def test_ruled_branches_carry_ruling_and_number(self):
+        """A branch that diverges from the legacy chain (T-484 auction_B_trend_break) carries Michael's ruling
+        quote and its day-total number — the tree never takes on its own."""
+        ruled = [lf for lf in dt3.leaves(self.tree) if lf.get("ruling")]
+        self.assertTrue(ruled)
+        for lf in ruled:
+            self.assertEqual(lf["leaf"], "TAKE")
+            self.assertIn("Michael", str(lf["ruling"]))
+            self.assertTrue(lf.get("measured") and lf["measured"].get("sessions"))
+        got, _ = tree_verdict(self.tree, opening="OPEN_AUCTION_IN", phase="B", day_type="Trend_Normal", direction="LONG",
+                              hint=None, pattern="INITIATIVE_LONG", zone="unknown", edge="none")
+        self.assertEqual(got, "TAKE")
 
     def test_23_09_opening_drive_short_is_taken(self):
         got, path = tree_verdict(self.tree, opening="OPEN_DRIVE", phase="B", day_type="", direction="SHORT",
