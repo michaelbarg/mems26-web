@@ -256,6 +256,17 @@ def evaluate_gate(setup: Dict[str, Any], it: Intent) -> Optional[Dict[str, str]]
         _env_policy = (os.getenv("DALTON_KINDS_APPLY_TO") or "").strip().lower()
         if _env_policy in ("none", "counter_bias_only", "all"):
             _kinds_policy = _env_policy
+        # T-477 replay knob: kinds advisory only in the listed phases (e.g. "B") — the 25.09 map of
+        # circumstances: OPEN_AUCTION_IN · phase B · no-hint n=300, 52%, +$4,018 independent while
+        # phase C/D with-hint candidates on the same days lose; the day-total harness decides.
+        _adv_phases = {x.strip().upper() for x in (os.getenv("DALTON_KINDS_ADVISORY_PHASES") or "").split(",") if x.strip()}
+        if _adv_phases:
+            _ph = None
+            for tok in str(it.reason or "").split():
+                if tok.startswith("phase="):
+                    _ph = tok[6:].strip(",;)").upper()
+            if _ph in _adv_phases:
+                _kinds_policy = "none"
         if _kinds_policy == "none":
             pass  # advisory — never blocks
         elif _kinds_policy == "counter_bias_only":
