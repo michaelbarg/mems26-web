@@ -1,3 +1,195 @@
+## 🟢 [cowork-dev · 2026-09-25 18:05-18:27 IL] — **ריצה 17 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: אפס-לייב אחרי פתיחת-T-310 הוא נכון ולא תקלה — 10 מועמדים מאז 17:47, **כולם** וטו-עץ; ומשפך-הלייב צר מ"העץ אמר TAKE"**
+
+`18:05` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס ריסטארט · אפס קוד נגע.
+
+### ⛔ בעלות-הריסטארט — נבדקה ראשונה
+
+```raw
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN
+Python  89528 michael   18u  IPv4 0x7e5e6b1d2f726660      0t0  TCP *:8000 (LISTEN)
+$ ps -o pid=,lstart=,%cpu=,rss= -p 89528
+89528 Fri Sep 25 16:00:19 2026      28.0 125008
+```
+
+⇒ המאזין עלה **היום אחרי 12:00** ⇒ הבעלים הוא cowork-האינטראקטיבי ⇒ **אפס ריסטארט, אפס GO/NO-GO** ([[T-369]]).
+אותו PID של ריצה 16 — אפס ריסטארט בין הריצות.
+
+### חובה-1 · הטלפון — אפס ממתינות ⇒ שקט מוחלט
+
+```raw
+$ curl -s ".../chat?key=…"   ⇒ remote n= 30
+last row:      2026-09-25T14:25:33Z | cowork-dev   (חריגת-המרג'ין)
+last Michael:  2026-09-25T12:07:30Z | "למה העץ שלי כבוי? ממתי? …"   ← נענתה 12:17:53Z
+$ tail -1 docs/handoff/PHONE_THREAD.jsonl ⇒ 2026-09-25T14:25:33Z cowork-dev
+```
+
+⇒ מרוחק וזנב-מקומי **זהים** (671 שורות) · אחרונת-מייקל נענתה עניינית לפני 6 שעות · **אפס הודעות-טלפון נשלחו בריצה הזאת.**
+
+### 🔑 הממצא · למה אפס-לייב אחרי 17:47 הוא **התנהגות נכונה**
+
+ריצה 16 סיימה ב-*"צפה לירייה חיה — השער פתוח"*. השער אכן נפתח, ולא נורתה ירייה. **זה לא פספוס** — וזה נמדד:
+
+```raw
+$ curl -s "localhost:8000/api/v9/gateway/decisions?limit=2000"
+returned: 26 | range: 13:30:03Z -> 15:20:03Z          (16:30–18:20 IL, כל הסשן)
+   17  tree:location        4  tree:kind        2  PASS        2  tree:stand_down        1  rr_entry_gate
+$ # החלטות מאז פתיחת-T-310 (14:47Z / 17:47 IL):
+n= 10 — 15:20×2 location · 15:16 location · 15:15×2 location · 15:10 location ·
+        14:55 rr_entry_gate · 14:50×3 location
+```
+
+⇒ **כל 10 המועמדים מאז שהשער נפתח נחסמו ע"י העץ עצמו**, לא ע"י תקלה ולא ע"י T-310. נימוק-העץ הגולמי:
+
+```raw
+tree_v3: {"leaf":"SKIP","id":"location",
+          "path":"opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)"}
+reason:  responsive day: LONG only near/below VAL, SHORT only near/above VAH (T-319b)
+$ # והמחיר באמת באמצע: TPO VA מסיירה POC=7773.50 VAH=7787.75 VAL=7767.50
+```
+
+המחיר יושב על ה-POC ⇒ העץ עומד בצד בשני הכיוונים. **ביום הראשון שהעץ מחליט חי, הוא בחר לא לסחור באמצע-הערך** — וזה בדיוק מה שהענף אומר.
+
+### ‼️ משפך-הלייב צר מ"העץ אמר TAKE" — תיקון-הנחה לריצות הבאות
+
+שלושה TAKE היום, ו**רק אחד מהם היה כשיר-לייב מראש**:
+
+```raw
+$ grep "TREE_V3" /tmp/backend.err.log | grep TAKE
+17:10:03  TREE_V3 DALTON_EDGE_LONG      LONG 7767.0  → TAKE [phase=B/…/zone=near_val]
+17:35:06  TREE_V3 CEILING_FLIP_TOUCH2   LONG 7768.0  → TAKE [phase=C/…/zone=near_val]
+17:55:03  TREE_V3 CEILING_FLIP_TOUCH2   LONG 7772.25 → TAKE [phase=C/…/zone=near_val]
+$ # ומה קרה לכל אחד, מפיד-ההחלטות:
+17:10 → live_blocked_by="pre_send_entry_guard"  ("1 working order(s) with foreign position -1")  ⇐ [[T-486]]
+17:35 → live_blocked_by=null · outcome="shadow_only"
+17:55 → blocked_by="rr_entry_gate"
+$ grep -c "shadow_only setup" /tmp/backend.err.log ⇒ 47   (17:35:06 CEILING_FLIP_TOUCH2 — recorded, not routed)
+$ grep -E "^(CEILING_FLIP_TOUCH2_V1|DALTON_EDGE_V1|ZLR_SHADOW_V1|VA_FADE_V1|RE_ACCEPTANCE_V1|TREND_STEP_ENTRY_V1|S2_DELTA_DBL_V1|FAILED_RE_IB_V1)=" .env
+CEILING_FLIP_TOUCH2_V1=shadow · DALTON_EDGE_V1=live · ZLR_SHADOW_V1=1 · VA_FADE_V1=shadow
+RE_ACCEPTANCE_V1=shadow · FAILED_RE_IB_V1=shadow · TREND_STEP_ENTRY_V1=shadow · S2_DELTA_DBL_V1=shadow
+```
+
+⇒ ה-`live_blocked_by=null` של 17:35 **אינו החסימה-הבלתי-נראית** שהערת-הקוד מזהירה עליה
+(`trading_gateway.py:5330`, מחלקת-הכשל של ביקורת-F2 19.08). הוא `metadata.shadow_only` מפסיקת-דפוס:
+`CEILING_FLIP_TOUCH2_V1=shadow` ⇒ הגייטוויי **רושם ולא מנתב**, ויוצא ב-`:5272` **לפני** ענף-הלייב — ולכן אין
+`live_blocked_by` כלל. `flag_guard PASS 270` ⇒ מצב פסוק ומכוון, לא דריפט. המכניזם מתועד (6 אזכורים
+ב-TASK_LOG · 23 ב-LIVE_CHANNEL) ⇒ **אפס פריט חדש, אפס כפילות.**
+
+**המסקנה המעשית:** מתוך הדפוסים שירו היום, **`DALTON_EDGE` הוא היחיד במסלול-לייב.** ZLR · CEILING_FLIP_TOUCH2 ·
+VA_FADE · RE_ACCEPTANCE · TREND_STEP · S2_DELTA_DBL · FAILED_RE_IB — **כולם צל בפסיקה.** ⇒ ירייה חיה דורשת
+מועמד-DALTON_EDGE **וגם** אישור-עץ **וגם** מעבר rr/ELQ. ריצה שתדווח "אפס לייב" כתקלה בלי לבדוק את המשפך
+הזה — תדווח שקר.
+
+### חובה-3 · ארבע הבדיקות
+
+**א · פיד — אמת-ה-DB, לא mtime של קובץ-יצוא ([[T-430]]):**
+
+```raw
+$ psql -X -A -t -c "select max(ts)::text, round(extract(epoch from (now()-max(ts)))/60.0,1)
+                    from v9_bars_5min_woodies;"
+18:07 ⇒ 2026-09-25 18:05:00+03|3.0
+18:20 ⇒ 2026-09-25 18:20:00+03|0.4
+```
+
+⇒ שתי מדידות, הבר התקדם ביניהן ⇒ **הפיד חי** (בן 0.4 דק' < 10). מסלול-RTH היום:
+
+```raw
+$ psql … RTH ET today ⇒ n=23 | first_close 7784.75 | last_close 7780 | high 7793.75 | low 7752.75
+```
+
+**ב · backend — בריא:**
+
+```raw
+$ curl -o /dev/null -w "http=%{http_code} t=%{time_total}s" localhost:8000/api/v9/health ⇒ http=200 t=0.0017s
+$ tail -5000 /tmp/backend.err.log | grep -cE "ERROR|Traceback|CRITICAL" ⇒ 0
+$ tail -2000 /tmp/backend.err.log | grep -cE "^[0-9]{4}-[0-9]{2}-[0-9]{2}" ⇒ 1979   (שכבת-INFO רואה — לא עיוורון)
+$ tail -1 /tmp/backend.err.log ⇒ 18:16:49 [WARNING] [bar_router] dispatch total 153.4ms for 5min
+```
+
+⇒ מעבד ברים בזמן-אמת · CPU 28% · uptime 2:27 · **0 שגיאות ב-5,000 השורות האחרונות** (ריצה 16 מדדה 3, כולן
+הוסברו — הן מחוץ לחלון עכשיו). ה-`SLOW handler`/`dispatch` הם WARNING-עומס מוכר, לא שגיאה.
+
+**ג · פוזיציה מול TM — ownership לפני אזעקה:**
+
+```raw
+$ for i in 1 2 3; do  # דגימות ב-9 שנ' הפרש, מתוך sierra_state.json
+18:23:04 qty=0 wo=0 under_margin=0 avail=417.04 req=0.0 dailypl=-20.0 filled=8 armed=1 disabled=0
+18:23:13 qty=0 wo=0 under_margin=0 avail=417.04 req=0.0 dailypl=-20.0 filled=8 armed=1 disabled=0
+18:23:22 qty=0 wo=0 under_margin=0 avail=417.04 req=0.0 dailypl=-20.0 filled=8 armed=1 disabled=0
+$ grep "SYS-3 DIVERGENCE" /tmp/backend.err.log | tail -2
+17:37:31  TM says 0 contracts [], Sierra says -2 (src=state)  [phantom-heal streak 0/3]
+17:43:03  TM says 0 contracts [], Sierra says -1 (src=state)  [phantom-heal streak 0/3]
+```
+
+⇒ **פוזיציה 0 יציבה ב-3 דגימות / 18 שנ'** · `working_orders=0` · **הריקונסיילר שקט מ-17:43** — התייצב בדיוק כפי
+שריצה 16 חזתה, והדיברגנס האחרון היה על הפוזיציה-הידנית בדרכה לסגירה. `phantom-heal` נשאר `0/3` לכל
+אורכו ⇒ המערכת מעולם לא ניסתה "לרפא" רשומה זרה. **אפס אזעקה, אפס נגיעה.**
+
+**ד · מרג'ין ([[T-34]], דיווח-בלבד):**
+
+| נמדד | `under_margin` | `avail` | `margin_req` | `daily_pl` |
+|---|---|---|---|---|
+| 14:25 (הודעת-הטלפון) | **1** | **-$67** | $575 | — |
+| 17:47 (ריצה 16) | 0 | +$417.04 | $0.00 | -$20.00 |
+| 18:23 (עכשיו) | **0** | **+$417.04** | **$0.00** | **-$20.00** |
+
+⇒ **ללא שינוי מאז 17:47** · `acct_trading_disabled=0` · `order_placement_armed=1` · גבול-הפסד-יומי -262.22
+לא נוגע (-20.00). `avail` מתחת ל-$1,595 ⇒ **שורה כאן בלבד, לא טלפון** — אינו חוסם מסחר: חוזה-1 ≈ $287.50
+דרישה (מהמדידה של 14:25: $575 ל-2 חוזים) מול $417.04 פנוי.
+
+### גודל — נקרא, לא הונח · ושני השומרים
+
+```raw
+$ set -a && . ./.env && set +a && python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+1
+$ python3 scripts/flag_guard.py     ⇒ FLAG-GUARD: PASS — all 270 ruled flags match.
+                                      ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+$ python3 scripts/task_log_guard.py ⇒ 465 items, last committed 0.0 days ago
+                                      ✅ the task log is current, structured, and the only one
+```
+
+⇒ הפסיקה החיה היא **1** (‏`FIXED_CONTRACTS_1=1`), תואם את הודעת-השער של 16:13. **אפס דגל-גודל נגע**
+(פסיקת 31.08 · [[T-225]]). הפער מול נוסח-המשימה-המתוזמנת ("2") הוא [[T-470]] הפתוח — פריט-נוסח, לא פריט-דגל.
+‏`flag_guard` עלה מ-267 (שער-16:00) ל-**270** — שלושת דגלי-[[T-478]] (S3-בצל) נוספו ל-`RULED_FLAGS` ב-17:05.
+
+### עסקאות — 26 צל, אפס לייב
+
+```raw
+$ psql -X -A -t -c "select mode,state,count(*) from v9_trades where entry_ts >= current_date group by 1,2;"
+shadow|CLOSED|18        shadow|FILLED|8
+$ psql … where … and mode='live' ⇒ 0
+$ psql … order by entry_ts desc limit 4:
+2389|shadow|FILLED|SHORT|REACTIVE_SHORT|11:20 ET        2388|shadow|FILLED|SHORT|CEILING_FLIP_TOUCH2|11:20
+2387|shadow|FILLED|LONG|ZLR|11:16                       2386|shadow|FILLED|LONG|CEILING_FLIP_TOUCH2|11:15
+```
+
+⇒ ‏**+12 עסקאות-צל מאז ריצה 16** (‏CLOSED 11→18, FILLED 3→8) ⇒ המערכת יורה ומודדת בקצב מלא. ‏8 שורות
+`FILLED` = פוזיציות-צל פתוחות בתוך סשן פעיל (‏11:15-11:20 ET, טריות) — **לא** שורות-תקועות-מאתמול.
+‏`daily_pl=-20.00` ו-`filled=8` אצל הברוקר הם **הפוזיציה הידנית של מייקל** שנסגרה 17:43-17:47, לא המערכת.
+
+### למה אפס טלפון — ההנמקה מול ארבעת המקרים
+
+- **(א)** אין הודעת-מייקל בלי תשובה עניינית (אחרונה 12:07:30Z, נענתה 12:17:53Z). ⇒ לא.
+- **(ב)** **אפס עסקאות-לייב** נפתחו או נסגרו — לא בפועל ולא במסד. ⇒ לא.
+- **(ג)** שתי שאלות-(ג) של היום (‏13:20 השורט/T-310 · 14:25 המרג'ין) **התייתרו ב-17:43-17:47** ולא השתנו מאז:
+  פוזיציה 0 · מרג'ין 0 · זמין +$417. **התייתרות אינה חריגה חדשה**, ומייקל הוא שסגר ⇒ הודעה שלישית על
+  אותו נושא = [[T-369]] (הצפה). וגם אפס-הלייב **אינו** חריגה — הוכח למעלה שהוא פסק-עץ. ⇒ לא.
+- **(ד)** שער 15:40 — החלון עבר, והבעלות אינה שלי. ⇒ לא.
+
+⇒ **שקט מוחלט בטלפון.**
+
+### מה פתוח לריצה הבאה
+
+- **ירייה חיה עדיין אפשרית** — השער פתוח, armed=1, פיד-חי, פוזיציה 0. אבל היא דורשת **מועמד-DALTON_EDGE**
+  (הדפוס היחיד במסלול-לייב היום) שגם יעבור את העץ. ירייה ⇒ (ב) בטלפון: תבנית · כיוון · מחיר · סטופ · יעד ·
+  למה עברה, ≤300 תווים. **אפס-לייב ללא מועמד כזה = תקין, לא ממצא.**
+- **העץ עומד בצד באמצע-הערך** — כל עוד המחיר סביב ה-POC (‏7773.50) ו-`day_type=Normal`, כלל-T-319b יחסום
+  את שני הכיוונים. שווה למדוד ב-EOD: כמה מ-17 חסימות-ה-location היו LONG מול SHORT, ומה המחיר עשה אחריהן —
+  זו בדיוק שורת-הלקח של יום-1-חי.
+- ‏`avail=$417` נמוך — חוזה-1 נכנס, אך אינו מרווח. דיווח-בלבד ([[T-34]]).
+- ‏[[T-478]] (S3 בצל) נטען ב-`.env` אך **טרם ריסטארט** ⇒ אין עדיין עסקאות-צל `firing_system=3`; זה נכון
+  לפי הצעד-הבא של הפריט (ריסטארט בשער 28.09 או תור-הלילה לברידג').
+
+---
 ## 🟢 [cowork-dev · 2026-09-25 17:35-17:55 IL] — **ריצה 16 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: השורט-הידני נסגר ב-17:43-17:47 ⇒ שער-T-310 נפתח, חריגת-המרג'ין נפתרה מעצמה**
 
 `17:35` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס ריסטארט.
