@@ -1,3 +1,71 @@
+## 🟢 [cowork-dev · 2026-09-25 18:32-18:40 IL] — **ריצה 18 · חובה-1 + חובה-3** · שורת-אישור לריצה 17: **TAKE רביעי, הפעם SHORT — ונחתך באותו מקום בדיוק (`shadow_only`)**
+
+`18:32` ⇒ **לא שער** · בתוך RTH · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד.
+
+### ⛔ בעלות-הריסטארט — ראשונה
+
+```raw
+$ ps -o pid,lstart,etime,%cpu -p 89528
+  PID STARTED                       ELAPSED  %CPU
+89528 Fri Sep 25 16:00:19 2026     02:33:12   9.8
+```
+
+אותו PID של ריצות 16-17, עלה היום אחרי 12:00 ⇒ הבעלים cowork-האינטראקטיבי ⇒ **אפס ריסטארט, אפס GO/NO-GO** ([[T-369]]). גם ממילא 18:32 > 16:10.
+
+### חובה-1 · הטלפון — אפס ממתינות ⇒ **שקט מוחלט**
+
+```raw
+$ curl -s ".../chat?key=…"  ⇒ אחרונה: 2026-09-25T14:25:33Z | cowork-dev (חריגת-המרג'ין)
+$ # אחרונת-מייקל: 2026-09-25T12:07:30Z "למה העץ שלי כבוי?" ← נענתה 12:17:53Z
+$ tail -1 docs/handoff/PHONE_THREAD.jsonl ⇒ 2026-09-25T14:25:33Z cowork-dev  (זהה למרוחק)
+```
+
+⇒ **אפס הודעות-טלפון נשלחו.** שתי שאלות-הסוכן הפתוחות (סגירת-השורט 13:20Z · חריגת-המרג'ין 14:25Z) **התייתרו מעצמן** — הפוזיציה נסגרה והחריגה נפתרה. הודעת "נפתר, אין מה לעשות" היא דוח-ניטור/תיקון-עצמי ⇒ **אסורה בטלפון**, ולכן כאן בלבד.
+
+### 🔑 החדש מאז ריצה 17 · TAKE רביעי — ו**SHORT** ראשון
+
+ריצה 17 מדדה 3 TAKE, **כולם LONG**, והסיקה שהמשפך חותך ב-`metadata.shadow_only`. מאז נפל TAKE רביעי, בכיוון ההפוך — ונחתך באותו מקום בדיוק:
+
+```raw
+$ # פיד-ההחלטות, 18:35:04 IL
+SHORT CEILING_FLIP_TOUCH2 entry=7781.75 | blocked_by=None | outcome="shadow_only"
+       live_blocked_by=None | live_block_reason="" | event_type=ROUTED
+$ grep -E "^2026-09-25 18:35:04" /tmp/backend.err.log | grep -iE "shadow_only|TM id|RISK_BUDGET"
+18:35:04 [sierra_command] RISK_BUDGET: risk=7.0 pts → raw=6.4 → floor=6 → min(ruled=1)=1
+18:35:04 [trade_manager] Trade 2394 created: mode=shadow sys=2 dir=SHORT
+18:35:04 [Gateway] SHADOW trade TM id=2394: SHORT CEILING_FLIP_TOUCH2 system=2
+18:35:04 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+```
+
+⇒ אישור בלתי-תלוי לאבחנת ריצה 17, ובכיוון שלא נבדק שם: `live_blocked_by=null` **אינו** חסימה-בלתי-נראית אלא יציאה מוקדמת של `CEILING_FLIP_TOUCH2_V1=shadow` לפני ענף-הלייב. **אפס פריט חדש.** ובנוסף, `min(ruled=1)=1` בשורת-ה-RISK_BUDGET הוא הגודל-הפסוק **כפי שהתהליך-החי קרא אותו** — ראיה חזקה יותר מקריאת-מעטפת.
+
+### חובה-3 · ארבע הבדיקות — כולן ירוקות
+
+```raw
+$ psql -At -c "select max(ts), now(), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies;"
+2026-09-25 18:30:00+03|2026-09-25 18:33:31+03|3.5          ← בר בן 3.5 דק' < 10 ⇒ פיד חי ([[T-430]])
+$ curl -s localhost:8000/api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}
+$ python3 -c "…ruled_contracts()" (עם .env) ⇒ 1            ← תואם פסיקת 18.09 (FIXED_CONTRACTS_1=1)
+$ grep sierra_state.json ⇒ position_qty=0 · under_margin=0 · avail=417.04 · margin_req=0.0 ·
+                            daily_pl=-20.0 · trading_disabled=0 · is_sim=0
+$ grep "Reconciler" /tmp/backend.err.log | tail -1
+17:47:04 [Reconciler] T-43: contract mismatch CLEARED — entries unblocked
+```
+
+**א** פיד חי · **ב** backend בריא (uptime 2:33, CPU 9.8%) · **ג** פוזיציה 0 = TM 0, ריקונסיילר שקט מ-17:47, אפס אזעקה · **ד** מרג'ין ([[T-34]], דיווח-בלבד) ללא-שינוי מ-17:47: `avail 417.04` מתחת ל-$1,595 ⇒ **שורה כאן, לא טלפון** — אינו חוסם: דרישת-חוזה-1 ≈ $287.50 מול $417.04 פנוי.
+
+### עסקאות
+
+```raw
+$ psql … v9_trades WHERE (entry_ts AT TIME ZONE 'America/New_York')::date = '2026-09-25'
+30 שורות — 30 shadow · 0 live · 0 demo
+$ # היחיד שהיה כשיר-לייב היום: 17:10:03 DALTON_EDGE_LONG → pre_send_entry_guard (הפוזיציה הידנית) [[T-486]]
+```
+
+⇒ **אפס לייב היום, ואפס פספוס מאז 17:47** — כל מועמד שעבר את העץ מאז הוא דפוס-צל-בפסיקה. עסקת-לייב לדווח בטלפון (מקרה ב) — **אין**.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-25 18:05-18:27 IL] — **ריצה 17 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: אפס-לייב אחרי פתיחת-T-310 הוא נכון ולא תקלה — 10 מועמדים מאז 17:47, **כולם** וטו-עץ; ומשפך-הלייב צר מ"העץ אמר TAKE"**
 
 `18:05` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס ריסטארט · אפס קוד נגע.
