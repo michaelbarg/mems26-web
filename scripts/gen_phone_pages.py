@@ -345,6 +345,9 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
         ("variation_playbook.html", "📗", "פלייבוק-וריאציה", "דרייב · תיקון-עצמי · כמה כסף (24.09)", "למידה"),
         ("improvement.html", "📈", "שיפור המערכת", "לפני/אחרי התיקונים — כל הימים, יום-אחר-יום", "למידה"),
+        ("oracle_vs_engine.html", "🔭", "הראייה-המלאה מול המנוע", "246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם", "למידה"),
+        ("gate_scorecard.html", "⚖️", "כרטיס-ציונים לשערים", "מה עשו המועמדים שכל שער סירב להם", "למידה"),
+        ("swing_turn.html", "🔄", "מבחן סיבוב-הנדנדה", "האם כלל סיבתי מזהה את הכניסות האידיאליות", "למידה"),
         ("signatures.html", "🧬", "מבחן-החתימות", "מיקום · ווליום · נרות — כלל על כל בר", "למידה"),
         ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
@@ -674,6 +677,14 @@ if os.path.exists(vpp) and "md2html" in globals():
             os.remove(tmp)
         except Exception as e:
             print("playbook pdf failed:", e)
+
+# ── root-level reports (25.09): oracle vs engine · gate scorecard — md → page
+for _rp_md, _rp_html, _rp_title in (("ORACLE_VS_ENGINE", "oracle_vs_engine.html", "הראייה-המלאה מול המנוע"), ("GATE_SCORECARD", "gate_scorecard.html", "כרטיס-ציונים לשערים"), ("SWING_TURN", "swing_turn.html", "מבחן סיבוב-הנדנדה")):
+    _rp_files = sorted(glob.glob(os.path.join(ROOT, "docs", "reports", f"{_rp_md}_*.md")))
+    if _rp_files and "md2html" in globals():
+        _rp_src = open(_rp_files[-1], encoding="utf-8").read()
+        with open(os.path.join(OUT, _rp_html), "w", encoding="utf-8") as fh:
+            fh.write(shell(_rp_title, md2html(_rp_src), active=_rp_html, sub=os.path.basename(_rp_files[-1])[-13:-3]))
 
 # ── day review — the daily exam (Michael 23.09: "מבחן על כל ימי המסחר … כלי עבודה יומי") ──
 rvp = os.path.join(OUT, "data", "review.json")

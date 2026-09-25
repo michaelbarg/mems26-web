@@ -1,3 +1,21 @@
+## 🧭 [cowork-dev · 2026-09-25 00:40-11:15 IL] — **התשובה השורשית (T-473/474/475): איפה הכסף באמת, מה השערים באמת עושים, והאם כלל סיבתי יכול לתפוס את הכניסות האידיאליות**
+
+```raw
+$ python3 scripts/oracle_vs_engine.py   ⇒ sessions=58 entries=246 ideal Σ+12654$ got Σ+1720$ (14%)
+  SHADOW_ONLY 59 +2860$ · BLOCKED bias 30 +1611$ · NO_PRODUCER 33 +1605$ · LIVE 31 +1603$(got +1720$) · stand_down 34 +1538$ · kind 19 +1172$ · location 17 +1172$
+  by signature: against_day·no_ext n=151 +7972$ · with_day·no_ext 69 +3547$ · with_day·with_ext 26 +1135$ · by hour: 17h +3346$ (engine +97$)
+$ python3 scripts/gate_scorecard.py     ⇒ routes scored 3676
+  GATE kind +2889$ (292, 50%) · entry_not_confirmed +1156$ (198) · live_slot_occupied +983$ (72) · bias +307$ (690)
+  GATE stand_down −5625$ (979) · location −2999$ (316) · ELQ −1183$ (175) · eod −609$ · wrong_side −469$ · rr_entry −132$
+  SHADOW ZLR +180$ (97) · VA_FADE −358$ · FAILED_BREAK −267$ · CEILING_FLIP_TOUCH2 −2205$ (455)
+$ run_variant.sh nokind    "DALTON_KINDS_APPLY_TO=none"  ⇒ 58 sessions Δ −164$ gross / −245$ net · better 10 / worse 17
+$ run_variant.sh noconfirm "S4_ENTRY_CONFIRM_V1=0"     ⇒ 58 sessions Δ −93$ gross / −119$ net · better 5 / worse 6
+$ python3 scripts/swing_turn_test.py    ⇒ 885 candidates 40% −764$; no conditioning consistent (independent −1405…+660, playbook −982…+924)
+```
+
+**מסקנות (8 מ-8 ניסויי-הרחבת-שערים שליליים; הכלל הסיבתי של הכניסה האידיאלית ללא קצה):** השערים הגדולים עושים את עבודתם; מפיקי-הצל מפסידים; הכניסות האידיאליות אינן ניתנות לזיהוי מהברים/ווליום/דלתא/מיקום שבידינו. הרווח הנוסף: (א) פער-הלייב (בפועל −1,066$ מול ריפליי +624$ על 42 ימים — באגים, לא אסטרטגיה); (ב) מידע חדש (order-flow/footprint, S3 מושתק מיוני); (ג) ענפים מדודים בודדים (הדרייב). **לא:** עוד דגלים.
+
+---
 ## ✅ [cowork-dev · 2026-09-25 11:04-11:12 IL] — **ריצה-מתוזמנת שלישית בבוקר · חובה-1 אפס-ממתינות ⇒ שקט · ורקע-שער: הגודל הפסוק הוא 1, ונוסח-המשימה אומר 2**
 
 `11:04` ⇒ לא חלון-שער (15:30-16:10), לא RTH (נפתח 16:30), לא תור-לילה ⇒ **חובה-1 בלבד**. אפס ריסטארט · אפס דגלים · אפס `.env` · אפס פוזיציות · אפס קוד.

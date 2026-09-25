@@ -1,0 +1,461 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>הראייה-המלאה מול המנוע</title><style>
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
+.tags button:active{background:#30363d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
+.g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">הראייה-המלאה מול המנוע<div class="sub">2026-09-25</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="progress.html"><span>📊</span><span>התקדמות</span><small>האם משתפר — לפי ענף וסוג-יום</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="whatworks.html"><span>🧪</span><span>מה עובד</span><small>כניסות · מיקום · יציאות — במספרים</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><a class="item" href="review.html"><span>🔎</span><span>סקירת-יום</span><small>מה היה צריך לצאת · מה המערכת ראתה</small></a><a class="item" href="review_report.html"><span>📑</span><span>דוח-ריפליי מסודר</span><small>כל הימים: מה היה צריך · מה לתקן</small></a><a class="item" href="tree_board.html"><span>🌲</span><span>לוח-העץ</span><small>הצורה · המספרים · הניצנים</small></a><a class="item" href="variation_playbook.html"><span>📗</span><span>פלייבוק-וריאציה</span><small>דרייב · תיקון-עצמי · כמה כסף (24.09)</small></a><a class="item" href="improvement.html"><span>📈</span><span>שיפור המערכת</span><small>לפני/אחרי התיקונים — כל הימים, יום-אחר-יום</small></a><a class="item on" href="oracle_vs_engine.html"><span>🔭</span><span>הראייה-המלאה מול המנוע</span><small>246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם</small></a><a class="item" href="gate_scorecard.html"><span>⚖️</span><span>כרטיס-ציונים לשערים</span><small>מה עשו המועמדים שכל שער סירב להם</small></a><a class="item" href="swing_turn.html"><span>🔄</span><span>מבחן סיבוב-הנדנדה</span><small>האם כלל סיבתי מזהה את הכניסות האידיאליות</small></a><a class="item" href="signatures.html"><span>🧬</span><span>מבחן-החתימות</span><small>מיקום · ווליום · נרות — כלל על כל בר</small></a><h3>ניהול</h3><a class="item" href="defects.html"><span>🩹</span><span>ליקויי-היומן</span><small>ספרים מול ברוקר — הרשימה והתיקונים</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h1>הראייה-המלאה מול המנוע — כל הימים (2026-09-25)</h1>
+<p><b>מייקל 25.09:</b> *"הדמיה של כל יום — המסלול ואיפה היה צריך להיכנס בכל יום שצברנו, כדי להביא מקסימום רווח, ובהתאם לזה העץ יתאים את עצמו"*.</p>
+<p><b>58 סשנים · 246 כניסות-אידיאליות</b> (כל מהלך ≥ max(12, 1.5×ATR) נק׳; הכניסה האידיאלית = הבר הראשון שממנו סטופ של 1×ATR מחזיק עד 1.5×ATR). תקרת-הראייה-המלאה במודל-ההערכה הקבוע (יעד 1.5×ATR, חוזה 1, אחרי עמלות): <b>+12,654$</b>. מה שהמנוע של היום לקח באותם חלונות: <b>+1,720$</b> (14%).</p>
+<h2>1 · מה קרה לכל כניסה אידיאלית במנוע</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>סטטוס</th><th>כניסות</th><th>Σ אידיאלי</th><th>Σ שנלקח</th><th>% מהאידיאלי</th></tr>
+<tr><td>SHADOW_ONLY</td><td>59</td><td>+2,860$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:dalton_intent:bias</td><td>30</td><td>+1,611$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>NO_PRODUCER</td><td>33</td><td>+1,605$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>LIVE</td><td>31</td><td>+1,603$</td><td>+1,720$</td><td>107%</td></tr>
+<tr><td>BLOCKED:dalton_intent:stand_down</td><td>34</td><td>+1,538$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:dalton_intent:kind</td><td>19</td><td>+1,172$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:dalton_intent:location</td><td>17</td><td>+1,172$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:entry_not_confirmed</td><td>8</td><td>+343$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:entry_location_quality</td><td>6</td><td>+325$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:rr_entry_gate</td><td>4</td><td>+244$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:extreme_chase_guard</td><td>1</td><td>+87$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>BLOCKED:eod_entry_cutoff</td><td>2</td><td>+52$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>SLOT_OCCUPIED</td><td>2</td><td>+42$</td><td>+0$</td><td>0%</td></tr>
+</table></div>
+<h2>2 · השערים — כמה כל שער עלה (כניסות אידיאליות שנחסמו בו)</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>שער</th><th>כניסות</th><th>Σ אידיאלי שנחסם</th></tr>
+<tr><td>dalton_intent:bias</td><td>30</td><td>+1,611$</td></tr>
+<tr><td>dalton_intent:stand_down</td><td>34</td><td>+1,538$</td></tr>
+<tr><td>dalton_intent:kind</td><td>19</td><td>+1,172$</td></tr>
+<tr><td>dalton_intent:location</td><td>17</td><td>+1,172$</td></tr>
+<tr><td>entry_not_confirmed</td><td>8</td><td>+343$</td></tr>
+<tr><td>entry_location_quality</td><td>6</td><td>+325$</td></tr>
+<tr><td>rr_entry_gate</td><td>4</td><td>+244$</td></tr>
+<tr><td>extreme_chase_guard</td><td>1</td><td>+87$</td></tr>
+<tr><td>eod_entry_cutoff</td><td>2</td><td>+52$</td></tr>
+</table></div>
+<h2>3 · המפיקים — מי ראה את הכניסות האידיאליות</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מפיק</th><th>כניסות</th><th>Σ אידיאלי</th><th>Σ שנלקח</th></tr>
+<tr><td>CEILING_FLIP_TOUCH2</td><td>87</td><td>+4,095$</td><td>+0$</td></tr>
+<tr><td>ZLR</td><td>37</td><td>+1,817$</td><td>+0$</td></tr>
+<tr><td>—</td><td>33</td><td>+1,605$</td><td>+0$</td></tr>
+<tr><td>OPENING_DRIVE</td><td>11</td><td>+609$</td><td>+1,029$</td></tr>
+<tr><td>CEILING_FLIP_SHORT</td><td>9</td><td>+397$</td><td>+212$</td></tr>
+<tr><td>GHOST</td><td>8</td><td>+379$</td><td>+77$</td></tr>
+<tr><td>VA_FADE_LONG</td><td>7</td><td>+514$</td><td>+0$</td></tr>
+<tr><td>INITIATIVE_SHORT</td><td>6</td><td>+416$</td><td>+45$</td></tr>
+<tr><td>CEILING_FLIP_LONG</td><td>5</td><td>+288$</td><td>+120$</td></tr>
+<tr><td>DALTON_EDGE_SHORT</td><td>5</td><td>+434$</td><td>+0$</td></tr>
+<tr><td>INITIATIVE_LONG</td><td>5</td><td>+180$</td><td>+30$</td></tr>
+<tr><td>VA_FADE_SHORT</td><td>4</td><td>+374$</td><td>+0$</td></tr>
+<tr><td>REACTIVE_SHORT</td><td>4</td><td>+179$</td><td>+34$</td></tr>
+<tr><td>REACTIVE_LONG</td><td>3</td><td>+142$</td><td>+22$</td></tr>
+<tr><td>DALTON_EDGE_LONG</td><td>3</td><td>+214$</td><td>+0$</td></tr>
+<tr><td>FAILED_BREAK_LONG</td><td>3</td><td>+256$</td><td>+0$</td></tr>
+<tr><td>OPENING_EXTREME_REJECT</td><td>3</td><td>+154$</td><td>+0$</td></tr>
+<tr><td>FAILED_BREAK_SHORT</td><td>2</td><td>+96$</td><td>+0$</td></tr>
+<tr><td>GB100</td><td>2</td><td>+113$</td><td>+0$</td></tr>
+<tr><td>HTLB</td><td>2</td><td>+54$</td><td>+0$</td></tr>
+</table></div>
+<h2>4 · לפי סוג-יום · שלב · כיוון · חתימה</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>חתך</th><th>כניסות</th><th>Σ אידיאלי</th><th>Σ שנלקח</th><th>%</th></tr>
+<tr><td>סוג-יום: Variation</td><td>149</td><td>+7,214$</td><td>+1,217$</td><td>17%</td></tr>
+<tr><td>סוג-יום: Normal</td><td>22</td><td>+1,646$</td><td>+110$</td><td>7%</td></tr>
+<tr><td>סוג-יום: Trend_Normal</td><td>26</td><td>+1,574$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>סוג-יום: Neutral_Center</td><td>26</td><td>+1,167$</td><td>+169$</td><td>14%</td></tr>
+<tr><td>סוג-יום: Neutral_Extreme</td><td>12</td><td>+549$</td><td>+80$</td><td>15%</td></tr>
+<tr><td>סוג-יום: Normal_Variation</td><td>5</td><td>+268$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>סוג-יום: ?</td><td>4</td><td>+187$</td><td>+34$</td><td>18%</td></tr>
+<tr><td>סוג-יום: Trend_DD</td><td>2</td><td>+49$</td><td>+110$</td><td>222%</td></tr>
+<tr><td>שלב: C</td><td>139</td><td>+6,816$</td><td>+510$</td><td>7%</td></tr>
+<tr><td>שלב: B</td><td>50</td><td>+3,048$</td><td>+554$</td><td>18%</td></tr>
+<tr><td>שלב: D</td><td>37</td><td>+1,401$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>שלב: A</td><td>20</td><td>+1,388$</td><td>+656$</td><td>47%</td></tr>
+<tr><td>כיוון: SHORT</td><td>133</td><td>+6,955$</td><td>+1,016$</td><td>15%</td></tr>
+<tr><td>כיוון: LONG</td><td>113</td><td>+5,698$</td><td>+704$</td><td>12%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·pullback·IN_VA</td><td>58</td><td>+2,858$</td><td>+40$</td><td>1%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·pullback·ABOVE_VA</td><td>43</td><td>+2,067$</td><td>+86$</td><td>4%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·cont·IN_VA</td><td>35</td><td>+1,918$</td><td>+185$</td><td>10%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·pullback·BELOW_VA</td><td>21</td><td>+1,266$</td><td>+52$</td><td>4%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·cont·UNKNOWN</td><td>16</td><td>+900$</td><td>+624$</td><td>69%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·cont·ABOVE_VA</td><td>20</td><td>+845$</td><td>+342$</td><td>41%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·cont·BELOW_VA</td><td>13</td><td>+676$</td><td>+37$</td><td>5%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·pullback·UNKNOWN</td><td>9</td><td>+578$</td><td>+220$</td><td>38%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): with_ext·pullback·IN_VA</td><td>9</td><td>+408$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): no_ext·break·UNKNOWN</td><td>4</td><td>+346$</td><td>+101$</td><td>29%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): with_ext·cont·IN_VA</td><td>7</td><td>+290$</td><td>+0$</td><td>0%</td></tr>
+<tr><td>חתימה (הרחבה·כניסה·מיקום): with_ext·pullback·ABOVE_VA</td><td>4</td><td>+140$</td><td>+0$</td><td>0%</td></tr>
+</table></div>
+<h2>5 · יום-אחר-יום — המסלול והכניסות האידיאליות</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>יום</th><th>סוג-יום</th><th>כניסה אידיאלית</th><th>מהלך</th><th>אידיאלי</th><th>המנוע</th><th>שער/מפיק</th><th>נלקח</th></tr>
+<tr><td>2026-06-15</td><td>Trend_Normal</td><td>16:50 SHORT @7618.25 (B)</td><td>16 נק׳</td><td>+45$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-06-15</td><td>Trend_Normal</td><td>17:35 LONG @7614.5 (C)</td><td>24.75 נק׳</td><td>+45$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-15</td><td>Trend_Normal</td><td>18:35 LONG @7633.5 (C)</td><td>19.25 נק׳</td><td>+39$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-06-15</td><td>Trend_Normal</td><td>19:30 SHORT @7643.75 (C)</td><td>15.75 נק׳</td><td>+33$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-15</td><td>Trend_Normal</td><td>20:25 SHORT @7643.25 (C)</td><td>17.5 נק׳</td><td>+34$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-16</td><td>Trend_Normal</td><td>17:10 SHORT @7630.25 (B)</td><td>30.25 נק׳</td><td>+60$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-16</td><td>Trend_Normal</td><td>18:45 LONG @7604.25 (C)</td><td>23.75 נק׳</td><td>+51$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-16</td><td>Trend_Normal</td><td>19:10 SHORT @7619 (C)</td><td>23.75 נק׳</td><td>+54$</td><td>BLOCKED</td><td>rr_entry_gate</td><td>+0$</td></tr>
+<tr><td>2026-06-16</td><td>Trend_Normal</td><td>20:55 SHORT @7606 (C)</td><td>26.75 נק׳</td><td>+37$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-06-22</td><td>Variation</td><td>17:10 SHORT @7589.75 (B)</td><td>72 נק׳</td><td>+86$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-06-22</td><td>Variation</td><td>18:25 LONG @7539.75 (C)</td><td>24.75 נק׳</td><td>+87$</td><td>BLOCKED</td><td>extreme_chase_guard</td><td>+0$</td></tr>
+<tr><td>2026-06-22</td><td>Variation</td><td>21:20 SHORT @7550 (D)</td><td>25.75 נק׳</td><td>+36$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-23</td><td>Trend_Normal</td><td>16:35 LONG @7436.75 (A)</td><td>76.25 נק׳</td><td>+72$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-06-23</td><td>Trend_Normal</td><td>17:20 SHORT @7483 (B)</td><td>30 נק׳</td><td>+72$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-06-23</td><td>Trend_Normal</td><td>17:50 SHORT @7466 (C)</td><td>37.75 נק׳</td><td>+87$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-23</td><td>Trend_Normal</td><td>18:40 LONG @7444.25 (C)</td><td>35.75 נק׳</td><td>+72$</td><td>SHADOW_ONLY</td><td>VA_FADE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-06-23</td><td>Trend_Normal</td><td>20:20 SHORT @7474.5 (C)</td><td>47.75 נק׳</td><td>+49$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-24</td><td>Normal</td><td>17:20 LONG @7458.5 (B)</td><td>60 נק׳</td><td>+90$</td><td>SHADOW_ONLY</td><td>VA_FADE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-06-24</td><td>Normal</td><td>18:50 SHORT @7485 (C)</td><td>82 נק׳</td><td>+76$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-06-24</td><td>Normal</td><td>21:00 LONG @7421.5 (D)</td><td>30.25 נק׳</td><td>+84$</td><td>LIVE</td><td>CEILING_FLIP_LONG</td><td>+0$</td></tr>
+<tr><td>2026-06-24</td><td>Normal</td><td>21:25 SHORT @7440 (D)</td><td>35 נק׳</td><td>+73$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-24</td><td>Normal</td><td>22:40 LONG @7411 (D)</td><td>46 נק׳</td><td>+74$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-06-25</td><td>Normal</td><td>16:35 SHORT @7466.25 (A)</td><td>100.5 נק׳</td><td>+142$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-06-25</td><td>Normal</td><td>16:55 LONG @7393 (B)</td><td>64.5 נק׳</td><td>+142$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-06-25</td><td>Normal</td><td>17:50 SHORT @7474.5 (C)</td><td>61.25 נק׳</td><td>+161$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-06-25</td><td>Normal</td><td>19:15 SHORT @7451.25 (C)</td><td>49.25 נק׳</td><td>+95$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-25</td><td>Normal</td><td>21:00 LONG @7414 (D)</td><td>48.5 נק׳</td><td>+81$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-06-29</td><td>Variation</td><td>16:50 SHORT @7479.5 (B)</td><td>80.75 נק׳</td><td>+102$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-06-29</td><td>Variation</td><td>17:15 LONG @7425.75 (B)</td><td>59 נק׳</td><td>+102$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-06-29</td><td>Variation</td><td>18:20 LONG @7456.5 (C)</td><td>52 נק׳</td><td>+90$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-06-30</td><td>Variation</td><td>16:35 LONG @7501.75 (A)</td><td>37 נק׳</td><td>+64$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+93$</td></tr>
+<tr><td>2026-06-30</td><td>Variation</td><td>17:10 LONG @7523.75 (B)</td><td>23 נק׳</td><td>+64$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-06-30</td><td>Variation</td><td>17:35 SHORT @7533.5 (C)</td><td>25.25 נק׳</td><td>+64$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-06-30</td><td>Variation</td><td>17:55 LONG @7520.5 (C)</td><td>43 נק׳</td><td>+74$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-06-30</td><td>Variation</td><td>22:15 SHORT @7563.5 (D)</td><td>25.75 נק׳</td><td>+24$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-01</td><td>Variation</td><td>16:35 LONG @7513.75 (A)</td><td>47.75 נק׳</td><td>+52$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-01</td><td>Variation</td><td>17:45 LONG @7548.25 (C)</td><td>38.5 נק׳</td><td>+62$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-01</td><td>Variation</td><td>19:20 SHORT @7577 (C)</td><td>24.5 נק׳</td><td>+37$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-07-01</td><td>Variation</td><td>20:25 SHORT @7564 (C)</td><td>17 נק׳</td><td>+35$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-01</td><td>Variation</td><td>22:05 SHORT @7561 (D)</td><td>32.75 נק׳</td><td>+31$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-02</td><td>Trend_Normal</td><td>16:35 LONG @7568.75 (A)</td><td>42.25 נק׳</td><td>+120$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-02</td><td>Trend_Normal</td><td>16:50 SHORT @7586 (B)</td><td>38.75 נק׳</td><td>+120$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-02</td><td>Trend_Normal</td><td>18:35 SHORT @7542.5 (C)</td><td>64.5 נק׳</td><td>+120$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-07-02</td><td>Trend_Normal</td><td>20:55 LONG @7482 (C)</td><td>35 נק׳</td><td>+69$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-07-02</td><td>Trend_Normal</td><td>22:05 LONG @7497.5 (D)</td><td>42.25 נק׳</td><td>+61$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-06</td><td>Variation</td><td>17:00 LONG @7562.75 (B)</td><td>25 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-07-06</td><td>Variation</td><td>20:05 SHORT @7593.25 (C)</td><td>19.75 נק׳</td><td>+26$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+67$</td></tr>
+<tr><td>2026-07-06</td><td>Variation</td><td>20:55 LONG @7580.25 (C)</td><td>17 נק׳</td><td>+34$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-06</td><td>Variation</td><td>22:20 SHORT @7601.25 (D)</td><td>14.5 נק׳</td><td>+26$</td><td>BLOCKED</td><td>eod_entry_cutoff</td><td>+0$</td></tr>
+<tr><td>2026-07-07</td><td>Normal</td><td>16:45 SHORT @7574.75 (B)</td><td>38.5 נק׳</td><td>+59$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+110$</td></tr>
+<tr><td>2026-07-07</td><td>Normal</td><td>18:40 LONG @7541.5 (C)</td><td>39.75 נק׳</td><td>+48$</td><td>LIVE</td><td>CEILING_FLIP_LONG</td><td>+0$</td></tr>
+<tr><td>2026-07-07</td><td>Normal</td><td>21:20 SHORT @7568.75 (D)</td><td>34 נק׳</td><td>+27$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-07</td><td>Normal</td><td>22:40 LONG @7542.75 (D)</td><td>15.75 נק׳</td><td>+48$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-08</td><td>Variation</td><td>17:20 SHORT @7513.25 (B)</td><td>36.75 נק׳</td><td>+83$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-07-08</td><td>Variation</td><td>17:55 SHORT @7493.25 (C)</td><td>32.75 נק׳</td><td>+91$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-07-08</td><td>Variation</td><td>18:50 LONG @7479.5 (C)</td><td>39.25 נק׳</td><td>+74$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-08</td><td>Variation</td><td>19:35 LONG @7507.5 (C)</td><td>37 נק׳</td><td>+57$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-09</td><td>Trend_Normal</td><td>16:55 SHORT @7561.25 (B)</td><td>37 נק׳</td><td>+67$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-07-09</td><td>Trend_Normal</td><td>17:50 LONG @7554 (C)</td><td>48.25 נק׳</td><td>+72$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-09</td><td>Trend_Normal</td><td>20:45 SHORT @7593.5 (C)</td><td>14 נק׳</td><td>+24$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-07-13</td><td>Variation</td><td>17:30 SHORT @7597.5 (C)</td><td>23.5 נק׳</td><td>+78$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-07-13</td><td>Variation</td><td>18:00 SHORT @7594 (C)</td><td>41.5 נק׳</td><td>+86$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-13</td><td>Variation</td><td>21:40 SHORT @7570 (D)</td><td>20.75 נק׳</td><td>+42$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-14</td><td>Variation</td><td>16:45 SHORT @7579.75 (B)</td><td>31.75 נק׳</td><td>+86$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-07-14</td><td>Variation</td><td>17:15 LONG @7568.75 (B)</td><td>47.75 נק׳</td><td>+86$</td><td>SHADOW_ONLY</td><td>VA_FADE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-07-14</td><td>Variation</td><td>19:05 LONG @7574.75 (C)</td><td>28.25 נק׳</td><td>+62$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-07-15</td><td>Variation</td><td>17:30 SHORT @7605.75 (C)</td><td>36.75 נק׳</td><td>+60$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-15</td><td>Variation</td><td>18:55 LONG @7586.5 (C)</td><td>40.25 נק׳</td><td>+53$</td><td>LIVE</td><td>CEILING_FLIP_LONG</td><td>+67$</td></tr>
+<tr><td>2026-07-15</td><td>Variation</td><td>20:30 SHORT @7618.75 (C)</td><td>19.25 נק׳</td><td>+31$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+46$</td></tr>
+<tr><td>2026-07-16</td><td>?</td><td>17:50 SHORT @7606.75 (C)</td><td>27 נק׳</td><td>+52$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-16</td><td>?</td><td>19:25 SHORT @7596.25 (C)</td><td>18 נק׳</td><td>+44$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-07-16</td><td>?</td><td>20:20 SHORT @7583 (C)</td><td>18.25 נק׳</td><td>+46$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-07-16</td><td>?</td><td>20:50 SHORT @7571.5 (C)</td><td>25.75 נק׳</td><td>+45$</td><td>LIVE</td><td>REACTIVE_SHORT</td><td>+34$</td></tr>
+<tr><td>2026-07-17</td><td>Normal</td><td>16:35 SHORT @7533 (A)</td><td>27.5 נק׳</td><td>+79$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-17</td><td>Normal</td><td>18:50 SHORT @7534.5 (C)</td><td>41.25 נק׳</td><td>+69$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-07-17</td><td>Normal</td><td>20:55 SHORT @7508.5 (C)</td><td>25.75 נק׳</td><td>+50$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-20</td><td>Normal_Variation</td><td>16:45 SHORT @7539.75 (B)</td><td>46.25 נק׳</td><td>+59$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-20</td><td>Normal_Variation</td><td>18:10 SHORT @7531.75 (C)</td><td>26 נק׳</td><td>+59$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-07-20</td><td>Normal_Variation</td><td>18:45 SHORT @7525.25 (C)</td><td>27 נק׳</td><td>+61$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-20</td><td>Normal_Variation</td><td>20:15 SHORT @7516.25 (C)</td><td>19.75 נק׳</td><td>+41$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-20</td><td>Normal_Variation</td><td>20:35 SHORT @7499.25 (C)</td><td>28.75 נק׳</td><td>+47$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-07-21</td><td>Variation</td><td>16:45 SHORT @7532.75 (B)</td><td>15 נק׳</td><td>+36$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-21</td><td>Variation</td><td>17:00 LONG @7523.75 (B)</td><td>22.5 נק׳</td><td>+36$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-07-21</td><td>Variation</td><td>17:55 LONG @7538.75 (C)</td><td>16.25 נק׳</td><td>+41$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-23</td><td>Variation</td><td>16:40 SHORT @7478.75 (A)</td><td>33.5 נק׳</td><td>+88$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-23</td><td>Variation</td><td>19:25 SHORT @7447.75 (C)</td><td>26.5 נק׳</td><td>+50$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-23</td><td>Variation</td><td>21:45 LONG @7420.75 (D)</td><td>37.75 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-23</td><td>Variation</td><td>22:45 LONG @7420.75 (D)</td><td>37.75 נק׳</td><td>+70$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-27</td><td>Variation</td><td>16:35 SHORT @7508.25 (A)</td><td>88.25 נק׳</td><td>+87$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+110$</td></tr>
+<tr><td>2026-07-27</td><td>Variation</td><td>17:40 LONG @7426 (C)</td><td>39.25 נק׳</td><td>+92$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-27</td><td>Variation</td><td>18:25 SHORT @7440.75 (C)</td><td>30.5 נק׳</td><td>+90$</td><td>LIVE</td><td>INITIATIVE_SHORT</td><td>+45$</td></tr>
+<tr><td>2026-07-27</td><td>Variation</td><td>21:40 LONG @7432.75 (D)</td><td>32.75 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-07-30</td><td>Variation</td><td>16:40 LONG @7417.25 (A)</td><td>40 נק׳</td><td>+93$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+110$</td></tr>
+<tr><td>2026-07-30</td><td>Variation</td><td>17:25 SHORT @7439.75 (B)</td><td>41.25 נק׳</td><td>+93$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-07-30</td><td>Variation</td><td>18:25 LONG @7400.75 (C)</td><td>46.5 נק׳</td><td>+92$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-07-30</td><td>Variation</td><td>19:40 LONG @7434.25 (C)</td><td>47.5 נק׳</td><td>+56$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-31</td><td>Variation</td><td>16:35 SHORT @7493.5 (A)</td><td>48.75 נק׳</td><td>+99$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+0$</td></tr>
+<tr><td>2026-07-31</td><td>Variation</td><td>16:55 SHORT @7470.75 (B)</td><td>52.5 נק׳</td><td>+99$</td><td>BLOCKED</td><td>rr_entry_gate</td><td>+0$</td></tr>
+<tr><td>2026-07-31</td><td>Variation</td><td>17:15 LONG @7436.75 (B)</td><td>53.75 נק׳</td><td>+99$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-07-31</td><td>Variation</td><td>18:40 LONG @7470 (C)</td><td>55.5 נק׳</td><td>+90$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-07-31</td><td>Variation</td><td>20:50 LONG @7507.25 (C)</td><td>37.75 נק׳</td><td>+46$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-03</td><td>Variation</td><td>16:40 LONG @7567.5 (A)</td><td>30.25 נק׳</td><td>+32$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-03</td><td>Variation</td><td>17:05 LONG @7587.5 (B)</td><td>16.5 נק׳</td><td>+32$</td><td>LIVE</td><td>INITIATIVE_LONG</td><td>+30$</td></tr>
+<tr><td>2026-08-03</td><td>Variation</td><td>20:05 LONG @7613.75 (C)</td><td>24 נק׳</td><td>+20$</td><td>SLOT_OCCUPIED</td><td>INITIATIVE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-08-03</td><td>Variation</td><td>21:30 LONG @7626.5 (D)</td><td>13.5 נק׳</td><td>+25$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-08-03</td><td>Variation</td><td>22:25 SHORT @7635.5 (D)</td><td>12.25 נק׳</td><td>+29$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-05</td><td>Variation</td><td>16:35 SHORT @7817 (A)</td><td>24.75 נק׳</td><td>+75$</td><td>LIVE</td><td>OPENING_PULLBACK_CONT</td><td>+82$</td></tr>
+<tr><td>2026-08-05</td><td>Variation</td><td>18:00 SHORT @7787.75 (C)</td><td>27 נק׳</td><td>+83$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-05</td><td>Variation</td><td>18:30 SHORT @7770.5 (C)</td><td>26.5 נק׳</td><td>+78$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-08-05</td><td>Variation</td><td>21:05 SHORT @7771 (D)</td><td>29 נק׳</td><td>+39$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-06</td><td>Neutral_Center</td><td>17:20 SHORT @7762.25 (B)</td><td>23 נק׳</td><td>+60$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-06</td><td>Neutral_Center</td><td>18:00 SHORT @7752.5 (C)</td><td>29.75 נק׳</td><td>+60$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-08-06</td><td>Neutral_Center</td><td>22:10 SHORT @7743.5 (D)</td><td>20.75 נק׳</td><td>+34$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-10</td><td>Neutral_Center</td><td>16:50 LONG @7777.75 (B)</td><td>25.75 נק׳</td><td>+39$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-08-10</td><td>Neutral_Center</td><td>17:45 SHORT @7795.5 (C)</td><td>17.75 נק׳</td><td>+38$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-10</td><td>Neutral_Center</td><td>18:35 LONG @7779.25 (C)</td><td>13.25 נק׳</td><td>+38$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-10</td><td>Neutral_Center</td><td>19:00 SHORT @7788.25 (C)</td><td>27.5 נק׳</td><td>+37$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-11</td><td>Variation</td><td>16:45 LONG @7774.25 (B)</td><td>15.25 נק׳</td><td>+38$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-08-11</td><td>Variation</td><td>17:50 SHORT @7784.75 (C)</td><td>18.75 נק׳</td><td>+42$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-11</td><td>Variation</td><td>19:35 SHORT @7764 (C)</td><td>17.5 נק׳</td><td>+32$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-11</td><td>Variation</td><td>20:45 SHORT @7757 (C)</td><td>19.75 נק׳</td><td>+27$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-11</td><td>Variation</td><td>22:35 SHORT @7756.25 (D)</td><td>13.25 נק׳</td><td>+25$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-12</td><td>Variation</td><td>17:30 LONG @7765 (C)</td><td>20.5 נק׳</td><td>+54$</td><td>SHADOW_ONLY</td><td>VA_FADE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-08-12</td><td>Variation</td><td>18:40 LONG @7762.75 (C)</td><td>20.75 נק׳</td><td>+42$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-13</td><td>Variation</td><td>16:40 LONG @7801.5 (A)</td><td>38.5 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-13</td><td>Variation</td><td>17:35 SHORT @7835.25 (C)</td><td>38.5 נק׳</td><td>+43$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+67$</td></tr>
+<tr><td>2026-08-13</td><td>Variation</td><td>19:15 LONG @7802.5 (C)</td><td>19.5 נק׳</td><td>+37$</td><td>LIVE</td><td>GHOST</td><td>+50$</td></tr>
+<tr><td>2026-08-13</td><td>Variation</td><td>20:40 LONG @7810.25 (C)</td><td>18.5 נק׳</td><td>+22$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-14</td><td>Variation</td><td>17:05 SHORT @7828 (B)</td><td>20.25 נק׳</td><td>+35$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-08-14</td><td>Variation</td><td>17:35 SHORT @7816.5 (C)</td><td>16 נק׳</td><td>+35$</td><td>BLOCKED</td><td>entry_location_quality</td><td>+0$</td></tr>
+<tr><td>2026-08-14</td><td>Variation</td><td>19:25 SHORT @7808.75 (C)</td><td>12 נק׳</td><td>+27$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-17</td><td>Trend_DD</td><td>16:45 SHORT @7801.25 (B)</td><td>12.75 נק׳</td><td>+28$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+110$</td></tr>
+<tr><td>2026-08-17</td><td>Trend_DD</td><td>19:20 SHORT @7795.25 (C)</td><td>25.5 נק׳</td><td>+22$</td><td>SLOT_OCCUPIED</td><td>REACTIVE_SHORT</td><td>+0$</td></tr>
+<tr><td>2026-08-18</td><td>Variation</td><td>17:10 LONG @7721.25 (B)</td><td>16 נק׳</td><td>+50$</td><td>SHADOW_ONLY</td><td>FAILED_BREAK_LONG</td><td>+0$</td></tr>
+<tr><td>2026-08-18</td><td>Variation</td><td>17:30 SHORT @7727.5 (C)</td><td>18.25 נק׳</td><td>+50$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-18</td><td>Variation</td><td>18:20 LONG @7715.25 (C)</td><td>15.5 נק׳</td><td>+45$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-18</td><td>Variation</td><td>19:50 SHORT @7728 (C)</td><td>14.25 נק׳</td><td>+32$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-19</td><td>Neutral_Extreme</td><td>17:25 LONG @7739.5 (B)</td><td>33 נק׳</td><td>+59$</td><td>SHADOW_ONLY</td><td>VA_FADE_LONG</td><td>+0$</td></tr>
+<tr><td>2026-08-19</td><td>Neutral_Extreme</td><td>18:00 SHORT @7761.75 (C)</td><td>24.75 נק׳</td><td>+61$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-19</td><td>Neutral_Extreme</td><td>19:15 SHORT @7757.75 (C)</td><td>30 נק׳</td><td>+35$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-19</td><td>Neutral_Extreme</td><td>22:30 SHORT @7741.5 (D)</td><td>21.75 נק׳</td><td>+28$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-20</td><td>Neutral_Extreme</td><td>16:40 SHORT @7712 (A)</td><td>21.25 נק׳</td><td>+72$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-20</td><td>Neutral_Extreme</td><td>18:15 SHORT @7705.75 (C)</td><td>18.75 נק׳</td><td>+70$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-20</td><td>Neutral_Extreme</td><td>19:40 SHORT @7704.75 (C)</td><td>46.5 נק׳</td><td>+37$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-21</td><td>Variation</td><td>16:50 LONG @7679.5 (B)</td><td>14.5 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-08-21</td><td>Variation</td><td>17:40 LONG @7681.5 (C)</td><td>22.25 נק׳</td><td>+45$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-21</td><td>Variation</td><td>18:25 LONG @7694.75 (C)</td><td>20.5 נק׳</td><td>+40$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-08-21</td><td>Variation</td><td>20:05 SHORT @7699 (C)</td><td>15 נק׳</td><td>+24$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-21</td><td>Variation</td><td>21:30 LONG @7687 (D)</td><td>17.25 נק׳</td><td>+20$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-24</td><td>Variation</td><td>16:35 SHORT @7668.25 (A)</td><td>27.75 נק׳</td><td>+40$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-24</td><td>Variation</td><td>16:45 LONG @7665.5 (B)</td><td>19 נק׳</td><td>+40$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-24</td><td>Variation</td><td>18:20 LONG @7665.5 (C)</td><td>24 נק׳</td><td>+40$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-08-24</td><td>Variation</td><td>20:10 SHORT @7679.25 (C)</td><td>17.75 נק׳</td><td>+27$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-24</td><td>Variation</td><td>20:45 LONG @7666.5 (C)</td><td>21 נק׳</td><td>+27$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-25</td><td>Variation</td><td>16:45 SHORT @7697.75 (B)</td><td>37.75 נק׳</td><td>+46$</td><td>LIVE</td><td>OPENING_TEST_DRIVE</td><td>+69$</td></tr>
+<tr><td>2026-08-25</td><td>Variation</td><td>17:50 LONG @7679.5 (C)</td><td>17.75 נק׳</td><td>+50$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-25</td><td>Variation</td><td>18:45 LONG @7680 (C)</td><td>13.75 נק׳</td><td>+40$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-25</td><td>Variation</td><td>19:35 SHORT @7692.25 (C)</td><td>13.5 נק׳</td><td>+29$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-25</td><td>Variation</td><td>22:20 LONG @7683.5 (D)</td><td>13.5 נק׳</td><td>+17$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-26</td><td>Neutral_Center</td><td>16:35 LONG @7688 (A)</td><td>20.5 נק׳</td><td>+35$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-26</td><td>Neutral_Center</td><td>17:00 SHORT @7700.75 (B)</td><td>21.75 נק׳</td><td>+35$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-26</td><td>Neutral_Center</td><td>19:05 SHORT @7683.25 (C)</td><td>15.5 נק׳</td><td>+37$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-08-26</td><td>Neutral_Center</td><td>19:40 LONG @7672 (C)</td><td>20 נק׳</td><td>+32$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-26</td><td>Neutral_Center</td><td>21:25 LONG @7688.25 (D)</td><td>18.5 נק׳</td><td>+22$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-27</td><td>Variation</td><td>18:15 SHORT @7741.5 (C)</td><td>17.75 נק׳</td><td>+40$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>-44$</td></tr>
+<tr><td>2026-08-27</td><td>Variation</td><td>18:45 LONG @7728.25 (C)</td><td>16.5 נק׳</td><td>+37$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-08-27</td><td>Variation</td><td>19:20 LONG @7737 (C)</td><td>21 נק׳</td><td>+35$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-08-27</td><td>Variation</td><td>20:10 SHORT @7753.5 (C)</td><td>32.25 נק׳</td><td>+25$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-08-27</td><td>Variation</td><td>21:55 LONG @7727.5 (D)</td><td>22 נק׳</td><td>+36$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-28</td><td>Neutral_Center</td><td>17:25 LONG @7742 (B)</td><td>47.5 נק׳</td><td>+74$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-08-28</td><td>Neutral_Center</td><td>18:25 SHORT @7779 (C)</td><td>48 נק׳</td><td>+60$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+0$</td></tr>
+<tr><td>2026-08-28</td><td>Neutral_Center</td><td>19:05 SHORT @7744.5 (C)</td><td>25 נק׳</td><td>+59$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-28</td><td>Neutral_Center</td><td>19:50 SHORT @7728 (C)</td><td>24.25 נק׳</td><td>+71$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-08-31</td><td>Variation</td><td>17:25 LONG @7676.75 (B)</td><td>14.25 נק׳</td><td>+44$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-08-31</td><td>Variation</td><td>18:50 SHORT @7688.75 (C)</td><td>14 נק׳</td><td>+37$</td><td>BLOCKED</td><td>rr_entry_gate</td><td>+0$</td></tr>
+<tr><td>2026-08-31</td><td>Variation</td><td>20:30 LONG @7680.5 (C)</td><td>17 נק׳</td><td>+28$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-08-31</td><td>Variation</td><td>21:20 SHORT @7694 (D)</td><td>18.25 נק׳</td><td>+27$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-08-31</td><td>Variation</td><td>21:40 LONG @7681.25 (D)</td><td>22.25 נק׳</td><td>+31$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-01</td><td>Neutral_Center</td><td>16:55 LONG @7647 (B)</td><td>31.5 נק׳</td><td>+39$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+89$</td></tr>
+<tr><td>2026-09-01</td><td>Neutral_Center</td><td>18:05 LONG @7655 (C)</td><td>20.5 נק׳</td><td>+41$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-01</td><td>Neutral_Center</td><td>18:50 SHORT @7672.5 (C)</td><td>31 נק׳</td><td>+32$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-01</td><td>Neutral_Center</td><td>21:20 SHORT @7643.25 (D)</td><td>23.75 נק׳</td><td>+34$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-01</td><td>Neutral_Center</td><td>21:45 LONG @7628.75 (D)</td><td>21.5 נק׳</td><td>+36$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-02</td><td>Variation</td><td>16:50 LONG @7650.5 (B)</td><td>36 נק׳</td><td>+42$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+110$</td></tr>
+<tr><td>2026-09-02</td><td>Variation</td><td>18:00 LONG @7681 (C)</td><td>13.75 נק׳</td><td>+46$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-02</td><td>Variation</td><td>18:30 SHORT @7686.75 (C)</td><td>15.25 נק׳</td><td>+38$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+35$</td></tr>
+<tr><td>2026-09-02</td><td>Variation</td><td>20:35 LONG @7671 (C)</td><td>17.5 נק׳</td><td>+30$</td><td>LIVE</td><td>REACTIVE_LONG</td><td>+22$</td></tr>
+<tr><td>2026-09-02</td><td>Variation</td><td>21:15 SHORT @7682.5 (D)</td><td>15.25 נק׳</td><td>+31$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-03</td><td>Trend_Normal</td><td>16:50 SHORT @7721.75 (B)</td><td>26 נק׳</td><td>+62$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-03</td><td>Trend_Normal</td><td>17:55 LONG @7718 (C)</td><td>54.75 נק׳</td><td>+64$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-09-03</td><td>Trend_Normal</td><td>20:20 LONG @7748.5 (C)</td><td>19.25 נק׳</td><td>+23$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-03</td><td>Trend_Normal</td><td>21:15 SHORT @7763 (D)</td><td>15.25 נק׳</td><td>+23$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-04</td><td>Variation</td><td>16:55 SHORT @7745 (B)</td><td>17.5 נק׳</td><td>+44$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-04</td><td>Variation</td><td>17:15 SHORT @7731.5 (B)</td><td>26.75 נק׳</td><td>+44$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-09-04</td><td>Variation</td><td>18:30 LONG @7714.25 (C)</td><td>23.5 נק׳</td><td>+41$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-04</td><td>Variation</td><td>19:50 SHORT @7732.75 (C)</td><td>22.5 נק׳</td><td>+25$</td><td>LIVE</td><td>CEILING_FLIP_SHORT</td><td>+40$</td></tr>
+<tr><td>2026-09-04</td><td>Variation</td><td>20:45 LONG @7715.5 (C)</td><td>13 נק׳</td><td>+24$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-08</td><td>Variation</td><td>16:55 SHORT @7694.75 (B)</td><td>21.25 נק׳</td><td>+44$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+37$</td></tr>
+<tr><td>2026-09-08</td><td>Variation</td><td>17:30 LONG @7690.5 (C)</td><td>19.5 נק׳</td><td>+44$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-08</td><td>Variation</td><td>20:35 SHORT @7697.5 (C)</td><td>22.75 נק׳</td><td>+31$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-08</td><td>Variation</td><td>21:45 LONG @7683 (D)</td><td>15.5 נק׳</td><td>+30$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-08</td><td>Variation</td><td>22:30 SHORT @7691.5 (D)</td><td>20 נק׳</td><td>+39$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-09</td><td>Variation</td><td>17:05 SHORT @7660.5 (B)</td><td>17.25 נק׳</td><td>+56$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-09-09</td><td>Variation</td><td>18:25 LONG @7635.25 (C)</td><td>22 נק׳</td><td>+59$</td><td>LIVE</td><td>CEILING_FLIP_LONG</td><td>+52$</td></tr>
+<tr><td>2026-09-09</td><td>Variation</td><td>18:50 SHORT @7645.25 (C)</td><td>18.25 נק׳</td><td>+57$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-09</td><td>Variation</td><td>19:20 LONG @7637 (C)</td><td>20.5 נק׳</td><td>+48$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-10</td><td>Normal</td><td>17:05 LONG @7587.5 (B)</td><td>34.5 נק׳</td><td>+64$</td><td>SHADOW_ONLY</td><td>FAILED_BREAK_LONG</td><td>+0$</td></tr>
+<tr><td>2026-09-10</td><td>Normal</td><td>18:35 SHORT @7612 (C)</td><td>18 נק׳</td><td>+47$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-10</td><td>Normal</td><td>19:00 SHORT @7605 (C)</td><td>18.75 נק׳</td><td>+46$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-09-10</td><td>Normal</td><td>19:35 LONG @7601 (C)</td><td>26.25 נק׳</td><td>+45$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-10</td><td>Normal</td><td>20:00 SHORT @7609.5 (C)</td><td>26 נק׳</td><td>+45$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-11</td><td>Variation</td><td>16:55 SHORT @7681 (B)</td><td>18 נק׳</td><td>+60$</td><td>SHADOW_ONLY</td><td>FAILED_BREAK_SHORT</td><td>+0$</td></tr>
+<tr><td>2026-09-11</td><td>Variation</td><td>17:20 SHORT @7675.5 (B)</td><td>25.5 נק׳</td><td>+60$</td><td>SHADOW_ONLY</td><td>VA_FADE_SHORT</td><td>+0$</td></tr>
+<tr><td>2026-09-11</td><td>Variation</td><td>18:10 LONG @7663.5 (C)</td><td>22.25 נק׳</td><td>+60$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-11</td><td>Variation</td><td>19:40 LONG @7672.25 (C)</td><td>15.5 נק׳</td><td>+37$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-11</td><td>Variation</td><td>20:25 SHORT @7677.75 (C)</td><td>23.75 נק׳</td><td>+34$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-14</td><td>Neutral_Center</td><td>16:35 LONG @7669.25 (A)</td><td>20.5 נק׳</td><td>+55$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+80$</td></tr>
+<tr><td>2026-09-14</td><td>Neutral_Center</td><td>17:05 SHORT @7692 (B)</td><td>29.5 נק׳</td><td>+55$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-14</td><td>Neutral_Center</td><td>18:15 LONG @7673.75 (C)</td><td>38.25 נק׳</td><td>+54$</td><td>BLOCKED</td><td>rr_entry_gate</td><td>+0$</td></tr>
+<tr><td>2026-09-14</td><td>Neutral_Center</td><td>19:35 LONG @7704.75 (C)</td><td>17.5 נק׳</td><td>+48$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-09-14</td><td>Neutral_Center</td><td>20:30 SHORT @7710.75 (C)</td><td>22.25 נק׳</td><td>+39$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+<tr><td>2026-09-15</td><td>Variation</td><td>16:45 SHORT @7676.5 (B)</td><td>41.25 נק׳</td><td>+43$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-09-15</td><td>Variation</td><td>17:50 LONG @7647.75 (C)</td><td>16.25 נק׳</td><td>+46$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-15</td><td>Variation</td><td>19:05 LONG @7649.25 (C)</td><td>15 נק׳</td><td>+39$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-15</td><td>Variation</td><td>19:55 SHORT @7659.5 (C)</td><td>15 נק׳</td><td>+33$</td><td>LIVE</td><td>GHOST</td><td>+27$</td></tr>
+<tr><td>2026-09-15</td><td>Variation</td><td>20:25 LONG @7651 (C)</td><td>14.25 נק׳</td><td>+31$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-18</td><td>Neutral_Extreme</td><td>16:40 SHORT @7705 (A)</td><td>26.25 נק׳</td><td>+42$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+80$</td></tr>
+<tr><td>2026-09-18</td><td>Neutral_Extreme</td><td>17:40 LONG @7685.75 (C)</td><td>12 נק׳</td><td>+48$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-18</td><td>Neutral_Extreme</td><td>18:30 SHORT @7693.75 (C)</td><td>21.75 נק׳</td><td>+37$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-18</td><td>Neutral_Extreme</td><td>19:25 LONG @7683.25 (C)</td><td>40.75 נק׳</td><td>+33$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-18</td><td>Neutral_Extreme</td><td>22:30 LONG @7704.5 (D)</td><td>19.25 נק׳</td><td>+27$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-21</td><td>Variation</td><td>17:05 LONG @7771.5 (B)</td><td>25.75 נק׳</td><td>+37$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-09-21</td><td>Variation</td><td>17:45 LONG @7787.5 (C)</td><td>26.5 נק׳</td><td>+38$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-21</td><td>Variation</td><td>19:00 LONG @7808 (C)</td><td>22 נק׳</td><td>+30$</td><td>BLOCKED</td><td>entry_not_confirmed</td><td>+0$</td></tr>
+<tr><td>2026-09-21</td><td>Variation</td><td>20:40 LONG @7826.5 (C)</td><td>24.75 נק׳</td><td>+31$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-21</td><td>Variation</td><td>22:35 SHORT @7845.75 (D)</td><td>18.5 נק׳</td><td>+26$</td><td>BLOCKED</td><td>eod_entry_cutoff</td><td>+0$</td></tr>
+<tr><td>2026-09-22</td><td>Variation</td><td>16:35 SHORT @7846.25 (A)</td><td>15.5 נק׳</td><td>+45$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-22</td><td>Variation</td><td>17:10 SHORT @7840 (B)</td><td>19.25 נק׳</td><td>+45$</td><td>BLOCKED</td><td>dalton_intent:kind</td><td>+0$</td></tr>
+<tr><td>2026-09-22</td><td>Variation</td><td>17:50 SHORT @7832.75 (C)</td><td>13.25 נק׳</td><td>+48$</td><td>SHADOW_ONLY</td><td>ZLR</td><td>+0$</td></tr>
+<tr><td>2026-09-22</td><td>Variation</td><td>20:20 LONG @7828.5 (C)</td><td>13.25 נק׳</td><td>+23$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-22</td><td>Variation</td><td>21:55 LONG @7834 (D)</td><td>13.5 נק׳</td><td>+24$</td><td>BLOCKED</td><td>dalton_intent:stand_down</td><td>+0$</td></tr>
+<tr><td>2026-09-23</td><td>Variation</td><td>16:35 SHORT @7816.75 (A)</td><td>48.25 נק׳</td><td>+55$</td><td>LIVE</td><td>OPENING_DRIVE</td><td>+101$</td></tr>
+<tr><td>2026-09-23</td><td>Variation</td><td>17:50 SHORT @7798.75 (C)</td><td>42 נק׳</td><td>+58$</td><td>BLOCKED</td><td>dalton_intent:location</td><td>+0$</td></tr>
+<tr><td>2026-09-23</td><td>Variation</td><td>20:00 LONG @7762 (C)</td><td>15 נק׳</td><td>+35$</td><td>SHADOW_ONLY</td><td>CEILING_FLIP_TOUCH2</td><td>+0$</td></tr>
+<tr><td>2026-09-23</td><td>Variation</td><td>20:30 LONG @7770 (C)</td><td>20.5 נק׳</td><td>+42$</td><td>BLOCKED</td><td>dalton_intent:bias</td><td>+0$</td></tr>
+<tr><td>2026-09-23</td><td>Variation</td><td>21:55 SHORT @7777 (D)</td><td>17.25 נק׳</td><td>+33$</td><td>NO_PRODUCER</td><td></td><td>+0$</td></tr>
+</table></div></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class=""><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+<script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
+</script></body></html>

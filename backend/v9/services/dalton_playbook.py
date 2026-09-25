@@ -249,7 +249,16 @@ def evaluate_gate(setup: Dict[str, Any], it: Intent) -> Optional[Dict[str, str]]
         # vetoes only COUNTER-direction entries; WITH-bias entries pass.
         cfg = load_config()
         _kinds_policy = cfg.get("kinds_apply_to", "all")
-        if _kinds_policy == "counter_bias_only":
+        # T-473 (25.09, replay knob — env override, default = the YAML policy): "none" makes the
+        # kinds list advisory everywhere (bias + stand_down + location keep vetoing). Gate scorecard
+        # 25.09 on 58 sessions: dalton_intent:kind refused 292 candidates, 50% win, Σ+$2,889 at
+        # 1.5R — the most expensive gate in the chain; the day-total harness decides.
+        _env_policy = (os.getenv("DALTON_KINDS_APPLY_TO") or "").strip().lower()
+        if _env_policy in ("none", "counter_bias_only", "all"):
+            _kinds_policy = _env_policy
+        if _kinds_policy == "none":
+            pass  # advisory — never blocks
+        elif _kinds_policy == "counter_bias_only":
             # WITH a DIRECTIONAL bias → any kind allowed (Dalton: trade with the
             # drive). Under bias=BOTH the kinds list STILL applies — that is where
             # BREAK on rotation days loses (replay 09.09: −$392 / −$323 by rule).

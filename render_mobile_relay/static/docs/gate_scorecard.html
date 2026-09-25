@@ -1,0 +1,222 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>כרטיס-ציונים לשערים</title><style>
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
+.tags button:active{background:#30363d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
+.g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">כרטיס-ציונים לשערים<div class="sub">2026-09-25</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="progress.html"><span>📊</span><span>התקדמות</span><small>האם משתפר — לפי ענף וסוג-יום</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="whatworks.html"><span>🧪</span><span>מה עובד</span><small>כניסות · מיקום · יציאות — במספרים</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><a class="item" href="review.html"><span>🔎</span><span>סקירת-יום</span><small>מה היה צריך לצאת · מה המערכת ראתה</small></a><a class="item" href="review_report.html"><span>📑</span><span>דוח-ריפליי מסודר</span><small>כל הימים: מה היה צריך · מה לתקן</small></a><a class="item" href="tree_board.html"><span>🌲</span><span>לוח-העץ</span><small>הצורה · המספרים · הניצנים</small></a><a class="item" href="variation_playbook.html"><span>📗</span><span>פלייבוק-וריאציה</span><small>דרייב · תיקון-עצמי · כמה כסף (24.09)</small></a><a class="item" href="improvement.html"><span>📈</span><span>שיפור המערכת</span><small>לפני/אחרי התיקונים — כל הימים, יום-אחר-יום</small></a><a class="item" href="oracle_vs_engine.html"><span>🔭</span><span>הראייה-המלאה מול המנוע</span><small>246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם</small></a><a class="item on" href="gate_scorecard.html"><span>⚖️</span><span>כרטיס-ציונים לשערים</span><small>מה עשו המועמדים שכל שער סירב להם</small></a><a class="item" href="swing_turn.html"><span>🔄</span><span>מבחן סיבוב-הנדנדה</span><small>האם כלל סיבתי מזהה את הכניסות האידיאליות</small></a><a class="item" href="signatures.html"><span>🧬</span><span>מבחן-החתימות</span><small>מיקום · ווליום · נרות — כלל על כל בר</small></a><h3>ניהול</h3><a class="item" href="defects.html"><span>🩹</span><span>ליקויי-היומן</span><small>ספרים מול ברוקר — הרשימה והתיקונים</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h1>כרטיס-הציונים של השערים והמפיקים — 58 סשנים (2026-09-25)</h1>
+<p><b>השאלה:</b> מה עשו המועמדים שכל שער סירב להם, ומה עשו המועמדים שכל מפיק-צל הציע? כל מועמד מדומה על הברים עם הסטופ שלו ויעד 1.5R, חוזה 1, אחרי עמלות, <b>באופן בלתי-תלוי</b> (איכות-הדעה של השער, לא תיק). שער שהמועמדים-שסירב-להם מסתכמים <b>חיובי</b> עולה לנו כסף; שער שהם מסתכמים <b>שלילי</b> עושה את עבודתו.</p>
+<h2>1 · השערים</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>שער</th><th>מועמדים שנחסמו</th><th>win%</th><th>Σ$ אילו היו נלקחים</th><th>ממוצע/מועמד</th><th>פסק</th></tr>
+<tr><td>dalton_intent:kind</td><td>292</td><td>50%</td><td>+2,889$</td><td>+9.9$</td><td>❌ עולה כסף</td></tr>
+<tr><td>entry_not_confirmed</td><td>198</td><td>43%</td><td>+1,156$</td><td>+5.8$</td><td>❌ עולה כסף</td></tr>
+<tr><td>live_slot_occupied</td><td>72</td><td>53%</td><td>+983$</td><td>+13.7$</td><td>❌ עולה כסף</td></tr>
+<tr><td>rr_hard_floor</td><td>9</td><td>67%</td><td>+418$</td><td>+46.4$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>dalton_intent:bias</td><td>690</td><td>44%</td><td>+307$</td><td>+0.4$</td><td>❌ עולה כסף</td></tr>
+<tr><td>extreme_chase_guard</td><td>17</td><td>41%</td><td>+137$</td><td>+8.1$</td><td>❌ עולה כסף</td></tr>
+<tr><td>cont_trend_filter</td><td>1</td><td>100%</td><td>+114$</td><td>+113.7$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>duplicate_fire</td><td>9</td><td>44%</td><td>+9$</td><td>+0.9$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>pattern_stop_cooldown</td><td>2</td><td>50%</td><td>-18$</td><td>-8.9$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>cold_start_guard</td><td>1</td><td>0%</td><td>-25$</td><td>-25.1$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>rr_entry_gate</td><td>106</td><td>42%</td><td>-132$</td><td>-1.2$</td><td>✅ מגן</td></tr>
+<tr><td>session_gate_closed</td><td>14</td><td>14%</td><td>-268$</td><td>-19.2$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>structural_targets_wrong_side</td><td>10</td><td>0%</td><td>-469$</td><td>-46.9$</td><td>≈ ניטרלי / מדגם קטן</td></tr>
+<tr><td>eod_entry_cutoff</td><td>62</td><td>44%</td><td>-609$</td><td>-9.8$</td><td>✅ מגן</td></tr>
+<tr><td>entry_location_quality</td><td>175</td><td>43%</td><td>-1,183$</td><td>-6.8$</td><td>✅ מגן</td></tr>
+<tr><td>dalton_intent:location</td><td>316</td><td>38%</td><td>-2,999$</td><td>-9.5$</td><td>✅ מגן</td></tr>
+<tr><td>dalton_intent:stand_down</td><td>979</td><td>40%</td><td>-5,625$</td><td>-5.7$</td><td>✅ מגן</td></tr>
+</table></div>
+<h2>2 · מפיקי-הצל (מה שהם הציעו, בלתי-תלוי)</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מפיק-צל</th><th>מועמדים</th><th>win%</th><th>Σ$</th><th>ממוצע/מועמד</th></tr>
+<tr><td>ZLR</td><td>97</td><td>43%</td><td>+180$</td><td>+1.9$</td></tr>
+<tr><td>FAILED_BREAK_SHORT</td><td>5</td><td>40%</td><td>+8$</td><td>+1.7$</td></tr>
+<tr><td>VA_FADE_LONG</td><td>18</td><td>39%</td><td>-62$</td><td>-3.4$</td></tr>
+<tr><td>FAILED_BREAK_LONG</td><td>9</td><td>22%</td><td>-275$</td><td>-30.6$</td></tr>
+<tr><td>VA_FADE_SHORT</td><td>12</td><td>8%</td><td>-296$</td><td>-24.7$</td></tr>
+<tr><td>CEILING_FLIP_TOUCH2</td><td>455</td><td>37%</td><td>-2,205$</td><td>-4.8$</td></tr>
+</table></div>
+<h2>3 · מה שכן ירה לייב, לפי מפיק (אותו מודל-הערכה)</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מפיק</th><th>עסקאות</th><th>win%</th><th>Σ$</th></tr>
+<tr><td>OPENING_DRIVE</td><td>26</td><td>65%</td><td>+911$</td></tr>
+<tr><td>REACTIVE_SHORT</td><td>8</td><td>62%</td><td>+194$</td></tr>
+<tr><td>GHOST</td><td>8</td><td>50%</td><td>+183$</td></tr>
+<tr><td>BULL_FLAG_LONG</td><td>1</td><td>100%</td><td>+183$</td></tr>
+<tr><td>OPENING_TEST_DRIVE</td><td>3</td><td>67%</td><td>+124$</td></tr>
+<tr><td>OPENING_PULLBACK_CONT</td><td>1</td><td>100%</td><td>+110$</td></tr>
+<tr><td>HNS_TOP_SHORT</td><td>1</td><td>100%</td><td>+104$</td></tr>
+<tr><td>CEILING_FLIP_SHORT</td><td>29</td><td>38%</td><td>+77$</td></tr>
+<tr><td>REACTIVE_LONG</td><td>13</td><td>46%</td><td>+70$</td></tr>
+<tr><td>INITIATIVE_LONG</td><td>9</td><td>56%</td><td>-2$</td></tr>
+<tr><td>TREND_STEP</td><td>1</td><td>0%</td><td>-28$</td></tr>
+<tr><td>SCALE_IN</td><td>1</td><td>0%</td><td>-33$</td></tr>
+<tr><td>CONFLUENCE_RI_ZLR</td><td>1</td><td>0%</td><td>-38$</td></tr>
+<tr><td>DOUBLE_TOP_AA_SHORT</td><td>1</td><td>0%</td><td>-140$</td></tr>
+<tr><td>INITIATIVE_SHORT</td><td>4</td><td>25%</td><td>-160$</td></tr>
+<tr><td>DOUBLE_BOTTOM_EE_LONG</td><td>2</td><td>0%</td><td>-174$</td></tr>
+<tr><td>CEILING_FLIP_LONG</td><td>13</td><td>38%</td><td>-209$</td></tr>
+<tr><td>GB100</td><td>5</td><td>20%</td><td>-213$</td></tr>
+</table></div>
+<h2>4 · השערים לפי שלב וכיוון (איפה בדיוק השער טועה)</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>שער · שלב/כיוון</th><th>n</th><th>win%</th><th>Σ$</th></tr>
+<tr><td>dalton_intent:kind · B</td><td>288</td><td>50%</td><td>+2,732$</td></tr>
+<tr><td>entry_location_quality · B</td><td>36</td><td>56%</td><td>+624$</td></tr>
+<tr><td>entry_not_confirmed · C</td><td>170</td><td>41%</td><td>+588$</td></tr>
+<tr><td>live_slot_occupied · C</td><td>62</td><td>50%</td><td>+394$</td></tr>
+<tr><td>dalton_intent:stand_down · A</td><td>189</td><td>48%</td><td>+382$</td></tr>
+<tr><td>dalton_intent:bias · C</td><td>550</td><td>43%</td><td>+374$</td></tr>
+<tr><td>dalton_intent:stand_down · C</td><td>13</td><td>46%</td><td>+345$</td></tr>
+<tr><td>entry_not_confirmed · B</td><td>12</td><td>50%</td><td>+301$</td></tr>
+<tr><td>dalton_intent:bias · D</td><td>39</td><td>49%</td><td>+295$</td></tr>
+<tr><td>entry_not_confirmed · D</td><td>16</td><td>56%</td><td>+267$</td></tr>
+<tr><td>extreme_chase_guard · C</td><td>16</td><td>38%</td><td>+28$</td></tr>
+<tr><td>session_gate_closed · A</td><td>14</td><td>14%</td><td>-268$</td></tr>
+<tr><td>dalton_intent:bias · B</td><td>101</td><td>43%</td><td>-362$</td></tr>
+<tr><td>structural_targets_wrong_side · C</td><td>10</td><td>0%</td><td>-469$</td></tr>
+<tr><td>rr_entry_gate · C</td><td>96</td><td>39%</td><td>-482$</td></tr>
+<tr><td>eod_entry_cutoff · D</td><td>62</td><td>44%</td><td>-609$</td></tr>
+<tr><td>entry_location_quality · C</td><td>137</td><td>40%</td><td>-1,652$</td></tr>
+<tr><td>dalton_intent:location · C</td><td>313</td><td>37%</td><td>-3,302$</td></tr>
+<tr><td>dalton_intent:stand_down · D</td><td>777</td><td>37%</td><td>-6,351$</td></tr>
+<tr><td>dalton_intent:kind · SHORT</td><td>140</td><td>59%</td><td>+2,549$</td></tr>
+<tr><td>dalton_intent:bias · SHORT</td><td>356</td><td>49%</td><td>+2,463$</td></tr>
+<tr><td>entry_not_confirmed · SHORT</td><td>116</td><td>42%</td><td>+1,039$</td></tr>
+<tr><td>rr_entry_gate · SHORT</td><td>57</td><td>60%</td><td>+952$</td></tr>
+<tr><td>dalton_intent:location · SHORT</td><td>162</td><td>46%</td><td>+850$</td></tr>
+<tr><td>live_slot_occupied · SHORT</td><td>37</td><td>57%</td><td>+781$</td></tr>
+<tr><td>dalton_intent:kind · LONG</td><td>152</td><td>43%</td><td>+340$</td></tr>
+<tr><td>live_slot_occupied · LONG</td><td>35</td><td>49%</td><td>+202$</td></tr>
+<tr><td>entry_not_confirmed · LONG</td><td>82</td><td>44%</td><td>+117$</td></tr>
+<tr><td>dalton_intent:stand_down · SHORT</td><td>469</td><td>46%</td><td>-135$</td></tr>
+<tr><td>entry_location_quality · SHORT</td><td>85</td><td>47%</td><td>-161$</td></tr>
+<tr><td>extreme_chase_guard · SHORT</td><td>11</td><td>18%</td><td>-230$</td></tr>
+<tr><td>eod_entry_cutoff · SHORT</td><td>36</td><td>56%</td><td>-303$</td></tr>
+<tr><td>eod_entry_cutoff · LONG</td><td>26</td><td>27%</td><td>-306$</td></tr>
+<tr><td>session_gate_closed · SHORT</td><td>11</td><td>0%</td><td>-406$</td></tr>
+<tr><td>entry_location_quality · LONG</td><td>90</td><td>39%</td><td>-1,022$</td></tr>
+<tr><td>rr_entry_gate · LONG</td><td>49</td><td>22%</td><td>-1,084$</td></tr>
+<tr><td>dalton_intent:bias · LONG</td><td>334</td><td>38%</td><td>-2,155$</td></tr>
+<tr><td>dalton_intent:location · LONG</td><td>154</td><td>29%</td><td>-3,849$</td></tr>
+<tr><td>dalton_intent:stand_down · LONG</td><td>510</td><td>34%</td><td>-5,489$</td></tr>
+</table></div></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class=""><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+<script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
+</script></body></html>
