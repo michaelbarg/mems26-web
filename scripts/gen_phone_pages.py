@@ -344,6 +344,7 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("review_report.html", "📑", "דוח-ריפליי מסודר", "כל הימים: מה היה צריך · מה לתקן", "למידה"),
         ("tree_board.html", "🌲", "לוח-העץ", "הצורה · המספרים · הניצנים", "למידה"),
         ("tree_v3.html", "🌌", "עץ-ההחלטות V3", "סוג-פתיחה → שלב → סוג-יום → תבנית → נסיבות — שדה הכוכבים", "למידה"),
+        ("mark.html", "✍️", "קנבס-הסימון", "הברים והווליום של היום — סמן מה היית עושה; העץ לומד מזה", "למידה"),
         ("variation_playbook.html", "📗", "פלייבוק-וריאציה", "דרייב · תיקון-עצמי · כמה כסף (24.09)", "למידה"),
         ("improvement.html", "📈", "שיפור המערכת", "לפני/אחרי התיקונים — כל הימים, יום-אחר-יום", "למידה"),
         ("oracle_vs_engine.html", "🔭", "הראייה-המלאה מול המנוע", "246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם", "למידה"),
@@ -799,6 +800,112 @@ if os.path.exists(tbp) and os.path.exists(os.path.join(OUT, "data", "tree_board.
                    + "".join(f'<div class="line"><span class="ic">{"🌿" if x["kind"]=="live" else "🫧" if x["kind"]=="shadow" else "🌱"}</span><span><b>{html.escape(x["title"])}</b><br><span class="dim">{html.escape(x["body"])}</span></span></div>' for x in items) + '</div></div>')
     with open(os.path.join(OUT, "tree_board.html"), "w", encoding="utf-8") as fh:
         fh.write(shell("לוח-העץ", intro + frag + "".join(det), active="tree_board.html", sub=f'{c["live"]} ענפים · {c["shadow"]} צל · {c["bud"]} ניצנים'))
+
+# ── the marking canvas (Michael 25.09 13:40: "כל יום אקבל סביבת קנבס עם צילום של הברים עם הווליום … ואסמן
+# שם מה הייתי עושה ואיך היה צריך לסחור בדיעבד — ושגם אתם תעשו את זה — ואז נשפר את המערכת על סמך העבר ומה שסומן")
+# Per day: data/bars/<d>.json (5-min OHLCV + the day's trades + our marks = the day-review ideal entries +
+# what the gateway decided). mark.html?d=<d> draws candles + volume on a canvas; a finger/mouse drag draws a
+# long (yellow) or short (blue) mark with a note; saved to the relay (/marks) → scripts/mobile_relay.py pulls
+# it into docs/marks/<d>.json (git) → scripts/marks_vs_tree.py turns every mark into a tree question.
+os.makedirs(os.path.join(OUT, "data", "bars"), exist_ok=True)
+_RV_ALL = {}
+try:
+    _RV_ALL = json.load(open(os.path.join(OUT, "data", "review.json"), encoding="utf-8")).get("days", {})
+except Exception:
+    _RV_ALL = {}
+_MARKS_DIR = os.path.join(ROOT, "docs", "marks")
+for d in days:
+    bars = [b for b in by_day[d] if b["rth"]]
+    lv, sh, rs = day_summary(d)
+    ours = []
+    for lg in (_RV_ALL.get(d, {}) or {}).get("legs", []) or []:
+        idl = lg.get("ideal") or {}
+        if idl.get("time") and idl.get("price"):
+            ours.append({"dir": lg.get("dir"), "t0": idl["time"], "p0": idl["price"], "t1": lg.get("end"), "p1": lg.get("to_px"),
+                         "note": f'{lg.get("pts")} נק׳ · {lg.get("verdict")} · {idl.get("desc", "")[:80]}', "author": "oracle"})
+    saved = []
+    _mp = os.path.join(_MARKS_DIR, f"{d}.json")
+    if os.path.exists(_mp):
+        try:
+            saved = json.load(open(_mp, encoding="utf-8")).get("marks", [])
+        except Exception:
+            saved = []
+    meta = dth.get(d, {})
+    json.dump({"date": d, "day_type": meta.get("day_type"), "opening_type": meta.get("opening_type"),
+               "ib": [meta.get("ib_low"), meta.get("ib_high")],
+               "bars": [[b["il"].strftime("%H:%M"), b["o"], b["h"], b["l"], b["c"], b["v"]] for b in bars],
+               "trades": [{"id": r["id"], "mode": r["mode"], "dir": r["dir"], "t": r["time"], "e": r["entry"], "x": r["exit"], "xt": r["exit_time"], "pnl": r["pnl"], "pat": r["pat"]} for r in rs if r["mode"] in ("live", "demo")],
+               "ours": ours, "saved": saved},
+              open(os.path.join(OUT, "data", "bars", f"{d}.json"), "w"), ensure_ascii=False, default=str)
+_mark_days = "".join(f'<span class="chip" data-d="{d}">{d[8:]}.{d[5:7]}</span>' for d in reversed(days))
+_mark_body = ('<h1>קנבס-הסימון</h1><div class="dim">הברים והווליום של היום. <b>לונג</b> (צהוב) / <b>שורט</b> (כחול) ואז גרירה על הגרף מנקודת-הכניסה לנקודת-היציאה = סימון; '
+              'הערה אופציונלית; <b>שמור</b> שולח למערכת (נשמר ב-git תוך דקה). ירוק = הסימונים שלנו (הכניסה האידיאלית מסקירת-היום) · לבן = מה שהמערכת באמת סחרה. '
+              'כל סימון שלך הופך לשאלה לעץ: איזה ענף היה צריך לקחת אותו, ומה חסם.</div>'
+              f'<div class="chips" id="mdays">{_mark_days}</div>'
+              '<div class="chips"><span class="chip on" id="mlong" onclick="setTool(\'LONG\')">▲ לונג</span><span class="chip" id="mshort" onclick="setTool(\'SHORT\')">▼ שורט</span>'
+              '<span class="chip" id="mdel" onclick="setTool(\'DEL\')">✕ מחיקה</span><span class="chip" id="mours" onclick="toggleOurs()">שלנו ✓</span><span class="chip" id="mtrades" onclick="toggleTrades()">עסקאות ✓</span></div>'
+              '<div id="mwrap" style="position:relative;touch-action:none;background:#0b0e14;border:1px solid var(--line);border-radius:12px;overflow:hidden"><canvas id="mc" style="display:block;width:100%"></canvas></div>'
+              '<div class="dim" id="mhint" style="margin:6px 0">גרור על הגרף כדי לסמן.</div>'
+              '<div id="mlist"></div>'
+              '<div style="display:flex;gap:8px;margin:8px 0"><input id="mnote" placeholder="הערה לסימון האחרון (למה, מה ראית)" style="flex:1;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:6px 10px;font-size:15px">'
+              '<button id="msave" onclick="saveMarks()" style="min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #2ea043;background:#1a2e1f;color:#3fb950;font-weight:700;font-size:15px">שמור</button></div>'
+              '<div class="dim" id="mstatus"></div>')
+_mark_js = r"""<script>
+const MQ=new URLSearchParams(location.search); const MKEY=MQ.get('key')||''; let DAY=MQ.get('d')||(document.querySelector('#mdays .chip')||{}).dataset?.d||'';
+let D=null, marks=[], tool='LONG', showOurs=true, showTrades=true, drag=null, hover=null;
+const cv=document.getElementById('mc'); const ctx=cv.getContext('2d'); const wrap=document.getElementById('mwrap');
+document.querySelectorAll('#mdays .chip').forEach(c=>{c.classList.toggle('on',c.dataset.d===DAY); c.onclick=()=>{DAY=c.dataset.d; document.querySelectorAll('#mdays .chip').forEach(x=>x.classList.toggle('on',x===c)); load();};});
+function setTool(t){tool=t; ['mlong','mshort','mdel'].forEach(id=>document.getElementById(id).classList.remove('on')); document.getElementById({LONG:'mlong',SHORT:'mshort',DEL:'mdel'}[t]).classList.add('on');}
+function toggleOurs(){showOurs=!showOurs; document.getElementById('mours').classList.toggle('on',showOurs); draw();}
+function toggleTrades(){showTrades=!showTrades; document.getElementById('mtrades').classList.toggle('on',showTrades); draw();}
+async function load(){ document.getElementById('mstatus').textContent=''; marks=[];
+  try{ const r=await fetch('data/bars/'+DAY+'.json?'+Date.now()); D=await r.json(); }catch(e){ D=null; ctx.clearRect(0,0,cv.width,cv.height); document.getElementById('mhint').textContent='אין ברים ליום '+DAY; return; }
+  marks=(D.saved||[]).filter(m=>m.author==='michael').map(m=>Object.assign({},m,{saved:true}));
+  try{ const r=await fetch('/marks?date='+DAY+'&key='+encodeURIComponent(MKEY),{cache:'no-store'}); if(r.ok){ const j=await r.json(); (j.items||[]).forEach(it=>(it.marks||[]).forEach(m=>{ if(!marks.some(x=>x.t0===m.t0&&x.p0===m.p0&&x.dir===m.dir)) marks.push(Object.assign({},m,{pending:true})); })); } }catch(e){}
+  document.getElementById('mhint').textContent=D.bars.length+' ברים · '+(D.day_type||'?')+' · פתיחה '+(D.opening_type||'?')+' · '+((D.ours||[]).length)+' סימונים שלנו · '+((D.trades||[]).length)+' עסקאות';
+  draw(); list(); }
+let G={};
+function layout(){ const w=wrap.clientWidth||360; const h=Math.max(300,Math.min(520,Math.round(w*0.9))); cv.width=w*devicePixelRatio; cv.height=h*devicePixelRatio; cv.style.height=h+'px'; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const bars=D.bars; const n=bars.length; const padL=6,padR=46,padT=8,padB=18,volH=Math.round(h*0.16); const pw=w-padL-padR, ph=h-padT-padB-volH-6;
+  let hi=-1e9,lo=1e9,vmax=1; bars.forEach(b=>{hi=Math.max(hi,b[2]);lo=Math.min(lo,b[3]);vmax=Math.max(vmax,b[5]||0);});
+  const range=(hi-lo)||1; G={w,h,n,padL,padR,padT,padB,volH,pw,ph,hi,lo,vmax,bw:pw/n};
+  G.x=i=>padL+(i+0.5)*G.bw; G.y=p=>padT+(hi-p)/range*ph; G.py=y=>hi-(y-padT)/ph*range; G.pi=x=>Math.max(0,Math.min(n-1,Math.floor((x-padL)/G.bw))); G.vy=v=>h-padB-(v/vmax)*volH; }
+function tidx(t){ return D.bars.findIndex(b=>b[0]===t); }
+function draw(){ if(!D) return; layout(); const {w,h,n,padT,padB,volH,hi,lo}=G; ctx.clearRect(0,0,w,h);
+  // grid + price labels
+  ctx.font='10px ui-monospace,monospace'; ctx.fillStyle='#4b5563'; ctx.strokeStyle='#1f2937';
+  for(let k=0;k<=4;k++){ const p=lo+(hi-lo)*k/4, y=G.y(p); ctx.beginPath(); ctx.moveTo(G.padL,y); ctx.lineTo(w-G.padR,y); ctx.stroke(); ctx.fillText(p.toFixed(2),w-G.padR+4,y+3); }
+  // IB
+  if(D.ib&&D.ib[0]&&D.ib[1]){ ctx.fillStyle='rgba(88,166,255,0.07)'; const y1=G.y(D.ib[1]),y2=G.y(D.ib[0]); ctx.fillRect(G.padL,y1,G.pw,y2-y1); }
+  // volume + candles
+  D.bars.forEach((b,i)=>{ const x=G.x(i); const up=b[4]>=b[1]; ctx.fillStyle=up?'rgba(63,185,80,0.35)':'rgba(248,81,73,0.35)'; ctx.fillRect(x-G.bw*0.4,G.vy(b[5]||0),G.bw*0.8,h-padB-G.vy(b[5]||0));
+    ctx.strokeStyle=up?'#3fb950':'#f85149'; ctx.fillStyle=up?'#3fb950':'#f85149'; ctx.beginPath(); ctx.moveTo(x,G.y(b[2])); ctx.lineTo(x,G.y(b[3])); ctx.stroke();
+    const yo=G.y(b[1]),yc=G.y(b[4]); ctx.fillRect(x-Math.max(1,G.bw*0.35),Math.min(yo,yc),Math.max(2,G.bw*0.7),Math.max(1,Math.abs(yc-yo))); });
+  // time labels
+  ctx.fillStyle='#6b7280'; for(let i=0;i<n;i+=Math.max(1,Math.round(n/7))){ ctx.fillText(D.bars[i][0],Math.max(2,G.x(i)-14),h-4); }
+  // ours (green) + trades (white) + michael (yellow/blue)
+  const seg=(m,col,dash,lbl)=>{ const i0=tidx(m.t0), i1=m.t1?tidx(m.t1):-1; if(i0<0) return; const x0=G.x(i0),y0=G.y(+m.p0); const x1=i1>=0?G.x(i1):x0+40, y1=(m.p1!=null&&i1>=0)?G.y(+m.p1):y0;
+    ctx.save(); ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=2.5; if(dash) ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(x0,y0,4.5,0,7); ctx.fill(); if(lbl){ ctx.font='bold 11px sans-serif'; ctx.fillText(lbl,x0+6,y0-6);} ctx.restore(); };
+  if(showOurs) (D.ours||[]).forEach((m,k)=>seg(m,'#3fb950',true,'ש'+(k+1)));
+  if(showTrades) (D.trades||[]).forEach(t=>seg({t0:t.t,p0:t.e,t1:t.xt,p1:t.x},'#e6edf3',false,(t.dir==='LONG'?'▲':'▼')+'#'+t.id));
+  marks.forEach((m,k)=>seg(m,m.dir==='LONG'?'#facc15':'#58a6ff',!!m.pending,(m.dir==='LONG'?'L':'S')+(k+1)));
+  if(drag){ ctx.save(); ctx.strokeStyle=tool==='LONG'?'#facc15':'#58a6ff'; ctx.lineWidth=2; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(drag.x0,drag.y0); ctx.lineTo(drag.x1,drag.y1); ctx.stroke(); ctx.restore(); }
+}
+function pos(ev){ const r=cv.getBoundingClientRect(); const p=ev.touches?ev.touches[0]:ev; return {x:p.clientX-r.left,y:p.clientY-r.top}; }
+cv.addEventListener('pointerdown',ev=>{ if(!D) return; const p=pos(ev); if(tool==='DEL'){ const i=G.pi(p.x); const t=D.bars[i][0]; const k=marks.findIndex(m=>Math.abs(tidx(m.t0)-i)<=1&&Math.abs(G.y(+m.p0)-p.y)<18); if(k>=0){ marks.splice(k,1); draw(); list(); } return; } drag={x0:p.x,y0:p.y,x1:p.x,y1:p.y}; cv.setPointerCapture(ev.pointerId); });
+cv.addEventListener('pointermove',ev=>{ if(!drag) return; const p=pos(ev); drag.x1=p.x; drag.y1=p.y; draw(); });
+cv.addEventListener('pointerup',ev=>{ if(!drag) return; const p=pos(ev); const i0=G.pi(drag.x0), i1=G.pi(p.x); const m={dir:tool,t0:D.bars[i0][0],p0:+G.py(drag.y0).toFixed(2),t1:D.bars[Math.max(i0,i1)][0],p1:+G.py(p.y).toFixed(2),note:'',author:'michael',ts:new Date().toISOString()};
+  if(Math.abs(p.x-drag.x0)>4||Math.abs(p.y-drag.y0)>4){ marks.push(m); } drag=null; draw(); list(); });
+function list(){ const el=document.getElementById('mlist'); if(!marks.length){ el.innerHTML='<div class="dim">אין סימונים עדיין ליום זה.</div>'; return; }
+  el.innerHTML=marks.map((m,k)=>'<div class="line"><span class="ic" style="color:'+(m.dir==='LONG'?'#facc15':'#58a6ff')+'">'+(m.dir==='LONG'?'▲':'▼')+'</span><span><b>'+(m.dir==='LONG'?'לונג':'שורט')+' '+(k+1)+'</b> · '+m.t0+' @'+m.p0+(m.t1?' → '+m.t1+' @'+m.p1:'')+' · <span class="num">'+((m.dir==='LONG'?(m.p1-m.p0):(m.p0-m.p1))||0).toFixed(2)+' נק׳</span>'+(m.saved?' <span class="dim">✓ שמור</span>':m.pending?' <span class="dim">⏳ ממתין למשיכה</span>':' <span style="color:var(--am)">חדש</span>')+(m.note?'<br><span class="dim">'+m.note+'</span>':'')+'</span></div>').join(''); }
+document.getElementById('mnote').addEventListener('change',e=>{ if(marks.length){ marks[marks.length-1].note=e.target.value; list(); } });
+async function saveMarks(){ const st=document.getElementById('mstatus'); const fresh=marks.filter(m=>!m.saved&&!m.pending); if(!fresh.length){ st.textContent='אין סימונים חדשים לשמירה.'; return; }
+  st.textContent='שולח…'; try{ const r=await fetch('/marks?key='+encodeURIComponent(MKEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:DAY,author:'michael',marks:fresh})}); const j=await r.json(); if(r.ok&&j.ok){ fresh.forEach(m=>m.pending=true); st.textContent='נשמר ✓ ('+fresh.length+') — המערכת מושכת תוך דקה; ריפליי-הענפים בלילה.'; list(); draw(); } else st.textContent='שגיאה: '+(j.detail||r.status); }catch(e){ st.textContent='שגיאה: '+e; } }
+window.addEventListener('resize',draw); load();
+</script>"""
+with open(os.path.join(OUT, "mark.html"), "w", encoding="utf-8") as fh:
+    fh.write(shell("קנבס-הסימון", _mark_body, extra_js=_mark_js, active="mark.html", sub=f"{len(days)} ימים · לונג צהוב · שורט כחול · שלנו ירוק"))
 
 # ── DECISION_TREE_V3 board (Michael 25.09: "ממש צריך להיות עץ!" + 24.09: "שדה נוירונים/כוכבים שאראה איך הענפים גדלים") ──
 t3p = os.path.join(OUT, "data", "tree_v3.json")

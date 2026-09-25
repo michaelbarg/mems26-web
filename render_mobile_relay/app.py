@@ -214,6 +214,72 @@ async def post_instruction(request: Request):
     return {"ok": True, "item": item}
 
 
+# ── T-480 marks (Michael 25.09: "סביבת קנבס … ואסמן שם מה הייתי עושה"): the marking canvas
+# (/doc/mark.html) posts his long/short marks per day; the Mac relay pulls them (like instructions)
+# into docs/marks/<date>.json — the durable record. In-memory here, like the inbox.
+_MARKS = {"items": [], "max_items": 200}
+
+
+@app.post("/marks")
+async def post_marks(request: Request):
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+        assert isinstance(body, dict)
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    date = str(body.get("date") or "").strip()
+    marks = body.get("marks") or []
+    if len(date) != 10 or not isinstance(marks, list) or not marks or len(marks) > 50:
+        raise HTTPException(status_code=400, detail="date (YYYY-MM-DD) + 1..50 marks required")
+    clean = []
+    for m in marks:
+        if not isinstance(m, dict) or m.get("dir") not in ("LONG", "SHORT") or not m.get("t0"):
+            continue
+        clean.append({k: m.get(k) for k in ("dir", "t0", "p0", "t1", "p1", "note", "ts") if m.get(k) is not None})
+    if not clean:
+        raise HTTPException(status_code=400, detail="no valid marks")
+    import uuid
+    item = {"id": str(uuid.uuid4())[:8], "date": date, "author": str(body.get("author") or "michael")[:24],
+            "marks": clean, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ"), "status": "received"}
+    _MARKS["items"].append(item)
+    if len(_MARKS["items"]) > _MARKS["max_items"]:
+        _MARKS["items"] = _MARKS["items"][-_MARKS["max_items"]:]
+    return {"ok": True, "item": item}
+
+
+@app.get("/marks")
+async def get_marks(request: Request):
+    """The canvas page: everything this relay still holds for a date (the durable copy is in the static data)."""
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    date = (request.query_params.get("date") or "").strip()
+    return {"items": [i for i in _MARKS["items"] if (not date or i["date"] == date)]}
+
+
+@app.get("/marks/pending")
+async def get_marks_pending(request: Request):
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    return {"items": [i for i in _MARKS["items"] if i["status"] != "done"]}
+
+
+@app.post("/marks/status")
+async def post_marks_status(request: Request):
+    if not _page_key_ok(request):
+        raise HTTPException(status_code=401, detail="auth required")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON body required")
+    for i in _MARKS["items"]:
+        if i["id"] == body.get("id"):
+            i["status"] = str(body.get("status") or "done")
+            return {"ok": True}
+    raise HTTPException(status_code=404, detail="unknown id")
+
+
 @app.get("/instruction/pending")
 async def get_instructions_pending(request: Request):
     """Local relay polls: returns items with status != 'done'."""

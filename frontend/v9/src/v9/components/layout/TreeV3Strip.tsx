@@ -56,7 +56,7 @@ export function TreeV3Strip() {
   }, []);
 
   const modeColor = st?.mode === 'on' ? '#16a34a' : st?.mode === 'shadow' ? '#3b82f6' : '#525252';
-  const modeLabel = st?.mode === 'on' ? 'העץ מחליט' : st?.mode === 'shadow' ? 'העץ בצל' : 'העץ כבוי';
+  const modeLabel = !st ? 'העץ — מתחבר…' : st.mode === 'on' ? 'העץ מחליט' : st.mode === 'shadow' ? 'העץ בצל' : 'העץ כבוי';
   const recent = (st?.recent || []).slice(0, open ? 12 : 3);
 
   return (

@@ -203,6 +203,44 @@ def _poll_instructions(access_key, render):
         print(f"[relay] instr poll: {str(e)[:80]}", flush=True)
 
 
+def _poll_marks(access_key, render):
+    """T-480 (Michael 25.09): pull the marks he drew on the canvas (/doc/mark.html) into
+    docs/marks/<date>.json — the durable record every learning script reads. Same protocol as
+    instructions: pending → merge (dedup by item id) → mark done on Render. Never raises."""
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        mdir = os.path.join(root, "docs", "marks")
+        with urllib.request.urlopen(f"{render}/marks/pending?key={access_key}", timeout=8) as r:
+            items = json.loads(r.read().decode()).get("items", [])
+        if not items:
+            return
+        os.makedirs(mdir, exist_ok=True)
+        for it in items:
+            iid, date = it.get("id"), str(it.get("date") or "")
+            if not iid or len(date) != 10:
+                continue
+            p = os.path.join(mdir, f"{date}.json")
+            doc = {"date": date, "marks": []}
+            if os.path.isfile(p):
+                try:
+                    doc = json.load(open(p, encoding="utf-8"))
+                except Exception:
+                    doc = {"date": date, "marks": []}
+            if not any(m.get("item_id") == iid for m in doc.get("marks", [])):
+                for m in it.get("marks", []):
+                    doc.setdefault("marks", []).append(dict(m, author=it.get("author") or "michael",
+                                                          item_id=iid, received=it.get("ts")))
+                with open(p, "w", encoding="utf-8") as f:
+                    json.dump(doc, f, ensure_ascii=False, indent=1)
+                print(f"[relay] marks {iid} → docs/marks/{date}.json (+{len(it.get('marks', []))})", flush=True)
+            body = json.dumps({"id": iid, "status": "done"}).encode()
+            req = urllib.request.Request(f"{render}/marks/status?key={access_key}", data=body,
+                                         headers={"Content-Type": "application/json"}, method="POST")
+            urllib.request.urlopen(req, timeout=8)
+    except Exception as e:
+        print(f"[relay] marks poll: {str(e)[:80]}", flush=True)
+
+
 def _poll_uploads(access_key, render):
     """Pull Michael's phone file/image uploads to durable storage + thread.
 
@@ -466,6 +504,7 @@ def main() -> None:
                 print("[relay] idle cmd poll FAILED: %s" % str(_ce)[:90], flush=True)
             try:
                 _poll_instructions(access_key, render)
+                _poll_marks(access_key, render)
                 _push_chat_thread(push_key, render)
             except Exception as _ie:
                 print("[relay] idle chat/instr: %s" % str(_ie)[:90], flush=True)
@@ -475,6 +514,7 @@ def main() -> None:
         try:
             _push_snapshot(access_key, push_key, render)
             _poll_instructions(access_key, render)
+            _poll_marks(access_key, render)
             _poll_uploads(access_key, render)
             _push_chat_thread(push_key, render)
             if fails:
