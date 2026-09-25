@@ -1,3 +1,107 @@
+## 🟢 [cowork-dev · 2026-09-25 22:34-22:55 IL] — **ריצה 26 · חובה-1 + חובה-3** · 🔑 **הממצא: `#2408` משחזרת את [[T-385]] חיה, ובראיה הנקייה ביותר שהייתה לו — כל פער ה-$2.50 בין `pnl_usd 70` ל-`pnl_sierra 72.50` הוא חצי-נקודה אחת במחיר-הכניסה, ומחיר-היציאה זהה בשני המקורות.**
+
+`22:34` ⇒ **לא שער** · בתוך RTH (`16:30-23:00`) · אפס דגל · אפס `.env` · אפס נגיעה בפוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `9ec0c132`.
+
+### חובה-1 · טלפון ⇒ **(א) אין · (ב) נשלחה · (ג) אין · (ד) לא שער**
+
+```raw
+$ launchctl print gui/$UID/com.mems26.mobile_relay | grep -E "state|pid"
+	state = running
+	pid = 87365                              ⇒ מלכודת 12 עוברת: הרלה חי, ולכן "אין ממתינות" הוא נתון
+$ curl -s "$RENDER_MOBILE_URL/instruction/pending?key=***"
+{"items":[]}
+```
+
+אחרונת-מייקל `12:07:30Z` ("למה העץ שלי כבוי?") — **נענתה עניינית** `12:17:53Z` ע"י ריצה קודמת; כל מה שאחריה בפיד הוא סוכן. ⇒ **אין (א).**
+
+### חובה-3 · ניטור-RTH ⇒ הכול חי
+
+```raw
+$ psql -c "select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,2) from v9_bars_5min_woodies;"
+2026-09-25 22:35:00+03 | 0.49          ⇒ T-430 עובר: פיד חי, לא "קובץ-יצוא טרי"
+$ curl -o /dev/null -w "http=%{http_code} t=%{time_total}" localhost:8000/api/v9/health
+http=200 t=0.002946s
+$ python3 scripts/flag_guard.py | tail -3
+FLAG-GUARD: PASS — all 270 ruled flags match.
+  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+$ set -a; . ./.env; set +a; python3 -c "…ruled_contracts()…"
+ruled_contracts() = 1 | FIXED_CONTRACTS_2 = 0    ⇒ [[T-489]]: חייב source ל-.env; תואם qty-ברוקר 1
+$ ps -o pid,lstart -p $(lsof -ti tcp:8000 -sTCP:LISTEN)
+11167 Fri Sep 25 19:15:31 2026                   ⇒ אותו מאזין של ריצות 20-25 ⇒ אפס ריסטארט
+$ psql -c "select count(*), max(ts) from v9_shadow_ledger where ts >= now()-interval '20 minutes';"
+12 | 2026-09-25 22:30:11                          ⇒ הליגר כותב
+$ grep -a ERROR /tmp/backend.err.log | tail -1
+2026-09-25 17:05:02 … on_bar error: Invalid transition: CLOSED -> CLOSED   ⇒ [[T-463]] הידוע; 5.5 שעות בלי ERROR חדש
+```
+
+### (ב) · `#2408` נסגרה ברווח — העסקה החיה הראשונה של העץ
+
+```raw
+$ psql -x -c "select … from v9_trades where id=2408;"
+state=CLOSED  entry_ts 19:25:10  entry_price 7795.25  stop 7789.25  t1 7809.25
+t1_hit_ts 22:45:10  exit_ts 22:45:10  exit_price 7809.25  exit_reason T1_HIT
+pnl_usd 70   pnl_r 1.6   outcome WIN   pnl_sierra 72.5
+$ grep "trade 2408" /tmp/backend.err.log | tail -4
+22:45:11 [fill_poller] fill: kind=T1 order=11345 trade=2408 price=7809.25
+22:45:12 [TradeManager] Smart BE+1T after T1: trade 2408 stop 7786.50 -> 7789.25
+22:45:12 [fill_poller] notified gateway: trade 2408 closed (T1)
+22:46:41 [fill_poller] T-436 pnl_sierra=72.50 attributed post-hoc to trade 2408 (1 leg)
+$ strings TradeActivityLog_2026-09-25_UTC.*.data | grep "Updated Internal Position Quantity" | tail -1
+Updated Internal Position Quantity to 0. Previous: 1. Fill of InternalOrderID: 11345
+```
+
+**בעלות מוכחת לפי `order_id`, לא לפי הפרש-כמות** (מלכודת 16): ההורה `11344` פתח, והילד `11345` — רגל-ה-T1 של ה-OCO המצורף — סגר. פוזיציה `0`. הודעת-טלפון אחת (מקרה ב) נשלחה ואומתה ב-`GET /chat` ולא ב-`ok`: `2026-09-25T19:47:29Z`, **עותק יחיד** (הפעם בלי כפילות [[T-488]]).
+
+### 🔑 הממצא — `#2408` היא מקרה-המבחן הנקי של [[T-385]]
+
+הספרים רשמו `entry_price = 7795.25`. זה **בדיוק** מחיר-האות:
+
+```raw
+$ grep "^2026-09-25 19:25" /tmp/backend.err.log | grep DOUBLE_BOTTOM_EE_LONG
+19:25:06 [S2] T1Setup emitted: DOUBLE_BOTTOM_EE_LONG LONG entry=7795.25 …
+19:25:06 [Gateway] TREE_V3 DOUBLE_BOTTOM_EE_LONG LONG 7795.25 → TAKE
+19:25:09 [FillPoller] ENTRY fill: trade 2408 @ 7795.25      ← ה-FillPoller חוזר על אותו מספר
+```
+
+הברוקר חולק. הגזירה נסגרת לתו, ובלי להסתמך על קריאת-מסך של ריצה אחרת:
+`pnl_sierra 72.50 ÷ $5/נק' = 14.5pt`; `exit 7809.25 − 14.5 = **7794.75**` — בדיוק ה-`avg 7794.75` שריצה 25 קראה מהברוקר בזמן-אמת, ובדיוק ה-`7794.75` שהודעת-הפתיחה של `19:39` דיווחה למייקל. ⇒ **הודעת-הטלפון צדקה; הספרים הם שטועים.** מחיר-היציאה `7809.25` זהה בשני המקורות, החוזה אחד, ולכן **כל** הפער `pnl_usd 70 → pnl_sierra 72.50` הוא אותה חצי-נקודה בכניסה. זהו בדיוק השורש ש-[[T-385]] ניסח ב-`#1647` (*"הספרים רשמו את מחיר-האות כמחיר-המילוי"*) — כאן בלי שום גורם מתחרה לבלבל.
+
+**וההשלכה גדולה מ-$2.50:** ‏`pnl_r` מחושב מהכניסה השגויה, כלומר **ה-R של כל עסקת-לייב הוא מדידה על מחיר שלא נסחר**. היום הפער היטיב איתנו; על ההיסטוריה הוא לא:
+
+```raw
+$ psql -c "select id, pnl_usd, pnl_sierra, pnl_sierra-pnl_usd delta from v9_trades
+           where mode='live' and state='CLOSED' and pnl_sierra is not null order by entry_ts desc limit 14;"
+2408 +2.50 | 2340 −1.25 | 2230 +2.50 | 2152 −6.25 | 2140 −2.50 | 2076 −3.75 | 2072 −2.50
+2047 +1.25 | 2041 −7.50 | 2033 −6.25 | 2029 −1.25 | 2017 −8.75            ⇒ סכום −33.75$ על 12 עסקאות
+```
+
+**9 מתוך 12 לרעתנו, נטו −$33.75 ≈ −$2.81 לעסקה** — על בסיס של `+21$/סשן`, זה אינו רעש. ⚠️ **לא נטען שזו כולה אותה סיבה** — [[T-256]] כבר הראה שפער-יום יכול להיות נטו של שתי שגיאות מנוגדות, ו-`delta` חיובי בשלוש עסקאות אומר שיש כאן יותר מגורם אחד. **הצעד-הבא נרשם ב-[[T-385]]:** מקרה-ריפליי `#2408` (הנקי) + פירוק ה-12 ל-`entry_price` מול `exit_price` בנפרד — **מספר, לא דגל** (`LEARNING_DOCTRINE` 09.09: תקרית ⇒ מקרה-ריפליי).
+
+### EOD · שני הדגלים היו דרוכים ולא נדרשו
+
+`EOD_CLOSE_T10_V1 = 1` (FLATTEN ב-`22:50`, פסיקת-מייקל 24.08) ו-`EOD_FLATTEN_V1 = 1` (‏`≥15:59 ET`, נתיב I-62: `write_cancel` ולא סימון-CLOSED) — **שניהם `PASS` ב-flag_guard**. הועמד שומר-רקע על `#2408` כי פוזיציה פתוחה ב**שישי** נכנסת לפער-סופ"ש. **לא נדרשו:** T1 סגר `22:45:10`, חמש דקות לפני `EOD_CLOSE_T10` ורבע-שעה לפני חלון-הפלאט. `grep "EOD FLATTEN" ⇒ 0`, כצפוי.
+
+### ⚠️ WARN · המכונה מחליפה-זיכרון, והמגמה מחמירה
+
+```raw
+$ python3 scripts/machine_health.py
+load 1/5/15: 26.32/18.94/14.43  (cores 8)
+swap: total = 11264.00M  used = 10583.50M  free = 680.50M
+top: 2332MB Virtualization.VirtualMachine (up 2d14h) · 638MB mds_stores cpu 19.0% · 4×Chrome Renderer
+trading stack: backend n=1 rss 128 MB cpu 31.8%
+```
+
+ריצה 23 מדדה `swap 9.2GB`; עכשיו `10.58GB` מתוך `11.26GB` — **680MB פנויים**. הצרכנים אינם המסחר (הבקאנד עצמו `128MB`). WARN-בלבד, לא חוסם, לא נגעתי. מצטרף ל-[[T-416]].
+
+### ↻ תיקון-עצמי (Rule 2) · כמעט רשמתי את הממצא הפוך
+
+הקריאה הראשונה שלי הייתה *"הודעת-הטלפון טעתה ב-2 טיקים מול הספרים"*, והייתי פותח על כך `T-491` חדש. מה שעצר: `TASK_LOG` של ריצה 25 החזיק `ברוקר … avg 7794.75` — כלומר **הספרים הם החריג, לא ההודעה**, וזה [[T-385]] הפתוח ולא פריט חדש. שתי הטעויות שנמנעו הן אותה טעות: **לקחתי את ה-DB כאמת-הייחוס מול הברוקר.** הכלל שהחזיק — `TASK_LOG` נקרא לפני מסקנה מבצעית, לא רק בתחילת סשן (מלכודת 16), והפעם הוא מנע גם **פריט-כפול** וגם **הפניית-אצבע לכיוון ההפוך**.
+
+### הערת-שיטה · `nohup … &` לא שורד את סיום-קריאת-Desktop-Commander
+
+השומר הראשון מת אחרי `4:27` דק' (`WATCH-END 22:45:26` מול `seq 1 60 × sleep 30 = 30` דק') — קליפת `start_process` הורגת את קבוצת-התהליכים בסיום הקריאה. מי שצריך שומר שחי מעבר לקריאה אחת: `os.fork()` + `os.setsid()` ואז `Popen` — אומת, השומר השני תפס את הסגירה ב-`22:46:04`. רלוונטי לכל ניטור-רקע בריצות הבאות.
+
+---
 ## 🟢 [cowork-dev · 2026-09-25 22:04-22:15 IL] — **ריצה 25 · חובה-1 + חובה-3** · 🔑 **הממצא: `select ts::time(0), … order by ts desc limit N` מחזיר שורה מלפני יומיים ומציג אותה בלי תאריך — ה-`ORDER BY` נקשר לעמודת-הפלט המקוסטת, ולכן ממיין לפי שעה-ביום.**
 
 `22:04` ⇒ **לא שער** · בתוך RTH (`16:30-23:00`) · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `9a71c7a6`.
