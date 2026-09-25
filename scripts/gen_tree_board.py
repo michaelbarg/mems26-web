@@ -9,10 +9,15 @@ stop/target rule). Around the live rows the board shows the growth rings:
   · solid boxes   = live rules (config/dalton_playbook.yaml) with what they DID in the last N sessions:
                     setups seen · blocked by this rule · fired live (+ broker P&L)
   · dashed boxes  = v2-draft rows measured in shadow (config/dalton_tree_v2_draft.yaml, TREE_SHADOW)
-  · dotted "buds" = candidates the daily exam produced (data/review_report.json) — a bud that repeats
+  · dotted "buds" = candidates the daily exam produced (…/static/docs/data/review_report.json) — repeats
                     ≥3 days goes to replay; a replay that wins becomes a dashed row; a ruling makes it solid.
-Regenerated at EOD after day_review + review_report. Read-only. Output: data/tree_board.json +
-data/tree_board.html (SVG fragment wrapped by gen_phone_pages.py into tree_board.html).
+Regenerated at EOD after day_review + review_report. Read-only. Output (T-473, 25.09 — the real
+paths; the docstring used to say a bare `data/…`, which no tool ever wrote, so a presence-check
+on it reported MISSING even after a successful run):
+  render_mobile_relay/static/docs/data/tree_board.json
+  render_mobile_relay/static/docs/data/tree_board.html  (SVG fragment; gen_phone_pages.py wraps
+                                                         it into the served tree_board.html)
+`OUT` below is the single source of truth; the final print() line echoes the path it wrote.
 """
 import os, sys, re, json, collections, datetime as dt
 import yaml
@@ -187,4 +192,4 @@ json.dump(dict(generated=dt.datetime.now(IL).isoformat(timespec="minutes"), days
                counts=dict(live=sum(1 for n in nodes if n["kind"] == "live"), shadow=sum(1 for n in nodes if n["kind"] == "shadow"), bud=sum(1 for n in nodes if n["kind"] == "bud"))),
           open(os.path.join(OUT, "tree_board.json"), "w"), ensure_ascii=False, indent=0, default=str)
 open(os.path.join(OUT, "tree_board.html"), "w", encoding="utf-8").write(frag)
-print(f"tree board: {sum(1 for n in nodes if n['kind']=='live')} live rows · {sum(1 for n in nodes if n['kind']=='shadow')} shadow rows · {sum(1 for n in nodes if n['kind']=='bud')} buds · {len(decisions)} decisions over {len(days)} days → data/tree_board.html ({W}x{H})")
+print(f"tree board: {sum(1 for n in nodes if n['kind']=='live')} live rows · {sum(1 for n in nodes if n['kind']=='shadow')} shadow rows · {sum(1 for n in nodes if n['kind']=='bud')} buds · {len(decisions)} decisions over {len(days)} days → {os.path.relpath(os.path.join(OUT, 'tree_board.html'), ROOT)} ({W}x{H})")

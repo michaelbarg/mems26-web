@@ -20,9 +20,16 @@ Three stages per session (RTH 16:30–23:00 IL, 5-min Woodies bars = SoT):
      evidence counts), or a new producer for signature S, or the exit style that fits the day;
      plus the exit gap of the trades that were taken (realized vs available).
 
-Output: data/review/<day>.json (+ merged data/review.json for the phone page), a Hebrew report
-docs/reports/DAY_REVIEW_<day>.md, and the aggregate candidate table across the reviewed days —
-the raw material for branches (see § BRANCH PATH in the report). Read-only on the DB. ~5 s/day.
+Output (T-473, 25.09 — the paths below are the REAL ones; the docstring used to say a bare
+`data/…`, which no tool ever wrote, so a `ls data/review.json` presence-check reported MISSING
+even after a successful run):
+  render_mobile_relay/static/docs/data/review/<day>.json
+  render_mobile_relay/static/docs/data/review.json     (merged, for the phone page)
+  docs/reports/DAY_REVIEW_<day>.md                     (Hebrew report)
+plus the aggregate candidate table across the reviewed days — the raw material for branches
+(see § BRANCH PATH in the report). Read-only on the DB. ~5 s/day. The `--out` default below is
+the single source of truth for the data dir; to verify a run, read the tool's own printed path
+rather than a remembered one.
 
   python3 scripts/day_review.py [--day 2026-09-22] [--days 10]   (default: the last session)
 """
@@ -233,7 +240,7 @@ merged = json.load(open(merged_p, encoding="utf-8")) if os.path.exists(merged_p)
 BRANCH_PATH = [
     "## איך זה הופך לענף (הנתיב, לפי דוקטרינת-הלמידה 09.09)",
     "1. **המבחן היומי** (הכלי הזה, רץ ב-EOD) מוציא לכל מהלך שפוספס *מועמד*: `relax_gate` (ראו ונחסמו ע״י שער X בהקשר: שלב × סוג-יום × אזור-בטן × כיוון), `slot_priority` (עבר את העץ, הסלוט היה תפוס), `producer_not_live`, `shadow_only`, או `no_producer` (אף אחד לא ראה — עם חתימת-הבר).",
-    "2. **צבירה**: `data/review.json` סוכם לפי (סוג-מועמד, שער, שלב, סוג-יום, אזור). מועמד שחוזר ב-≥3 ימים או ≥15 מקרים בהרנס-האחורי — עולה לרשימת-הענפים (הטבלה למטה).",
+    "2. **צבירה**: `render_mobile_relay/static/docs/data/review.json` סוכם לפי (סוג-מועמד, שער, שלב, סוג-יום, אזור). מועמד שחוזר ב-≥3 ימים או ≥15 מקרים בהרנס-האחורי — עולה לרשימת-הענפים (הטבלה למטה).",
     "3. **ריפליי לפני דגל**: המועמד נכתב כשורה ב-`config/dalton_tree_v2_draft.yaml` (צל — שורות TREE_SHADOW ב-`v9_decision_vectors`) ונמדד ב-`scripts/fwd_harness.py` על 56–85 סשנים עם מודל-ההערכה הקבוע: N, אחוז-ניצחון, $ לחוזה (m1), מול העץ הנוכחי.",
     "4. **פסיקה**: רק אם המספר טוב יותר — מייקל פוסק פעם אחת, הדגל נדלק עם `measured:` ב-`config/RULED_FLAGS.yaml`, וגרסת-העץ עולה (v1.2 → v1.3). תקרית ⇒ מקרה-ריפליי בסט-הרגרסיה, לא דגל.",
     "5. **יציאות**: אותו נתיב — פער-היציאה היומי (נלקח מול זמין) מצטבר לפי סוג-יום; כשטריילינג מנצח יעד-קבוע ב-≥15 מקרים ביום-מגמה — ענף-יציאה במקום פרמטר.",
