@@ -1,3 +1,140 @@
+## 🟢 [cowork-dev · 2026-09-25 16:34-16:47 IL] — **ריצה 14 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: הסשן החי הראשון של העץ — 5 מועמדים, 5 SKIP, אפס לייב. והסיבה מדויקת: הענף שמייקל הדליק אתמול-היום (`auction_B_trend_break`) דורש `day_type ∈ {Trend_Normal, Trend_DD}`, ו-`day_type` הוא `FORMING` 16 דקות אחרי הפתיחה ⇒ הענף פשוט **לא נגיש עדיין**, לא כבוי. במקביל: הפוזיציה הידנית נסגרה (+2.50$ ברוקר) ⇒ שני השערים של [[T-486]] אינם חוסמים יותר היום.**
+
+`16:34` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס דגלי-גודל · אפס ריסטארט · **אפס הודעת-טלפון**.
+
+### ⛔ בעלות-הריסטארט — נבדקה ראשונה
+
+```raw
+$ ps -o pid,lstart,etime,%cpu -p $(lsof -nP -iTCP:8000 -sTCP:LISTEN -t)
+  89528  Fri Sep 25 16:00:19 2026   34:18   27.9%     ⇐ עלה *היום אחרי 12:00*
+```
+
+⇒ הבעלים הוא cowork-האינטראקטיבי (ריצה 12/13) ⇒ **אפס ריסטארט, אפס GO/NO-GO** ([[T-369]]). הודעת-השער נשלחה 13:13:46Z.
+
+### חובה-1 · הטלפון — אפס ממתינות ⇒ שקט מוחלט
+
+זנב `PHONE_THREAD.jsonl` + peek ישיר מ-Render (`GET /chat` ⇒ `http=200`, 30 הודעות) מסכימים: ההודעה האחרונה בשרשור היא **שאלת-הסוכן** מ-`13:20:46Z` (סגירת-השורט/ויתור-על-יום-הלייב), לא הודעת-מייקל. אין הודעת-מייקל בלי תשובה עניינית ⇒ לא מקרה (א). אין עסקת-לייב ⇒ לא (ב). אין חריגה הדורשת החלטה ⇒ לא (ג). לא שער ⇒ לא (ד). **אפס שליחות.** והשאלה מ-13:20 **לא נשלחת שוב** — חזרה עליה היא הצפה.
+
+### חובה-3 · ארבע הבדיקות
+
+**א · פיד — אמת-ה-DB, לא mtime של קובץ-יצוא ([[T-430]]):**
+
+```raw
+$ psql -c "select max(ts), now(), round(extract(epoch from (now()-max(ts)))/60,1) age_min,
+           count(*) filter (where ts > now()-interval '2 hours') rows_2h from v9_bars_5min_woodies;"
+         max_ts         |             nowts             | age_min | rows_2h
+ 2026-09-25 16:35:00+03 | 2026-09-25 16:37:30.004563+03 |     2.5 |      24
+```
+
+⇒ בר בן **2.5 דק'**, 24 ברים בשעתיים ⇒ **פיד חי** (עמודה `timestamptz` ⇒ אין ניפוח-180 של מלכודת 19).
+
+**ב · בקאנד + שכבת-INFO (ד0 — בלעדיה "0 שורות" הוא עיוורון):**
+
+```raw
+$ curl -s http://localhost:8000/api/v9/health   ⇒ {"status":"ok","version":"v9.0.0"}
+$ pgrep -f "uvicorn backend.main:app"           ⇒ 89528
+$ grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+  2026-09-25 16:00:21 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=89528 commit=6f671add
+```
+
+⇒ ה-pid בלוג **הוא** ה-pid שרץ ⇒ הלוג רואה, וספירות-האפס שלמטה הן מדידה.
+
+**ג · פוזיציה מול TM — הפוזיציה הידנית נסגרה, אין פער:**
+
+```raw
+$ python3 -c "...sierra_state.json..."          # mtime 16:37 (טרי)
+  position_qty = 0 | avg_price 0.0 | working_orders 0 | orders = [] | is_sim 0
+  daily_pnl 2.5 | acct_daily_pl 2.5 | daily_total_qty_filled 2
+  acct 37138283 | avail 439.54 | margin_req 0.0 | under_margin 0 | trading_disabled 0
+$ grep "^2026-09-25 16:[3-4]" /tmp/backend.err.log | grep -iE "T-310|T-43 |ownership|foreign|ORPHAN"
+  (אפס שורות)
+```
+
+⇒ השורט הידני (order 11334, נפתח 16:17) **נסגר ב-+2.50$ לפי הברוקר**, `working_orders` ירד ל-0 ⇒ שני השערים של [[T-486]] (ack-בעלות + `T-310 working_orders`) **אינם חוסמים יותר** — אפס חסימת-בעלות אחרי הפתיחה. **הפגם ב-T-310 עומד בעינו**; רק התנאי שהפעיל אותו חלף. אפס נגיעה בפוזיציה, ואפס דיווח-חריגה עליה: פסיקת [[T-402]] — פוזיציה שלא נפתחה ע"י המערכת היא של מייקל, והוא יודע שהיא חוסמת.
+
+**ד · עסקאות היום (ET, `entry_ts IS NOT NULL` — מלכודות 14+17):**
+
+```raw
+  id  |  mode  | sys |        pat        |  dir  | state  |  entry_et   | exit_et | exit_reason | pnl_usd
+ 2364 | shadow |   2 | RE_ACCEPTANCE     | SHORT | CLOSED | 09-25 09:30 | 09:35   | STOP_HIT    |   -47.5
+ 2365 | shadow |   2 | FAILED_BREAK_LONG | LONG  | FILLED | 09-25 09:35 |         |             |
+```
+
+⇒ **אפס עסקאות-לייב**, 2 צל (אחת פתוחה). ⇒ אין מקרה (ב) לטלפון.
+
+### 🔑 הממצא: למה אפס לייב ביום הראשון שהעץ מחליט
+
+הפיד-החלטות (‏`limit=2000`, ו-5 הן **כל** מה שהיה — לא תקרת-200):
+
+```raw
+$ curl -s ".../api/v9/gateway/decisions?limit=2000"   ⇒ today=5, RTH=5
+    3  tree:kind
+    2  tree:stand_down
+  dirs: {'SHORT': 4, 'LONG': 1}
+```
+
+וההליכה עצמה, מהלוג:
+
+```raw
+16:30:03  TREE_V3 RE_ACCEPTANCE       SHORT 7771.0  → SKIP [opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)]
+16:35:04  TREE_V3 FAILED_BREAK_LONG   LONG  7784.75 → SKIP [opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)]
+16:45:05  TREE_V3 OPENING_PULLBACK_CONT SHORT 7785.0 → SKIP [opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)]
+16:45:05  TREE_V3 CEILING_FLIP_TOUCH2 SHORT 7785.0  → SKIP [opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)]
+16:46:06  TREE_V3 ZLR                 SHORT 7783.0  → SKIP [opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)]
+```
+
+**מה ש-`*(X)` אומר — נשאל מהקוד, לא מהזיכרון (מלכודת 20):**
+
+```raw
+$ grep -n '\*(' backend/v9/services/decision_tree.py
+  141:  path.append((feat, value if key_taken != "*" else f"*({value})"))
+```
+
+⇒ `*(FORMING)` פירושו **הערך נמדד `FORMING`, והעץ לקח את ענף-הכל (`*`)** כי אין כלל דלוק על הערך הזה. זה **לא** "לא-מסווג".
+
+**ולכן הענף של מייקל אינו נגיש, ולא כבוי** — הוא ממוקם תחת `day_type: Trend_Normal|Trend_DD`:
+
+```raw
+$ sed -n '420,430p' config/decision_tree_v3.yaml
+  Trend_Normal|Trend_DD:
+    split: kind
+    branches:
+      BREAK:
+        leaf: TAKE
+        id: auction_B_trend_break      ← הענף שנפסק חי (T-484, "כן" 14:11:49Z)
+      "*": *kinds_auction_B
+  "*": *kinds_auction_B                ← FORMING נופל לכאן
+```
+
+ב-16:45/16:46 היו **שלושת השדות הנכונים** — `opening_type=OPEN_AUCTION_IN` (נפתר, בלי כוכב), `phase=B` (נפתר), `kind=BREAK` — אבל `day_type=FORMING` לקח את ענף-הכל, ומתחתיו אין כלל על `kind` ⇒ ההליכה נעצרה בצומת-`kind` (‏`blocked_by=tree:kind`). **סוג-היום מתגבש בשעה הראשונה; עד שהוא לא `Trend_*`, ה-TAKE של מייקל לא קיים במסלול.** זו התנהגות-תכן, לא תקלה — ולכן **לא מקרה (ג)**: אין כאן החלטה למייקל, יש מדידה.
+
+**מה לצפות:** אם `day_type` יתגבש ל-`Trend_Normal`/`Trend_DD` בזמן ש-`opening_type=OPEN_AUCTION_IN`/`phase=B` עוד עומדים, מועמד-BREAK יקבל **TAKE חי ראשון**. אם היום נשאר `FORMING`/לא-טרנד — אפס לייב הוא הפלט הנכון, ולא באג. `opening_type` כבר נפתר פעם אחת היום (UNKNOWN 16:30 → OPEN_AUCTION_IN 16:45) ⇒ הצומת עובד.
+
+**הערת-מדידה (לא חוסם):** מסווג-הצל מדווח `OPEN_REJECTION_REVERSE` באותן דקות שהעץ קורא `OPEN_AUCTION_IN` (‏`[AppStateRootFix] SHADOW would-be opening_type_result: type=OPEN_REJECTION_REVERSE … (not written)`). שני מסווגי-פתיחה חולקים על אותו יום. הצל **אינו נכתב** ⇒ אפס השפעה על החלטה היום, אבל זה פער שצריך למדוד לפני שמישהו יסתמך על הצל.
+
+### גודל ומרג'ין — שלוש מדידות, לא מספר מהטקסט (מלכודת 18)
+
+```raw
+$ grep -E '^FIXED_CONTRACTS_' .env        ⇒ _1=1 · _2=0 · _3=0 · _4=0 · _5=0 · _6=0
+$ grep -n 'FIXED_CONTRACTS_1' config/RULED_FLAGS.yaml
+  45: expected "1", ruled_by מייקל, 2026-09-18 — "היום לעבוד על חוזה 1";
+      פנוי 476.64 מול מרג'ין 386.20 לחוזה (+50 באפר); 2 חוזים (772.40) אינם אפשריים
+$ set -a && . ./.env && set +a && python3 -c "...ruled_contracts()..."   ⇒ 1
+```
+
+⇒ **הפסיקה היא חוזה 1.** (בלי `.env` אותה פקודה מחזירה `None` — נמדד בריצה הזו; `None` אינו "אין פסיקה". מספר-הגודל שבטקסט-המשימה הוא פסיקה שנדרסה.)
+
+**מרג'ין ([[T-34]], דיווח-בלבד):** `avail 439.54` מול `386.20` לחוזה ⇒ **חוזה 1 מכוסה** (‏`under_margin=0`, `trading_disabled=0`, `loss_limit_reached=0`). זה בתוך המעטפה שבה נפסק חוזה-1 ב-18.09 (פנוי 476.64 אז) ⇒ **אינו חוסם, ואינו מקרה (ג)**. סף ה-$1,595 הוא סף-4-חוזים, לא סף-היום.
+
+### שערי-שפיות (לפני הכתיבה לקבצים)
+
+```raw
+$ python3 scripts/flag_guard.py      ⇒ FLAG-GUARD: PASS — all 270 ruled flags match
+$ python3 scripts/task_log_guard.py  ⇒ ✅ the task log is current, structured, and the only one (464 items, 0.0 ימים)
+```
+
+---
+
 ## 🔴 [cowork-dev · 2026-09-25 16:15-16:25 IL] — **ריצה 13 · חובה-1 + חובה-3** · 🔑 **הממצא: פוזיציה ידנית חיה (−1, נפתחה 16:17:51) חשפה ש-ack-הבעלות פג ארבעה ימים ⇒ כל ירי-לייב היום היה נחסם, ביום הראשון שהעץ מחליט חי. חידשתי את ה-ack (פסיקה עומדת 01.09) — ומאחוריו נמצא שער שני שחוסם גם פוזיציה מוסברת. [[T-486]]**
 
 `16:15` ⇒ **לא שער** (החלון 15:30-16:10 עבר; ריצה 12 היא בעלת-השער) · לפני-פתיחה. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס דגלי-גודל · אפס ריסטארט.
