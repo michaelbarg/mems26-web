@@ -1,36 +1,36 @@
-# מדידת עץ-ההחלטות V3 — 58 סשנים, 3832 מועמדים (2026-09-25)
+# מדידת עץ-ההחלטות V3 — 59 סשנים, 3893 מועמדים (2026-09-25)
 
 **מקור:** `harness_out/t466/treev3_*.json` (הרנס עם `DECISION_TREE_V3=1`). כל מועמד מדומה על הברים עם הסטופ שלו ויעד 1.5R, חוזה 1, אחרי עמלות, **בלתי-תלוי** — זו איכות-הדעה של העלה, לא תיק; הרנס יום-כולל מכריע (24.09). `לייב` = מה שההרנס באמת ביצע דרך העלה הזה.
 
 | עלה (הנתיב בעץ) | פעולה | מועמדים | win% | Σ$ אילו נלקחו | לייב n · Σ$ | |
 |---|---|---|---|---|---|---|
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Variation)` | SKIP:stand_down | 447 | 36% | -4,327$ | 0 · +0$ |  |
-| `opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)` | SKIP:stand_down | 173 | 46% | -125$ | 0 · +0$ |  |
+| `opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)` | SKIP:stand_down | 177 | 46% | -260$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=*(Variation)` | SKIP:stand_down | 144 | 37% | -1,192$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension | 127 | 47% | +554$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with | 126 | 33% | -2,433$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with | 134 | 31% | -2,925$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension | 133 | 50% | +767$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)` | SKIP:bias | 116 | 40% | -450$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=*(BREAK)/edge=*(none)` | SKIP:kind | 112 | 58% | +1,861$ | 0 · +0$ | 🌱 בשל לפיצול |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=BREAK` | SHADOW:auction_B_trend_break | 114 | 57% | +1,483$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)` | SKIP:bias | 92 | 45% | -450$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=D/day_type=*(Variation)` | SKIP:stand_down | 92 | 50% | +916$ | 0 · +0$ | 🌱 בשל לפיצול |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)` | SKIP:kind | 81 | 40% | -580$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with | 64 | 39% | -431$ | 0 · +0$ | 🌱 בשל לפיצול |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)` | SKIP:kind | 83 | 39% | -634$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with | 65 | 40% | -357$ | 0 · +0$ | 🌱 בשל לפיצול |
+| `opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)` | SKIP:stand_down | 62 | 19% | -1,863$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=near_vah` | TAKE:take_location | 50 | 26% | -582$ | 1 · -39$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)` | SKIP:stand_down | 49 | 20% | -1,372$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=with` | TAKE:opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=with | 44 | 82% | +2,544$ | 11 · +159$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)` | SKIP:location | 37 | 51% | +637$ | 0 · +0$ | 🌱 בשל לפיצול |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)` | SKIP:location | 39 | 54% | +793$ | 0 · +0$ | 🌱 בשל לפיצול |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with | 36 | 28% | -460$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension | 36 | 44% | -20$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension | 35 | 14% | -434$ | 4 · +6$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(REVERSAL)/edge=*(none)` | SKIP:kind | 34 | 47% | +458$ | 0 · +0$ | 🌱 בשל לפיצול |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)` | SKIP:bias | 34 | 24% | -423$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=near_val` | TAKE:take_location | 34 | 38% | -262$ | 0 · +0$ | 🌱 בשל לפיצול |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(REVERSAL)/edge=*(none)` | SKIP:kind | 33 | 48% | +497$ | 0 · +0$ | 🌱 בשל לפיצול |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=with | 33 | 45% | -258$ | 1 · +19$ | 🌱 בשל לפיצול |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=near_val` | TAKE:take_location | 33 | 12% | -676$ | 1 · -58$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)` | SKIP:kind | 32 | 62% | +937$ | 0 · +0$ | 🌱 בשל לפיצול |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)` | SKIP:bias | 30 | 33% | -106$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=with | 29 | 79% | +1,833$ | 8 · +268$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)` | SKIP:location | 26 | 15% | -1,276$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)` | SKIP:location | 28 | 14% | -1,413$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(near_vah)` | SKIP:location | 26 | 38% | +15$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)` | SKIP:location | 26 | 35% | -408$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)` | SKIP:bias | 26 | 58% | +569$ | 0 · +0$ |  |
@@ -50,23 +50,23 @@
 | `opening_type=OPEN_DRIVE/phase=D/day_type=*(Normal)` | SKIP:stand_down | 20 | 20% | -710$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension | 20 | 60% | +157$ | 1 · -41$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=with | 19 | 68% | +313$ | 1 · +29$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 19 | 37% | -428$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=above_value` | TAKE:take_location | 19 | 32% | -277$ | 2 · +22$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)` | SKIP:bias | 18 | 28% | -119$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)` | SKIP:bias | 18 | 61% | +344$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Normal)` | SKIP:stand_down | 18 | 50% | -146$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with` | TAKE:opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with | 18 | 39% | +391$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 18 | 33% | -522$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with | 18 | 56% | +431$ | 2 · +64$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=EDGE_FADE` | TAKE:opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=EDGE_FADE | 17 | 47% | +53$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(EDGE_FADE)/kind=EDGE_FADE` | TAKE:opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(EDGE_FADE)/kind=EDGE_FADE | 17 | 47% | +53$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=near_vah` | TAKE:take_location | 17 | 59% | +124$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=BREAK | 17 | 53% | +95$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension | 16 | 31% | -108$ | 2 · +36$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)` | SKIP:kind | 16 | 31% | -259$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=with | 16 | 38% | -115$ | 4 · +32$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with | 16 | 44% | +212$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)` | SKIP:kind | 15 | 33% | -214$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension | 15 | 40% | -93$ | 3 · -55$ |  |
 | `opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=with` | TAKE:opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=with | 15 | 7% | -671$ | 2 · +28$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with | 14 | 29% | -606$ | 4 · +112$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension | 14 | 36% | -188$ | 3 · -55$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=*(near_val)` | SKIP:location | 14 | 43% | -170$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)` | SKIP:bias | 13 | 69% | +529$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension | 13 | 54% | +426$ | 7 · +61$ |  |
@@ -78,11 +78,12 @@
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=*(mid_value)` | SKIP:location | 13 | 62% | +225$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=above_value` | TAKE:take_location | 13 | 0% | -360$ | 1 · -31$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=LONG/zone=*(near_vah)` | SKIP:location | 13 | 46% | +90$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Trend_Normal)/kind=*(REVERSAL)/edge=*(none)` | SKIP:kind | 12 | 58% | +491$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(REVERSAL)/kind=*(REVERSAL)/edge=*(none)` | SKIP:kind | 12 | 58% | +491$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with | 12 | 50% | -75$ | 5 · -185$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(mid_value)` | SKIP:location | 12 | 17% | -566$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=below_value` | TAKE:take_location | 12 | 33% | -106$ | 1 · -26$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension | 12 | 33% | -229$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with | 11 | 18% | -409$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)` | SKIP:bias | 11 | 0% | -720$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension | 11 | 36% | -100$ | 1 · -29$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=SHORT/zone=*(below_value)` | SKIP:location | 11 | 36% | +176$ | 0 · +0$ |  |
@@ -90,7 +91,6 @@
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=*(mid_value)` | SKIP:location | 11 | 27% | -337$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK | 11 | 36% | -162$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)` | SKIP:location | 11 | 9% | -646$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with | 10 | 20% | -402$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=*(above_value)` | SKIP:location | 10 | 0% | -980$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with | 10 | 40% | -122$ | 5 · -28$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)` | SKIP:bias | 10 | 60% | +272$ | 0 · +0$ |  |
@@ -104,6 +104,7 @@
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(below_value)` | SKIP:location | 8 | 38% | -81$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)` | SKIP:bias | 8 | 50% | +72$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)` | SKIP:bias | 8 | 62% | +106$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 8 | 38% | -38$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK | 8 | 50% | +219$ | 1 · +31$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=*(near_val)` | SKIP:location | 8 | 62% | +37$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=SHORT/zone=near_vah` | TAKE:take_location | 8 | 25% | -107$ | 0 · +0$ |  |
@@ -112,14 +113,14 @@
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)` | SKIP:bias | 7 | 43% | -1$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=with | 7 | 100% | +459$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=EDGE_FADE` | TAKE:opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=EDGE_FADE | 7 | 43% | +11$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 7 | 29% | -69$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=below_value` | TAKE:take_location | 7 | 29% | -83$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with` | TAKE:opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with | 7 | 29% | -35$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=near_val` | TAKE:take_location | 7 | 14% | -264$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)` | SKIP:bias | 7 | 57% | -57$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension | 7 | 0% | -159$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)` | SKIP:location | 7 | 0% | -535$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=failed_extension | 6 | 67% | +72$ | 1 · +70$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/direction=LONG/zone=below_value` | TAKE:take_location | 6 | 17% | -129$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(mid_value)` | SKIP:location | 6 | 0% | -233$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)` | SKIP:bias | 6 | 50% | +97$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with | 6 | 50% | +37$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with | 6 | 50% | -32$ | 2 · +14$ |  |
@@ -127,12 +128,13 @@
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 6 | 83% | +488$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 6 | 83% | +372$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with | 6 | 33% | -92$ | 1 · -31$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=near_vah` | TAKE:take_location | 6 | 33% | -90$ | 1 · -39$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with | 5 | 40% | -37$ | 1 · +38$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension | 5 | 0% | -107$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(mid_value)` | SKIP:location | 5 | 0% | -184$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)` | SKIP:bias | 5 | 60% | +145$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(FORMING)` | SKIP:stand_down | 5 | 40% | -72$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK | 5 | 60% | +93$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK | 5 | 60% | +112$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=near_val` | TAKE:take_location | 5 | 40% | -86$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 5 | 80% | +286$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with | 5 | 80% | +123$ | 1 · +42$ |  |
@@ -145,7 +147,6 @@
 | `opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)` | SKIP:bias | 4 | 50% | +130$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with | 4 | 0% | -104$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=against/edge=*(none)` | SKIP:bias | 4 | 25% | -174$ | 0 · +0$ |  |
-| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK | 4 | 50% | +90$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)` | SKIP:bias | 4 | 25% | -99$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/direction=LONG/zone=below_value` | TAKE:take_location | 4 | 75% | +103$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension | 4 | 50% | +12$ | 3 · -51$ |  |
@@ -187,6 +188,7 @@
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=*(none)/kind=BREAK` | TAKE:opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=*(none)/kind=BREAK | 2 | 100% | +212$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with | 2 | 0% | -55$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=A/day_type=*(FORMING)` | SKIP:stand_down | 2 | 100% | +257$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)` | SKIP:location | 2 | 0% | -155$ | 0 · +0$ |  |
 | `opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=with` | TAKE:opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=with | 1 | 100% | +82$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(WITH_DRIVE)/edge=*(none)` | SKIP:kind | 1 | 0% | -78$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(mid_value)` | SKIP:location | 1 | 0% | -78$ | 0 · +0$ |  |
@@ -232,5 +234,8 @@
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=against/edge=*(none)` | SKIP:bias | 1 | 100% | +100$ | 0 · +0$ |  |
 | `opening_type=OPEN_DRIVE/phase=C/day_type=Normal/direction=SHORT/zone=above_value` | TAKE:take_location | 1 | 0% | -33$ | 0 · +0$ |  |
 | `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=against/edge=*(none)` | SKIP:bias | 1 | 100% | +67$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=above_value` | TAKE:take_location | 1 | 100% | +52$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)` | SKIP:location | 1 | 0% | -78$ | 0 · +0$ |  |
+| `opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=above_value` | TAKE:take_location | 1 | 100% | +37$ | 0 · +0$ |  |
 
 **בשל לפיצול** = n ≥ 30, תוצאה מעורבת (35–65% win) ו-Σ$ שסותר את הפעולה (SKIP שמסתכם ≥ +100$ · TAKE שמסתכם ≤ −100$). הפיצול הבא הוא השאלה הבאה בסדר הדוקטרינרי (מבנה → מיקום → test → ווליום) — לא ציון.
