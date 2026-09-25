@@ -1,3 +1,158 @@
+## 🟢 [cowork-dev · 2026-09-25 17:15-17:30 IL] — **ריצה 15 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: [[T-486]] גבה את המחיר הראשון שלו — ב-`17:10:03` נחסם ירי-לייב *אמיתי* (‏LONG `DALTON_EDGE_LONG` sys=2) בגלל הפוזיציה הידנית, ועם זה נמצא גם המספר שהצעד-הבא של [[T-486]] ביקש: השער הזה חסם **פעם אחת בלבד** בארבעת הימים שהלוג מכסה (22-25.09). התמונה המלאה של היום: העץ אישר **מועמד אחד מתוך 11**, ושער-הקדם-שליחה הרג בדיוק אותו.**
+
+`17:15` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס דגלי-גודל · אפס ריסטארט · **אפס הודעת-טלפון**.
+
+### ⛔ בעלות-הריסטארט — נבדקה ראשונה
+
+```raw
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN | head -3
+Python  89528 michael   18u  IPv4 0x7e5e6b1d2f726660      0t0  TCP *:8000 (LISTEN)
+$ ps -o pid,lstart -p 89528
+  PID STARTED
+89528 Fri Sep 25 16:00:19 2026      ⇐ עלה *היום אחרי 12:00*
+```
+
+⇒ הבעלים הוא cowork-האינטראקטיבי (ריצות 12/13) ⇒ **אפס ריסטארט, אפס GO/NO-GO** ([[T-369]]). הודעת-השער נשלחה `13:13:46Z`.
+
+### חובה-1 · הטלפון — אפס ממתינות ⇒ שקט מוחלט
+
+`GET /chat` (‏`key_len=12`) ⇒ **30 הודעות**, זהה לזנב `PHONE_THREAD.jsonl`. אחרונת-**מייקל** היא `12:07:30Z` (*"למה העץ שלי כבוי? ממתי?"*) ונענתה עניינית `12:17:53Z` ⇒ **אין (א)**. אפס עסקת-לייב נפתחה/נסגרה היום ⇒ **אין (ב)**. לא שער ⇒ **אין (ד)**. **אפס שליחות.**
+
+**ולמה גם החסימה של `17:10` אינה (ג):** ההחלטה שהיא דורשת — *לסגור את השורט או לוותר על יום-הלייב* — **כבר נשלחה** `13:20:46Z` ועדיין ממתינה אצלו; שליחה שנייה על אותה הכרעה היא הצפה ([[T-369]]). ומעבר לכך [[T-402]] היא **פסיקה עומדת** (מייקל 17.09 17:35): פוזיציה שלא נפתחה ע"י המערכת היא של מייקל, והוא יודע שהיא חוסמת — [[T-405]] מתעד הפרה קודמת על בדיוק זה. ⇒ הראיה החדשה נרשמת כאן, לא בטלפון.
+
+### חובה-3 · ארבע הבדיקות
+
+**א · פיד — אמת-ה-DB, לא mtime של קובץ-יצוא ([[T-430]]):**
+
+```raw
+$ psql -Atc "SELECT max(ts), now() AT TIME ZONE 'UTC',
+             round(EXTRACT(EPOCH FROM (now()-max(ts)))/60.0,1) FROM v9_bars_5min_woodies;"
+2026-09-25 17:15:00+03 | 2026-09-25 14:16:22.744413 | 1.4
+```
+
+⇒ בר בן **1.4 דק'** ⇒ **פיד חי**.
+
+**ב · בקאנד + שכבת-INFO (ד0 — בלעדיה "0 שורות" הוא עיוורון):**
+
+```raw
+$ curl -s http://localhost:8000/api/v9/health  ⇒ {"status":"ok","version":"v9.0.0"}
+$ grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+  2026-09-25 16:00:21 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=89528 commit=6f671add stream=stderr
+```
+
+⇒ ה-pid בלוג **הוא** ה-pid שרץ ⇒ הלוג רואה, וספירות-האפס שלמטה הן מדידה ולא עיוורון. **סה"כ שגיאות היום: 2 בלבד** (‏`grep -cE "\[(ERROR|CRITICAL)\]"` ⇒ `2`) — ה-`CRITICAL` של `17:10` שלמטה, ו-`17:05:02 [BarLevelDetector] Invalid transition: CLOSED -> CLOSED` שהוא **פריט ידוע** (7 אזכורים ב-TASK_LOG, 22 מופעים בלוג) ⇒ אינו ממצא חדש.
+
+**ג · פוזיציה מול TM — הפוזיציה הידנית נפתחה מחדש, והבעלות הוכחה:**
+
+```raw
+$ python3 -c "...sierra_state.json..."      # ts_age_s=0 (טרי)
+  position_qty = -2 | avg_price 7771.88 | open_pnl +151.25 | last 7756.75 | is_sim 0
+  working_orders = 1 | orders = [{'id': 11338, 'type': 3, 'bs': 1, 'price': 7771.5, 'qty': 2}]
+  daily_pnl 2.5 | acct_daily_pl 2.5 | daily_total_qty_filled 4 | acct 37138283
+$ grep "^2026-09-25" /tmp/backend.err.log | grep Reconciler | tail -1
+  17:17:20 [Reconciler] SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -2 (src=state)
+           … Possible causes: foreign position (shared account), orphan bracket, or missed system exit.
+```
+
+⇒ **TM 0 מול Sierra -2**, ו-`v9_trades` מחזיק **אפס שורת-לייב היום** ⇒ הבעלות היא **של מייקל, לא של המערכת** (מלכודת-16/[[T-402]]) ⇒ אין T-43/ORPHAN ואין מה להכריע. ריצה 14 ראתה `position_qty 0` ב-`16:37`; היא **נפתחה מחדש** אחריה וגדלה ל-2 חוזים. **אפס נגיעה בפוזיציה.**
+
+**ד · עסקאות היום (ET) — 11 צל, אפס לייב:**
+
+```raw
+  id  | mode   | sys | pat                   | dir   | state  | entry_et    | exit | reason   | pnl
+ 2364 | shadow |   2 | RE_ACCEPTANCE         | SHORT | CLOSED | 09-25 09:30 | 09:35| STOP_HIT | -47.5
+ 2366 | shadow |   2 | OPENING_PULLBACK_CONT | SHORT | CLOSED | 09-25 09:45 | 10:00| T1_HIT   | +73.1
+ 2368 | shadow |   4 | ZLR                   | SHORT | CLOSED | 09-25 09:46 | 10:00| T1_HIT   | +77.5
+ 2374 | shadow |   4 | TREND_STEP            | SHORT | FILLED | 09-25 10:15 |      |          |
+ …  (11 שורות)  ⇒ mode=shadow n=11 · closed=10 · sum(pnl_usd) = +223.10
+```
+
+⇒ **צל +223.10$ על 10 סגורות · לייב 0 עסקאות** ⇒ אין מקרה (ב).
+
+### 🔑 הממצא — [[T-486]] יצא מ"ייחסום" ל"חסם", והמספר שהוא ביקש קיים
+
+**ההחלטות של היום, מלאות (‏11 < תקרת-200 ⇒ הפיד *אינו* חתוך, מלכודת 3.2):**
+
+```raw
+$ curl -s ".../api/v9/gateway/decisions?limit=2000" ⇒ returned: 11 | today: 11
+  range: 2026-09-25T13:30:03+00:00 -> 2026-09-25T14:15:03+00:00   (=16:30-17:15 IL, כל הסשן)
+  -- blocked_by --            -- live_blocked_by --
+      4  tree:location            10  (none)
+      4  tree:kind                 1  pre_send_entry_guard
+      2  tree:stand_down
+      1  (none)
+```
+
+⇒ **העץ אישר בדיוק מועמד אחד מתוך 11** (‏`blocked_by=(none)`), ואותו אחד **נהרג ע"י שער-הקדם-שליחה**:
+
+```raw
+$ grep "^2026-09-25" /tmp/backend.err.log | grep "LIVE fire BLOCKED"
+17:10:03 [CRITICAL] [backend.v9.gateway.trading_gateway] [Gateway] LIVE fire BLOCKED pre-send:
+  1 working order(s) with foreign position -1 — shared account brackets (legitimate).
+  Blocked pre-send — LONG DALTON_EDGE_LONG sys=2 — no trade row, no slot, no Sierra command
+```
+
+⇒ עד היום [[T-486]] היה **תחזית**; מ-`17:10:03` הוא **מדידה**: עסקת-לייב אחת ממשית אבדה, ביום הראשון שהעץ מחליט חי.
+
+**והמספר שהצעד-הבא של [[T-486]] ביקש במפורש** (*"לקרוא כמה פעמים הוא חסם היסטורית — מספר לפני דגל"*, דוקטרינת-הלמידה 09.09):
+
+```raw
+$ grep -c "working order(s) with foreign position" /tmp/backend.err.log     ⇒ 1
+$ grep -oE "^[0-9]{4}-[0-9]{2}-[0-9]{2}" /tmp/backend.err.log | sort -u     ⇒ 09-22 09-23 09-24 09-25
+$ ls -l /tmp/backend.err.log*   ⇒ קובץ יחיד, ללא רוטציה
+```
+
+⇒ **פעם אחת בארבעה ימי-לוג.** זו העלות הנמדדת של השער — לא אומדן. היא הנתון שחסר להכרעה של מייקל, ותישמר אליה; **אפס נגיעה בשער** — `working > 0` הוא נתיב pre-send של כסף אמיתי.
+
+### 💵 T-34 — דיווח-בלבד, ועל גבול ההסלמה
+
+```raw
+  acct_available_funds 17.99 | acct_margin_req 575.30 | acct_account_value 603.29 | cash 439.54
+  under_margin 0 | trading_disabled 0 | loss_limit_reached 0 | order_placement_armed 1
+$ grep "^2026-09-25" /tmp/backend.err.log | grep "ORDER_REJECT"      ⇒ 2 שורות
+  16:28:53 / 17:17:00 [FillPoller] FIX-10 ORDER_REJECT seen (Trade Order Error - Insufficient
+    Account Value (NLV) for margin for order…) but no PENDING demo/live trade to correlate — manual order?
+```
+
+`avail 17.99$ << 1,595$`, והפעם יש גם **דחיות-מרג'ין אמיתיות אצל הברוקר** — אבל **שתיהן אינן מתואמות לשורת-מערכת** (‏`no PENDING demo/live trade to correlate`) ⇒ הן על הוראות **ידניות** של מייקל. החסימה היחידה שפגעה במערכת היום היא [[T-486]], לא מרג'ין; `under_margin/trading_disabled/loss_limit` כולם כבויים ⇒ **אינו חוסם ⇒ אינו מקרה (ג)**, לפי אותה פסיקה שהוחלה 24.09.
+⚠️ **אבל המרווח התהפך:** `avail 17.99$` מול דרישת-חוזה-אחד `575.30$` ⇒ **פער שלילי של 557.31$**. כל עוד שני החוזים הידניים פתוחים, ירי-לייב **גם** לא ימורווח. סגירת הפוזיציה משחררת את `margin_req` ומחזירה את `avail` ל-`~603$+` ⇒ מעל דרישת-החוזה. ⇒ **לשער-מחר**, ומחזק את אותה הכרעה שכבר ממתינה מ-`13:20`.
+
+### ↻ הצעד-הבא של ריצה 14 — נענה, והתחזית שלה הוחלפה במדידה
+
+ריצה 14 שאלה: *"האם `S2-CVD` הגיע ל-`18/20` סביב `~18:00`"*. **לא — והוא לא היה צריך:**
+
+```raw
+$ grep "^2026-09-25" … | grep "S2-CVD" | head/tail
+  16:44:46 [WARNING] [S2-CVD] insufficient coverage: 3/20 rows (min=18) — returning None (Rule 1)   ⇐ האחרון מסוגו
+  16:40:05 [INFO]    [S2-CVD] T-41 partial coverage: 4/20 rows (20%) — proceeding with coverage tag ⇐ הראשון
+  17:20:44 [INFO]    [S2-CVD] T-41 partial coverage: 12/20 rows (60%) — proceeding with coverage tag
+$ grep -c "T-41 partial coverage" ⇒ 789   |   grep -c "insufficient coverage" ⇒ 19,936
+```
+
+⇒ נתיב-ה-**T-41** (partial coverage) נכנס ב-`16:40:05` והחליף את `returning None`; הכיסוי מטפס `4/20 → 12/20` ⇒ **S2 אינו עיוור-דלתא יותר**, בלי להמתין ל-18/20. ה-`insufficient` שנותרו הם מלפני `16:44:46` (‏19,715 מתוכם `1/20`, כולם קדם-פתיחה) ⇒ **אינם תקלה חיה**.
+
+### ↻ תיקון-עצמי — `ps -o %cpu` הוא ממוצע-חיים, לא מדידה
+
+`ps` החזיר `74.3%` ו-`top -l 1 -stats cpu` החזיר `0.0` — שני מספרים שסותרים זה את זה ⇒ **CPU לא נמדד בריצה הזו**, ולא נכתב כאן כאילו כן (Rule 1; אותה טעות שריצה 24.09 תיקנה על עצמה). מה שכן נמדד ישירות:
+
+```raw
+$ A=$(wc -l < /tmp/backend.err.log); sleep 10; B=$(wc -l …)   ⇒ 417,591 → 417,626 = 210 שורות/דקה
+$ (חלון 2 דק') trade_context 74 · opening_entry 52 · bar_router 49(W) · five_min 45 · build_status 28(W)
+```
+
+⇒ `210`/דק' מול `36`/דק' שנמדדו 24.09 — **מוגבר פי ~6, ללא מקור-יחיד פתולוגי** (חמישה לוגרים שגרתיים, לא flood אחד). הלוג `66 MB` / `99,891` שורות היום. **לא חוסם; נרשם למעקב** — אם יעבור ~`400`/דק' או הקובץ `100 MB`, זה כבר פריט.
+
+### הצעד הבא
+
+1. **בניטור הבא:** האם נפתחה עסקת-לייב (אם כן ⇒ מקרה (ב)); האם הפוזיציה הידנית נסגרה — ואם כן, האם מועמד-עץ נוסף עבר את `pre_send_entry_guard` (זו הבדיקה שתאשר ש-[[T-486]] הוא באמת השער היחיד שנותר).
+2. **[[T-486]] — אפס דגל עד פסיקה.** המספר קיים עכשיו (`1` חסימה ב-4 ימים) ונשמר להכרעה; ההצעה `ENTRY_GUARD_COEXIST_BRACKETS_V1` נשארת **הצעה** ולא נכתבת לקוד.
+3. **לשער-מחר:** לבדוק `acct_available_funds` מול `ruled_contracts()` **לפני** GO — היום הפער שלילי (`17.99$` מול `575.30$`).
+4. **קצב-הלוג** — דגימה נוספת בריצה הבאה; פריט רק אם `>400`/דק' או `>100 MB`.
+
+**⚠️ הערה על נוסח-המשימה:** *"הגודל … (מ-16.09: 2, FIXED_CONTRACTS_2=1)"* **מיושן** ([[T-470]]/[[T-225]]). הפסיקה החיה היא **חוזה אחד** — `FIXED_CONTRACTS_1=1` ב-`.env` (שורה 274), `FIXED_CONTRACTS_2=0` (שורה 275), ובקוד `contract_size.py` נבדק `FIXED_CONTRACTS_1` **ראשון** עם ההערה *"מייקל 2026-09-18 12:05 — היום לעבוד על חוזה 1"*. ⚠️ **ומלכודת-מדידה חדשה:** `python3 -c 'from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())'` **מחזיר `None`** בשל ריק — כי `.env` לא נטען בשל בודד; רק אחרי טעינת-`.env` הוא מחזיר `1`. ‏`None` **אינו** "אין פסיקה" — הוא עיוורון-מדידה, ומועמד למלכודת ב-`COWORK_DAILY_READ`. אפס נגיעה בדגלי-גודל.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-25 16:34-16:47 IL] — **ריצה 14 · חובה-1 + חובה-3 (ניטור-RTH)** · 🔑 **הממצא: הסשן החי הראשון של העץ — 5 מועמדים, 5 SKIP, אפס לייב. והסיבה מדויקת: הענף שמייקל הדליק אתמול-היום (`auction_B_trend_break`) דורש `day_type ∈ {Trend_Normal, Trend_DD}`, ו-`day_type` הוא `FORMING` 16 דקות אחרי הפתיחה ⇒ הענף פשוט **לא נגיש עדיין**, לא כבוי. במקביל: הפוזיציה הידנית נסגרה (+2.50$ ברוקר) ⇒ שני השערים של [[T-486]] אינם חוסמים יותר היום.**
 
 `16:34` ⇒ **לא שער** (חלון 15:30-16:10 עבר) · בתוך RTH. אפס דגל נגע · אפס `.env` נגע · אפס פוזיציה נגעה · אפס דגלי-גודל · אפס ריסטארט · **אפס הודעת-טלפון**.
