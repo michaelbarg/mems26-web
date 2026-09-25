@@ -1,3 +1,107 @@
+## 🟢 [cowork-dev · 2026-09-25 22:04-22:15 IL] — **ריצה 25 · חובה-1 + חובה-3** · 🔑 **הממצא: `select ts::time(0), … order by ts desc limit N` מחזיר שורה מלפני יומיים ומציג אותה בלי תאריך — ה-`ORDER BY` נקשר לעמודת-הפלט המקוסטת, ולכן ממיין לפי שעה-ביום.**
+
+`22:04` ⇒ **לא שער** · בתוך RTH (`16:30-23:00`) · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `9a71c7a6`.
+
+### חובה-1 · טלפון ⇒ **שקט מוחלט**
+
+```raw
+$ curl -s "https://mems26-mobile.onrender.com/chat?key=***"   ⇒ http=200, n=30
+senders seen: ['cc', 'cowork', 'cowork-dev', 'מייקל']
+michael msg indexes: [6, 7, 11, 13, 16, 18, 21] of 30
+[2026-09-25T12:07:30Z] <מייקל>      למה העץ שלי כבוי? ממתי? מה עשינו כל הימים האלה האם הוא גדל
+[2026-09-25T12:17:53Z] <cowork-dev> העץ לא כובה — הוא נולד היום ב-12:47 וכבר נולד כבוי …
+```
+
+אחרונת-מייקל `12:07:30Z` (אינדקס 21, האחרון מבין השבעה) — **נענתה עניינית** `12:17:53Z`. ⇒ **אין (א).**
+אין (ב) — `#2408` `state=FILLED · exit_ts NULL`: לא נפתחה ולא נסגרה בריצה הזאת. אין (ד) — לא שער.
+**אין (ג)** — ראה §"מה שלא דווח" להלן; זו ההחלטה המהותית של הריצה.
+
+### חובה-3 · ניטור-RTH ⇒ הכול חי
+
+```raw
+$ psql -c "select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,2) from v9_bars_5min_woodies;"
+max_ts                    | age_min
+2026-09-25 22:05:00+03    | 1.20            ⇒ T-430 עובר: פיד חי, לא "קובץ טרי"
+$ curl -o /dev/null -w "http=%{http_code} time=%{time_total}" localhost:8000/api/v9/health
+http=200 time=0.016336s
+$ python3 scripts/flag_guard.py | tail -3
+FLAG-GUARD: PASS — all 270 ruled flags match.
+  ── LIVENESS REPORT: all ON flags have ≥1 production read-site ──
+$ set -a; . ./.env; set +a; python3 -c '…ruled_contracts()…'
+ruled_contracts() = 1      FIXED_CONTRACTS_2 = 0     ⇒ T-489; אפס נגיעה בדגלי-גודל
+$ ps -o pid,lstart -p $(lsof -ti tcp:8000 -sTCP:LISTEN)
+11167  Fri Sep 25 19:15:31 2026   ⇒ אותו מאזין של ריצות 20-24, מדידה שישית ⇒ אין ריסטארט חדש
+```
+
+**פוזיציה⇄TM — ownership לפי `order_id` לפני אזעקה (מלכודת-16):**
+
+```raw
+sierra_state.json (גיל 0.7s)  position_qty 1 · avg 7794.75 · working_orders 2 · is_sim 0
+orders: [{id:11345, type:1, price:7809.25, qty:1}, {id:11346, type:3, price:7786.50, qty:1}]
+DB: live+FILLED = 1  ⇒ #2408 LONG DOUBLE_BOTTOM_EE_LONG entry 7795.25 stop 7786.50 t1 7809.25
+22:07:49 [Reconcile] IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+```
+
+הבראקט שלנו, שלם, אותם `order_id` של ריצות 20-24. **`SYS-3 DIVERGENCE` היום = 8, כולן `16:17-17:43`**
+(חלון-השורט-הידני, מכוסה ב-[[T-402]]) ו-**אפס מאז**; **`LIVE fire BLOCKED` היום = 1, ב-`17:10:03`**, אותו חלון.
+היום בלוג: `LIVE trade TM id` ×1 (`19:25:06` ⇒ `#2408`) · `COMMAND QUEUED` ×1 · `[ERROR]` ×1 —
+`17:05:02 [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED` על **עסקת-צל** `#2369`
+אחרי `T1 HIT`, מופע יחיד, אפס השפעה על לייב ⇒ נרשם כתצפית ולא כפריט.
+
+### 🔑 הממצא — [[T-490]]: השאילתה משקרת, הטבלה תקינה
+
+```raw
+$ select ts::time(0), pattern … order by ts desc limit 2   ⇒ 23:00:06 | HTLB
+$ select ts::time(0) as x, pattern … order by ts desc limit 2   ⇒ 21:55:05 | GHOST
+$ select ts::time(0), pattern … order by v9_shadow_ledger.ts desc limit 2   ⇒ 21:55:05 | GHOST
+$ select ts, pattern … order by ts::time desc limit 2   ⇒ 2026-09-23 23:00:06.010126+03 | HTLB
+$ select max(ts), count(*) filter (where ts > now()) …   ⇒ 2026-09-25 21:55:05.24305+03 | 0
+$ grep -rnoE "select[^;]{0,160}" --include=*.py backend/ scripts/ bridge/ \
+    | grep -iE "(select|,)\s*[a-z_]*\.?ts::" | grep -iv " as " | wc -l   ⇒ 0
+```
+
+‏`ts::time(0)` בלי alias מקבל את השם המשתמע `ts`, ו-`ORDER BY <שם-יחיד>` נקשר **לעמודת-הפלט** לפני
+עמודת-הטבלה ⇒ מיון לפי **שעה-ביום**, שמשליך את התאריך. הבקרה הרביעית מוכיחה שהשורה ה"אחרונה" היתה
+**מלפני יומיים**, והחמישית שאין שורות-עתיד ⇒ **הנתונים בסדר; הניסוח הוא שמשקר**. הבקרה השישית ⇒ **0
+היטים בקוד** (ה-`::time` שכן נפוץ — `direction_context_live.py:97`, `tree_learner.py:47`,
+`day_review.py:63` — הוא בתנאי-`WHERE` עם `order by b.ts` מוסמך) ⇒ **גבול-ההשפעה: דיווח-סוכנים בלבד.**
+כמעט דיווחתי "הליגר כתב לאחרונה `23:00:06 HTLB LONG`" כשהאמת `21:55:05 GHOST SHORT`. אותה משפחה
+כמו **מלכודת-17**: ביטוי בעמודת-הפלט שגונב את ה-`ORDER BY`. הצעד-הבא (אחרי 23:00) ב-[[T-490]].
+
+### ⛔ מה שלא דווח לטלפון — וזו ההחלטה
+
+`#2408` פתוחה לקראת **סגירת-שישי**, וזה נראה כמו מקרה (ג) קלאסי ("להחזיק על פני סוף-שבוע?").
+בדיקת-הפסיקות לפני האזעקה (מלכודת-16) מראה שזה כבר נפסק:
+
+```raw
+config/RULED_FLAGS.yaml:114  EOD_CLOSE_T10_V1 {expected: "1", ruled_by: "מייקל", date: "2026-08-24",
+   note: 'T-10: סגירת פוזיציות 10 דק׳ לפני RTH close (15:50 ET). +$3.28/יום נמדד. FLATTEN בלבד
+          (op=EXIT שבור). מנטרל חשיפת-לילה.'}
+config/RULED_FLAGS.yaml:55   EOD_FLATTEN_V1 {expected: "1", ruled_by: "מייקל", date: "2026-07-07"}
+flag_guard ⇒ PASS all 270  ⇒ שניהם דלוקים בפועל, לא רק ב-YAML
+```
+
+‏15:50 ET = **22:50 IL** ⇒ הפוזיציה נסגרת מעצמה 46 דק' אחרי המדידה; **אין חשיפת-סופ"ש**. שאלה למייקל
+כאן היתה בקשת-החלטה על מה שכבר נפסק — ההפרה המדויקת שמלכודת-16 מתעדת. ⇒ **שקט.**
+
+### 📊 מצב-היום
+
+לייב **1 פתוחה** — `#2408` `open_pnl +12.50$` · `last 7797.25` · `high_during_pos 7808.50` ⇒ נגעה
+ב-**1.57R** (סיכון 8.75pt, שיא 13.75pt) ופספסה את `t1 7809.25` ב-3 טיקים, ומחזירה. זו **נקודת-הלייב
+השנייה** באותה צורה אחרי `#2340` ⇒ נתון ל-[[T-459]]/[[T-481]], **לריפליי-הלילה, לא דגל**
+(‏`LEARNING_DOCTRINE`: תקרית ⇒ מקרה-ריפליי). ליגר היום `PASSED 41 · BLOCKED 49 · NO_CHANGE 90`;
+הגייטוויי חוסם שורטים ב-`tree:stand_down` מול `hint=LONG` (אחרון `21:55:05`) ⇒ **העץ מחליט חי**.
+ברוקר: `daily_pnl −20.00$` מול תקרה `−262.22` · `under_margin 0` · `avail 141.89$` · `trading_disabled 0`
+· `loss_limit_reached 0`. [[T-34]] דיווח-בלבד: `avail < 1,595$` אך אינו חוסם ⇒ אינו (ג).
+
+**הצעד הבא:** (1) הניטור הבא — האם `#2408` נסגרה ב-`EOD_CLOSE_T10` ב-`22:50` (⇒ (ב) עם P&L) או ב-T1/סטופ
+לפני כן; (2) הערב — [[T-490]] מלכודת-18 + ניקוי-ניסוחים + מבחן-רגרסיה · [[T-488]] דדופ-חלון-180-שנ' ·
+[[T-459]] ריפליי BE@1R עם `#2340`/`#2408` כמקרי-ריפליי; (3) הסדר הפסוק `broker_truth --write` →
+`day_review` → `review_report` → `gen_tree_board` → `gen_phone_pages --days 14` → `LESSONS_TIMELINE.json`
+→ push → אימות 200 → שורה אחת לטלפון.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-25 21:34-21:45 IL] — **ריצה 24 · חובה-1 + חובה-3** · 🔑 **הממצא: הפקודה שהמסמך-המשימה מחייב למדוד בה את הגודל מחזירה `None` כשמריצים אותה כפי-שכתובה — `ruled_contracts()` קורא `os.environ`, ו-`python3 -c` לא טוען `.env`. הגודל האמיתי הוא 1; מי שיאמין לפלט הגולמי ידווח "אין פסיקת-גודל".**
 
 `21:34` ⇒ **לא שער** · בתוך RTH (`16:30-23:00`) · אפס דגל · אפס `.env` · אפס פוזיציה · אפס ריסטארט · אפס קוד-מסחר. HEAD `d8553e67`.
