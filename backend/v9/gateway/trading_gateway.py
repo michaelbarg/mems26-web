@@ -929,6 +929,11 @@ class TradingGateway:
                 "live_blocked_by": result.get("live_blocked_by"),
                 "live_block_reason": result.get("live_block_reason"),
             }
+            # T-480 (25.09): the decision tree's walk for this candidate — leaf, id, the full path
+            # (opening type → phase → day type → …) and, in shadow mode, the legacy verdict it was
+            # compared with. Feeds the live tree panel (phone + desktop) and the day review.
+            if isinstance(result.get("tree_v3"), dict):
+                _dec["tree_v3"] = dict(result["tree_v3"])
             # D4: MFE-after-block tracking for awaiting_release/playbook blocks.
             # Records stop+targets so a post-session script can compute MFE from
             # bars and decide whether to open the gate.

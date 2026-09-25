@@ -108,6 +108,10 @@ v9_router.include_router(account_state_router)
 v9_router.include_router(context_radar_router)
 v9_router.include_router(context_multiday_router)
 
+# T-480 (25.09): where the decision tree is right now + what it would admit — phone + desktop live panel
+from backend.v9.api.v9.tree_routes import router as tree_routes_router
+v9_router.include_router(tree_routes_router)
+
 
 @v9_router.get("/api/v9/health")
 async def v9_health():
