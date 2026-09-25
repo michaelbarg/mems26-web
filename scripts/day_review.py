@@ -114,7 +114,7 @@ dv_by_day = {}
 sess_vol = {d: sum(float(b["v"] or 0) for b in by_day[d]) for d in alld}
 med_vol = statistics.median([sess_vol[d] for d in alld[-10:]])
 
-GATE_HEB = {"dalton_intent:stand_down": "עץ-דלתון: stand-down (שלב/סוג-יום בלי כוונה)", "dalton_intent:kind": "עץ-דלתון: סוג-הכניסה לא מותר נגד ההטיה",
+GATE_HEB = {"tree:stand_down": "עץ-V3: stand-down (אין שורה לנסיבה)", "tree:kind": "עץ-V3: סוג-הכניסה לא ברשימת-השורה", "tree:bias": "עץ-V3: נגד ההטיה", "tree:location": "עץ-V3: מיקום מול הערך (T-319b)", "dalton_intent:stand_down": "עץ-דלתון: stand-down (שלב/סוג-יום בלי כוונה)", "dalton_intent:kind": "עץ-דלתון: סוג-הכניסה לא מותר נגד ההטיה",
             "dalton_intent:bias": "עץ-דלתון: ההטיה דוחה את הכיוון", "dalton_intent:location": "עץ-דלתון: מיקום (T-319b)", "opening_lock": "נעילת-פתיחה (T-314)",
             "live_slot_occupied": "סלוט-לייב תפוס", "extreme_chase_guard": "שער-רדיפה (ELQ/קיצון)", "rr_hard_floor": "רצפת-R:R", "rr_entry_gate": "שער-R:R בכניסה",
             "entry_not_confirmed": "בר-אישור לא נסגר", "fresh_extreme": "קיצון-טרי", "fhb": "חיץ-השעה-הראשונה", "strict_risk": "בדיקות-סיכון (strict)",

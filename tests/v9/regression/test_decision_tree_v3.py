@@ -63,6 +63,21 @@ def tree_verdict(tree, *, opening, phase, day_type, direction, hint, pattern, zo
     return ("SKIP:" + str(leaf.get("id"))) if act == "SKIP" else act, path
 
 
+LEGACY_IDS = ("stand_down", "bias", "kind", "location")
+
+
+def live_equivalent(exp, got):
+    """Parity of the LIVE path: a SHADOW leaf never fires live (it records only), so it is equivalent to
+    the legacy refusal; a seed SKIP leaf must carry the legacy reason; a measured split may refine the
+    reason id (e.g. a SHADOW branch under a legacy `kind` cell)."""
+    if exp == "TAKE" or got == "TAKE":
+        return exp == got
+    if got == "SHADOW":
+        return True
+    gid = got.split(":", 1)[1]
+    return gid not in LEGACY_IDS or exp == got
+
+
 class TestTreeShape(unittest.TestCase):
     def setUp(self):
         dt3.invalidate_cache()
@@ -115,10 +130,16 @@ class TestParityWithLegacyChain(unittest.TestCase):
             got, path = tree_verdict(self.tree, opening=opening, phase=phase, day_type=day_type,
                                      direction=direction, hint=hint, pattern=pattern, zone=zone, edge=edge)
             n += 1
-            if exp != got:
+            if not live_equivalent(exp, got):
                 mismatches.append((opening, phase, day_type, direction, hint, pattern, zone, edge, exp, got, path))
         self.assertGreater(n, 20000)
         self.assertEqual(mismatches, [], f"{len(mismatches)} of {n} circumstances differ; first: {mismatches[:5]}")
+
+    def test_shadow_leaves_are_measured_branches_only(self):
+        """Every SHADOW leaf in the seed is a measured split (carries `measured:`), never a bare row."""
+        for lf in dt3.leaves(self.tree):
+            if lf["leaf"] == "SHADOW":
+                self.assertTrue(lf.get("measured"), f"SHADOW leaf without measured: {lf.get('path')}")
 
     def test_23_09_opening_drive_short_is_taken(self):
         got, path = tree_verdict(self.tree, opening="OPEN_DRIVE", phase="B", day_type="", direction="SHORT",

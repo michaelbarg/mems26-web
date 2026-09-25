@@ -1,0 +1,37 @@
+# config/decision_tree_v3.splits.yaml — the ledger of every split tried on the V3 tree (LEARNING_DOCTRINE 09.09:
+# an instruction ⇒ first a replay, then a branch; every verdict carries its number). A split enters
+# config/decision_tree_v3.yaml only with a positive DAY-TOTAL replay vs the baseline (Michael 24.09); a
+# refuted split stays here with its number so it is never re-proposed from memory.
+#
+# fields: id · path (the node the split hangs on) · question (the doctrinal reading) · variant (yaml) ·
+#         candidate (n · win · Σ$ independent, from tree_measure) · day_total (58-session harness vs baseline)
+#         · downstream (what the safety gates did to the admitted candidates) · verdict · date
+
+splits:
+  - id: V1
+    date: 2026-09-25
+    path: "opening_type=OPEN_DRIVE / phase=D / day_type=Variation / rel_bias=against"
+    question: "drive open that became a Variation day, phase D (21:00+): responsive entries AGAINST the extension (late value return) — Dalton: the extension is exhausted late in a non-trend day"
+    variant: harness_out/t480/tree_v1.yaml
+    candidate: "n=68 · 60% · +1,310$ (with the extension: n=24 · 21% · −394$)"
+    day_total: "58 sessions: baseline Σ+1,220.00$ → Σ+1,216.25$ · Δ −3.75$ gross / ≈ −19$ net of +6 round-trips · better 2 / worse 2 / same 54"
+    downstream: "67 candidates reached the leaf: eod_entry_cutoff 24 · shadow producers 11 · ELQ 10 · LIVE 6 · entry_not_confirmed 5 · slot 4 — the candidate-level edge sits in entries the EOD cutoff forbids"
+    verdict: REFUTED — stays SKIP (stand_down)
+
+  - id: V2
+    date: 2026-09-25
+    path: "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT / phase=B / day_type=Trend_Normal|Trend_DD / kind=BREAK"
+    question: "open-auction whose first hour already reads Trend (provisional label): initiative BREAK entries WITH the developing structure — Dalton: a one-sided IB extension in the first hour is the tell of a potential trend day"
+    variant: harness_out/t480/tree_v2.yaml
+    candidate: "n=112 · 58% · +1,861$"
+    day_total: "58 sessions: baseline Σ+1,220.00$ → Σ+1,321.25$ · Δ +101.25$ gross / ≈ +83$ net of +7 round-trips · better 5 / worse 2 / same 51 · by month Jun +45 · Jul +104 · Aug +86 · Sep −134"
+    downstream: "8 new trades (HTLB, GB100, GHOST, SCALE_IN, INITIATIVE_LONG, GHOST, CONFLUENCE_RI_ZLR, INITIATIVE_SHORT): 6 wins / 2 stops; 17.07 a losing REACTIVE_LONG displaced (+45$)"
+    verdict: "POSITIVE but under-sampled (8 < 15) ⇒ entered the tree as a SHADOW leaf `auction_B_trend_break` with measured: — TAKE when the replay holds ≥ 15 trades and Σ ≥ 0"
+  - id: V3b
+    date: 2026-09-25
+    path: "as V2 with day_type=Trend_Normal|Trend_DD|Variation|Normal_Variation"
+    question: "V2 plus a first hour that reads Variation"
+    variant: harness_out/t480/tree_v3b.yaml
+    candidate: "Trend n=112 +1,861$ · Variation n=32 · 62% · +937$"
+    day_total: "58 sessions: Σ+1,306.25$ · Δ +86.25$ gross / ≈ +65$ net of +8 round-trips · better 5 / worse 2 / same 51 — i.e. the Variation part alone is Δ −15$ (14.07 −54$, 08.09 −95$ vs V2)"
+    verdict: "REFUTED for the Variation label — V2 alone stands"

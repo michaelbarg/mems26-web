@@ -25,7 +25,7 @@ HEB_WD = ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שב�
 V_HEB = {"TOOK": "✅ בזמן", "LATE": "🕒 מאוחר", "OPPOSITE": "❌ הפוך", "MISSED": "⭕ פוספסה", "UNCATCHABLE": "⚪ בלי בר-אישור"}
 KIND_HEB = {"relax_gate": "שער חסם כניסה נכונה", "slot_priority": "עבר הכל, הסלוט היה תפוס", "producer_not_live": "המפיק שראה מחובר רק לצל",
             "shadow_only": "צל ראה, הגייטוויי לא", "no_producer": "אף מפיק לא רואה את זה"}
-GATE_HEB = {"dalton_intent:stand_down": "עץ-דלתון: stand-down (שלב/סוג-יום בלי כוונה)", "dalton_intent:kind": "עץ-דלתון: סוג-הכניסה אסור נגד ההטיה",
+GATE_HEB = {"tree:stand_down": "עץ-V3: stand-down (אין שורה לנסיבה)", "tree:kind": "עץ-V3: סוג-הכניסה לא ברשימת-השורה", "tree:bias": "עץ-V3: נגד ההטיה", "tree:location": "עץ-V3: מיקום מול הערך (T-319b)", "dalton_intent:stand_down": "עץ-דלתון: stand-down (שלב/סוג-יום בלי כוונה)", "dalton_intent:kind": "עץ-דלתון: סוג-הכניסה אסור נגד ההטיה",
             "dalton_intent:bias": "עץ-דלתון: ההטיה דוחה את הכיוון", "dalton_intent:location": "עץ-דלתון: מיקום (T-319b)", "extreme_chase_guard": "שער-רדיפה (ELQ)",
             "rr_hard_floor": "רצפת-R:R", "rr_entry_gate": "שער-R:R", "entry_not_confirmed": "בר-אישור לא נסגר", "live_slot_occupied": "סלוט-לייב תפוס"}
 ZONE_HEB = {"ABOVE_VA": "מעל הבטן", "BELOW_VA": "מתחת לבטן", "IN_VA": "בתוך הבטן", "AT_POC": "על ה-POC", "UNKNOWN": "?"}
