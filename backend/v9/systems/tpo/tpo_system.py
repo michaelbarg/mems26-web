@@ -18,6 +18,29 @@ logger = logging.getLogger(__name__)
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
+def _norm_bar_ts(ts: Any) -> Any:
+    """Live bar events carry `ts` as EPOCH SECONDS (e.g. 1790352900); every DB use of it in this module
+    casts to timestamptz (the T-330 restart seed `ts <= (:upto)::timestamptz`, v9_tpo_sessions.opened_ts,
+    v9_tpo_journal.ts) and Postgres rejects a bare number — `DatetimeFieldOverflow`, logged at every restart
+    (24.09 15:26-15:38, 25.09 19:15). The seed then stayed None, so after a MID-SESSION restart the tree read
+    session extremes rebuilt from post-boot bars only (25.09 19:17: session_low 7804.25 vs the real 7752.75).
+    Numbers (int/float or an all-digit string; ms if > 1e12) → ISO-8601 UTC; anything else is returned as is."""
+    try:
+        v = None
+        if isinstance(ts, (int, float)) and not isinstance(ts, bool):
+            v = float(ts)
+        elif isinstance(ts, str) and ts.strip().replace(".", "", 1).isdigit():
+            v = float(ts.strip())
+        if v is None or v <= 0:
+            return ts
+        if v > 1e12:
+            v /= 1000.0
+        from datetime import timezone as _tz
+        return datetime.fromtimestamp(v, tz=_tz.utc).isoformat()
+    except Exception:
+        return ts
+
+
 class TPOSystem(BaseV9TradingSystem):
     system_id = 5
     name = "tpo"
@@ -216,7 +239,7 @@ class TPOSystem(BaseV9TradingSystem):
             if len(self.bar_buffer) > self.max_buffer:
                 self.bar_buffer.pop(0)
 
-            ts_str = getattr(event, 'ts', '') or bar.get('ts', '')
+            ts_str = _norm_bar_ts(getattr(event, 'ts', '') or bar.get('ts', ''))
             session = getattr(event, 'session', 'UNKNOWN')
 
             # Determine session type
