@@ -39,11 +39,15 @@
 # DECISION_TREE_V3=1 must equal the baseline before any split is added. From there every
 # split is a branch with `measured:` and a day-total replay (Michael 24.09: positive ⇒ live).
 
-version: "3.0.0"
-seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity"
+version: "3.1.0"
+seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity · 27.09 package S1+S5+S7 (T-494)"
 
 # ── library of shared sub-trees (YAML anchors; the loader reads only `root`) ────────────────────
 library:
+  # 27.09 package (T-494): three splits that passed alone, replayed TOGETHER vs the live tree before going live
+  # (config/decision_tree_v3.splits.yaml S1/S5/S7/PKG; harness_out/t494/README_variants.txt).
+  ruling_pkg_2709: &ruling_pkg_2709 "Michael 2026-09-27 18:37 IL 'מאשר' (Cowork) — the package S1+S5+S7 of the 27.09 night report (docs/reports/NIGHT_REPORT_2026-09-27.md §5); S1 amends the 17.09 phase-D 'manage only' ruling"
+  package_2709: &package_2709 "t494pkg (S1+S5+S7 together) vs live0927, 60 sessions: Δ +470.55$ gross / ≈ +387.35$ net of +32 round-trips · better 24 / worse 12 · max DD −277.50$ (live −212.50$)"
   skip_stand_down: &skip_stand_down
     leaf: SKIP
     id: stand_down
@@ -65,6 +69,11 @@ library:
     note: "with the directional hint — any kind (kinds_apply_to=counter_bias_only)"
   take_failed_ext: &take_failed_ext
     leaf: TAKE
+    # S7 (T-494): the ladder from the producer's own stop — the structural chain cut T1 to an old shelf here and
+    # rr_entry_gate refused winners (9 · 78% · +510$ candidate-level)
+    exit: {t1_r: 1.5, t2_r: 2.5}
+    ruling: *ruling_pkg_2709
+    measured: {sessions: 60, usd: 166.25, usd_net: 163.65, better: 11, worse: 8, source: "harness_out/t466/t494s7 vs live0927 (S7 = this leaf + the BREAK kinds leaves)", date: "2026-09-27", package: *package_2709, rule: "re-measure nightly; report if Σ turns negative"}
     note: "T-329: confirmed double at the extension extreme negates the bias"
   take_location: &take_location
     leaf: TAKE
@@ -103,16 +112,34 @@ library:
     split: kind
     branches:
       EDGE_FADE: {leaf: TAKE, note: "phase B open-auction: edge fades only"}
+      # S5 (T-494): a reversal at the opening extreme (DALTON_EDGE / OPENING_EXTREME_REJECT / ORR) — kind refusals
+      # FORMING/REVERSAL 19 · +529$ · Trend_Normal/REVERSAL 13 · +419$ candidate-level
+      REVERSAL:
+        leaf: TAKE
+        id: auction_B_reversal
+        ruling: *ruling_pkg_2709
+        measured: {n: 25, win: 52, usd: 105.55, usd_net: 69.15, sessions: 60, better: 9, worse: 9, source: "harness_out/t466/t494s5 vs live0927", date: "2026-09-27", package: *package_2709, rule: "thin (Aug −232$) — re-measure nightly; report if Σ turns negative"}
+        note: "phase B open-auction: a reversal at the opening extreme is taken too"
       "*": *kind_fallback
   kinds_trend: &kinds_trend
     split: kind
     branches:
-      PULLBACK|BREAK: {leaf: TAKE, note: "trend day: pullback / break (with the trend when hinted)"}
+      PULLBACK|BREAK:
+        leaf: TAKE
+        exit: {t1_r: 1.5, t2_r: 2.5}      # S7 (T-494) — see take_failed_ext
+        ruling: *ruling_pkg_2709
+        measured: {sessions: 60, usd: 166.25, usd_net: 163.65, better: 11, worse: 8, source: "harness_out/t466/t494s7 vs live0927", date: "2026-09-27", package: *package_2709, rule: "re-measure nightly"}
+        note: "trend day: pullback / break (with the trend when hinted)"
       "*": *kind_fallback
   kinds_variation: &kinds_variation
     split: kind
     branches:
-      BREAK|VALUE_RETURN: {leaf: TAKE, note: "variation day: break / value return"}
+      BREAK|VALUE_RETURN:
+        leaf: TAKE
+        exit: {t1_r: 1.5, t2_r: 2.5}      # S7 (T-494) — see take_failed_ext
+        ruling: *ruling_pkg_2709
+        measured: {sessions: 60, usd: 166.25, usd_net: 163.65, better: 11, worse: 8, source: "harness_out/t466/t494s7 vs live0927", date: "2026-09-27", package: *package_2709, rule: "re-measure nightly"}
+        note: "variation day: break / value return"
       "*": *kind_fallback
   kinds_normal: &kinds_normal
     split: kind
@@ -251,11 +278,34 @@ library:
       Neutral_Center|Neutral_Extreme: *responsive_neutral
       Nontrend|Nonconviction: *skip_stand_down
       "*": *skip_stand_down
+  # S1 (T-494, ruled 27.09): phase D on a day the IB extended one-sidedly — WITH the extension, 21:00 until the
+  # 22:15 EOD cutoff (Dalton: a Variation day that holds its extension into the afternoon). Stand-down refusals
+  # (D,Variation,none,with) 21 · 90% · +1,298$ candidate-level on 3 days; the day total decided.
+  # ⚠️ DEPENDS ON THE GATES AFTER IT: in the package replay this leaf admits 291 unique candidates, 39% at 1.5R,
+  # −2,428$ candidate-level — eod_entry_cutoff holds back 83 (−1,100$) and rr_entry_gate 29 (−713$); the day-total
+  # gain comes from the ~19 that execute. Re-measure S1 BEFORE loosening eod_entry_cutoff or rr_entry_gate.
+  d_with_extension: &d_with_extension
+    split: rel_bias
+    branches:
+      with:
+        leaf: TAKE
+        id: d_with_extension
+        ruling: *ruling_pkg_2709
+        measured: {n: 19, win: 63, usd: 160.0, usd_net: 110.6, sessions: 60, better: 9, worse: 7, source: "harness_out/t466/t494s1 vs live0927 (+19 trades, 0 displaced)", date: "2026-09-27", package: *package_2709, rule: "re-measure nightly; report if Σ turns negative"}
+        note: "phase D, the IB extended one-sidedly — with the extension (the EOD cutoff at 22:15 still applies)"
+      "*": *skip_stand_down
   # phase D — manage only, except with-trend on trend days / with-extension on Neutral_Extreme (Michael 17.09 14:05)
+  #   + with the extension on Variation / on a Normal label whose IB was extended (S1, Michael 27.09 'מאשר')
   phase_D: &phase_D
     split: day_type
     branches:
       Trend_Normal|Trend_DD|Neutral_Extreme: *trend_row
+      Variation|Normal_Variation: *d_with_extension
+      Normal:
+        split: structure
+        branches:
+          up|down: *d_with_extension
+          "*": *skip_stand_down
       "*": *skip_stand_down
 
 # ── the tree ────────────────────────────────────────────────────────────────────────────────────

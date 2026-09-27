@@ -1,3 +1,31 @@
+## 🟢 [cowork-dev · 2026-09-27 18:37-18:55 IL · אינטראקטיבי] — **"מאשר" של מייקל בוצע: החבילה S1+S5+S7 חיה בעץ · הברידג' הורם (זרם-הפוטפרינט עלה) · ניסוח-הגודל בשער תוקן** · 🔑 **לשער של ב׳: לרים את השרת כרגיל (חובה — S7 + T-495/T-497/T-498 נטענים רק בריסטארט), ולא לרים את הברידג' שוב.**
+
+**הפסיקה:** מייקל, Cowork, 27.09 ~18:37: "מאשר" — בתשובה להצעה "אם תכתוב 'כן' ו'מאשר ברידג'' אבצע את שניהם הערב" + הצעת תיקון ניסוח-הגודל. ⛔ אפס נגיעה ב-`.env`, בדגלים, בפוזיציה, בשרת.
+
+```raw
+# T-494 — העץ החי (config/decision_tree_v3.yaml 3.0.0 → 3.1.0)
+d_with_extension (S1) · auction_B_reversal (S5) · exit {1.5R,2.5R} on take_failed_ext + kinds_trend + kinds_variation (S7)
+walk(live) vs walk(harness_out/t494/tree_pkg.yaml) on 2,621 unique real vectors (live0927+pkg+s1+s5+s7 routes) ⇒ 0 differences
+pytest decision_tree_v3 + t495 + t497 + t498 + candidate_ledger ⇒ 43 passed
+curl localhost:8000/api/v9/tree/state ⇒ 200, latency 10.4ms (hot-reload, no parse error)
+# T-492 — הברידג'
+snapshot ⇒ ~/mems26_snapshots/20260927T153922Z_bridge-restart-footprint-T492
+old: pid 19995 (screen mems26_bridge, Tue Sep 22 15:36:58) · screen -X quit left python alive ⇒ kill -TERM ⇒ "All streams stopped. Exiting." (2s)
+new: screen -dmS mems26_bridge bash /tmp/start_bridge.sh (the start_all.sh recipe) ⇒ pid 81646 · 18:41:51 · "14 streams"
+[footprint] Starting stream … History: API push OK … Recomputed from 1080000 new ticks — 30 bars · push target http://localhost:8000 · API push FAILED = 0
+v9_bars_footprint: max(ts) 2026-09-22 15:37:08 / 2,710,817  ⇒  2026-09-27 18:42:05 / 2,710,878 (+61)
+# T-489 — פרומפט השער
+set -a; . ./.env; set +a; python3 -c '…ruled_contracts()…' ⇒ 1 · flag_guard rc=0
+```
+
+### לשער של ב׳ 28.09 (~15:30)
+1. `git pull` · `close_stale_shadow.py --apply` (2406/2469/2470) · **ריסטארט-שרת בפוזיציה 0** — בלי זה S7 לא פעיל (קוד 4e56bfa9), וגם T-495/T-497/T-498.
+2. **לא** לרים את הברידג' — הוא עלה 27.09 18:41:51 עם זרם-הפוטפרינט.
+3. אחרי 16:30: `v9_bars_footprint` של היום גדל; עסקה ראשונה דרך `d_with_extension` / `auction_B_reversal` / סולם-S7 ⇒ שורה כאן (ובטלפון רק כמקרה ב — עסקת-לייב).
+4. גודל: **1** (הפרומפט תוקן).
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-27 18:34-18:50 IL] — **ריצה 36 · חובה-1+3 · יום א׳, שוק סגור**
 
 **שורה אחת, לא רשומה-מתחרה** ([[T-369]]): ריצה 28 בעלת רשומת-היום. אני מוסיף **ממצא חדש אחד**

@@ -46,8 +46,8 @@ splits:
     variant: harness_out/t494/tree_s1.yaml
     candidate: "stand_down (D,Variation,none,with) n=21 · 90% · +1,298$ (3 days)"
     day_total: "60 sessions vs live0927: Σ+1,533.75$ · Δ +160.00$ gross / ≈ +110.60$ net of +19 round-trips · better 9 / worse 7 / same 44 · added 19 trades (12 wins, +160$), removed 0 · by month Jun −1 · Jul +1 · Aug +119 · Sep +41"
-    downstream: "25.09 (Friday) it would not have traded: its phase-D TAKEs hit rr_entry_gate, ELQ ×2 and eod_entry_cutoff ×3"
-    verdict: "POSITIVE — n 19 ≥ 15, net Σ ≥ 0 (rule 24.09) ⇒ candidate for TAKE"
+    downstream: "25.09 (Friday) it would not have traded: its phase-D TAKEs hit rr_entry_gate, ELQ ×2 and eod_entry_cutoff ×3. In the package replay (gate_audit t494pkg) the leaf admits 291 unique candidates · 39% · −2,428$ at 1.5R: eod_entry_cutoff holds back 83 (−1,100$), rr_entry_gate 29 (−713$), shadow producers 107 (−160$), 16 execute. FRAGILE — the gain rests on the gates after the leaf; re-measure before loosening either gate"
+    verdict: "RULED TAKE — Michael 2026-09-27 18:37 IL 'מאשר' (package S1+S5+S7) ⇒ LIVE in config/decision_tree_v3.yaml 3.1.0 (leaf d_with_extension)"
   - id: S2
     date: 2026-09-27
     path: "day_type=Variation / rel_bias=against / zone=mid_value|near_val|near_vah"
@@ -87,7 +87,7 @@ splits:
     variant: harness_out/t494/tree_s5.yaml
     candidate: "kind refusals FORMING/REVERSAL n=19 · +529$ · Trend_Normal/REVERSAL n=13 · +419$"
     day_total: "60 sessions vs live0927: Σ+1,479.30$ · Δ +105.55$ gross / ≈ +69.15$ net of +14 round-trips · better 9 / worse 9 · added 25 (13 wins, +135.55$), removed 11 (+38.15$) · by month Jun +64 · Jul +84 · Aug −232 · Sep +191"
-    verdict: "POSITIVE but thin — n 25 ≥ 15, net Σ ≥ 0 (rule 24.09) ⇒ candidate for TAKE"
+    verdict: "RULED TAKE (thin) — Michael 2026-09-27 18:37 IL 'מאשר' (package S1+S5+S7) ⇒ LIVE in 3.1.0 (leaf auction_B_reversal); report if Σ turns negative"
   - id: S6
     date: 2026-09-27
     path: "auction_B_trend_break — skip_gates: [extreme_chase_guard] (T-500)"
@@ -103,7 +103,7 @@ splits:
     variant: harness_out/t494/tree_s7.yaml
     candidate: "RR after take_failed_ext n=9 · 78% · +510$ · after BREAK kinds n=7 · 86% · +450$"
     day_total: "60 sessions vs live0927: Σ+1,540.00$ · Δ +166.25$ gross / ≈ +163.65$ net of +1 round-trip · better 11 / worse 8 / same 41 · added 7 (4 wins, +69.35$), removed 6 (−126.25$), the rest from exits · by month Jun +74 · Jul +73 · Aug +26 · Sep −6"
-    verdict: "POSITIVE — an exit policy on existing TAKE leaves (not a new TAKE) ⇒ candidate"
+    verdict: "RULED — Michael 2026-09-27 18:37 IL 'מאשר' (package S1+S5+S7) ⇒ LIVE in 3.1.0 (exit on take_failed_ext + kinds_trend + kinds_variation); the exit-policy code (4e56bfa9) loads with the 28.09 pre-open restart"
   - id: PKG
     date: 2026-09-27
     path: "S1 + S5 + S7 together (harness_out/t494/compose_pkg.py — the combination is replayed before anything goes live)"
@@ -111,4 +111,4 @@ splits:
     variant: harness_out/t494/tree_pkg.yaml
     candidate: "—"
     day_total: "60 sessions vs live0927: Σ+1,844.30$ · Δ +470.55$ gross / ≈ +387.35$ net of +32 round-trips · better 24 / worse 12 / same 24 · added 46 (26 wins, +499.90$), removed 14 (+8.15$) · by month Jun +120 · Jul +116 · Aug −88 · Sep +322 · max cumulative drawdown −277.50$ (live0927 −212.50$) · vs the pre-tree baseline Δ +663.05$ gross / ≈ +553.85$ net, better 28 / worse 9"
-    verdict: "POSITIVE — above the sum of the parts (+343$ net alone). AWAITING Michael's word (S1 changes his 17.09 phase-D ruling; the tree never takes a new branch without `ruling:`, test_decision_tree_v3 parity)"
+    verdict: "POSITIVE — above the sum of the parts (+343$ net alone). RULED by Michael 2026-09-27 18:37 IL 'מאשר' ⇒ LIVE (3.1.0); the live file walks identically to tree_pkg.yaml on all 2,621 real vectors of the replays (0 differences)"

@@ -170,10 +170,19 @@ class TestParityWithLegacyChain(unittest.TestCase):
         self.assertEqual(got, "SKIP:kind", path)
         self.assertEqual([f for f, _ in path][:3], ["opening_type", "phase", "day_type"])
 
-    def test_phase_d_variation_is_manage_only(self):
-        got, _ = tree_verdict(self.tree, opening="OPEN_DRIVE", phase="D", day_type="Variation", direction="LONG",
-                              hint="LONG", pattern="PULLBACK_CONT", zone="unknown", edge="none")
-        self.assertEqual(got, "SKIP:stand_down")
+    def test_phase_d_variation_takes_only_with_the_extension(self):
+        """17.09: phase D is manage-only. 27.09 (S1, Michael 'מאשר', package +387$ net over 60 sessions): on a
+        Variation day, WITH the extension is taken; against it or with no hint phase D still stands down."""
+        kw = dict(opening="OPEN_DRIVE", phase="D", day_type="Variation", pattern="PULLBACK_CONT", zone="unknown",
+                  edge="none")
+        self.assertEqual(tree_verdict(self.tree, direction="LONG", hint="LONG", **kw)[0], "TAKE")
+        self.assertEqual(tree_verdict(self.tree, direction="SHORT", hint="LONG", **kw)[0], "SKIP:stand_down")
+        self.assertEqual(tree_verdict(self.tree, direction="LONG", hint=None, **kw)[0], "SKIP:stand_down")
+        leaf, _ = dt3.walk(self.tree, {"opening_type": "OPEN_DRIVE", "phase": "D", "day_type": "Variation",
+                                       "rel_bias": "with", "direction": "LONG", "kind": "PULLBACK"})
+        self.assertEqual(leaf.get("id"), "d_with_extension")
+        self.assertIn("Michael", str(leaf.get("ruling")))
+        self.assertEqual(leaf["measured"]["sessions"], 60)
 
     def test_responsive_day_location_decides(self):
         kw = dict(opening="OPEN_AUCTION_IN", phase="C", day_type="Normal", hint=None, pattern="INITIATIVE_LONG", edge="none")
@@ -242,14 +251,20 @@ class TestGatewayHook(unittest.TestCase):
         self.assertIn("and _dp_phase_now != \"D\" and not _vc_branch and not _tree_used", self.src)
         self.assertIn("[TREE-V3 DIFF]", self.src)
 
-    def test_leaf_exit_policy_is_wired_and_inert_in_the_seed(self):
+    def test_leaf_exit_policy_is_wired_and_only_on_ruled_leaves(self):
         """T-494: a TAKE leaf may declare `exit: {t1_r, t2_r}` (ladder from the producer's stop, marked final so
-        the structural-target chain cannot cut T1 to an old shelf). Live behaviour changes only when the tree
-        file declares it — the seed declares it nowhere."""
+        the structural-target chain cannot cut T1 to an old shelf). 27.09 S7 (Michael 'מאשר'): declared on
+        take_failed_ext and the BREAK kinds leaves — every leaf that declares it carries the ruling and its number."""
         self.assertIn('_tree_leaf.get("exit")', self.src)
         self.assertIn('setup.setdefault("metadata", {})["target_chain_final"] = True', self.src)
         dt3.invalidate_cache()
-        self.assertEqual([lf.get("id") for lf in dt3.leaves(dt3.load_tree()) if lf.get("exit")], [])
+        exits = [lf for lf in dt3.leaves(dt3.load_tree()) if lf.get("exit")]
+        self.assertTrue(exits)
+        for lf in exits:
+            self.assertEqual(lf["leaf"], "TAKE")
+            self.assertEqual(lf["exit"], {"t1_r": 1.5, "t2_r": 2.5})
+            self.assertIn("Michael", str(lf.get("ruling")))
+            self.assertTrue(lf.get("measured") and lf["measured"].get("sessions"))
 
     def test_leaf_producer_promotion_is_wired_and_inert_in_the_seed(self):
         """T-496: a TAKE leaf may declare `promote: [CLASSIFICATION]` — a producer that is shadow-only by its own
