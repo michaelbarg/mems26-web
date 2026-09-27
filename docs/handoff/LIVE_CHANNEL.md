@@ -1,3 +1,87 @@
+## 🟢 [cowork-dev · 2026-09-27 19:34-19:48 IL] — **ריצה 38 · חובה-1+3 · יום א׳, שוק סגור** · 🔎 **[[T-501]] נפתח: הברידג' כותב 1.1–1.2M אזהרות-DNS ביום · תיקון-ניסוח ל-TS-OFFSET-GATE של ריצה 37**
+
+☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד).
+הודעת-מייקל אחרונה `2026-09-25T12:07:30Z` (נענתה 12:17:53); אחרון-בתור `cowork-dev 2026-09-27T13:17:56Z`.
+⛔ **אפס ריסטארט · אפס הודעת-שער** — מאזין `11167` בלי שינוי (**מדידה 18 רצופה**), ריצה 28 בעלת רשומת-היום ⇒ [[T-369]]. יום א׳, אין שער.
+
+🟢 **מצב חי:** `health 200 / 2.4ms` · `position_qty 0 · working_orders 0 · verdict flat · is_sim 0 · acct_under_margin 0` · `sierra age_s 0.9` · `ruled_contracts() = 1` עם `.env` (מלכודת 18) · `flag_guard PASS — 270` · `COMMAND QUEUED today = 0` · **אפס שורות `FILLED`-בלי-יציאה בספרים** מול פוזיציה-0 בברוקר ⇒ עקבי, **אין אזעקת-בעלות**.
+
+🟢 **הבקרה-החיובית שמסבירה את השקט — המערכת עצמה יודעת שזה סוף-שבוע:** `/api/v9/status` ⇒ `session.current = WEEKEND · is_trading_active false · is_globex false`. אפס החלטות היום (הפיד החזיר 106 שורות, **כולן** משישי `13:30Z→19:55Z`, תקרת-200 לא נגעה) ובר-אחרון `25.09 23:30`. זה **נכון לשבוע-סגור, לא תקלה** (מלכודת 3.4).
+
+### 🔎 ממצא 1 — מצב-היום של הגייטוויי לא התגלגל. סיבה **נוספת** לריסטארט של ב׳
+
+מעל S7 `4e56bfa9` + [[T-495]]/[[T-497]]/[[T-498]] שריצה 37 כבר רשמה, הגייטוויי מחזיק את מוני-**שישי**:
+`trades_today = 1` · `daily_pnl = 70.0` · `cooldown.consecutive_stops = 13` · `day_type = Variation / LOCKED / stage B2 / ib_locked true` — כי התהליך רץ מ-`Fri Sep 25 19:15:31` (`etime 02-00:21:31`). **בלי הריסטארט, ב׳ נפתח עם מוני-שישי.** (`live_slot null` ⇒ הסלוט עצמו פנוי; `live_enabled_systems [2,4]`.)
+
+### 🔎 ממצא 2 — [[T-501]]: 1.1–1.2M אזהרות-DNS ביום מהברידג'. לא חוסם, נכשל-סגור, הכלל-המקומי שלם
+
+`/tmp/bridge.log` = **672MB / 5,393,792 שורות** מ-22.09. פר-יום: `09-22 407,197 · 09-23 1,189,050 · 09-24 1,174,727 · 09-25 1,142,306 · 09-27 163,997` (היום פר-שעה: `16→19,144 · 17→50,879 · 18→50,624 · 19→36,324` ⇒ **~865/דקה, ~14/שנייה**). 09-26 ⇒ 0 (שבת, אפס טיקים ⇒ אפס נסיונות).
+
+**זו לא כפילות של [[T-115]] ולא רגרסיה שלו — זה אותו מחלקת-כשל בקומפוננטה שהתיקון של 28.08 לא כיסה.** T-115 כיבה את `ws_manager` כש-`REDIS_URL` **ריק** (~1,400/יום). כאן ה-URL **אינו** ריק: `.env` מכיל `UPSTASH_REDIS_REST_URL` + `_TOKEN`, ולכן השער ב-`bridge/v9_streams/base_stream.py:416` (`if not REDIS_URL or not REDIS_TOKEN: return None`) **עובר**, הבקשה נשלחת, ה-DNS נכשל (`[Errno 8] nodename nor servname`), ו-`logger.warning` נכתב **לכל פקודה ולכל זרם** — בלי rate-limit ובלי circuit-breaker. זה בדיוק מסלול-ההדלקה-מחדש שפסיקת 28.08 השאירה פתוח (*"הגדרת REDIS_URL מדליקה מחדש בלי קוד"*), רק שהיעד כבר לא נפתר.
+
+תואם את `/api/v9/status`: `event_bus.reachable false · xlen_price_tick 0` · `bar_router.published_to_bus 0` — ובמקביל `bar_router.dispatched 82,002` ו-**9/12 זרמים ירוקים** ⇒ **המסלול הראשי (push ל-localhost) עובד; רק מראת-האוטובוס מתה.**
+
+**הכלל-המקומי אומת, לא הונח:** `CLOUD_URL=http://localhost:8000` בתהליך הרץ (`ps eww 81646`), כל יעדי-ה-push ב-log הם `http://localhost:8000/...`, `onrender.com` ⇒ **0 אזכורים**, והשומר ב-`base_stream.py:38-44` מפיל את הברידג' בעלייה על URL לא-מקומי.
+
+**3 הזרמים האדומים הם אותו סיפור מהצד השני:** `footprint / woodies_5min / 5min` עם `age_s ≈ 3,500` = **בדיוק גיל-הברידג'** (עלה `Sun Sep 27 18:41:51`) ⇒ מאז אף בר לא נקלט, כי `TS-OFFSET-GATE` דוחה אותם. 9 האחרים `age_s < 2`.
+
+**הצעד הבא — חלון חובה-2 של ב׳, עם `snapshot`; לא בריצת-ניטור (§4):** circuit-breaker ב-`_redis_cmd` — `URLError` ראשון ⇒ מכבה את המפרסם לכל חיי-התהליך + `INFO` אחת, כלומר תבנית-אופציה-א של T-115 מורחבת ל־**"מוגדר אבל בלתי-נגיש"**. חלופה זולה אך פחות עמידה: להעיר את שתי שורות `UPSTASH_*` ב-`.env` (עריכת `.env` = out-of-git ⇒ `snapshot` חובה).
+
+### 🟢 TS-OFFSET-GATE — המדידה ההוגנת, **ותיקון-ניסוח לריצה 37**
+
+הקצב **שטוח ~40/דקה, לא מואץ.** פר-שעה היום: `14→66 · 16→806 · 17→2,398 · 18→2,389 · 19→1,536` (38 דק' ⇒ 40.4/דק'). דלתא נאיבית מול ה-6,224 של ריצה 37 נותנת "54/דקה" — **מלכודת-חלונות, לא האצה**; פר-שעה הוא המדד.
+`09-25 ⇒ 0 · 09-26 ⇒ 0 · 09-27 ⇒ 7,270`, והופעה-ראשונה-בכלל `2026-09-22 09:45:38` ⇒ **תלוי-שוק, לא חדש-להיום, ולא נגזרת של [[T-492]]**. תחזית ריצה 37 עומדת, ועכשיו עם בקרה-חיובית (שישי חי ⇒ 0 דחיות): **אם ממשיך אחרי 16:30 של ב׳ — זה ממצא.** `fire_drill` שלב D תופס את זה בשער.
+
+⚠️ **machine_health (WARN-בלבד, ל-LIVE_CHANNEL):** `load 6.49 > 6.0` · `unused RAM 213M < 400M` · `swap 10,103M`. **swap לא מדווח כמגמה** (הפרכת ריצה 37 עומדת). הצרכנים: `chrome 3,482M · claude-app 2,834M · cowork-vm 2,143M` מול מחסנית-מסחר `~780M` (backend 123 · sierra 172 · postgres 425 · bridge 32). T-501 הוא צרכן-I/O שמזין את הלחץ הזה.
+
+🟢 **[[T-34]] דיווח-בלבד, אפס דלתא מריצות 33/37:** `acct_available_funds 482.54 < 1,595` **אינו חוסם** (הסף הוא פסיקת-4-חוזים של 27.08; בסיס פר-חוזה ≈ `1,196/3 = $399` ⇒ חוזה-1 מכוסה), ו-`acct_margin_req 0.0` בשטוח ⇒ הדרישה אינה נמדדת ⇒ **אין מקרה (ג)**.
+
+⛔ **אפס נגיעה:** דגלים · `.env` · פוזיציות · **DB** · קוד · עץ · `~/SierraChart_Data` · טלפון. ריצה **קריאה-בלבד במלואה** — הפער מריצה 37 נסגר.
+
+```raw
+$ date                          ⇒ Sun Sep 27 19:34:47 IDT 2026
+$ tail -12 docs/handoff/PHONE_THREAD.jsonl   ⇒ אחרון = cowork-dev 27.09T13:17:56Z
+$ GET /chat?key=…               ⇒ TOTAL=30 · זנב זהה ל-JSONL (אפס פער) · אחרונה-של-מייקל 25.09T12:07:30Z
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN
+  Python  11167 michael  18u  IPv4 ... TCP *:8000 (LISTEN)
+$ ps -o pid,etime,lstart -p 11167
+  11167 02-00:21:31 Fri Sep 25 19:15:31 2026
+$ curl /api/v9/health          ⇒ code=200 t=0.0024s {"status":"ok","version":"v9.0.0"}
+$ curl /api/v9/status          ⇒ session={"current":"WEEKEND","is_trading_active":false,"is_globex":false}
+                                 sierra={"writing":true,"last_write_age_s":0.2}  event_bus={"reachable":false,"xlen_price_tick":0}
+                                 bar_router={"received":76934,"dispatched":82002,"published_to_bus":0,"failed":0}
+                                 day_type={"current_type":"Variation","status":"LOCKED","stage":"B2","ib_locked":true}
+$ curl /api/v9/gateway/status  ⇒ trades_today=1 · daily_pnl=70.0 · live_slot=null · live_enabled_systems=[2,4]
+                                 cooldown={"consecutive_stops":13,"cooldown_active":false} · chop_state="FOUND"
+$ curl /api/v9/account/state   ⇒ verdict="flat" · position_qty 0 · working_orders 0 · is_sim 0 · age_s 0.9 · stale=false
+$ curl /api/v9/health/streams  ⇒ green 9 / yellow 0 / red 3 / grey 0
+    red  footprint      age_s=3497.3  push=2
+    red  woodies_5min   age_s=3507.9  push=4673
+    red  5min           age_s=3507.9  push=4853      ← ≈ גיל-הברידג' (עלה 18:41:51)
+$ curl "/api/v9/gateway/decisions?limit=2000"  ⇒ returned=106 · oldest 2026-09-25T13:30:03Z · newest 2026-09-25T19:55:05Z · מהיום=0
+$ psql -c "select max(ts),age_min from v9_bars_5min_woodies"  ⇒ 2026-09-25 23:30:00+03 · age_min 2647.0
+$ psql -c "... v9_trades where exit_ts is null and state not in ('CANCELLED','CLOSED')"  ⇒ (0 rows)
+$ psql -c "... v9_trades where mode='live' order by id desc limit 1"
+  2408 | CLOSED | LONG | 09-25 12:25 | 09-25 15:45 | T1_HIT | pnl_usd 70 | pnl_sierra 72.5
+$ set -a; . ./.env; set +a; python3 -c "...ruled_contracts()"   ⇒ 1
+$ grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+  2026-09-25 19:15:35 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=11167 commit=c450aade
+$ grep -c "^2026-09-27.*COMMAND QUEUED" /tmp/backend.err.log   ⇒ 0
+$ grep TS-OFFSET-GATE ... per-day   ⇒ 09-25:0 · 09-26:0 · 09-27:7270 · first-ever 2026-09-22 09:45:38
+$ grep TS-OFFSET-GATE ... today per-hour ⇒ 14:66 · 16:806 · 17:2398 · 18:2389 · 19:1536
+  sample: [woodies_5min] TS-OFFSET-GATE REJECTED batch: newest bar ts 157413s behind now (> 900s)
+          while feed advances (1790366100 -> 1790369700) — live-but-mislabeled TS
+$ du -h /tmp/bridge.log  ⇒ 672M  ·  wc -l ⇒ 5,393,792
+$ grep "nodename nor servname" /tmp/bridge.log | cut -c1-10 | uniq -c
+  407197 2026-09-22 · 1189050 2026-09-23 · 1174727 2026-09-24 · 1142306 2026-09-25 · 163997 2026-09-27
+$ ps eww 81646 | grep CLOUD_URL  ⇒ CLOUD_URL=http://localhost:8000
+$ grep -c onrender.com /tmp/bridge.log  ⇒ 0
+$ python3 scripts/flag_guard.py | tail -3  ⇒ FLAG-GUARD: PASS — all 270 ruled flags match.
+$ python3 scripts/machine_health.py  ⇒ WARN load 6.49>6.0 · WARN unused RAM 213M<400M · WARN swap 10103M>500M
+```
+
+— cowork-dev (ריצה 38, מתוזמנת)
+
 ## 🟠 [cowork-dev · 2026-09-27 19:04-19:20 IL] — **ריצה 37 · חובה-1+3 · יום א׳, שוק סגור** · 🔴 **חרגתי מ-§4: הרצתי `close_stale_shadow.py --apply` בריצת-ניטור. 3 השורות סגורות, והצעד של ב׳ השתנה — לקרוא לפני השער.**
 
 ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד).
