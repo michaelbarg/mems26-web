@@ -1500,6 +1500,19 @@ class TradingGateway:
                                 result["tree_v3"]["shadow_only"] = True
                             else:
                                 _dp_location_checked = (_tree_leaf.get("id") == "take_location")
+                                # T-496 leaf producer policy (plan §6 stage 4): a TAKE leaf may declare
+                                # `promote: [CLASSIFICATION, …]` — a producer that is shadow-only by its own flag
+                                # is routed in THIS circumstance only. 27.09 audit (live0927, 60 sessions):
+                                # CEILING_FLIP_TOUCH2 is −1,479$ as a whole (714 candidates, why it is shadow by
+                                # Michael's 15.09 ruling) but +706$ at the phase-B open-auction EDGE_FADE leaf
+                                # (113, 51%, 34 days) — the tree said TAKE at the edge and the producer's flag
+                                # said shadow (25.09 17:35). Inert unless a leaf declares it (no seed leaf does).
+                                _t3_pr = _tree_leaf.get("promote")
+                                if isinstance(_t3_pr, (list, tuple)) and str(_dp_classification) in {str(x) for x in _t3_pr}:
+                                    _t3_md = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else None
+                                    if _t3_md is not None and _t3_md.get("shadow_only"):
+                                        _t3_md["shadow_only"] = False
+                                        result["tree_v3"]["promoted"] = str(_dp_classification)
                                 # T-494 leaf exit policy (plan §6 stage 3): a TAKE leaf may declare
                                 # `exit: {t1_r, t2_r}` — the ladder is set from the producer's own stop and
                                 # marked final (target_chain_final), so the structural-target chain does not
@@ -3483,6 +3496,19 @@ class TradingGateway:
                     # bar — proximity-to-extreme is the entry, not the danger.
                     if not _ecg_bypass and _live_leg(direction):
                         _ecg_bypass = True
+                    # T-500 leaf gate policy (plan §6 stage 2 — the same mechanism as the T-480 ELQ skip): a TAKE
+                    # leaf may name extreme_chase_guard in skip_gates, honoured only when the tree decides.
+                    # 27.09 audit (live0927, 60 sessions): 10 of auction_B_trend_break's TAKEs were refused here,
+                    # 8 reached 1.5R (+498$ candidate-level, 7 days). Inert unless a leaf declares it.
+                    if not _ecg_bypass:
+                        try:
+                            _ecg_t3 = result.get("tree_v3") if isinstance(result.get("tree_v3"), dict) else {}
+                            if (_ecg_t3.get("mode") == "on" and str(_ecg_t3.get("leaf") or "").upper() == "TAKE"
+                                    and "extreme_chase_guard" in (_ecg_t3.get("skip_gates") or [])):
+                                _ecg_bypass = True
+                                result["ecg_skipped"] = f"tree_leaf:{_ecg_t3.get('id')}"
+                        except Exception:
+                            pass
                     try:
                         from backend.v9.systems.release_gate import trend_bypass as _ecg_tb
                         if not _ecg_bypass and _ecg_srows and _ecg_entry is not None:
@@ -4856,7 +4882,14 @@ class TradingGateway:
                 from backend.v9.systems.entry_confirm import entry_confirmed as _ec
                 # Michael ruling 2026-07-08: the confirm test is relative to the
                 # average candle — a counter-close within frac×ATR(14) is noise.
+                # T-498 (27.09): CLOSED bars only. Routes run 2–6 s after the bar boundary and the new bar's row
+                # lands 0.8–11 s after it, so "the last row" was sometimes the bar that opened seconds ago
+                # (open≈close ⇒ "noise" ⇒ pass): 25.09 19:25:06 #2408 passed on the 19:25 row created 19:25:04,
+                # while the closed 19:20 signal bar was bearish. The ruling (07-08) is the signal bar's close;
+                # the harness always tested the closed bar, and there the gate is worth +218$ net over 60
+                # sessions (t498ec0: gate OFF ⇒ Δ −197.50$ gross vs live0927).
                 _ec_rows = _ec_read("SELECT open, close, high, low FROM v9_bars_5min_woodies "
+                                    "WHERE ts + interval '5 minutes' <= now() "
                                     "ORDER BY ts DESC LIMIT 15", {})
                 if _ec_rows:
                     _ec_tol = 0.0

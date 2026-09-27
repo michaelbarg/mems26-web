@@ -1,0 +1,285 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>דוח-לילה ותוכנית</title><style>
+:root{color-scheme:dark;--bg:#0b0e14;--card:#161b22;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922}
+*{box-sizing:border-box}
+html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:17px;line-height:1.5;padding:0 0 78px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:#0d1117;border-bottom:1px solid var(--line);padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:19px;min-width:42px;height:40px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;text-decoration:none}
+.ib.dis{opacity:.35;pointer-events:none}
+.drawer{position:fixed;inset:0;z-index:30;display:none}
+.drawer.open{display:block}
+.drawer .bg{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(84vw,340px);background:#0d1117;border-left:1px solid var(--line);padding:14px 12px;overflow-y:auto;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer .brand{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;font-weight:700}
+.drawer h3{margin:12px 4px 4px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.3px}
+.drawer a.item{display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:10px;color:var(--fg);font-size:16px}
+.drawer a.item.on{background:#1f2a3a;border:1px solid #1f6feb}
+.drawer a.item:active{background:var(--card)}
+.drawer a.item small{margin-right:auto;color:var(--dim);font-size:12px}
+.wrap{padding:12px 12px 8px}
+h1{font-size:21px;margin:6px 0 4px}
+h2{font-size:15px;margin:18px 0 8px;color:#c9d1d9;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--dim)}.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .s{font-size:12px;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.card.lnk{padding:0}.card.lnk>a{display:block;padding:12px 14px;color:var(--fg)}
+.win{border-right:5px solid var(--up)}.loss{border-right:5px solid var(--dn)}.scratch{border-right:5px solid var(--am)}.unpriced{border-right:5px solid var(--dim)}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:#21262d;border:1px solid var(--line);margin-left:6px;vertical-align:middle}
+.badge.live{background:#1f3a2a;border-color:#2ea043;color:#7ee787}.badge.shadow{background:#2a2a1f;border-color:#9e6a03;color:#e3b341}.badge.demo{background:#1f2a3a;border-color:#1f6feb;color:#79c0ff}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.pnl{font-weight:700;font-size:18px;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.row .grow{flex:1;min-width:0}
+.row .hl{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--dim);font-size:20px;transition:transform .15s;flex:none}
+.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.card.open .body{display:block}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}
+.facts div{background:#0d1117;border-radius:8px;padding:6px 6px;text-align:center;min-width:0}
+.facts .l{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.facts .v{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{display:flex;gap:8px;margin:7px 0;font-size:15px;line-height:1.45}
+.line .ic{flex:none;width:22px;text-align:center}
+.chartwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:4px 0}
+.chartwrap svg{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:14px;cursor:pointer;user-select:none}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tags button{flex:1;background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 4px;font-size:15px}
+.tags button:active{background:#30363d}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+.dayhdr{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:14px 0 6px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.trow{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #21262d;cursor:pointer}
+.trow .grow{flex:1;min-width:0}
+.trow .a{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .b{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail{display:none;background:#0d1117;border-radius:10px;padding:10px;margin:0 0 6px;font-size:15px}
+.tl{position:relative;padding-right:22px;margin:6px 0}
+.tl:before{content:"";position:absolute;right:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;right:-18px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg)}
+.tl .d{font-weight:700}
+.gantt{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none}
+.gantt.show{display:block}
+.gantt table{border-collapse:collapse;min-width:640px;font-size:12px}
+.gantt th,.gantt td{padding:6px 4px;border-bottom:1px solid #21262d;text-align:center;vertical-align:top}
+.gantt td.lbl,.gantt th.lbl{text-align:right;white-space:nowrap;font-weight:600;color:#c9d1d9;position:sticky;right:0;background:var(--bg)}
+.g{display:inline-block;border-radius:6px;padding:2px 7px;font-size:12px;color:#0b0e14;font-weight:600;margin:2px 2px 2px 0}
+.g.a{background:#7ee787}.g.b{background:#79c0ff}.g.c{background:#e3b341}.g.d{background:#ff7b72}.g.e{background:#d2a8ff}
+.legend span{display:inline-block;margin-left:10px;font-size:12px;color:var(--dim)}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:#0d1117;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:7px 2px 5px;color:var(--dim);font-size:11px}
+.bottom a b{display:block;font-size:21px;font-weight:400;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#21262d;margin:2px 0 2px 4px}
+.pill.ok{border-color:#2ea043;color:#7ee787}.pill.bad{border-color:#da3633;color:#ffa198}.pill.warn{border-color:#9e6a03;color:#e3b341}
+table.plain{border-collapse:collapse;width:100%;font-size:14px}
+table.plain th,table.plain td{padding:7px 6px;border-bottom:1px solid #21262d;text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f3a2a;color:#7ee787;border:1px solid #2ea043;border-radius:999px;padding:8px 16px;font-size:14px;z-index:40;display:none}
+.toast.show{display:block}
+.empty{color:var(--dim);text-align:center;padding:24px 0}
+</style></head><body><div class="hdr"><button class="ib" onclick="drawer(true)" aria-label="תפריט">☰</button><div class="t">דוח-לילה ותוכנית<div class="sub">2026-09-27</div></div></div><div class="drawer" id="dr"><div class="bg" onclick="drawer(false)"></div><div class="panel"><div class="brand"><span>MEMS26</span><button class="ib" onclick="drawer(false)">✕</button></div><h3>עכשיו</h3><a class="item" href="index.html"><span>🏠</span><span>בית</span><small>הסשן האחרון</small></a><a class="item" href="/"><span>💬</span><span>צ׳אט עם המערכת</span><small>הודעות ופקודות</small></a><h3>מסחר</h3><a class="item" href="days.html"><span>📅</span><span>ימי-מסחר</span><small>נרות + עסקאות ליום</small></a><a class="item" href="trades.html"><span>📒</span><span>כל העסקאות</span><small>לייב · דמו · צל</small></a><a class="item" href="missed.html"><span>⭕</span><span>מה פספסנו</span><small>נרות · ווליום · מיקום</small></a><h3>למידה</h3><a class="item" href="progress.html"><span>📊</span><span>התקדמות</span><small>האם משתפר — לפי ענף וסוג-יום</small></a><a class="item" href="lessons.html"><span>📈</span><span>לקחים וענפים</span><small>יום אחרי יום</small></a><a class="item" href="whatworks.html"><span>🧪</span><span>מה עובד</span><small>כניסות · מיקום · יציאות — במספרים</small></a><a class="item" href="tree.html"><span>🌳</span><span>עץ-דלתון</span><small>הגרסאות והמצב</small></a><a class="item" href="status_2026-09-20.html"><span>📄</span><span>עדכון-מצב 20.09</span><small>ענף-הפתיחה</small></a><a class="item" href="review.html"><span>🔎</span><span>סקירת-יום</span><small>מה היה צריך לצאת · מה המערכת ראתה</small></a><a class="item" href="review_report.html"><span>📑</span><span>דוח-ריפליי מסודר</span><small>כל הימים: מה היה צריך · מה לתקן</small></a><a class="item" href="tree_board.html"><span>🌲</span><span>לוח-העץ</span><small>הצורה · המספרים · הניצנים</small></a><a class="item" href="tree_v3.html"><span>🌌</span><span>עץ-ההחלטות V3</span><small>סוג-פתיחה → שלב → סוג-יום → תבנית → נסיבות — שדה הכוכבים</small></a><a class="item" href="mark.html"><span>✍️</span><span>קנבס-הסימון</span><small>הברים והווליום של היום — סמן מה היית עושה; העץ לומד מזה</small></a><a class="item" href="variation_playbook.html"><span>📗</span><span>פלייבוק-וריאציה</span><small>דרייב · תיקון-עצמי · כמה כסף (24.09)</small></a><a class="item" href="improvement.html"><span>📈</span><span>שיפור המערכת</span><small>לפני/אחרי התיקונים — כל הימים, יום-אחר-יום</small></a><a class="item" href="oracle_vs_engine.html"><span>🔭</span><span>הראייה-המלאה מול המנוע</span><small>246 כניסות אידיאליות ב-58 ימים — מי ראה, מי חסם</small></a><a class="item" href="gate_scorecard.html"><span>⚖️</span><span>כרטיס-ציונים לשערים</span><small>מה עשו המועמדים שכל שער סירב להם</small></a><a class="item" href="swing_turn.html"><span>🔄</span><span>מבחן סיבוב-הנדנדה</span><small>האם כלל סיבתי מזהה את הכניסות האידיאליות</small></a><a class="item" href="signatures.html"><span>🧬</span><span>מבחן-החתימות</span><small>מיקום · ווליום · נרות — כלל על כל בר</small></a><h3>ניהול</h3><a class="item on" href="night_report.html"><span>🌙</span><span>דוח-לילה ותוכנית</span><small>מה קרה · כל נתיב שלא עובד בעץ · מה עושים מחר</small></a><a class="item" href="defects.html"><span>🩹</span><span>ליקויי-היומן</span><small>ספרים מול ברוקר — הרשימה והתיקונים</small></a><a class="item" href="/readiness"><span>📋</span><span>תיק-מוכנות</span><small>48 פתוחים · 13 חוסמים</small></a></div></div><div class="wrap"><h1>דוח-לילה ומצב-עבודה לפני יום שני — 27.09</h1>
+<p><b>בשורה אחת:</b> העץ החי עובד, והוא טוב מהתצורה שלפניו ב-+192$ על 60 ימים. העסקה החיה הראשונה שלו ניצחה (+72.50$). בדקתי כל נתיב בעץ שמפספס כסף, ומדדתי תיקון לכל אחד ביום-כולל על 60 ימים. <b>שלושה תיקונים עברו, וביחד הם מוסיפים +470$ על 60 ימים (+387$ נטו אחרי עמלות) מעל העץ החי.</b> ששת האחרים נדחו: במועמדים הם נראו מצוין, וביום-כולל הפסידו.</p>
+<h3>מה צריך ממך לפני 15:30 מחר — שתי מילים</h3>
+<div class='card' style='padding:8px 12px'>1. <b>"כן"</b> לחבילת-הענפים (סעיף 5): שלב D עם ההרחבה (S1) · היפוך בשעה הראשונה של פתיחת-אוקשן (S5) · יציאה בסולם 1.5R/2.5R מהסטופ בשני עלים (S7). הריפליי של שלושתם ביחד: <b>+470.55$ ברוטו, +387$ נטו, 24 ימים טובים יותר / 12 גרועים</b>. S1 משנה את הפסיקה שלך מ-17.09 ששלב D הוא ניהול בלבד, ולכן הוא לא עולה בלי המילה שלך.</div>
+<div class='card' style='padding:8px 12px'>2. <b>"מאשר ברידג'"</b> — ריסטארט לברידג' עם snapshot, כדי שמערכת 3 תתחיל לקבל נתוני-פוטפרינט (T-492). בלי זה היא אוספת אפס גם מחר.</div>
+<p>ובלי פעולה ממך: 3 תיקוני-קוד של היום נטענים בריסטארט של 15:30 — קיצוני-הסשן אחרי ריסטארט (T-495), שער אישור-הכניסה שבדק בר בן שניות (T-498), והליגר (T-497). ההמלצה על VA_FADE: להשאיר בצל. המדידה שלילית.</p>
+<hr>
+<h2>1 · מה קרה מאז שהעבודה התחילה (שישי 25.09 → ראשון 27.09)</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מתי</th><th>מה</th><th>תוצאה</th></tr>
+<tr><td>שישי 12:10</td><td>"ממש צריך להיות עץ"</td><td>עץ-ההחלטות V3 נבנה: סוג-פתיחה → שלב → סוג-יום → תבנית → נסיבות, בלי ציון. זהות מלאה לשרשרת הישנה: 59 ימים, 3,893 מועמדים, 0 הבדלים (T-480)</td></tr>
+<tr><td>13:04–13:25</td><td>התמונה המסומנת של 24.09</td><td>נפתח T-481 (הכניסה מגיעה בסוף המהלך). תוקן T-482: שומר-הטלפון לא ראה הודעת-תמונה</td></tr>
+<tr><td>14:11</td><td>"כן"</td><td>הענף <code>auction_B_trend_break</code> חי (T-484)</td></tr>
+<tr><td>16:00</td><td>שער-15:30</td><td><b>העץ מחליט בלייב</b></td></tr>
+<tr><td>16:55–17:15</td><td>"לחבר את מערכת 3 לשדואו"</td><td>נמצא השורש לפיד-הפוטפרינט שמת ביוני: הקוד קרא את קובץ-הטיקים של חוזה <b>יוני</b>. תוקן בקוד. S3 בצל, S2 מבודדת ממנה. פרופיל-היום נכנס לעץ (T-478)</td></tr>
+<tr><td>17:08</td><td>"העץ זיהה קצה ולא ירה"</td><td>VA_FADE נכנס רק בקצה. TOUCH2 סווג מחדש לדהיית-קצה. VA_FADE נשאר בצל: האפליקציה חסמה את ההעברה ללייב</td></tr>
+<tr><td>19:05</td><td>"זה כבר לא יום נורמלי"</td><td>העץ שואל קודם מה המחיר עשה ל-IB ורק אחר-כך את התווית: הרחבה לצד אחד ⇒ עם ההרחבה נלקח</td></tr>
+<tr><td>19:15</td><td>"מאשר"</td><td>ריסטארט. התיקון נטען, fire-drill GO</td></tr>
+<tr><td>19:25 → 22:45</td><td>#2408 LONG עם ההרחבה</td><td><b>T1 נפגע, +72.50$ בברוקר, 1.6R.</b> העסקה החיה הראשונה של העץ המתוקן</td></tr>
+<tr><td>19:34–23:30</td><td>ריצות-ניטור 20–27</td><td>נמצאו T-488 (הודעת-טלפון כפולה), T-489 (פקודת-הגודל), T-490 (מלכודת-SQL), T-491 (מונה-הלמידה התפצל לשני שמות), <b>T-492 (פיד-הפוטפרינט לא נכנס — הברידג׳ רץ מ-22.09)</b>. חבילת-EOD ועמוד-היום</td></tr>
+<tr><td>שבת–ראשון</td><td>—</td><td>אין פעילות (השוק סגור). <b>הריפליי של תיקוני-שישי שהבטחתי לא רץ בלילה</b> — רץ היום</td></tr>
+<tr><td>ראשון 14:14 →</td><td>הדוח הזה</td><td>ריפליי של התצורה החיה על 61 ימים · ביקורת של 3,703 מועמדים לפי נתיב · 10 וריאנטים יום-כולל · 3 תיקוני-קוד (T-495, T-497, T-498) · 2 מדיניות-עלים חדשות, רדומות עד שענף ישתמש בהן (T-496, T-500)</td></tr>
+</table></div>
+<hr>
+<h2>2 · שישי בלייב — היום הראשון של העץ</h2>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th></th><th>העץ הישן (16:00–19:15)</th><th>העץ המתוקן (19:15–23:00)</th></tr>
+<tr><td>החלטות</td><td>39</td><td>67</td></tr>
+<tr><td>העץ אישר (TAKE)</td><td>4</td><td><b>24</b></td></tr>
+<tr><td>העץ סירב</td><td>35 — מיקום 29 · סוג 4 · stand-down 2</td><td>43 — stand-down בשלב D 37 · נגד-ההטיה 6</td></tr>
+<tr><td>מה קרה לאישורים</td><td>2 מפיק-צל · 1 שומר-שליחה · 1 R:R</td><td><b>1 לייב</b> · ELQ 10 · R:R 7 · צל 4 · מרג׳ין 1 · אישור-כניסה 1</td></tr>
+</table></div>
+<p><b>מה היו עושים 17 האישורים שנחסמו אחרי העץ</b> (כל אחד לבד, הסטופ שלו, יעד 1.5R — לא תיק):</p>
+<div class='card' style='padding:8px 12px'><b>ELQ:</b> 10 נחסמו, 8 היו מנצחים, <b>+121$</b>.</div>
+<div class='card' style='padding:8px 12px'><b>R:R:</b> 7 נחסמו, 5 היו מגיעים ל-1.5R, <b>+210$</b>. הלוג: <code>T1_dist=2.75 < stop_dist=8.50 (R:R=0.32)</code>. ה-R:R לא טעה — <b>היעד</b> נחתך למדף ישן 2.75 נקודות מעל הכניסה.</div>
+<p><b>חמשת המהלכים של היום (106 נק׳) — אף אחד לא נלקח בזמן:</b></p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מהלך</th><th>מה עצר</th></tr>
+<tr><td>LONG 17:15 מה-IBL (15 נק׳)</td><td>העץ אישר ⇒ המפיק צל-בלבד + שומר-השליחה</td></tr>
+<tr><td>LONG 17:50 (16.5 נק׳)</td><td>העץ אישר ⇒ R:R</td></tr>
+<tr><td>SHORT 18:30 (17 נק׳)</td><td>העץ אישר ⇒ מפיק צל-בלבד (TOUCH2)</td></tr>
+<tr><td><b>LONG 18:45 — המבחן והזינוק (37 נק׳)</b></td><td><b>העץ סירב (מיקום):</b> לפני פריצת ה-IB, כניסות באמצע הערך. אין מפיק "מבחן-וזינוק"</td></tr>
+<tr><td>LONG 22:25 (20 נק׳)</td><td>העץ סירב: stand-down בשלב D. וגם אילו אישר — אחרי 22:15 שער סוף-היום לא מכניס עסקאות חדשות</td></tr>
+</table></div>
+<hr>
+<h2>3 · 13 ימים של מבחן-היום (09.09–25.09)</h2>
+<p>65 מהלכים גדולים (5 ביום). <b>נלקחו בזמן 4 · באיחור 4 · הפוך 4 · פוספסו 52 (1,339 נק׳).</b> לייב באותם ימים בערך −515$.</p>
+<p><b>למה פוספסו</b> (הנקודות של המהלכים, לא דולרים):</p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>סיבה</th><th>נק׳</th><th>חלק</th></tr>
+<tr><td>העץ או שער אחריו סירבו</td><td>997</td><td>65.5%</td></tr>
+<tr><td><b>אף מפיק לא הציע כלום</b></td><td>382</td><td>25.1%</td></tr>
+<tr><td>מפיק צל-בלבד</td><td>119</td><td>7.8%</td></tr>
+<tr><td>סלוט תפוס</td><td>23</td><td>1.5%</td></tr>
+</table></div>
+<p>בתוך ה-997: stand-down 252 (8 ימים) · מיקום 238 (7) · נגד-ההטיה 176 (6) · סוג 118 (3) · Variation באמצע-הערך 108 · R:R 48 · ELQ 27 · סוף-יום 19 · אישור-כניסה 12.</p>
+<p>⚠️ <b>נקודות שפוספסו ≠ כסף.</b> אותם שערים חוסמים גם מפסידים. בריפליי של היום (סעיף 4), המועמדים ש-stand-down סירב להם היו מפסידים ביחד 6,892$, ואלה שהמיקום סירב להם 1,254$. ופתיחה גורפת של שער נמדדה היום שלילית (S4, סעיף 5: −374$). לכן כל תיקון כאן הוא <b>ענף בנסיבה מסוימת</b>, והוא נכנס ללייב רק אם הריפליי ביום-כולל חיובי.</p>
+<hr>
+<h2>4 · ריפליי התצורה החיה על 61 ימים (15.06–25.09)</h2>
+<p>התצורה שעלתה בשישי 19:15 (העץ מחליט · המבנה לפני התווית · הענף <code>auction_B_trend_break</code>) הורצה על כל הימים הנקיים, מול התצורה החיה שלפני העץ.</p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th></th><th>לפני העץ</th><th>העץ החי</th><th>הפרש</th></tr>
+<tr><td>Σ יום-כולל, 60 ימים</td><td>+1,181.25$</td><td>+1,373.75$</td><td><b>+192.50$</b> (≈+166.50$ נטו, 10 עסקאות יותר)</td></tr>
+<tr><td>ימים</td><td></td><td></td><td>9 טובים יותר · 3 גרועים יותר · 48 זהים</td></tr>
+<tr><td>לפי חודש</td><td></td><td></td><td>יוני +45 · יולי +104 · אוגוסט +94 · ספטמבר −50</td></tr>
+</table></div>
+<p>07.08 לא נמדד: ההרנס עצמו קורס ביום הזה, על שורת-עסקה בלי מחיר-כניסה (T-499).</p>
+<p><b>הריפליי והלייב לא מסכימים ב-25.09.</b> בריפליי העץ החי לקח 0 עסקאות, ובלייב אחת (#2408, +72.50$). זה אותו מועמד בדיוק: <code>DOUBLE_BOTTOM_EE_LONG 7795.25</code>, 19:25:06. העץ אמר TAKE בשניהם. שער אישור-הכניסה חסם אותו בריפליי ושחרר אותו בלייב.</p>
+<p>הסיבה (T-498): השער קורא את "הבר האחרון בטבלה". בלייב שורת הבר החדש (19:25) נכתבה ב-19:25:04, שתי שניות לפני ההחלטה. לכן השער בדק בר בן שתי שניות: פתיחה≈סגירה, נחשב "רעש", ועבר. בריפליי הוא בדק את בר ה-19:20 הסגור, שהיה יורד, וחסם. <b>בלייב השער הזה עובד רק חלק מהזמן, לפי מרוץ של שניות.</b> המדידה שלו בסעיף 5.</p>
+<p><b>מה העץ עושה עם כל מועמד:</b> 3,703 מועמדים ייחודיים ב-60 ימים. כל אחד מדומה לבד, עם הסטופ שלו ויעד 1.5R.</p>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>מה קרה למועמד</th><th>מועמדים</th><th>win%</th><th>Σ$ אילו כולם נלקחו</th></tr>
+<tr><td>העץ סירב — stand-down</td><td>996</td><td>39%</td><td>−6,892$</td></tr>
+<tr><td>העץ סירב — מיקום</td><td>277</td><td>42%</td><td>−1,254$</td></tr>
+<tr><td>העץ סירב — נגד-ההטיה</td><td>693</td><td>43%</td><td>−223$</td></tr>
+<tr><td>העץ סירב — סוג-כניסה</td><td>139</td><td>45%</td><td><b>+761$</b></td></tr>
+<tr><td>העץ אמר TAKE ⇒ לייב</td><td>136</td><td>49%</td><td>+1,553$</td></tr>
+<tr><td>העץ אמר TAKE ⇒ שער אחריו חסם</td><td>483</td><td>—</td><td>−1,780$</td></tr>
+<tr><td>העץ אמר TAKE ⇒ המפיק צל-בלבד</td><td>979</td><td>41%</td><td>−665$</td></tr>
+</table></div>
+<p><b>הקריאה:</b> בסיכום, הסירובים והשערים מגינים. הכסף לא הולך לאיבוד "באופן כללי". הוא דולף <b>בנתיבים מסוימים</b>, וכל אחד מהם מקבל שורה בסעיף 5 עם מדידה משלו.</p>
+<hr>
+<h2>5 · כל נתיב שלא עובד בעץ החי — מה עושים איתו</h2>
+<p><b>איך למדוד:</b> לכל נתיב נבנה וריאנט של העץ, והוא הורץ יום-כולל על אותם 60 ימים, מול התצורה החיה. עמודת "מועמדים" היא הראיה שהובילה לוריאנט (כל מועמד לבד, יעד 1.5R). עמודת "יום-כולל" היא ההכרעה. ✅ = חיובי וממתין לאישור · ✗ = נדחה, הנתיב נשאר כמו שהוא.</p>
+<h3>א · העץ אמר TAKE — ושער אחריו חסם</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>#</th><th>הנתיב</th><th>מועמדים</th><th>התיקון</th><th>יום-כולל</th><th></th></tr>
+<tr><td>1</td><td><code>take_with_hint</code> (עם הכיוון) → ELQ / R:R</td><td>ELQ 167 · 41% · −1,735$ · R:R 44 · 41% · −599$</td><td>S3: ELQ לא שופט את העלה · S4: + סולם 1.5R/2.5R</td><td>S3 <b>−90$</b> (−184$ נטו, +36 עסקאות) · S4 <b>−374$</b> (−470$ נטו, +37 עסקאות)</td><td>✗ השערים מגינים. יום שישי היה חריג</td></tr>
+<tr><td>2</td><td><code>auction_B_trend_break</code> → שומר-הרדיפה</td><td>10 · 80% · +498$ · 7 ימים</td><td>S6: העלה מדלג על שומר-הרדיפה (T-500)</td><td><b>−95$</b> · רק 2 עסקאות נוספו, שתיהן סטופ</td><td>✗ שאר המועמדים לא היו עוברים ממילא (צל, סלוט, שערים אחרים)</td></tr>
+<tr><td>3</td><td>היפוך בקצה-ההרחבה + BREAK → R:R</td><td>9 · 78% · +510$ · 7 · 86% · +450$</td><td>S7: סולם מהסטופ 1.5R/2.5R על העלים האלה</td><td><b>+166.25$</b> (+164$ נטו) · 11 ימים טובים / 8 גרועים · יוני +74 · יולי +73 · אוגוסט +26 · ספטמבר −6</td><td>✅ היציאות, לא הכניסות: 7 עסקאות נוספו, 6 מפסידות יצאו</td></tr>
+<tr><td>4</td><td>כל TAKE → אישור-כניסה</td><td>114 · 47% · +1,013$</td><td>ec0: השער עצמו כבוי (T-498 — בלייב הוא עובד רק חלק מהזמן)</td><td><b>−197.50$</b> (−218$ נטו) בלי השער</td><td>✗ השער שווה כסף. <b>תוקן המרוץ</b> (T-498): הוא בודק עכשיו רק בר סגור, כמו בריפליי</td></tr>
+<tr><td>5</td><td>שלב B, פתיחת-אוקשן, דהיית-קצה → TOUCH2 בצל</td><td>113 · 51% · +706$ · 34 ימים (TOUCH2 בכלל: 714 · 40% · −1,479$)</td><td>t2e: TOUCH2 חי <b>רק בעלה הזה</b>, סולם 1.5R/2.5R (T-496)</td><td><b>−363$</b> (−441$ נטו) · 34 עסקאות TOUCH2, רק 10 רווח</td><td>✗ TOUCH2 נשאר בצל. המועמדים הראו 51% הצלחה, העסקאות האמיתיות 29%</td></tr>
+</table></div>
+<h3>ב · העץ סירב — והסירוב עלה כסף</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>#</th><th>הנתיב</th><th>מועמדים</th><th>התיקון</th><th>יום-כולל</th><th></th></tr>
+<tr><td>6</td><td>יום Variation, שלב C, המחיר חזר לערך — נגד ההרחבה</td><td>SHORT באמצע-הערך 81 · 53% · +1,700$ · ליד VAL 32 · 69% · +1,007$</td><td>S2: נגד ההרחבה בתוך הערך = TAKE</td><td><b>+52.50$</b> ברוטו, <b>−41$ נטו</b> · 40 עסקאות חדשות, חצי רווח</td><td>✗ ה-+2,700$ של המועמדים נעלם כשיש סלוט אחד ועמלות</td></tr>
+<tr><td>7</td><td>שלב D (21:00+), Variation, עם ההרחבה</td><td>21 · 90% · +1,298$ (3 ימים)</td><td>S1: שלב D עם ההרחבה = TAKE</td><td><b>+160$</b> (+111$ נטו) · 19 עסקאות חדשות, 12 רווח, 0 הוצאו</td><td>✅</td></tr>
+<tr><td>8</td><td>שלב B, פתיחת-אוקשן, היפוך בלי כיוון</td><td>FORMING 19 · +529$ · Trend 13 · +419$</td><td>S5: גם REVERSAL נלקח</td><td><b>+105.55$</b> (+69$ נטו) · 25 עסקאות חדשות, 13 רווח · 11 הוצאו · 9 ימים טובים / 9 גרועים (אוגוסט −232$)</td><td>✅ חיובי אבל דק</td></tr>
+</table></div>
+<h3>החבילה — S1 + S5 + S7 ביחד</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th></th><th>העץ החי</th><th>עם החבילה</th><th>הפרש</th></tr>
+<tr><td>Σ יום-כולל, 60 ימים</td><td>+1,373.75$</td><td><b>+1,844.30$</b></td><td><b>+470.55$</b> (+387$ נטו, 32 עסקאות יותר)</td></tr>
+<tr><td>ימים</td><td></td><td></td><td>24 טובים יותר · 12 גרועים יותר · 24 זהים</td></tr>
+<tr><td>לפי חודש</td><td></td><td></td><td>יוני +120 · יולי +116 · אוגוסט −88 · ספטמבר +322</td></tr>
+<tr><td>עסקאות</td><td></td><td></td><td>46 נוספו (26 רווח, +500$) · 14 יצאו</td></tr>
+<tr><td>ירידה מקסימלית מצטברת</td><td>−212.50$</td><td>−277.50$</td><td>עמוקה יותר ב-65$</td></tr>
+<tr><td>מול התצורה שלפני העץ</td><td></td><td></td><td><b>+663$</b> (+554$ נטו)</td></tr>
+</table></div>
+<p>ביחד הם טובים יותר מסכום החלקים (+343$ נטו כל אחד לבד). מה שלא טוב: אוגוסט שלילי, והימים הגרועים (17.08 −96$, 14.08 −71$, 12.08 −68$) כולם באוגוסט. וביום שישי עצמו החבילה הייתה לוקחת היפוך אחד, DALTON_EDGE_LONG, ומפסידה 55$.</p>
+<p><b>הלקח של היום:</b> מספרי-המועמדים הם רמז, לא הוכחה. S2 נראה +2,700$ במועמדים והפסיד ביום-כולל. TOUCH2 הראה 51% הצלחה במועמדים ו-29% בעסקאות אמיתיות. מתוך 7 תיקונים שנראו טוב במועמדים, 3 שרדו את היום-כולל. לכן אף ענף לא עולה לייב על מספר של מועמדים.</p>
+<h3>ג · עלים שלוקחים ומפסידים — המדידה הבאה</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>#</th><th>הנתיב</th><th>מה נמדד</th><th>הצעד</th></tr>
+<tr><td>9</td><td>התבנית של יום נורמלי (מכור ב-VAH, קנה ב-VAL) אחרי פתיחת-אוקשן, בלי הרחבה</td><td>SHORT ליד VAH: 55 מועמדים · 27% · −586$ · LONG ליד VAL: 34 · 18% · −530$ · בלייב 2 עסקאות, −97$</td><td>לדרוש מבחן בקצה (דחייה שנייה) לפני כניסה — וריאנט</td></tr>
+<tr><td>10</td><td>היפוך בקצה-ההרחבה בפתיחת-דרייב ביום מגמה</td><td>35 מועמדים · 14% · −434$ · בלייב 4, +6$</td><td>וריאנט SKIP</td></tr>
+</table></div>
+<h3>ד · קלט שגוי — מתקנים את הקלט, לא את הענף</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>פריט</th><th>מה</th><th>מצב</th></tr>
+<tr><td>T-495</td><td>אחרי ריסטארט העץ ראה קיצוני-סשן שגויים</td><td>✅ תוקן בקוד, נטען מחר</td></tr>
+<tr><td>T-497</td><td>הליגר זרק אירועי-זיהוי (תצפיתי)</td><td>✅ תוקן בקוד, נטען מחר</td></tr>
+<tr><td>T-498</td><td>אישור-הכניסה בלייב בודק לפעמים בר בן 2 שניות</td><td>✅ תוקן בקוד (רק בר סגור), נטען מחר. הערה: #2408 של שישי עבר בזכות המרוץ הזה</td></tr>
+<tr><td>T-492</td><td>פיד-הפוטפרינט לא נכנס — S3 בלי נתונים</td><td>ריסטארט-ברידג', צריך אישור</td></tr>
+<tr><td>T-487</td><td>שני מסווגי-פתיחה</td><td>פתוח</td></tr>
+</table></div>
+<h3>ה · אין מפיק בכלל</h3>
+<p>25% מהנקודות שפוספסו ב-13 הימים (382 נק׳) הן מהלכים שאף מפיק לא הציע. הדוגמה של שישי: LONG 18:45 — ירידה, עלייה, מבחן, זינוק עם ווליום (37 נק׳). <b>צריך מפיק "מבחן-וזינוק"</b> לפי הציור שלך. זה העבודה הגדולה של השבוע, והיא נמדדת כמו כל ענף.</p>
+<hr>
+<h2>6 · מחר, שני 28.09</h2>
+<h3>לפני 15:30</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>#</th><th>מה</th><th>מי</th><th>למה</th></tr>
+<tr><td>1</td><td><b>ריסטארט קדם-פתיחה</b> (פוזיציה 0, <code>git pull</code> קודם, <code>close_stale_shadow --apply</code> ל-3 שורות-הצל התקועות משישי)</td><td>השער המתוזמן ~15:30, אוטומטי</td><td>טוען את תיקוני-הקוד של היום: T-495 (קיצוני-הסשן אחרי ריסטארט), T-498 (אישור-כניסה על בר סגור בלבד), T-497 (ליגר), ו-T-496/T-500 (מדיניות-עלים, רדומות עד שענף מצהיר עליהן)</td></tr>
+<tr><td>2</td><td><b>ריסטארט-ברידג'</b> עם snapshot קודם (T-492)</td><td><b>צריך "מאשר ברידג'" ממך</b></td><td>בלעדיו S3 אוספת אפס נתונים גם ביום הרביעי. זה ריסטארט של רכיב מחוץ ל-git, ולכן לא נעשה בלי אישורך</td></tr>
+<tr><td>3</td><td><b>חבילת-הענפים</b> (סעיף 5, ✅)</td><td><b>"כן" אחד ממך</b></td><td>כלל 24.09 (יום-כולל חיובי ⇒ לייב) מתקיים, אבל S1 משנה את הפסיקה שלך על שלב D (17.09), והעץ לא לוקח ענף חדש בלי המילה שלך. אחרי "כן" קובץ-העץ נטען מחדש לבד, בלי ריסטארט</td></tr>
+<tr><td>4</td><td><b>VA_FADE לייב — ההמלצה היא לא לאשר</b></td><td>—</td><td>הבקשה משישי עדיין פתוחה, אבל המדידה של היום שלילית: VA_FADE_SHORT 23 מועמדים −77$, VA_FADE_LONG 21 מועמדים −146$. נשאר בצל</td></tr>
+<tr><td>5</td><td>להקטין עומס על המק</td><td>—</td><td>היום load 18.55 ו-swap ~10.6GB, בעיקר Chrome ואפליקציות Claude (הריפליי שלי הסתיים ב-16:13) — לסגור טאבים לפני 16:30</td></tr>
+</table></div>
+<h3>במהלך המסחר</h3>
+<div class='card' style='padding:8px 12px'><b>בדיקה אחת אחרי הריסטארט:</b> קיצוני-הסשן בכרטיס-העץ בטלפון שווים לשפל ולשיא האמיתיים של היום (T-495). ביום שישי אחרי הריסטארט של 19:15 העץ ראה שפל 7804.25 במקום 7752.75.</div>
+<div class='card' style='padding:8px 12px'>כל חסימה של אישור-הכניסה מצטטת את הבר <b>הסגור</b> הקודם (T-498), וה-DB מאשר את זה.</div>
+<div class='card' style='padding:8px 12px'>כל עסקת-לייב מקבלת הודעה אחת: תבנית · כיוון · מחיר · סטופ · יעד · <b>הנתיב בעץ</b>.</div>
+<div class='card' style='padding:8px 12px'>אם ענף חדש אושר, העסקה הראשונה שלו מסומנת בהודעה.</div>
+<h3>אחרי הסגירה (23:00–23:30)</h3>
+<p>הלולאה הלילית (תוכנית §6 שלב 6), עם שלב חדש:</p>
+<div class='card' style='padding:8px 12px'>1. <code>broker_truth</code> → <code>day_review</code> → עמודי-הטלפון (כמו היום).</div>
+<div class='card' style='padding:8px 12px'>2. <b>חדש:</b> ריפליי של היום בתצורה החיה + <code>gate_audit</code> (הסקריפט של היום). כל נתיב שמפסיד או מסרב לכסף מקבל שורה.</div>
+<div class='card' style='padding:8px 12px'>3. <code>tree_measure</code> → הלוח בטלפון מתעדכן במספרים.</div>
+<div class='card' style='padding:8px 12px'>4. <b>אתה מסמן את היום על הקנבס</b> (עמוד-הסימון) → <code>marks_vs_tree</code> בבוקר מראה איפה העץ היה נגדך.</div>
+<h3>פתוחים שלא יזיזו כסף מחר, אבל חוסמים את השיפור הבא</h3>
+<div style="overflow-x:auto"><table class="plain">
+<tr><th>פריט</th><th>מה חסר</th><th>הצעד הבא</th></tr>
+<tr><td><b>מפיק "מבחן-וזינוק"</b></td><td>25% מהנקודות שפוספסו הן מהלכים שאף מפיק לא הציע (כמו LONG 18:45 בשישי: ירידה, עלייה, מבחן, זינוק עם ווליום)</td><td>לבנות מפיק לפי הציור שלך, למדוד בריפליי</td></tr>
+<tr><td>T-487</td><td>שני מסווגי-פתיחה, והעץ שואל את זה שאינו מקור-האמת</td><td>ריפליי של 25.09 עם כל אחד מהם, ואז פסיקה על הבעלים</td></tr>
+<tr><td>T-481</td><td>הכניסה מגיעה בסוף המהלך</td><td>התפלגות האיחור על 58 הסשנים</td></tr>
+<tr><td>T-483</td><td>שלבים של חצי-שעה</td><td>וריאנט-עץ ומדידה</td></tr>
+<tr><td>T-486</td><td>פוזיציה ידנית חוסמת לייב</td><td>פסיקה על <code>working_orders</code></td></tr>
+<tr><td>T-488 · T-489 · T-490 · T-491 · T-499</td><td>כפילות הודעות · פקודת-הגודל · מלכודת-SQL · מונה שהתפצל · קריסת הרנס ב-07.08</td><td>תיקונים קטנים, בלי השפעה על מסחר</td></tr>
+</table></div></div><div class="toast" id="toast"></div><div class="bottom"><a href="index.html" class=""><b>🏠</b>בית</a><a href="days.html" class=""><b>📅</b>ימים</a><a href="trades.html" class=""><b>📒</b>עסקאות</a><a href="missed.html" class=""><b>⭕</b>פספוסים</a><a href="lessons.html" class=""><b>📈</b>לקחים</a></div>
+<script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+function fixLinks(root){(root||document).querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});}
+fixLinks();
+function drawer(o){document.getElementById('dr').classList.toggle('open',o);}
+function tog(el){el.classList.toggle('open');}
+function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},1800);}
+function tag(id,label,text){var note=prompt(label+' — הערה (אופציונלי):','');if(note===null)return;
+ var msg='תיוג עסקה #'+id+' ('+text+'): '+label+(note?(' — '+note):'');
+ fetch('/instruction'+Q,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:msg})})
+ .then(function(r){return r.json();}).then(function(d){toast(d.ok?'נרשם ✓':'שגיאה');}).catch(function(){toast('שגיאה בשליחה');});}
+if(location.hash){var el=document.getElementById(location.hash.slice(1));if(el){el.classList.add('open');setTimeout(function(){el.scrollIntoView({block:'center'});},60);}}
+/* candles: bars=[[hhmm,o,h,l,c,rth]...], marks=[{id,t,e,x,xt,dir,pnl}] */
+function candles(bars,marks,mode,W0){
+ var n=bars.length;if(!n)return '';var H=330,top=14,bot=28,axis=56;
+ var cw=mode==='fit'?Math.max(3,(W0-axis-8)/n):mode;var W=Math.ceil(n*cw+axis+8);
+ var hi=-1e9,lo=1e9;bars.forEach(function(b){if(b[2]>hi)hi=b[2];if(b[3]<lo)lo=b[3];});
+ marks.forEach(function(m){hi=Math.max(hi,m.e,m.x||m.e);lo=Math.min(lo,m.e,m.x||m.e);});
+ var pad=(hi-lo)*0.05||1;hi+=pad;lo-=pad;function y(p){return top+(hi-p)/(hi-lo)*(H-top-bot);}
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">';
+ var step=(hi-lo)<60?5:(hi-lo)<120?10:25;for(var g=(Math.floor(lo/step)+1)*step;g<hi;g+=step){s+='<line x1="0" y1="'+y(g).toFixed(1)+'" x2="'+(W-axis)+'" y2="'+y(g).toFixed(1)+'" stroke="#21262d"/><text x="'+(W-axis+4)+'" y="'+(y(g)+4).toFixed(1)+'" fill="#8b949e" font-size="11">'+g+'</text>';}
+ var idx={};bars.forEach(function(b,i){idx[b[0]]=i;var x=i*cw+cw/2,col=b[5]?(b[4]>=b[1]?'#3fb950':'#f85149'):'#484f58';
+  s+='<line x1="'+x.toFixed(1)+'" y1="'+y(b[2]).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+y(b[3]).toFixed(1)+'" stroke="'+col+'"/>';
+  var yo=y(b[1]),yc=y(b[4]),h=Math.max(Math.abs(yc-yo),1.2),bw=Math.max(cw*0.64,1.5);
+  s+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+Math.min(yo,yc).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  if(b[0].slice(3)==='00'&&(cw>=5||b[0]<'23')){s+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" fill="#8b949e" font-size="10" text-anchor="middle">'+b[0]+'</text>';}});
+ function xof(t){if(!t)return null;var k=t.slice(0,3)+(''+(Math.floor(parseInt(t.slice(3),10)/5)*5)).padStart(2,'0');var i=idx[k];return i==null?null:i*cw+cw/2;}
+ marks.forEach(function(m){var xe=xof(m.t);if(xe==null)return;var col=(m.pnl||0)>0?'#3fb950':(m.pnl||0)<0?'#f85149':'#d29922';var ye=y(m.e);var sz=cw>=6?7:5;
+  if(m.dir==='LONG')s+='<polygon points="'+xe.toFixed(1)+','+(ye+3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye+3+sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  else s+='<polygon points="'+xe.toFixed(1)+','+(ye-3).toFixed(1)+' '+(xe-sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+' '+(xe+sz).toFixed(1)+','+(ye-3-sz*1.6).toFixed(1)+'" fill="'+col+'" stroke="#0b0e14"/>';
+  if(m.x!=null&&m.xt){var xx=xof(m.xt);if(xx!=null){s+='<line x1="'+xe.toFixed(1)+'" y1="'+ye.toFixed(1)+'" x2="'+xx.toFixed(1)+'" y2="'+y(m.x).toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="3,3"/><circle cx="'+xx.toFixed(1)+'" cy="'+y(m.x).toFixed(1)+'" r="3.5" fill="'+col+'"/>';}}
+  if(cw>=5)s+='<text x="'+xe.toFixed(1)+'" y="'+((m.dir==='LONG')?(ye+3+sz*1.6+11):(ye-3-sz*1.6-4)).toFixed(1)+'" fill="'+col+'" font-size="10" text-anchor="middle">#'+m.id+'</text>';});
+ return s+'</svg>';}
+</script></body></html>

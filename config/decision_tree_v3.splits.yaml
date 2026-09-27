@@ -35,3 +35,80 @@ splits:
     candidate: "Trend n=112 +1,861$ · Variation n=32 · 62% · +937$"
     day_total: "58 sessions: Σ+1,306.25$ · Δ +86.25$ gross / ≈ +65$ net of +8 round-trips · better 5 / worse 2 / same 51 — i.e. the Variation part alone is Δ −15$ (14.07 −54$, 08.09 −95$ vs V2)"
     verdict: "REFUTED for the Variation label — V2 alone stands"
+
+  # ── 27.09 (T-494): every path of the live tree audited on the live replay (harness_out/t494/gate_audit_live0927.txt);
+  # the reference is now the LIVE configuration (live0927, 60 sessions Σ+1,373.75$), not the pre-tree baseline.
+  # Day-total: python3 harness_out/t494/cmp_vs_live.py <tag>. Candidate figures = unique candidates, independent 1.5R.
+  - id: S1
+    date: 2026-09-27
+    path: "phase=D / day_type=Variation|Normal_Variation / rel_bias=with  (+ Normal / structure=up|down / with)"
+    question: "phase D (21:00+) on a day the IB extended one-sidedly — continue WITH the extension (Dalton: a Variation day that holds its extension into the afternoon)"
+    variant: harness_out/t494/tree_s1.yaml
+    candidate: "stand_down (D,Variation,none,with) n=21 · 90% · +1,298$ (3 days)"
+    day_total: "60 sessions vs live0927: Σ+1,533.75$ · Δ +160.00$ gross / ≈ +110.60$ net of +19 round-trips · better 9 / worse 7 / same 44 · added 19 trades (12 wins, +160$), removed 0 · by month Jun −1 · Jul +1 · Aug +119 · Sep +41"
+    downstream: "25.09 (Friday) it would not have traded: its phase-D TAKEs hit rr_entry_gate, ELQ ×2 and eod_entry_cutoff ×3"
+    verdict: "POSITIVE — n 19 ≥ 15, net Σ ≥ 0 (rule 24.09) ⇒ candidate for TAKE"
+  - id: S2
+    date: 2026-09-27
+    path: "day_type=Variation / rel_bias=against / zone=mid_value|near_val|near_vah"
+    question: "the extension failed and price is back in value — trade against it toward the other side of value"
+    variant: harness_out/t494/tree_s2.yaml
+    candidate: "bias refusals (C,Variation) SHORT mid_value n=81 · 53% · +1,700$ · near_val n=32 · 69% · +1,007$"
+    day_total: "60 sessions vs live0927: Δ +52.50$ gross / ≈ −41.10$ net of +36 round-trips · better 15 / worse 13 · added 40 (20 wins, +111$)"
+    verdict: "REFUTED (net < 0) — the candidate edge does not survive one slot + commissions"
+  - id: S3
+    date: 2026-09-27
+    path: "take_with_hint — skip_gates: [entry_location_quality]"
+    question: "25.09 evening: ELQ refused 10 with-hint TAKEs, 8 winners — does ELQ cost money on this leaf in general?"
+    variant: harness_out/t494/tree_s3.yaml
+    candidate: "ELQ after take_with_hint n=167 · 41% · −1,735$"
+    day_total: "60 sessions vs live0927: Δ −90.00$ gross / ≈ −183.60$ net of +36 round-trips · better 13 / worse 13 · added 43 (26 wins, −91$)"
+    verdict: "REFUTED — ELQ protects on this leaf; Friday was the exception"
+  - id: S4
+    date: 2026-09-27
+    path: "take_with_hint — S3 + exit {t1_r 1.5, t2_r 2.5}; take_with_extension — exit {1.5, 2.5}"
+    question: "the R:R refusals came from a T1 cut to an old shelf — does a ladder from the producer's own stop pay?"
+    variant: harness_out/t494/tree_s4.yaml
+    candidate: "RR after take_with_hint n=44 · 41% · −599$"
+    day_total: "60 sessions vs live0927: Δ −373.75$ gross / ≈ −469.95$ net of +37 round-trips · better 21 / worse 23 · added 69 (32 wins, −207$)"
+    verdict: "REFUTED"
+  - id: T2E
+    date: 2026-09-27
+    path: "opening_type=OPEN_AUCTION_* / phase=B / kind=EDGE_FADE — promote: [CEILING_FLIP_TOUCH2], exit {1.5, 2.5} (T-496)"
+    question: "the tree said TAKE at the edge and TOUCH2 was shadow (25.09 17:35) — route TOUCH2 only there?"
+    variant: harness_out/t494/tree_t2e.yaml
+    candidate: "TOUCH2 at this leaf n=113 · 51% · +706$ (TOUCH2 overall n=714 · 40% · −1,479$)"
+    day_total: "60 sessions vs live0927: Δ −363.05$ gross / ≈ −441.05$ net of +30 round-trips · better 10 / worse 19 · 34 TOUCH2 trades, 10 wins"
+    verdict: "REFUTED — TOUCH2 stays shadow (Michael 15.09); the candidate model overstated it (51% vs 29% real)"
+  - id: S5
+    date: 2026-09-27
+    path: "opening_type=OPEN_AUCTION_* / phase=B / kind=REVERSAL (kinds_auction_B)"
+    question: "an open-auction first hour: a reversal at the opening extreme (DALTON_EDGE, OPENING_EXTREME_REJECT, ORR)"
+    variant: harness_out/t494/tree_s5.yaml
+    candidate: "kind refusals FORMING/REVERSAL n=19 · +529$ · Trend_Normal/REVERSAL n=13 · +419$"
+    day_total: "60 sessions vs live0927: Σ+1,479.30$ · Δ +105.55$ gross / ≈ +69.15$ net of +14 round-trips · better 9 / worse 9 · added 25 (13 wins, +135.55$), removed 11 (+38.15$) · by month Jun +64 · Jul +84 · Aug −232 · Sep +191"
+    verdict: "POSITIVE but thin — n 25 ≥ 15, net Σ ≥ 0 (rule 24.09) ⇒ candidate for TAKE"
+  - id: S6
+    date: 2026-09-27
+    path: "auction_B_trend_break — skip_gates: [extreme_chase_guard] (T-500)"
+    question: "10 of the ruled branch's TAKEs were refused by the chase guard, 8 reached 1.5R — skip it on this leaf?"
+    variant: harness_out/t494/tree_s6.yaml
+    candidate: "n=10 · 80% · +498$ (7 days)"
+    day_total: "60 sessions vs live0927: Δ −95.00$ gross / ≈ −100.20$ net of +2 round-trips · better 0 / worse 2 · the 2 added trades both stopped"
+    verdict: "REFUTED — the other refused candidates would not have reached execution anyway (shadow producers, slot, other gates)"
+  - id: S7
+    date: 2026-09-27
+    path: "take_failed_ext + kinds_trend PULLBACK|BREAK + kinds_variation BREAK|VALUE_RETURN — exit {t1_r 1.5, t2_r 2.5}"
+    question: "the R:R refusals there came from a T1 cut to an old shelf — a ladder from the producer's own stop"
+    variant: harness_out/t494/tree_s7.yaml
+    candidate: "RR after take_failed_ext n=9 · 78% · +510$ · after BREAK kinds n=7 · 86% · +450$"
+    day_total: "60 sessions vs live0927: Σ+1,540.00$ · Δ +166.25$ gross / ≈ +163.65$ net of +1 round-trip · better 11 / worse 8 / same 41 · added 7 (4 wins, +69.35$), removed 6 (−126.25$), the rest from exits · by month Jun +74 · Jul +73 · Aug +26 · Sep −6"
+    verdict: "POSITIVE — an exit policy on existing TAKE leaves (not a new TAKE) ⇒ candidate"
+  - id: PKG
+    date: 2026-09-27
+    path: "S1 + S5 + S7 together (harness_out/t494/compose_pkg.py — the combination is replayed before anything goes live)"
+    question: "do the three passing splits still pay when they compete for the one live slot?"
+    variant: harness_out/t494/tree_pkg.yaml
+    candidate: "—"
+    day_total: "60 sessions vs live0927: Σ+1,844.30$ · Δ +470.55$ gross / ≈ +387.35$ net of +32 round-trips · better 24 / worse 12 / same 24 · added 46 (26 wins, +499.90$), removed 14 (+8.15$) · by month Jun +120 · Jul +116 · Aug −88 · Sep +322 · max cumulative drawdown −277.50$ (live0927 −212.50$) · vs the pre-tree baseline Δ +663.05$ gross / ≈ +553.85$ net, better 28 / worse 9"
+    verdict: "POSITIVE — above the sum of the parts (+343$ net alone). AWAITING Michael's word (S1 changes his 17.09 phase-D ruling; the tree never takes a new branch without `ruling:`, test_decision_tree_v3 parity)"

@@ -1,3 +1,42 @@
+## 🟠 [cowork-dev · 2026-09-27 14:14-16:25 IL · אינטראקטיבי] — **דוח-לילה + תוכנית ב׳ (בקשת-מייקל 14:14): ריפליי התצורה החיה, ביקורת כל נתיב בעץ, 10 וריאנטים יום-כולל, 3 תיקוני-קוד** · 🔑 **העץ החי טוב מלפניו ב-+192.50$ על 60 ימים; 2 ענפים חיוביים ממתינים ל"כן" אחד; T-498: שער אישור-הכניסה בדק בלייב לפעמים בר בן שניות — תוקן.**
+
+**בעלות:** ריצות 28–29 (מתוזמנות) לא נגעו בקוד בגלל ההרנס שלי — נכון. הקוד/העץ/הדוח של היום הם שלי; **אין שינוי ב-`config/decision_tree_v3.yaml` החי, ב-`.env`, בדגלים, בפוזיציה או ריסטארט.**
+
+### מה נמדד (Rule 5 — פלט גולמי)
+```raw
+$ compare_variant.py live0927   ⇒ 60 sessions: baseline Σ+1181.25$ · live0927 Σ+1373.75$ · Δ +192.50$ gross, ≈+166.50$ net of +10 round-trips · better 9 / worse 3 / same 48
+$ cmp_vs_live.py <tag>          (vs live0927, 60 sessions)
+  t494s1  Δ +160.00$ ≈ +110.60$ net · +19 trades (12 wins) · removed 0      ✅
+  t494s5  Δ +105.55$ ≈  +69.15$ net · +25/−11 · better 9 / worse 9         ✅ thin
+  t494s2  Δ  +52.50$ ≈  −41.10$ net                                         ✗
+  t494s3  Δ  −90.00$ ≈ −183.60$ net                                         ✗
+  t494s4  Δ −373.75$ ≈ −469.95$ net                                         ✗
+  t494t2e Δ −363.05$ ≈ −441.05$ net (34 TOUCH2 trades, 10 wins)             ✗
+  t498ec0 Δ −197.50$ ≈ −218.30$ net (entry-confirm OFF)                     ✗ ⇒ the gate earns money
+  t494s6  Δ  −95.00$ ≈ −100.20$ net (+2 trades, both stops)                 ✗
+  t494s7  Δ +166.25$ ≈ +163.65$ net · better 11 / worse 8 (exit ladder on failed_ext + BREAK leaves) ✅
+  t494pkg Δ +470.55$ ≈ +387.35$ net · +46/−14 · better 24 / worse 12 · maxDD −277.50$ (S1+S5+S7)  ✅ awaiting Michael
+$ pre-existing, identical on HEAD (git archive HEAD → /tmp, same pytest): test_zones_confirm_wiring ×3 + test_opening_anchor_tz ×1 FAIL — not from today's changes
+$ tree_measure.py --tag live0927 ⇒ sessions=60 routes=3950 scored=3778 leaves=247 ripe=6
+$ pytest (decision_tree_v3 + t495 + t497 + t498 + candidate_ledger) ⇒ 23 + 4 + 3 + 2 + 13 passed
+```
+
+### תיקוני-קוד (נטענים בריסטארט-קדם-הפתיחה של ב׳ — השער המתוזמן, `git pull` קודם)
+- **T-495** (8300050c) — TPO: epoch ts ⇒ ISO; זריעת קיצוני-הסשן אחרי ריסטארט תרוץ סוף-סוף.
+- **T-498** — `S4_ENTRY_CONFIRM_V1` קורא רק בר סגור (`WHERE ts + interval '5 minutes' <= now()`). ראיה: בר 19:25 נוצר `19:25:04.05`, ההחלטה של #2408 ב-`19:25:06` ⇒ נבדק בר בן 2 שנ'.
+- **T-497** — ליגר: מחרוזת-epoch ⇒ epoch (תצפיתי).
+- **T-496 / T-500** — `promote:` + `skip_gates: [extreme_chase_guard]` — רדומים, אף עלה לא מצהיר.
+
+### לשער של ב׳ (בלי שינוי בסדר)
+1. `close_stale_shadow.py --apply` לפני הריסטארט (3 שורות-צל משישי — ריצה 28).
+2. **T-492 ריסטארט-ברידג'** — רק על "מאשר ברידג'" ממייקל; snapshot קודם.
+3. אחרי הריסטארט: `grep DatetimeFieldOverflow` ⇒ 0 · `candidate_ledger:DETECTED` ⇒ 0 · כל `BLOCKED by entry-confirm` מצטט בר סגור.
+4. "כן" לחבילה ⇒ העלים מ-`harness_out/t494/tree_pkg.yaml` ל-`config/decision_tree_v3.yaml` עם `ruling:`+`measured:` (T-494 הצעד הבא).
+
+דוח: `docs/reports/NIGHT_REPORT_2026-09-27.md` · עמוד: `/doc/night_report.html`.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-27 16:04-16:14 IL] — **ריצה 32 · חובה-1 · שורת-מדידה אחת** · 🔑 **חלון-השער נסגר (16:10) עם אותו מאזין, וזו התוצאה הנכונה — ו-[[T-164]] נגמרה, לא רק "חסומה": אפס ERROR חדש בשעתיים**
 
 **שורה אחת, לא רשומה-מתחרה** ([[T-369]] על הערוץ): ריצה 28 (`75cd6140`) היא הבעלים של רשומת-היום. `16:04` ∈ חלון-השער 15:30-16:10 **לפי השעון**, אבל **אין שער** — ונמדד, לא הונח: יום-ה-RTH האחרון בנתונים `2026-09-25` · `max(ts) v9_bars_5min_woodies = 2026-09-25 23:30+03 · age 40.6h` · `rows_36h = 0`. מאזין `11167 · lstart Fri Sep 25 19:15:31 · etime 01-20:51:23 · rss 121,152K` — **אותו מאזין של ריצות 20-31, מדידה שתים-עשרה רצופה** ⇒ אפס ריסטארט, הבעלות אינה שלי ⇒ **אפס GO/NO-GO**. ⇒ **חלון-השער של יום א׳ נסגר ב-16:10 עם אפס ריסטארט ואפס הודעת-שער — זו התוצאה הנכונה ליום בלי RTH, לא החמצה.** הפתיחה הבאה: ב׳ 28.09 16:30 (Globex `01:00 IL`).

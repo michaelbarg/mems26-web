@@ -1,0 +1,204 @@
+[env_loader] applied 330 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+live0927: 60 sessions with tree routes · harness day-total Σ+1373.75$ over 60 sessions
+
+== TREE SAID TAKE → what happened after the tree
+bucket                                        uniq  win%   Σ$ @1.5R  days
+live                                           136    49    +1552.6    54   2026-06-15 16:50:03 OPENING_DRIVE LONG 7619.25 | 2026-06-15 19:50:03 CEILING_FLIP_SHORT SHORT 7638.5
+gate:entry_not_confirmed                       114    47    +1013.0    38   2026-06-16 18:39:58 ZLR SHORT 7610.25 | 2026-06-16 20:19:58 ZLR SHORT 7604.75
+gate:extreme_chase_guard                        29    52     +501.5    11   2026-06-22 17:19:58 ZLR LONG 7561.0 | 2026-06-22 18:29:58 ZLR LONG 7566.0
+gate:rr_hard_floor                               4   100     +417.1     4   2026-07-06 18:14:58 ZLR LONG 7558.5 | 2026-07-13 17:05:03 GHOST SHORT 7598.75
+gate:rr_entry_gate                              70    49     +219.8    37   2026-06-16 18:50:03 REACTIVE_SHORT SHORT 7604.25 | 2026-06-24 19:35:03 CEILING_FLIP_SHORT SHORT 7473.25
+gate:duplicate_fire                              4    50       +7.1     4   2026-08-03 21:45:05 ZLR LONG 7632.75 | 2026-09-24 20:35:03 DOUBLE_TOP_AA_SHORT SHORT 7762.25
+gate:cold_start_guard                            1     0      -25.1     1   
+gate:pattern_stop_cooldown                       1     0      -33.9     1   
+gate:cont_trend_filter                           6    33     -130.6     5   2026-07-14 17:05:03 CONFLUENCE_RI_ZLR SHORT 7574.75 | 2026-09-03 17:30:03 INITIATIVE_LONG LONG 7712.0
+gate:eod_entry_cutoff                           38    45     -531.9     9   2026-06-16 22:34:58 ZLR SHORT 7591.0 | 2026-06-16 22:59:58 TLB SHORT 7588.0
+shadow_only_producer                           979    41     -664.8    60   2026-06-15 17:20:03 CEILING_FLIP_TOUCH2 LONG 7613.75 | 2026-06-15 17:25:03 CEILING_FLIP_TOUCH2 LONG 7610.75
+gate:structural_targets_wrong_side              31    10    -1581.8    18   2026-08-27 17:49:58 ZLR LONG 7733.75 | 2026-09-04 17:44:58 ZLR SHORT 7725.0
+gate:entry_location_quality                    185    43    -1634.7    48   2026-06-16 16:59:58 FAMIR SHORT 7622.75 | 2026-06-16 17:00:03 CEILING_FLIP_SHORT SHORT 7622.75
+
+== TAKE leaf → disposition, Σ$
+bucket                                        uniq  win%   Σ$ @1.5R  days
+∅id:day_type=*(FORMING)/rel_bias=with → live    30    67    +1143.9    30   2026-06-15 16:50:03 OPENING_DRIVE LONG 7619.25 | 2026-06-30 16:50:03 OPENING_DRIVE LONG 7507.0
+∅id:day_type=Trend_Normal/rel_bias=with → shadow_only_producer    29    69    +1099.6     8   2026-07-16 20:34:58 ZLR SHORT 7576.5 | 2026-07-16 20:54:58 ZLR SHORT 7571.5
+∅id:kind=*(EDGE_FADE)/kind=EDGE_FADE → shadow_only_producer    61    57     +791.4    28   2026-06-15 17:20:03 CEILING_FLIP_TOUCH2 LONG 7613.75 | 2026-06-22 17:05:03 CEILING_FLIP_TOUCH2 LONG 7559.0
+∅id:day_type=Trend_Normal/rel_bias=with → live    19    63     +721.2     7   2026-07-06 18:40:03 INITIATIVE_LONG LONG 7585.5 | 2026-07-16 21:00:03 REACTIVE_SHORT SHORT 7571.5
+∅id:day_type=*(FORMING)/rel_bias=with → shadow_only_producer    13    69     +695.6    10   2026-07-21 16:50:03 FAILED_BREAK_LONG LONG 7532.75 | 2026-07-30 16:45:03 CEILING_FLIP_TOUCH2 LONG 7417.25
+∅id:rel_bias=against/edge=failed_extension → gate:rr_entry_gate     9    78     +510.3     9   2026-06-24 19:35:03 CEILING_FLIP_SHORT SHORT 7473.25 | 2026-07-02 21:10:03 CEILING_FLIP_LONG LONG 7504.25
+auction_B_trend_break → gate:extreme_chase_guard    10    80     +497.7     7   2026-06-22 17:19:58 ZLR LONG 7561.0 | 2026-07-06 17:19:58 ZLR LONG 7553.5
+∅id:rel_bias=*(none)/kind=BREAK → gate:rr_entry_gate     7    86     +450.5     4   2026-07-08 17:30:03 DOUBLE_TOP_AA_SHORT SHORT 7506.0 | 2026-07-09 17:30:03 GHOST LONG 7552.75
+∅id:day_type=Trend_Normal/rel_bias=with → gate:entry_not_confirmed    17    59     +445.2     7   2026-07-06 21:44:58 ZLR LONG 7591.0 | 2026-07-16 20:29:58 ZLR SHORT 7578.5
+∅id:day_type=Trend_Normal/rel_bias=with → gate:rr_entry_gate     4   100     +376.5     3   2026-08-06 17:30:03 CEILING_FLIP_SHORT SHORT 7754.5 | 2026-08-17 21:14:58 ZLR SHORT 7777.75
+auction_B_trend_break → live                     5    80     +375.1     5   2026-06-22 17:24:58 HTLB LONG 7559.25 | 2026-06-29 17:04:58 GB100 SHORT 7449.75
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with → gate:entry_not_confirmed     5    60     +358.2     3   2026-07-16 18:20:03 INITIATIVE_SHORT SHORT 7591.0 | 2026-07-16 18:30:03 INITIATIVE_SHORT SHORT 7588.25
+∅id:day_type=*(FORMING)/rel_bias=with → gate:entry_location_quality    12    58     +340.7     8   2026-06-16 16:59:58 FAMIR SHORT 7622.75 | 2026-06-16 17:00:03 CEILING_FLIP_SHORT SHORT 7622.75
+∅id:rel_bias=*(none)/kind=BREAK → gate:entry_not_confirmed     9    56     +297.2     4   2026-07-13 17:30:03 GHOST SHORT 7601.75 | 2026-07-17 17:30:03 DOUBLE_TOP_AA_SHORT SHORT 7520.25
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with → gate:entry_not_confirmed     7    57     +291.2     4   2026-07-16 18:20:03 DOUBLE_TOP_AA_SHORT SHORT 7591.0 | 2026-07-16 18:30:03 DOUBLE_TOP_AA_SHORT SHORT 7588.25
+∅id:day_type=Trend_DD/rel_bias=with → shadow_only_producer     4   100     +276.5     2   2026-06-16 20:40:03 REACTIVE_SHORT SHORT 7600.75 | 2026-06-16 21:04:58 ZLR SHORT 7606.25
+∅id:day_type=Trend_DD/rel_bias=with → gate:entry_not_confirmed     3   100     +256.6     1   2026-06-16 21:15:03 INITIATIVE_SHORT SHORT 7604.75 | 2026-06-16 21:19:58 ZLR SHORT 7603.5
+∅id:day_type=*(FORMING)/kind=EDGE_FADE → gate:entry_location_quality     2   100     +251.7     1   2026-07-27 16:45:02 REACTIVE_SHORT SHORT 7493.0 | 2026-07-27 16:55:04 REACTIVE_SHORT SHORT 7492.5
+∅id:pattern=*(REACTIVE_SHORT)/rel_bias=with → live     5    80     +248.3     5   2026-06-16 18:20:03 REACTIVE_SHORT SHORT 7612.0 | 2026-09-08 18:00:03 REACTIVE_SHORT SHORT 7704.5
+∅id:day_type=Neutral_Extreme/rel_bias=with → shadow_only_producer    19    58     +238.7     4   2026-07-30 21:50:03 DOUBLE_BOTTOM_EE_LONG LONG 7459.0 | 2026-08-20 21:04:58 ZLR SHORT 7679.0
+∅id:pattern=*(GB100)/rel_bias=with → gate:entry_location_quality     2   100     +219.8     1   2026-07-02 18:09:58 GB100 SHORT 7534.25 | 2026-07-02 18:54:58 GB100 SHORT 7526.5
+∅id:day_type=*(FORMING)/kind=EDGE_FADE → shadow_only_producer    61    48     +212.0    33   2026-06-16 16:50:03 CEILING_FLIP_TOUCH2 SHORT 7633.5 | 2026-06-16 16:55:03 CEILING_FLIP_TOUCH2 SHORT 7631.25
+auction_B_trend_break → shadow_only_producer    15    53     +205.4    13   2026-06-30 17:24:58 ZLR LONG 7530.75 | 2026-07-06 17:04:58 TT LONG 7553.0
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with → shadow_only_producer     5    80     +203.9     5   2026-06-16 20:20:03 DOUBLE_TOP_AA_SHORT SHORT 7604.75 | 2026-07-15 20:45:03 DOUBLE_TOP_AA_SHORT SHORT 7610.5
+∅id:pattern=*(BULL_FLAG_LONG)/rel_bias=with → gate:entry_location_quality     1   100     +187.4     1   2026-07-30 20:05:03 BULL_FLAG_LONG LONG 7453.75
+∅id:day_type=*(Trend_Normal)/rel_bias=with → gate:entry_not_confirmed     4    50     +183.4     4   2026-08-27 17:14:58 ZLR LONG 7717.75 | 2026-09-21 17:14:58 GHOST LONG 7775.25
+∅id:day_type=*(Variation)/kind=EDGE_FADE → shadow_only_producer    15    53     +182.3     8   2026-06-15 17:25:03 CEILING_FLIP_TOUCH2 LONG 7610.75 | 2026-07-06 16:45:03 CEILING_FLIP_TOUCH2 LONG 7565.25
+∅id:rel_bias=against/edge=failed_extension → gate:eod_entry_cutoff     5    80     +169.5     4   2026-06-22 22:55:03 CEILING_FLIP_LONG LONG 7543.75 | 2026-06-24 22:55:03 CEILING_FLIP_LONG LONG 7426.75
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with → gate:entry_location_quality    12    58     +166.3     8   2026-07-13 20:30:03 INITIATIVE_SHORT SHORT 7569.75 | 2026-07-20 20:40:03 INITIATIVE_SHORT SHORT 7499.25
+∅id:rel_bias=against/edge=failed_extension → gate:rr_hard_floor     1   100     +153.0     1   2026-07-30 18:45:03 CEILING_FLIP_LONG LONG 7419.25
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with → live     4    75     +150.2     4   2026-06-16 19:35:03 CEILING_FLIP_SHORT SHORT 7607.25 | 2026-07-15 20:40:03 CEILING_FLIP_SHORT SHORT 7615.25
+∅id:pattern=*(GB100)/rel_bias=with → shadow_only_producer     5    60     +150.1     5   2026-06-16 18:29:58 GB100 SHORT 7608.0 | 2026-07-30 20:00:12 GB100 LONG 7449.0
+∅id:day_type=Trend_DD/rel_bias=with → gate:eod_entry_cutoff     8   100     +146.7     2   2026-06-16 22:34:58 ZLR SHORT 7591.0 | 2026-06-16 22:59:58 TLB SHORT 7588.0
+auction_B_trend_break → gate:rr_hard_floor       1   100     +132.4     1   2026-07-13 17:05:03 GHOST SHORT 7598.75
+∅id:day_type=Trend_Normal/rel_bias=with → gate:cont_trend_filter     1   100     +113.7     1   2026-09-03 17:30:03 INITIATIVE_LONG LONG 7712.0
+∅id:day_type=*(Trend_Normal)/rel_bias=with → gate:extreme_chase_guard     1   100     +109.9     1   2026-08-27 17:19:58 GB100 LONG 7722.75
+∅id:pattern=*(HNS_TOP_SHORT)/rel_bias=with → live     1   100     +103.7     1   2026-07-16 18:15:03 HNS_TOP_SHORT SHORT 7589.0
+∅id:day_type=*(Trend_Normal)/rel_bias=with → live     2    50      +99.8     2   2026-08-27 17:05:03 GHOST LONG 7719.25
+take_with_extension → gate:rr_entry_gate         4    50      +93.3     4   2026-07-15 18:05:40 ZLR SHORT 7600.75 | 2026-09-25 19:00:03 DOUBLE_BOTTOM_EE_LONG LONG 7790.5
+∅id:kind=*(EDGE_FADE)/kind=EDGE_FADE → gate:entry_location_quality     1   100      +93.0     1   2026-07-27 17:25:06 REACTIVE_SHORT SHORT 7456.0
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → shadow_only_producer     1   100      +91.2     1   2026-08-13 19:50:03 CEILING_FLIP_LONG LONG 7810.0
+∅id:day_type=*(Trend_Normal)/rel_bias=with → shadow_only_producer    22    50      +84.7    11   2026-06-16 17:15:03 CEILING_FLIP_TOUCH2 SHORT 7630.25 | 2026-06-16 17:20:03 CEILING_FLIP_TOUCH2 SHORT 7621.75
+∅id:pattern=*(ZLR)/rel_bias=with → gate:rr_hard_floor     1   100      +83.7     1   2026-07-06 18:14:58 ZLR LONG 7558.5
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → gate:rr_entry_gate     1   100      +81.8     1   2026-07-14 19:35:03 CEILING_FLIP_LONG LONG 7581.0
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with → gate:entry_location_quality     1   100      +77.4     1   2026-08-11 18:40:03 CEILING_FLIP_SHORT SHORT 7764.0
+∅id:day_type=Neutral_Extreme/rel_bias=with → gate:entry_not_confirmed     4    75      +69.0     2   2026-08-20 21:44:58 ZLR SHORT 7674.0 | 2026-08-20 22:09:58 ZLR SHORT 7674.5
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → gate:extreme_chase_guard     1   100      +66.8     1   2026-07-06 18:55:03 INITIATIVE_LONG LONG 7559.5
+∅id:day_type=Trend_DD/rel_bias=with → gate:rr_entry_gate     2   100      +66.0     1   2026-08-17 22:04:58 ZLR SHORT 7774.0 | 2026-08-17 22:09:58 GB100 SHORT 7773.75
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with → shadow_only_producer     1   100      +64.9     1   2026-08-13 19:35:03 DOUBLE_BOTTOM_EE_LONG LONG 7810.75
+∅id:day_type=*(FORMING)/rel_bias=with → gate:rr_entry_gate     1   100      +63.0     1   2026-07-31 16:55:04 INITIATIVE_SHORT SHORT 7471.0
+∅id:pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with → shadow_only_producer     3    67      +62.2     3   2026-06-16 18:25:03 CONFLUENCE_RI_ZLR SHORT 7611.0 | 2026-07-27 18:35:03 CONFLUENCE_RI_ZLR SHORT 7432.25
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with → gate:rr_entry_gate     2   100      +58.5     2   2026-07-15 20:45:03 CEILING_FLIP_SHORT SHORT 7610.5 | 2026-09-11 20:40:03 CEILING_FLIP_SHORT SHORT 7676.0
+∅id:pattern=*(BEAR_FLAG_SHORT)/rel_bias=with → gate:entry_location_quality     2    50      +57.3     2   2026-08-11 19:25:03 BEAR_FLAG_SHORT SHORT 7762.5
+take_location → gate:duplicate_fire              1   100      +55.5     1   2026-09-24 20:35:03 DOUBLE_TOP_AA_SHORT SHORT 7762.25
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → gate:rr_hard_floor     1   100      +48.0     1   2026-09-02 20:50:03 CEILING_FLIP_LONG LONG 7676.5
+∅id:pattern=*(GB100)/rel_bias=with → gate:rr_entry_gate     1   100      +40.5     1   2026-08-13 19:30:05 GB100 LONG 7809.25
+auction_B_trend_break → gate:entry_location_quality    12    58      +38.2     8   2026-07-01 17:04:58 ZLR LONG 7537.25 | 2026-07-01 17:05:03 CONFLUENCE_RI_ZLR LONG 7537.25
+∅id:pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with → gate:entry_location_quality     6    50      +36.9     6   2026-06-30 19:50:03 CONFLUENCE_RI_ZLR LONG 7555.25 | 2026-07-02 20:00:03 CONFLUENCE_RI_ZLR SHORT 7501.5
+take_with_extension → live                       6    33      +30.7     6   2026-09-03 18:00:03 DOUBLE_BOTTOM_EE_LONG LONG 7718.0 | 2026-09-09 18:05:03 DALTON_EDGE_SHORT SHORT 7648.5
+∅id:pattern=*(HNS_TOP_SHORT)/rel_bias=with → gate:rr_entry_gate     1   100      +28.6     1   2026-09-11 19:30:03 HNS_TOP_SHORT SHORT 7667.25
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → gate:entry_not_confirmed     3    33      +22.8     3   2026-06-30 18:20:03 INITIATIVE_LONG LONG 7533.25
+∅id:pattern=*(GHOST)/rel_bias=with → gate:rr_entry_gate     1   100      +21.1     1   2026-08-12 20:49:58 GHOST SHORT 7772.25
+∅id:pattern=*(REACTIVE_SHORT)/rel_bias=with → shadow_only_producer     6    33      +19.4     6   2026-06-16 18:25:03 REACTIVE_SHORT SHORT 7611.0 | 2026-09-11 19:20:03 REACTIVE_SHORT SHORT 7672.5
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with → gate:entry_not_confirmed     2    50      +18.5     2   2026-09-25 19:25:06 DOUBLE_BOTTOM_EE_LONG LONG 7795.25
+∅id:pattern=*(REACTIVE_LONG)/rel_bias=with → shadow_only_producer     3    67      +11.0     2   2026-08-13 19:30:03 REACTIVE_LONG LONG 7809.25 | 2026-08-13 19:55:03 REACTIVE_LONG LONG 7811.0
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → gate:entry_location_quality     0     0       +0.0     0   
+∅id:day_type=*(Variation)/kind=EDGE_FADE → gate:entry_location_quality     0     0       +0.0     0   
+∅id:day_type=Trend_DD/rel_bias=with → gate:entry_location_quality     0     0       +0.0     0   
+∅id:pattern=*(SCALE_IN)/rel_bias=with → gate:entry_location_quality     0     0       +0.0     0   
+∅id:day_type=Neutral_Extreme/rel_bias=with → live     0     0       +0.0     0   
+∅id:day_type=*(FORMING)/rel_bias=with → gate:duplicate_fire     0     0       +0.0     0   
+take_location → gate:entry_not_confirmed         1   100       -0.1     1   2026-08-28 20:34:58 HTLB LONG 7722.0
+∅id:pattern=*(REACTIVE_LONG)/rel_bias=with → gate:entry_location_quality     7    43      -15.7     5   2026-07-09 18:45:05 REACTIVE_LONG LONG 7576.75 | 2026-07-09 19:10:03 REACTIVE_LONG LONG 7579.75
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with → gate:entry_location_quality     8    50      -16.4     7   2026-07-20 20:50:03 DOUBLE_TOP_AA_SHORT SHORT 7490.5 | 2026-07-20 20:55:03 DOUBLE_TOP_AA_SHORT SHORT 7494.0
+∅id:day_type=Trend_Normal/rel_bias=with → gate:duplicate_fire     2    50      -18.3     2   2026-08-03 21:45:05 ZLR LONG 7632.75
+∅id:pattern=*(GHOST)/rel_bias=with → live        5    40      -21.7     4   2026-07-14 17:59:58 GHOST LONG 7587.5 | 2026-08-13 19:30:03 GHOST LONG 7809.25
+∅id:day_type=*(FORMING)/rel_bias=with → gate:cold_start_guard     1     0      -25.1     1   
+∅id:pattern=*(TREND_STEP)/rel_bias=with → live     1     0      -27.6     1   
+∅id:pattern=*(TT)/rel_bias=with → gate:structural_targets_wrong_side     1     0      -27.6     1   
+∅id:pattern=*(TREND_STEP)/rel_bias=with → gate:entry_location_quality     1     0      -28.9     1   
+∅id:rel_bias=against/edge=failed_extension → gate:duplicate_fire     1     0      -30.1     1   
+∅id:rel_bias=against/edge=failed_extension → gate:pattern_stop_cooldown     1     0      -33.9     1   
+∅id:pattern=*(REACTIVE_SHORT)/rel_bias=with → gate:rr_entry_gate     2    50      -33.9     2   2026-06-16 18:50:03 REACTIVE_SHORT SHORT 7604.25
+∅id:pattern=*(GB100)/rel_bias=with → gate:entry_not_confirmed     2    50      -35.2     2   2026-07-23 20:35:02 GB100 SHORT 7440.75
+∅id:pattern=*(SCALE_IN)/rel_bias=with → gate:rr_entry_gate     1     0      -35.8     1   
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → live     1     0      -36.4     1   
+∅id:pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with → live     1     0      -37.6     1   
+∅id:pattern=*(GHOST)/rel_bias=with → gate:structural_targets_wrong_side     1     0      -38.9     1   
+∅id:day_type=*(FORMING)/kind=EDGE_FADE → live     1     0      -41.4     1   
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with → gate:entry_not_confirmed     1     0      -42.6     1   
+∅id:pattern=*(VA_FADE_SHORT)/rel_bias=with → shadow_only_producer     8    38      -47.1     8   2026-07-07 20:10:03 VA_FADE_SHORT SHORT 7569.0 | 2026-08-25 19:05:03 VA_FADE_SHORT SHORT 7688.5
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with → gate:structural_targets_wrong_side     2     0      -51.5     2   
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with → gate:entry_not_confirmed     1     0      -55.1     1   
+∅id:pattern=*(VA_FADE_LONG)/rel_bias=with → shadow_only_producer     6    33      -55.6     6   2026-08-13 19:30:03 VA_FADE_LONG LONG 7809.25 | 2026-08-19 20:00:03 VA_FADE_LONG LONG 7736.0
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with → shadow_only_producer     3    33      -57.8     2   2026-09-04 20:20:03 INITIATIVE_SHORT SHORT 7724.5
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with → gate:structural_targets_wrong_side     2     0      -64.6     2   
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with → shadow_only_producer     3    33      -65.3     3   2026-08-18 20:50:03 CEILING_FLIP_SHORT SHORT 7720.0
+∅id:pattern=*(REACTIVE_SHORT)/rel_bias=with → gate:entry_location_quality     1     0      -73.8     1   
+∅id:day_type=*(FORMING)/rel_bias=with → gate:entry_not_confirmed     3    33      -74.7     3   2026-09-02 16:54:58 ZLR LONG 7650.5
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → gate:structural_targets_wrong_side     1     0      -76.3     1   
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with → live     2    50      -76.4     2   2026-08-14 19:50:03 INITIATIVE_SHORT SHORT 7803.5
+∅id:pattern=*(ZLR)/rel_bias=with → gate:structural_targets_wrong_side     1     0      -77.6     1   
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with → gate:rr_entry_gate     1     0      -85.1     1   
+∅id:pattern=*(REACTIVE_LONG)/rel_bias=with → gate:rr_entry_gate     1     0      -91.3     1   
+∅id:pattern=*(REACTIVE_LONG)/rel_bias=with → live     4    50      -94.2     4   2026-07-14 19:35:03 REACTIVE_LONG LONG 7581.0 | 2026-09-02 20:50:03 REACTIVE_LONG LONG 7676.5
+∅id:rel_bias=*(none)/kind=BREAK → live           3    33      -95.3     1   2026-09-08 19:14:58 GHOST SHORT 7692.75
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → gate:rr_entry_gate     2     0     -115.2     2   
+∅id:day_type=*(Variation)/rel_bias=with → shadow_only_producer     2     0     -121.4     2   
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with → gate:structural_targets_wrong_side     2     0     -132.7     1   
+∅id:pattern=*(GHOST)/rel_bias=with → gate:entry_not_confirmed     6    50     -136.8     4   2026-07-14 17:54:58 GHOST LONG 7586.75 | 2026-09-02 20:10:03 GHOST LONG 7673.0
+∅id:pattern=*(GHOST)/rel_bias=with → gate:entry_location_quality     3     0     -146.5     3   
+∅id:rel_bias=against/edge=failed_extension → live    30    37     -157.4    23   2026-06-15 19:50:03 CEILING_FLIP_SHORT SHORT 7638.5 | 2026-07-01 19:40:03 CEILING_FLIP_SHORT SHORT 7570.0
+∅id:pattern=*(ZLR)/rel_bias=with → gate:extreme_chase_guard    17    29     -173.0     6   2026-06-22 18:29:58 ZLR LONG 7566.0 | 2026-07-06 18:19:58 ZLR LONG 7559.5
+∅id:pattern=*(GHOST)/rel_bias=with → shadow_only_producer     2     0     -185.2     2   
+take_location → live                             9    33     -192.8     8   2026-08-13 17:45:03 CEILING_FLIP_SHORT SHORT 7830.25 | 2026-09-14 20:00:03 CEILING_FLIP_SHORT SHORT 7712.75
+auction_B_trend_break → gate:entry_not_confirmed    19    42     -193.8    13   2026-06-24 17:09:58 GHOST LONG 7453.0 | 2026-07-08 17:14:58 VEGAS SHORT 7507.5
+take_with_extension → shadow_only_producer       4    25     -201.6     2   2026-08-12 17:50:03 CEILING_FLIP_TOUCH2 SHORT 7771.5
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → gate:entry_location_quality     7    14     -208.2     4   2026-06-29 20:45:03 INITIATIVE_LONG LONG 7493.0
+∅id:rel_bias=*(none)/kind=BREAK → shadow_only_producer     9    22     -214.6     1   2026-09-08 17:34:58 ZLR SHORT 7690.5 | 2026-09-08 19:34:58 ZLR SHORT 7692.5
+∅id:pattern=*(GB100)/rel_bias=with → live        3     0     -225.3     3   
+take_location → gate:rr_entry_gate               6    17     -235.6     4   2026-09-10 17:50:03 REACTIVE_SHORT SHORT 7607.5
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with → gate:rr_entry_gate     3     0     -241.5     3   
+auction_B_trend_break → gate:cont_trend_filter     5    20     -244.2     4   2026-07-14 17:05:03 CONFLUENCE_RI_ZLR SHORT 7574.75
+∅id:rel_bias=*(none)/kind=BREAK → gate:entry_location_quality     3     0     -282.8     3   
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with → gate:entry_location_quality     8    12     -293.3     5   2026-06-30 18:55:03 DOUBLE_BOTTOM_EE_LONG LONG 7544.25
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with → live     4     0     -314.1     4   
+∅id:day_type=Trend_Normal/rel_bias=with → gate:eod_entry_cutoff     6     0     -343.1     2   
+∅id:day_type=Trend_Normal/rel_bias=with → gate:entry_location_quality    18    50     -381.8    10   2026-06-16 17:30:03 DOUBLE_TOP_AA_SHORT SHORT 7612.0 | 2026-07-06 18:29:58 GB100 LONG 7587.0
+∅id:pattern=*(ZLR)/rel_bias=with → gate:entry_not_confirmed    27    30     -390.8    18   2026-06-16 18:39:58 ZLR SHORT 7610.25 | 2026-06-16 20:19:58 ZLR SHORT 7604.75
+∅id:pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with → shadow_only_producer    89    38     -462.7    23   2026-06-16 19:25:03 CEILING_FLIP_TOUCH2 SHORT 7618.0 | 2026-07-07 20:35:03 CEILING_FLIP_TOUCH2 SHORT 7568.0
+∅id:pattern=*(ZLR)/rel_bias=with → shadow_only_producer    60    35     -467.3    27   2026-06-16 18:19:58 ZLR SHORT 7612.0 | 2026-06-16 18:24:58 ZLR SHORT 7611.0
+∅id:day_type=Neutral_Extreme/rel_bias=with → gate:eod_entry_cutoff    19    26     -505.0     5   2026-08-20 22:19:58 ZLR SHORT 7671.75 | 2026-08-20 22:24:58 ZLR SHORT 7675.0
+∅id:day_type=*(Trend_Normal)/rel_bias=with → gate:entry_location_quality    12    17     -715.0     8   2026-07-21 17:25:03 INITIATIVE_LONG LONG 7540.0 | 2026-09-02 17:15:03 INITIATIVE_LONG LONG 7668.75
+∅id:pattern=*(ZLR)/rel_bias=with → gate:rr_entry_gate    21    19     -732.1    13   2026-07-23 20:55:02 ZLR SHORT 7437.25 | 2026-08-14 19:14:58 ZLR SHORT 7807.25
+∅id:rel_bias=against/edge=failed_extension → shadow_only_producer   308    40     -846.4    52   2026-06-15 19:35:03 CEILING_FLIP_TOUCH2 SHORT 7643.75 | 2026-06-15 20:35:03 CEILING_FLIP_TOUCH2 SHORT 7641.0
+∅id:pattern=*(ZLR)/rel_bias=with → gate:entry_location_quality    66    41     -941.0    25   2026-06-16 17:49:58 ZLR SHORT 7613.0 | 2026-06-16 17:59:58 ZLR SHORT 7611.25
+take_with_extension → gate:structural_targets_wrong_side    21    14    -1112.7    15   2026-08-27 17:49:58 ZLR LONG 7733.75 | 2026-09-04 17:44:58 ZLR SHORT 7725.0
+take_location → shadow_only_producer           222    30    -2328.4    39   2026-06-23 18:45:03 CEILING_FLIP_TOUCH2 LONG 7444.25 | 2026-06-23 20:30:03 CEILING_FLIP_TOUCH2 SHORT 7471.0
+
+== TREE REFUSED (SKIP leaf)
+bucket                                        uniq  win%   Σ$ @1.5R  days
+tree:kind                                      139    45     +760.5    41   2026-06-16 16:55:03 OPENING_PULLBACK_CONT SHORT 7631.25 | 2026-06-22 16:49:58 ZLR LONG 7559.5
+tree:bias                                      693    43     -222.7    57   2026-06-15 19:40:03 GHOST SHORT 7641.0 | 2026-06-15 19:40:03 REACTIVE_SHORT SHORT 7640.75
+tree:location                                  277    42    -1253.9    36   2026-06-22 18:50:03 CEILING_FLIP_TOUCH2 LONG 7540.5 | 2026-06-22 19:10:03 CEILING_FLIP_TOUCH2 LONG 7538.25
+tree:stand_down                                996    39    -6891.8    60   2026-06-15 16:30:03 GB100 LONG 7599.25 | 2026-06-15 16:30:03 CEILING_FLIP_TOUCH2 LONG 7599.25
+
+== TAKE leaf → disposition (unique candidates)
+∅id:rel_bias=against/edge=failed_extension shadow_only_producer=310 · live=30 · gate:rr_entry_gate=9 · gate:eod_entry_cutoff=5 · gate:pattern_stop_cooldown=1 · gate:rr_hard_floor=1 · gate:duplicate_fire=1
+take_location                shadow_only_producer=222 · live=9 · gate:rr_entry_gate=6 · gate:entry_not_confirmed=1 · gate:duplicate_fire=1
+∅id:pattern=*(ZLR)/rel_bias=with gate:entry_location_quality=68 · shadow_only_producer=60 · gate:entry_not_confirmed=29 · gate:rr_entry_gate=21 · gate:extreme_chase_guard=17 · gate:rr_hard_floor=1 · gate:structural_targets_wrong_side=1
+∅id:day_type=Trend_Normal/rel_bias=with shadow_only_producer=31 · gate:entry_location_quality=25 · live=19 · gate:entry_not_confirmed=17 · gate:duplicate_fire=7 · gate:eod_entry_cutoff=6 · gate:rr_entry_gate=4 · gate:cont_trend_filter=1
+∅id:pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with shadow_only_producer=89
+auction_B_trend_break        gate:entry_not_confirmed=20 · gate:entry_location_quality=20 · shadow_only_producer=17 · gate:extreme_chase_guard=10 · live=8 · gate:cont_trend_filter=5 · gate:rr_hard_floor=1
+∅id:day_type=*(FORMING)/kind=EDGE_FADE shadow_only_producer=61 · gate:entry_location_quality=2 · live=1
+∅id:day_type=*(FORMING)/rel_bias=with live=31 · shadow_only_producer=13 · gate:entry_location_quality=12 · gate:entry_not_confirmed=3 · gate:cold_start_guard=2 · gate:rr_entry_gate=1 · gate:duplicate_fire=1
+∅id:kind=*(EDGE_FADE)/kind=EDGE_FADE shadow_only_producer=61 · gate:entry_location_quality=1
+∅id:day_type=*(Trend_Normal)/rel_bias=with shadow_only_producer=27 · gate:entry_location_quality=18 · live=6 · gate:entry_not_confirmed=6 · gate:extreme_chase_guard=1
+∅id:day_type=Neutral_Extreme/rel_bias=with shadow_only_producer=20 · gate:eod_entry_cutoff=19 · gate:entry_not_confirmed=4 · live=1
+take_with_extension          gate:structural_targets_wrong_side=27 · live=7 · shadow_only_producer=5 · gate:rr_entry_gate=4
+∅id:rel_bias=*(none)/kind=BREAK gate:entry_not_confirmed=9 · shadow_only_producer=9 · gate:rr_entry_gate=8 · gate:entry_location_quality=4 · live=3
+∅id:pattern=*(INITIATIVE_SHORT)/rel_bias=with gate:entry_location_quality=17 · gate:entry_not_confirmed=5 · live=4 · shadow_only_producer=3 · gate:structural_targets_wrong_side=2
+∅id:pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with gate:entry_location_quality=9 · gate:entry_not_confirmed=7 · shadow_only_producer=6 · gate:rr_entry_gate=3 · gate:structural_targets_wrong_side=2
+∅id:pattern=*(INITIATIVE_LONG)/rel_bias=with gate:entry_location_quality=13 · gate:entry_not_confirmed=4 · live=4 · gate:rr_entry_gate=2 · gate:structural_targets_wrong_side=1 · gate:extreme_chase_guard=1
+∅id:pattern=*(REACTIVE_LONG)/rel_bias=with gate:entry_location_quality=15 · live=5 · shadow_only_producer=3 · gate:rr_entry_gate=1
+∅id:pattern=*(REACTIVE_SHORT)/rel_bias=with live=6 · shadow_only_producer=6 · gate:entry_location_quality=5 · gate:rr_entry_gate=3
+∅id:day_type=Trend_DD/rel_bias=with gate:eod_entry_cutoff=8 · shadow_only_producer=4 · gate:entry_not_confirmed=3 · gate:entry_location_quality=2 · gate:rr_entry_gate=2
+∅id:pattern=*(GHOST)/rel_bias=with gate:entry_not_confirmed=7 · live=5 · gate:entry_location_quality=3 · shadow_only_producer=2 · gate:rr_entry_gate=1 · gate:structural_targets_wrong_side=1
+∅id:day_type=*(Variation)/kind=EDGE_FADE shadow_only_producer=15 · gate:entry_location_quality=1
+∅id:pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with gate:entry_location_quality=10 · gate:structural_targets_wrong_side=2 · gate:entry_not_confirmed=2 · shadow_only_producer=1 · gate:rr_entry_gate=1
+∅id:pattern=*(GB100)/rel_bias=with shadow_only_producer=7 · live=3 · gate:entry_location_quality=3 · gate:entry_not_confirmed=2 · gate:rr_entry_gate=1
+∅id:pattern=*(CEILING_FLIP_SHORT)/rel_bias=with live=4 · shadow_only_producer=3 · gate:rr_entry_gate=2 · gate:entry_location_quality=1 · gate:entry_not_confirmed=1
+∅id:pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with gate:entry_location_quality=6 · shadow_only_producer=3 · live=1
+∅id:pattern=*(VA_FADE_SHORT)/rel_bias=with shadow_only_producer=8
+∅id:pattern=*(CEILING_FLIP_LONG)/rel_bias=with gate:entry_location_quality=2 · gate:rr_entry_gate=1 · gate:entry_not_confirmed=1 · shadow_only_producer=1 · live=1 · gate:rr_hard_floor=1
+∅id:pattern=*(VA_FADE_LONG)/rel_bias=with shadow_only_producer=6
+∅id:pattern=*(BEAR_FLAG_SHORT)/rel_bias=with gate:entry_location_quality=3
+∅id:pattern=*(HNS_TOP_SHORT)/rel_bias=with live=1 · gate:rr_entry_gate=1
+∅id:pattern=*(BULL_FLAG_LONG)/rel_bias=with gate:entry_location_quality=2
+∅id:pattern=*(TREND_STEP)/rel_bias=with gate:entry_location_quality=1 · live=1
+∅id:pattern=*(SCALE_IN)/rel_bias=with gate:entry_location_quality=1 · gate:rr_entry_gate=1
+∅id:day_type=*(Variation)/rel_bias=with shadow_only_producer=2
+∅id:pattern=*(TT)/rel_bias=with gate:structural_targets_wrong_side=1
+→ harness_out/t494/gate_audit_live0927.json

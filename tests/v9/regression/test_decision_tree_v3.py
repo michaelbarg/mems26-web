@@ -251,6 +251,30 @@ class TestGatewayHook(unittest.TestCase):
         dt3.invalidate_cache()
         self.assertEqual([lf.get("id") for lf in dt3.leaves(dt3.load_tree()) if lf.get("exit")], [])
 
+    def test_leaf_producer_promotion_is_wired_and_inert_in_the_seed(self):
+        """T-496: a TAKE leaf may declare `promote: [CLASSIFICATION]` — a producer that is shadow-only by its own
+        flag is routed in that circumstance only (TOUCH2 at the phase-B open-auction edge fade). Only on a TAKE
+        leaf, only for the listed classification, only clearing an existing shadow_only. The seed declares it
+        nowhere, so live behaviour is unchanged until a ruled branch adds it."""
+        self.assertIn('_t3_pr = _tree_leaf.get("promote")', self.src)
+        self.assertIn('_t3_md["shadow_only"] = False', self.src)
+        i_take = self.src.index('_dp_location_checked = (_tree_leaf.get("id") == "take_location")')
+        i_prom = self.src.index('_t3_pr = _tree_leaf.get("promote")')
+        i_shadow_leaf = self.src.index('elif _t3_action == "SHADOW":')
+        self.assertLess(i_shadow_leaf, i_take)      # the promotion sits in the TAKE branch, after SKIP/SHADOW
+        self.assertLess(i_take, i_prom)
+        dt3.invalidate_cache()
+        self.assertEqual([lf.get("id") for lf in dt3.leaves(dt3.load_tree()) if lf.get("promote")], [])
+
+    def test_chase_guard_leaf_skip_is_wired_and_inert_in_the_seed(self):
+        """T-500: skip_gates may name extreme_chase_guard (same mechanism as the T-480 ELQ skip) — honoured only
+        when the tree decides and the leaf is TAKE. The seed names it nowhere."""
+        self.assertIn('"extreme_chase_guard" in (_ecg_t3.get("skip_gates") or [])', self.src)
+        self.assertIn('result["ecg_skipped"] = f"tree_leaf:{_ecg_t3.get(\'id\')}"', self.src)
+        dt3.invalidate_cache()
+        self.assertEqual([lf.get("id") for lf in dt3.leaves(dt3.load_tree())
+                          if "extreme_chase_guard" in (lf.get("skip_gates") or [])], [])
+
     def test_flag_default_off(self):
         os.environ.pop("DECISION_TREE_V3", None)
         self.assertFalse(dt3.enabled())

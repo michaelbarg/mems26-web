@@ -351,6 +351,7 @@ MENU = [("index.html", "🏠", "בית", "הסשן האחרון", "עכשיו"),
         ("gate_scorecard.html", "⚖️", "כרטיס-ציונים לשערים", "מה עשו המועמדים שכל שער סירב להם", "למידה"),
         ("swing_turn.html", "🔄", "מבחן סיבוב-הנדנדה", "האם כלל סיבתי מזהה את הכניסות האידיאליות", "למידה"),
         ("signatures.html", "🧬", "מבחן-החתימות", "מיקום · ווליום · נרות — כלל על כל בר", "למידה"),
+        ("night_report.html", "🌙", "דוח-לילה ותוכנית", "מה קרה · כל נתיב שלא עובד בעץ · מה עושים מחר", "ניהול"),
         ("defects.html", "🩹", "ליקויי-היומן", "ספרים מול ברוקר — הרשימה והתיקונים", "ניהול"),
         ("/readiness", "📋", "תיק-מוכנות", "48 פתוחים · 13 חוסמים", "ניהול")]
 BOTTOM = [("index.html", "🏠", "בית"), ("days.html", "📅", "ימים"), ("trades.html", "📒", "עסקאות"), ("missed.html", "⭕", "פספוסים"), ("lessons.html", "📈", "לקחים")]
@@ -649,6 +650,8 @@ if os.path.exists(tp):
             if in_tbl: out.append("</table></div>"); in_tbl = False
             if line.startswith("# "): out.append(f"<h1>{line[2:]}</h1>")
             elif line.startswith("## "): out.append(f"<h2>{line[3:]}</h2>")
+            elif line.startswith("### "): out.append(f"<h3>{line[4:]}</h3>")
+            elif line.strip() == "---": out.append("<hr>")
             elif line.startswith("- "): out.append(f"<div class='card' style='padding:8px 12px'>{line[2:]}</div>")
             elif re.match(r"^\d+\. ", line): out.append(f"<div class='card' style='padding:8px 12px'>{line}</div>")
             elif line.strip(): out.append(f"<p>{line}</p>")
@@ -681,7 +684,7 @@ if os.path.exists(vpp) and "md2html" in globals():
             print("playbook pdf failed:", e)
 
 # ── root-level reports (25.09): oracle vs engine · gate scorecard — md → page
-for _rp_md, _rp_html, _rp_title in (("ORACLE_VS_ENGINE", "oracle_vs_engine.html", "הראייה-המלאה מול המנוע"), ("GATE_SCORECARD", "gate_scorecard.html", "כרטיס-ציונים לשערים"), ("SWING_TURN", "swing_turn.html", "מבחן סיבוב-הנדנדה")):
+for _rp_md, _rp_html, _rp_title in (("ORACLE_VS_ENGINE", "oracle_vs_engine.html", "הראייה-המלאה מול המנוע"), ("GATE_SCORECARD", "gate_scorecard.html", "כרטיס-ציונים לשערים"), ("SWING_TURN", "swing_turn.html", "מבחן סיבוב-הנדנדה"), ("NIGHT_REPORT", "night_report.html", "דוח-לילה ותוכנית")):
     _rp_files = sorted(glob.glob(os.path.join(ROOT, "docs", "reports", f"{_rp_md}_*.md")))
     if _rp_files and "md2html" in globals():
         _rp_src = open(_rp_files[-1], encoding="utf-8").read()

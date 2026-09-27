@@ -233,8 +233,18 @@ def _as_utc(value: Any) -> datetime:
             ts = ts / 1000.0
         dt = datetime.fromtimestamp(ts, tz=timezone.utc)
     else:
-        text = str(value).replace("Z", "+00:00")
-        dt = datetime.fromisoformat(text)
+        text = str(value).strip()
+        # T-497 (27.09): live bar events carry ts as an epoch STRING ('1790353200.000000') — the same class as
+        # T-495. fromisoformat rejected it, so every DETECTED event of those producers was swallowed (live log:
+        # 23.09 20:20 · 24.09 17:45 · 25.09 19:25 "Invalid isoformat string") and the ledger undercounted.
+        try:
+            _ep = float(text)
+        except ValueError:
+            _ep = None
+        if _ep is not None:
+            dt = datetime.fromtimestamp(_ep / 1000.0 if _ep > 1e12 else _ep, tz=timezone.utc)
+        else:
+            dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
