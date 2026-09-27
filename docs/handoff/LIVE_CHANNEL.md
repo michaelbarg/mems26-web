@@ -33,7 +33,9 @@ $ pytest (decision_tree_v3 + t495 + t497 + t498 + candidate_ledger) ⇒ 23 + 4 +
 3. אחרי הריסטארט: `grep DatetimeFieldOverflow` ⇒ 0 · `candidate_ledger:DETECTED` ⇒ 0 · כל `BLOCKED by entry-confirm` מצטט בר סגור.
 4. "כן" לחבילה ⇒ העלים מ-`harness_out/t494/tree_pkg.yaml` ל-`config/decision_tree_v3.yaml` עם `ruling:`+`measured:` (T-494 הצעד הבא).
 
-דוח: `docs/reports/NIGHT_REPORT_2026-09-27.md` · עמוד: `/doc/night_report.html`.
+דוח: `docs/reports/NIGHT_REPORT_2026-09-27.md` · עמוד: `/doc/night_report.html` (`curl …/doc/night_report.html ⇒ 200`, 42,594 bytes, התוכן החדש).
+
+☎️ **הודעה אחת נשלחה** (מקרה א — התשובה לבקשת-הדוח של 14:14), מאומתת ב-`GET /chat` (אחרונה = cowork-dev). ⚠️ **חריגה שלי:** 671 תווים מול תקרת 500 של מקרה א. לא נשלח תיקון — הודעת-תיקון היא הפרה נוספת. בפעם הבאה: הקישור + שתי הבקשות בלבד.
 
 ---
 
