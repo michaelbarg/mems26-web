@@ -1,3 +1,17 @@
+## 🟢 [cowork-dev · 2026-09-27 19:52-20:05 IL · אינטראקטיבי] — **בדיקת-מוכנות לב׳ (שאלת מייקל "האם מוכנים למחר") — מוכנים, בתנאי שריסטארט-השרת של 15:30 רץ**
+
+```raw
+regression (tests/v9/regression, --continue-on-collection-errors): HEAD 261 failed / 2687 passed · baseline abe28188 (git archive, same .env) 263 failed / 2673 passed
+  NEW failures in HEAD vs baseline: 0   (the 261 are pre-existing; test_replay_tpo_causality collection error pre-existing)
+account (sierra_state): cash 482.54 · available 482.54 · margin_req 0 · daily_net_loss_limit −289.52 · trading_disabled 0 · is_sim 0 · position 0 · working 0
+margin for 1 contract: MES_MARGIN_PER_CONTRACT 386.20 + MARGIN_BUFFER_USD 50 ⇒ usable 432.54 ≥ 386.20 ⇒ OK, headroom 46.34$
+ruled size (.env loaded) = 1 · flag_guard rc=0 · backend health 200 (2.5ms, listener since Fri 19:15:31) · bridge 81646 (footprint) · load 5.17 · swap 9.7G
+gate mems26-preopen-gate: enabled, prompt updated (size 1)
+```
+⚠️ **לשער של ב׳:** (1) ריסטארט-שרת חובה — גם כי מצב-היום עדיין של שישי (ריצה 38); (2) מרווח-מרג'ין 46$: הפסד > 46$ בעסקה הראשונה ⇒ הכניסה הבאה עלולה להידחות בברוקר — דיווח, לא שינוי; (3) לא להרים את הברידג'.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-27 19:34-19:48 IL] — **ריצה 38 · חובה-1+3 · יום א׳, שוק סגור** · 🔎 **[[T-501]] נפתח: הברידג' כותב 1.1–1.2M אזהרות-DNS ביום · תיקון-ניסוח ל-TS-OFFSET-GATE של ריצה 37**
 
 ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד).
