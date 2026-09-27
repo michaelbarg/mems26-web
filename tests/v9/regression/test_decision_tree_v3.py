@@ -242,6 +242,15 @@ class TestGatewayHook(unittest.TestCase):
         self.assertIn("and _dp_phase_now != \"D\" and not _vc_branch and not _tree_used", self.src)
         self.assertIn("[TREE-V3 DIFF]", self.src)
 
+    def test_leaf_exit_policy_is_wired_and_inert_in_the_seed(self):
+        """T-494: a TAKE leaf may declare `exit: {t1_r, t2_r}` (ladder from the producer's stop, marked final so
+        the structural-target chain cannot cut T1 to an old shelf). Live behaviour changes only when the tree
+        file declares it — the seed declares it nowhere."""
+        self.assertIn('_tree_leaf.get("exit")', self.src)
+        self.assertIn('setup.setdefault("metadata", {})["target_chain_final"] = True', self.src)
+        dt3.invalidate_cache()
+        self.assertEqual([lf.get("id") for lf in dt3.leaves(dt3.load_tree()) if lf.get("exit")], [])
+
     def test_flag_default_off(self):
         os.environ.pop("DECISION_TREE_V3", None)
         self.assertFalse(dt3.enabled())

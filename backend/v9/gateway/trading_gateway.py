@@ -1500,6 +1500,29 @@ class TradingGateway:
                                 result["tree_v3"]["shadow_only"] = True
                             else:
                                 _dp_location_checked = (_tree_leaf.get("id") == "take_location")
+                                # T-494 leaf exit policy (plan §6 stage 3): a TAKE leaf may declare
+                                # `exit: {t1_r, t2_r}` — the ladder is set from the producer's own stop and
+                                # marked final (target_chain_final), so the structural-target chain does not
+                                # cut T1 to an old shelf the day already left (25.09 20:05: T1 cut to 2.75 pts
+                                # vs an 8.5-pt stop ⇒ R:R 0.32 ⇒ rr_entry_gate; 5 of 7 such refusals reached
+                                # 1.5R). Inert unless the leaf declares it (no seed leaf does).
+                                try:
+                                    _t3_ex = _tree_leaf.get("exit") if isinstance(_tree_leaf.get("exit"), dict) else None
+                                    if _t3_ex:
+                                        _x_e = float(setup.get("entry_price") or 0); _x_s = float(setup.get("stop") or 0)
+                                        _x_r = abs(_x_e - _x_s)
+                                        if _x_e > 0 and _x_s > 0 and _x_r >= 1.0:
+                                            _x_sg = 1.0 if (setup.get("direction") or "").upper() == "LONG" else -1.0
+                                            _x_t1r = float(_t3_ex.get("t1_r") or 1.5)
+                                            _x_t2r = float(_t3_ex.get("t2_r") or max(2.5, _x_t1r + 0.5))
+                                            setup["t1"] = round(_x_e + _x_sg * _x_t1r * _x_r, 2)
+                                            setup["t2"] = round(_x_e + _x_sg * _x_t2r * _x_r, 2)
+                                            setup["t3"] = None
+                                            setup.setdefault("metadata", {})["target_chain_final"] = True
+                                            result["tree_v3"]["exit"] = {"t1_r": _x_t1r, "t2_r": _x_t2r,
+                                                                         "t1": setup["t1"], "t2": setup["t2"]}
+                                except Exception as _x_err:
+                                    logger.warning("[Gateway] TREE_V3 leaf exit policy failed (producer ladder kept): %s", _x_err)
                             logger.info("[Gateway] TREE_V3 %s %s %s → %s [%s]", _dp_classification,
                                         setup.get("direction"), setup.get("entry_price"), _t3_action, _t3_path_s)
                 except Exception as _t3_err:
