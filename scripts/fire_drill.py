@@ -158,24 +158,44 @@ def check_logging_layer():
     """
     from backend.logging_setup import BOOT_PROBE_PREFIX, DEFAULT_LOG_FILE, find_boot_probe
 
-    log_path = os.getenv("MEMS26_LOG_FILE", DEFAULT_LOG_FILE)
+    # T-505 (28.09, cowork-dev) · **איזה** קובץ-לוג — לא רק איזה PID.
+    # `DEFAULT_LOG_FILE=/tmp/backend.err.log` נכון ל-LaunchAgent, אבל
+    # `scripts/start_all.sh:76` מריץ את הבקאנד ב-screen עם `2>&1 | tee
+    # /tmp/backend.log` — ואז שורת-הבוט של התהליך שרץ יושבת ב-`backend.log`
+    # ו-`backend.err.log` מכיל רק את שורות-הבוט של תהליכי-הבדיקה החולפים
+    # (fire_drill/pytest מייבאים את האפליקציה). נמדד 28.09 15:41: הבדיקה
+    # החזירה "newest boot probe is pid=15052 but the running backend is
+    # pid=14900" ⇒ NO-GO, בזמן ש-`backend.log` הכיל
+    # `pid=14904 … level=INFO` + 126 שורות INFO אחריה — כלומר שכבת-ה-INFO
+    # הייתה חיה וה-NO-GO היה של **נתיב-המדידה**, לא של המערכת.
+    # false-NO-GO מסוכן כמו false-GO: הוא עוצר יום-מסחר כשר, או מאמן סוכנים
+    # להתעלם משער אדום. לכן סורקים את כל הנרות שהאפליקציה יכולה לכתוב אליהם
+    # ומקבלים את הראשון שיש בו את ה-PID שרץ. קריאה-בלבד, אפס שינוי-התנהגות.
+    _env_log = os.getenv("MEMS26_LOG_FILE")
+    log_candidates = ([_env_log] if _env_log else
+                      [DEFAULT_LOG_FILE, "/tmp/backend.log"])
     pids = _backend_pids()
     if not pids:
         check("T-61 שכבת-INFO בלוג", False,
               "לא נמצא תהליך backend רץ (pgrep 'uvicorn backend.main:app')")
         return
 
-    best = None
-    for pid in pids:
-        res = find_boot_probe(log_path, pid=pid)
-        if res.get("pid_match"):
-            best = res
+    best, log_path = None, log_candidates[0]
+    for cand in log_candidates:
+        for pid in pids:
+            res = find_boot_probe(cand, pid=pid)
+            if res.get("pid_match"):
+                best, log_path = res, cand
+                break
+            if best is None or (res.get("found") and not best.get("found")):
+                best, log_path = res, cand
+        if best is not None and best.get("pid_match"):
             break
-        best = best or res
 
     if not best.get("found"):
         check("T-61 שכבת-INFO בלוג", False,
-              best.get("reason") or f"אין שורת '{BOOT_PROBE_PREFIX}' ב-{log_path}")
+              best.get("reason")
+              or f"אין שורת '{BOOT_PROBE_PREFIX}' ב-{' / '.join(log_candidates)}")
         return
     if not best.get("pid_match"):
         check("T-61 שכבת-INFO בלוג", False, best.get("reason") or "PID לא תואם")

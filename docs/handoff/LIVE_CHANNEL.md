@@ -1,3 +1,167 @@
+## 🔴🟢 [cowork-daily · 2026-09-28 15:56-16:02 IL] — **תיקון-עצמי + [[T-435]] חזר, ונסגר: הריסטארט שלי יצר שני סופרוויזרים על פורט אחד** · שער נשאר 🟢 **GO**, בעלים אחד = launchd `PID 16241`
+
+**זה תיקון לרשומה שמעליי, שנכתבה לפני שמדדתי את זה — הממצא נמצא אחרי שכבר כתבתי ("כלל 2" בצורתו הכי לא-נוחה).** שתי טעויות בשורש אחד:
+
+### ① ייחוס שגוי ב-[[T-505]] — ה-PID-ים החולפים **אינם** `fire_drill`/`pytest`
+
+כתבתי למעלה ש-`pid=14970` ו-`pid=15052` ב-`backend.err.log` הם "תהליכי-בדיקה חולפים שמייבאים את האפליקציה". **זה לא נכון.** הם **הספאונים-הכושלים של ה-LaunchAgent `com.mems26.backend`**, שנוצרים כל ~30 שנ' ומתים מיד:
+
+```
+$ launchctl print gui/501/com.mems26.backend | grep -E "state|runs|last exit"
+	state = spawn scheduled
+	runs = 33
+	last exit code = 1
+$ grep -cE "Errno 48" /tmp/backend.err.log
+31
+$ grep -E "Errno 48" /tmp/backend.err.log | tail -1
+ERROR:    [Errno 48] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
+$ grep "\[boot\] logging OK" /tmp/backend.err.log | tail -3     # ← קצב של ~2/דקה
+2026-09-28 15:55:03 … pid=16003 …
+2026-09-28 15:55:33 … pid=16025 …
+2026-09-28 15:56:04 … pid=16072 …
+```
+
+⇒ **התיקון של T-505 עומד** (נתיב-הלוג היה אכן שגוי, ה-`GO` אמיתי, הרגרסיה עוברת) — אבל **ההסבר למה שורות-בוט זרות יושבות ב-`backend.err.log` היה שגוי**, והשורש האמיתי חמור יותר.
+
+### ② [[T-435]] חזר — ואני הפעלתי אותו
+
+`ROADMAP_TO_LIVE.html` מ-22.09 אומר במפורש: **`scripts/restart_all.sh` פסול לשער-הבוקר** עד שיתוקן, והמסלול הנכון הוא `launchctl kickstart -k gui/$UID/com.mems26.backend` — **בעלים אחד**. הרצתי `restart_all.sh` ב-15:40 ⇒ uvicorn תחת `screen` תפס את :8000, וה-LaunchAgent (`KeepAlive{SuccessfulExit:false}`) ניסה לעלות בלי סוף, נכשל ב-`Errno 48`, ויצא `1` ⇒ **לולאה**. הפעם היא **לא** הפילה את המערכת (מאזין אחד יציב, `[boot] logging OK` אחד ב-`backend.log`, `fire_drill GO`) — ולכן היא הייתה **שקטה**, וזה מה שהופך אותה למסוכנת: היא נכנסת ל-RTH.
+
+⚠️ **למה זה לא "רק רעש-לוג":** כל ספאון-כושל מריץ את מחזור-החיים המלא לפני שהוא מת — ב-15:41:21 נמדדו `[FillPoller] started` ⇒ `[Shutdown] WAL checkpoint starting` ⇒ `complete — clean exit` ⇒ `[FillPoller] stopped`. כלומר תהליך-זומבי פותח את פולר-הפילים ומבצע `checkpoint` על ה-DB, ~2 פעמים בדקה, לאורך יום-מסחר. **בקרה-שלילית — נזק בפועל: אפס:** `grep -cE "boot hydration|shadow session close" ⇒ 0` ⇒ אף ספאון לא סגר עסקת-צל ולא נגע בעסקאות.
+
+✅ **תוקן לפי מרשם-T-435, בפוזיציה-0, ב-15:56-15:58 (לפני 16:10):** שער-קדם — `position_qty 0 · working_orders 0` (assert בקוד, לא בעין) ⇒ `kill -TERM 14904` (ה-uvicorn של `screen` שרד את `screen -X quit` כיתום) ⇒ launchd קשר לבד. **הבעלים עכשיו אחד:**
+
+```
+$ launchctl print gui/501/com.mems26.backend | grep -E "state|runs|pid|last exit"
+	state = running          pid = 16241          runs = 38          last exit code = 1   ← היסטורי
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN -t
+16241
+$ A=$(grep -cE "Errno 48" …); sleep 40; B=$(grep -cE "Errno 48" …)
+Errno48 before=34 after40s=34 (delta 0)          ← הלולאה נעצרה
+$ grep "\[boot\] logging OK" /tmp/backend.err.log | tail -1
+2026-09-28 15:58:36 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=16241 commit=aae6954e stream=stderr
+$ python3 scripts/fire_drill.py                  # בלי override, נתיב מקורי
+  ✓ T-61 שכבת-INFO בלוג (backend.err.log) — … pid=16241 … · 127 שורות INFO אחריה
+  ✓ feed טרי age=2343ms   ✓ last bar 2026-09-28 16:00:00+03:00 · age 0 min · market OPEN
+  ✓ live_slot פנוי   ✓ live_enabled == [2,4]
+  🟢 GO — כל שרשרת ההחלטה כשרה לירי
+$ ruled_contracts() = 1 · contracts_cfg = 1 · position_qty 0 · working_orders 0 · is_sim 0
+$ frontend HTTP=200 · screens: mems26_bridge (14887) · mems26_frontend (14923)
+```
+
+🔵 **נגזרת מספרת על T-505:** עכשיו שה-backend בבעלות launchd, שורת-הבוט חזרה ל-`backend.err.log` — ולכן **`fire_drill` היה עובר גם בלי התיקון**. התיקון נשאר נכון וצריך (הוא מכסה **גם** את פריסת-`start_all.sh`, ובלעדיו כל ריסטארט ידני יוליד false-NO-GO), אבל הוא **לא** מה שהחזיר את השער לירוק הפעם — **שינוי-הבעלות הוא**. אני רושם את ההבחנה כדי שאף אחד לא יסיק שהתיקון "פתר" את T-435.
+
+⛔ **הבהרה על הטלפון:** הודעת-השער (`12:47:28Z`) נשלחה עם `PID 14904` — שאינו קיים עוד; הבעלים עכשיו `16241`. **לא נשלחה הודעה שנייה**: הכרעת-השער לא השתנתה (GO ⇒ GO), ושתי הודעות-שער הן הצפה מוכחת ([[T-369]], פסיקה "שתי הודעות-שער = הצפה"). ה-PID המעודכן יופיע בהודעה הבאה שתהיה ממילא (מקרה ב/ג), ואם לא תהיה — הוא כאן. אפס נגיעה בדגלים/`.env`/דגלי-גודל/פוזיציות/פקודות.
+
+## 🟢 [cowork-daily · 2026-09-28 15:34-16:02 IL] — **ריצה 48 · חובה-1 + חובה-2 (היומית המלאה + שער-היום)** · 🟢 **GO** · 🔑 **הממצא: `fire_drill` יצא NO-GO על נתיב-הלוג, לא על המערכת — false-NO-GO, ו-[[T-505]] נולד ונסגר**
+
+**בעלות-הריסטארט: שלי.** ריצה 47 קבעה זאת מראש (`nextRunAt 2026-09-28T12:33:56Z`), ואומת כאן: מאזין-הכניסה `PID 649 · lstart Mon Sep 28 10:58:35` ⇒ **10:58 < 12:00** ⇒ שער-הבעלות לא נגוע, ואין רשומת-ריסטארט של cowork-dev מהיום. `15:34` ∈ `15:30-16:10` ⇒ חובה-2 מלאה. `git pull --ff-only ⇒ Already up to date` (HEAD בכניסה `aae6954e`).
+
+☎️ **חובה-1: אפס ממתינות ⇒ שקט מוחלט בטלפון עד שער-היום.** `GET /chat ⇒ 200 · items=30`, אחרון-הפיד `2026-09-27T13:17:56Z` = **סוכן**; אחרונת-מייקל `2026-09-25T12:07:30Z` נענתה עניינית `12:17:53Z` ⇒ אין (א)/(ב)/(ג). זנב `PHONE_THREAD.jsonl` **זהה לרנדר**. `TRADE_TAGS.jsonl` אינו קיים ⇒ אפס תיוגים. **הודעה אחת נשלחה — מקרה (ד) בלבד**, אומתה ב-`GET /chat` ולא מה-`ok`: `last sender=cowork-dev · ts 2026-09-28T12:47:28Z · len(text)=348` ✅ ≤500. ⚠️ **דיוק-מדידה למי שיבוא אחרי:** `${#MSG}` ב-bash מחזיר **בייטים**, לא תווים — עברית היא 2 בייט/תו, ולכן הודעה שנמדדה `529` היא בפועל `348` תווים. למדוד את התקרה מ-`len()` של פייתון או מ-`GET /chat`, לא מ-bash.
+
+---
+
+### 🔑 הממצא — `fire_drill` הכריז NO-GO על המערכת בזמן שהמערכת הייתה כשרה ([[T-505]])
+
+זהו **false-NO-GO**, והוא מסוכן כמו false-GO: הוא עוצר יום-מסחר כשר, או — גרוע מכך — מאמן סוכנים לעבור ליד שער אדום. השער היה אדום על **סעיף אחד**:
+
+```
+✗ T-61 שכבת-INFO בלוג — newest boot probe is pid=15052 but the running backend is pid=14900
+🔴 NO-GO — 1 כשלים
+```
+
+**השורש, נמדד ולא מוסק** (כלל "Diagnose first"): `fire_drill.check_logging_layer()` קורא `MEMS26_LOG_FILE` ובברירת-מחדל את `DEFAULT_LOG_FILE = "/tmp/backend.err.log"` (`backend/logging_setup.py:71`) — נכון ל-**LaunchAgent**. אבל `scripts/start_all.sh:76` מרים את הבקאנד ב-`screen` עם `python3 -m uvicorn … 2>&1 | tee /tmp/backend.log` ⇒ **הלוג של התהליך שרץ יושב ב-`backend.log`**, ו-`backend.err.log` מכיל רק את שורות-הבוט של תהליכי-הבדיקה החולפים (fire_drill/pytest מייבאים את האפליקציה ומתים מיד). הפלט הגולמי של שתי השורות באותו רגע:
+
+```
+$ grep "\[boot\] logging OK" /tmp/backend.err.log | tail -3
+2026-09-28 10:59:24 … pid=649   commit=94fb2e99      ← המאזין הקודם
+2026-09-28 15:40:50 … pid=14970 commit=aae6954e      ← תהליך חולף
+2026-09-28 15:41:20 … pid=15052 commit=aae6954e      ← תהליך חולף (מת 15:41:21)
+
+$ grep "\[boot\] logging OK" /tmp/backend.log | tail -1
+2026-09-28 15:40:27 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=14904 commit=aae6954e stream=stderr
+
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN -t
+14904
+```
+
+⇒ שורת-הבוט של **המאזין עצמו** (14904) קיימת, עם חותמת + `[INFO]`, ואחריה **162 שורות INFO** — שכבת-ה-INFO חיה. זו מלכודת §3.1 **הפוכה**: הרישום אומר "לוג-האפליקציה הוא `backend.err.log`", וזה נכון רק כשה-LaunchAgent הרים את הסטאק; `start_all.sh` שולח אותו ל-`backend.log`.
+
+**בקרה-שלילית דו-כיוונית** (שתי הריצות, אותו רגע, אותו תהליך):
+
+```
+$ python3 scripts/fire_drill.py                              → 🔴 NO-GO (T-61)
+$ MEMS26_LOG_FILE=/tmp/backend.log python3 scripts/fire_drill.py
+  ✓ T-61 שכבת-INFO בלוג (backend.log) — … pid=14904 … · 126 שורות INFO אחריה
+  🟢 GO — כל שרשרת ההחלטה כשרה לירי
+```
+
+✅ **תוקן** (`scripts/fire_drill.py`, קריאה-בלבד, אפס שינוי-התנהגות-מסחר): הבדיקה סורקת עכשיו את **שני** הנרות (`backend.err.log` ואז `backend.log`) ומקבלת את הראשון שבו נמצא ה-PID שרץ; `MEMS26_LOG_FILE` נשאר עליון ו**מחליף** את הרשימה. רגרסיה: `tests/v9/regression/test_fire_drill_log_path_t505.py` ⇒ `4 passed` (כולל בקרה-שלילית שפריסת-LaunchAgent לא נשברה). אימות סופי **בלי שום override**:
+
+```
+$ python3 scripts/fire_drill.py
+  ✓ T-61 שכבת-INFO בלוג (backend.log) — … pid=14904 … · 162 שורות INFO אחריה
+  ✓ T-61 רמת-INFO זורמת בפועל   ✓ feed טרי age=306ms
+  ✓ נתוני-ברים חיים — last bar 2026-09-28 15:45:00+03:00 · age 1 min · market OPEN
+  ✓ live_slot פנוי   ✓ live_enabled == [2,4]
+  🟢 GO — כל שרשרת ההחלטה כשרה לירי
+```
+
+⚠️ **ומה זה אומר על הרישום:** כל פקודות-הלוג ב-`COWORK_DAILY_READ.md §2ד` גורפות `backend.err.log` — אחרי ריסטארט דרך `start_all.sh` הן **עיוורות** (`today=0` שאינו ממצא, §3.9). זה לא תיאורטי: ראו "צל-S1DayDir / EntryGuard" למטה.
+
+---
+
+### 📊 חובה-2א · סיכום-אתמול (יום-המסחר האחרון = **שישי 2026-09-25**, נגזר מהנתונים ולא מ-`CURRENT_DATE`, §3.3)
+
+`SELECT max((ts AT TIME ZONE 'America/New_York')::date) FROM v9_bars_5min_woodies WHERE … 09:30..16:00 ⇒ 2026-09-25`
+
+**P&L — 107 עסקאות:**
+
+| mode | n | WIN | LOSS | לא-נפתר | P&L מערכת | P&L ברוקר |
+|---|---|---|---|---|---|---|
+| **live** | **1** | 1 | 0 | 0 | **+$70.00** | **+$72.50** |
+| shadow | 106 | 56 | 47 | 3 | +$211.00 | — |
+
+🟢 **הלייב היחיד `#2408`** — `DOUBLE_BOTTOM_EE_LONG · LONG · 12:25 ET · T1_HIT · WIN`, מערכת `+70` מול ברוקר `+72.50` (פער `+$2.50` = החלקה-לטובה; הברוקר הוא האמת, `pnl_sierra` מאוכלס). זו העסקה החיה הראשונה של העץ. **צל 56/103 = 54.4% WIN** על ההכרעות שנפתרו.
+
+**הליגר (`gateway_decisions.jsonl`, 225 שורות, `json-bad 0`):** `DETECTED 60` · `EMIT_DECISION 59` · `GATE_DECISION 97` · `ROUTED 9` · **`RESOLVED 0`** ⚠️ — `RESOLVED` אינו נכתב כלל על-ידי הליגר (אומת: אין `RESOLVED` בקוד-הליגר; במסד הוא קיים רק כ-`STALE_UNRESOLVED` ב-`bar_level_detector.py:611` / `manager.py:241`). לכן הציר הרביעי של הבקשה היומית הוא **לא-קיים ולא "אפס"** — לא המצאתי מספר.
+
+**חוסמים (97 `GATE_DECISION`):** `tree:stand_down 39` · `tree:location 29` · `entry_location_quality 10` · `rr_entry_gate 8` · `tree:bias 6` · `tree:kind 4` · `entry_not_confirmed 1`. ⇒ **העץ עצמו הוא 78/97 = 80% מהחסימות**, ו-`tree:location` לבדו 29 — תואם את דוח-שישי ("ארבעה מהמהלכים המפוספסים נחסמו ע״י אותו שער-מיקום").
+
+🔴 **ציון-המודעות (T-159) · 3/4 צירים ≥80%:** יום `65/78 = 83.3%` ✅ · רמות `78/78 = 100%` ✅ · **מועמדים `12/16 = 75%` 🔴** · החלטות `65/78 = 83.3%` ✅. ארבע נגיעות-VA בלי `DETECTED`: `09:30 (VAH+VAL)` · `11:00 (VAH)` · `11:05 (VAH)` · `15:55 (VAH)` — שתיים מהארבע בבר-הפתיחה עצמו.
+
+🟡 **צל-S1DayDir + EntryGuard — חלקית לא-ניתן-לקבוע, וזו מדידה ולא עצלנות.** שני הלוגים מכילים **רק** `2026-09-28` (`grep -oE "^2026-09-[0-9]{2}" | sort | uniq -c ⇒ 10854 × 09-28` ב-`backend.err.log`, `1000 × 09-28` ב-`backend.log`) — `tee` בלי `-a` **מקצר** את `backend.log` בכל ריסטארט, ולכן לוג-שישי אינו קיים. לפי §3.9 `today=0` כאן הוא **עיוורון, לא שקט**: אין מספרי-S1DayDir ל-09-25 ואני לא ממציא אותם. **EntryGuard כן נמדד — מהליגר, שכן שרד:** מתוך 9 `ROUTED`, `live_blocked_by=pre_send_entry_guard` **1** (`#2373 DALTON_EDGE_LONG`, `"1 working order(s) with foreign position -1 — shared account brackets"` = הברקט הידני של מייקל, order 11334) ו-`margin_zero_size` **1** (`#2405`, `"effective contracts=0"`).
+
+🆕 **[[T-506]] נולד — 6 מתוך 9 `ROUTED` נעלמים בשקט:** `trade_id` שלהן הוא הבוליאני `true` ולא מזהה, עם `outcome="shadow_only"` ו-`live_blocked_by=null` **ו-`live_block_reason=null`** — בזמן ש-`tree_v3.leaf="TAKE"`, `mode="on"`. כלומר העץ אמר TAKE, המועמד נותב, לייב לא יצא, ו**שום סיבה לא נרשמה**. זו בדיוק מחלקת-הכשל שהליגר קיים כדי למנוע. שורש **לא** נקבע (אין בדיקת-קוד של אתר-הכתיבה) ⇒ נרשם כפתוח עם צעד-בא, לא כ"מוסבר". דוגמה גולמית: `{"ts":"2026-09-25T14:35:06+00:00","pattern":"CEILING_FLIP_TOUCH2","direction":"LONG","entry":7768.0,"outcome":"shadow_only","trade_id":true,"live_blocked_by":null,"tree_v3":{"leaf":"TAKE","mode":"on"}}`.
+
+**דוחות-cc / חריגים:** `git log --since=2026-09-25` — אפס קומיטים של `cc-macbook`/`cc-imac`; ההיסטוריה כולה `cowork-dev`. 3 עסקאות-צל של שישי נסגרו `STALE_UNRESOLVED` (`#2406 12:25` · `#2469`+`#2470 15:55`) — כולן בבר-הסגירה, סגירת-סשן תקינה.
+
+---
+
+### 🚦 חובה-2ב · שער-היום — 🟢 **GO**
+
+| בדיקה | ערך | מקור |
+|---|---|---|
+| ריסטארט (פוזיציה-0) | **15:40:25**, `PID 14904`, קומיט `aae6954e` | `restart_all.sh` ⇒ `post_restart_verify 🟢 GREEN` |
+| **גודל — פסוק** | **1** ×3 מקורות מסכימים | `ruled_contracts()=1` (עם `.env`, [[T-489]]) · `effective_contracts=1` (fire_drill C) · `contracts_cfg=1` (תהליך חי) |
+| **[[T-430]] פיד-חי** | `max(ts) 2026-09-28 15:45:00+03` · ET-date **היום** · גיל **1 דק'** | `v9_bars_5min_woodies` + fire_drill שלב-D |
+| פוזיציה | `position_qty 0` · `working_orders 0` · לייב לא-סופיות **0** | `sierra_state` + `v9_trades` |
+| `flag_guard` | **PASS — all 270** + LIVENESS | `scripts/flag_guard.py` |
+| guards / task_log | `170 passed, 1 skipped` · `482 items, 0.0d` | fire_drill G |
+| **ack פוזיציה-ידנית** | `date 2026-09-28` = **ET-היום** ⇒ **אומת, לא חודש** | `config/manual_position_ack.json` |
+| חדשות | **אפס אדום היום** (2 כתום + 2 צהוב = תצוגה) | `news_calendar.yaml` (ריצה 44) |
+| סלוט / מערכות | `slot=None` · `live_enabled=[2,4]` · `is_sim=0` | fire_drill D |
+
+**קדם-ריסטארט:** `close_stale_shadow.py` dry-run ⇒ `no stale shadow trades — nothing to do` (אפס שורות-צל תקועות; לא הורץ `--apply`, ולא היה צורך).
+
+⚠️ **`machine_health` — WARN בלבד, ל-LIVE_CHANNEL ולא לטלפון:** `unused RAM 105M < 400M — the Mac is compressing/swapping` · swap `486.5M/2048M`. הסטאק עצמו רזה (backend 104MB/4.4% · bridge 20MB · postgres 742MB · relay 29MB); הצרכנים הם **לא-מסחריים**: `cowork-vm 1822MB` · `claude-app 1425MB` · `claude-agents 479MB` · `adobe 439MB` · `spotlight 436MB`. בנוסף `mediaanalysisd 110% CPU` ו-`Sierra Menu Helper 149% CPU`. **לא נגעתי בכלום** — דיווח.
+
+🔵 **[[T-34]] דיווח-בלבד, אינו (ג):** `acct_available_funds 482.54 < 1,595` — אבל הסף `1,595$` הוא פסיקת-**4-חוזים** והיום חוזה 1, ו-`under_margin 0 · trading_disabled 0 · loss_limit_reached 0` ⇒ **אינו חוסם מסחר**. ✅ **אישוש הממצא של ריצה 47 מהתהליך החי:** `cap_contracts(1) ⇒ (1, "margin ok ($432.54 covers 1×$386.20)")` ⇒ מרווח **`$46.34`** ≈ 9.3 נק' MES. `daily_total_qty_filled 10` + `daily_pnl +52.50` מול `v9_trades` ET-היום `0 rows` ⇒ §3.5: עשרת החוזים **ידניים** (מייקל/אתי). המספר הזה נכנס להודעת-השער — זו התשובה הכמותית ל"יש מרג'ין".
+
+☎️ **הודעת-טלפון אחת (מקרה ד), 348 תווים:** GO · ריסטארט 15:40:25 · PID 14904 · קומיט `aae6954e` · פיד/חוזה/סלוט/פוזיציה/flag_guard · מרווח-המימון `$46` · ה-NO-GO-של-נתיב-הלוג · ושתי הבקשות הפתוחות מ-27.09 (כן-לחבילה · מאשר-ברידג׳) — **שאלה אחת, לא נשאלת שוב**.
+
+⛔ **אפס הדלקות מעבר לפסוק** · אפס נגיעה ב-`.env`/דגלי-גודל/`RISK_*`/פוזיציות/פקודות · אפס `op=EXIT` · הריסטארט היחיד הוא קדם-הפתיחה ב-15:40 (לפני 16:10) · **חבילת-27.09 ושלב-D לא הודלקו** — מייקל לא ענה, ופסיקה חסרה = כבוי.
+
 ## 🟢 [cowork-dev · 2026-09-28 15:04-15:22 IL] — **ריצה 47 · חובה-1** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: בגודל-הפסוק (חוזה 1) אף נתיב קדם-שליחה אינו חוסם על כסף — ומרווח-המימון הוא `$46.34`**
 
 **לא שער** ([[T-369]]): `15:04` ∉ `15:30-16:10` ⇒ מחוץ לכל חלון פרט לחובה-1. **שער-היום שייך לריצה שתיפול ב-15:33:56** (`list_scheduled_tasks ⇒ nextRunAt 2026-09-28T12:33:56Z`); לא הרמתי ריסטארט ולא שלחתי GO/NO-GO. מאזין `PID 649 · lstart Mon Sep 28 10:58:35` = אותו מאזין של ריצות 39-46, עלייה **10:58 < 12:00** ⇒ שער-הבעלות לא נגוע.
