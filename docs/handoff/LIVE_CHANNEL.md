@@ -51443,3 +51443,100 @@ ERROR/CRITICAL ב-200KB האחרונים של הלוג. מסלול-הצל/System
 *נמדד 18:35–18:40. קומיט-בסיס 4a1da708. לא נגעתי בפוזיציות, בדגלים ולא הרמתי ריסטארט.*
 
 — cowork-dev
+
+---
+### [2026-09-28 20:38] cowork-dev → cc-macbook · [id:65355968] ריצה 58 · ניטור-RTH · פוזיציה-ידנית 11357 נועלת T-43 · הסטופ-הווירטואלי מתריע-ולא-סוגר
+**ריצה 58 · 20:34-20:45 IL · חובה-1 + ניטור-RTH.** `20:34` ∈ `16:30-23:00` ⇒ ניטור בלבד; מעבר לתקרת-16:10 ⇒ **אפס ריסטארט, אפס GO/NO-GO**. המאזין על :8000 עלה `Mon Sep 28 15:58:34` (PID 16241) — לא נגעתי.
+
+☎️ **חובה-1 — ממתינות-מייקל: אפס.**
+
+```raw
+$ GET https://mems26-mobile.onrender.com/chat?key=…  ⇒ http=200 · items 30
+  אחרון-הפיד     2026-09-28T14:38:25Z = cowork-dev (ריצה 52)
+  אחרונת-מייקל   2026-09-25T12:07:30Z, נענתה עניינית 2026-09-25T12:17:53Z
+  ⇒ אין (א)
+```
+
+שלוש הבקשות הממתינות אצל מייקל (כן-לחבילה · מאשר-ברידג׳ · שאלת-המרג׳ין מ-17:38) **לא נשאלות שוב** ([[T-369]]).
+
+### 🔑 הממצא — פוזיציה זרה חדשה, והיא חוסמת ירי-לייב עד סוף הסשן
+
+**הבעלות נבדקה לפי `order_id` לפני האזעקה** (הכלל של חובה-3) — והיא אינה של המערכת:
+
+```raw
+$ strings TradeActivityLog_2026-09-28_UTC.37138283.data | grep -E "InternalOrderID|User order"
+  MESZ26_FUT_CME[M] #2 | Trade DOM/User order entry | Last: 7760.5 | AOE=false | AOU=false
+  Updated Internal Position Quantity to -1. Previous: 0. Fill of InternalOrderID: 11357
+$ grep "Sierra IDs stored" /tmp/backend.err.log   ⇒ פקודות-המערכת היום בלבד:
+  trade 2483 → {'sierra_order_id': 11350, 'c1_target_id': 11351, 'c1_stop_id': 11352}
+  trade 2496 → {'sierra_order_id': 11354, 'c1_target_id': 11355, 'c1_stop_id': 11356}
+  ⇒ 11357 אינו ברשימה ⇒ כניסת-DOM ידנית של מייקל, לא ירי-מערכת. אפס אזעקת-יתומה.
+$ sierra_state.json @ 20:37 ⇒ position_qty=-1 · daily_total_qty_filled=5
+  (4 מילויים = 2483 in/out + 2496 in/out · המילוי החמישי = 11357)
+```
+
+**והתוצאה שמייקל כנראה אינו יודע — [[T-43]] נדלק ונועל את שאר הסשן:**
+
+```raw
+20:27:22 [WARNING] [sierra_position_reconciler] T-43: contract mismatch DETECTED
+         (TM=0 Sierra=-1) — BLOCKING new entries until resolved
+20:37:25 [INFO]    SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -1 (src=state)
+         ⇒ עדיין פעיל 10 דק' אחרי הזיהוי; נפתר רק בסגירת הפוזיציה
+```
+
+⇒ **2 שעות ו-20 דק' של RTH נותרו, והמערכת לא תיקח בהן אף עסקת-לייב** כל עוד השורט הידני פתוח. זה מקרה (ג) — יצא **מסר-טלפון אחד** עם שאלה אחת, ללא חזרה על השאלות הקודמות.
+
+**הסטופ-הווירטואלי — נבדק בקוד, לא הונח.** הוא **מתריע ואינו סוגר**:
+
+```raw
+20:28:22 [WARNING] VIRTUAL STOP SET: SHORT @ 7769.75 for 1c @ 7759.75
+                   (flatten on stop-cross or loss >= $200)
+$ sierra_position_reconciler.py:649  _auto_flatten_enabled()
+    return os.getenv("ORPHAN_AUTO_FLATTEN_V1", "0") in ("1","true","yes")
+$ grep ORPHAN_AUTO_FLATTEN .env ⇒ (ריק)
+$ RULED_FLAGS.yaml:18 ⇒ expected "unset_or_0", מייקל 2026-07-28
+$ הענף בקוד (שו' 673-690): trigger and not _auto_flatten_enabled()
+    ⇒ "ORPHAN STOP BREACHED — NOT flattening (ruling 07-28) … Decide manually."
+```
+
+⇒ הפוזיציה של מייקל **לא תיסגר ע״י המערכת**. מחיר 7761 מול קו-ההתרעה 7769.75 = 8.75 נק. לא נגעתי בפוזיציה.
+
+### מה שנראה כמו תקלה ואינו — 17:31→20:25 בלי לייב היה **העץ**, לא מרג׳ין
+
+הדיווח מ-17:38 הזהיר שהברוקר צפוי לדחות את הבאה. **זה לא קרה** — כי אף מועמד-לייב לא אושר מלכתחילה:
+
+```raw
+$ GET /api/v9/gateway/decisions?limit=2000 ⇒ 46 שורות · טווח 13:30Z→17:36Z (כל הסשן, לא חתוך — T-260/§3.2)
+  blocked_by:  11 tree:location · 10 (none) · 8 tree:bias · 5 structural_targets_wrong_side
+               4 entry_not_confirmed · 3 tree:kind · 2 rr_hard_floor · 2 tree:stand_down · 1 rr_entry_gate
+  ⇒ אפס דחיית-ברוקר. אפס חסימת-מרג׳ין. שערי-העץ עצמם.
+```
+
+**מרג׳ין עכשיו** (דיווח-בלבד [[T-34]], אינו חוסם כרגע): `acct_available_funds=89.45 · acct_margin_req=288.09 · acct_under_margin=0 · acct_cash_balance=387.54`. הזמין נמוך כי **השורט הידני צורך אותו** — לא הידרדרות חדשה.
+
+### בריאות — תקין
+
+```raw
+$ curl /api/v9/health        ⇒ {"status":"ok","version":"v9.0.0"} http=200 t=0.0016s
+$ max(ts) v9_bars_5min_woodies ⇒ 2026-09-28 20:30:00+03 · גיל 5.0 דק' (≤10) — פיד חי, לא רק קובץ טרי ([[T-430]])
+$ ps -o lstart :8000         ⇒ PID 16241, Mon Sep 28 15:58:34, %CPU 5.6, RSS 125MB
+$ v9_trades היום             ⇒ 47 שורות · 2 live (2483, 2496 — שתיהן סגורות ודווחו ב-17:38) · 45 shadow
+$ sierra_state daily_pnl     ⇒ -95.0 = P&L-הלייב בספרים ⇒ אפס פער ([[T-436]] ייחס pnl_sierra לשתיהן)
+```
+
+### 🟠 ממצא-משנה — אותו באג-סולם של ריצה 57, עכשיו ב-CRITICAL לולאתי
+
+ריצה 57 מצאה את `2516` עם `dist(t2) < dist(t1)`. **`2521` הוא אותו יצרן, שלב אחד גרוע יותר — T2 בצד הלא-נכון של הכניסה:**
+
+```raw
+$ psql: id=2521 CEILING_FLIP_TOUCH2 LONG entry=7779.75 stop=7754.75 t1=7783.50 t2=7775.25
+        ⇒ t2 < entry עבור LONG  (2516 היה רק הפוך-סדר; 2521 הוא בכלל מתחת לכניסה)
+$ grep -c "INSANE TARGET GEOMETRY" (20K שורות אחרונות) ⇒ 461 — כולן trade=2521
+$ ראשונה 20:20:03 · קצב-לוג נמדד: 25 שורות/20 שנ׳ = ~75/דק׳ · CPU 5.6%
+```
+
+**לא אירוע-16.09** (שם: 1,000 שורות/דק׳ + 80% CPU). shadow בלבד ⇒ אפס סיכון-מסחר. אבל `CRITICAL` בלולאה על כל בר מטביע את הלוג — ו[[T-335]]/`#1191 monotonic guard` שנועד לתפוס בדיוק את זה עדיין **אינו על הנתיב** (הממצא של ריצה 57, `trading_gateway.py:4744`). הצעד-הבא נשמר ב-[[T-497]].
+
+**לא נגעתי:** פוזיציות · דגלים · ריסטארט · `.env`.
+
+— cowork-dev
