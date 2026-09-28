@@ -1,3 +1,42 @@
+## 🟢 [cowork-dev · 2026-09-28 11:34-11:41 IL] — **ריצה 40 · חובה-1 · שורת-מדידה אחת** · 🟢 **תיקון [[T-502]] מחזיק 30 דק' אחרי — ואומת מצד מייקל, לא מצדי**
+
+**שורה אחת, לא רשומה-מתחרה** ([[T-369]] על הערוץ): **ריצה 39 (`28e25822`) היא הבעלים של רשומת-היום** — הממצא, השורש והראיות שם, וכאן רק מה שנמדד מחדש. `11:34` ⇒ **לא שער** · מחוץ לכל חלון פרט לחובה-1 (‏15:30-16:10 לא · RTH לא · 23:00 לא) · **הפתיחה היום 16:30 IL** ⇒ שער-היום (חובה-2) הוא של הריצה שתיפול בחלון, לא שלי.
+
+☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד). והשלילה קבילה — **ארבעה מקורות** (מלכודת-12): `phone_request_guard ⇒ dispositioned 10 · undispositioned 0 · exit=0` · `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}` · `GET /chat ⇒ n=30` מסכים עם זנב `PHONE_THREAD.jsonl` (675 שורות) באפס דלתא. **הודעת-מייקל האחרונה `2026-09-25T12:07:30Z` נענתה עניינית ב-`12:17:53Z`**; אחרון-הפיד `cowork-dev 2026-09-27T13:17:56Z` — סוכן. **אפס תיוגי-עסקה לצרף** (`grep "תיוג עסקה" ⇒ 0` על כל 30).
+
+⚠️ **שתי הבקשות של 27.09 (כן-לחבילה · מאשר-ברידג') עדיין בלי מענה — ולא נשאלות שוב מכאן.** הודעה שנייה על אותה שאלה היא [[T-369]], וגם זו לא אחת מארבעת המקרים. **שער-15:30 יטפל בהן כמקרה (ד)** — כפי שריצה 39 כבר קבעה.
+
+### 🟢 מה שנמדד מחדש — התיקון של ריצה 39 מחזיק, ולא הונח שהוא מחזיק
+
+השירות שהוחזר ב-`launchctl bootstrap` הוא זה שדוחף לטלפון, ולכן **הראיה שהוא חי היא מצד מייקל ולא מצד המק**: `GET /healthz ⇒ has_snapshot:true · age_s 2.3` (מול `false` לפני התיקון) ו-`GET /chat ⇒ n=30`. `launchctl list \| grep -c mems26 ⇒ 9`. `update_check` ו-`startup_check` מציגים `-` במקום PID — **זה לא נסיגה:** שניהם משימות-חד-פעמיות שרצו ויצאו, בעוד `mobile_relay 1493 · export_promoter 1496 · activity_feed 1499` מחזיקים את אותם PID של 11:07 ⇒ אף אחד מהשישה לא נשר שוב.
+
+**הפיד חי — נמדד ב-DB ולא בקבצים ([[T-430]]):** `max(ts) v9_bars_5min_woodies = 11:35:00` (בן `1:58`) · `v9_bars_footprint = 11:36:55` (בן `3s`) ⇒ [[T-492]] ממשיך להיות סגור מאז הבוט. `v9_bars_5min` עומד על `25.09 23:30` — **אותו מקור לגסי דחוי-מדעת, לא חדש**; ה-SoT הוא `_woodies`.
+
+⛔ **בעלות-הריסטארט — אפס ריסטארט, אפס הודעת-שער:** המאזין `649 · lstart Mon Sep 28 10:58:35` הוא **אותו מאזין של ריצה 39** (`etime 38:13`), כלומר עליית-launchd אחרי הבוט של `10:57:28` ו**לפני 12:00** ⇒ שער-הבעלות לא נגוע, ו-`10:58` אינו ריסטארט-סוכן. לא הרמתי דבר.
+
+🟢 **[[T-34]] דיווח-בלבד, אפס דלתא מריצה 39:** `acct_available_funds 482.54 < 1,595` — הסף הוא פסיקת-4-חוזים; לחוזה-1 (`386.20 + 50`) יש כיסוי ⇒ **לא חוסם מסחר ⇒ לא מקרה (ג)**.
+
+⛔ **אפס נגיעה:** דגלים · `.env` · פוזיציות · פקודות · DB · קוד · עץ · `~/SierraChart_Data` · טלפון · backend · LaunchAgents.
+
+```raw
+$ date                                   ⇒ 2026-09-28 11:36:48 IDT
+$ python3 scripts/task_log_guard.py      ⇒ 480 items, last committed 0.0 days ago · ✅ current/structured/only-one · exit=0
+$ python3 scripts/phone_request_guard.py ⇒ dispositioned: 10 · undispositioned: 0 · exit=0
+$ GET /chat?key=…                        ⇒ n=30 · last = cowork-dev 2026-09-27T13:17:56Z
+$ wc -l docs/handoff/PHONE_THREAD.jsonl  ⇒ 675
+$ GET /instruction/pending               ⇒ {"items":[]}
+$ GET /cmd/pending                       ⇒ {"cmd":null}
+$ GET /healthz                           ⇒ {"ok":true,"has_snapshot":true,"age_s":2.3}
+$ launchctl list | grep -c mems26        ⇒ 9   (mobile_relay 1493 · export_promoter 1496 · activity_feed 1499 · backend 649 · frontend 658 · bridge 673 · update_check/startup_check/eod_handoff "-")
+$ curl -o /dev/null -w %{http_code} localhost:8000/api/v9/health ⇒ 200 (0.0034s)
+$ ps -o pid,lstart,etime,%cpu,rss  (lsof :8000) ⇒ 649 · Mon Sep 28 10:58:35 2026 · 38:13 · 14.6% · 105,412K
+$ psql … max(ts)                         ⇒ woodies 2026-09-28 11:35:00+03 (00:01:58) · footprint 11:36:55 (00:00:03) · bars_5min 2026-09-25 23:30 (stale, legacy)
+$ ruled_contracts()  (set -a; . ./.env)  ⇒ 1        ← הפסיקה (18.09 FIXED_CONTRACTS_1=1)
+$ sierra_state.json                      ⇒ position_qty 0 · working_orders 0 · is_sim 0 · armed 1 · under_margin 0 · trading_disabled 0 · available 482.54
+```
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-28 11:02-11:12 IL] — **ריצה 39 · חובה-1 · לפני-פתיחה** · 🔎 **[[T-502]] נפתח: הריסטארט של 10:57 השאיר 6 מ-9 LaunchAgents לא-טעונים — הטלפון של מייקל היה אפל. הוחזרו ואומתו.**
 
 ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד).
