@@ -1,3 +1,53 @@
+## 🟢 [cowork-dev · 2026-09-28 14:04-14:14 IL] — **ריצה 45 · חובה-1 בלבד · שורת-מדידה אחת** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון**
+
+**שורה אחת, לא רשומה-מתחרה** ([[T-369]]): `14:04` ⇒ **לא שער** — מחוץ לכל חלון פרט לחובה-1 (`15:30-16:10` לא · RTH `16:30-23:00` לא · `23:00-23:30` לא). **שער-היום שייך לריצה שתיפול בחלון**; רשומת-היום נשארת של ריצה 39. HEAD `934de60a`, `0/0` מול origin.
+
+☎️ **אפס ממתינות · אפס הודעות נשלחו** — אין (א)/(ב)/(ג)/(ד). השלילה קבילה על **חמישה מקורות** (מלכודת-12): `GET /chat ⇒ http=200 · 30 פריטים`, אחרון-הפיד `2026-09-27T13:17:56Z` = **סוכן** · הזנב המקומי של `PHONE_THREAD.jsonl` **זהה לרנדר** (675 שורות, אותה שורה אחרונה, אפס דלתא) · `phone_request_guard ⇒ exit=0` · `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}`. הרלה חיה: `launchctl ⇒ com.mems26.mobile_relay pid=1493` — **אותו PID של ריצות 41-44** ⇒ רצף ללא נפילה. **הודעת-מייקל האחרונה `2026-09-25T12:07:30Z` נענתה עניינית ב-`12:17:53Z`.** `TRADE_TAGS.jsonl` אינו קיים ⇒ אפס תיוגים לצרף. שתי בקשות 27.09 (חבילת-הלילה · אישור-ברידג׳) — **לא נשאלות שוב מכאן**, לשער-15:30 כמקרה (ד), כפי שריצות 39-44 קבעו.
+
+### 🟢 מה שנמדד — אפס דלתא מריצה 44
+
+🟢 [[T-430]] **בר-Globex חי, נבדק ב-DB ולא בקבצים:** `woodies max(ts) = 2026-09-28 14:05:00+03 · age **51s**` · `footprint 14:05:45 · age **6s**`. גיל חושב ב-`now() - max(ts)` בלבד — מלכודת-ה-tz של ריצות 42/43 לא חזרה.
+🟢 **פוזיציה 0, נמדד על העמודה הנכונה:** הסכמה היא `state` ו-`entry_ts` (**לא** `status`/`entry_time` — שתי השאילתות הראשונות נפלו ותוקנו לפני שנקבע ממצא, כלל 2). לייב לא-סופיות `⇒ **0**`; פילוח מלא `live: CLOSED 169 · CANCELLED 36 · demo: CLOSED 29 · shadow: CLOSED 2,061` ⇒ **אין ולו עסקת-לייב פתוחה אחת** ⇒ שאלת-בעלות אינה קמה.
+🟢 `GET /health ⇒ 200` ב-**91ms** · `uptime_s 11,187.4 · v9_mounted true`.
+🟢 **שומרים:** `flag_guard ⇒ PASS — all 270` + LIVENESS · `task_log_guard ⇒ 481 items, 0.0 days, exit=0`.
+🟢 [[T-502]] **מחזיק ריצה שישית רצופה:** `launchctl | grep -c mems26 ⇒ **9**` (backend 649 · frontend 658 · bridge 673 · relay 1493 · export_promoter 1496 · activity_feed 1499 חיים).
+
+⛔ **בעלות-הריסטארט — אפס ריסטארט, אפס הודעת-שער:** המאזין `PID 649 · lstart Mon Sep 28 10:58:35 · etime 03:07` הוא **אותו מאזין של ריצות 39-44**, עליית-launchd **10:58 < 12:00** ⇒ שער-הבעלות לא נגוע, ואין רשומת-ריסטארט של cowork-dev מהיום. **לא הרמתי דבר ולא שלחתי GO/NO-GO.**
+
+🔵 **התיקון של ריצה 44 החזיק — נמדד, לא הונח:** המשטח המלוכלך-המעוקב הוא **4 קבצים בלבד** (`MONDAY_READINESS.html` · `MARKS_VS_TREE_2026-09-24.md` · `PM_1.md` · `PM_2.md`) ⇒ `config/news_calendar.yaml` ו-`MICHAEL_INBOX.md` **כבר אינם על המשטח** ⇒ `stash` שייכשל או ייזרק בשער-15:30 **לא יכול עוד לאבד את לוח-האדומים של השבוע או את בקשות-מייקל**. [[T-503]] אפס דלתא: `untracked ⇒ **3,727**` (תוצר `pytest` דרך `_REPORT_DIR`), לא נגעתי.
+
+[[T-34]] **דיווח-בלבד, אפס דלתא:** הסף `1,595$` הוא פסיקת-4-חוזים; לחוזה-1 יש כיסוי ⇒ **אינו חוסם מסחר ⇒ אינו (ג)**.
+
+⛔ **אפס נגיעה:** דגלים · `.env` · דגלי-גודל ([[T-225]]) · פוזיציות · פקודות · **DB (קריאה בלבד)** · קוד-ייצור · עץ · `~/SierraChart_Data` · טלפון · backend · LaunchAgents · הרנס. **הכתיבה היחידה: הרשומה הזאת.**
+
+**הצעד הבא (לשער 15:30-16:10):** ללא שינוי מריצה 44 — (1) `git pull` (ה-`stash/pop` עדיין נדרש על 4 הקבצים, וכולם בטוחים ל-stash); (2) ריסטארט כנוהל-קדם-פתיחה; (3) `close_stale_shadow` dry-run ריק = צפוי, **אינו עילה לדלג**; (4) `fire_drill` שלב-D מול בר-Globex אמיתי + `flag_guard` PASS + `ruled_contracts()==1` עם `.env` טעון ([[T-489]]); (5) גיל-בר **רק** ב-`now() - max(ts)`; (6) שתי בקשות 27.09 כמקרה (ד) בהודעת-השער האחת; (7) `machine_health` ל-LIVE_CHANNEL בלבד; (8) לוח-החדשות — **היום אפס אדום**, אבל ד׳ 30.09 ו-ו׳ 02.10 נושאים אדום ב-`15:30 IL` **בתוך חלון-השער**.
+
+```raw
+$ date                                      ⇒ Mon Sep 28 14:04:18 IDT 2026  (ET 07:04)
+$ git pull --ff-only                        ⇒ Already up to date.   (HEAD 934de60a · 0/0 מול origin)
+$ GET /chat?key=…                           ⇒ http=200 · count 30 · אחרון: cowork-dev 2026-09-27T13:17:56Z
+$ wc -l docs/handoff/PHONE_THREAD.jsonl     ⇒ 675   (אותה שורה אחרונה כמו רנדר, אפס דלתא)
+$ הודעת-מייקל אחרונה / מענה                 ⇒ 2026-09-25T12:07:30Z  /  cowork-dev 2026-09-25T12:17:53Z
+$ python3 scripts/phone_request_guard.py    ⇒ "✅ every request in the window is either a task or dispositioned" · exit=0
+$ GET /instruction/pending                  ⇒ {"items":[]}
+$ GET /cmd/pending                          ⇒ {"cmd":null}
+$ ls docs/handoff/TRADE_TAGS.jsonl          ⇒ No such file or directory
+$ psql now()-max(ts) v9_bars_5min_woodies   ⇒ 2026-09-28 14:05:00+03 | 51s
+$ psql now()-max(ts) v9_bars_footprint      ⇒ 2026-09-28 14:05:45 | 6s
+$ psql live non-final v9_trades             ⇒ 0
+$ psql group by mode,state                  ⇒ live CLOSED 169 · live CANCELLED 36 · demo CLOSED 29 · shadow CLOSED 2061
+$ curl /health                              ⇒ http=200 · 0.091s · uptime_s 11187.4 · v9_mounted true
+$ ps -o pid,lstart,etime :8000              ⇒ 649 | Mon Sep 28 10:58:35 2026 | 03:07:16
+$ launchctl list | grep -c mems26           ⇒ 9   (relay pid 1493 — כמו ריצות 41-44)
+$ python3 scripts/flag_guard.py             ⇒ PASS — all 270 ruled flags match · exit=0
+$ python3 scripts/task_log_guard.py         ⇒ 481 items, last committed 0.0 days ago · exit=0
+$ git status --porcelain -uno               ⇒ 4 קבצים (MONDAY_READINESS.html · MARKS_VS_TREE_2026-09-24.md · PM_1.md · PM_2.md)
+$ git status --porcelain | grep -c '^??'    ⇒ 3727   (T-503, תוצר pytest)
+$ הודעות-טלפון שנשלחו בריצה                 ⇒ 0
+```
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-28 13:34-13:58 IL] — **ריצה 44 · חובה-1 בלבד** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: אמת-הנתונים של שער-15:30 יושבת בעץ-עבודה לא-מקומט, והמנוע שמלכלך אותו הוא סוויטת-הטסטים**
 
 **שורה אחת, לא רשומה-מתחרה** ([[T-369]]): `13:34` ⇒ **לא שער** — מחוץ לכל חלון פרט לחובה-1 (`15:30-16:10` לא · RTH לא · `23:00-23:30` לא). **הפתיחה 16:30 IL ⇒ שער-היום שייך לריצה שתיפול בחלון**; רשומת-היום נשארת של ריצה 39 (`28e25822`). HEAD בכניסה `cf3f343f`.
