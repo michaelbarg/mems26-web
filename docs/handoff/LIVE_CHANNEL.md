@@ -1,3 +1,107 @@
+## 🟢 [cowork-dev · 2026-09-28 21:04-21:18 IL] — **ריצה 59 · חובה-1 + ניטור-RTH** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: `tree:stand_down` הפך לחוסם-היחיד של השעה האחרונה, והסיבה הגולמית אינה "שער" אלא `no doctrine row for this circumstance` על הנתיב `opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)` — נתיב שלא נמדד עד היום (‏`no doctrine row` = **0 אזכורים** ב-`TASK_LOG`) ⇒ [[T-512]]** · 🔧 **ותיקון-עצמי לריצה 58: `CPU 5.6%` היה ממוצע-לכל-החיים (מכשיר שגוי, מלכודת 23); הנכון הוא `26.5%`**
+
+**לא שער ולא ריסטארט:** `21:04` ∈ `16:30-23:00`, ומעבר לתקרת-16:10 ⇒ **אפס ריסטארט, אפס GO/NO-GO**. המאזין על :8000 עלה `Mon Sep 28 15:58:34` (PID 16241) = אחרי 12:00 ⇒ בעלות-השער אינה שלי ([[T-369]]). אפס נגיעה בפוזיציות · דגלים · `.env` · ריסטארט.
+
+☎️ **חובה-1 — ממתינות-מייקל: אפס. אפס הודעות-טלפון בריצה הזאת.** השלילה קבילה כי הרלה חי (מלכודת 12):
+
+```raw
+$ launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1493
+$ GET /instruction/pending?key=… ⇒ http=200 · {"items":[]}
+$ GET /cmd/pending?key=…         ⇒ http=200 · {"cmd":null}
+$ GET /chat?key=…                ⇒ http=200 · bytes=14391 · items 30   ← 200 אומת לפני ספירה (T-260)
+  senders {cowork-dev:16, מייקל:7, cc:6, cowork:1} · טווח 09-25T10:05:14Z → 09-28T17:40:30Z
+  אחרונת-מייקל 2026-09-25T12:07:30Z, נענתה עניינית 2026-09-25T12:17:53Z
+  ⇒ אין (א) · אפס עסקת-לייב חדשה מאז 17:31 ⇒ אין (ב) · אפס חריגה חדשה ⇒ אין (ג) · לא שער ⇒ אין (ד)
+```
+
+שלוש הבקשות הממתינות אצל מייקל (חבילת-27.09 · ברידג׳ · מרג'ין מ-17:38) **אינן נשאלות שוב** ([[T-369]]).
+
+### 🔑 הממצא — `stand_down` הוא העץ אומר "אין לי שורה", ולא שער שדוחה
+
+מ-`21:00` ואילך **כל** מועמד נחסם ב-`tree:stand_down`, וההיסטוגרמה של היום מראה שזה שינוי-משטר מול ריצה 58 (שם: `location 11 · bias 8 · structural_targets_wrong_side 5`):
+
+```raw
+$ GATE_DECISION blocked_by (gateway_decisions.jsonl, כל היום n=49)
+    20  tree:location        8  tree:bias        6  tree:stand_down      5  structural_targets_wrong_side
+     4  entry_not_confirmed  3  tree:kind        2  rr_hard_floor        1  rr_entry_gate
+$ ששת ה-stand_down, עם ה-reason המלא (ולא רק השם):
+  IL 16:30:05  VEGAS SHORT               [opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)]
+  IL 16:35:12  CEILING_FLIP_TOUCH2 SHORT [opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)]
+  IL 21:00:06  ZLR LONG                  [opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)]
+  IL 21:05:02  CEILING_FLIP_TOUCH2 LONG  [opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)]
+  IL 21:05:03  ZLR LONG                  [opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)]
+  IL 21:05:06  ZLR LONG                  [opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)]
+$ tree_v3 של האחרון (גולמי): {"leaf":"SKIP","id":"stand_down","mode":"on","skip_gates":[],
+   "vec":{"opening_type":"OPEN_AUCTION_IN","phase":"D","day_type":"Neutral_Center","structure":"two_sided",
+          "pattern":"ZLR","kind":"BREAK","direction":"LONG","rel_bias":"against","zone":"mid_value",
+          "prior_zone":"below_value","poc_side":"above","value_migration":"lower","hour":21,"system":4}}
+$ 21:05:06 [INFO] [trading_gateway] T-219 shadow_blocked: LONG ZLR blocked_by=tree:stand_down → twin #2539 (49/150 today)
+```
+
+**מה זה אומר ומה לא.** `leaf=SKIP · id=stand_down · skip_gates=[]` ⇒ **אף שער לא דחה** — העץ פשוט לא מחזיק שורת-דוקטרינה לנתיב הזה, ולכן נמנע (וזו התנהגות-לפי-דוקטרינת-הלמידה: "אל תמציא ערך חסר"). זה **אינו** באג ו**אינו** עילה להדלקה.
+
+**ולמה זה פריט חדש ולא כפילות:** `stand_down` מוזכר 45 פעם ב-`TASK_LOG`, אבל **`no doctrine row` מוזכר 0 פעמים**, `phase=D` 0 פעמים ו-`Neutral_Center` רק בהקשרי סטופ/מסווג ([[T-70]], [[T-195]], [[T-275]]). [[T-464]] הוא אותה **מחלקה** אבל נתיב אחר — שלב-A/B של Open-Auction. ⇒ נפתח [[T-512]] על הנתיב `phase=D/Neutral_Center`, והצעד-הבא הוא **מקרה-ריפליי, לא דגל** (דוקטרינת-הלמידה 09.09).
+
+⚠️ **אזהרת-נוסח לריצה הבאה:** ה-`phase=D` של העץ **אינו** "שלב-D" של `fire_drill` (בדיקת-הפיד). המחרוזת `שלב-D` מופיעה 21 פעם ב-`TASK_LOG` ותמיד במשמעות השנייה. אל תצליב ביניהן.
+
+### 🔧 תיקון-עצמי לריצה 58 — כלל 5 חל גם על תיקונים (מלכודת 23)
+
+ריצה 58 כתבה על לולאת-[[T-510]]: `נמדד ~75 שורות/דק׳, CPU 5.6%`. **שני המספרים נמדדו במכשיר שעונה על שאלה אחרת:**
+
+```raw
+$ ps -o time= -p 16241 בהפרש 30 שנ' ⇒ 3599.98 -> 3607.94 = 7.96s / 30.0s wall
+   LIVE CPU     = 26.5%      ← האמת (Δcputime/Δwall, מלכודת 23)
+   LIFETIME avg = 5.56%      ← 3607.94s / 64,900s ≈ בדיוק ה-"5.6%" של ריצה 58
+$ ps -o %cpu -p 16241 ⇒ 8.8%   (ממוצע-דועך, רועש — לא קביל כדגימה בודדת)
+$ קצב-הלולאה בפועל, ארבע דקות רצופות: 21:03→25 · 21:04→27 · 21:05→26 · 21:06→26 שורות/דק׳
+$ 21:06:58 [CRITICAL] [bar_level_detector] INSANE TARGET GEOMETRY trade=2521 LONG target=T2=7775.25 entry=7779.75 — inference disabled
+$ היום: ERROR 5,439 · CRITICAL 1,337
+```
+
+⇒ **הקצב נמוך מהמדווח (26 ולא 75), וה-CPU גבוה ממנו פי 4.7.** שתי הטעויות מבטלות זו את זו במסקנה ("אינו אירוע-16.09" — שם היו 1,000 שורות/דק׳ ו-80% CPU, ו-`2521` הוא shadow ⇒ אפס סיכון-מסחר), אבל לא בראיה. ‏26.5% על בקאנד שלא לוקח לייב כלל אינו זניח, והשורש נשמר ב-[[T-510]]/[[T-497]] — **לא נפתח פריט שלישי**.
+
+### 🟢 מצב-חי — ירוק, וכל מדידה במכשיר שלה
+
+```raw
+$ curl /api/v9/health                     ⇒ http=200 · 2.5ms · {"status":"ok","version":"v9.0.0"}
+$ PGTZ=UTC psql: max(ts) v9_bars_5min_woodies ⇒ 2026-09-28 18:05:00+00 · age 1.39 דק' · ET-date 2026-09-28   (מלכודת 19)
+$ ledger gateway_decisions.jsonl ⇒ 152 שורות, כולן ET-היום, אחרונה 21:05:06; ts-field used {ts:59, observed_at:93}  (מלכודת 21)
+   הליגר: DETECTED 46 → EMIT_DECISION 47 → GATE_DECISION 49 → ROUTED 10   (ROUTED/DETECTED 21.7%)
+   outcome {blocked:49, shadow_only:8, live:2} · live_blocked_by {live_slot_occupied:2}
+$ פתוחות לפי state (מלכודת 14) ⇒ shadow FILLED 21, כולן entry-ET 2026-09-28 (אפס מאתמול)
+$ python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"   ← הפוסק
+$ gateway/status: shadow_active_count 10 (חוצץ-טבעת, מלכודת 15 — לא מונה פתוחות) · trades_today 2 · live_slot None · chop EXPANDING
+$ [boot] logging OK level=INFO pid=16241 commit=aae6954e stream=stderr   ← ה-pid תואם את המאזין (ד0)
+$ flag_guard ⇒ PASS — all 270 ruled flags match + LIVENESS
+$ task_log_guard ⇒ 489 items, last committed 0.0 days ago ✅
+$ גודל: ruled_contracts()=1 עם .env ([[T-489]]) · contracts_cfg=1 מהתהליך החי ⇒ שני מקורות מסכימים, אפס נגיעה בדגלי-גודל
+```
+
+**לייב היום — שתיים, שתיהן דווחו וסגורות; אפס חדשה ⇒ אפס מקרה (ב):**
+
+```raw
+ 2483 | live | sys 2 | OPENING_EXTREME_REJECT | LONG | CLOSED | 09-28 09:50 ET | MAE_SCRATCH | pnl_sierra -61.25
+ 2496 | live | sys 4 | VEGAS                  | LONG | CLOSED | 09-28 10:25 ET | STOP_HIT    | pnl_usd -32.5 · pnl_sierra -33.75
+ ⇒ סך-ברוקר -95.00 = acct_daily_pl -95.0 = daily_pnl -95.0   (הספרים והברוקר מסכימים)
+```
+
+**פוזיציה מול TM — פסיקה, לא אזעקה (מלכודת 16 + [[T-402]]):** `Sierra -1` מול `TM 0`, `T-43` נעול מ-`20:27:22`. זהו השורט הידני `11357` של מייקל, שהבעלות שלו אומתה לפי `order_id` בריצה 58 ונשלח כמקרה (ג) יחיד ב-`17:40:30Z` ⇒ **לא נשלח שוב** ([[T-511]]).
+
+**מרג'ין [[T-34]] — דיווח-בלבד, ולא לטלפון.** הוא ממשיך להישחק ע״י ה-`open_pnl` של השורט הידני, לא ע״י המערכת:
+
+```raw
+$ sierra_state @21:06 ⇒ acct_available_funds 83.20 · @21:10 ⇒ 78.20   (Δ -5.00 ב-4 דק')
+  acct_margin_req 288.09 · acct_open_positions_pl -21.25 · open_pnl -22.50 · acct_under_margin 0 · working_orders 0
+$ cap_contracts(1) ⇒ (1, 'below-fallback size kept 1:1 (Michael 2026-08-13):
+                          $24.45 usable vs 1×$386.20 — broker adjudicates')
+```
+
+`avail < $1,595` ⇒ שורה כאן, **בלי מקרה (ג)**: (1) ירי-הלייב חסום כבר ע״י `T-43` ⇒ המרג'ין אינו החוסם-השולי; (2) שאלת-המרג'ין ממתינה אצל מייקל מ-`17:38` ⇒ שאלה שנייה היא הפרת-[[T-369]]; (3) `under_margin=0`. הסייזר (ולא השדה-הגולמי) הוא הפוסק — `$24.45 usable` הוא **חוסר** של −$361.75, לא מרווח ([[T-508]], "הריפוי שלא קרה").
+
+**הצעד הבא:** (1) ריצת-RTH הבאה — לבדוק אם `stand_down/phase=D` חוזר גם מחר או שהיה ייחודי ל-`Neutral_Center` של היום (‏[[T-512]]); (2) `21:40` ו-`22:10` ניטור קצר, ללא ריסטארט (תקרת-16:10); (3) ריצת-`23:00-23:30` — תור-הלילה + עמודי-הטלפון (`broker_truth` → `day_review` → `review_report` → `gen_tree_board` → `gen_phone_pages`), ושם **מותר** מקרה (ב) מורחב עם קישור עמוד-היום; (4) אל תמדוד CPU ב-`ps -o %cpu` ולא ב-`machine_health` — רק `Δcputime/Δwall`.
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-28 20:04-20:14 IL] — **ריצה 57 · חובה-1 + ניטור-RTH** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: `CEILING_FLIP_TOUCH2` כתב ל-`v9_trades` סולם-יעדים הפוך (T2 קרוב מ-T1 בלונג) — ושער-המונוטוניות `#1191` שנועד בדיוק לזה לא ירה, כי הנתיב של צל-חסום קורא ל-`_execute_shadow` בשורה 871, **2,873 שורות לפני** השער בשורה 4,744**
 
 **לא שער ולא ריסטארט:** `20:04` ∉ `15:30-16:10`, ומעבר לתקרת-16:10 ⇒ **אפס ריסטארט, אפס GO/NO-GO**. המאזין על :8000 עלה `Mon Sep 28 15:58:34` = אחרי 12:00 ⇒ בעלות-השער אינה שלי ([[T-369]]).
