@@ -1,3 +1,108 @@
+## 🟢 [cowork-dev · 2026-09-28 19:34-19:42 IL] — **ריצה 56 · חובה-1 + ניטור-RTH** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: שער-`RISK_BUDGET` הוא הדוחה-הפעיל-ביותר של הסשן (3 דחיות ב-15 דק') והוא תקין במדויק לפי פסיקת-01.09 — אבל ה-`note` שלו ב-`RULED_FLAGS.yaml` אומר "סטופ-מקס 10 נק'" בזמן שהערך-הפסוק `RISK_BUDGET_USD=225` עושה את הסף **15 נק'**. שתי ההערות נשארו מעידן-`150` ו-`flag_guard` עיוור להן כי הוא בודק `expected` ולא `note`**
+
+**לא שער ולא ריסטארט:** `19:34` ∉ `15:30-16:10`, ומעבר לתקרת-16:10 ⇒ **אפס ריסטארט, אפס GO/NO-GO**. המאזין על :8000 עלה `Mon Sep 28 15:58:34` = אחרי 12:00 ⇒ בעלות-השער אינה שלי ([[T-369]]).
+
+☎️ **חובה-1 — ממתינות-מייקל: אפס. אפס הודעות-טלפון בריצה הזאת.**
+
+```raw
+$ GET https://mems26-mobile.onrender.com/chat?key=…  ⇒ http=200 · bytes=14201 · items 30   ← אומת 200 לפני ספירה (מלכודת T-260)
+  אחרון-הפיד     2026-09-28T14:38:25Z = cowork-dev (ריצה 52)
+  אחרונת-מייקל   2026-09-25T12:07:30Z, נענתה עניינית 2026-09-25T12:17:53Z
+$ ps -eo pid,lstart,command | grep mobile_relay ⇒ pid 1493 · Mon Sep 28 11:06:23 · בתוך חלון 10:00-23:30
+  ⇒ אין (א) · אפס עסקה חדשה מאז 17:31 ⇒ אין (ב) · אפס חריגה חדשה ⇒ אין (ג) · לא שער ⇒ אין (ד)
+```
+
+**שלוש בקשות ממתינות אצל מייקל — ואף אחת לא נשאלת שוב** ([[T-369]]): (1) כן לחבילה מדוח-הלילה 27.09 · (2) מאשר ברידג׳ · (3) מרג'ין — להפקיד או לסגור לייב (נשאל 17:38). **מצב-המרג'ין לא זז בסנט מאז שהשאלה נשאלה** — `acct_available_funds=387.54` זהה לריצות 54 ו-55 ⇒ אפס עילה להודעה שנייה.
+
+### 🔑 הממצא — הגייטוויי דחה שלוש כניסות ב-15 דקות, וכל שלוש הדחיות נכונות
+
+`grep -iE "reject" (2000 שורות אחרונות /tmp/backend.err.log)` מחזיר **3 שורות, כולן מאותו שער**:
+
+```raw
+19:20:07 [sierra_command] RISK_BUDGET REJECT: risk=33.5 pts → n=0 < min=3 — entry too far from structure
+19:35:05 [sierra_command] RISK_BUDGET REJECT: risk=36.5 pts → n=0 < min=3 — entry too far from structure
+19:35:05 [sierra_command] RISK_BUDGET REJECT: risk=25.6 pts → n=1 < min=3 — entry too far from structure
+```
+
+**הפעולה נקראה בקוד ולא הוסקה** (`backend/v9/services/sierra_command.py:695-722`, `RISK_BUDGET_SIZING_V1`): `n = floor(BUDGET / (risk_pts × $5))`, אפס אם `risk_pts > RISK_MAX_PTS_HARD`, ו-`n < RISK_MIN_CONTRACTS ⇒ return 0` (דחייה), ואחר-כך `contracts = min(n, ruled_contracts())`. **בקרה חיובית על שתי עסקאות-הלייב שכן ירו היום** — אותה נוסחה, אותו env טעון:
+
+```raw
+$ set -a; . ./.env; set +a  ⇒ BUDGET=225.0 · MIN=3 · HARD_MAX_PTS=30.0 · point_value=5.0
+  threshold: n>=MIN  <=>  risk_pts <= 15.00 pts
+  reject 19:20    risk=33.50 -> n=0   REJECT              ← מעבר לרשת-השנייה (30 נק')
+  reject 19:35a   risk=36.50 -> n=0   REJECT              ← מעבר לרשת-השנייה
+  reject 19:35b   risk=25.60 -> n=1   REJECT              ← מתחת ל-MIN
+  FIRED  2483     risk=13.25 -> n=3   pass -> min(n,ruled=1)=1   ✓ תואם ירי 16:50
+  FIRED  2496     risk= 5.75 -> n=7   pass -> min(n,ruled=1)=1   ✓ תואם ירי 17:25
+```
+
+⇒ **חמש מתוך חמש משוחזרות מהנוסחה, כולל שתי הירי. אין באג, אין דגל לכבות, ואין מה להדליק.** הסף האפקטיבי הוא `BUDGET/(PV×MIN) = 225/15 = **15.00 נק'**`, וזו הסיבה ש-`2483` עם סטופ של 13.25 נק' עבר — הוא בתוך הסף, בפער של 1.75 נק'.
+
+### ⚠️ הסתירה היחידה שנמצאה — טקסטואלית, ב-`RULED_FLAGS.yaml`
+
+```raw
+$ grep -n "RISK_" config/RULED_FLAGS.yaml
+379: RISK_BUDGET_SIZING_V1: {expected:"1",  date:"2026-09-01", note:'n=floor(BUDGET/(risk*$5))…'}
+380: RISK_BUDGET_USD:       {expected:"225", date:"2026-09-01", note:'150*3<=450 (RISK_DAILY_LOSS_CAP). צימוד קשיח.'}
+381: RISK_MIN_CONTRACTS:    {expected:"3",   date:"2026-09-01", note:'n<3=דחייה. סטופ-מקס 10 נק.'}
+382: RISK_MAX_PTS_HARD:     {expected:"30",  date:"2026-09-01", note:'רשת שנייה.'}
+```
+
+שתי ההערות מתארות `BUDGET=150`: `150*3<=450` (בזמן ש-`225*3=675`, לא 450) ו-"סטופ-מקס 10 נק'" (`150/15=10`, בזמן שהערך-הפסוק נותן **15**). **הערכים עצמם פסוקים ותקינים** — `flag_guard` משווה `expected` מול ה-`.env` ולכן עובר בדין; הוא **אינו** קורא `note`, ולכן היסחפות-טקסט חיה שם ללא בקרה. ⇒ פריט [[T-509]] נולד.
+
+⚠️ **תיקון-עצמי שני, שנמדד אחרי שכתבתי את הפסקה לעיל (כלל 2) — והוא מצמצם את הטענה:** הרצת הבודק עצמו מדפיסה `✓ BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0` ⇒ **הצימוד שה-`note` מתאר *כן* נאכף בקוד, ונאכף נכון** — פשוט מול `CAP=800`, בזמן שה-`note` עוד כתוב מול `450`. ⇒ הניסוח המדויק אינו "צימוד לא-מאומת" אלא **"שני מספרים ב-`note` התיישנו (CAP 450 ו-סטופ-מקס 10), ושניהם נסתרים ע"י מה שהבודק עצמו מדפיס באותה ריצה"**. הפריט קטן ממה שנראה בהתחלה — אבל אינו אפס, כי `2483` ירה עם סטופ 13.25 נק', כלומר **חוקי לפי הסף האמיתי (15) ובלתי-חוקי לפי ההערה (10)**: סוכן שיאבחן מה-`note` יחפש באג שאינו קיים, או יסיק שהמערכת עברה על פסיקה.
+
+```raw
+$ python3 scripts/task_log_guard.py ⇒ rc=0 · 487 items · "the task log is current, structured, and the only one"
+$ python3 scripts/flag_guard.py     ⇒ rc=0 · PASS — all 270 ruled flags match · ✓ BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0
+                                       LIVENESS REPORT: all ON flags have ≥1 production read-site
+```
+
+**אפס נגיעה בדגלים בריצה הזאת** — הערכים 225/3/30 הם פסיקת-מייקל 01.09, והם נשארים בדיוק כמו שהם.
+
+### מצב-חי — כל מספר ממקור-האמת
+
+```raw
+$ date                                  2026-09-28 19:39:39 IDT
+$ psql max(ts) v9_bars_5min_woodies  ⇒  2026-09-28 19:35:00+03 | בן 0.97 דק' ב-19:36, 4.66 דק' ב-19:39
+                                        ← T-430: בר-DB, לא mtime; קבצי-הייצוא ב-19:36 אינם ראיית-פיד
+$ curl /api/v9/health                ⇒  200 · 1.7ms (19:35) · 6.6ms (19:39)
+$ lsof :8000 + ps -o lstart          ⇒  pid 16241 · Mon Sep 28 15:58:34 · %CPU 2.1 · etime 03:37
+$ backend.err.log (2000 שורות)       ⇒  ERROR 0 · traceback 0 · margin 0 · REJECT 3 (מנותחות מעלה)
+                                        WARNING היחיד: BarRouter dispatch 70-146ms, ~217/10דק' — קו-בסיס
+                                        שטוח (18:20→19:30: 217·219·217·217·222·214·193·154), לא מתדרדר
+$ sierra_state.json @ age 0.9s       ⇒  position_qty 0 · working_orders 0 · orders []
+                                        acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0
+                                        order_placement_armed 1 · acct_daily_pl −95.0 · daily_total_qty_filled 4
+                                        acct_available_funds 387.54
+$ /api/v9/gateway/status             ⇒  live_slot None (פנוי) · live_enabled_systems [2,4] · chop EXPANDING
+                                        cluster_guard active=false (1 נסיון/60ש')
+$ ruled_contracts()                  ⇒  1     ← תואם פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1)
+$ psql v9_trades mode=live ET=today  ⇒  2 שורות, שתיהן CLOSED (2483 MAE_SCRATCH · 2496 STOP_HIT)
+```
+
+**פוזיציה-מול-TM: תואם, אפס אזעקה.** `position_qty 0` · `working_orders 0` · `orders []` מול אפס שורות-לייב פתוחות ב-DB ⇒ אין פוזיציה זרה, אין מה לבדוק ב-`order_id` ([[T-310]] לא רלוונטי). **אפס עסקת-לייב חדשה מאז 17:31** ⇒ אין מקרה (ב).
+
+**מרג'ין — [[T-34]] דיווח-בלבד, ובשני המספרים לפי תיקון-ריצה-55:** `acct_available_funds = **387.54**` (מה שמייקל רואה באפליקציית-הברוקר) ⇒ `usable = 387.54 − 50 buffer = **337.54**` מול `1 × $386.20` נדרש ⇒ **חוסר של −$48.66, לא מרווח**. `avail < $1,595` ⇒ בדיקת-T-34 מבוצעת. **זהה לחלוטין לריצות 54 ו-55 — אפס דולר זזו**, ולכן נשאר [[T-508]] ולא נולד פריט חדש, ולכן גם אין הודעת-טלפון שנייה.
+
+### הליגר כותב — ואפס-עסקאות אינו מערכת-מתה
+
+```raw
+$ ~/SierraChart_Data/v9_export/gateway_decisions.jsonl  ⇒ total 90 · rows per day {'2026-09-28': 90}
+  ‼️ הליגר כותב UTC; כל השעות בבלוק הזה הומרו ל-IL (‏+3) — כלל-4 (אי-בהירות-TZ אסורה)
+  DETECTED 27 (last 16:35:05Z = 19:35 IL)  ·  GATE_DECISION 25 (last 16:35:05Z = 19:35 IL)
+  ROUTED   10 (last 15:45:02Z = 18:45 IL)  ·  EMIT_DECISION 28 (last 16:35:05Z = 19:35 IL)
+  EMIT אחרונים ⇒ 19:30 DOUBLE_BOTTOM_EE_LONG REJECT/dedup · 19:35 INITIATIVE_LONG ALLOW · 19:35 DOUBLE_BOTTOM_EE_LONG ALLOW
+  GATE אחרונים ⇒ 19:25 FAILED_RE_IB blocked:tree:bias · 19:35 INITIATIVE_LONG blocked:tree:bias · 19:35 DOUBLE_BOTTOM_EE_LONG blocked:tree:bias
+```
+
+⚠️ **תיקון-עצמי בתוך הריצה (כלל 2), לפני שהפך לדיווח:** הקריאה הראשונה שלי החזירה `rows per day {'2026-09-28': 35, '': 55}` ונראתה כדליפת-רוטציה במשפחת [[T-507]]. **זו הייתה מלכודת של הסקריפט שלי ולא של הליגר:** `DETECTED` ו-`EMIT_DECISION` נושאים `observed_at` ואין להם `ts` כלל, בעוד `GATE_DECISION`/`ROUTED` נושאים `ts` — שתי סכימות משני כותבים. ראיה: `DETECTED top-keys ⇒ [candidate_id, direction, event_id, event_type, family, observed_at, pattern, policy_id, prices, schema, signal_bar_ts, source, system]` — אין `ts`. עם `ts or observed_at` ⇒ **90/90 שורות מיוחסות להיום, אפס שורה חסרת-יום.** ⇒ **נגזרת לכל קורא-ליגר: ספירה לפי `ts` לבדה מאבדת 55 מ-90 שורות (61%) ותדווח "אפס DETECTED" על יום עובד** — משפחת §3.9 ומלכודת 21, ותוספת לצעד (3) של [[T-507]].
+
+⇒ **אפס עסקאות בשעה האחרונה הוא החלטה מתועדת ולא שקט:** הפיד חי (בר בן דקה), הגלאים ירו 27 מועמדים, 25 הוכרעו בשער, והשכבה שדחתה בפועל היא `tree:bias` (שער) + `RISK_BUDGET` (סייזר).
+
+**סיכום-ריצה:** ☎️ 0 הודעות-טלפון (אפס ממתינות, אפס עסקה חדשה, אפס חריגה חדשה, לא שער) · פריט חדש [[T-509]] · אפס נגיעה בדגלים/`.env`/פוזיציות/ריסטארט.
+
+---
 ## 🟢 [cowork-dev · 2026-09-28 19:04-19:12 IL] — **ריצה 55 · חובה-1 + ניטור-RTH** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: "מרווח-מרג'ין 1.34$" של ריצה 54 הוא בדיוק ה"ריפוי שלא קרה" שריצה 53 חזתה ריצה אחת קודם — הסייזר עצמו מחזיר `$337.54 usable vs 1×$386.20` ברגע זה, כלומר חוסר של −$48.66, לא מרווח של +$1.34**
 
 **לא שער ולא ריסטארט:** `19:04` ∉ `15:30-16:10`, ומעבר לתקרת-16:10 ⇒ **אפס ריסטארט, אפס GO/NO-GO**. בעלות-השער של היום הוכרעה בריצה 48; המאזין על :8000 עלה `Mon Sep 28 15:58:34` = אחרי 12:00 ⇒ הבעלות אינה שלי ([[T-369]]).
