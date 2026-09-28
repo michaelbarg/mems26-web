@@ -1,3 +1,81 @@
+## 🟢 [cowork-dev · 2026-09-28 15:04-15:22 IL] — **ריצה 47 · חובה-1** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: בגודל-הפסוק (חוזה 1) אף נתיב קדם-שליחה אינו חוסם על כסף — ומרווח-המימון הוא `$46.34`**
+
+**לא שער** ([[T-369]]): `15:04` ∉ `15:30-16:10` ⇒ מחוץ לכל חלון פרט לחובה-1. **שער-היום שייך לריצה שתיפול ב-15:33:56** (`list_scheduled_tasks ⇒ nextRunAt 2026-09-28T12:33:56Z`); לא הרמתי ריסטארט ולא שלחתי GO/NO-GO. מאזין `PID 649 · lstart Mon Sep 28 10:58:35` = אותו מאזין של ריצות 39-46, עלייה **10:58 < 12:00** ⇒ שער-הבעלות לא נגוע.
+
+☎️ **אפס ממתינות · אפס הודעות נשלחו** — אין (א)/(ב)/(ג)/(ד). חמישה מקורות **+ רלה מוכח-חי** (מלכודת-12): `mobile_relay state=running pid=1493` (אותו PID של 41-46) · `GET /chat ⇒ 200 · items=30`, אחרון-הפיד `2026-09-27T13:17:56Z` = **סוכן** · `instruction/pending {{"items":[]}}` · `cmd/pending {{"cmd":null}}` · `phone_request_guard ⇒ dispositioned 10 · undispositioned 0`; **אחרונת-מייקל `2026-09-25T12:07:30Z` נענתה עניינית ב-`12:17:53Z`**. `TRADE_TAGS.jsonl` אינו קיים ⇒ אפס תיוגים. שתי בקשות 27.09 (כן-לחבילה · מאשר-ברידג׳) עדיין בלי מענה ו**לא נשאלות שוב מכאן** — לשער-15:30 כמקרה (ד).
+
+### 🔑 הממצא — שער-הכסף: מה נבדק לפני שליחת-לייב, ומה לא
+
+השער שמייקל שואל עליו כל יום הוא "האם יש מרג'ין". מדדתי **בקוד** (Rule 5) מה באמת נבדק לפני שליחה, ובגודל-הפסוק של היום התשובה היא **שום דבר שנוגע בכסף**:
+
+🔵 **`check_live_entry()` (`PRE_SEND_ENTRY_GUARD_V1`) חוסם על ארבעה דברים בלבד** — טריות-`sierra_state` (`entry_guard.py:126`) · `position_qty` (`:140`) · `working_orders` (`:204`) · תקרת-המתכון `MAX_POSITION_ALLOWED` (`:232`). **אפס קריאה לשדה-כסף.** נקרא שורה-שורה, `108-240`, ולא הוסק מהשם.
+
+🔵 **מפסקי-החירום של הברוקר הם תצוגה-בלבד.** הבקרה השלילית: `grep -rn 'acct_trading_disabled|acct_loss_limit_reached|acct_under_margin' backend bridge scripts --include=*.py` ⇒ **שני אתרי-קריאה בסך הכול**, שניהם לא בנתיב-השליחה: `account_state_routes.py:96-97` (סריאליזציה ל-API) ו-`mobile_monitor.py:850` (ה-UI של הטלפון, `'🔴 מסחר-מושבת'`). ⇒ אם הברוקר משבית מסחר או שסף-ההפסד היומי נגע, `check_live_entry` עדיין יחזיר `'clear to send'` וההשבתה תתגלה **כדחיית-ברוקר**, לא כ-NO-GO.
+
+🔵 **`margin_sizing` כן קורא כסף — אבל בגודל 1 אינו יכול לחסום.** `MARGIN_AWARE_SIZING_V1=1` · `MES_MARGIN_PER_CONTRACT=386.20` · `MARGIN_BUFFER_USD=50`, **ו-`MARGIN_FALLBACK_CONTRACTS = 4`** (`margin_sizing.py:77`) ⇒ בבקשה של חוזה אחד התנאי `requested > 4` **שקרי**, והפונקציה נופלת לענף האחרון שמחזיר את הגודל **ללא שינוי** עם `'below-fallback size kept 1:1 (Michael 2026-08-13) — broker adjudicates'` (`:160-162`). כלומר האצלה מפורשת לברוקר מכוח פסיקה, לא באג.
+
+**⇒ המשמעות המדויקת:** בגודל-הפסוק של היום (חוזה 1, [[T-489]]) **אין קוד שיעצור עסקה מחוסר-כסף**, ו"`fire_drill` GO" אינו ראיה שהחשבון יכול לממן את העסקה. זו תוצאה של **שתי פסיקות** (13.08 האצלה-לברוקר · 19.08 `MARGIN_AWARE_SIZING_V1`) ⇒ **לא הדלקתי דבר ולא הצעתי לשנות התנהגות** — [[T-504]] נולד כחוב-תצפית.
+
+### 🔢 והמספרים שהופכים את זה מתיאורטי למחייב-תשומת-לב היום
+
+`cap_contracts(1) ⇒ (1, "margin ok ($432.54 covers 1×$386.20)")` — מדידת-זמן-ריצה עם `.env` טעון. **מרווח = `$432.54 − $386.20 = $46.34`** ≈ **9.3 נקודות MES** (‏$5/נקודה, נגזר מהעסקה שלנו 25.09: 14 נק' ⇒ ‏$70).
+
+⚠️ ועל **חשבון משותף**: `acct_daily_net_loss_limit = −289.52` (60% משווי-החשבון) · `daily_total_qty_filled = 10` · `daily_pnl = +52.50` · `position_qty = 0` · ו-`v9_trades` ל-ET `2026-09-28` מחזיר **0 שורות** ⇒ לפי מלכודת §3.5 **עשרת החוזים של היום הם מסחר ידני של מייקל/אתי**. ⇒ משיכה ידנית של ~‏$47 (פחות מ-10 נקודות על חוזה אחד) מעבירה את `cap_contracts(1)` מ-`'margin ok'` ל-`'broker adjudicates'`, **ואף שער לא יאמר זאת**.
+
+[[T-34]] **דיווח-בלבד, אינו (ג):** `avail 482.54` < `1,595` — אך הסף ההוא הוא פסיקת-**4-חוזים** (‏$1,595/4 ≈ $398.75; סף-3c ≈ $1,196, TASK_LOG 27.08), והפסיקה היום היא **חוזה 1**. ו-`under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · acct_ok 1` ⇒ **אינו חוסם מסחר ⇒ אפס הודעת-טלפון**, נכון לספק.
+
+### 🟢 מה שנמדד (אפס דלתא מריצה 46, אלא אם צוין)
+
+🟢 [[T-430]] **פיד חי ב-DB ולא בקבצים:** `woodies max(ts) = 2026-09-28 15:05:00+03 · age 97s` · `footprint 15:06:32 · age 5s`. `v9_bars_5min ⇒ 25.09 23:30 · 228,997s` = הלגסי הדחוי-מדעת ⇒ מקור-הדחיות של `TS-OFFSET-GATE`, אישוש שישי. גיל-בר **רק** ב-`now() - max(ts)` (מלכודת-tz של 42/43 לא חזרה).
+🟢 **[[T-486]]/ack מחזיק:** `manual_position_ack.json date = 2026-09-28` = **ET-היום** (`TZ=America/New_York date ⇒ Mon Sep 28 08:06 EDT`) ⇒ חידוש ריצה 46 **בתוקף, לא חודש שוב** (הצעד-הבא (5) של ריצה 46 בוצע כאימות).
+🟢 **פוזיציה 0 · `working_orders 0` · `order_placement_armed 1` · `is_sim 0`** · לייב לא-סופיות ⇒ 0 · שלוש עסקאות-הלייב האחרונות `2408 (+72.50 ברוקר) · 2340 (−38.75) · 2230 (−18.75)`, כולן `CLOSED`.
+🟢 `GET /api/v9/health ⇒ 200 {{"status":"ok","version":"v9.0.0"}}` ב-`218ms` · `flag_guard ⇒ PASS — all 270` + LIVENESS · `task_log_guard ⇒ 481 items · 0.0 days · ✅` · `ruled_contracts() ⇒ 1` עם `.env` טעון ([[T-489]]) — **מדידה, אפס נגיעה בדגלי-גודל** ([[T-225]]).
+🔵 **אישוש לתיקון של ריצה 46 על ה-stash:** `git pull --ff-only ⇒ Already up to date` **עובר על עץ מלוכלך** — ⇒ לשער אין צורך ב-`stash/pop` כל עוד הוא משתמש ב-`--ff-only`. העץ: **4 מעוקבים** (`MONDAY_READINESS.html · MARKS_VS_TREE_2026-09-24.md · PM_1.md · PM_2.md`) + **3,727 לא-מעוקבים** — אותה צורה של ריצות 44/46, ללא שינוי.
+🔵 **בעל-הריסטארט, אישוש שני:** `list_scheduled_tasks` ⇒ **אין `mems26-preopen-restart-2809`**; כל החד-פעמיות `enabled:false` (אחרונה `1509`); היחידה הדולקת היא `mems26-preopen-gate` עם `lastRunAt 12:04:03Z` ו-`nextRunAt 12:33:56Z` ⇒ **ריצת-15:33 היא בעלת-הריסטארט וההודעה היחידה**.
+
+⛔ **אפס נגיעה:** דגלים · `.env` · דגלי-גודל · פוזיציות · פקודות · ריסטארט · DB (קריאה בלבד) · קוד-ייצור · `~/SierraChart_Data` (קריאה בלבד) · טלפון · LaunchAgents · הרנס · `manual_position_ack.json` (**לא נגעתי — בתוקף מריצה 46**). **הכתיבות היחידות: TASK_LOG ([[T-504]]), STATUS_BOARD, והרשומה הזאת.**
+
+**הצעד הבא (לשער 15:30-16:10):** (1) `git pull --ff-only` — בלי stash, עובר על עץ מלוכלך (נמדד כאן); (2) ריסטארט קדם-פתיחה בפוזיציה-0 — `ps -o lstart` של `:8000` קודם; 649 מ-10:58 **אינו** ריסטארט-היום; (3) `close_stale_shadow` dry-run (ריק = צפוי, אינו עילה לדלג — ריצה 41); (4) `fire_drill` שלב-D מול בר-Globex אמיתי + `flag_guard` PASS + `ruled_contracts()==1`; (5) **ה-ack בתוקף להיום — לאמת `_read_manual_ack() != None`, לא לחדש**; (6) שתי בקשות 27.09 כמקרה (ד) בהודעת-השער האחת; (7) **חדש: להוסיף להודעת-השער את מרווח-המימון בדולרים** (`cap_contracts(1)` מחזיר את המשפט מוכן) — מייקל שואל "יש מרג'ין" ו-`$46.34` הוא התשובה הכמותית; (8) ד׳ 30.09 ו-ו׳ 02.10 נושאים אדום ב-15:30 IL **בתוך חלון-השער** (ריצה 46).
+
+```raw
+$ date                                          ⇒ Mon Sep 28 15:04:19 IDT 2026   (ET 08:06)
+$ git pull --ff-only                            ⇒ Already up to date.      (עץ מלוכלך, עבר)
+$ HEAD                                          ⇒ a1f69223
+$ launchctl print … com.mems26.mobile_relay     ⇒ state = running | pid = 1493
+$ GET /chat?key=…                               ⇒ http=200 · items=30 · אחרון: cowork-dev 2026-09-27T13:17:56Z
+$ GET /instruction/pending                      ⇒ {"items":[]}
+$ GET /cmd/pending                              ⇒ {"cmd":null}
+$ phone_request_guard.py                        ⇒ dispositioned: 10 · undispositioned: 0
+$ psql now()-max(ts) v9_bars_5min_woodies       ⇒ 2026-09-28 15:05:00+03 | 97s
+$ psql now()-max(ts) v9_bars_footprint          ⇒ 2026-09-28 15:06:32    | 5s
+$ psql now()-max(ts) v9_bars_5min  (לגסי)       ⇒ 2026-09-25 23:30:00+03 | 228997s
+$ psql v9_trades WHERE ET::date = 2026-09-28    ⇒ (0 rows)
+$ psql live AND state NOT IN (CLOSED,CANCELLED) ⇒ (0 rows)
+$ sierra_state.json                             ⇒ position_qty 0 · working_orders 0 · armed 1 · is_sim 0
+                                                   daily_total_qty_filled 10 · daily_pnl 52.50
+                                                   acct_available_funds 482.54 · acct_margin_req 0.00
+                                                   acct_account_value 482.54 · acct_under_margin 0
+                                                   acct_trading_disabled 0 · acct_loss_limit_reached 0
+                                                   acct_daily_net_loss_limit -289.52 · acct_ok 1
+$ margin_sizing.enabled()                       ⇒ True
+$ margin_sizing.margin_per_contract(state)      ⇒ 386.2
+$ margin_sizing.cap_contracts(1)                ⇒ (1, 'margin ok ($432.54 covers 1x$386.20)')
+$ grep -c read-sites acct_trading_disabled      ⇒ account_state_routes.py:96 · mobile_monitor.py:850   (אפס בנתיב-השליחה)
+$ grep -c read-sites acct_under_margin (*.py)   ⇒ account_state_routes.py:96                            (אתר אחד)
+$ MARGIN_FALLBACK_CONTRACTS                     ⇒ 4        (margin_sizing.py:77)
+$ curl /api/v9/health                           ⇒ 200 {"status":"ok","version":"v9.0.0"} · 218ms
+$ ps -o pid,lstart,etime -p 649                 ⇒ 649 | Mon Sep 28 10:58:35 2026 | 04:08:12
+$ set -a; . ./.env; set +a; ruled_contracts()   ⇒ 1
+$ flag_guard.py                                 ⇒ PASS — all 270 ruled flags match
+$ task_log_guard.py                             ⇒ 481 items, last committed 0.0 days ago · ✅
+$ manual_position_ack.json .date                ⇒ 2026-09-28   (= ET-היום, מריצה 46; לא נגעתי)
+$ git status --porcelain                        ⇒ 4 M · 3727 ??
+$ list_scheduled_tasks                          ⇒ אין mems26-preopen-restart-2809 · gate next 12:33:56Z
+$ הודעות-טלפון שנשלחו בריצה                     ⇒ 0
+```
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-28 14:34-14:52 IL] — **ריצה 46 · חובה-1** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔑 **הממצא: ack-הפוזיציה-הידנית פג שלושה ימים — ביום שבו מייקל כבר מילא 10 חוזים ידנית לפני הפתיחה**
 
 **לא שער** ([[T-369]]): `14:34` ⇒ מחוץ לכל חלון פרט לחובה-1. **שער-היום שייך לריצה שתיפול ב-15:30-16:10**; לא הרמתי ריסטארט ולא שלחתי GO/NO-GO. המאזין `PID 649 · lstart Mon Sep 28 10:58:35` = אותו מאזין של ריצות 39-45, עלייה **10:58 < 12:00** ⇒ שער-הבעלות לא נגוע.
