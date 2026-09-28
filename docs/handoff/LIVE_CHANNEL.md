@@ -1,3 +1,63 @@
+## 🟢 [cowork-dev · 2026-09-28 11:02-11:12 IL] — **ריצה 39 · חובה-1 · לפני-פתיחה** · 🔎 **[[T-502]] נפתח: הריסטארט של 10:57 השאיר 6 מ-9 LaunchAgents לא-טעונים — הטלפון של מייקל היה אפל. הוחזרו ואומתו.**
+
+☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס הודעות נשלחו.** אין (א)/(ב)/(ג)/(ד).
+הודעת-מייקל אחרונה `2026-09-25T12:07:30Z` (נענתה `12:17:53`); אחרון-בתור `cowork-dev 2026-09-27T13:17:56Z`. שתי הבקשות שבה (כן-לחבילה · מאשר-ברידג') עדיין בלי מענה — **ולא נשאלות שוב** (הודעה שנייה על אותה שאלה = [[T-369]]); שער-15:30 יטפל בהן כמקרה (ד).
+
+⛔ **אפס ריסטארט · אפס הודעת-שער.** המאזין `649` עלה `10:58:35` — זו עליית-launchd אחרי הבוט של `10:57:28`, **לא** ריסטארט-סוכן, ולפני 12:00 ⇒ שער-הבעלות לא נגוע.
+
+### 🔎 ממצא 1 — [[T-502]]: הבוט של 10:57 טען שלושה שירותים מתוך תשעה. הטלפון היה אפל.
+
+**איך זה התגלה דרך חובה-1 עצמה:** ה-peek מ-Render החזיר `{"items":[]}` — אפס הודעות בתור שאתמול (ריצה 38) החזיר `TOTAL=30`. זה לא "אין ממתינות", זו **עיוורון**: ההפרש נובע מכך ש-`_PUSHED_THREAD` ב-Render הוא זיכרון-תהליך, והמק הוא שדוחף אליו כל מחזור. `GET /healthz ⇒ has_snapshot:false` אישר את הכיוון — המק לא דוחף כלום.
+
+`launchctl list | grep mems26` החזיר **שלוש** שורות (`backend 649 · frontend 658 · bridge 673`) במקום תשע. ששת החסרים היו **enabled** ב-`print-disabled` אך לא קיימים בדומיין כלל (`launchctl print … ⇒ Could not find service in domain for user gui: 501`), כלומר launchd לא טען אותם בלוגין — לא "כבו", לא "נפלו".
+
+**שניים מהשישה נושאים סיכון אמיתי ליום-מסחר:**
+- `mobile_relay` — המשיכה של הודעות-מייקל למק **והדחיפה** של התמונה-החיה לטלפון. כל עוד הוא מת: מייקל רואה עמוד ריק, והודעה שלו יושבת ב-`_INBOX` של Render עד שהשירות יתעורר — או נמחקת אם Render מתאתחל קודם. **ביום שבו נשאלו ממנו שתי פסיקות עד 15:30.**
+- `export_promoter` — מקדם `.tmp→.json` שנבנה בדיוק כי `std::rename` נכשל תחת Wine, והיעדרו **מקפיא את פיד-סיירה** (תקרית 25.06). כרגע לא הזיק: `ls *.tmp ⇒ 0`, כלומר הכתיבות נחתו ישירות — אבל רשת-הביטחון לא הייתה פרוסה לקראת 16:30.
+- והשלישי שנמדד: `startup_check` — **בדיקת-הבריאות-שבעלייה היא עצמה אחת מהשישה שלא עלו.** המנגנון שאמור לצעוק על מצב כזה היה חלק מהמצב.
+
+**התיקון (בסמכות ניטור/תיקון-קטן — אפס נגיעה בדגלים/`.env`/פוזיציות/backend):** `launchctl bootstrap gui/501` לשישה, `rc=0` בכולם. **אומת מהצד של מייקל, לא מהצד שלי:** `healthz ⇒ has_snapshot:true · age_s 1.6` · `GET /chat ⇒ TOTAL 30` עם אותו זנב כמו ה-JSONL. הטלפון חי שוב.
+
+**השורש פתוח ונרשם:** *למה* launchd טען שלושה ולא תשעה. הצעד הבא ב-[[T-502]].
+
+### 🟢 מצב חי — הליבה שרדה את הבוט נקי
+
+`health 200 / 15ms` · `ruled_contracts() = 1` עם `.env` טעון (מלכודת 18) = **הפסיקה** · `position_qty 0 · working_orders 0 · is_sim 0 · order_placement_armed 1 · acct_under_margin 0 · acct_trading_disabled 0` · session `OVERNIGHT / is_globex true`.
+
+**הפיד חי — נמדד ב-DB, לא בקבצים ([[T-430]]):** `max(ts) v9_bars_5min_woodies = 11:05:00` (בן `22s`). ובונוס: `v9_bars_footprint = 11:05:17` (בן `5s`) — **[[T-492]] נסגר מעצמו בבוט**: הברידג' עלה הפעם *אחרי* שסיירה כתבה, והפוטפרינט נכנס שוב אחרי שעמד על 22.09.
+
+`v9_bars_5min` עומד על `25.09 23:30` ו-`TS-OFFSET-GATE REJECTED` חוזר ב-`backend.err.log` — **אותו סיפור ידוע, לא חדש**: המקור הלגסי דחוי מדעת, ה-SoT הוא `_woodies`.
+
+⚠️ **machine_health (WARN-בלבד):** `load 17.91` בדקה הראשונה אחרי הבוט ⇒ `4.89` בדקה העשירית. סערת-בוט שהתפוגגה, לא צרכן.
+
+🟢 **[[T-34]] דיווח-בלבד, אפס דלתא:** `acct_available_funds 482.54 < 1,595` — הסף הוא פסיקת-4-חוזים; לחוזה-1 (`386.20 + 50`) יש כיסוי, `headroom 46.34$`. **לא חוסם מסחר ⇒ לא מקרה (ג).**
+
+⛔ **אפס נגיעה:** דגלים · `.env` · פוזיציות · פקודות · DB · קוד · עץ · `~/SierraChart_Data` · טלפון · backend.
+
+```raw
+$ date                                  ⇒ Mon Sep 28 11:02:21 IDT 2026
+$ sysctl -n kern.boottime               ⇒ Mon Sep 28 10:57:28 2026   (last shutdown ברשומות: 22.09 00:46 ⇒ כיבוי לא-נקי)
+$ GET /chat?key=…                       ⇒ {"items":[]}               ← לפני
+$ GET /healthz                          ⇒ {"ok":true,"has_snapshot":false,"age_s":null}
+$ launchctl list | grep mems26          ⇒ 3 שורות (backend 649 · frontend 658 · bridge 673)
+$ launchctl print gui/501/com.mems26.mobile_relay
+                                        ⇒ Could not find service "com.mems26.mobile_relay" in domain for user gui: 501
+$ launchctl print-disabled gui/501 | grep mems ⇒ כל השישה "=> enabled"
+$ launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.mems26.{mobile_relay,export_promoter,activity_feed,update_check,startup_check,eod_handoff}.plist
+                                        ⇒ rc=0 ×6
+$ launchctl list | grep mems26          ⇒ 9 שורות (mobile_relay 1493 · export_promoter 1496 · activity_feed 1499 · update_check 1502 · startup_check 1505 · eod_handoff "-" calendar)
+$ GET /healthz                          ⇒ {"ok":true,"has_snapshot":true,"age_s":1.6}   ← אחרי
+$ GET /chat?key=…                       ⇒ TOTAL 30 · אחרונה-של-מייקל 2026-09-25T12:07:30Z
+$ ls ~/SierraChart_Data/v9_export/*.tmp ⇒ 0
+$ psql … "select max(ts) …"             ⇒ woodies_5min 2026-09-28 11:05:00+03 (00:00:22) · footprint 11:05:17 (00:00:04) · bars_5min 2026-09-25 23:30 (stale, legacy)
+$ curl -o /dev/null -w %{http_code} localhost:8000/api/v9/health ⇒ 200 (0.015s)
+$ ruled_contracts()  (set -a; . ./.env) ⇒ 1
+$ sierra_state.json                     ⇒ position_qty 0 · working_orders 0 · is_sim 0 · armed 1 · acct_under_margin 0 · available 482.54
+$ uptime                                ⇒ 11:07 up 10 mins · load 4.89 52.15 53.39
+```
+
+---
+
 ## 🟢 [cowork-dev · 2026-09-27 19:52-20:05 IL · אינטראקטיבי] — **בדיקת-מוכנות לב׳ (שאלת מייקל "האם מוכנים למחר") — מוכנים, בתנאי שריסטארט-השרת של 15:30 רץ**
 
 ```raw
