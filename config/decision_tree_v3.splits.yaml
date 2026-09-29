@@ -112,3 +112,37 @@ splits:
     candidate: "—"
     day_total: "60 sessions vs live0927: Σ+1,844.30$ · Δ +470.55$ gross / ≈ +387.35$ net of +32 round-trips · better 24 / worse 12 / same 24 · added 46 (26 wins, +499.90$), removed 14 (+8.15$) · by month Jun +120 · Jul +116 · Aug −88 · Sep +322 · max cumulative drawdown −277.50$ (live0927 −212.50$) · vs the pre-tree baseline Δ +663.05$ gross / ≈ +553.85$ net, better 28 / worse 9"
     verdict: "POSITIVE — above the sum of the parts (+343$ net alone). RULED by Michael 2026-09-27 18:37 IL 'מאשר' ⇒ LIVE (3.1.0); the live file walks identically to tree_pkg.yaml on all 2,621 real vectors of the replays (0 differences)"
+
+  # ── 29.09 (T-514): after 28.09's two live losses (−95$ broker: 16:50 S5 reversal LONG −61.25, 17:25 trend-break
+  # VEGAS LONG −33.75) — every "fix" for them measured day-total vs the live tree 3.1.0 (ref t494pkg, 61 sessions
+  # incl. 28.09, Σ+1,778.05$). On 28.09 itself every configuration loses in the first hour (tree 3.0.0: −75$,
+  # 3.1.0: −66.25$ in the replay). harness_out/t514/.
+  - id: TBR
+    date: 2026-09-29
+    path: "auction_B_trend_break — only rel_bias=with"
+    question: "28.09 17:25 VEGAS LONG had rel_bias=none in a tight range — require the hint?"
+    variant: harness_out/t514/tree_tbr.yaml
+    day_total: "61 sessions vs t494pkg: Δ −166.90$ gross / ≈ −172.10$ net · better 1 / worse 5 · removed 6 trades worth +206.25$"
+    verdict: "REFUTED — the branch earns on exactly the no-hint cases"
+  - id: XS
+    date: 2026-09-29
+    path: "ELQ expensive_stop arm blocking (ELQ_EXPENSIVE_STOP_V1=1, stop/ATR > 1.5)"
+    question: "28.09 16:50 #2483 stop 13.2 vs ATR 5.6 — block wide stops?"
+    variant: "live tree + env ELQ_EXPENSIVE_STOP_V1=1 (T-514 flag, default shadow)"
+    day_total: "61 sessions vs t494pkg: Δ −861.25$ gross / ≈ −723.45$ net · better 15 / worse 29 · removed 88 trades worth +719.35$"
+    verdict: "REFUTED — wide-stop trades are net winners; the 10.09 shadow stands"
+  - id: ZLR
+    date: 2026-09-29
+    path: "take_with_hint — promote: [ZLR] (T-496)"
+    question: "28.09 17:30 ZLR SHORT (tree TAKE with the hint) went shadow by ZLR_SHADOW_V1 before the 35-pt breakdown — route ZLR live on the with-hint leaf?"
+    variant: harness_out/t514/tree_zlr.yaml
+    day_total: "61 sessions vs t494pkg: Δ −383.10$ gross / ≈ −429.90$ net · better 10 / worse 11 · +38 ZLR-era trades (22 wins, −23.75$) displaced 20 worth +359.35$; on 28.09 the losing first-hour long held the one slot anyway"
+    verdict: "REFUTED — ZLR stays shadow (07.09)"
+  - id: NO_S5
+    date: 2026-09-29
+    path: "the live tree without auction_B_reversal (S5)"
+    question: "S5 lost 61.25$ on its first live use (28.09) — does it still pay with that day included?"
+    variant: harness_out/t514/tree_p17.yaml
+    day_total: "61 sessions vs t494pkg: Δ −155.55$ gross / ≈ −116.55$ net · better 9 / worse 9 · Aug +232 · Sep −337"
+    verdict: "S5 STAYS — removing it costs 116.55$ net over 61 sessions, 28.09 included"
+

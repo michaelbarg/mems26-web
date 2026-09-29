@@ -99,11 +99,19 @@ def assess_entry_quality(
         rr = stop_distance / atr
         if rr > c["rr_max"]:
             import logging as _elq_log
-            _elq_log.getLogger(__name__).warning(
-                "[ELQ] expensive_stop SHADOW: rr=%.2f > %.2f "
-                "(stop %.1f vs ATR %.1f) — would block, logging only",
-                rr, c["rr_max"], stop_distance, atr)
-            # reasons.append(...) — SHADOWED, not blocking
+            import os as _elq_os
+            # T-514 (29.09): ELQ_EXPENSIVE_STOP_V1=1 makes the arm block — for the replay that measures it
+            # (28.09 #2483: stop 13.2 vs ATR 5.6, rr 2.37, −61.25$ at the broker). Default OFF = the shadow
+            # of 10.09 (9a612826), unchanged.
+            if _elq_os.getenv("ELQ_EXPENSIVE_STOP_V1", "0").strip().lower() in ("1", "true", "yes"):
+                reasons.append(f"expensive_stop: rr={rr:.2f} > {c['rr_max']:.2f} "
+                               f"(stop {stop_distance:.1f} vs ATR {atr:.1f})")
+            else:
+                _elq_log.getLogger(__name__).warning(
+                    "[ELQ] expensive_stop SHADOW: rr=%.2f > %.2f "
+                    "(stop %.1f vs ATR %.1f) — would block, logging only",
+                    rr, c["rr_max"], stop_distance, atr)
+                # reasons.append(...) — SHADOWED, not blocking
 
     # 3. Beyond value
     if vah is not None and val is not None:

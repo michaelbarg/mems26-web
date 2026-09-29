@@ -342,6 +342,13 @@ flags:
     category: s3
     what: "Mute S3 fires (footprint signals computed but not routed)."
     why: "S3 muted pre-LIVE (I-11). T-478 (Michael 25.09 17:00 'לחבר את מערכת 3 לשדואו'): set to 0 — S3 fires again into the gateway, which routes system 3 shadow-only (never registered live/demo); the dead feed's root cause (SCID path on the June contract) fixed the same day; S2 isolated by S2_READ_FOOTPRINT_V1=0."
+  ELQ_EXPENSIVE_STOP_V1:
+    category: cascade_gate
+    group: entry_location_quality
+    what: "T-514 (29.09): the expensive-stop arm of ELQ (stop/ATR > rr_max 1.5) BLOCKS when 1. Default 0 = the 10.09 shadow (compute + log 'would block', never block)."
+    why: "Measured 29.09 on 61 sessions vs the live tree 3.1.0: ON ⇒ Δ −861.25$ gross / ≈ −723.45$ net, 88 removed trades were worth +719.35$ — wide-stop trades are net winners. Stays OFF; built only so the replay could measure it (28.09 #2483 rr 2.37, −61.25$)."
+    status: rejected
+    ref: "T-514 · config/decision_tree_v3.splits.yaml XS · tests/v9/regression/test_t514_expensive_stop_flag.py"
   FOOTPRINT_DISABLED:
     category: s3
     what: "Fully disable S3 footprint processing AND writing (process_bar returns immediately) — not just fires."
