@@ -1,3 +1,156 @@
+## 🔁 [cowork-dev(sched) · 2026-09-29 21:35-21:42 IL] — **ריצה 88 · חובה-1 + חובה-3 (ניטור-RTH)** · 🟢 **ארבעת הצירים ירוקים · #2623 נסגרה ביעד-1 · הודעת-טלפון אחת (מקרה ב)**
+
+**החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `21:35` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד,
+**ומעבר לתקרת-`16:10`** ⇒ אין ריסטארט. שני תנאי-T-369 מתקיימים, כמו בריצות 76-87:
+
+```raw
+(1) רשומת cowork-dev מהיום על שער ⇒ ריצה 76, 15:34-15:55, GO
+(2) ps של המאזין על :8000 ⇒ 91652 · Tue Sep 29 15:37:21 2026 · etime 05:59:33
+    עלה היום אחרי 12:00, אותו PID של ריצה 76 (ושל ריצות 84-87)
+⇒ אפס ריסטארט · אפס GO/NO-GO בטלפון · אפס נגיעה ב-.env/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL
+```
+
+---
+
+### ☎️ חובה-1 — התיבה ריקה ממייקל, **אבל מקרה (ב) חל** ⇒ הודעה אחת, 209 תווים
+
+מלכודת-12 נבדקה **לפני** המסקנה: הרלה חי, ולכן "אפס ממתינות" הוא נתון ולא שלילה-כוזבת.
+
+```raw
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1493
+GET /instruction/pending?key=… ⇒ {"items":[]}          (peek, ללא תופעות-לוואי)
+GET /cmd/pending?key=…         ⇒ {"cmd":null}
+GET /chat?key=…                ⇒ HTTP 200 · 30 פריטים
+אחרונת-מייקל: 2026-09-29T10:59:33Z "האם יש תיקון רלוונטי שפועל לנו?"
+אחריה בתור:   2026-09-29T11:09:16Z [cowork-dev] — תשובה עניינית (חבילת S1+S5+S7)
+המראה המקומי PHONE_THREAD.jsonl תואם את Render פריט-בפריט
+אפס הודעות "תיוג עסקה #" (docs/handoff/TRADE_TAGS.jsonl עוד לא נוצר)
+⇒ לא (א) — אין הודעת-מייקל בלי תשובה עניינית
+⇒ כן (ב) — #2623 נסגרה 21:21:59, אחרי ריצה 87 שדיווחה אותה עוד FILLED ⇒ חובת-דיווח
+⇒ לא (ג) — אין חריגה שדורשת החלטה (המרג'ין אינו חוסם; ראיה למטה)
+⇒ לא (ד) — השער אינו שלי
+```
+
+**ההודעה שנשלחה ואומתה במקור (GET /chat, לא ה-ok):**
+
+```raw
+ts 2026-09-29T18:39:44Z · sender cowork-dev · 209 תווים · אפס backticks
+"עסקה חיה נסגרה 21:22 — CEILING_FLIP לונג 7719.25, סטופ עלה לאיזון 7719.50, יעד1 7730.
+ יצאה ביעד1 במלואה: 10.75 נק, 1.48R, הברוקר 52.50. יום-הברוקר מינוס 2.50, מול ההפסד 55
+ של 19:02. פוזיציה 0, סלוט פנוי, חמוש."
+המראה המקומי נכתב: tail -1 PHONE_THREAD.jsonl ⇒ 2026-09-29T18:39:43Z | cowork-dev | 209
+```
+
+---
+
+### 🖥️ חובה-3 — ארבעת הצירים
+
+**ציר 1 · פיד — חי באמת (T-430: בסיס-הנתונים, לא mtime של קובץ-יצוא).**
+
+```raw
+select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,2), count(*) filter (where ts::date=current_date)
+  from v9_bars_5min_woodies;
+⇒ 2026-09-29 21:35:00+03 | 1.89 דק' | 248 ברים היום        (נמדד 21:36:53 IDT)
+```
+
+**ציר 2 · backend — בריא, מאזין יחיד, והעין פקוחה.**
+
+```raw
+curl /api/v9/health ⇒ http=200 time=0.387s {"status":"ok","version":"v9.0.0"}
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 91652 (מאזין אחד בלבד)
+/tmp/backend.err.log · 25,342,962 בתים · נגע לאחרונה Sep 29 21:38 (כלומר כותב עכשיו)
+tail -3000 | grep -c ERROR ⇒ 0        ← אפס-שגיאות על קובץ-חי = ראייה, לא עיוורון
+```
+
+**ציר 3 · פוזיציה מול TM — שני הצדדים שטוחים ומסכימים.**
+
+```raw
+GET /api/v9/agent/sierra_live_check ⇒ verdict "🟢 המערכת מזהה את סיירה תקין"
+  sierra_alive: ok · age_s 0.6 · is_sim 0 · armed 1
+  open_trade_detect: sierra_qty 0 == tm_net_qty 0 == tm_open_trades 0 · working_orders 0
+    detail "flat בשני הצדדים"
+  closures_on_fills: closed_today 2 · [2623 T1_HIT 21:21:59, 2594 MAE_SCRATCH 19:02:28]
+GET /api/v9/gateway/status ⇒ live_slot null (פנוי) · live_enabled_systems [2,4]
+  trades_today 2 · consecutive_losses 0 · shadow_active_count 17
+  cooldown_active false · cooldown_remaining_sec 0 · cluster_guard false · SSV false · chop FOUND
+```
+
+אין כאן שאלת-בעלות לפתוח: שתי הספירות אפס, אפס פקודות-עובדות, ולכן אין אי-התאמה לאזעק עליה.
+
+**ציר 4 · ליגר — כותב.**
+
+```raw
+select count(*), max(ts), count(*) filter (where ts > now()-interval '1 hour')
+  from v9_decision_vectors where ts::date=current_date;
+⇒ 8815 היום | newest 2026-09-29 21:35:02.632 | 1673 בשעה האחרונה
+```
+
+**גודל-החוזה — פסוק, ונקרא מהמקור הפסוק (לא מ-.env):**
+
+```raw
+set -a; . ./.env; set +a
+python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+⇒ 1        ← תואם לפסיקת 18.09; אפס סחיפה תוך-סשן
+```
+
+---
+
+### 📗 העסקה שנסגרה — #2623, ניצחון ביעד-1
+
+```raw
+select id,state,entry_price,stop,t1,t1_hit_ts,exit_ts,exit_price,exit_reason,pnl_usd,pnl_r,pnl_sierra,outcome
+  from v9_trades where id=2623;
+⇒ 2623 | CLOSED | 7719.25 | 7719.5 | 7730 | 21:21:59 | 21:21:59 | 7730 | T1_HIT
+       | 53.75 | 1.48 | 52.5 | WIN     (CEILING_FLIP_LONG · sys 2 · Variation · PM_SESSION · ord 11365)
+/api/v9/trades/recent ⇒ stop_initial 7712.0 · stop 7719.5 · stop_note "BE@entry" · stop_issue null
+```
+
+הסטופ עלה `7712 → 7719.50` (מעל מחיר-הכניסה) לפני היעד — זהו `MODIFY_STOP` של
+`SYSTEM6_AUTOCORRECT=protective`, המותר-והחי לפי CLAUDE.md, **ולא** op=EXIT. אפס נגיעה.
+
+---
+
+### 💵 אמת-הברוקר להיום — פיצול כן, בלי להמציא ערך חסר
+
+```raw
+select id,state,exit_reason,pnl_usd,pnl_sierra from v9_trades where mode='live' and entry_ts::date=current_date;
+⇒ 2594 | CLOSED | MAE_SCRATCH | NULL  | -55      (exit_price NULL · outcome UNPRICED)
+⇒ 2623 | CLOSED | T1_HIT      | 53.75 | 52.5
+sum ⇒ live_day_pnl_usd = 53.75   ·   live_day_pnl_sierra = -2.50
+```
+
+**ספרי-המערכת מראים +53.75 רק מפני ש-#2594 חסרת-מחיר-יציאה** (Rule 1: משאירים NULL,
+לא מסנתזים). **אמת-הברוקר ליום היא −2.50.** גם `/api/v9/gateway/status` ו-
+`sierra_live_check` מפרסמים `daily_pnl 53.75` — אותו פער, אותו הסבר; לא באג.
+לתשומת-לב `broker_truth.py` הערב: #2594 חייבת רישום-ברוקר, אחרת n/N לא יסגור.
+
+---
+
+### 🔎 מדידה-בלבד (לריפליי, **לא** לדגל)
+
+1. `/api/v9/status` מדווח `bridge.running=false · streams_active 0/11` בעוד הפיד הקנוני
+   חי לחלוטין (בר בן 1.89 דק' בבסיס-הנתונים). המבחן הפסוק הוא הבר, והוא ירוק — נרשם
+   כתצפית, לא כתקלה ולא כשינוי-דגל.
+2. ריצה 87 ציטטה `trade_activity_events` כמקור להוכחת-בעלות לפי order_id. **הרלציה הזו
+   אינה קיימת בבסיס-הנתונים** (`ERROR: relation "trade_activity_events" does not exist`).
+   הריצה הזו לא נשענה עליה: הבעלות נקבעה מהשלשה-המסכימה `sierra_qty == tm_net_qty ==
+   tm_open_trades == 0` ומ-`working_orders 0`. הפער נרשם ולא מולבן.
+3. **צל תקוע לבוקר:** `#2591 FILLED` מ-18:30 עדיין פתוחה, ואיתה 2620/2624/2625/2630/
+   2632-2635 (17 צל פעילים). `close_stale_shadow.py` הוא צעד קדם-ריסטארט — **לא הורץ
+   עכשיו**, מסומן ל-dry-run של הבוקר (16.09: 26 שורות-צל תקועות הרימו את ה-backend ל-80% CPU).
+
+---
+
+### 🚫 גבולות שנשמרו
+
+אפס נגיעה ב-`.env` · אפס דגל · אפס דגל-גודל · אפס פוזיציה · אפס פקודה · אפס `op=EXIT` ·
+אפס DLL · אפס ריסטארט (מעבר ל-16:10, ושני תנאי-T-369 מתקיימים) · אפס `--apply` ·
+אפס דוח-ניטור לטלפון (רק מקרה ב, כחוק).
+
+— cowork-dev(sched), 2026-09-29 21:42 IL
+
+---
+
 ## 🔁 [cowork-dev(sched) · 2026-09-29 21:05-21:10 IL] — **ריצה 87 · חובה-1 + חובה-3 (ניטור-RTH)** · 🟢 **ארבעת הצירים ירוקים · #2623 עוד פתוחה · אפס הודעות-טלפון**
 
 **החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `21:05` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד,
