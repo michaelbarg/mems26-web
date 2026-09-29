@@ -1499,6 +1499,46 @@ class TradingGateway:
                             _t3_vec["turn_rel"] = _t3_ts.turn_rel(_t3_turn, setup.get("direction"), setup.get("entry_price"))
                         except Exception as _t3_te:
                             logger.info("[Gateway] TREE_V3 turn state unavailable: %s", _t3_te)
+                        # T-517 IB-return state (Michael 29.09 "כן" — 28.09's second direction change: the IB broke
+                        # down at 17:35, the price came back and ran +43 pts while every long died on tree:bias).
+                        # From the same closed bars; logged on the result. IB_RETURN_HINT_RELEASE_V1 (harness
+                        # measurement, default OFF ⇒ inert) releases rel_bias=against → none for the candidate that
+                        # goes WITH the return (returning · failed · both).
+                        _t3_vec["ib_return"], _t3_vec["ibr_rel"] = "none", "none"
+                        try:
+                            from backend.v9.services import ib_return as _t3_ibm
+                            _t3_ibr = _t3_ibm.ib_return_state(_t3_bars)
+                            _t3_vec["ib_return"] = _t3_ibr.get("state", "none")
+                            _t3_vec["ibr_rel"] = _t3_ibm.ib_return_rel(_t3_ibr, setup.get("direction"))
+                            _t3_rel_on = _t3_ibm.release_modes(os.getenv("IB_RETURN_HINT_RELEASE_V1", "0"))
+                            if _t3_rel_on and _t3_vec.get("rel_bias") == "against" and _t3_vec["ibr_rel"] in _t3_rel_on:
+                                _t3_flow_ok = True
+                                # Michael 29.09 16:25 "עומק הרוכשים והמוכרים": with IB_RETURN_RELEASE_FLOW=1 the release
+                                # also needs the order flow since the extension extreme (Σ delta of the 15-min Sierra
+                                # bars CLOSED now, from the extreme's bucket) not to fight the return.
+                                if os.getenv("IB_RETURN_RELEASE_FLOW", "0").strip() == "1":
+                                    from backend.v9.db.read import read_all as _t3_read2
+                                    _t3_fb = _t3_read2(
+                                        "SELECT extract(epoch from ts) e, high, low FROM v9_bars_5min_woodies "
+                                        "WHERE symbol='MES' AND (ts AT TIME ZONE 'America/New_York')::date = "
+                                        "(now() AT TIME ZONE 'America/New_York')::date "
+                                        "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                        "AND ts + interval '5 minutes' <= now() ORDER BY ts", {})
+                                    _t3_xe = _t3_ibm.extension_extreme_epoch(_t3_fb, _t3_ibr)
+                                    _t3_ds = None
+                                    if _t3_xe is not None and _t3_fb:
+                                        _t3_b0 = _t3_ibm.bucket_start(_t3_xe, float(_t3_fb[0]["e"]))
+                                        _t3_ds = (_t3_read2(
+                                            "SELECT coalesce(sum(delta), 0) s FROM v9_bars_5min_continuous "
+                                            "WHERE ts >= to_timestamp(:b) AND ts + interval '15 minutes' <= now()",
+                                            {"b": _t3_b0}) or [{}])[0].get("s")
+                                    _t3_flow_ok = _t3_ibm.flow_ok(_t3_ibr, _t3_ds)
+                                    result["ibr_flow"] = None if _t3_ds is None else float(_t3_ds)
+                                if _t3_flow_ok:
+                                    _t3_vec["rel_bias"] = "none"
+                                    result["ibr_released"] = _t3_vec["ibr_rel"]
+                        except Exception as _t3_ie:
+                            logger.info("[Gateway] TREE_V3 IB-return state unavailable: %s", _t3_ie)
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
                         _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
@@ -1508,6 +1548,7 @@ class TradingGateway:
                                              # the leaf's gate policy (plan §6 stage 2): gates that do not apply
                                              # in this circumstance — honoured only when the tree decides
                                              "skip_gates": [str(g) for g in (_tree_leaf.get("skip_gates") or [])]}
+                        result["tree_v3"]["ibr"] = {"state": _t3_vec.get("ib_return"), "rel": _t3_vec.get("ibr_rel")}
                         if not _dt3.is_shadow():
                             _tree_used = True
                             if _t3_action == "SKIP":

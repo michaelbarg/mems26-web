@@ -349,6 +349,20 @@ flags:
     why: "Measured 29.09 on 61 sessions vs the live tree 3.1.0: ON ⇒ Δ −861.25$ gross / ≈ −723.45$ net, 88 removed trades were worth +719.35$ — wide-stop trades are net winners. Stays OFF; built only so the replay could measure it (28.09 #2483 rr 2.37, −61.25$)."
     status: rejected
     ref: "T-514 · config/decision_tree_v3.splits.yaml XS · tests/v9/regression/test_t514_expensive_stop_flag.py"
+  IB_RETURN_HINT_RELEASE_V1:
+    category: cascade_gate
+    group: dalton
+    what: "T-517 (29.09): when the price is taking a one-sided IB extension back (returning = ≥ half back, failed = back inside the IB — backend/v9/services/ib_return.py, closed bars), a candidate that goes WITH the return and walks rel_bias=against has the session hint released for the tree walk (rel_bias → none). Values: returning · failed · both. Unset/0 = inert (the state is only logged on result.tree_v3.ibr)."
+    why: "Michael 29.09 'כן' to measuring 28.09's second direction change (19:15 return into the IB, +43 pts, every long died on tree:bias). Candidate screen: with_returning + bias-blocked 60 · 52% · +1,049.62$ (flow with) but with_failed + bias-blocked 210 · 37% · −1,303.19$. Harness measurement only until a day-total replay is positive AND Michael rules."
+    status: awaiting_backtest
+    ref: "T-517 · harness_out/t517/ · tests/v9/regression/test_t517_ib_return.py"
+  IB_RETURN_RELEASE_FLOW:
+    category: cascade_gate
+    group: dalton
+    what: "T-517 (29.09): with IB_RETURN_HINT_RELEASE_V1 on, =1 also requires the order flow of the return not to fight it — Σ delta of the 15-min Sierra bars (v9_bars_5min_continuous) CLOSED at the decision, from the extension extreme's bucket: ≥0 for a down extension being taken back, ≤0 for an up one. Unset/0 = no flow condition."
+    why: "Michael 29.09 16:25: 'עומק הרוכשים והמוכרים'. Measurement only."
+    status: awaiting_backtest
+    ref: "T-517 · backend/v9/services/ib_return.py flow_ok"
   FOOTPRINT_DISABLED:
     category: s3
     what: "Fully disable S3 footprint processing AND writing (process_bar returns immediately) — not just fires."
