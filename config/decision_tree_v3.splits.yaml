@@ -146,3 +146,73 @@ splits:
     day_total: "61 sessions vs t494pkg: Δ −155.55$ gross / ≈ −116.55$ net · better 9 / worse 9 · Aug +232 · Sep −337"
     verdict: "S5 STAYS — removing it costs 116.55$ net over 61 sessions, 28.09 included"
 
+
+  # ── 29.09 (T-515): the real-time TURN (double top/bottom at the session extreme from CLOSED bars —
+  # backend/v9/services/turn_state.py; features turn/turn_rel, inert in the live tree). Michael 29.09 08:20: "המערכת
+  # צריכה לזהות שינוי כיוון ולקבל החלטה בזמן אמת … לבצע את השורט בזמן". Every use measured day-total vs the SAME-DAY
+  # reference t515ref (the live tree 3.1.0 re-run 29.09: 61 sessions, 175 trades, Σ+1,690.55$ — the history tables
+  # drift between days: t494pkg (27.09) vs t515ref Δ+87.50$ on 2 September days). harness_out/t515/.
+  # T-514 re-measured vs t515ref: TBR −76.80$ · XS −628.15$ · ZLR −334.60$ · NO_S5 −21.25$ net ⇒ verdicts unchanged.
+  - id: TURN_A
+    date: 2026-09-29
+    path: "root: turn_rel=against ⇒ SKIP"
+    question: "never enter against the turn (no long after a double top, no short after a double bottom)?"
+    variant: harness_out/t515/tree_a.yaml
+    day_total: "61 sessions vs t515ref: Δ −140.00$ gross / ≈ −82.80$ net · better 10 / worse 13 · removed 19 longs (+54.35$) + 12 shorts (+39.40$)"
+    verdict: "REFUTED — against-turn trades that pass the tree are ≈ breakeven, the replacements were worse"
+  - id: TURN_M
+    date: 2026-09-29
+    path: "+ turn_rel=mid ⇒ SKIP (both extremes defended, entry mid-range)"
+    question: "stand aside in the middle of a two-sided range (28.09 17:25 VEGAS LONG)?"
+    variant: harness_out/t515/tree_am.yaml
+    day_total: "vs t515a: Δ −223.10$ gross / ≈ −204.90$ net · removed 11 trades worth +193.10$ (7 wins); vs t515ref −287.70$ net"
+    verdict: "REFUTED"
+  - id: TURN_W
+    date: 2026-09-29
+    path: "+ turn_rel=with ⇒ TAKE + promote [CEILING_FLIP_TOUCH2, ZLR]"
+    question: "take every candidate that goes with the turn?"
+    variant: harness_out/t515/tree_amw.yaml
+    day_total: "vs t515am: Δ −66.25$ gross / ≈ −274.25$ net (+80 round-trips); vs t515ref −561.95$ net · inside: with-turn SHORT 76 trades +389.90$ net (3 of 4 months +), with-turn LONG 42 trades −426.70$ net (every month −)"
+    verdict: "REFUTED — and the asymmetry is the finding: the double TOP carries information, the double bottom does not (Jun-Sep 2026)"
+  - id: TURN_X
+    date: 2026-09-29
+    path: "harness TURN_EXIT_V1=1 — out at the next open when the turn flips against the open trade (both directions)"
+    question: "get out of the long when the double top forms (28.09 16:55)?"
+    variant: "live tree + TURN_EXIT_V1=1 (scripts/fwd_harness.py, harness-only)"
+    day_total: "vs t515ref: Δ −994.95$ gross / ≈ −1,044.35$ net · better 11 / worse 24 · long exits 34 changed Σ −243.70$, short exits 20 changed Σ −535.60$; exits within 5 min of the entry also lose (longs Δ −152.45$, shorts Δ −231.85$); 28.09 −50.00$ (the freed slot went to the 17:00 long at the top). The 23-day partial read +197.50$ on longs REVERSED on the full sample"
+    verdict: "REFUTED — most trades cut on the turn reach their target"
+  - id: TURN_XLR
+    date: 2026-09-29
+    path: "harness TURN_EXIT_V1=longr — the RULED 11.09 realize-before-T1 action (T-317: open_pnl>0 at the confirm close ⇒ target → close−1 tick, stop → BE) on the early turn, longs only"
+    question: "the already-ruled mechanism, with the trigger that sees the top 45 min earlier?"
+    variant: "live tree + TURN_EXIT_V1=longr"
+    day_total: "vs t515ref: Δ −78.10$ gross / ≈ −83.30$ net · better 3 / worse 7 · 11 realizations +242$ (the realized longs themselves Δ +10.65$), the freed slot took 3 losers −158.75$; 28.09 −63.75$ (S5 +11.25 then the 17:00 long −75)"
+    verdict: "REFUTED"
+  - id: TURN_WS
+    date: 2026-09-29
+    path: "root: turn_rel=with & direction=SHORT ⇒ TAKE + promote [CEILING_FLIP_TOUCH2, ZLR]"
+    question: "short after the double top — the side that carries information?"
+    variant: harness_out/t515/tree_ws.yaml
+    day_total: "vs t515ref: Δ +31.25$ gross / ≈ −75.35$ net (+41 round-trips) · better 11 / worse 15 · the leaf itself 66 trades +461$ gross, but 57 added shorts (+356.25$) displaced 13 better shorts (+306.85$) from the one slot"
+    verdict: "REFUTED — the one-slot cost: an added mediocre short blocks a better one later"
+  - id: TURN_WSAB
+    date: 2026-09-29
+    path: "root: turn_rel=with & SHORT & phase=A|B ⇒ TAKE + promote (the first hour only — the producer read: n=30 · 57% · +559.50$)"
+    question: "only the first-hour short after the double top?"
+    variant: harness_out/t515/tree_wsab.yaml
+    day_total: "vs t515ref: Δ +42.50$ gross / ≈ +16.50$ net · better 4 / worse 6 · 12 added shorts (5 wins, +45$) · Jun +35 · Jul +1 · Aug −24 · Sep +30; 28.09 unchanged (the 16:50 long held the slot)"
+    verdict: "NOT ENOUGH — ≥0 but inside the noise (more worse days than better); not proposed"
+  - id: TURN_WSG
+    date: 2026-09-29
+    path: "root: turn_rel=with & SHORT ⇒ TAKE + promote + exit {1.5R, 2.5R} + skip_gates [entry_location_quality, extreme_chase_guard]"
+    question: "28.09 16:55 TOUCH2 SHORT at the double top died on ELQ beyond_value, 17:14 TLB on the chase guard — let the with-turn short past the location gates?"
+    variant: harness_out/t515/tree_wsg.yaml
+    day_total: "vs t515ref: Δ −312.45$ gross / ≈ −445.05$ net · better 13 / worse 18 · 71 added shorts (34 wins, +173.15$) displaced 14 shorts worth +350.60$; 28.09 −112.50$ (the ELQ-skipped 17:55 chase short −46.25$)"
+    verdict: "REFUTED — the location gates protect the with-turn short too"
+  - id: TURN_WSABG
+    date: 2026-09-29
+    path: "root: turn_rel=with & SHORT & phase=A|B ⇒ TAKE + promote + exit {1.5R, 2.5R} + skip_gates [entry_location_quality, extreme_chase_guard]"
+    question: "the only non-negative leaf (TURN_WSAB) with the location gates that blocked 28.09 16:55 skipped?"
+    variant: harness_out/t515/tree_wsabg.yaml
+    day_total: "vs t515ref: Δ −140.65$ gross / ≈ −166.65$ net · better 6 / worse 8 · 15 added shorts (6 wins, −33.15$) displaced 5 trades worth +107.50$; 28.09 unchanged (the slot)"
+    verdict: "REFUTED — 9 uses of the turn measured 29.09, none beats the live tree; the detector stays in the vector as observation only"

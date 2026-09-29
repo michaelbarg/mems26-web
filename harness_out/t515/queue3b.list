@@ -1,0 +1,11 @@
+# TAG|ENV — T-515 29.09, re-read before every run (first line not yet attempted runs next)
+# 10:12 re-plan: amw showed with-turn SHORT +389.90$ net (76) vs LONG −426.70$ (42) ⇒ short-only variants first
+# 10:16 t515a vs t515ref −82.80$ net (against-LONG removed: 19 trades +54.35$ ≈ breakeven)
+# 10:26 t515x FULL −1,044.35$ net (long exits 34 changed Σ−243.70$, short exits 20 changed Σ−535.60$; the 23-day partial
+#       +197.50$ on longs reversed) ⇒ x-combos dropped; xLr kept = the RULED 11.09 realize-before-T1 action (open_pnl>0 ⇒
+#       target→close−1t, stop→BE) on the early trigger; + first-hour-only short (wsab)
+t515ws|DECISION_TREE_V3=1 DECISION_TREE_V3_PATH=harness_out/t515/tree_ws.yaml
+t515wsab|DECISION_TREE_V3=1 DECISION_TREE_V3_PATH=harness_out/t515/tree_wsab.yaml
+t515xLr|DECISION_TREE_V3=1 TURN_EXIT_V1=longr
+t515wsg|DECISION_TREE_V3=1 DECISION_TREE_V3_PATH=harness_out/t515/tree_wsg.yaml
+t515wsabg|DECISION_TREE_V3=1 DECISION_TREE_V3_PATH=harness_out/t515/tree_wsabg.yaml

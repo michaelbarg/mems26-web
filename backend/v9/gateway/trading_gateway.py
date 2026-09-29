@@ -1479,6 +1479,26 @@ class TradingGateway:
                             dir_hint=_t3_hint, zone=_t3_zone, kind=_dp_ek(_dp_classification),
                             atr=None, hour=_dp_il.hour, prior_zone=_t3_prior_zone, poc_side_=_t3_pocside, migration=_t3_migr)
                         _t3_vec["edge"] = _t3_edge
+                        # T-515 turn state (Michael 29.09: "לזהות שינוי כיוון ולקבל החלטה בזמן אמת"): a double
+                        # top / bottom at the session extreme, from today's CLOSED RTH bars (T-498: never the bar
+                        # that opened seconds ago). A feature like any other — it changes a decision only where
+                        # the tree file splits on it (the seed does not).
+                        _t3_turn = {"turn": "none"}
+                        _t3_vec["turn"], _t3_vec["turn_rel"] = "none", "none"
+                        try:
+                            from backend.v9.db.read import read_all as _t3_read
+                            from backend.v9.services import turn_state as _t3_ts
+                            _t3_bars = _t3_read(
+                                "SELECT high, low, close FROM v9_bars_5min_woodies WHERE symbol='MES' "
+                                "AND (ts AT TIME ZONE 'America/New_York')::date = "
+                                "(now() AT TIME ZONE 'America/New_York')::date "
+                                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                "AND ts + interval '5 minutes' <= now() ORDER BY ts", {})
+                            _t3_turn = _t3_ts.detect_turn(_t3_bars)
+                            _t3_vec["turn"] = _t3_turn.get("turn", "none")
+                            _t3_vec["turn_rel"] = _t3_ts.turn_rel(_t3_turn, setup.get("direction"), setup.get("entry_price"))
+                        except Exception as _t3_te:
+                            logger.info("[Gateway] TREE_V3 turn state unavailable: %s", _t3_te)
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
                         _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()

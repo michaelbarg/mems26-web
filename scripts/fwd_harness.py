@@ -958,6 +958,18 @@ def _open_trade(rec, cmd, bar_index):
     rec["harness_trade"] = tr["trade_id"]
 
 
+_TURN_EXIT_MODE = os.getenv("TURN_EXIT_V1", "0").strip().lower()      # 1|both · long · short · longr (T-515 29.09)
+_TURN_EXIT = _TURN_EXIT_MODE in ("1", "true", "yes", "both", "long", "short", "longr")
+
+
+def _turn_before(bar_index):
+    """T-515: the turn state from today's CLOSED RTH bars before bar_index — what the market showed at its open."""
+    from backend.v9.services.turn_state import detect_turn as _dt
+    rth = [x for x in BARS[:bar_index]
+           if x["ts"].astimezone(ET).date() == _sd and x["ts"].astimezone(ET).time() >= dtime(9, 30)]
+    return _dt([{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"])} for x in rth])
+
+
 def _settle_bar(b, bar_index):
     """Walk one CLOSED bar through every open trade (conservative: stop before target on the same bar)."""
     hi, lo, op, cl = float(b["high"]), float(b["low"]), float(b["open"]), float(b["close"])
@@ -970,7 +982,40 @@ def _settle_bar(b, bar_index):
             e = tr["entry"]
             tr["fill_price"] = e if lo <= e <= hi else op
             tr["filled"] = True
+            tr["fill_bar_index"] = bar_index
         e = tr["fill_price"]
+        # T-515 TURN_EXIT_V1 (harness measurement, default off): the turn flipped AGAINST the open trade at the
+        # previous bar's close ⇒ out at this bar's open (live: MODIFY_STOP to the market — not wired live).
+        #   1|both · long · short — out at the open.  longr — the RULED 11.09 realize-before-T1 action (T-317:
+        #   open_pnl > 0 at the confirm close ⇒ every open leg's target → confirm_close − 1 tick, stop → BE; else
+        #   hold) with the early turn as its trigger instead of the neckline break.
+        if _TURN_EXIT and bar_index > tr.get("fill_bar_index", bar_index) and (
+                _TURN_EXIT_MODE not in ("long", "short", "longr") or d.lower() == _TURN_EXIT_MODE.rstrip("r")):
+            try:
+                from backend.v9.services.turn_state import turn_rel as _trel
+                if _TURN_EXIT_MODE == "longr":
+                    if not tr.get("turn_realized") and _trel(_turn_before(bar_index), d, None) == "against":
+                        tr["turn_realized"] = True
+                        _cc = float(BARS[bar_index - 1]["close"])
+                        if _cc - 0.25 > e:
+                            for leg in tr["legs"]:
+                                if not leg["exit"]:
+                                    leg["target"] = _cc - 0.25; leg["turn_tgt"] = True
+                            tr["stop"] = max(tr["stop"], e); tr["be_moved"] = True
+                            if op >= _cc - 0.25:      # the limit sits under the market ⇒ fills now, at the limit
+                                for leg in tr["legs"]:
+                                    if not leg["exit"]:
+                                        leg.update(exit="TURN_R", exit_price=_cc - 0.25, pts=_cc - 0.25 - e, bar_il=il)
+                                _close_trade(tr, il)
+                                continue
+                elif _trel(_turn_before(bar_index), d, None) == "against":
+                    for leg in tr["legs"]:
+                        if not leg["exit"]:
+                            leg.update(exit="TURN", exit_price=op, pts=sgn * (op - e), bar_il=il)
+                    _close_trade(tr, il)
+                    continue
+            except Exception as _te:
+                print("turn-exit failed:", _te)
         stop = tr["stop"]
         stop_hit = (lo <= stop) if d == "LONG" else (hi >= stop)
         t1_filled = False
@@ -983,9 +1028,11 @@ def _settle_bar(b, bar_index):
                 tr["ambiguous_bars"] += 1
                 leg.update(exit="STOP(ambiguous)", exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif stop_hit:
-                leg.update(exit="STOP" if not tr["be_moved"] else "BE", exit_price=stop, pts=sgn * (stop - e), bar_il=il)
+                leg.update(exit=("TURN_BE" if leg.get("turn_tgt") else "STOP" if not tr["be_moved"] else "BE"),
+                           exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif tgt_hit:
-                leg.update(exit=f"T{leg['leg']}", exit_price=tgt, pts=sgn * (tgt - e), bar_il=il)
+                leg.update(exit=("TURN_R" if leg.get("turn_tgt") else f"T{leg['leg']}"), exit_price=tgt,
+                           pts=sgn * (tgt - e), bar_il=il)
                 if leg["leg"] == tr.get("t1_leg", 1):
                     t1_filled = True
         # protective BE after T1 fills (ruling 07-14 "אחרי-T1→BE"; System6 protective AUTO = MODIFY_STOP→BE)

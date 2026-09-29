@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 _PATH = Path(__file__).resolve().parent.parent.parent.parent / "config" / "decision_tree_v3.yaml"
 _CACHE: Optional[Dict[str, Any]] = None
 FEATURES = ("opening_type", "phase", "day_type", "structure", "pattern", "kind", "direction", "rel_bias",
-            "zone", "prior_zone", "poc_side", "value_migration", "edge", "test", "volume", "delta", "R_atr", "hour", "system")
+            "zone", "prior_zone", "poc_side", "value_migration", "edge", "test", "volume", "delta", "R_atr", "hour", "system",
+            "turn", "turn_rel")   # T-515 (29.09): the real-time turn state — services/turn_state.py
 
 
 def value_migration(vah: float, val: float, prev_vah: float, prev_val: float) -> str:
