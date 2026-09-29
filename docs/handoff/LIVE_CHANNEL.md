@@ -1,3 +1,134 @@
+## 🔁 [cowork-dev(sched) · 2026-09-29 18:34-18:40 IL] — **ריצה 82 · חובה-1 + חובה-3 (ניטור-RTH)** · 🟢 **עסקת-לייב נפתחה — #2594 CEILING_FLIP לונג** · ☎️ **הודעה אחת בלבד (מקרה ב)** · ⛔ **השער בבעלות ריצה 76 — לא נגעתי** · ⚠️ **[[T-34]] מרג'ין נמוך — דיווח בלבד, לא חוסם**
+
+**החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `18:34` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד, **ומעבר לתקרת-`16:10`** ⇒ אין ריסטארט. שני תנאי-T-369 מתקיימים:
+
+```raw
+(1) רשומת cowork-dev מהיום על שער ⇒ ריצה 76, 15:34-15:55, GO (ריצות 77-81 ניטרו אחריה)
+(2) ps -o pid,lstart,etime,%cpu,rss -p 91652
+    ⇒ 91652  Tue Sep 29 15:37:21 2026  03:00:17  %CPU 51.8  RSS 126,600K
+    ⇒ המאזין על :8000 עלה היום אחרי 12:00, אותו PID של ריצה 76
+⇒ אפס ריסטארט · אפס GO/NO-GO בטלפון · אפס נגיעה ב-.env/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL
+```
+
+---
+
+### ☎️ חובה-1 — אפס ממתינות ⇒ אפס הודעת-מקרה-(א)
+
+```raw
+GET https://mems26-mobile.onrender.com/chat?key=… ⇒ HTTP 200 · 30 פריטים
+                                                    זנב-הרנדר ≡ זנב PHONE_THREAD.jsonl
+אחרונת-מייקל:  2026-09-29T10:59:33Z "האם יש תיקון רלוונטי שפועל לנו?"
+אחריה בתור:      2026-09-29T11:09:16Z [cowork-dev] — תשובה עניינית (חבילת S1+S5+S7)
+אחרון בתור:      2026-09-29T12:43:35Z [cowork-dev] — הודעת-השער של ריצה 76 (מקרה ד)
+אפס הודעות "תיוג עסקה #"
+⇒ לא (א) · השער אינו שלי ⇒ לא (ד) · אפס חריגה-הדורשת-פסיקה ⇒ לא (ג)
+⇒ **(ב) כן** — עסקת-לייב נפתחה בתוך חלון-הריצה. הודעה אחת נשלחה, פירוט למטה.
+```
+
+---
+
+### 🟢 עסקת-הלייב — #2594, נפתחה 18:35:06, מאומתת בשני הצדדים
+
+```raw
+v9_trades #2594:
+  mode=live · firing_system=2 · dir=LONG · state=FILLED · entry_ts=18:35:06
+  entry=7727 · stop=7714.25 (סיכון 12.75 נק') · t1=7746.12 · t2=7758.88 · t3=7771.64
+  day_type_at_entry=Variation · pattern_id_at_entry=CEILING_FLIP_LONG · session=MIDDAY
+
+למה עברה — שרשרת-ההחלטה מ-/tmp/backend.err.log (לא backend.log):
+  18:35:05 [CeilingFloor] FLOOR_FAILED edge=SESSION_LOW(7714.50) P1=7715.25 P2=7714.50
+           confirm_level=7720.50 confirm_close=7727.00 bars_to_confirm=1 atr=7.66 tol=1.91
+  18:35:05 [CeilingFlip] FLOOR_FAILED → LONG entry=7727.00 stop=7714.25
+  18:35:05 [Gateway] TREE_V3 CEILING_FLIP_LONG LONG 7727.0 → TAKE
+           [opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/
+            pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension]
+  18:35:06 [Gateway] LIVE trade TM id=2594 … account=37138283
+```
+
+**אימות-בעלות לפי order_id (לפני כל אזעקה, כפי שהחובה מחייבת) — המערכת, לא כניסה ידנית:**
+
+```raw
+18:35:06 [TradeManager] Sierra IDs stored on trade 2594:
+         {'sierra_order_id': 11359, 'c1_target_id': 11360, 'c1_stop_id': 11361}
+18:35:06 [FillPoller] registered order 11359 → trade 2594
+18:35:06 [FillPoller] ENTRY fill: trade 2594 @ 7727.0
+18:35:06 [FillPoller] mapped 9 per-contract order ids → trade 2594
+
+GET /api/v9/account/state ⇒ position_qty=1 · avg_price=7727.25 · working_orders=2
+                            (11360 יעד + 11361 סטופ = הברקט המצורף) · is_sim=0 ·
+                            order_placement_armed=1 · open_pnl=+5.00 · verdict="system"
+GET /api/v9/agent/sierra_live_check ⇒ 🟢 sierra_qty=1 · tm_open_trades=1 · tm_net_qty=1
+                            "עסקה פתוחה מזוהה בשני הצדדים"
+⇒ פוזיציה ≡ TM. אפס פער. הבעלות מיוחסת למערכת לפי שרשרת order_id ולא לפי ניחוש.
+```
+
+**גודל — הפסיקה נשמרה:** `ruled_contracts()` (עם .env טעון, T-489) ⇒ `1`, והעסקה נפתחה בחוזה 1. תואם פסיקת 18.09.
+
+---
+
+### 🔎 שני ממצאים שנבדקו ונמצאו תקינים — לא באגים, ולכן לא הודעת-(ג)
+
+```raw
+(1) ECON-DIFF על אותה עסקה:
+    chain:     {stop: 7714.25, t1: 7746.12, t2: 7758.88, t3: None}
+    authority: {stop: 7710.25, t1: 7736.75, t2: 7760.5, t3: 7777.25, n: 0,
+                reject: 'risk_exceeds_budget (risk=16.75pt …)'}
+    18:35:05 [Gateway] STRUCTURAL STOP: CEILING_FLIP_LONG LONG stop=7714.25
+             — resolver/floor/ladder exempt
+    ⇒ ה-authority נדחה על סיכון 16.75 נק' ו-n=0 (אפס דגימות). מסלול הסטופ-המבני פטור
+      במפורש, והסטופ שנבחר (12.75 נק') **קטן** מזה שה-authority הציע. פחות סיכון, לא יותר.
+
+(2) באותו בר, FAMIR לונג נחסם ו-CEILING_FLIP לונג עבר:
+    18:35:02 [Gateway] BLOCKED system=4 pattern=FAMIR dir=LONG blocked_by=tree:bias
+             hint=SHORT bias=SHORT kinds=['BREAK','VALUE_RETURN'] → צל-תאום #2592
+    18:35:05 [Gateway] TREE_V3 CEILING_FLIP_LONG → TAKE … rel_bias=against/
+             edge=failed_extension
+    ⇒ אינו סתירה: שני עלים שונים. FAMIR נגד-הטיה בלי קצה ⇒ חסום; CEILING_FLIP נגד-הטיה
+      **עם** קצה failed_extension ⇒ מורשה. זו התנהגות-העץ המתוכננת, לא דליפה.
+```
+
+---
+
+### 📍 שורת-המדידה — 125 דק' לתוך ה-RTH
+
+```raw
+פיד (T-430 — מה-DB ולא מ-mtime של קובץ-יצוא, ושני האגפים timestamptz):
+  max(ts) v9_bars_5min_woodies = 2026-09-29 18:35:00+03
+  now() - max(ts) = 0.82 דק'   ✅ פיד חי באמת
+backend:  /api/v9/health http=200 ב-2.1ms · מאזין יחיד PID 91652
+          /tmp/backend.err.log mtime 18:37:37 ⇒ כותב חי ⇒ ספירות-אפס אמינות
+פוזיציה: 1 לונג (#2594) ≡ TM · 2 פקודות-עבודה · is_sim=0 · armed=1
+עסקאות היום: לייב 1 פתוחה (#2594, open_pnl +5.00, טרם נסגרה ⇒ אין P&L-ברוקר עדיין)
+             צל 37 סגורות +606.25 · 4 פתוחות
+```
+
+**⚠️ [[T-34]] מרג'ין — דיווח בלבד, אינו חוסם מסחר ולכן אינו מקרה-(ג):**
+
+```raw
+acct_available_funds = $190.25   (מתחת לסף-הדיווח $1,595)
+acct_margin_req      = $288.09   · acct_account_value = $478.34
+acct_under_margin    = 0 · acct_trading_disabled = 0 · acct_loss_limit_reached = 0
+⇒ הכניסה של 18:35 עברה ומולאה במלואה, כלומר המרג'ין לא חסם בפועל. הזמין נמוך כי
+  $288.09 כבר תפוסים בפוזיציה הפתוחה; עם שחרורה הוא חוזר לסביבת $478.
+⇒ שורת-LIVE_CHANNEL בלבד, בלי הודעת-טלפון, כפי שכלל-T-34 מורה.
+```
+
+---
+
+### ☎️ ההודעה שנשלחה — אחת, מקרה (ב)
+
+```raw
+עסקה חיה נפתחה 18:35 — CEILING_FLIP, כשל-רצפה בשפל-הסשן 7714.50. לונג 7727, סטופ
+7714.25, יעד1 7746, יעד2 7759. עברה כי העץ נתן TAKE: פתיחה OPEN_AUCTION_IN, שלב C,
+יום Variation, קצה failed_extension. סיירה מאשרת חוזה 1, ברקט OCO חי, רווח פתוח 5 דולר.
+⇒ 254 תווים (תקרת-(ב) 300) · אפס backticks · זמן מ-date
+⇒ אימות-מסירה ב-GET /chat, לא מה-ok של הסקריפט
+```
+
+**אפס נגיעה במסחר בריצה הזו:** אפס ריסטארט · אפס דגלים · אפס פוזיציות · אפס פקודות · אפס `.env`. הכל קריאה בלבד פרט להודעת-(ב) ולרישום הזה.
+
+---
+
 ## 🔁 [cowork-dev(sched) · 2026-09-29 18:04-18:12 IL] — **ריצה 81 · חובה-1 + חובה-3 (ניטור-RTH)** · ☎️ **שקט מוחלט בטלפון** · ⛔ **השער בבעלות ריצה 76 — לא נגעתי** · 🔴 **[[T-463]] חזר — 3 מופעים היום, ולראשונה יש משתנה-מפריד מועמד** · 🟢 **אפס נזק-מסחר, נמדד פר-עסקה**
 
 **החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `18:04` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד, **ומעבר לתקרת-`16:10`** ⇒ אין ריסטארט. שני תנאי-T-369 מתקיימים:
