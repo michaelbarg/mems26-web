@@ -1,3 +1,174 @@
+## 🔁 [cowork-dev(sched) · 2026-09-29 20:35-20:40 IL] — **ריצה 86 · חובה-1 + חובה-3 (ניטור-RTH)** · 🟢 **ארבעת הצירים ירוקים · עסקת-לייב חדשה #2623 נפתחה 20:25 ⇒ מקרה-(ב) נשלח**
+
+**החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `20:35` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד,
+**ומעבר לתקרת-`16:10`** ⇒ אין ריסטארט. שני תנאי-T-369 מתקיימים, כמו בריצות 76-85:
+
+```raw
+(1) רשומת cowork-dev מהיום על שער ⇒ ריצה 76, 15:34-15:55, GO
+(2) ps -o pid,lstart,etime,%cpu,rss -p 91652
+    ⇒ 91652  Tue Sep 29 15:37:21 2026  ELAPSED 05:00:14  %CPU 39.3  RSS 127,752K
+    ⇒ המאזין על :8000 עלה היום אחרי 12:00 — אותו PID של ריצה 76
+⇒ אפס ריסטארט · אפס GO/NO-GO בטלפון · אפס נגיעה ב-.env/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL
+```
+
+---
+
+### ☎️ חובה-1 — התיבה במקור ריקה, **אבל** מקרה-(ב) חל ⇒ הודעה אחת
+
+מלכודת-12 נבדקה קודם למסקנה: הרלה **חי**, ולכן "אפס ממתינות" הוא נתון ולא שלילה-כוזבת.
+
+```raw
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1493
+GET $RENDER_MOBILE_URL/instruction/pending?key=… ⇒ {"items":[]}      (peek, ללא תופעות-לוואי)
+GET $RENDER_MOBILE_URL/cmd/pending?key=…         ⇒ {"cmd":null}
+GET $RENDER_MOBILE_URL/chat?key=…                ⇒ HTTP 200 · 30 פריטים
+אחרונת-מייקל: 2026-09-29T10:59:33Z "האם יש תיקון רלוונטי שפועל לנו?"
+אחריה בתור:    2026-09-29T11:09:16Z [cowork-dev] — תשובה עניינית (חבילת S1+S5+S7)
+אפס הודעות "תיוג עסקה #"
+⇒ לא (א) — אין הודעת-מייקל בלי תשובה עניינית
+⇒ כן (ב) — עסקת-לייב #2623 נפתחה 20:25, אחרי חלון ריצה 85 (20:05-20:10) ⇒ טרם דווחה
+⇒ לא (ג) — המרג'ין אינו חוסם מסחר (ראיה בסעיף T-34 למטה)
+⇒ לא (ד) — השער אינו שלי
+```
+
+**ההודעה שנשלחה** — 246 תווים (≤300), אפס backticks, תבנית·כיוון·מחיר·סטופ·יעד·למה-עברה:
+
+```raw
+python3 scripts/phone_reply.py cowork-dev "עסקה חיה נפתחה 20:25 — CEILING_FLIP, לונג 7719.25,
+סטופ 7712, יעד1 7730, יעד2 7737.5. עברה כי העץ נתן allow בשורה t329 כשל-הרחבה: יום Variation,
+שלב C, אזור אמצע-הערך. סיירה מאשרת חוזה 1, והפקודות 11366/11367 הן של המערכת. פוזיציה 1,
+רווח פתוח 0."
+⇒ ok
+
+אימות-מסירה — לא מה-ok אלא מהמקור:
+GET $RENDER_MOBILE_URL/chat?key=… ⇒ total 30
+LAST: 2026-09-29T17:39:21Z | cowork-dev | 246 ch | <גוף ההודעה, זהה תו-בתו>
+```
+
+---
+
+### 🟢 חובה-3 — ניטור-RTH, ארבעת הסעיפים
+
+**1 · פיד — חי באמת (T-430: קובץ-טרי ≠ פיד-חי; המדידה מה-DB, לא מ-mtime).**
+
+```raw
+select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,2) age_min
+  from v9_bars_5min_woodies;
+ 2026-09-29 20:35:00+03 | 4.07      ⇒ בר-היום, בן 4.07 דק' < 10 ✔
+```
+
+**2 · backend — בריא, מאזין יחיד, אפס שגיאות.**
+
+```raw
+curl -o /dev/null -w "http=%{http_code} t=%{time_total}s" localhost:8000/health
+ ⇒ http=200 t=0.053187s
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 91652 michael (מאזין אחד בלבד)
+tail -3000 /tmp/backend.err.log | grep -cE "ERROR|CRITICAL" ⇒ 0
+```
+
+**3 · פוזיציה-מול-TM — מסכימים, והבעלות הוכחה ב-order_id לפני כל אזעקה.**
+
+```raw
+GET /api/v9/agent/sierra_live_check
+ sierra_alive:      ok=true · age_s=0.8 · is_sim=0 · armed=1
+ open_trade_detect: ok=true · sierra_qty=1 · working_orders=2
+                    tm_open_trades=1 · tm_net_qty=1  ⇒ "עסקה פתוחה מזוהה בשני הצדדים"
+ verdict: 🟢 המערכת מזהה את סיירה תקין
+
+sierra_state.json (age 0.3 שנ'): position_qty=1 · avg_price=7719.50 · orders=[11366, 11367]
+backend.err.log, שרשרת-הכניסה המלאה:
+ 20:25:05 [TradeManager] Trade 2623 created: mode=live sys=2 dir=LONG
+ 20:25:06 [FillPoller] registered order 11365 → trade 2623
+ 20:25:06 [TradeManager] Sierra IDs stored on trade 2623:
+          {'sierra_order_id': 11365, 'c1_target_id': 11366, 'c1_stop_id': 11367}
+ 20:25:06 [FillPoller] ENTRY fill: trade 2623 @ 7719.25
+⇒ שתי הפקודות-העובדות בסיירה (11366 יעד, 11367 סטופ) הן **בדיוק** אלה שה-TradeManager
+  רשם על 2623 ⇒ פוזיציה של המערכת, לא ידנית. אפס פוזיציה-זרה, אפס אזעקה.
+```
+
+**4 · עסקת-לייב חדשה #2623 — נפתחה 20:25, עדיין פתוחה בסוף החלון.**
+
+```raw
+select id,firing_system,direction,state,entry_ts,entry_price,stop,t1,t2,t3,
+       day_type_at_entry,session_at_entry,pattern_id_at_entry from v9_trades where id=2623;
+ 2623 | sys=2 | LONG | FILLED | 20:25:06 | entry 7719.25 | stop 7712 |
+ t1 7730.12 | t2 7737.38 | t3 7744.64 | Variation | PM_SESSION | CEILING_FLIP_LONG
+ quality: contracts=1 · sierra_order_id=11365 · c1_target_id=11366 · c1_stop_id=11367
+ metadata: edge_source=VAL · stop_is_structural=true · structural_anchor=7712.25
+           confirm_level=7717.75 · ceiling_floor_state=FLOOR_FAILED
+           situation: opening_type=OPEN_AUCTION_IN · phase=C · zone=mid_value
+                      day_type=Variation (conf 0.62) · ib_width=27.0 · ib_locked=true
+                      extension=down 19.5pt · vol_ratio=1.1221 · atr_causal=5.1071
+
+הליגר, שרשרת-ההחלטה המלאה:
+ 20:25:04 DECISION     sys=2 CEILING_FLIP_TOUCH2 LONG 7719.25 phase=C
+ 20:25:04 TREE_SHADOW  allow · row=t329_failed_extension real=allow(FIRED)
+ 20:25:05 DECISION     sys=2 CEILING_FLIP_LONG   LONG 7719.25 phase=C
+ 20:25:05 TREE_SHADOW  allow · row=t329_failed_extension real=allow(FIRED)
+ 20:25:04 DECISION     sys=4 HTLB LONG blocked_by=tree:bias ("against the session's
+          directional hint") ⇒ חסימה תקינה של מערכת אחרת, לא תקלה
+
+set -a; . ./.env; set +a; python3 -c "from backend.v9.services.contract_size
+  import ruled_contracts; print(ruled_contracts())" ⇒ 1   ✔ תואם פסיקת 18.09
+```
+
+---
+
+### 💵 T-34 · מרג'ין — **דיווח בלבד**, לא חוסם, ולכן לא מקרה-(ג)
+
+```raw
+sierra_state.json: acct_available_funds = 100.25  (< 1,595 ⇒ סף-הדיווח חצוי)
+                   acct_cash_balance    = 388.34 · acct_account_value = 392.09
+                   acct_margin_req      = 288.09
+                   acct_under_margin    = 0   ← לא מתחת-למרג'ין
+                   acct_trading_disabled= 0   ← המסחר לא נחסם
+                   acct_loss_limit_reached = 0 (daily_pl -86.25 מול תקרה -284.75)
+```
+
+הסף חצוי, אבל **שלושת דגלי-החסימה של הברוקר אפס**, הכניסה כבר מולאה עם הברקט המלא
+(11366/11367), ומשבצת-הלייב תפוסה ממילא בחוזה-האחד של הפסיקה ⇒ אין מה שהמרג'ין חוסם
+כרגע. לפי הכלל ("מקרה-(ג) רק אם זה חוסם מסחר") ⇒ **שורה כאן, אפס טלפון.** זהה לריצות
+82-85; לא ממציא ערך ולא מסלים.
+
+---
+
+### 📖 הליגר — כותב
+
+```raw
+select count(*) n, max(ts) newest, count(*) filter (where ts > now()-interval '1 hour') last_hour
+  from v9_decision_vectors where ts >= date_trunc('day', now());
+ n=7088 | newest=2026-09-29 20:35:00+03 | last_hour=1451
+פילוח-היום: BAR 6985 · DECISION 68 · TREE_SHADOW 38
+```
+
+**מדידה, לא דגל (אין פסיקה ⇒ אין נגיעה):** יחס `BAR:DECISION` הוא `6985:68`, ובחלון
+של 40 שנ' סביב הכניסה נספרו **155 שורות-BAR שכולן חתומות `20:25:00`** — כלומר הליגר
+כותב שורת-BAR לכל מחזור-הערכה ולא לכל בר. זה **לא** פגע בשרשרת-ההחלטה של 2623 (שהיא
+מלאה ומדויקת למעלה), ולכן זו הערת-מדידה לריפליי — **לא** באג פתוח ולא שינוי-דגל.
+הערה נוספת: הקינדים של היום הם `BAR/DECISION/TREE_SHADOW` בלבד — אפס
+`ROUTED`/`RESOLVED`, מה שרלוונטי לציון-המודעות של היומית ב-15:40 ולא לניטור-RTH.
+
+---
+
+### 🧾 סיכום-הריצה
+
+| ציר | מדידה | מצב |
+|---|---|---|
+| פיד | בר 20:35:00+03, בן 4.07 דק' | 🟢 |
+| backend | 200 ב-53ms · PID 91652 · 0 ERROR | 🟢 |
+| פוזיציה מול TM | sierra 1 == tm 1 == 1 לייב פתוחה · בעלות מוכחת ב-order_id | 🟢 |
+| עסקת-לייב | #2623 נפתחה 20:25, פתוחה · ruled_contracts()==1 | 🟢 |
+| מרג'ין T-34 | avail 100.25 < 1,595 · under_margin=0 · disabled=0 | 🟡 דיווח |
+| ליגר | 7,088 היום · אחרון 20:35 · שרשרת 2623 מלאה | 🟢 |
+| טלפון | מקרה-(ב) אחד, 246 תווים, מסירה אומתה מול GET /chat | ✅ |
+
+**אפס נגיעות:** לא `.env`, לא דגל, לא דגלי-גודל, לא `RISK_*`, לא ריסטארט, לא פוזיציות,
+לא פקודות, לא `op=EXIT`/`FLATTEN`, לא DLL. הריצה קראה ומדדה בלבד, פרט להודעת-הטלפון.
+
+**הצעד הבא:** הריצה הבאה לוודא את גורל #2623 (t1 7730 / סטופ 7712) ולדווח סגירה
+כמקרה-(ב) אם תיסגר.
+
+---
 ## 🔁 [cowork-dev(sched) · 2026-09-29 20:05-20:10 IL] — **ריצה 85 · חובה-1 + חובה-3 (ניטור-RTH)** · ✅ **הכל ירוק · ושלילת-אזעקה: `v9_day_type_state` נקראה נכון (מלכודת-T-452) ⇒ אין תקלה**
 
 **החלון ובעלות-השער, נבדקו לפני כל נגיעה.** `20:05` ∈ `16:30-23:00` ⇒ ניטור-RTH בלבד,
