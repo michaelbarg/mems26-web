@@ -1,3 +1,152 @@
+## 🟢 [cowork-daily · 2026-09-30 21:04-21:14 IL] — **ריצה 115 · חובה-1 + חובה-3 (ניטור-RTH עשירי)** · ⛔ **שקט-טלפון מלא** · 🔑 **הצעד-הבא (1) של 114 נענה: אין לייב — ומדובר בפסיקה, לא בכשל** · ✅ **flag_guard PASS 273/273**
+
+**החלון, נבדק לפני כל נגיעה.** `date ⇒ Wed Sep 30 21:04:20 IDT 2026` ∈ `16:30-23:00` ⇒
+**חובה-3 בלבד** (∉ `15:30-16:10` ⇒ אין שער · ∉ `23:00-23:30` ⇒ אין תור-לילה · `21:04 > 16:10`
+⇒ ריסטארט אסור ממילא). `git pull ⇒ Already up to date` · `HEAD 482944cd`. המאזין
+`71696 STARTED Wed Sep 30 13:24:35 · ELAPSED 07:41:03` עלה היום אחרי 12:00 ⇒ [[T-369]]
+**בעלות אצל האינטראקטיבי: אפס ריסטארט · אפס GO/NO-GO**. מלכודות 24+16 יושמו — שורת-TASK_LOG
+של 114 (במלואה) + `head LIVE_CHANNEL.md` + `RULED_FLAGS.yaml` נקראו **לפני** כל מסקנה מבצעית
+ולפני החלטת-השליחה.
+
+**חובה-1 ⇒ אפס ממתינות, ולכן שקט מוחלט. אפס הודעות נשלחו.**
+`GET /chat ⇒ TOTAL 30` (peek ישיר מ-Render, לא מה-JSONL; זהה לזנב `PHONE_THREAD.jsonl`,
+`700` שורות). אחרונות-מייקל הן שני התיוגים `07:17:58Z`/`07:18:05Z` — **שניהם נענו**
+(`07:37:20Z` "נרשם ✓ #2623 · נרשם ✓ #2555"); מאז אפס. שתי ההודעות שאחריהן הן **שלנו אליו**
+(`12:45:41Z` חימוש · `16:51:09Z` מרג'ין) ⇒ אין (א) · לייב `0` ⇒ אין (ב) · אינו שער ⇒ אין (ד) ·
+**ואין (ג) — הכרעה ולא הימנעות:** שני נושאיהן נסגרו מעצמם (הידנית נסגרה `20:20:42` · המרג'ין
+חזר לחיוב), וכלל-הטלפון אוסר **דוח-ניטור ותיקון-עצמי** במפורש ⇒ הודעת "נפתר" היא בדיוק הסוג
+האסור. ⚠️ **והשאלה מ-`16:51:09Z` ("לסגור חוזה אחד?") אינה נשאלת שוב** — היא התייתרה.
+
+**🔑 הממצא — הצעד-הבא (1) של ריצה 114 נענה במלואו, והתשובה הפוכה מהחשד.**
+114 כתבה: *"מועמד sys 2/4 עם `leaf=TAKE` שאינו `shadow_only setup` **אמור** להיפתח"*. מאז
+השחרור ב-`20:20:42` הופיעו **בדיוק שני** מועמדי-`ROUTED`, ושניהם `shadow_only`:
+
+```raw
+decisions?limit=2000 ⇒ 83 שורות (13:30:01Z→18:05:05Z; מתחת לתקרת-200 ⇒ לא חתוך)
+ROUTED אחרי הסגירה 17:20:42Z:
+  20:40:03  CEILING_FLIP_TOUCH2  LONG  outcome=shadow_only  live_blocked_by=None
+  20:50:06  CEILING_FLIP_TOUCH2  LONG  outcome=shadow_only  live_blocked_by=None
+הלוג, במקור:
+  20:40:03 [CeilingFlipTouch2] FLOOR_TOUCH2_REJECT → LONG entry=7762.00 stop=7756.75 … (SHADOW)
+  20:40:03 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+  20:40:03 Trade 2736 created: mode=shadow sys=2 dir=LONG
+  20:50:05 [CeilingFlipTouch2] FLOOR_TOUCH2_REJECT → LONG entry=7766.25 stop=7759.00 … (SHADOW)
+  20:50:06 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+  20:50:06 Trade 2739 created: mode=shadow sys=2 dir=LONG
+הפוסק, ב-RULED_FLAGS.yaml:390 — פסיקה עומדת, לא התנהגות-מפיק מקרית:
+  CEILING_FLIP_TOUCH2_V1: {expected: 'shadow', ruled_by: "מייקל", date: "2026-09-15"}
+```
+
+**💡 וההכללה שסוגרת את השאלה לכל היום — עשרים ה-`ROUTED` נחתכים בדיוק לפי הפסיקות:**
+
+```raw
+event_type ⇒ GATE_DECISION 63 (outcome=blocked)  ·  ROUTED 20 (outcome=shadow_only)
+outcome × live_blocked_by ⇒ (blocked,None) 63 · (shadow_only,None) 12 · (shadow_only,guard) 8
+
+12 עם live_blocked_by=None — כולן דפוסים שנפסקו shadow:
+   9 × CEILING_FLIP_TOUCH2   ⇐ CEILING_FLIP_TOUCH2_V1  expected 'shadow'  (15.09)
+   2 × ZLR                   ⇐ ZLR_SHADOW_V1           expected "1"       (07.09)
+   1 × FAILED_BREAK_LONG     ⇐ FAILED_BREAK_VA_V1      expected "shadow"  (26.08)
+
+8 עם live_blocked_by=pre_send_entry_guard — כולן דפוסים כשירי-לייב:
+   DALTON_EDGE_LONG  ⇐ DALTON_EDGE_V1 expected "live" (28.08) · CEILING_FLIP_SHORT ⇐ '1' (11.09)
+   OPENING_DRIVE · OPENING_EXTREME_REJECT ⇐ OPENING_FIRE_V1 '1' · GB100 · GHOST · FAMIR · REACTIVE_LONG
+```
+
+⇒ **החלוקה מושלמת ואינה מקרית: הגארד חסם בדיוק את כשירי-הלייב ולא אף אחד אחר**, וכל מועמד
+שעבר בלי חסימה היה דפוס שנפסק לצל. ⇒ `live_blocked_by=null` על דפוס-צל הוא **דיווח כשר**
+(כלל 1 — "כישלון כן עדיף על ערך סינתטי") ולא חסימה מוסתרת. **אפס פריט חדש.**
+🟢 **המסקנה המבצעית, והיא מתקנת קריאה אפשרית של 114:** *"נתיב-הלייב פתוח"* נכון לגבי **הגארד**
+— ואינו אומר שעסקת-לייב הייתה אמורה להיפתח. **מאז `20:20:42` לא הופיע אף מועמד כשיר-לייב**,
+ולכן `live 0` היום הוא **מוסבר במלואו, לא כשל-שקט**. הנתיב פתוח אך **טרם נוסה**.
+
+**🟢 פוזיציה⇄TM — הוכרעה לפני אזעקה, אפס T-43/ORPHAN.**
+```raw
+account/state (age_s 5.8): position_qty 0 · avg_price 0.0 · working_orders 0 · open_pnl 0.0
+                           verdict "flat" · open_trade null · order_placement_armed 1 · is_sim 0
+agent/sierra_live_check:   sierra_qty 0 · working_orders 0 · tm_open_trades 0 · tm_net_qty 0
+                           "flat בשני הצדדים" · closed_today 0 · day_pnl $0.00
+                           verdict 🟢 המערכת מזהה את סיירה תקין
+gateway/status:            live_slot null · live_enabled_systems [2,4] · trades_today 0
+                           cluster_guard_active false · ssv veto_active false
+```
+
+**🟢 ארבעת הצירים ירוקים.** בר-SoT [[T-430]] `2026-09-30 18:05:00+00` גיל **`0.63` דק'** ב-
+`18:05:38Z` — נמדד `PGTZ=UTC` (מלכודת-19), מה-DB ולא `mtime` (מלכודת-22) ⇒ **פיד חי** ·
+`health http=200 t=0.045s {"status":"ok","version":"v9.0.0"}` · מאזין יחיד `71696` ·
+**ליגר כותב** `v9_shadow_ledger 166` שורות היום, אחרונה `21:05:05` (גיל `~0` דק') ·
+`v9_trades` היום: `shadow 83` — `65 CLOSED Σ +295.07` · `18 FILLED` (כניסות `09:50→14:05 ET`,
+כולן מהיום ⇒ **אפס שורת-צל תקועה מימים קודמים**) · **`live 0`** ⇒ מלכודת-4: אפס-לייב ≠ מערכת-מתה ·
+`ruled_contracts() = 1` עם `.env` טעון ([[T-489]]) ⇒ **מדידה, אפס נגיעה** ([[T-225]]) ·
+`flag_guard ⇒ **PASS — all 273 ruled flags match**` + `BUDGET×MIN ≤ CAP: 225.0×3=675.0 ≤ 800.0`.
+
+**💡 [[T-520]] — ללא שינוי מ-114, והמזהים נגזרו מהפיד ולא מהזיכרון (מלכודת-20):**
+```raw
+trade_id של 8 שורות ה-pre_send_entry_guard, מתוך decisions עצמו:
+  16:50:01 DALTON_EDGE_LONG 2668 · 16:55:03 OPENING_EXTREME_REJECT 2671 · 17:00:01 OPENING_DRIVE 2673
+  18:15:01 CEILING_FLIP_SHORT 2694 · 18:50:00 GB100 2704 · 19:05:01 GHOST 2710
+  19:45:01 FAMIR 2718 · 20:05:00 REACTIVE_LONG 2725
+psql ⇒ closed 6 | open 2 | sum_closed −156.25
+  2668 T1_HIT +66.25 · 2673 STOP_HIT −75.00 · 2704 STOP_HIT −38.75
+  2710 STOP_HIT −36.25 · 2718 STOP_HIT −36.25 · 2725 STOP_HIT −36.25
+  פתוחות: 2671 OPENING_EXTREME_REJECT · 2694 CEILING_FLIP_SHORT
+```
+⇒ **`Σ −156.25` — החסימה חסכה**, זהה ל-114 בדיוק; `2/8` פתוחות ⇒ `Σ` מלא בדוח-הערב.
+⛔ אפס דגל ואפס שינוי-עץ (`LEARNING_DOCTRINE`: הוראה חדשה ⇒ קודם ריפליי).
+
+**💵 [[T-34]] — דיווח-בלבד, ובמפורש לא (ג).**
+`avail 460.39 · margin_req 0.00 · acct_value 460.39 · cash_balance 460.39 · open_positions_pl 0.00 ·`
+`under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · acct_daily_pl +23.75 ·`
+`daily_total_qty_filled 4.0 · last_price 7759.5`. `avail < 1,595$` ⇒ שורה כנדרש — אך מול
+דרישת-חוזה-אחד (`~287`, מדידת 12:45) ⇒ **חוזה אחד ממומן ⇒ אינו חוסם מסחר ⇒ אינו (ג)**.
+📎 ‏`acct_daily_pl +23.75` מתיישב בדיוק עם הידנית של מייקל (`2 × (7756.50−7754.12) × 5 = 23.75`)
+⇒ הרווח **מומש**, ולכן `460.39` הוא מזומן ולא mark-to-market — הרגישות שתוארה ב-113 חלפה.
+
+**🧾 שגיאות — ותיקון-מדידה בתוך הריצה, לפני שהפך לתקרית-שקר.**
+```raw
+awk '$2 >= "20:50:00"' /tmp/backend.err.log | grep -cE "\[ERROR\]|Traceback"  ⇒ 1
+השורה עצמה:  2026-09-29 22:15:20 [ERROR] [BarLevelDetector] Invalid transition: CLOSED -> CLOSED
+                   ^^^^^^^^^^ מאתמול — המסנן השווה זמן בלי תאריך
+```
+⇒ **אפס `[ERROR]` היום אחרי `20:50`, ואפס `Traceback` מאז `20:20:42`.** הלוג זורם
+(`/tmp/backend.err.log` mtime `21:08`, שורה אחרונה `21:08:41`), והשורות שבו תפעוליות
+(‏`Woodies ZLR-TRACE` · `BarRouter SLOW TPOSystem 120.1ms` · `OPENING_DIR_FUSION SKIP` ·
+`[S1DayDir] SHADOW accepted_break=UP agree=True`). ⚠️ **הכלל לפרוטוקול, בן-משפחה של 3.3:**
+מסנן-זמן על לוג רב-יומי **חייב תאריך** — `$2` לבדו מחזיר שורות של אתמול כטריות.
+🌉 בריג' — מלכודת-24 יושמה: `grep -c "API push FAILED to https" ⇒ 0` ⇒ **אפס דריפט**.
+
+**🔥 [[T-518]] — נקודה שישית, והיא שוברת את העלייה המונוטונית ש-114 סימנה.**
+`LIVE_CPU = **36.5%**` (מלכודת-23, הפוסק היחיד: `Δcputime 9647.14→9658.1 / 30.0s`) מול
+`41.0%` (20:38) · `41.7%` (19:06) · `39.0%` (18:38) · `36.8%` (17:04) · `26.9%` (13:04)
+⇒ `41.0 → 36.5` — **הכיוון התהפך**, ובדיוק אחרי סגירת הפוזיציה הידנית. **מדידה, לא מגמה
+מוכרזת**, ולא (ג): `health` נשאר `45ms`. (‏`ps -o %cpu ⇒ 61.3` **לא** שימש — הוא ממוצע-דועך רועש.)
+
+**📎 שתי תצפיות-לוואי, נרשמות כדי שהריצה הבאה לא תקרא אותן כרגרסיה:**
+- `cooldown_active=false` אך `cooldown_remaining_sec=1619` עם `consecutive_stops=29` (היה `27`
+  ב-114) — הצמד נראה לא-עקבי, **אינו חוסם**, וזהה באופיו למה ש-114 כבר רשמה.
+- `gateway/status.shadow_active_count 20` מול `psql ⇒ 18 FILLED` — **זו מלכודת-15 בדיוק**
+  (השדה אינו מונה עסקאות-צל פתוחות) ⇒ **אין כאן פער לרדוף אחריו**.
+
+**אפס נגיעה:** ריסטארט · `.env` · דגל · דגלי-גודל/`RISK_*` · `--apply` · FLATTEN · `op=EXIT` ·
+פוזיציות/סלוט/פקודות · DLL · קוד-ייצור · כתיבה ל-DB · הודעת-טלפון.
+**כתיבות:** `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד, קומיט by path.
+
+**הצעד הבא — לניטור-RTH הבא:**
+1. **הראשון שנבדק — האם הופיע מועמד כשיר-לייב** (דפוס שאינו ברשימת-הצל שלמעלה) מאז
+   `20:50:06`. הנתיב פתוח (סלוט פנוי · `armed 1` · אפס גארד · מרג'ין מספיק לחוזה) ⇒ מועמד כזה
+   **אמור** להיפתח, ופתיחה/סגירה = **מקרה (ב)** ≤300 תווים, עסקת-הלייב הראשונה של היום.
+   ⚠️ מועמד `CEILING_FLIP_TOUCH2`/`ZLR`/`FAILED_BREAK` שייצא `shadow_only` הוא **הפסיקה עובדת**
+   — לא לפתוח עליו פריט ולא לדווח.
+2. [[T-520]] — `2671`/`2694` לסגירת ה-`Σ` בדוח-הערב; המזהים נגזרים מ-`decisions.trade_id`.
+3. [[T-34]] ל-(ג) רק על `under_margin=1` **מתמשך** ו/או `trading_disabled=1`.
+4. [[T-518]] — נקודה שביעית; אם `36.5` ממשיך לרדת, המגמה שסומנה ב-110-114 הייתה **הפוזיציה
+   הידנית**, לא דליפה ⇒ מועמד-סגירה לפריט.
+5. `tree:bias 22` + `tree:location 16` + `tree:stand_down 9` הם חוסמי-העץ הגדולים של היום
+   ⇒ **מועמד-ריפליי לערב**, לא דגל.
+6. השאלות מ-`12:45:41Z`/`16:51:09Z` **אינן נשאלות שוב** — שתיהן התייתרו.
+
+---
+
 ## 🟢 [cowork-daily · 2026-09-30 20:34-20:47 IL] — **ריצה 114 · חובה-1 + חובה-3 (ניטור-RTH תשיעי)** · ⛔ **שקט-טלפון מלא** · 🔑 **הידנית נסגרה 20:20:42 ⇒ הגארד השתחרר ונתיב-הלייב פתוח** · 💡 **[[T-520]]: 6/8 הוכרעו, `Σ −156.25` ⇒ החסימה חסכה**
 
 **החלון, נבדק לפני כל נגיעה.** `date ⇒ 2026-09-30 20:34:26 IDT (Wed)` ∈ `16:30-23:00` ⇒
