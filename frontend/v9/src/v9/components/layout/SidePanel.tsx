@@ -52,8 +52,14 @@ export function SidePanel() {
       </div>
 
       {/* Lens — header tint per selected system (κ.5 §4.4) */}
+      {/* מייקל 30.09: "אני לא יכול לגלול בתפריט של המערכת". נמדד בכרום שלו (חלון 1424×706):
+          הפאנל 448px, הבלוקים הקבועים (כרטיס-עסקה + תור-לירי + Switcher + מגירה + קישור)
+          518px — ומיכל-העדשה, שהיה flex:1 + overflow:auto (גלילה-מקוננת), התכווץ ל-14px:
+          תוכן המערכת (Now/Plan/Shadow/Hist/Chart) היה בלתי-נראה ובלתי-נגלל. עכשיו יש
+          גלילה אחת בלבד — הפאנל כולו (overflowY:auto למעלה) — והעדשה בגובה-תוכן טבעי;
+          לשוניות-העדשה נדבקות (sticky) לראש הפאנל בזמן גלילת תוכן ארוך. */}
       <div style={{
-        flex: 1, overflow: 'auto', padding: 6,
+        flex: '0 0 auto', padding: 6,
         borderTop: `2px solid ${SYSTEM_META[selectedSystem]?.color || COLORS.borderFaint}`,
       }}>
         {selectedSystem === 1 ? (
@@ -156,14 +162,20 @@ function LensWithCustomContent({ systemId, ContentComponent }: {
     <div style={{
       borderRadius: SIZES.lensCardRadius,
       border: `${SIZES.lensCardBorder}px solid ${meta.color}`,
-      overflow: 'hidden',
+      // 30.09: overflow:hidden הפך את הכרטיס למיכל-גלילה משלו, ולכן ה-sticky של
+      // הלשוניות לא פעל מול גלילת-הפאנל. overflow:visible — הלשוניות נדבקות לפאנל.
+      overflow: 'visible',
       background: COLORS.bgSurface3,
     }}>
       <div style={{
-        background: `${meta.color}14`,
+        // רקע אטום (משטח + גוון-המערכת מעליו) — כשהלשוניות דבוקות, התוכן לא מבצבץ דרכן
+        backgroundColor: COLORS.bgSurface3,
+        backgroundImage: `linear-gradient(${meta.color}14, ${meta.color}14)`,
+        borderRadius: `${SIZES.lensCardRadius}px ${SIZES.lensCardRadius}px 0 0`,
         padding: '4px 0 0 0',
         position: 'sticky',
         top: 0,
+        zIndex: 2,
       }}>
         <div style={{ display: 'flex' }}>
           {TABS.map((tab) => (
