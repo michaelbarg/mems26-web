@@ -850,3 +850,54 @@ grep -o 'API push FAILED to [^ ]*' /tmp/bridge.log | grep -v localhost:8000 | wc
 גורמת לעצור מערכת בריאה** — הכלל מורה *לעצור את הברידג'* על הממצא, כלומר ריצת-ניטור
 שתספור 39 תקטע את הפיד באמצע יום-מסחר ותשלח מקרה (ג) מיותר. **קרוב-משפחה:** מלכודת 23
 (דיווח-יתר ודיווח-חסר הם אותה מחלקה) ו-Rule 2 (מכשיר שעונה על שאלה אחרת).
+
+
+---
+
+### מלכודת 25 · `grep "[EntryGuard]"` על הלוג הוא **שלילי-שקרי** — התג הזה לא קיים (30.09)
+
+**מה קרה.** ריצה 104 (30.09) בדקה אם EntryGuard חסם ירי, והריצה את הבדיקה הטבעית:
+
+```raw
+grep -c "2026-09-30.*\[EntryGuard\]" /tmp/backend.err.log  ⇒  0
+```
+
+ונרשם `EntryGuard ⇒ 0`. **באותו יום עצמו הגארד ירה שלוש פעמים** — ריצה 107 מצאה אותן
+ב-`16:50:01`, `16:55:03`, `17:00:01`, כל אחת מהן `[CRITICAL]`:
+
+```raw
+grep -c "pre_send_entry_guard\|UNMANAGED POSITION" /tmp/backend.err.log  ⇒  3
+
+התג שקיים בפועל:
+[CRITICAL] [backend.v9.gateway.trading_gateway] [Gateway] LIVE fire BLOCKED pre-send:
+  UNMANAGED POSITION +1 on the account (live slot was free → not TM-managed).
+  No manual trading (ruling 2026-08-21) → … Blocked pre-send
+  — LONG DALTON_EDGE_LONG sys=2 — no trade row, no slot, no Sierra command
+```
+
+**המדידה הקבילה — הפיד, לא ה-grep.** הרשומה הקנונית של חסימת-שליחה היא שדה, לא מחרוזת:
+
+```bash
+curl -s "http://localhost:8000/api/v9/gateway/decisions?limit=2000" | python3 -c "
+import sys,json
+rows=json.load(sys.stdin)
+for r in rows:
+    if r.get('live_blocked_by'):
+        print(r['t_il'], r['pattern'], r['direction'], r['live_blocked_by'], r['live_block_reason'])"
+```
+
+**ולמה זו מלכודת ולא שגיאת-הקלדה:** `grep` על תג שאינו קיים **אינו שוגה** — הוא מחזיר
+`0`, שנקרא בדיוק כמו "נבדק, ולא היה". שם-הרכיב בקוד (`entry_guard`) ושם-התג בלוג
+(`[Gateway]`) **אינם אותו דבר**, ולכן חיפוש לפי שם-הרכיב נראה סביר ומחזיר שקר שקט.
+זו אותה משפחה כמו מלכודות 14 · 17 · 18: **קריאת משמעות ל-`0`/`NULL`/`None`** שמשמעותו
+"לא נמצא בשיטה הזו", לא "לא קרה".
+
+**ולמה זה יקר במיוחד כאן:** `live_blocked_by` הוא ההבדל בין *"העץ לא אישר"* לבין
+*"העץ אישר והשליחה נחסמה"* — שתי מסקנות הפוכות על אותו יום. ב-30.09 הפער הזה בדיוק
+הוא שהחליף את האבחנה: החוסם לא היה **המרג'ין** (כפי שנשלח לטלפון ב-12:45) אלא
+**הפוזיציה הידנית** דרך פסיקת `2026-08-21`, והגארד עוצר `pre-send` — **לפני** בדיקת
+מרג'ין ולפני כל פקודה לסיירה (`no trade row, no slot, no Sierra command`).
+
+**הכלל:** EntryGuard/חסימת-שליחה נבדקים **רק** דרך `decisions.live_blocked_by`.
+grep על הלוג — רק עם `pre_send_entry_guard` או `LIVE fire BLOCKED pre-send`,
+**לעולם לא עם `[EntryGuard]`**.
