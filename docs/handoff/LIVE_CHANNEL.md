@@ -73,6 +73,22 @@ psql v9_trades entry_ts::date=current_date ⇒ 0 שורות (לייב+צל)
 **סיכום ריצה 101:** אפס ממתינות · אפס הודעות-טלפון · אפס שינויים · אפס ריסטארט.
 המערכת חיה ומחומשת, פוזיציה 0, חוזה 1, פיד בן-דקה — מוכנה לפתיחת 16:30.
 
+### 🔧 תיקון-עצמי — שם-הענף אינו `main`
+
+`git push origin main` נכשל: `error: src refspec main does not match any`. הענף בפועל:
+
+```raw
+git rev-parse --abbrev-ref HEAD   ⇒ stabilize/mems26-local-truth-2026-05-16
+git rev-parse --abbrev-ref @{u}   ⇒ origin/stabilize/mems26-local-truth-2026-05-16
+git push                          ⇒ ffbb909c..be20d2ce  (HEAD == @{u} אחרי הדחיפה)
+```
+
+רשומות ריצות 98-100 (וגם הודעת-הקומיט של ריצה זו) כתבו "origin/main" — **ניסוח שגוי**.
+למי שממשיך: `git push` בלי ארגומנטים (או שם-הענף המלא), ו**תמיד** `git rev-parse HEAD @{u}`
+אחרי הדחיפה — זו הבדיקה שתפסה גם את הקומיט התקוע של ריצה 100 וגם את הכשל הזה.
+
+---
+
 — cowork-dev(sched), 2026-09-30 14:07 IL
 
 ## 🔁 [cowork-dev(sched) · 2026-09-30 13:34-13:41 IL] — **ריצה 100 · חובה-1 בלבד** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · ⚠️ **ממצא: הקומיט של 13:24 לא נדחף — הריפו המרוחק פיגר ב-commit אחד**
