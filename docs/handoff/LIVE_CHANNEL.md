@@ -1,3 +1,33 @@
+## 🔁 [cowork(interactive) · 2026-09-30 11:20-11:35 IL] — **פסיקת-מייקל "מאשר" (T-518c) בוצעה: חבילה f15+returning חיה · ריסטארט-קדם-הפתיחה של היום בוצע 11:25 · GO**
+
+**הפסיקה (מייקל, Cowork אינטראקטיבי, ~11:20 IL):** "מאשר" לחבילה שנמדדה ביחד ב-`t518pkg` (62 סשנים מול `t517ref`: Δ +496.25$ ברוטו / +506.65$ נטו · 16/5/41 · כל חודש חיובי; `harness_out/t518/run_pkg.out`, `docs/reports/DIAGNOSIS_2026-09-30.md` §10). ושאלה: "האם היום המערכת מקבלת יותר אפשרויות לפי הענפים, תדע לזהות עסקאות יותר טוב ולנהל אותן — לייב, ולשים לב שגם השדואו".
+
+**מה שונה (snapshot לפני: `~/mems26_snapshots/20260930T082418Z_T-518-package-f15-ibreturn-ruled-1145`, שחזור `scripts/mems26_restore.sh`):**
+
+```raw
+.env (+2, בסוף הקובץ):  T1_REALISM_FLOOR_R_V1=1.5 · IB_RETURN_HINT_RELEASE_V1=returning
+RULED_FLAGS.yaml:        שתי הרשומות הוחלפו מ-unset_or_0 ל-"1.5" / "returning", ruled_by מייקל 30.09, ציטוט + measured
+flag_guard ⇒ PASS 273/273 (לפני הריסטארט וגם אחריו)
+קוד: ac944a8c (רצפת-T1 + S6) · T-517 36b5ec2c (ib_return) — שניהם ב-HEAD 71474dd6
+```
+
+**הריסטארט — 11:25 IL, חלון מותר (לפני 16:10), שטוח (0 עסקאות פתוחות לא-צל, `sierra_state` position_qty 0):**
+
+```raw
+launchctl kickstart -k gui/$UID/com.mems26.backend ⇒ rc=0
+לפני: pid 91652 (עלה 29.09 15:37)  ·  אחרי: pid 65078 (עלה 30.09 11:25:08)
+[env_loader] applied 319 vars (היה 317 ⇒ שני הדגלים החדשים נטענו)
+[boot] logging OK level=INFO pid=65078 commit=71474dd6   ← commit == HEAD
+/health ⇒ 200 · 4.5ms · lsof :8000 ⇒ 65078 יחיד · bridge חי (screen mems26_bridge) · feeder 1 · frontend :3000 200
+post_restart_verify.sh ⇒ 🟢 GREEN (טריות לא נאכפת מחוץ ל-RTH) · fire_drill ⇒ 🟢 GO, GUARDS GREEN
+```
+
+**לריצת-השער 15:30-16:10 — הריסטארט-קדם-הפתיחה של היום כבר בוצע (pid 65078); אין לבצע שני אלא אם נחת קוד חדש.** לוודא: `lsof :8000` = 65078, `flag_guard` PASS 273, `ruled_contracts()` = 1. **ראיית-שימוש-ראשון ב-RTH:** `[Gateway] T1_REALISM_FLOOR_R_V1=1.50: realism t1 … held at …` בלוג-הבקאנד, ו-`ibr_released` ב-`tree_v3.ibr` של החלטות-הגייטוויי — שתיהן חלות גם על נתיבי-הצל (המעבר בגייטוויי לפני `shadow_only`), ולכן ספר-הצל של היום מתנהג לפי אותם כללים.
+
+**פתוח לפסיקה נפרדת (לא בוצע):** `S6_MAE_SCRATCH_V1=0` — פסיקת 02.08 של מייקל; המדידה (`harness_out/t518/scratch_sensitivity.out`): −609$ (ספים קבועים) / −890$ (ATR-יחסי, הלייב) על 176 עסקאות-ריפליי, 7–8 מנצחות נהרגות. מייקל נשאל במפורש; אם "כן" — .env+RULED_FLAGS+ריסטארט שני לפני 16:10 (או ריצת-השער). `t518cft` — לא היום (ספט −114$).
+
+---
+
 ## 🔁 [cowork-dev(sched) · 2026-09-30 11:04-11:12 IL] — **ריצה 95 · חובה-1 בלבד** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · 🔧 **תיקון-ראיה: השורה "state not in CLOSED ⇒ 0 שורות = פוזיציה 0" של ריצה 94 שקרית — השאילתה מחזירה 36** · ⚠️ **מלכודת-חדשה 13: `lsof -ti :8000 | wc -l` סופר לקוחות ⇒ "שלושה backends" מדומים**
 
 **החלון, נבדק לפני כל נגיעה.** `11:04` — לא `15:30-16:10` (שער) · לא `16:30-23:00` (RTH) ·
