@@ -1,0 +1,73 @@
+
+===== A · harness reference (live config, t517ref, 62 sessions): 176 trades =====
+        target    n  win stop  eod   win%     avg$  sum$ net per-session  BE win% needed
+          0.5R  176  115   58    3    65%    -1.81   -318.85       -5.59             67%
+         0.75R  176  106   66    4    60%     2.20    387.71        6.80             57%
+          1.0R  176   95   76    5    54%     3.66    644.90       11.31             50%
+         1.25R  176   83   84    9    47%     3.45    606.77       10.65             44%
+          1.5R  176   74   89   13    42%     4.64    816.77       14.33             40%
+           4pt  176  123   51    2    70%     0.23     39.90        0.70             70%
+           6pt  176  108   65    3    61%     0.23     39.90        0.70             60%
+           8pt  176   97   75    4    55%     1.36    238.65        4.19             53%
+     actual T1  175  100   71    4    57%     7.37   1290.55       22.64             47%
+
+(live trades with a usable initial stop: 31 of 31; the rest show a break-even stop after T0/T1)
+
+===== B · real live trades 09.09-29.09 (initial stop known): 31 trades =====
+        target    n  win stop  eod   win%     avg$  sum$ net per-session  BE win% needed
+          0.5R   31   19   11    1    61%    -4.76   -147.47       -9.83             67%
+         0.75R   31   19   11    1    61%     2.09     64.71        4.31             57%
+          1.0R   31   18   11    2    58%     7.12    220.65       14.71             50%
+         1.25R   31   16   13    2    52%     8.37    259.40       17.29             44%
+          1.5R   31   14   15    2    45%     5.28    163.77       10.92             40%
+           4pt   31   22    9    0    71%     1.39     43.15        2.88             69%
+           6pt   31   19   11    1    61%    -0.06     -1.85       -0.12             59%
+           8pt   31   17   13    1    55%     1.88     58.15        3.88             52%
+     actual T1   31   18   13    0    58%    -0.91    -28.10       -1.87             53%
+
+===== B-all · real live trades, fixed-point targets only (R rows meaningless here): 31 trades =====
+        target    n  win stop  eod   win%     avg$  sum$ net per-session  BE win% needed
+          0.5R   31   19   11    1    61%    -4.76   -147.47       -9.83             67%
+         0.75R   31   19   11    1    61%     2.09     64.71        4.31             57%
+          1.0R   31   18   11    2    58%     7.12    220.65       14.71             50%
+         1.25R   31   16   13    2    52%     8.37    259.40       17.29             44%
+          1.5R   31   14   15    2    45%     5.28    163.77       10.92             40%
+           4pt   31   22    9    0    71%     1.39     43.15        2.88             69%
+           6pt   31   19   11    1    61%    -0.06     -1.85       -0.12             59%
+           8pt   31   17   13    1    55%     1.88     58.15        3.88             52%
+     actual T1   31   18   13    0    58%    -0.91    -28.10       -1.87             53%
+
+===== per live trade: 5-min-bar simulation (initial stop, actual T1) vs reality =====
+   id    day pattern                dir    risk t1pts   sim    sim$ | real exit            real$
+ 1328  09-09 VEGAS                  LONG   4.00  9.00  STOP  -22.60 | STOP_HIT            -40.00
+ 1343  09-09 BULL_FLAG_LONG         LONG   5.25  4.50  STOP  -28.85 | STOP_HIT           -137.50
+ 1409  09-10 INITIATIVE_LONG        LONG   9.25 14.00  STOP  -48.85 | STOP_HIT            -33.75
+ 1498  09-11 INITIATIVE_LONG        LONG   9.50  8.00  STOP  -50.10 | phantom_reconcile    10.00
+ 1512  09-11 FAMIR                  LONG   8.00  7.75   WIN   36.15 | STOP_HIT             38.75
+ 1563  09-14 CEILING_FLIP_TOUCH2    SHORT  7.50 14.00  STOP  -40.10 | STOP_HIT           -183.75
+ 1584  09-14 CEILING_FLIP_TOUCH2    SHORT  5.00 14.00   WIN   67.40 | STOP_HIT             46.25
+ 1647  09-15 INITIATIVE_SHORT       SHORT  6.00  4.00  STOP  -32.60 | STOP_HIT            -86.25
+ 1659  09-15 GHOST                  SHORT  5.75  6.00   WIN   27.40 | STOP_HIT            -55.00  <-- sim WIN, real loss
+ 1712  09-16 OPENING_DRIVE          SHORT 11.00  1.50  STOP  -57.60 | MAE_SCRATCH         -67.50
+ 1717  09-16 CEILING_FLIP_LONG      LONG  12.50  7.00   WIN   32.40 | MAE_SCRATCH         -77.50  <-- sim WIN, real loss
+ 1776  09-16 GHOST                  LONG   7.50  9.00   WIN   42.40 | STOP_HIT             43.75
+ 1806  09-17 INITIATIVE_SHORT       SHORT 10.00  3.50  STOP  -52.60 | STOP_HIT           -100.00
+ 1916  09-18 OPENING_DRIVE          SHORT  7.75  2.25   WIN    8.65 | STOP_HIT              7.50
+ 2017  09-21 OPENING_DRIVE          LONG   9.50  5.50   WIN   24.90 | T1_HIT               18.75
+ 2029  09-21 REACTIVE_LONG          LONG  10.75  2.50   WIN    9.90 | T1_HIT               11.25
+ 2033  09-21 BULL_FLAG_LONG         LONG  10.75  2.50   WIN    9.90 | T1_HIT                6.25
+ 2041  09-21 REACTIVE_LONG          LONG  12.00  2.50   WIN    9.90 | T1_HIT                5.00
+ 2047  09-21 INITIATIVE_LONG        LONG  13.00  5.50   WIN   24.90 | T1_HIT               28.75
+ 2072  09-21 GHOST                  LONG   8.50  2.25   WIN    8.65 | T1_HIT                8.75
+ 2076  09-21 REACTIVE_LONG          LONG  10.75  3.25   WIN   13.65 | T1_HIT               12.50
+ 2106  09-22 OPENING_DRIVE          SHORT 15.00 10.25   WIN   48.65 | MAE_SCRATCH         -36.25  <-- sim WIN, real loss
+ 2140  09-22 GB100                  SHORT  4.25  5.75   WIN   26.15 | T1_HIT               26.25
+ 2152  09-22 CEILING_FLIP_LONG      LONG   6.50  6.00   WIN   27.40 | T1_HIT               23.75
+ 2230  09-23 REACTIVE_LONG          LONG   4.25 14.00  STOP  -23.85 | STOP_HIT            -18.75
+ 2340  09-24 DOUBLE_TOP_AA_SHORT    SHORT  7.75 14.00  STOP  -41.35 | STOP_HIT            -38.75
+ 2408  09-25 DOUBLE_BOTTOM_EE_LONG  LONG   8.75 14.00   WIN   67.40 | T1_HIT               72.50
+ 2483  09-28 OPENING_EXTREME_REJECT LONG  13.25 14.00  STOP  -68.85 | MAE_SCRATCH         -61.25
+ 2496  09-28 VEGAS                  LONG   5.75  5.75  STOP  -31.35 | STOP_HIT            -33.75
+ 2594  09-29 CEILING_FLIP_LONG      LONG  12.75 19.12  STOP  -66.35 | MAE_SCRATCH         -55.00
+ 2623  09-29 CEILING_FLIP_LONG      LONG   7.25 10.75   WIN   51.15 | T1_HIT               52.50
+sum sim -28.10$ vs real -612.50$ · sim-WIN-but-real-loss: 3 trades [1659, 1717, 2106]
