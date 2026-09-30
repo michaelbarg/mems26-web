@@ -1,0 +1,54 @@
+START Wed Sep 30 09:55:32 IDT 2026 ·       63 sessions · ref=t517ref
+t518f10 done Wed Sep 30 10:09:59 IDT 2026
+t518f15 done Wed Sep 30 10:22:53 IDT 2026
+t518cft done Wed Sep 30 10:35:28 IDT 2026
+t518dt done Wed Sep 30 10:47:10 IDT 2026
+t518is done Wed Sep 30 10:58:23 IDT 2026
+== day-total vs t517ref
+t518f10 vs t517ref: 62 sessions · t517ref Σ+1751.15$ · t518f10 Σ+1797.40$ · Δ +46.25$ gross, ≈+72.25$ net of -10 round-trips · better 7 / worse 3 / same 52
+by month Δ: 2026-06 +30 (8d) · 2026-07 -132 (17d) · 2026-08 +28 (19d) · 2026-09 +121 (18d)
+trades: added 0 (wins 0, Σ+0.00$) · removed 10 (Σ+101.25$) · the rest of Δ is changed exits/targets of the same trades
+t518f15 vs t517ref: 62 sessions · t517ref Σ+1751.15$ · t518f15 Σ+2012.40$ · Δ +261.25$ gross, ≈+297.65$ net of -14 round-trips · better 10 / worse 4 / same 48
+by month Δ: 2026-06 +68 (8d) · 2026-07 -76 (17d) · 2026-08 +140 (19d) · 2026-09 +130 (18d)
+trades: added 1 (wins 0, Σ-43.75$) · removed 15 (Σ+100.65$) · the rest of Δ is changed exits/targets of the same trades
+t518cft vs t517ref: 62 sessions · t517ref Σ+1751.15$ · t518cft Σ+2133.75$ · Δ +382.60$ gross, ≈+294.20$ net of +34 round-trips · better 16 / worse 12 / same 34
+by month Δ: 2026-06 +29 (8d) · 2026-07 +183 (17d) · 2026-08 +284 (19d) · 2026-09 -114 (18d)
+trades: added 57 (wins 26, Σ+333.20$) · removed 23 (Σ-77.50$) · the rest of Δ is changed exits/targets of the same trades
+t518dt vs t517ref: 62 sessions · t517ref Σ+1751.15$ · t518dt Σ+1698.65$ · Δ -52.50$ gross, ≈-78.50$ net of +10 round-trips · better 4 / worse 5 / same 53
+by month Δ: 2026-06 +0 (8d) · 2026-07 -19 (17d) · 2026-08 +80 (19d) · 2026-09 -114 (18d)
+trades: added 10 (wins 5, Σ-27.50$) · removed 0 (Σ+0.00$) · the rest of Δ is changed exits/targets of the same trades
+t518is vs t517ref: 62 sessions · t517ref Σ+1751.15$ · t518is Σ+1571.15$ · Δ -180.00$ gross, ≈-208.60$ net of +11 round-trips · better 2 / worse 9 / same 51
+by month Δ: 2026-06 -25 (8d) · 2026-07 +1 (17d) · 2026-08 -80 (19d) · 2026-09 -76 (18d)
+trades: added 15 (wins 7, Σ-111.25$) · removed 4 (Σ+68.75$) · the rest of Δ is changed exits/targets of the same trades
+== detail (t515 report)
+t518f10 vs t517ref: 62d · trades 166 (ref 176) · win 54% · Σ +1797.40$ (ref +1751.15$) · Δ gross +46.25$ · Δ net +72.25$ · better 7 / worse 3
+   exits:  STOP 76 -3191$ · WIN 90 +5022$
+   leaves: legacy 166 +1831$
+   09-28: -66.25$ (ref -66.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+
+t518f15 vs t517ref: 62d · trades 162 (ref 176) · win 54% · Σ +2012.40$ (ref +1751.15$) · Δ gross +261.25$ · Δ net +297.65$ · better 10 / worse 4
+   exits:  STOP 75 -3189$ · WIN 87 +5110$
+   leaves: legacy 162 +1921$
+   09-28: -66.25$ (ref -66.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+
+t518cft vs t517ref: 62d · trades 210 (ref 176) · win 56% · Σ +2133.75$ (ref +1751.15$) · Δ gross +382.60$ · Δ net +294.20$ · better 16 / worse 12
+   exits:  STOP 92 -3400$ · WIN 118 +5589$
+   leaves: legacy 210 +2189$
+   09-28: -66.25$ (ref -66.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+
+t518dt vs t517ref: 62d · trades 186 (ref 176) · win 58% · Σ +1698.65$ (ref +1751.15$) · Δ gross -52.50$ · Δ net -78.50$ · better 4 / worse 5
+   exits:  STOP 79 -3291$ · WIN 107 +5042$
+   leaves: legacy 186 +1751$
+   09-28: -66.25$ (ref -66.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+
+t518is vs t517ref: 62d · trades 187 (ref 176) · win 57% · Σ +1571.15$ (ref +1751.15$) · Δ gross -180.00$ · Δ net -208.60$ · better 2 / worse 9
+   exits:  STOP 81 -3316$ · WIN 106 +4914$
+   leaves: legacy 187 +1598$
+   09-28: -66.25$ (ref -66.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+
+QUEUE DONE Wed Sep 30 10:58:28 IDT 2026
