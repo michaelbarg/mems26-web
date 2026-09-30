@@ -1,3 +1,22 @@
+## 🔁 [cowork(interactive) · 2026-09-30 13:20-13:27 IL] — **פסיקת-מייקל שנייה: "לכבות היום" ⇒ `S6_MAE_SCRATCH_V1=0` חי · ריסטארט שני 13:24 · GO**
+
+**הפסיקה (מייקל, שאלה מפורשת ב-Cowork, ~13:20 IL):** "לכבות היום (מומלץ)" ל-MAE-scratch — פסיקת 02.08 מבוטלת. הראיה: `harness_out/t518/scratch_sensitivity.out` (176 עסקאות-ריפליי, 62 סשנים: −609$ ספים-קבועים / **−890$ ATR-יחסי**, 7–8 מנצחות נהרגות) + ספטמבר-לייב (5 scratch, #1717/#2106 נהרגו).
+
+```raw
+snapshot:  ~/mems26_snapshots/20260930T102349Z_T-518-scratch-off-ruled  (שחזור scripts/mems26_restore.sh)
+.env:      S6_MAE_SCRATCH_V1 1 → 0 (שורה 525) · S6_MAE_SCRATCH_ATR_V1 נשאר 1 (פרמטר אינרטי כשהאב כבוי)
+RULED:     S6_MAE_SCRATCH_V1 expected "0", ruled_by מייקל 30.09, ציטוט+מדידה · flag_guard ⇒ PASS 273/273
+שטוח:      0 עסקאות פתוחות לא-צל · sierra_state position_qty 0 · working 0 · is_sim 0 · armed 1
+launchctl kickstart -k gui/$UID/com.mems26.backend ⇒ rc=0 · 13:24:35 IL
+לפני: pid 65078 (11:25)  ·  אחרי: pid 71696 (13:24:39) · lsof :8000 ⇒ 71696 יחיד · pgrep uvicorn ⇒ 71696 יחיד
+[env_loader] applied 319 vars · [boot] logging OK pid=71696 commit=663dc62e (HEAD של ריצה 99)
+/health 200 · bridge חי · feeder 1 · frontend 200 · post_restart_verify 🟢 GREEN · fire_drill 🟢 GO · [ERROR]/[CRITICAL] אחרי הריסטארט = 0
+```
+
+**לריצת-השער 15:30-16:10:** שני הריסטארטים של היום בוצעו (11:25 חבילה, 13:24 scratch-off) — **pid 71696 הוא המאזין של היום; אין לרסטרט שוב** אלא אם נחת קוד חדש. לוודא `flag_guard` PASS 273 ו-`ruled_contracts()`=1. **מה השתנה בפועל מהיום:** (1) שחרור-ההטיה כשהרחבת-IB כושלת נלקחת חזרה (לייב+צל); (2) T1 לא נחתך מתחת ל-1.5R ע"י תקרת-הריאליזם (לייב+צל); (3) אין scratch ב-MAE — עסקה מפסידה יוצאת בסטופ המבני (ב-1 חוזה ≈ 50–75$ מקסימום). **ראיות-שימוש-ראשון לחפש בלוג:** `T1_REALISM_FLOOR_R_V1=1.50: realism t1 … held at …` · `ibr_released` בהחלטות · היעדר `S6 MAE SCRATCH` על עסקה חיה.
+
+---
+
 ## 🔁 [cowork-dev(sched) · 2026-09-30 13:04-13:22 IL] — **ריצה 99 · חובה-1 בלבד** · ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון** · ⛔ **תיקון-עצמי: נפלתי במלכודת 23 בדיוק כפי שהיא כתובה — כמעט פרסמתי "backend 6.6%" מדגימת-`top` בודדת. המדידה הקבילה: `Δcputime/Δwall` על 45 שנ׳ ⇒ **`LIVE CPU = 26.9%`**, עם שוק סגור ואפס מסחר** · 🆕 **T-518 נפתח: השריפה של 27.09 עדיין שם ואין לה פריט-לוג** · 📌 **בעלות-הריסטארט היום = cowork(interactive) ⇒ לשער: שורת-מדידה בלבד**
 
 **החלון, נבדק לפני כל נגיעה.** `date ⇒ 2026-09-30 13:04:15 IDT (Wed)` — לא `15:30-16:10`
