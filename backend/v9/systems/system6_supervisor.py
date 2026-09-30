@@ -164,6 +164,14 @@ def diagnose_trade(
                     issues.append(Issue("stop_not_at_be", WARN, AUTO,
                                         f"T1 hit but stop {stop} not at BE ({entry})",
                                         correction={"op": "MODIFY_STOP", "price": _be_target(d, entry)}))
+            elif bool(trade.get("stop_is_structural")) and _structural_exempt():
+                # T-518 (30.09, SYSTEM6_STRUCTURAL_STOP_EXEMPT_V1, default OFF): the stop IS the
+                # structural anchor (Michael 09.09 10:20 "הסטופ = העוגן המבני, הגודל נגזר") — the
+                # 1.5×ATR band is the older yardstick; 29.09 it produced 2,111 identical
+                # stop_too_wide ALERTs against a ruled structural stop. Hard cap still applies.
+                if risk > hard_cap_pts + 1e-9:
+                    issues.append(Issue("stop_too_wide", WARN, ALERT,
+                                        f"risk {risk:.2f}pt > hard cap {hard_cap_pts:.2f}pt (structural stop)"))
             else:
                 # 4. stop band (pre-T1 only; post-BE the risk is ~0 by design)
                 if risk < floor - 1e-9:
@@ -337,6 +345,37 @@ def _autocorrect_enabled() -> bool:
     return os.getenv("SYSTEM6_AUTOCORRECT", "0").lower() in ("1", "true", "yes", "protective")
 
 
+def _structural_exempt() -> bool:
+    """SYSTEM6_STRUCTURAL_STOP_EXEMPT_V1 (T-518, default OFF): skip the ATR stop-band check for a
+    trade whose stop is the structural anchor; the 25-pt hard cap still applies."""
+    return os.getenv("SYSTEM6_STRUCTURAL_STOP_EXEMPT_V1", "0").lower() in ("1", "true", "yes")
+
+
+# T-518 (30.09): identical ALERT lines are logged once per (trade, code, detail) per
+# SYSTEM6_ALERT_REPEAT_S seconds (default 300) instead of on every scan (29.09: 2,111 lines,
+# one per second, all the same). Logging hygiene only — the report and the ops log_event
+# of the FIRST occurrence are unchanged; nothing about the diagnosis changes.
+_ALERT_LAST: Dict[tuple, float] = {}
+
+
+def _alert_should_log(trade_id, code: str, detail: str) -> bool:
+    import time as _time
+    try:
+        repeat_s = float(os.getenv("SYSTEM6_ALERT_REPEAT_S", "300") or 300)
+    except Exception:
+        repeat_s = 300.0
+    key = (str(trade_id), code, detail)
+    now = _time.time()
+    last = _ALERT_LAST.get(key)
+    if last is not None and now - last < repeat_s:
+        return False
+    _ALERT_LAST[key] = now
+    if len(_ALERT_LAST) > 2000:  # bounded
+        for k in list(_ALERT_LAST)[:1000]:
+            _ALERT_LAST.pop(k, None)
+    return True
+
+
 def scan_active_trade(
     *,
     trade: Optional[Dict],
@@ -375,6 +414,8 @@ def scan_active_trade(
         cvd_reversal=cvd_reversal, t0_hit=t0_hit,
     )
     for iss in report.alerts:
+        if not _alert_should_log(trade.get("id") or trade.get("trade_id"), iss.code, iss.detail):
+            continue  # T-518: same alert, same trade, inside the repeat window — the report still carries it
         logger.warning("[System6] %s ALERT: %s", iss.code, iss.detail)
         try:  # N12 central ops log — one line per ALERT issue; never breaks the scan
             log_event("system6", iss.severity, f"{iss.code} ALERT: {iss.detail}")

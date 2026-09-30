@@ -1,0 +1,24 @@
+ no_scratch: n=176 {'WIN': 101, 'STOP': 71, 'EOD': 4} Σ=1280.45$  per-session=20.65$
+    scratch: n=176 {'SCRATCH': 25, 'WIN': 94, 'STOP': 56, 'EOD': 1} Σ=671.70$  per-session=10.83$
+scratch_atr: n=176 {'SCRATCH': 15, 'WIN': 93, 'STOP': 65, 'EOD': 3} Σ=389.97$  per-session=6.29$
+== scratch
+scratch effect: Δ = -608.75$ · winners killed 7 (Σ 825.00$ lost) · stops shortened 15 (Σ 325.00$ saved)
+by pattern: n, scratched, Δ$
+  CEILING_FLIP_LONG        n= 17 scratched=  7 Δ= -202.50$ (thr 8.0)
+  OPENING_DRIVE            n= 23 scratched=  8 Δ= -127.50$ (thr 8.0)
+  OPENING_PULLBACK_CONT    n=  1 scratched=  1 Δ= -127.50$ (thr 8.0)
+  GB100                    n=  6 scratched=  1 Δ=  -97.50$ (thr 10.0)
+  DALTON_EDGE_LONG         n=  4 scratched=  3 Δ=  -70.00$ (thr 8.0)
+  DOUBLE_BOTTOM_EE_LONG    n=  5 scratched=  1 Δ=  -57.50$ (thr 8.0)
+  CEILING_FLIP_SHORT       n= 28 scratched=  1 Δ=   10.00$ (thr 8.0)
+  DOUBLE_TOP_AA_SHORT      n=  6 scratched=  1 Δ=   15.00$ (thr 8.0)
+  OPENING_EXTREME_REJECT   n=  9 scratched=  2 Δ=   48.75$ (thr 8.0)
+== scratch_atr
+scratch effect: Δ = -890.48$ · winners killed 8 (Σ 894.58$ lost) · stops shortened 6 (Σ 50.36$ saved)
+by pattern: n, scratched, Δ$
+  OPENING_DRIVE            n= 23 scratched=  2 Δ= -330.83$ (thr 8.0)
+  CEILING_FLIP_LONG        n= 17 scratched=  6 Δ= -245.60$ (thr 8.0)
+  CEILING_FLIP_SHORT       n= 28 scratched=  4 Δ= -223.39$ (thr 8.0)
+  GHOST                    n= 12 scratched=  1 Δ= -100.00$ (thr 8.0)
+  TREND_STEP               n=  2 scratched=  1 Δ=    0.60$ (thr 8.0)
+  DALTON_EDGE_LONG         n=  4 scratched=  1 Δ=    8.75$ (thr 8.0)

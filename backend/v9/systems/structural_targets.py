@@ -493,6 +493,45 @@ def realism_ceiling(direction: str, entry: float,
         return None
 
 
+def t1_realism_floor_r() -> float:
+    """T-518 (30.09): T1_REALISM_FLOOR_R_V1 — how far the realism ceiling may cut T1, in R
+    (R = |entry − stop|). 0 / unset = OFF (byte-identical to today). Measured before any ruling."""
+    try:
+        return max(0.0, float(os.getenv("T1_REALISM_FLOOR_R_V1", "0") or 0))
+    except Exception:
+        return 0.0
+
+
+def apply_t1_realism_floor(direction: str, entry: float, stop: Optional[float],
+                           t1_original: float, t1_capped: float,
+                           r: Optional[float] = None) -> float:
+    """T-518: the realism ceiling may tighten T1, but never below r×R from entry (R = |entry − stop|).
+    Returns the T1 to use: max(capped, floor) for LONG / min(capped, floor) for SHORT — and never
+    beyond the ORIGINAL structural T1 (tighten-only stays tighten-only). Tick-aligned. r<=0 or no
+    stop ⇒ the capped value unchanged.
+
+    Why (21.09, 7 live wins of 2.0–3.25 pts on an 89-pt trend day): with-trend entries sit at the
+    session extreme, so ceiling = extreme + avg step = 2–3 pts while the stop is 9–13 pts. The
+    R:R gate judges the PRE-realism T1 (07-15 ruling), so the trade fires and banks 0.2R."""
+    try:
+        rr = t1_realism_floor_r() if r is None else float(r)
+        if rr <= 0 or stop is None or entry is None:
+            return t1_capped
+        risk = abs(float(entry) - float(stop))
+        if risk <= 0:
+            return t1_capped
+        d = str(direction).upper()
+        if d == "LONG":
+            floor_p = _snap_grid(float(entry) + rr * risk)
+            return min(max(float(t1_capped), floor_p), float(t1_original))
+        if d == "SHORT":
+            floor_p = _snap_grid(float(entry) - rr * risk)
+            return max(min(float(t1_capped), floor_p), float(t1_original))
+        return t1_capped
+    except Exception:
+        return t1_capped
+
+
 def _build_result(
     *,
     direction: str,

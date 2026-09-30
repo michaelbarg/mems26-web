@@ -4896,6 +4896,23 @@ class TradingGateway:
                             else (float(_rc_entry) - 0.5)
                         _new_t1 = max(_ceil, _floor2t) if _rc_dir == "LONG" \
                             else min(_ceil, _floor2t)
+                        # T-518 (30.09): T1_REALISM_FLOOR_R_V1 — the ceiling may not cut T1 below
+                        # r×R (R = |entry − stop|). OFF by default (0) ⇒ identical to today.
+                        try:
+                            from backend.v9.systems.structural_targets import (
+                                apply_t1_realism_floor as _t1_floor, t1_realism_floor_r as _t1_floor_r)
+                            if _t1_floor_r() > 0:
+                                _new_t1_f = _t1_floor(_rc_dir, float(_rc_entry), setup.get("stop"),
+                                                      float(_rc_t1), _new_t1)
+                                if abs(_new_t1_f - _new_t1) >= 0.25:
+                                    logger.warning(
+                                        "[Gateway] T1_REALISM_FLOOR_R_V1=%.2f: realism t1 %.2f held at %.2f "
+                                        "(stop=%s, structural t1=%.2f)",
+                                        _t1_floor_r(), _new_t1, _new_t1_f, setup.get("stop"), float(_rc_t1))
+                                    result["target_realism_floor"] = {"t1_capped": _new_t1, "t1": _new_t1_f}
+                                    _new_t1 = _new_t1_f
+                        except Exception as _t1f_err:  # fail-open: the capped value stands
+                            logger.warning("[Gateway] t1 realism floor errored (fail-open): %s", _t1f_err)
                         logger.warning(
                             "[Gateway] TARGET_REALISM_V1: t1 %.2f → %.2f (%s ceiling from "
                             "session extreme + avg breakout step)",

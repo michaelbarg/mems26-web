@@ -126,6 +126,11 @@ class BarLevelDetector:
                 "t2": getattr(trade, "t2", None),
                 "t3": getattr(trade, "t3", None),
                 "contracts": getattr(trade, "contracts", None),
+                # T-518: identity for alert de-dup + the structural-stop marker (09.09 ruling) for
+                # SYSTEM6_STRUCTURAL_STOP_EXEMPT_V1 (read-only metadata; inert while the flag is OFF)
+                "id": getattr(trade, "id", None),
+                "stop_is_structural": bool(((getattr(trade, "quality", None) or {}).get("metadata") or {}).get("stop_is_structural"))
+                if isinstance(getattr(trade, "quality", None), dict) else False,
             }
 
             def _exec(correction) -> bool:

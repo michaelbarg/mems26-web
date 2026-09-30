@@ -1277,6 +1277,20 @@ class TradeManager:
 
         floor2t = entry + 0.5 if direction == "LONG" else entry - 0.5
         new_tgt = max(ceiling, floor2t) if direction == "LONG" else min(ceiling, floor2t)
+        # T-518 (30.09): T1_REALISM_FLOOR_R_V1 — same floor as the gateway pass, on the T1 leg only:
+        # the per-bar ceiling may not tighten T1 below r×R (R from the INITIAL stop). OFF by default.
+        if tgt_field == "t1":
+            try:
+                from backend.v9.systems.structural_targets import (
+                    apply_t1_realism_floor as _t1_floor, t1_realism_floor_r as _t1_floor_r)
+                if _t1_floor_r() > 0:
+                    _md = q.get("metadata") if isinstance(q.get("metadata"), dict) else {}
+                    _stop0 = _md.get("stop_initial")
+                    if _stop0 is None:
+                        _stop0 = getattr(trade, "stop", None)
+                    new_tgt = _t1_floor(direction, entry, _stop0, tgt_val, new_tgt)
+            except Exception as _t1f_err:
+                logger.warning("[TradeManager] t1 realism floor errored (fail-open): %s", _t1f_err)
         if abs(new_tgt - tgt_val) < 0.25:
             return False
         setattr(trade, tgt_field, new_tgt)
