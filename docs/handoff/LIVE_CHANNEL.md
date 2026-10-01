@@ -1,3 +1,78 @@
+🟢 **[cowork-dev · 2026-10-01 21:35-21:45 IL · ריצה 144, ניטור-RTH אחד-עשר] חובה-1 + חובה-3 — ירוק; #2843 נסגרה בסטופ (מקרה ב נשלח), ויום-הברוקר +141.25 נצמד ל-`acct_daily_pl` במדויק**
+
+`date ⇒ Thu Oct  1 21:35:15 IDT 2026` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00, ויש רשומות-`cowork-dev` מהיום על השער; וממילא `21:35 > 16:10`). `git pull ⇒ Already up to date.` אפס נגיעה ב-`.env`/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **שקט מוחלט בטלפון** (מקרה א/ג) · **מקרה (ב) נשלח** (peek ישיר מ-Render, לא רק מהקובץ)
+```raw
+launchctl print … com.mems26.mobile_relay ⇒ state = running · pid = 1493     ← מלכודת 12: הרלה חי
+GET /instruction/pending?key=… ⇒ {"items":[]}
+GET /chat?key=… ⇒ 30 items · http=200
+אחרונת-מייקל בפיד כולו = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 2026-09-30T07:37:20Z
+החדש ביותר לפני הריצה = 2026-10-01T18:12:01Z cowork-dev (ריצה 143: סגירת #2841 + פתיחת #2843)
+```
+⇒ אין (א) — אפס הודעת-מייקל בלי תשובה · אין (ג) — אפס חריגה-חוסמת · (ד) נשלחה בריצה 132.
+⇒ **יש (ב)**: `#2843` נסגרה `21:18`, **אחרי** דיווח-הפתיחה של ריצה 143 ב-`21:12` ⇒ לא דווחה. נשלחה, ואומתה **מ-`GET /chat`** ולא מה-`ok`:
+```raw
+LAST → 2026-10-01T18:40:05Z | cowork-dev | 233 תווים (≤300 ✓) | אפס backticks | "נמדד 21:40" מ-{NOW}
+```
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הסעיפים
+```raw
+פיד ([[T-430]] שלב D — מול ה-DB, לא מול mtime; PGTZ=UTC מפני מלכודת 19):
+  ⇒ max(ts) v9_bars_5min_woodies = 2026-10-01 18:35:00+00 · age = 00:01:42   ⇒ ≤10 דק' ⇒ פיד חי באמת
+backend ⇒ /api/v9/health http=200 {"status":"ok","version":"v9.0.0"}
+מאזין ⇒ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 49136 (יחיד) · lstart Thu Oct 1 15:36:42 · commit 03bc559b
+פוזיציה מול TM ⇒ sierra_state (ts 21:38:36): position_qty 0 · working_orders 0 · orders [] · is_sim 0
+   armed 1 · send_orders_to_trade_service 1 · under_margin 0 · trading_disabled 0 · loss_limit_reached 0
+   gateway/status ⇒ live_slot None ⇒ סלוט פנוי
+   v9_trades ⇒ אפס שורת-לייב פתוחה ⇒ אפס דיברגנציה ⇒ לא נדרשה בדיקת-order_id, אין [[T-402]]
+```
+
+### 💰 שלוש עסקאות-לייב, כולן סגורות — והצלבת-הברוקר נסגרת לאגורה
+```raw
+id   | pattern              | dir   | in_ET | out_IL | entry   | exit  | reason   | pnl_usd | pnl_sierra
+2771 | OPENING_TEST_DRIVE   | SHORT | 09:45 | 17:01  | 7720.25 | 7697  | T1_HIT   | 116.25  | 127.5
+2841 | DOUBLE_TOP_AA_SHORT  | SHORT | 14:00 | 21:07  | 7720.75 | 7707  | T1_HIT   |  68.75  |  70
+2843 | INITIATIVE_SHORT     | SHORT | 14:10 | 21:18  | 7711.5  | 7723  | STOP_HIT | -57.5   | -56.25
+סכום pnl_sierra ⇒ 127.5 + 70 − 56.25 = +141.25
+sierra_state.acct_daily_pl ⇒ 141.25        ⇒ התאמה מדויקת, אפס פער ספרים⇄ברוקר
+daily_total_qty_filled ⇒ 6 = שלוש הלוך-ושוב ⇒ §3.5: אפס מסחר ידני היום, הייחוס נקי
+```
+⇒ שלושתן נושאות `pnl_sierra` **כבר עכשיו** ⇒ `broker_truth` של הערב יקבל `n/N` מלא, אין חוב-רישום.
+
+### 🔎 שלושה מדדים שנבדקו דרך הפוסק הנכון, ושלושתם **אינם** ממצא
+```raw
+צללים ⇒ state not in (CLOSED,CANCELLED) ⇒ 14 × shadow FILLED, כולן entry_ts ET = 2026-10-01
+         python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+         ⇒ תוך-יומי תקין. מלכודת 14/15: gateway shadow_active_count=14 מקרי-תואם, ואינו ראיה בפני עצמו.
+EntryGuard ⇒ נמדד דרך decisions.live_blocked_by (מלכודת 25), לא grep "[EntryGuard]":
+         feed 86 שורות · oldest 13:30:07+00 · newest 18:35:09+00 (מכסה את כל ה-RTH)
+         ⇒ 1 × margin_zero_size · 18:20 IL · CEILING_FLIP_LONG LONG · "effective contracts=0"
+         ⇒ חסימה אחת בלבד, היסטורית. כרגע החשבון שטוח ⇒ אינה פעילה.
+שגיאות ⇒ 8 × [ERROR] היום, 0 × [CRITICAL]; כולן bar_level_detector
+         "on_bar error: Invalid transition: CLOSED -> CLOSED" ⇒ רעש מכונת-מצבים אחרי סגירה.
+```
+
+### 💵 [[T-34]] מרג'ין — **דיווח בלבד**, ואינו חוסם
+```raw
+acct_available_funds 558.69 · acct_margin_req 0.0 (שטוח) · acct_account_value 558.69 · under_margin 0
+```
+‏`558.69 < 1,595` ⇒ שורת-דיווח כאן כנדרש. **אינו חוסם מסחר** — החשבון שטוח, חוזה-אחד ממומן, והחסימה היחידה של היום (`margin_zero_size` ב-18:20) הייתה בזמן שהמרג'ין היה תפוס. ⇒ **אפס מקרה (ג) בטלפון.**
+
+**🔒 שער-בעלות-הלוג עבר לפני כל ספירת-שגיאות — ומאשר את ממצא-141/142 במדידה שלישית עצמאית:**
+```raw
+ls -la ⇒ /tmp/backend.log  21:37 (חי, 32,947,389B)   מול   /tmp/backend.err.log  19:39 (קפוא, 56,035,334B)
+[boot] logging OK ב-backend.log  ⇒ pid=49136 commit=03bc559b  = בדיוק המאזין החי ⇒ שער ד0 עבר
+[boot] logging OK ב-backend.err.log ⇒ חמישה מופעים 19:37:49→19:39:50, pids 71830/71921/72034/72273/72363,
+   כולם commit=10b9a002, ואז "Shutdown WAL checkpoint complete — clean exit" ב-19:39:52
+   ⇒ מופע-משנה קצר-חיים (מחזורי-עלייה כל 30 שנ', ככל-הנראה מסשן-הפיתוח האינטראקטיבי של 19:20-19:45),
+     שמת מעצמו. **המאזין החי לא התחלף ולו לרגע** (49136 רצוף מ-15:36:42).
+⇒ כל הספירות כאן מ-backend.log בלבד. grep על backend.err.log היה מחזיר today=0 על הכל אחרי 15:36 —
+  שלילי-שקרי ממשפחת §3.9/מלכודת 25. §3.1 ב-CLAUDE.md עדיין מצביע על הקובץ המת ⇒ תיקון-הדיווח בתור-הלילה.
+```
+
+---
+
 🟢 **[cowork-dev · 2026-10-01 20:35-20:52 IL · ריצה 142, ניטור-RTH תשיעי] חובה-1 + חובה-3 — ירוק; והממצא: [[T-463]] אינו מקרה-קצה של בר-אחד אלא תוצאה-שבשגרה של פסיקת-חוזה-1**
 
 `date ⇒ 2026-10-01 20:35:13 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00, ויש רשומת-`cowork` מהיום ב-`20:40` על ריסטארט-הלילה — וממילא `20:35 > 16:10`).
