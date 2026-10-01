@@ -359,12 +359,19 @@ _ALERT_LAST: Dict[tuple, float] = {}
 
 
 def _alert_should_log(trade_id, code: str, detail: str) -> bool:
+    """Repeat-suppression per (trade, code) — NOT per detail text.
+
+    01.10 (live #2771): `stop_too_wide ALERT: risk 15.00pt > cap 11.25pt` re-logged every 3s because the
+    cap (ATR-relative) moves a few ticks per scan, so a key that included the detail never repeated.
+    The code is the identity of the alert; the detail is its current reading (logged with the first one).
+    """
     import time as _time
+    del detail  # part of the signature for the call sites; deliberately not part of the key
     try:
         repeat_s = float(os.getenv("SYSTEM6_ALERT_REPEAT_S", "300") or 300)
     except Exception:
         repeat_s = 300.0
-    key = (str(trade_id), code, detail)
+    key = (str(trade_id), code)
     now = _time.time()
     last = _ALERT_LAST.get(key)
     if last is not None and now - last < repeat_s:

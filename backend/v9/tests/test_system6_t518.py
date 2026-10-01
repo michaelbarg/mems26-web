@@ -30,5 +30,7 @@ def test_alert_dedup_window(monkeypatch):
     assert s6._alert_should_log(2594, "stop_too_wide", "risk 12.75pt > cap 11.22pt") is False
     assert s6._alert_should_log(2623, "stop_too_wide", "risk 12.75pt > cap 11.22pt") is True   # other trade
     assert s6._alert_should_log(2594, "naked_stop", "x") is True                                # other code
+    # 01.10: a drifting detail (ATR-relative cap moves per scan) must NOT defeat the suppression
+    assert s6._alert_should_log(2594, "stop_too_wide", "risk 15.00pt > cap 11.28pt") is False
     monkeypatch.setenv("SYSTEM6_ALERT_REPEAT_S", "0")
     assert s6._alert_should_log(2594, "stop_too_wide", "risk 12.75pt > cap 11.22pt") is True   # window 0 = every time
