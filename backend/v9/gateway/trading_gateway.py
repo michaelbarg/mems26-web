@@ -1510,8 +1510,12 @@ class TradingGateway:
                             _t3_ibr = _t3_ibm.ib_return_state(_t3_bars)
                             _t3_vec["ib_return"] = _t3_ibr.get("state", "none")
                             _t3_vec["ibr_rel"] = _t3_ibm.ib_return_rel(_t3_ibr, setup.get("direction"))
+                            # T-523: the finer labels after a failed extension (acceptance by IB-mid / POC);
+                            # identical to the single label for every mode that predates them.
+                            _t3_rels = _t3_ibm.ib_return_rels(_t3_ibr, setup.get("direction"), _t3_vec.get("poc_side"))
                             _t3_rel_on = _t3_ibm.release_modes(os.getenv("IB_RETURN_HINT_RELEASE_V1", "0"))
-                            if _t3_rel_on and _t3_vec.get("rel_bias") == "against" and _t3_vec["ibr_rel"] in _t3_rel_on:
+                            _t3_rel_hit = next((r for r in _t3_rel_on if r in _t3_rels), None)
+                            if _t3_rel_on and _t3_vec.get("rel_bias") == "against" and _t3_rel_hit:
                                 _t3_flow_ok = True
                                 # Michael 29.09 16:25 "עומק הרוכשים והמוכרים": with IB_RETURN_RELEASE_FLOW=1 the release
                                 # also needs the order flow since the extension extreme (Σ delta of the 15-min Sierra
@@ -1536,7 +1540,7 @@ class TradingGateway:
                                     result["ibr_flow"] = None if _t3_ds is None else float(_t3_ds)
                                 if _t3_flow_ok:
                                     _t3_vec["rel_bias"] = "none"
-                                    result["ibr_released"] = _t3_vec["ibr_rel"]
+                                    result["ibr_released"] = _t3_rel_hit
                         except Exception as _t3_ie:
                             logger.info("[Gateway] TREE_V3 IB-return state unavailable: %s", _t3_ie)
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)

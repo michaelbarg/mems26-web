@@ -90,3 +90,32 @@ class TestIbReturn(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestT523Acceptance(unittest.TestCase):
+    """T-523 (01.10): release after a failed extension only once value accepts the return."""
+
+    def _failed_down(self, last):
+        # IB 7682.25-7740.25 (mid 7711.25), extended to 7672.75, last close back inside
+        ib = [{"h": 7740.25, "l": 7682.25, "c": 7700.0}] * 12
+        post = [{"h": 7690.0, "l": 7672.75, "c": 7677.75}, {"h": max(last, 7690.0), "l": 7685.0, "c": last}]
+        return ib_return_state(ib + post)
+
+    def test_labels_follow_acceptance(self):
+        from backend.v9.services.ib_return import ib_return_rels
+        st = self._failed_down(7692.5)                      # 18:15 close — inside, below mid, below POC
+        self.assertEqual(st["state"], "failed_down"); self.assertEqual(st["ib_mid"], 7711.25)
+        self.assertEqual(ib_return_rels(st, "LONG", "below"), ("with_failed",))
+        self.assertEqual(ib_return_rels(st, "LONG", "above"), ("with_failed", "with_failed_poc"))   # 19:00 POC crossed
+        st2 = self._failed_down(7721.75)                    # 20:20 close above the IB midpoint
+        self.assertEqual(ib_return_rels(st2, "LONG", "above"), ("with_failed", "with_failed_mid", "with_failed_poc"))
+        self.assertEqual(ib_return_rels(st2, "SHORT", "above"), ("against_return",))
+        self.assertEqual(ib_return_rels({"state": "returning_down"}, "LONG"), ("with_returning",))
+        self.assertEqual(ib_return_rels({"state": "inside"}, "LONG"), ())
+
+    def test_modes(self):
+        self.assertEqual(release_modes("accepted_mid"), ("with_returning", "with_failed_mid"))
+        self.assertEqual(release_modes("accepted_poc"), ("with_returning", "with_failed_poc"))
+        self.assertEqual(release_modes("accepted_any"), ("with_returning", "with_failed_mid", "with_failed_poc"))
+        # the live mode is unchanged
+        self.assertEqual(release_modes("returning"), ("with_returning",))

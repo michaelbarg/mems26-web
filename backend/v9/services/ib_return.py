@@ -41,8 +41,8 @@ def ib_return_state(bars: Sequence[Dict[str, Any]], ib_bars: int = 12) -> Dict[s
     ext_dn = lo - min(_f(b, "l") for b in post)
     ext_up = max(_f(b, "h") for b in post) - hi
     last = _f(bars[-1], "c")
-    out: Dict[str, Any] = {"ib_hi": hi, "ib_lo": lo, "need": round(need, 2), "ext_dn": round(ext_dn, 2),
-                           "ext_up": round(ext_up, 2), "last": last}
+    out: Dict[str, Any] = {"ib_hi": hi, "ib_lo": lo, "ib_mid": round((hi + lo) / 2.0, 2), "need": round(need, 2),
+                           "ext_dn": round(ext_dn, 2), "ext_up": round(ext_up, 2), "last": last}
     if ext_dn >= need and ext_up >= need:
         return dict(out, state="two_sided")
     if ext_dn >= need:
@@ -102,8 +102,45 @@ def flow_ok(state: Optional[Dict[str, Any]], dsum: Optional[float]) -> bool:
         return False
 
 
+def ib_return_rels(state: Optional[Dict[str, Any]], direction: Optional[str],
+                   poc_side: Optional[str] = None) -> tuple:
+    """T-523 (01.10): the finer placement of a candidate after a FAILED extension — "has value accepted the return?"
+
+    01.10: the IB (7682.25-7740.25) broke down to 7672.75 at 18:10; 18:15 closed back inside (failed_down) and the
+    price ran +65 pts to 7738 by 20:45 while 27 longs died on tree:bias — the live mode `returning` had released
+    only the two bars below IB low, and `failed` (the first close back inside) measured −187$/62 sessions. The
+    candidate gate is acceptance, not the first close:
+      with_failed      — the existing label (any close back inside the IB)
+      with_failed_mid  — and the last close is beyond the IB midpoint in the return direction (bars only)
+      with_failed_poc  — and the entry is beyond today's POC in the return direction (poc_side from the
+                         situation vector: 'above' for a LONG after a DOWN extension, 'below' for the mirror)
+    Returns every label that applies (a tuple, possibly empty); `ib_return_rel` keeps the single-label contract."""
+    s = (state or {}).get("state", "none"); d = (direction or "").upper()
+    base = ib_return_rel(state, direction)
+    if base != "with_failed":
+        return (base,) if base != "none" else ()
+    out = ["with_failed"]
+    try:
+        last = float((state or {}).get("last")); mid = float((state or {}).get("ib_mid"))
+    except (TypeError, ValueError):
+        last = mid = None  # type: ignore[assignment]
+    if last is not None and mid is not None:
+        if (s == "failed_down" and d == "LONG" and last > mid) or (s == "failed_up" and d == "SHORT" and last < mid):
+            out.append("with_failed_mid")
+    ps = (poc_side or "").strip().lower()
+    if (s == "failed_down" and d == "LONG" and ps == "above") or (s == "failed_up" and d == "SHORT" and ps == "below"):
+        out.append("with_failed_poc")
+    return tuple(out)
+
+
 def release_modes(mode: Optional[str]) -> tuple:
-    """IB_RETURN_HINT_RELEASE_V1 → the ibr_rel values whose rel_bias=against is released to none (empty = off)."""
+    """IB_RETURN_HINT_RELEASE_V1 → the ibr_rel labels whose rel_bias=against is released to none (empty = off).
+
+    returning (live since 30.09) · failed · both — T-517; accepted_mid / accepted_poc / accepted_any — T-523: the
+    live `returning` PLUS the failed-extension release gated on acceptance (midpoint / POC / either)."""
     m = (mode or "0").strip().lower()
     return {"returning": ("with_returning",), "failed": ("with_failed",),
-            "both": ("with_returning", "with_failed")}.get(m, ())
+            "both": ("with_returning", "with_failed"),
+            "accepted_mid": ("with_returning", "with_failed_mid"),
+            "accepted_poc": ("with_returning", "with_failed_poc"),
+            "accepted_any": ("with_returning", "with_failed_mid", "with_failed_poc")}.get(m, ())
