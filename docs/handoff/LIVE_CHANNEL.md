@@ -1,3 +1,91 @@
+🟢 **[cowork-dev · 2026-10-01 22:35-22:48 IL · ריצה 146, ניטור-RTH שלושה-עשר] חובה-1 + חובה-3 — ירוק; וממצא-הריצה: הפרש-הספרים-מול-הברוקר של היום (13.75$) מתפרק לאגורה לשלושה הפרשי-מילוי — זו דיוק-מדידה, לא עסקה חסרה**
+
+`date ⇒ 2026-10-01 22:35:19 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00 ויש רשומות-`cowork-dev` מהיום על השער; וממילא `22:35 > 16:10`). **חובה-4** (תור-הלילה + עמודי-הטלפון) שייכת לריצת `23:00-23:30` ⇒ **לא נגעתי בה**. `git pull ⇒ Already up to date.` HEAD `e70cbb3f`. הלא-מקומטים הם תוצרים שאינם שלי (`PM_*.md` · `MARKS_VS_TREE_*` · `harness_out/t517/*` · `news_calendar.yaml` · `MICHAEL_INBOX.md` · `MONDAY_READINESS.html`) ⇒ כתיבה by path בלבד.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **שקט מוחלט בטלפון** (א/ב/ג/ד — אף אחד לא מתקיים)
+
+```raw
+launchctl list | grep mobile_relay ⇒ 1493  0  com.mems26.mobile_relay      ← מלכודת 12: הרלה חי
+GET /instruction/pending?key=… ⇒ http=200 {"items":[]}
+GET /chat?key=…                ⇒ http=200 · TOTAL 30 items   (peek ישיר מ-Render, לא רק מהקובץ)
+אחרונת-מייקל בפיד כולו = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 2026-09-30T07:37:20Z "נרשם ✓"
+החדש ביותר בפיד      = 2026-10-01T18:40:05Z cowork-dev (ריצה 144: סגירת #2843) — זנב PHONE_THREAD.jsonl זהה
+SELECT count(*) FROM v9_trades WHERE mode='live' AND entry_ts > '2026-10-01 21:18:00+03' ⇒ 0
+```
+
+⇒ אין (א) אפס הודעת-מייקל בלי תשובה עניינית · אין (ב) **אפס לייב חדשה/סגורה מאז 21:18** · אין (ג) אפס חריגה-חוסמת · (ד) נשלחה 15:48 ⇒ **אפס כתיבה ל-`PHONE_THREAD.jsonl` בריצה הזו**.
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הסעיפים
+
+```raw
+פיד ([[T-430]] — מול ה-DB ולא mtime של קובץ-יצוא · PGTZ=UTC לפי מלכודת 19):
+  max(ts) v9_bars_5min_woodies = 2026-10-01 19:35:00+00 · age_min = 1.85 · rows_36h = 420   ⇒ ≤10 דק' ⇒ פיד חי באמת
+backend ⇒ GET /api/v9/health http=200 t=0.0030s {"status":"ok","version":"v9.0.0"}
+מאזין  ⇒ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 49136 (יחיד) · ps lstart Thu Oct 1 15:36:42 · ETIME 07:00:09
+פוזיציה מול TM ⇒ GET /api/v9/agent/sierra_live_check:
+  sierra_alive        ok · age_s 0.4 · is_sim 0 · armed 1
+  open_trade_detect   ok · sierra_qty 0 · working_orders 0 · tm_open_trades 0 · tm_net_qty 0 ⇒ "flat בשני הצדדים"
+  v9_trades ⇒ mode=live AND state NOT IN (CLOSED,CANCELLED,EXPIRED,REJECTED) ⇒ 0 rows (כל התאריכים)
+  ⇒ שני הצדדים על 0 ⇒ **אפס דיברגנציה ⇒ לא נדרשה בדיקת-order_id, אין [[T-402]]**
+gateway/status ⇒ live_slot None (סלוט פנוי) · live_enabled_systems [2,4] · trades_today 3 · chop EXPANDING
+  cooldown inactive (consecutive_stops 2) · cluster_guard inactive · SSV veto_active false
+sierra_state (ts 22:37:22, age 0.4s) ⇒ position_qty 0 · working_orders 0 · order_placement_armed 1
+  send_orders_to_trade_service 1 · under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · last_price 7727.5
+```
+
+### 💰 ממצא-הריצה · ההפרש ספרים⇄ברוקר מתפרק לאגורה — ולכן אינו עסקה חסרה
+
+שלוש הלייב של היום כולן סגורות, וה-API מדווח `day_pnl 127.50` בעוד הברוקר מדווח `acct_daily_pl 141.25`. הפער 13.75$ נראה כמו עסקה רביעית שלא נרשמה. **הוא לא** — הוא נסגר לאגורה כסכום שלושת הפרשי-המילוי `pnl_sierra − pnl_usd`:
+
+```raw
+id   | pattern              | dir   | in_ET | out_ET | reason  | pnl_usd | pnl_sierra | הפרש
+2771 | OPENING_TEST_DRIVE   | SHORT | 09:45 | 10:01  | T1_HIT  | 116.25  | 127.50     | +11.25
+2841 | DOUBLE_TOP_AA_SHORT  | SHORT | 14:00 | 14:07  | T1_HIT  |  68.75  |  70.00     |  +1.25
+2843 | INITIATIVE_SHORT     | SHORT | 14:10 | 14:18  | STOP_HIT|  -57.50 |  -56.25    |  +1.25
+                                                       ספרים:   127.50    ברוקר: 141.25
+אימות:  116.25 + 68.75 − 57.50 = 127.50 ✓   ·   127.50 + 70.00 − 56.25 = 141.25 ✓
+        11.25 + 1.25 + 1.25 = 13.75 = 141.25 − 127.50 ✓   ⇒ שארית 0.00
+```
+
+⇒ **ספר-הברוקר אינו סותר את ספר-המערכת; הוא מדויק ממנו בשלושה מילויים.** המשמעות המבצעית: פער ספרים⇄ברוקר בגודל הזה הוא **חתימה תקינה**, ו"עסקה חסרה" נפסלת רק כשהשארית אפס — אחרת צריך לחפש. זו בדיקה בת-שורה אחת שאפשר להריץ לפני כל `broker_truth.py` של הערב (חובה-4 §1), והיום היא עוברת מראש: `n/N` צפוי 3/3.
+
+### 📓 שני תיקוני-מדידה שהריצה אימתה מחדש — מהכלי, לא מהזיכרון (מלכודת 20)
+
+**1 · היום הלוג-החי הוא `/tmp/backend.log`, ולא `backend.err.log` כברירת-המחדל ב-`CLAUDE.md`.** השער ד0 של הראנבוק (boot-pid חייב להיות ה-pid שרץ) הוא בדיוק מה שתפס את זה:
+
+```raw
+grep "[boot] logging OK" /tmp/backend.err.log | tail -2
+  2026-10-01 19:39:21 … pid=72273 commit=10b9a002
+  2026-10-01 19:39:50 … pid=72363 commit=10b9a002     ← לא המאזין. שתיהן מתהליכי-ה-bootout של [[T-435]]
+grep "[boot] logging OK" /tmp/backend.log | tail -1
+  2026-10-01 15:36:45 … pid=49136 commit=03bc559b     ← זה המאזין שרץ
+mtime: /tmp/backend.log 22:37:45 (עכשיו)  ·  /tmp/backend.err.log 19:39:52 (קפוא 2h58m)
+```
+
+⇒ ספירת-לוג שתרוץ היום על `backend.err.log` תחזיר אפסים על **הכול** — עיוורון, לא ממצא. ‏(ריצה 141 מצאה את זה ראשונה; כאן אומת שנית בשיטה החזקה — התאמת ה-pid, לא mtime, לפי מלכודת 22.)
+
+**2 · `shadow_active_count` בפיד אינו מונה עסקאות-צל פתוחות (מלכודת 15) — והיום הפער נמדד:**
+
+```raw
+gateway/status ⇒ shadow_active_count = 16
+SELECT state, count(*) … mode='shadow' AND state NOT IN (CLOSED,CANCELLED,EXPIRED,REJECTED) ⇒ FILLED | 22
+  מהן entry היום ET ⇒ 22   ·   מהן לפני היום (תקועות) ⇒ 0
+```
+
+⇒ 22 מול 16 = הגיזום ב-`trading_gateway.py:4757-4758`, לא 6 צללים שנעלמו. **ו-0 תקועות מאתמול ⇒ `close_stale_shadow.py` ייכנס נקי לערב** (תקרית 16.09 של 26 שורות-צל ⇒ 80% CPU לא חוזרת היום).
+
+### 🔭 מעקב — שניהם ללא שינוי, אפס פעולה
+
+- **[[T-463]] לא גדל.** 8 מופעים היום, כולם `BarLevelDetector on_bar error: Invalid transition: CLOSED -> CLOSED`, פרושים `16:45:02 · 17:05:02 · 18:35:05 · 18:35:11 · 18:45:03 · 18:55:03 · 20:30:07 · 20:30:08` ⇒ **אפס מופע חדש ב-2h09m האחרונות**, ו-8 הוא גם כל מניין ה-`ERROR/CRITICAL` של היום. מתיישב עם מדידת ריצה 142 (התוצאה השגרתית של פסיקת חוזה-1: T1 הוא היעד הסופי ⇒ כל בר מאוחר שחוצה T2/T3 מרים שוב). אפס נזק-מסחר.
+- **[[T-34]] דיווח-בלבד, לא חוסם.** `acct_available_funds 558.69` < 1,595$, אבל `acct_under_margin 0 · acct_margin_req 0.0 (שטוח) · acct_trading_disabled 0 · acct_loss_limit_reached 0 · order_placement_armed 1`, ושלוש לייב נורו היום בפועל ⇒ **אינו חוסם מסחר ⇒ אינו מקרה (ג)**, שורה כאן בלבד.
+
+```raw
+ORPHAN 0 · exit_not_executed 0 · exit_needs_manual 0 · exit_unverifiable 0 · "LIVE fire BLOCKED" 0
+"contract mismatch" 0 · DIVERGENCE 0 · "under margin" 0 · COMMAND QUEUED 5   (על /tmp/backend.log, היום)
+```
+
+---
+
 🟢 **[cowork-dev · 2026-10-01 22:05-22:20 IL · ריצה 145, ניטור-RTH שנים-עשר] חובה-1 + חובה-3 — ירוק; וממצא-הריצה: העץ עמד-בצד 11 פעמים ברצף בשלב-D על **שורת-דוקטרינה חסרה אחת**, וכל 11 נושאות תאומת-צל פתוחה ⇒ פער נמדד, לא הפסד נמדד**
 
 `date ⇒ 2026-10-01 22:05:14 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00 ויש רשומות-`cowork-dev` מהיום על השער; וממילא `22:05 > 16:10`). `git pull ⇒ Already up to date.` HEAD `c6848070`. הלא-מקומטים הם תוצרים שאינם שלי (`PM_*.md` · `MARKS_VS_TREE_*` · `harness_out/t517/*` · `news_calendar.yaml` · `MICHAEL_INBOX.md` · `MONDAY_READINESS.html`) ⇒ **לא קומטתי ולא `stash`**, כתיבה by path בלבד.
