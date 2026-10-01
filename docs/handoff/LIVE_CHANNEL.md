@@ -1,3 +1,101 @@
+## 🟢 [cowork-dev(sched) · 2026-10-01 12:04-12:14 IL] — **ריצה 125 · חובה-1 בלבד: אפס ממתינות ⇒ שקט-טלפון מוחלט** · 🟡 **ממצא-הריצה: המכונה בסוואפ (7.1G, 74M פנויים) — WARN-בלבד, לא חוסם מסחר**
+
+**החלון.** `date ⇒ Thu Oct  1 12:04:23 IDT 2026`. ‏12:04 הוא **טרום-RTH** ⇒ חובה-1 לבד;
+חובה-2 (היומית + שער-היום) של ריצת ~15:30-16:10, חובה-3 של 16:30-23:00, חובה-4 של 23:00-23:30.
+⇒ **אפס ריסטארט · אפס הודעת-GO/NO-GO · אפס נגיעה ב-`.env`/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL.**
+`git pull ⇒ Already up to date.` · HEAD בכניסה `2561b20d` (ריצה 124, היום 11:55).
+
+**⛔ בעלות-הריסטארט ([[T-369]]) — נבדקה אף שהחלון אינו חלון-שער:** המאזין על `:8000` הוא
+`PID 71696 · lstart Wed Sep 30 13:24:35 · etime 22:41:42` ⇒ **מאתמול**, לא עלה היום אחרי 12:00.
+אין רשומת-ריסטארט של cowork-dev מהיום. ממילא `12:04 ∉ 15:30-16:10` ⇒ לא נגעתי.
+
+---
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **אפס הודעת-טלפון נשלחה**
+
+peek ישיר מ-Render, לא רק מהקובץ המקומי — ושניהם זהים:
+
+```raw
+curl "https://mems26-mobile.onrender.com/chat?key=…"   ⇒  http=200 · items n=30
+אחרונת-מייקל:  2026-09-30T07:18:05Z  id=a97e9f08  תיוג #2555  (status "התקבל ✓")
+נענתה:          2026-09-30T07:37:20Z  [cowork-dev] "נרשם ✓ #2623 · נרשם ✓ #2555"
+ההודעה האחרונה בחוט כולו היא שלנו: 2026-09-30T20:13:25Z [cowork-dev] דוח-היום 09-30
+tail PHONE_THREAD.jsonl ⇒ זהה לחלוטין ל-API
+⇒ אפס הודעת-מייקל בלי תשובת-סוכן עניינית
+```
+
+**מלכודת-12 (06.09) — נבדקה לפני שהוסקה שתיקה**, כי "אפס ממתינות" היא שלילה-כוזבת כשהרלה מת:
+
+```raw
+launchctl print gui/$UID/com.mems26.mobile_relay  ⇒  state = running  ·  pid = 1493
+GET /instruction/pending?key=…                    ⇒  {"items":[]}  http=200   (peek, ללא תופעות-לוואי)
+```
+
+⇒ הדוור חי **והתיבה-במקור ריקה** ⇒ השתיקה אמיתית. לא מקרה א/ב/ג/ד ⇒ **שקט מוחלט**.
+שתי שאלות-הסוכן הפתוחות מ-30.09 (פוזיציה-ידנית 14:36 · מרג'ין 19:51) **לא נדחפו שוב** —
+שתיהן מוקו מעצמן: הידנית נסגרה 20:20 בסטופ של מייקל, ו-`acct_under_margin 0 · פנוי 417.44`.
+
+---
+
+### ✅ אימות עצמאי (Rule 5 — פלט גולמי, לא "אומת")
+
+```raw
+/api/v9/health          →  {"status":"ok","version":"v9.0.0"}
+/health                 →  http=200  t=0.004553s
+/api/v9/account/state   →  verdict "flat" · source sierra_state.json · age_s 0.6 · stale False
+  position_qty 0 · working_orders 0 · open_pnl 0.0 · avg_price 0.0 · last_price 7727.0
+  acct_under_margin 0 · acct_margin_req 0.0 · acct_available_funds 417.44 · acct_account_value 417.44
+  acct_trading_disabled 0 · acct_loss_limit_reached 0 · order_placement_armed 1 · is_sim 0
+  trade_account 37138283 · symbol MESZ26_FUT_CME
+  daily_pnl 151.25 · daily_total_qty_filled 6.0  ⇒  מוני-ברוקר מצטברים, לא המערכת
+    (v9_trades היום = 0; לא ייחסתי מחיר/כיוון — position_qty 0 ו-avg_price 0.0)
+
+v9_trades היום (ET) ⇒ 0 עסקאות — לייב וצל. אפס-עסקאות ≠ מערכת-מתה (מלכודת-4).
+```
+
+**[[T-430]] — "קובץ-יצוא טרי" ≠ "פיד חי": ארבעה מדגמים, והבר התקדם בתוך הריצה:**
+
+```raw
+select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies;
+⇒ 2026-10-01 12:05:00+03 | age 1.0   (12:06)
+⇒ 2026-10-01 12:05:00+03 | age 2.5   (12:07)
+⇒ 2026-10-01 12:05:00+03 | age 4.2   (12:09)
+⇒ 2026-10-01 12:10:00+03 | age 0.4   (12:10:24)   ← הבר התקדם 12:05 → 12:10
+⇒ הפיד חי באמת, לא רק קובץ-יצוא שה-DLL דוחף כל 3 שנ'
+```
+
+```raw
+python3 scripts/close_stale_shadow.py   ⇒  "no stale shadow trades — nothing to do"   (dry-run)
+```
+
+---
+
+### 🟡 ממצא-הריצה — המכונה בסוואפ (WARN-בלבד, **לא** מקרה-טלפון)
+
+```raw
+python3 scripts/machine_health.py
+load 1/5/15: 4.10/4.14/4.21  (cores 8)
+mem: 16G used (3733M wired, 621M compressor), 74M unused.
+swap: total = 8192.00M  used = 7144.75M  free = 1047.25M  (encrypted)
+WARN: unused RAM 35M < 400M — the Mac is compressing/swapping
+WARN: swap used 7012M > 500M
+
+trading stack:  backend n=1 rss 125 MB cpu 88.8% · bridge n=1 rss 27 MB · sierra n=2 rss 158 MB
+                postgres n=16 rss 405 MB · frontend n=1 rss 19 MB · phone-relay n=1 rss 20 MB
+non-trading footprint (MB): chrome 4425 · cowork-vm 1817 · claude-app 1699 · claude-agents 331
+```
+
+**הקריאה:** הזוללים אינם מחסנית-המסחר — ‏chrome ‏4.4G ו-cowork-vm ‏1.8G הם 6.2G מתוך הלחץ.
+המערכת עצמה בריאה כרגע (‏health ‏200 ב-4ms, פיד בן 0.4 דק', שטוחה וחמושה), ולכן זו **לא** חריגה
+שדורשת החלטה ⇒ **לא נשלחה הודעת-טלפון** (הספק: machine_health הוא WARN-בלבד, ל-LIVE_CHANNEL).
+`cpu 88.8%` של ה-backend הוא ממוצע-חיים של 22:41 שעות, לא קוצב רגעי — ואין שורות-צל תקועות
+(סיבת אירוע-16.09 נשללה בפקודה למעלה).
+
+**הצעד הבא:** ריצת 15:30-16:10 היא בעלת-השער — שם חובה-2 (סיכום-אתמול + שער-היום), ושם
+לשקול סגירת-chrome לפני הפתיחה אם הסוואפ עדיין מעל 7G. בריצה הזאת: אפס פעולה.
+
+---
+
 ## 🟢 [cowork-dev · 2026-10-01 11:34-11:47 IL] — **ריצה 124 · חובה-1 בלבד: אפס ממתינות ⇒ שקט-טלפון מוחלט** (peek ישיר מ-Render `/chat` HTTP 200, 30 פריטים — אחרונת-מייקל `09-30T07:18:05Z` תיוג #2555, נענתה `07:37:20Z`; ההודעה האחרונה בחוט היא שלנו `09-30T20:13:25Z` ⇒ אפס הודעה בלי תשובה · **אפס הודעת-טלפון נשלחה**) · ✅ מלכודת-12 נבדקה לפני שהוסקה שתיקה (`mobile_relay running pid 1493` + `/instruction/pending ⇒ {"items":[]}`) · ✅ אימות עצמאי של 121/122/123: `verdict=flat` · `under_margin 0` · `armed 1` · פיד-ווּדיז חי age 2.6 דק' · `ruled_contracts() ⇒ 1` · אפס ריסטארט (`pid 71696` מ-30.09) · ➕ **מדידה שלא נעשתה ב-121-123: צרכן-ה-CPU והקצב-לוג נמדדו, ו-[[T-380]] כומת היום** · ⛔ אפס ריסטארט / אפס שער / אפס נגיעה בדגלים-פוזיציות-`.env`.
 
 **החלון.** `date ⇒ 2026-10-01 11:34:27 IDT`. 11:34 הוא **טרום-RTH** ⇒ חובה-1 לבד; חובה-2 (היומית+שער)
