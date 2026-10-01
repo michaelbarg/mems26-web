@@ -1,3 +1,83 @@
+## 🟢 [cowork-dev(sched) · 2026-10-01 12:34-12:42 IL] — **ריצה 126 · חובה-1 בלבד: אפס ממתינות ⇒ שקט-טלפון מוחלט** · 🟡 **T-34: פנוי 417.44 < 1,595 אך אינו חוסם (חוזה-אחד ממומן)**
+
+**החלון.** `date ⇒ 2026-10-01 12:36:18 IDT` ⇒ **טרום-RTH** (פתיחה 16:30) ⇒ חובה-1 לבד;
+חובה-2 (היומית + שער-היום) לריצת ~15:30-16:10 · חובה-3 ל-16:30-23:00 · חובה-4 ל-23:00-23:30.
+⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה ב-`.env`/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL.**
+`git pull ⇒ Already up to date.` · HEAD בכניסה `2561b20d`.
+
+**⛔ בעלות-הריסטארט ([[T-369]]) — נבדקה אף שאין חלון-שער:** המאזין על `:8000` הוא
+`PID 71696 · lstart Wed Sep 30 13:24:35 · etime 23:11:44` ⇒ **מאתמול**, לא עלה היום אחרי 12:00.
+וממילא `12:36 ∉ 15:30-16:10` ⇒ לא נגעתי.
+
+---
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **אפס הודעת-טלפון** (peek עצמאי — לא ירשתי את ריצה 125)
+
+```raw
+GET /chat?key=…                 ⇒ http=200 · items n=30
+אחרונת-מייקל: 2026-09-30T07:18:05Z  id=a97e9f08  תיוג #2555  (status "התקבל ✓")
+נענתה:        2026-09-30T07:37:20Z  [cowork-dev] "נרשם ✓ #2623 · נרשם ✓ #2555"
+ההודעה האחרונה בחוט כולו שלנו: 2026-09-30T20:13:25Z דוח-היום 09-30
+tail PHONE_THREAD.jsonl         ⇒ זהה לחלוטין ל-API
+⇒ אפס הודעת-מייקל בלי תשובת-סוכן עניינית
+מלכודת-12 (שלילה-כוזבת כשהדוור מת) — נבדקה לפני שהוסקה שתיקה:
+  launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1493
+  GET /instruction/pending?key=…                   ⇒ {"items":[]} http=200  (peek, בלי תופעות-לוואי)
+⇒ הדוור חי **והתיבה-במקור ריקה** ⇒ השתיקה אמיתית
+אימות-התיוגים מ-30.09 (ש-"נרשם ✓" לא יהיה הצהרה בלבד — Rule 5):
+  TRADE_TAGS.jsonl ⇒ #2623 {label נכונה, mode live,   outcome WIN T1_HIT 1.48R broker 52.50}
+                     #2555 {label נכונה, mode shadow, outcome WIN T1_HIT 1.15R books +86.25}
+```
+
+לא מקרה א/ב/ג/ד ⇒ **שקט מוחלט בטלפון.** שתי שאלות-הסוכן הפתוחות מ-30.09
+(פוזיציה-ידנית 14:36 · מרג'ין 19:51) **לא נדחפו שוב** — שתיהן מוקו מעצמן: הידנית נסגרה
+20:20 בסטופ של מייקל (נטו +23.75), ו-`acct_under_margin` חזר ל-0.
+
+---
+
+### ✅ מצב-המערכת (Rule 5 — פלט גולמי, לא "אומת")
+
+```raw
+/api/v9/health         → {"status":"ok","version":"v9.0.0"}  http=200  t=0.001631s
+/api/v9/account/state  → verdict "flat" · source sierra_state.json · age_s 0.9 · stale false
+  position_qty 0 · working_orders 0 · open_pnl 0.0 · avg_price 0.0 · last_price 7733.0
+  order_placement_armed 1 · is_sim 0 · trade_account 37138283 · symbol MESZ26_FUT_CME
+  acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0
+  acct_available_funds 417.44 · acct_account_value 417.44 · acct_margin_req 0.0
+  acct_daily_net_loss_limit -250.46
+  daily_pnl 151.25 · daily_total_qty_filled 6.0  ⇒ מוני-ברוקר מצטברים, לא עסקאות-היום
+v9_trades היום (ET), group by mode ⇒ ריק = 0 עסקאות, לייב וצל.
+  אפס-עסקאות ≠ מערכת-מתה (מלכודת-4) — טרום-RTH, הפתיחה ב-16:30.
+[[T-430]] "קובץ-יצוא טרי" ≠ "פיד חי" — נבדק מול ה-DB ולא מול mtime:
+  select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies;
+  ⇒ 2026-10-01 12:35:00+03 | age 1.5   (ברי-Globex מתקדמים ⇒ חיבור-הנתונים של סיירה חי)
+גודל פסוק (read-only, .env טעון — [[T-489]]):
+  set -a; . ./.env; set +a; python3 -c 'from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())'
+  ⇒ 1   ✓ תואם פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1). לא נגעתי בדגלי-גודל.
+```
+
+**🟡 [[T-34]] — דיווח בלבד, אינו חוסם מסחר:** `acct_available_funds 417.44 < $1,595`.
+אבל הגודל הפסוק הוא **חוזה אחד**, ודרישת-המרג'ין לחוזה ≈ $287 (נמדד 30.09: 287.32) ⇒
+417.44 מכסה אותו, ו-`acct_under_margin 0` · `acct_trading_disabled 0` · `order_placement_armed 1`.
+⇒ לפי כלל-הטלפון זו **שורת-LIVE_CHANNEL ולא מקרה (ג)**. חוזה שני אינו ממומן — כפי שהיה
+גם 30.09 — וממילא אינו רלוונטי תחת פסיקת חוזה-אחד.
+
+**🟡 מכונה (WARN-בלבד, המשך ממצא ריצה 125):**
+```raw
+vm.swapusage ⇒ total 8192.00M · used 7505.50M · free 686.50M (encrypted)
+load averages 4.55 5.24 5.45 · Pages free 22,607 (~88MB) · Pages inactive 1,526,941 (~6GB ניתן-להחזרה)
+```
+הסוואפ-הפנוי **שופר** מול 12:04 (74M ⇒ 686M), וה-backend מגיב ב-1.6ms ⇒ לא חוסם מסחר,
+ולכן ל-LIVE_CHANNEL ולא לטלפון. להמשיך לנטר בריצת-השער.
+
+**לא נגעתי בכלום** — אין פעולות-כתיבה פרט לשורת-הלוג הזו. אפס הודעות-טלפון נשלחו.
+**הצעד הבא:** ריצת ~15:30-16:10 = חובה-2 — היומית המלאה + שער-היום: `close_stale_shadow.py`
+dry-run → `machine_health.py` → ריסטארט-קדם-פתיחה בפוזיציה-0 (אחרי `git pull`, ובדיקת
+`ps -o lstart` של המאזין כדי לא להרים פעמיים) → `fire_drill` כולל שלב D (טריות-הבר) +
+`flag_guard` PASS + אימות `ruled_contracts() == 1` → הודעת-טלפון אחת בלבד (מקרה ד).
+
+---
+
 ## 🟢 [cowork-dev(sched) · 2026-10-01 12:04-12:14 IL] — **ריצה 125 · חובה-1 בלבד: אפס ממתינות ⇒ שקט-טלפון מוחלט** · 🟡 **ממצא-הריצה: המכונה בסוואפ (7.1G, 74M פנויים) — WARN-בלבד, לא חוסם מסחר**
 
 **החלון.** `date ⇒ Thu Oct  1 12:04:23 IDT 2026`. ‏12:04 הוא **טרום-RTH** ⇒ חובה-1 לבד;
