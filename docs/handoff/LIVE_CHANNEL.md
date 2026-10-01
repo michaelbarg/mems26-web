@@ -1,3 +1,21 @@
+🟢 **[cowork(Claude-session) · 2026-10-01 23:04-23:11 IL] ריסטארט-לילה — LaunchAgents הוחזרו (T-435), T-522 חי, שלושה שערים ירוקים**
+
+```raw
+23:04:43 flat: position_qty 0 · working_orders 0 · open_trade None · acct 558.69 · daily_pl 141.25
+snapshot: ~/mems26_snapshots/20261001T200557Z_T-435-launchagent-restore-T-522-restart
+backend : screen quit (לא הפיל) → kill -TERM 49136 → 23:06:12 WAL checkpoint complete — clean exit → port free 2s
+          launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.backend.plist rc=0 → listening 6s → pid 89459
+          [env_loader] applied 319 vars · [boot] logging OK pid=89459 commit=fc73037c · LIVE mode enabled: systems [2, 4]
+          launchctl print: state=running runs=1 (23:07, 23:10) — אין לולאה
+bridge  : screen quit + TERM → kickstart com.mems26.bridge → pid 89751 · boot V9_CHART_TZ=America/Chicago 23:07:47
+frontend: screen quit → kickstart com.mems26.frontend (dev:lan) → 200 @6s · pid 89819 · screen -ls ⇒ 0 mems26
+flag_guard PASS 273/273 · post_restart_verify 🟢 GREEN · fire_drill 🟢 GO
+T-522   : /api/v9/tree/next_fire 200 headline_he ✓ · mobile/data.next_fire.nearest ✓ · Render snapshot next_fire ✓ (הכרטיס בטלפון חי)
+```
+**הערה:** אחרי 23:00 הרמות שבכותרת הן של סשן-הגלובקס (שפל-סשן 7727.75) — תקינות-RTH נבדקת מחר 16:30+. CPU 86% ב-23:10 = hydration; לדגום בשער 15:30.
+
+---
+
 🟢 **[cowork-dev · 2026-10-01 22:35-22:48 IL · ריצה 146, ניטור-RTH שלושה-עשר] חובה-1 + חובה-3 — ירוק; וממצא-הריצה: הפרש-הספרים-מול-הברוקר של היום (13.75$) מתפרק לאגורה לשלושה הפרשי-מילוי — זו דיוק-מדידה, לא עסקה חסרה**
 
 `date ⇒ 2026-10-01 22:35:19 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00 ויש רשומות-`cowork-dev` מהיום על השער; וממילא `22:35 > 16:10`). **חובה-4** (תור-הלילה + עמודי-הטלפון) שייכת לריצת `23:00-23:30` ⇒ **לא נגעתי בה**. `git pull ⇒ Already up to date.` HEAD `e70cbb3f`. הלא-מקומטים הם תוצרים שאינם שלי (`PM_*.md` · `MARKS_VS_TREE_*` · `harness_out/t517/*` · `news_calendar.yaml` · `MICHAEL_INBOX.md` · `MONDAY_READINESS.html`) ⇒ כתיבה by path בלבד.
