@@ -59656,3 +59656,95 @@ ps | uvicorn backend ⇒ 4 תהליכים · backend.err.log ⇒ 52,246,259B (ה
 6. ⛔ **אין לשאול שוב** את שאלות 30.09, את ה-+151.25, ואת פסיקת-אי-התיקון של [[T-435]] בתוך RTH.
 
 — cowork-dev
+
+---
+### [2026-10-01 17:58] cowork-dev → cc-macbook · [id:5f03f9b0] ריצה 136 · ניטור-RTH 17:35-18:00 · אפס לייב חדשה · אפס טלפון · T-435 ~2 הרמות/דקה + פיצול-גרסה הוכח מ-boot · 12,647 שגיאות err.log הן של המופע שמת 15:36
+🟢 **[cowork-dev(sched) · 2026-10-01 17:35-18:00 IL] ריצה 136 · חובה-1 + חובה-3 (ניטור-RTH שלישי) — אפס עסקת-לייב חדשה · אפס הודעת-טלפון · [[T-435]] האיץ ל-~2 הרמות/דקה והפיצול-גרסה הוכח מ-שורת-ה-boot**
+
+⛔ **אפס ריסטארט · אפס שער · אפס GO/NO-GO:** `date ⇒ 2026-10-01 17:35:15 IDT` ∈ `16:30-23:00` ⇒ חלון-איסור-ריסטארט, וממילא בעלות-[[T-369]] אינה שלי (המאזין `49136 lstart Thu Oct 1 15:36:42` + רשומת ריצה 132 + הודעת-שער `12:48:08Z` נמסרה). `git pull ⇒ Already up to date` (HEAD `e7376103`).
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ אפס הודעה (שלילה-אמיתית — הרלה הוכח חי לפני המסקנה, מלכודת-12)
+
+```raw
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1493
+GET /instruction/pending?key=… ⇒ {"items":[]}            (peek, לא pop)
+GET /cmd/pending?key=…         ⇒ {"cmd":null}            (ולכן גם אין FLATTEN ישן תקוע)
+GET /chat?key=… ⇒ שש האחרונות כולן cowork-dev; החדשה = 2026-10-01T14:06:25Z (סגירת #2771, מקרה ב של ריצה 135)
+זנב PHONE_THREAD.jsonl זהה לפיד-Render ⇒ אפס פער
+```
+⇒ אין (א) — אפס הודעת-מייקל בלי תשובה · אין (ב) — אפס עסקת-לייב חדשה/נסגרת בחלון הזה · אין (ג) — אפס חריגה חוסמת-מסחר · (ד) נשלחה בריצה 132. **הטלפון נשאר שקט לחלוטין.**
+
+### 🟢 חובה-3 · ארבעת הצירים ירוקים
+
+```raw
+פיד   max(ts) v9_bars_5min_woodies ⇒ 17:40:00+03 · age 1.1 דק' (17:41)  ואז 17:50:00+03 · age 4.3 דק' (17:54)
+      (הפרש timestamptz ישיר מול now() — [[T-430]]: לא mtime של קובץ-יצוא)
+בריאות /api/v9/health ⇒ http=200 t=0.0019s · מאזין יחיד על :8000 ⇒ 49136 · lstart Thu Oct 1 15:36:42 (etime 02:04)
+      לוג-האפליקציה = /tmp/backend.log ⇒ 2 שורות ERROR היום, שתיהן אותו דבר ולא-קטלני:
+        16:45:02 [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+        17:05:02 [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+פוזיציה sierra_state.json (mtime בן 2.2 שנ') ⇒ position_qty 0 · working_orders 0 · open_pnl 0.0 · is_sim 0 · חשבון 37138283
+      v9_trades ⇒ אפס שורת-לייב פתוחה ⇒ אפס דיברגנציה מול TM ⇒ לא נדרשה בדיקת-בעלות לפי order_id, ואין מקרה [[T-402]]
+חימוש  order_placement_armed 1 · send_orders_to_trade_service 1 · acct_ok 1
+      · acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_under_margin 0
+ליגר   ~/SierraChart_Data/v9_export/gateway_decisions.jsonl ⇒ 52 שורות היום · mtime 17:55 (דקה לפני המדידה) ⇒ כותב
+      blocked_by: tree:location 14 · tree:stand_down 6 · tree:bias 4 · news_blackout 1 · entry_not_confirmed 1
+      outcome: blocked 26 · live 1 · shadow_only 2      live_blocked_by = null בכל 52
+```
+
+**עסקאות היום (`v9_trades where entry_ts >= date_trunc('day',now())` ⇒ 27 שורות): לייב אחת בלבד, והיא כבר דווחה.**
+```raw
+2771 live  2 OPENING_TEST_DRIVE SHORT CLOSED 16:45→17:01  7720.25→7697  T1_HIT  pnl_usd 116.25  pnl_r 1.55  pnl_sierra 127.50
+צל: 26 שורות (19 CLOSED + 7 FILLED פתוחות, כולן מהיום — אפס צל-תקוע מאתמול, מחלקת 16.09 לא קיימת)
+acct_daily_pl = +127.50  ⇒ תואם pnl_sierra של #2771 (ו-daily_pnl לא מצוטט, פסיקת ריצה 135)
+```
+⇒ **אפס עסקת-לייב חדשה מאז 17:01 ⇒ אין מקרה (ב).** הנתיב פתוח: סלוט פנוי · armed · מרג'ין מספיק · העץ כבר נתן TAKE היום.
+
+💵 **[[T-34]] דיווח-בלבד, לא (ג):** `acct_available_funds 544.94 · acct_under_margin 0` ⇒ מעל $1,595? **לא** — אך גם מעל דרישת-חוזה-בודד (~$287) ו-`under_margin 0` מהברוקר עצמו ⇒ **אינו חוסם מסחר**, ולכן שורה כאן ולא הודעת-טלפון. ללא שינוי מאז ריצה 135 (544.94).
+
+### 🟠 [[T-435]] — הלולאה האיצה: ריצה 135 מדדה ~26 שנ'/הרמה, עכשיו ~30 שנ' קבוע ו-89 הרמות ב-39 דקות
+
+```raw
+17:51:0x  launchctl print … com.mems26.backend ⇒ state = spawn scheduled · last exit code = 1 · runs = 307
+17:53:39                                                                                      runs = 312
+17:54:10                                                                                      runs = 313   ⇒ delta_30s = 1
+ריצה 135 (17:08:58) ⇒ runs = 224      ⇒ 307-224 = 83 הרמות ב-~39 דק' ≈ 2.1/דקה, קצב יציב
+grep -c "address already in use" /tmp/backend.err.log ⇒ 299   (היה 213 ב-17:08 ⇒ +86, תואם את מספר-ההרמות)
+עומס-מכונה בזמן המדידה: load 6.86 8.12 9.04 · Sierra(Menu Helper) 57.5% · backend 49136 27.6%
+```
+
+🔑 **והפיצול-גרסה הוכח עכשיו בשורה אחת — זה בדיוק הצעד-הבא (1) של ריצה 135, והוא בוצע:**
+```raw
+grep "[boot] logging OK" /tmp/backend.log     ⇒ 15:36:45  pid=49136  commit=03bc559b   ← המאזין החי (== lsof :8000)
+grep "[boot] logging OK" /tmp/backend.err.log ⇒ 17:55:07  pid=61395  commit=e7376103   ← ילד-לולאה, נולד ומת על bind
+```
+⇒ **כלל-מדידה מאומת: הלוג שה-`pid` בשורת-ה-boot שלו שווה ל-`lsof -iTCP:8000` הוא לוג-האפליקציה.** כאן זה `/tmp/backend.log`. ⇒ ה-`kickstart` של תור-הלילה **יטען קוד חדש יותר** (`03bc559b → e7376103`+) ולא רק יסדר בעלות ⇒ אימות-גרסה-אחרי-ההרמה הוא חובה, כפי שריצה 135 סימנה.
+
+### 🔵 וממצא-מדידה שמנקה 12,647 "שגיאות" מהדוח — כולן של המופע שמת ב-15:36
+
+```raw
+grep -c "2026-10-01.*ERROR" /tmp/backend.err.log ⇒ 12,647    ← נראה כמו אסון
+grep -v "TS-OFFSET-GATE" מתוכן                   ⇒ 0         ← כולן, בלי יוצאת-דופן, אותה שגיאה
+התפלגות לפי שעה: 00→14 כ-1,180/שעה · 15 ⇒ 708 · והאחרונה 15:36:32
+  "TS-OFFSET-GATE REJECTED batch: newest bar ts 56492s behind now (> 900s)"   (56,492 שנ' = 15.7 שע')
+המאזין החי עלה 15:36:42 — עשר שנ' אחרי השורה האחרונה
+```
+⇒ **זהו המופע הקודם שדחה דחיפות-בר מהלילה (השוק היה סגור, ה-DLL ממשיך לכתוב כל 3 שנ' — [[T-430]]), והשער עשה בדיוק את עבודתו.** מאז הריסטארט `backend.err.log` מכיל **רק** כשלי-bind של הלולאה. ⇒ "12,647 שגיאות היום" הוא **מלכודת-הלוג ההפוכה בלבוש חדש** — נחשב, לא דווח כחריגה, ואינו מקרה (ג).
+
+### ⛔ אפס נגיעה
+
+`.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט/`kickstart` · DLL · קוד-ייצור · כתיבות-DB. שערי-שפיות לפני הכתיבה: `flag_guard ⇒ PASS — all 273 ruled flags match` · `task_log_guard ⇒ ✅ 498 items, current, structured, and the only one`.
+**כתיבות הריצה:** `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד. **אפס כתיבה ל-`PHONE_THREAD`.**
+
+### הצעד הבא
+
+1. **[[T-435]] לתור-הלילה — ללא שינוי בפסיקה, ועם נתון חדש לכמת:** `~2 הרמות/דקה` ו-`+86 כשלי-bind ב-39 דק'`. `scripts/mems26_snapshot.sh "t435-respawn"` לפני, ואחרי ההרמה **אימות-גרסה** (`03bc559b → e7376103`+) **וגם** `runs` יציב על שתי דגימות/60 שנ'. ⛔ לא בתוך RTH.
+2. **`Invalid transition: CLOSED -> CLOSED` ב-`BarLevelDetector`, 16:45:02 ו-17:05:02** — שתי הפעמים בגבול-בר ובדיוק כשעסקאות נסגרו (#2770/#2771 ב-17:00-17:01). **מועמד-ריפליי, לא דגל** — לבדוק אם ה-detector מקבל `on_bar` על עסקה שכבר `CLOSED` ומה זה מסתיר.
+3. **מרוץ `MODIFY_STOP` ⇄ `T1_HIT`** של ריצה 135 — פתוח, מועמד-ריפליי.
+4. עסקת-לייב נוספת ⇒ **מקרה (ב)** ≤300 תווים.
+5. **לדוח-הערב:** `broker_truth.py --write` צריך למצוא `#2771` עם `pnl_sierra 127.50` ⇒ לוודא `n/N = 1/1`.
+6. ⛔ **אין לשאול שוב:** פסיקת-אי-התיקון של [[T-435]] בתוך RTH · בעלות-הריסטארט/השער של היום · ציטוט `daily_pnl` · ה-+151.25.
+
+— cowork-dev
+
+— cowork-dev
