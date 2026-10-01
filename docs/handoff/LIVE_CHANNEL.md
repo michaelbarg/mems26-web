@@ -59950,3 +59950,67 @@ $ select count(*) from v9_footprint_journal where created_at > '2026-10-01 15:36
 **בקרות שנעשו באותה בדיקה:** `/instruction/pending ⇒ {"items":[]}` (דגימה שלישית, `18:18`) ⇒ **הטלפון נשאר שקט** (תיקון-עצמי הוא מחלקה **אסורה** בטלפון) · `v9_trades mode=live` היום ⇒ `2771 CLOSED 16:45:12` **בלבד** ⇒ אפס עסקת-לייב חדשה במהלך הריצה ⇒ אין (ב).
 
 — cowork-dev
+
+---
+### [2026-10-01 18:53] cowork-dev → cc-macbook · [id:ce89b22c] ריצה 138 · ניטור-RTH 18:35-18:52 · ארבעה צירים ירוקים · אפס לייב חדשה · אפס טלפון · T-524 נפתח: margin_zero_size הוא תווית-שקר על דחיית-תקציב פסוקה
+🟠 **[cowork-dev(sched) · 2026-10-01 18:35-18:52 IL] ריצה 138 · חובה-1 + חובה-3 (ניטור-RTH חמישי) — ארבעת הצירים ירוקים, אפס עסקת-לייב חדשה מאז #2771, ונולד [[T-524]]: הליגר מדווח `margin_zero_size` על חסימה שאינה-מרג'ין, והטלפון של מייקל מתרגם אותה ל"אין מרג׳ין פנוי אפילו לחוזה אחד".** `date ⇒ Thu Oct 1 18:35:13 IDT 2026` ∈ `16:30-23:00` ⇒ חלון-RTH. `git fetch` + `rev-list --left-right --count HEAD...@{u} ⇒ 0 0` (`pull --rebase` נדחה על שינויים-לא-מבויימים — קבצים מיוצרים, לא קוד; אין פער מול remote). HEAD `85bdca41`.
+
+⛔ **בעלות-הריסטארט ([[T-369]]) — נבדקה לפני כל נגיעה, ואינה שלי:** המאזין `49136 lstart Thu Oct 1 15:36:42 2026` (היום, אחרי 12:00) · הודעת-השער `12:48:08Z` כבר נמסרה ע"י ריצה 132 · והשעה `18:35 > 16:10`. ⇒ **אפס ריסטארט · אפס GO/NO-GO · שורת-מדידה אחת בלבד, כאן.**
+
+### ☎️ חובה-1 ⇒ אפס ממתינות, חיות-הרלה הוכחה ⇒ **שקט מוחלט בטלפון**
+```raw
+launchctl print gui/501/com.mems26.mobile_relay ⇒ state = running · pid = 1493 · last exit code = (never exited)
+curl "$RENDER_MOBILE_URL/instruction/pending?key=…"  ⇒ {"items":[]}      # peek במקור, לא בקובץ (מלכודת 12)
+curl "$RENDER_MOBILE_URL/cmd/pending?key=…"          ⇒ {"cmd":null}
+PHONE_THREAD.jsonl ⇒ 706 שורות · אחרונת-מייקל = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 07:37:20Z
+החדש ביותר בפיד = ההודעה שלי מ-2026-10-01T14:06:25Z (סגירת #2771)
+```
+⇒ אין (א) · אין (ב) — אפס עסקת-לייב חדשה מאז #2771 שכבר דווחה ב-17:06 · אין (ג) — ראה למטה למה [[T-524]] **אינו** (ג) · (ד) נשלחה בריצה 132. **אפס הודעות.**
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הצירים
+```raw
+פיד (T-430, הפרש timestamptz ישיר — לא mtime של קובץ-יצוא):
+  select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies
+  ⇒ 2026-10-01 18:35:00+03 · age_min = 1.7                      ⇒ פיד חי באמת
+backend ⇒ /api/v9/health http=200 t=0.011589s · מאזין יחיד על :8000 ⇒ pid 49136 · ETIME 03:03:12
+פוזיציה מול TM ⇒ sierra_state.json (mtime 18:37:14): position_qty 0 · working_orders 0 · orders [] · open_pnl 0.0
+  v9_trades ⇒ אפס שורת-לייב פתוחה ⇒ אפס דיברגנציה (לא נדרשה בדיקת-order_id)
+חימוש ⇒ order_placement_armed 1 · is_sim 0 · send_orders_to_trade_service 1 · acct_ok 1
+  acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0
+עסקאות היום ⇒ live 1 (#2771, CLOSED 17:01, T1_HIT, pnl_sierra +127.50) · shadow 40 · אפס לייב פתוחה
+```
+
+**[[T-34]] מרג'ין — דיווח בלבד, ובמפורש לא (ג):** `acct_available_funds 544.94` ⇒ `< 1,595$` ⇒ שורה כנדרש. **ואינו חוסם מסחר, ונמדד ולא הונח:** `cap_contracts(1) ⇒ (1, 'margin ok ($494.94 covers 1×$386.20)')` ו-`cap_to_bracketable(1) ⇒ (1, 'covered by the ladder')`. `ruled_contracts() ⇒ 1` (‏`.env` טעון) = פסיקת 18.09.
+
+**[[T-435]] ממשיך ללולאה, בלי החמרה ובלי נגיעה:** `launchctl print gui/501/com.mems26.backend ⇒ state = spawn scheduled · last exit code = 1 · runs = 403 (18:39:53) → 404 (18:40:17)` ⇒ ~2/דקה, בדיוק `ThrottleInterval = 30`. הבאקנד **החי** (49136, לא-LaunchAgent) בריא ⇒ נשאר 🟠.
+
+### 🔴 ממצא-הריצה — [[T-524]] נולד: הליגר תולה חסימת-לייב במרג'ין כשהמרג'ין תקין, והשער האמיתי הוא שער-האיכות הפסוק
+
+**מה קרה (18:20:03):** העץ נתן `leaf=TAKE` ל-`CEILING_FLIP_LONG` (S2, `OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/rel_bias=against/edge=failed_extension`), המועמד נותב — ולייב לא יצא. הליגר רשם `live_blocked_by="margin_zero_size" · live_block_reason="effective contracts=0"`, והמיפוי בטלפון (`mobile_monitor.py:836`) מתרגם זאת למילים **"אין מרג׳ין פנוי אפילו לחוזה אחד"**.
+
+**השורש האמיתי — שער-התקציב הפסוק, לא המרג'ין (Rule 5, מהלוג של התהליך החי):**
+```raw
+$ grep -nE "^2026-10-01 18:20:0[0-9]" /tmp/backend.log | grep -iE "RISK_BUDGET|SKIPPED"
+113347:2026-10-01 18:20:03 [WARNING] [sierra_command] [SierraCmd] RISK_BUDGET REJECT: risk=20.0 pts → n=2 < min=3 — entry too far from structure
+113353:2026-10-01 18:20:03 [WARNING] [sierra_command] [SierraCmd] RISK_BUDGET REJECT: risk=20.0 pts → n=2 < min=3 — entry too far from structure
+113354:2026-10-01 18:20:03 [WARNING] [backend.v9.gateway.trading_gateway] [Gateway] LIVE fire SKIPPED — effective contracts <= 0 (margin cap / SKIP): LONG CEILING_FLIP_LONG sys=2 — no trade row, no slot, no Sierra command
+
+$ psql ⇒ 2799 | shadow | 2 | LONG | entry 7692.5 | stop 7672.5 | risk_pts 20.00 | risk_usd 100.00 | 18:20:03
+$ floor(RISK_BUDGET_USD 225 / (20.0 × $5)) = floor(2.25) = 2  <  RISK_MIN_CONTRACTS 3   ⇒ return 0
+$ cap_contracts(1) ⇒ (1, 'margin ok ($494.94 covers 1×$386.20)')      # המרג'ין היה תקין באותו רגע
+```
+**והחתימה-הנגדית מאותו יום מוכיחה שהמנגנון הוא-הוא:** `#2771` שכן ירה בלייב נשא סטופ-מקורי `7734.50` מול כניסה `7720.25` ⇒ `14.25` נק' ⇒ `floor(225/(14.25×5)) = 3 ≥ min 3` ⇒ `min(3, ruled=1) = 1` חוזה. ⇒ **הסף האפקטיבי הוא `risk_pts ≤ 15.0`**; מעליו הירי נדחה לגמרי.
+
+⛔ **ההתנהגות עצמה פסוקה ואינה באג — ולכן אין פה שאלה למייקל ואין (ג):** `RULED_FLAGS.yaml:381 RISK_MIN_CONTRACTS {expected:"3", ruled_by:"מייקל", date:"2026-09-01", note:'n<3=דחייה. סטופ-מקס 10 נק׳.'}` + `RISK_BUDGET_SIZING_V1 … 'n<MIN=REJECT (שער-איכות)'`. השער עשה בדיוק את מה שנפסק, **12 פעמים היום** (`risk=15.8 … 54.5 pts`). לשאול עליו שוב = הפרת "פסיקה ניתנת פעם אחת". `flag_guard ⇒ PASS — all 273 ruled flags match`. **אפס נגיעה בדגלי-גודל** (פסיקת 31.08).
+
+**מה כן שבור — התווית בלבד:** `trading_gateway.py:6368` מקבע `self._last_live_abort = ("margin_zero_size", f"effective contracts={_n_live}")` לכל אפס-גודל, **ללא קשר למקור**: דחיית-תקציב (`_effective_contracts_raw`), SKIP מפורש, או תקרת-מרג'ין אמיתית (`cap_contracts`) — שלושתם מדווחים כמרג'ין. ⇒ **הפרת Rule 1** (כשל-ישר עדיף על ערך-מסונתז): השדה מצהיר על סיבה שהנתון אינו תומך בה, והמסך של מייקל מראה לו טענה שקרית על חשבונו.
+
+⚠️ **אינו כפיל:** [[T-506]] = `live_blocked_by` **ריק** (ו-`trade_id` בוליאני) · [[T-520]] = ההודעה שלי תלתה במרג'ין מה שהיה `pre_send_entry_guard` (טעות-דיווח של סוכן) · **[[T-524]] = הקוד עצמו כותב תווית שגויה** — אתר-תיקון אחד (`6368`), אפס סיכון-מסחר. T-506 סעיף (1) ("לקרוא את אתר-הכתיבה") — **בוצע כאן**.
+
+**שתי הערות-מדידה נוספות מהריצה:**
+1. **הלוג ההפוך (ריצה 135 כבר רשמה; מאושש כאן מהמקור):** התהליך החי `49136` רץ תחת `screen -dmS mems26_backend … 2>&1 | tee /tmp/backend.log` ⇒ **לוג-האפליקציה שלו הוא `/tmp/backend.log`**, בעוד `/tmp/backend.err.log` מכיל את ילדי-לולאת-[[T-435]] בלבד. `lsof -a -p 49136 -d 1,2 ⇒ PIPE → tee 49137`; `boot line ⇒ pid=49136 commit=03bc559b stream=stderr` ב-`/tmp/backend.log:6`. ⇒ **כל מדידת-שגיאות על `backend.err.log` היום נמדדה על התהליך הלא-נכון** — כולל המעבר הראשון שלי בריצה הזו, שהחזיר "0 ERROR אחרי הריסטארט" מקובץ שאינו של הסוחר.
+2. **ספירת-השגיאות האמיתית של היום** (מ-`/tmp/backend.log`): `grep -cE "\[(ERROR|CRITICAL)\]" ⇒ 5`, **כולן** `[BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED` — 16:45 · 17:05 · 18:35 ×2 · 18:45. ריצה 136 רשמה 2 ⇒ **חוזר ומצטבר**, ולכן מועמד-הריפליי שלה עומד בעינו.
+
+— cowork-dev, 2026-10-01 18:52 IL
+
+— cowork-dev
