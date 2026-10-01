@@ -655,6 +655,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="radar" style="font-size:12.5px;line-height:1.8">—</div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
+<div class="card" style="border:1px solid #facc15"><div class="row"><span class="dim">🎯 הירי הקרוב — לייב בלבד · המחיר שצריך להגיע אליו</span><span id="nfmeta" class="dim"></span></div>
+<div id="nextfire" style="font-size:13px;line-height:1.7">—</div></div>
 <div class="card" style="border:1px solid #2ea043"><div class="row"><span class="dim">🌳 עץ-ההחלטות — איפה הוא עכשיו ומה הוא מתכנן</span><span id="tmeta" class="dim"></span></div>
 <div id="tree" style="font-size:12.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
@@ -813,6 +815,26 @@ async function load(){
     '<div class="row"><span class="dim">מסחר</span><span>'+(canTrade?'<span class="green">✓ מוכן · עד '+tr.contracts_allowed+' חוזים</span>':'<span class="red">'+(tr.stale?'נתונים לא-טריים':tr.armed!==1?'לא-חמוש':'אין מרג\\'ין')+'</span>')+'</span></div>';
    document.getElementById('rmeta').textContent = (tr.is_sim===0?'לייב':'סים');
   } else { rEl.innerHTML='<span class="dim">רדאר לא-זמין ב-snapshot</span>'; }
+  // מייקל 01.10: "מה המחיר אליו צריך להגיע כדי שיבוצע הירי הקרוב ביותר — ורק לייב" (payload.next_fire,
+  // backend/v9/services/next_fire.py: live-only producers, the tree's verdict per direction, the producer's own trigger level)
+  try{ const N=d.next_fire; const ne=document.getElementById('nextfire'); const nm=document.getElementById('nfmeta');
+   if(N && !N.error && N.headline_he){
+    const n=N.nearest; let h='';
+    if(n && n.level!=null){
+      const col=(n.direction==='LONG'?'#3fb950':'#f85149'); const arrow=(n.side==='above'?'מעל':n.side==='below'?'מתחת ל':'על');
+      h+='<div style="font-size:24px;font-weight:800;color:'+col+'">'+(n.direction==='LONG'?'▲ לונג':'▼ שורט')+' <span class="num">'+Number(n.level).toFixed(2)+'</span>'
+        +' <span style="font-size:13px;color:#8b949e;font-weight:400">'+(n.level_he||'')+' · '+Number(n.dist).toFixed(2)+' נק׳ '+arrow+'מחיר '+(N.price!=null?Number(N.price).toFixed(2):'')+'</span></div>';
+      h+='<div style="font-size:12.5px;color:#e6edf3"><b>'+n.pattern+'</b> · '+(n.how_he||'')+'</div>';
+    }
+    h+='<div style="font-size:12.5px;margin-top:4px;color:#e6edf3">'+N.headline_he+'</div>';
+    const more=(N.candidates||[]).filter(c=>c.live&&c.allowed&&!(n&&c.pattern===n.pattern&&c.direction===n.direction)).slice(0,4);
+    if(more.length) h+='<div class="dim" style="font-size:11.5px;margin-top:3px">עוד בתור (לייב, מותר בעץ): '+more.map(c=>(c.direction==='LONG'?'▲':'▼')+' '+c.pattern+(c.level!=null?' @'+Number(c.level).toFixed(2)+' ('+Number(c.dist).toFixed(2)+' נק׳)':' — תנאי-בר, בלי מחיר')).join(' · ')+'</div>';
+    if(N.s4_veto) h+='<div class="dim" style="font-size:11px;margin-top:2px">S4 (וודיס): '+N.s4_veto+'</div>';
+    h+='<div class="dim" style="font-size:11px;margin-top:3px">אחרי הטריגר: '+(N.gates_after_he||[]).join(' · ')+'. '+(N.note_he||'')+'</div>';
+    ne.innerHTML=h; nm.textContent=(N.ts||'')+(N.n_live_allowed!=null?' · '+N.n_live_allowed+' מועמדים-לייב מותרים':'');
+   } else if(N && N.error){ ne.innerHTML='<span class="dim">שגיאה: '+N.error+'</span>'; nm.textContent=''; }
+   else { ne.innerHTML='<span class="dim">אין next_fire ב-snapshot (הבקאנד עוד לא נטען מחדש)</span>'; nm.textContent=''; }
+  }catch(e){}
   // T-480: the decision tree's current node + plan (payload.tree, built on the Mac from the gateway's own sources)
   try{ const T = d.tree; const te = document.getElementById('tree'); const tm = document.getElementById('tmeta');
    if(T && !T.error && T.context){

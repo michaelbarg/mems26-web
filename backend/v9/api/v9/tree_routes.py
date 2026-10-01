@@ -237,3 +237,12 @@ def build_state(app, *, recent_n: int = 20) -> Dict[str, Any]:
 @router.get("/state")
 async def tree_state(request: Request):
     return build_state(request.app)
+
+
+@router.get("/next_fire")
+async def tree_next_fire(request: Request):
+    """מייקל 01.10: "מה המחיר אליו צריך להגיע כדי שיבוצע הירי הקרוב ביותר — ורק לייב".
+    Live-only candidates with the producer's own trigger level, ranked by distance, the tree's verdict
+    per direction, and one Hebrew headline (backend/v9/services/next_fire.py). Read-only."""
+    from backend.v9.services.next_fire import build_next_fire
+    return build_next_fire(request.app)

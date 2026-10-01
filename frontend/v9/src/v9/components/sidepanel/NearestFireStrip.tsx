@@ -13,6 +13,12 @@
  * (gap=Xpts) — הקטן מנצח. מציגים את 3 הראשונות + לְמה כל אחת מחכה + מה העץ לוקח
  * עכשיו לכל כיוון. השורה לעולם לא נעלמת: "אין תבנית בתור" נראה אחרת מ"שגיאת-קריאה".
  * פולינג 15s לשני המקורות (רצפת-הפולינג הדיאגנוסטית — לא להוריד בלי אישור).
+ *
+ * מייקל 01.10 (19:5x): "שיהיה ברור לגמרי מה המחיר אליו צריך להגיע כדי שיבוצע הירי הקרוב ביותר —
+ * ורק על לייב". המקור החדש: /api/v9/tree/next_fire (backend/v9/services/next_fire.py) — רק מפיקים
+ * שמסוגלים לירות לייב (לא ZLR/TOUCH2/צל), רק מה שהעץ מרשה עכשיו, והרמה היא גאומטריית-הטריגר של
+ * המפיק עצמו (VAH/VAL/שיא-12-ברים/צוואר) — לא תחזית. הכותרת: המחיר, המרחק, ולמה הכיוון השני מסורב.
+ * עד שהבקאנד נטען מחדש עם ה-endpoint (404) — נשארת תצוגת-המפקח הישנה, מסומנת ככזו.
  */
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
@@ -37,6 +43,15 @@ type Row = {
 };
 type Counts = { queued: number; blocked: number; fired: number };
 type Leaf = { leaf?: string };
+type NfCand = {
+  pattern: string; direction: 'LONG' | 'SHORT'; live: boolean; allowed: boolean; level: number | null;
+  level_he?: string | null; dist: number | null; side?: 'above' | 'below' | 'at' | null; how_he?: string; awaiting?: string | null;
+};
+type NextFire = {
+  ts?: string; price?: number | null; allowed?: { LONG: boolean; SHORT: boolean }; why_he?: { LONG?: string | null; SHORT?: string | null };
+  nearest?: NfCand | null; candidates?: NfCand[]; headline_he?: string; note_he?: string; gates_after_he?: string[];
+  n_live_allowed?: number; s4_veto?: string | null; error?: string;
+};
 type TreePlan = { LONG?: Record<string, Leaf>; SHORT?: Record<string, Leaf> };
 type TreeState = { mode?: string; plan?: TreePlan; error?: string };
 
@@ -85,20 +100,23 @@ export function NearestFireStrip() {
   const [rows, setRows] = useState<Row[]>([]);
   const [counts, setCounts] = useState<Counts>({ queued: 0, blocked: 0, fired: 0 });
   const [tree, setTree] = useState<TreeState | null>(null);
+  const [nf, setNf] = useState<NextFire | null>(null); // null = endpoint not there yet (pre-restart) → fallback
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState(false);
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const [ps, ts] = await Promise.allSettled([
+      const [ps, ts, nfr] = await Promise.allSettled([
         fetch(`${API}/api/v9/build/pattern-status`, { cache: 'no-store' }).then((r) => {
           if (!r.ok) throw new Error(String(r.status));
           return r.json();
         }),
         fetch(`${API}/api/v9/tree/state`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API}/api/v9/tree/next_fire`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
       ]);
       if (!alive) return;
+      setNf(nfr.status === 'fulfilled' && nfr.value && !(nfr.value as NextFire).error ? (nfr.value as NextFire) : null);
       if (ps.status === 'fulfilled') {
         const d = ps.value as { systems?: Array<{ id?: string; patterns?: Pat[] }> };
         const all: Row[] = [];
@@ -157,6 +175,76 @@ export function NearestFireStrip() {
         })();
 
   const mono = { fontFamily: 'ui-monospace, monospace' } as const;
+  const dirCol = (d: 'LONG' | 'SHORT') => (d === 'LONG' ? '#4ade80' : '#f87171');
+  const sideHe = (c: NfCand) => (c.side === 'above' ? 'מעל' : c.side === 'below' ? 'מתחת ל' : 'על');
+
+  // ── the live answer: "what price for the nearest LIVE fire" ──
+  if (nf && nf.headline_he) {
+    const n = nf.nearest || null;
+    const more = (nf.candidates || []).filter((c) => c.live && c.allowed && !(n && c.pattern === n.pattern && c.direction === n.direction)).slice(0, 4);
+    const dirLine = (d: 'LONG' | 'SHORT') => {
+      const heb = d === 'LONG' ? '▲ לונג' : '▼ שורט';
+      const best = (nf.candidates || []).find((c) => c.live && c.allowed && c.direction === d && c.level !== null);
+      if (best && best.level !== null) {
+        return (
+          <div key={d} style={{ display: 'flex', gap: 6, alignItems: 'baseline', whiteSpace: 'nowrap', minWidth: 0 }}>
+            <span style={{ color: dirCol(d), fontWeight: 700, flexShrink: 0 }}>{heb}</span>
+            <span dir="ltr" style={{ ...mono, fontSize: 16, fontWeight: 800, color: dirCol(d), flexShrink: 0 }}>{best.level.toFixed(2)}</span>
+            <span style={{ color: COLORS.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {best.level_he} · {best.dist !== null ? `${best.dist.toFixed(2)} נק׳ ${sideHe(best)}מחיר` : ''} · <span dir="ltr">{best.pattern}</span>
+            </span>
+          </div>
+        );
+      }
+      const allowed = nf.allowed?.[d];
+      const nolevel = (nf.candidates || []).find((c) => c.live && c.allowed && c.direction === d);
+      return (
+        <div key={d} style={{ display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+          <span style={{ color: dirCol(d), fontWeight: 700, flexShrink: 0 }}>{heb}</span>
+          <span style={{ color: COLORS.textTertiary, fontSize: 10 }}>
+            {allowed
+              ? (nolevel ? <>אין מחיר-מטרה — <span dir="ltr">{nolevel.pattern}</span>: {nolevel.awaiting || nolevel.how_he}</> : 'העץ מרשה — אין מפיק-לייב עם טריגר-מחיר עכשיו')
+              : <>העץ מסרב — {nf.why_he?.[d] || '—'}</>}
+          </span>
+        </div>
+      );
+    };
+    return (
+      <div dir="rtl" style={{
+        margin: '4px 6px', padding: '6px 8px',
+        background: '#1d1a0a', border: '1px solid #facc1566', borderRadius: 6,
+        fontSize: 10.5, lineHeight: 1.45, color: COLORS.textPrimary,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ color: '#facc15', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' }}>🎯 הירי הקרוב — לייב בלבד</span>
+          <span style={{ color: COLORS.textTertiary, fontSize: 9, whiteSpace: 'nowrap' }} title="מועמדי-לייב שהעץ מרשה עכשיו">
+            {nf.ts || ''}{nf.n_live_allowed !== undefined ? ` · ${nf.n_live_allowed} מותרים` : ''}{nf.price != null ? ` · מחיר ${Number(nf.price).toFixed(2)}` : ''}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 3 }}>
+          {dirLine('SHORT')}
+          {dirLine('LONG')}
+        </div>
+        {n && n.how_he && (
+          <div style={{ color: COLORS.textSecondary, fontSize: 9.5, marginTop: 3 }} title={n.how_he}>
+            <span dir="ltr" style={{ fontWeight: 700 }}>{n.pattern}</span>: {n.how_he}
+          </div>
+        )}
+        {more.length > 0 && (
+          <div style={{ color: COLORS.textTertiary, fontSize: 9, marginTop: 3, borderTop: `1px solid ${COLORS.borderFaint}`, paddingTop: 3 }}>
+            עוד בתור (לייב, מותר): {more.map((c) => `${c.direction === 'LONG' ? '▲' : '▼'} ${c.pattern}${c.level !== null ? ` @${c.level.toFixed(2)} (${c.dist?.toFixed(2)} נק׳)` : ' — תנאי-בר'}`).join(' · ')}
+          </div>
+        )}
+        {nf.s4_veto && <div style={{ color: COLORS.textTertiary, fontSize: 9 }}>S4: {nf.s4_veto}</div>}
+        <div style={{ color: COLORS.textTertiary, fontSize: 9, marginTop: 3 }} title={nf.note_he || ''}>
+          אחרי הטריגר: {(nf.gates_after_he || []).join(' · ')}
+        </div>
+        <div style={{ marginTop: 3, paddingTop: 3, borderTop: `1px solid ${COLORS.borderFaint}`, color: COLORS.textTertiary, fontSize: 9 }}>
+          🌳 {treeLine}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div dir="rtl" style={{
@@ -165,7 +253,7 @@ export function NearestFireStrip() {
       fontSize: 10, lineHeight: 1.45, color: COLORS.textPrimary,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ color: '#3fb950', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' }}>🎯 תור לירי</span>
+        <span style={{ color: '#3fb950', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' }} title="לפי מפקח-הדפוסים (כולל צל) — תצוגת 'הירי הקרוב — לייב' נטענת כשהבקאנד חוזר עם /tree/next_fire">🎯 תור לירי (מפקח)</span>
         <span style={{ color: COLORS.textTertiary, fontSize: 9, whiteSpace: 'nowrap' }}
           title="חמושות = ממתינות לתנאי; חסומות = חסר נתון/מושתקות; ירו = ירו כבר היום">
           {loaded ? `${counts.queued} חמושות · ${counts.blocked} חסומות · ${counts.fired} ירו` : 'טוען…'}

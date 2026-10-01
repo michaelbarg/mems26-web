@@ -539,6 +539,15 @@ async def mobile_data(request: Request):
     try:
         from backend.v9.api.v9.tree_routes import build_state as _tree_state
         out["tree"] = _tree_state(request.app, recent_n=8)
+        # מייקל 01.10: the phone shows the same next-fire line as the desktop — price to reach, live-only
+        try:
+            from backend.v9.services.next_fire import build_next_fire as _bnf
+            _nf = _bnf(request.app, state=out.get("tree"))
+            out["next_fire"] = {k: _nf.get(k) for k in ("ts", "price", "allowed", "why_he", "nearest", "headline_he",
+                                                        "note_he", "gates_after_he", "n_live_allowed", "s4_veto", "error")}
+            out["next_fire"]["candidates"] = (_nf.get("candidates") or [])[:6]
+        except Exception as _nfe:
+            out["next_fire"] = {"error": str(_nfe)[:80]}
     except Exception as _te:
         out["tree"] = {"error": str(_te)[:80]}
     # ── narrator_he: 4-line Hebrew narrative for the phone ──

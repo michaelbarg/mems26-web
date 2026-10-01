@@ -38,6 +38,7 @@ interface Decision {
   outcome?: string; blocked_by?: string | null; live_blocked_by?: string | null; trade_id?: number | null;
   tree_v3?: { leaf?: string; id?: string; path?: string };
 }
+interface NextFire { headline_he?: string; nearest?: { pattern: string; direction: string; level: number | null; level_he?: string | null; dist: number | null; how_he?: string } | null; error?: string }
 interface TreeState {
   mode?: string; ts?: string; where_he?: string;
   context?: Record<string, string | number | null | undefined>;
@@ -148,6 +149,7 @@ export function TreeStarField() {
   const [boardErr, setBoardErr] = useState<string | null>(null);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [tree, setTree] = useState<TreeState | null>(null);
+  const [nf, setNf] = useState<NextFire | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [autoRot, setAutoRot] = useState(true);
@@ -174,11 +176,13 @@ export function TreeStarField() {
       } catch (e) { if (alive) setBoardErr(String(e)); }
     };
     const loadLive = async () => {
-      const [ds, ts] = await Promise.allSettled([
+      const [ds, ts, nfr] = await Promise.allSettled([
         fetch(`${API}/api/v9/gateway/decisions?limit=2000`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
         fetch(`${API}/api/v9/tree/state`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API}/api/v9/tree/next_fire`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)),
       ]);
       if (!alive) return;
+      if (nfr.status === 'fulfilled') setNf((nfr.value as NextFire | null) || null);
       if (ds.status === 'fulfilled' && ds.value) setDecisions(((ds.value as { decisions?: Decision[] }).decisions) || []);
       if (ts.status === 'fulfilled' && ts.value) setTree(ts.value as TreeState);
     };
@@ -416,6 +420,20 @@ export function TreeStarField() {
       {/* the panel */}
       <div dir="rtl" style={{ width: 320, flexShrink: 0, borderRight: `1px solid ${COLORS.borderTertiary}`, background: COLORS.bgSurface1, overflowY: 'auto', padding: 10, fontSize: 11, lineHeight: 1.5, color: COLORS.textPrimary }}>
         <div style={{ fontSize: 14, fontWeight: 700 }}>🌌 עץ-ההחלטות V3 — שדה-הכוכבים</div>
+        {/* מייקל 01.10: המחיר שצריך להגיע אליו לירי-לייב הקרוב — אותו מקור כמו הפאנל והטלפון (tree/next_fire) */}
+        {nf && !nf.error && nf.headline_he && (
+          <div style={{ margin: '6px 0 8px', padding: '6px 8px', background: '#1d1a0a', border: '1px solid #facc1566', borderRadius: 6, fontSize: 11, lineHeight: 1.5 }}>
+            <div style={{ color: LIVE, fontWeight: 700 }}>🎯 הירי הקרוב — לייב בלבד</div>
+            {nf.nearest && nf.nearest.level !== null && (
+              <div>
+                <span style={{ color: nf.nearest.direction === 'LONG' ? '#4ade80' : '#f87171', fontWeight: 700 }}>{nf.nearest.direction === 'LONG' ? '▲ לונג' : '▼ שורט'}</span>{' '}
+                <span dir="ltr" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 18, fontWeight: 800, color: nf.nearest.direction === 'LONG' ? '#4ade80' : '#f87171' }}>{nf.nearest.level.toFixed(2)}</span>
+                <span style={{ color: COLORS.textSecondary }}> {nf.nearest.level_he} · {nf.nearest.dist?.toFixed(2)} נק׳ · <span dir="ltr">{nf.nearest.pattern}</span></span>
+              </div>
+            )}
+            <div style={{ color: COLORS.textSecondary, fontSize: 10 }}>{nf.headline_he}</div>
+          </div>
+        )}
         <div style={{ color: COLORS.textTertiary, fontSize: 10, marginBottom: 8 }}>
           השורש במרכז · טבעת לכל שאלה · גודל = √מועמדים · צבע = הפעולה בעלה. גרירה = סיבוב · גלגלת = זום · לחיצה = פרטים.
         </div>
