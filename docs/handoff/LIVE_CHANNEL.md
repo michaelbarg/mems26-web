@@ -1,3 +1,108 @@
+🟢 **[cowork-dev · 2026-10-01 22:05-22:20 IL · ריצה 145, ניטור-RTH שנים-עשר] חובה-1 + חובה-3 — ירוק; וממצא-הריצה: העץ עמד-בצד 11 פעמים ברצף בשלב-D על **שורת-דוקטרינה חסרה אחת**, וכל 11 נושאות תאומת-צל פתוחה ⇒ פער נמדד, לא הפסד נמדד**
+
+`date ⇒ 2026-10-01 22:05:14 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00 ויש רשומות-`cowork-dev` מהיום על השער; וממילא `22:05 > 16:10`). `git pull ⇒ Already up to date.` HEAD `c6848070`. הלא-מקומטים הם תוצרים שאינם שלי (`PM_*.md` · `MARKS_VS_TREE_*` · `harness_out/t517/*` · `news_calendar.yaml` · `MICHAEL_INBOX.md` · `MONDAY_READINESS.html`) ⇒ **לא קומטתי ולא `stash`**, כתיבה by path בלבד.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **שקט מוחלט בטלפון** (א/ב/ג/ד — אף אחד לא מתקיים)
+```raw
+launchctl list | grep mobile_relay ⇒ 1493  0  com.mems26.mobile_relay      ← מלכודת 12: הרלה חי
+GET /instruction/pending?key=… ⇒ {"items":[]}
+GET /chat?key=…               ⇒ http=200 · 30 items (peek ישיר מ-Render, לא רק מהקובץ)
+אחרונת-מייקל בפיד כולו = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 2026-09-30T07:37:20Z "נרשם ✓"
+החדש ביותר בפיד = 2026-10-01T18:40:05Z cowork-dev (ריצה 144: סגירת #2843) — זנב PHONE_THREAD.jsonl זהה
+```
+⇒ אין (א) אפס הודעת-מייקל בלי תשובה עניינית · אין (ב) **אפס לייב חדשה/סגורה מאז 21:18** (`count=0` על `entry_ts > 21:18`) · אין (ג) אפס חריגה-חוסמת · (ד) נשלחה בריצה 132 ⇒ **אפס כתיבה ל-`PHONE_THREAD.jsonl`**.
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הסעיפים
+```raw
+פיד ([[T-430]] — מול ה-DB ולא mtime של קובץ-יצוא):
+  max(ts) v9_bars_5min_woodies = 2026-10-01 22:05:00+03 · now = 22:06:15 · age_min = 1.3   ⇒ ≤10 דק' ⇒ פיד חי באמת
+backend ⇒ GET /api/v9/health http=200 {"status":"ok","version":"v9.0.0"}
+מאזין  ⇒ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 49136 (יחיד) · ps lstart Thu Oct 1 15:36:42 · ELAPSED 06:30:34
+פוזיציה מול TM ⇒ sierra_state (ts 22:06): position_qty 0 · working_orders 0 · orders [] · open_pnl 0.0
+   is_sim 0 · armed 1 · send_orders_to_trade_service 1 · under_margin 0 · trading_disabled 0 · loss_limit_reached 0
+   v9_trades ⇒ אפס שורת-לייב פתוחה (0 rows, mode=live AND state NOT IN (CLOSED,CANCELLED), כל התאריכים)
+   ⇒ שני הצדדים על 0 ⇒ **אפס דיברגנציה ⇒ לא נדרשה בדיקת-order_id, אין [[T-402]]**
+```
+
+### 💰 שלוש לייב, כולן סגורות — והצלבת-הברוקר נסגרת לאגורה (מדידה רביעית עצמאית)
+```raw
+id   | pattern              | dir   | in_ET | out_ET | entry   | t1     | t2      | exit  | reason   | pnl_usd | pnl_sierra
+2771 | OPENING_TEST_DRIVE   | SHORT | 09:45 | 10:01  | 7720.25 | 7697   | 7675.25 | 7697  | T1_HIT   | 116.25  | 127.5
+2841 | DOUBLE_TOP_AA_SHORT  | SHORT | 14:00 | 14:07  | 7720.75 | 7707   | 7694    | 7707  | T1_HIT   |  68.75  |  70
+2843 | INITIATIVE_SHORT     | SHORT | 14:10 | 14:18  | 7711.5  | 7697.5 | 7694    | 7723  | STOP_HIT | -57.5   | -56.25
+Σ pnl_sierra ⇒ 127.5 + 70 − 56.25 = +141.25   |   sierra_state.acct_daily_pl ⇒ 141.25   ⇒ התאמה מדויקת
+daily_total_qty_filled ⇒ 6 = שלוש הלוך-ושוב ⇒ §3.5 נבדק: אפס מסחר ידני היום, הייחוס נקי
+```
+⇒ שלושתן נושאות `pnl_sierra` כבר עכשיו ⇒ `broker_truth` של 23:00 יקבל `n/N = 3/3`, אפס חוב-רישום. ⛔ `daily_pnl` לא מצוטט (פסיקת ריצה 135).
+
+### 🔑 ממצא-הריצה — 11 עמידות-בצד ברצף בשלב-D על **שורת-דוקטרינה חסרה אחת**
+הליגר אינו חתוך (מלכודת 3.2): `buffer_len 90 < 200` · טווח `13:30:07Z → 19:05:03Z` (=16:30→22:05 IL, גיל ~1 דק').
+```raw
+outcome ⇒ live 3 · shadow_only 13 · blocked 74       (live 3 מצטלב בדיוק עם ה-DB: #2771 · #2841 · #2843)
+blocked_by ⇒ tree:bias 27 · tree:stand_down 17 · tree:location 16 · entry_not_confirmed 6
+             rr_entry_gate 5 · tree:kind 2 · news_blackout 1
+דלתא מול ריצה 143 ⇒ tree:stand_down 6 ⇒ 17 (+11) · tree:bias 27 קפא · tree:location 16 קפא בפעם השלישית
+11 החדשות, כולן אותה שורה אחת, כולן LONG, רצף 21:15→22:00:
+  21:15 ZLR · 21:23 ZLR · 21:25 ZLR ×2 · 21:30 ZLR ×3 + INITIATIVE_LONG · 21:35 ZLR ×2 · 21:40 INITIATIVE_LONG · 22:00 REACTIVE_LONG
+  reason ⇒ "no doctrine row for this circumstance — stand down
+            [opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=*(against)]"
+```
+**מה זה אומר:** זו **לא** חסימה על בסיס הטיה/מיקום — זו **היעדר שורה** בעץ לנסיבה `ORR/phase=D/Variation/against`, ולכן העץ עומד-בצד על **כל** לונג מאוחר בסשן, בלי להכריע. ששת ה-`stand_down` האחרים הם `phase=A/*(UNKNOWN)` של 16:30-16:40 — נסיבה אחרת לגמרי.
+
+**⚠️ ואינו נטען שזה עלה כסף — התאומות עדיין פתוחות:** לכל 11 יש שורת-צל (`2844-2855`), **כולן `FILLED`, אפס `CLOSED`** ⇒ הפסד/רווח **לא נקבע**:
+```raw
+2844 ZLR LONG 21:15 @7721.5 t1 7738.75 | 2849 INITIATIVE_LONG 21:30 @7726.25 t1 7761.875
+2851/2852 ZLR LONG 21:35 @7735.5 t1 7758 | 2855 REACTIVE_LONG 22:00 @7733.25 t1 7779.375   (וכו' — 12 שורות)
+מסלול-המחיר מאז 21:07 ⇒ low 7709.5 · high 7736.75 · last 7727.5
+⇒ t1 של רוב ה-ZLR (7738.75) **פוספס ב-2 נקודות** (high 7736.75) ⇒ נוטה לטובה אך **בלתי-מוכרע**
+צל-היום ⇒ LONG 52 (36 CLOSED) +989.98 · SHORT 38 (36 CLOSED) +199.38 ⇒ סך +1,189.36
+```
+⇒ **פער נמדד, לא הפסד נמדד.** ⛔ אפס תיקון ואפס דגל (RTH + `LEARNING_DOCTRINE`: תקרית ⇒ מקרה-ריפליי, לא דגל). **מועמד-ריפליי לתור-הלילה:** `ORR/phase=D/Variation/against` — המספר יבוא מסגירת `2844-2855` ב-`day_review`, לא מהערכה כאן.
+
+### 🟢 [[T-463]] — תשובה מדודה לשאלה שריצה 143 השאירה פתוחה: **אין מופע תשיעי, והסיבה נמדדה**
+```raw
+[ERROR] ב-backend.log היום ⇒ 8, כולם [bar_level_detector] "Invalid transition: CLOSED -> CLOSED"
+חותמות ⇒ 16:45:02 17:05:02 18:35:05 18:35:11 18:45:03 18:55:03 20:30:07 20:30:08
+        ⇒ **בדיוק אותן שמונה של ריצות 142/143/144 — אפס מופע חדש**, דרך מנצחת-T1 (#2841 21:07) וסטופ (#2843 21:18)
+```
+ריצה 143 ביקשה: *"אם `T2=7694` נגע אחרי הסגירה ⇒ זה המופע התשיעי"*. **הוא לא נגע, וזה נמדד:** `#2841 t2 = 7694`, ו-`min(low) מאז 21:07 = 7709.50` ⇒ רחוק `15.5` נקודות מ-`T2`. ועל `#2843` המנגנון ממילא חסום-בשורש — השורש של ריצה 142 דורש `trade.t1_hit_ts is not None`, ו-`#2843` יצאה ב-`STOP_HIT` בלי `T1`. ⇒ **הפריט עקבי עם השורש מהקוד, ולא מחמיר.** שורה, לא (ג), ולא נטען שנפתר.
+
+### 🔵 שלוש "שגיאות" נוספות שאינן שגיאות — והספירה של 142 מתוקנת כלפי מעלה
+```raw
+"Exception in ASGI application" ⇒ 4 היום (142 מדדה 3 ⇒ +1), כולן עטופות ב-"connection closed/open"
+traceback ⇒ websockets.exceptions.ConnectionClosedError → uvicorn.protocols.utils.ClientDisconnected
+         ב-uvicorn/protocols/websockets/websockets_impl.py ⇒ התנתקות-דפדפן של הפרונט
+```
+⇒ אפס קשר למסחר, ומעקב אחר לשוניות-פרונט ולא אחר מגמה. ⚠️ **והערת-שיטה:** אלו **אינן** נספרות ב-`grep "\[ERROR\]"` (פורמט-uvicorn בלי סוגריים) ⇒ הטענה "8, כולם bar_level_detector" נכונה **לפורמט-הסוגריים בלבד**; הספירה המלאה היום היא `8 + 4`.
+
+### 🟢 [[T-435]] אומת-כבוי במדידה שלישית ובשיטה אחרת — 2.5 שעות אחרי ה-`bootout`
+```raw
+launchctl list | grep -i mems26 ⇒ mobile_relay 1493 · export_promoter 1496 · activity_feed 1499
+                                 update_check − · eod_handoff − · startup_check − · frontend − · bridge −
+⇒ com.mems26.backend **אינו ברשימה כלל** ⇒ פורק, אפס ריספאון (142 בדקה ב-ps, כאן ב-launchctl ⇒ שיטה עצמאית)
+backend.err.log ⇒ קפוא 19:39:52 · 56,035,334B   |   backend.log ⇒ חי 22:07 · 35,459,129B
+```
+⚠️ **ואזהרת 140-144 עומדת:** השירות פורק ⇒ **אין KeepAlive למאזין `49136`** ⇒ אם ייפול, אין מי שירים. ניטור-RTH בודק `lsof :8000` כל ריצה; ההחזרה בפוזיציה-0 בתור-הלילה.
+
+### 💵 [[T-34]] מרג'ין — **דיווח בלבד**, ואינו חוסם
+```raw
+acct_available_funds 558.69 · acct_margin_req 0.0 (שטוח) · acct_account_value 558.69 · acct_cash_balance 558.69
+under_margin 0 · trading_disabled 0 · loss_limit_reached 0 (daily_net_loss_limit −250.46 מול acct_daily_pl +141.25)
+```
+`558.69 < 1,595` ⇒ שורת-הדיווח כנדרש. **אינו חוסם** — החשבון שטוח, והראיה אמפירית ולא הנחה: שלוש עסקאות-לייב התמלאו היום בחוזה-1 מול יתרה דומה. ⚠️ **ואינו נטען** שחוזה שני ממומן. ⇒ **אפס מקרה (ג) בטלפון.**
+
+### 🔒 שערי-שפיות + גבולות
+```raw
+flag_guard      ⇒ FLAG-GUARD: PASS — all 273 ruled flags match + LIVENESS: all ON flags have ≥1 read-site
+task_log_guard  ⇒ ✅ 500 items, current, structured, and the only one (last committed 0.0 days ago)
+ruled_contracts() ⇒ 1   (עם .env טעון — [[T-489]]; פסיקת 18.09; **מדידה בלבד**, אפס נגיעה בדגלי-גודל — [[T-225]])
+```
+**אפס נגיעה:** `.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט/`kickstart`/`bootstrap` · DLL · קוד-ייצור · כתיבות-DB · הודעת-טלפון · `stash`/קומיט של תוצרים שאינם שלי.
+**כתיבות:** `LIVE_CHANNEL.md` · `TASK_LOG.md` בלבד, קומיט by path.
+
+**הצעד הבא:** (1) **הריצה הבאה — `2844-2855` ראשונות:** נסגרו ⇒ זה המספר שהופך את פער-שלב-D להפסד-נמדד או לאפס, והוא הקלט ל-`day_review`; (2) **חובה-4 ב-23:00** בסדר הפסוק — `broker_truth --write` (`n/N = 3/3`) → `day_review` → `review_report` → `gen_tree_board` → `gen_phone_pages --days 14` → `LESSONS_TIMELINE.json` (שורת-הלקח + `k=a` לענף שלב-D) → push → אימות `200`, ולטלפון **שורה אחת** עם קישור עמוד-היום; (3) [[T-435]] החזרת-LaunchAgent עם snapshot **בפוזיציה-0** + [[T-522]] `next_fire` נכנס עם הריסטארט + תיקון §3.1 (נתיב-הלוג ייגזר מה-`lstart`/boot-line) באותו מקבץ; (4) [[T-463]] מקרה-ריפליי: מנצחת-T1 בחוזה-1 שהמחיר ממשיך אחריה עד `T2/T3`, ובנפרד `try/except` פר-עסקה בלולאת `on_bar`; (5) מועמדי-ריפליי של העץ לפי הליגר — `tree:bias 27` ראשון, `tree:stand_down 17` שני (ושלב-D בתוכו), `tree:location 16` קפוא שלוש ריצות; (6) [[T-524]] · [[T-523]]; (7) ⛔ **אין לשאול שוב:** בעלות-הריסטארט/השער של היום · ציטוט `daily_pnl` · פסיקת-אי-התיקון של [[T-435]] ב-RTH · [[T-34]] כ-(ג).
+
+---
 🟢 **[cowork-dev · 2026-10-01 21:35-21:45 IL · ריצה 144, ניטור-RTH אחד-עשר] חובה-1 + חובה-3 — ירוק; #2843 נסגרה בסטופ (מקרה ב נשלח), ויום-הברוקר +141.25 נצמד ל-`acct_daily_pl` במדויק**
 
 `date ⇒ Thu Oct  1 21:35:15 IDT 2026` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (בעלות-[[T-369]] אינה שלי — מאזין `49136 lstart Thu Oct 1 15:36:42` עלה היום אחרי 12:00, ויש רשומות-`cowork-dev` מהיום על השער; וממילא `21:35 > 16:10`). `git pull ⇒ Already up to date.` אפס נגיעה ב-`.env`/דגלים/דגלי-גודל/פוזיציות/פקודות/DLL.
