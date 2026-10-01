@@ -1,7 +1,7 @@
 'use client';
 import { COLORS } from '../../design/tokens';
 
-export type DashboardView = 'main' | 'build_status' | 'trade_review' | 'day_type_labeler';
+export type DashboardView = 'main' | 'build_status' | 'trade_review' | 'day_type_labeler' | 'tree_field';
 
 interface ViewTabsProps {
   active: DashboardView;
@@ -13,6 +13,8 @@ const TABS: Array<{ id: DashboardView; label: string }> = [
   { id: 'build_status', label: 'Build Status' },
   { id: 'trade_review', label: 'Trade Review' },
   { id: 'day_type_labeler', label: 'Day Type' },
+  // T-521 (מייקל 01.10): שדה-הכוכבים של עץ-ההחלטות V3 במחשב — לראות איך הוא גדל
+  { id: 'tree_field', label: '🌌 עץ' },
 ];
 
 export function ViewTabs({ active, onChange }: ViewTabsProps) {

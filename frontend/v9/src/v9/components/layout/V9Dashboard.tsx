@@ -21,6 +21,7 @@ import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { TradeReviewTab } from '../trades/TradeReviewTab';
 import { TradeDetailsModal } from '../trades/TradeDetailsModal';
 import { DayTypeLabelTab } from '../day-type/DayTypeLabelTab';
+import { TreeStarField } from '../tree/TreeStarField';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
@@ -172,6 +173,10 @@ export function V9Dashboard() {
       ) : view === 'build_status' ? (
         <div className="flex-1 min-h-0">
           <BuildStatusTab />
+        </div>
+      ) : view === 'tree_field' ? (
+        <div className="flex-1 min-h-0">
+          <TreeStarField />
         </div>
       ) : view === 'day_type_labeler' ? (
         <div className="flex-1 min-h-0">
