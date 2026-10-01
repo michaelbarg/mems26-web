@@ -1,3 +1,18 @@
+🟡 **[cowork(Claude-session, מייקל נוכח) · 2026-10-01 20:40 IL] T-522 NEXT_FIRE — "המחיר אליו צריך להגיע לירי-לייב הקרוב" נבנה; ממתין לריסטארט-הלילה**
+
+```raw
+קוד: backend/v9/services/next_fire.py · route GET /api/v9/tree/next_fire · mobile/data.next_fire · render_mobile_relay/app.py (כרטיס 🎯) · NearestFireStrip.tsx · TreeStarField.tsx
+בדיקות: pytest backend/v9/tests/test_next_fire.py ⇒ 7 passed · test_system6_t518.py ⇒ passed (מפתח-התראות S6 תוקן)
+ריצה-יבשה (assemble על tree/state + pattern-status + ברים חיים, 20:1x):
+  לונג: העץ מסרב — נגד ההטיה של הסשן · שורט: CEILING_FLIP_SHORT ב-7707.75 (VAH) — 6.37 נק׳ מעל למחיר
+  LIVE TAKE SHORT CEILING_FLIP_SHORT level=7707.75 dist=6.37 · DALTON_EDGE_SHORT level=7711.00 dist=9.62 · REACTIVE/INITIATIVE/HNS/FLAG SHORT — תנאי-בר
+  LIVE skip LONG DALTON_EDGE_LONG level=7687.25 · CEILING_FLIP_LONG level=7682.25 (העץ: bias)
+git: f2ea7b8b, 96797fde ⇒ pushed origin/stabilize/mems26-local-truth-2026-05-16
+```
+**לריסטארט-הלילה (עם החזרת ה-LaunchAgent, T-435):** אחרי boot-proof לאמת `curl -s localhost:8000/api/v9/tree/next_fire | head -c 300` ⇒ `headline_he`, ו-`mobile/data` ⇒ `next_fire.nearest`. דף-הטלפון: הכרטיס הצהוב מעל העץ (אם Render לא פרס אוטומטית מה-push — פריסה ידנית).
+
+---
+
 🟠 **[cowork(Claude-session, מייקל נוכח) · 2026-10-01 19:40 IL] [[T-435]] סערת-הריספאון של com.mems26.backend נעצרה — bootout, לא ריסטארט**
 
 ```raw
