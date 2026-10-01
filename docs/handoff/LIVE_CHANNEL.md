@@ -1,3 +1,98 @@
+🔴 **[cowork-dev(sched) · 2026-10-01 16:34-16:45 IL] ריצה 134 · חובה-1 + חובה-3 (ניטור-RTH ראשון אחרי הפתיחה) — שקט מוחלט בטלפון · [[T-435]] חזר במצב-כשל רביעי — `com.mems26.backend` בלולאת-רספאון מאז 15:37:10, ולראשונה בתוך RTH** — `date ⇒ Thu Oct  1 16:34:27 IDT 2026` ∈ `16:30-23:00` ⇒ חלון-RTH. `git pull --ff-only ⇒ Already up to date` · HEAD `5d879bbd`.
+
+⛔ **בעלות-הריסטארט ([[T-369]]) — הוכרעה לפני כל נגיעה, ואינה שלי:** המאזין `49136 lstart Thu Oct 1 15:36:42` (היום, אחרי 12:00) · רשומת ריצה 132 על ריסטארט+שער · הודעת-שער `12:48:08Z` כבר נמסרה. **והשעה 16:34 > 16:10** ⇒ ממילא מחוץ לחלון. ⇒ **אפס ריסטארט · אפס GO/NO-GO · שורת-מדידה אחת בלבד, כאן.**
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ אפס הודעה (שלילה-אמיתית, לא מלכודת-12)
+```raw
+GET /chat?key=… ⇒ http=200 bytes=13512 · items n=30 · senders {cowork-dev:22, cc:4, מייקל:4}
+זנב PHONE_THREAD.jsonl (704 שורות) זהה לפיד-Render — אפס פער
+אחרונת-מייקל = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 07:37:20Z ("נרשם ✓ #2623 · נרשם ✓ #2555")
+החדש ביותר בפיד כולו = הודעת-השער שלי מ-2026-10-01T12:48:08Z
+```
+⇒ אין (א) · אין (ב) — אפס עסקת-לייב · אין (ג) — אין חריגה-חוסמת · (ד) נשלחה בריצה 132 ⇒ **אפס הודעות טלפון בריצה הזו.**
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הסעיפים
+```raw
+פיד (T-430, הפרש timestamptz ישיר):
+  select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies
+  ⇒ 2026-10-01 16:35:00+03 · age_min = 0.9                    ⇒ פיד חי באמת, לא mtime של קובץ-יצוא
+backend ⇒ /api/v9/health http=200 t=0.075744s {"status":"ok","version":"v9.0.0"}
+          מאזין יחיד על :8000 ⇒ pid 49136 (lsof -nP -iTCP:8000 -sTCP:LISTEN)
+          CPU מיידי (top -l 2 -pid 49136) ⇒ 24.0% · 117M · TIME 22:32  [ריצה 132 ביקשה מדידה חוזרת: 90.6% לפני הריסטארט ⇒ 24% אחריו]
+פוזיציה מול TM ⇒ position_qty 0 · working_orders 0 · orders [] · open_pnl 0.0
+          v9_trades ⇒ אפס שורת-לייב פתוחה  ⇒ אפס דיברגנציה, אין על מה להתריע (ולא נדרשה בדיקת-order_id)
+חימוש ⇒ order_placement_armed 1 · is_sim 0 · send_orders_to_trade_service 1 · acct_ok 1
+          acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_under_margin 0
+```
+
+**עסקאות היום — אפס לייב, 3 צל, וכולן נחסמו ע"י אותו חוסם שריצה 132 סימנה למעקב:**
+```raw
+v9_trades where entry_ts >= '2026-10-01 00:00:00+03':
+  2764 shadow FILLED LONG  FAILED_RE_IB        16:30:07  7734.25  stop 7722.25  t1 7746.25
+  2765 shadow FILLED LONG  FAILED_BREAK_LONG   16:35:04  7734.5   stop 7722.5   t1 7746.5
+  2766 shadow FILLED SHORT CEILING_FLIP_TOUCH2 16:35:04  7734.5   stop 7740.0   t1 7723.25
+gateway_decisions.jsonl ⇒ 3 שורות GATE_DECISION היום, כולן:
+  blocked_by = "tree:stand_down" · outcome = "blocked" · live_blocked_by = null
+  reason = "no doctrine row for this circumstance — stand down
+            [opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)]"
+  tree_v3.leaf = SKIP · id = stand_down · skip_gates = []
+```
+⇒ **אפס ירי-לייב הוא העץ שעומד-מן-הצד בפתיחה, לא מערכת-מתה ולא שער-לייב שחסם** (`live_blocked_by=null` בכל השלוש). זה בדיוק הצעד-הבא (2) של ריצה 132 — `tree:stand_down` כחוסם-הדומינינטי (19 אתמול, 13 ב-115, **3/3 היום**) ⇒ **מועמד-ריפליי**, ⛔ לא דגל ולא שינוי-עץ (`LEARNING_DOCTRINE`).
+
+**[[T-34]] מרג'ין — דיווח בלבד, ובמפורש לא (ג):** `acct_available_funds 417.44 · acct_margin_req 0.00 · acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_daily_net_loss_limit -250.46`. `avail < 1,595$` ⇒ שורה כנדרש, אך מול דרישת-חוזה-בודד (~287$ כפי שנמדד 30.09) ⇒ **חוזה אחד ממומן תחת פסיקת-1-חוזה ⇒ אינו חוסם מסחר** ⇒ אין מקרה (ג).
+
+### 🔴 ממצא-הריצה — [[T-435]] חזר במצב-כשל **רביעי**: `com.mems26.backend` מרים בקאנד-שני כל ~30 שנ' מאז 15:37:10, שעה שלמה, ולראשונה **בתוך RTH**
+
+⚠️ **תיקון-עצמי בתוך הריצה, לפני הדיווח ולא אחריו:** פתחתי זאת כפריט חדש `T-522`, ואז מצאתי ב-`STATUS_BOARD` את רישום **28.09 15:56-16:02** — *אותו שורש בדיוק*, כולל אותו פלט (`state = spawn scheduled · runs = 33 · last exit = 1` · `31 × Errno 48`), ואת מרשם-הסגירה של מייקל. ⇒ **מוזג ל-[[T-435]] ואין פריט-כפול** (‏`CLAUDE.md`: שני מרשמים = אף אחד אינו המקור). זהו **מצב-כשל רביעי** של T-435 (21.09 · 22.09 · 28.09 · 01.10).
+
+**מה נמדד (Rule 5, פלט גולמי):**
+```raw
+launchctl print gui/501/com.mems26.backend   (נמדד 16:38:0x ואז שוב 16:42:35)
+  ⇒ state = spawn scheduled · last exit code = 1 · runs = 163  →  runs = 172
+     (9 הרמות נוספות ב-4.5 דקות ⇒ הלולאה חיה ברגע-הכתיבה)
+com.mems26.backend.plist ⇒ KeepAlive = {'SuccessfulExit': False} · ThrottleInterval = 30 · RunAtLoad = True
+grep -c "address already in use" /tmp/backend.err.log ⇒ 154
+grep "gap-fill reason=startup" (חותמות היום) ⇒ 120 הרמות, הראשונה 15:37:10,
+  ואחר-כך כל ~30 שנ' ברצף: … 16:41:02 · 16:41:31 · 16:42:01 · 16:42:32
+machine_health ⇒ backend n=5   (המנצח + הפסדנים שבאוויר)
+מחזור-חיים של כל מפסידן, מהלוג:
+  Application startup complete → ERROR: [Errno 48] bind ('0.0.0.0', 8000) address already in use
+  → Waiting for application shutdown → WAL checkpoint complete — clean exit
+```
+
+**השורש — שני בעלים ל-`:8000`:** הריסטארט של ריצה 132 (`restart_all.sh`) מרים את הבקאנד ב-**`screen`** (`SCREEN -dmS mems26_backend` → pid 49132→49135→**49136** ב-15:36:42), בעוד ה-LaunchAgent `com.mems26.backend` **טעון**. המפסידן יוצא בקוד `1`, ו-`KeepAlive{SuccessfulExit:false}` פירושו "הרם-מחדש על יציאה-לא-מוצלחת" ⇒ **לולאה אין-סופית בקצב `ThrottleInterval=30`**, שהתחילה **28 שניות אחרי** שה-screen לקח את הפורט.
+
+**⚠️ ומדוע ריצות 132 ו-133 לא יכלו לראות זאת — מלכודת-מדידה חדשה שנרשמת:** שתיהן בדקו נכון ו"מאזין יחיד + `ERROR|CRITICAL ⇒ 0`" היה **מדויק** — כי:
+1. `lsof -iTCP:8000 -sTCP:LISTEN` מראה רק את ה**מנצח**; המפסידן מת לפני שהוא מאזין ⇒ **"מאזין יחיד" אינו "תהליך-בקאנד יחיד"**.
+2. שורת-הכשל היא `ERROR:    [Errno 48] …` ב**פורמט-uvicorn — בלי חותמת-זמן ובלי `[ERROR]` בסוגריים** ⇒ היא **בורחת גם מהגרפ הרחב `grep "^2026-10-01"` וגם מהחידוד של ריצה 133** (`grep -E "\[ERROR\]|\[CRITICAL\]"`). החידוד של 133 נכון לרגרסיות-מדומות — ועיוור בדיוק למחלקה הזאת.
+⇒ **הבדיקה שתופסת זאת היא `launchctl print … | grep runs` או `ps` על מספר תהליכי-הבקאנד — לא `lsof` ולא גרפ-שגיאות.**
+
+**המחיר, ומה שהוא *אינו*:** כל הרמה מבצעת boot מלא (חיבורי-PG · `history_loader` gap-fill · `tpo_snapshotter` · `eod_archive_scheduler`) ואז יוצאת נקי ⇒ הצפת-לוג (`backend.err.log` = **51MB**), תחלופת-חיבורי-PG, ועומס-CPU/RAM. **אינו חוסם מסחר ואינו מסוכן:** הבקאנד החי (49136) בריא, הפיד חי, הפוזיציה שטוחה, וה-LaunchAgent הוא גם רשת-הביטחון התקינה אם 49136 ייפול. ⇒ **שורה כאן, לא מקרה (ג) בטלפון.**
+
+**⛔ לא תוקן בכוונה:** LaunchAgent הוא משטח **out-of-git** + בקרת-יציבות ב-`CLAUDE.md` (§LaunchAgent Stability), ו-`bootout` באמצע RTH הוא שינוי-מצב בחלון שאסור בו ריסטארט (16:10-23:00). **ובניגוד ל-28.09 — שם המרשם בוצע `15:56-15:58`, כלומר *בתוך* חלון-השער; עכשיו `16:45`** ⇒ `kill -TERM`+`kickstart` הוא שינוי-מצב בחלון שאסור בו ריסטארט. ⇒ **הצעד-הבא נרשם ל-[[T-435]]:** (1) הערב בפוזיציה-0 ועם `scripts/mems26_snapshot.sh "t435-respawn"` — המרשם של 28.09 כלשונו (`assert` שטוח ⇒ `kill -TERM` ל-uvicorn של ה-screen ⇒ launchd קושר לבד ⇒ אימות `runs` יציב על שתי דגימות/60 שנ'); (2) **השורש:** `restart_all.sh`/`start_all.sh` יקראו `launchctl kickstart -k` במקום להרים `screen` משלהם — ⛔ **לא** לשנות את `KeepAlive` עצמו (§LaunchAgent Stability): לבטל את המסלול-המתחרה, לא את רשת-הביטחון; (3) **סעיף (2) של רישום-28.09 — חיווט בדיקת-הלולאה ל-`fire_drill`/`post_restart_verify` — עדיין לא בוצע, וזו הסיבה שהלולאה נכנסה ל-RTH.**
+
+### 🟢 נקודת-סגירה למלכודת-המונים-הקפואים של ריצות 130-133: המונים **התגוללו** ב-16:30, והברוקר מאשר אפס פילים
+ריצה 133 מדדה ב-`16:06` ‏`daily_pnl = 151.25` ו-`daily_total_qty_filled = 6` **קפואים**. נמדד עכשיו (`sierra_state.json` mtime `16:40`):
+```raw
+daily_pnl = 0.0 · daily_total_qty_filled = 0 · acct_daily_pl = 0.0 · open_pnl = 0.0
+trade_fills_journal.jsonl ⇒ 595 שורות, מהן 0 בתאריך 2026-10-01
+TradeActivityLog_2026-10-01_UTC.37138283.data (1,045B) — הלוג של הברוקר עצמו:
+  strings | grep -ci fill ⇒ 0   ·   grep -c "Auto-trade" ⇒ 0
+  כל תוכנו = "Cash Balance update" ×3 + לכידת-EOD: Balance 421.64 · CaptureTime 2026-09-30 21:55 UTC
+להשוואה, 30.09: strings | grep -ci fill ⇒ 18, האחרונה "Closed Trade Profit/Loss: -38.75"
+```
+⇒ **מונֵי-ה-DLL התגוללו בין `16:06` ל-`16:36`, כלומר בפתיחת-ה-RTH** — הם נשאו את ספירת סשן-30.09. ⇒ **תיקון ריצות 131/133 מאושר מהמקור-הקנוני ולא רק מהיציבות-על-פני-הזמן: אפס פילים בחשבון-הלייב ב-01.10, P&L היום 0.00.** ⛔ אל תרשום `+151.25` כמסחר-של-היום בשום דוח (כלל 1 — אל תמציא ערך חסר). הפער `421.64 → 417.44` (−4.20) הוא התאמה/עמלות ללא פילים.
+
+**⚠️ machine_health (WARN בלבד, שורה ולא (ג)) — תשובה לצעד-הבא (4) של ריצה 132:** הריסטארט **כן** הוריד את ה-swap אך לא פתר את הלחץ: `swap 6,802M` (היה `7,240M` לפני הריסטארט ⇒ −438M, ועדיין > סף-500M) · `unused RAM 36M` (היה `66M` ⇒ **הורע**) · `load 4.32 5.00 5.02`. הזוללים אינם מחסנית-המסחר: `chrome 3,898 · cowork-vm 1,812 · claude-app 1,423` MB מול `backend 191 · bridge 30 · sierra 157 · postgres 556 · frontend 32`. ⚠️ ו-`backend 191MB` הוא **סכום חמשת התהליכים** של לולאת-[[T-435]] — כלומר הלולאה היא גם חלק מלחץ-הזיכרון הזה. `pg_stat_activity` נקי: `idle 7 · active 1 · idle-in-transaction 1` (הוותיק `0.07s`) ⇒ אפס חיבור-תקוע.
+
+**אפס נגיעה:** `.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט · DLL · קוד-ייצור · כתיבות-DB. הריצה כולה קריאה-בלבד + שורת-הלוג הזו + עדכון-החזרה ל-[[T-435]] ב-TASK_LOG/STATUS_BOARD.
+
+**הצעד הבא — לניטור-RTH הבא:** (1) **[[T-435]] — לאמת שהלולאה עוד רצה** (`launchctl print … | grep runs`, לא `lsof`) ולהחליט בתור-הלילה על בעלים-אחד **עם snapshot**; (2) עסקת-לייב ⇒ מקרה (ב) ≤300 תווים — הנתיב פתוח (סלוט פנוי · armed · ack בתוקף · מרג'ין מספיק לחוזה), והחוסם היחיד עד כה הוא העץ; (3) `tree:stand_down` — האם נפתח עם התבססות `day_type` (היום `FORMING`/phase A); (4) `machine_health` — ה-swap אחרי שלולאת-[[T-435]] תיעצר; (5) **אין לשאול שוב** את שאלות 30.09 ואת ה-+151.25.
+
+— cowork-dev
+
+---
+
 🟡 **[cowork-dev(sched) · 2026-10-01 16:04-16:10 IL] ריצה 133 · חובה-1 + ניטור קדם-פתיחה — שקט מוחלט בטלפון, אפס ריסטארט, אפס הודעת-שער** — `date ⇒ Thu Oct  1 16:04:27 IDT 2026`.
 
 ⛔ **בעלות-הריסטארט ([[T-369]]) — הוכרעה ראשונה, והפעם הבעלות אינה שלי אלא של ריצה 132:**
