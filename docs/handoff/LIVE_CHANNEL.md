@@ -1,3 +1,72 @@
+🟢 **[cowork-dev(sched) · 2026-10-01 20:05-20:15 IL] ריצה 141 · חובה-1 + חובה-3 (ניטור-RTH שמיני) — ארבעתם ירוקים · אפס הודעת-טלפון · [[T-435]] מאומת-כבוי 31 דק' אחרי ה-bootout, ומחיר-הלוג שלו התהפך: `backend.err.log` **קפוא** מ-19:39:52 ולא "לוג-ילד"**
+
+`date ⇒ 2026-10-01 20:05:11 IDT` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO** (ובעלות-[[T-369]] אינה שלי וממילא `20:05 > 16:10`). `git pull ⇒ Already up to date` · HEAD `f2ea7b8b`.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ **שקט מוחלט בטלפון** (שלילה מוכחת, לא היעדר-בדיקה — מלכודת-12)
+```raw
+launchctl print … com.mems26.mobile_relay ⇒ state = running · pid = 1493
+GET /instruction/pending ⇒ {"items":[]}        GET /cmd/pending ⇒ {"cmd":null}
+GET /chat?key=… ⇒ http=200 bytes=12955 · items n=30 · senders {cowork-dev 22 · מייקל 4 · cc 4}
+אחרונת-מייקל בפיד כולו = 2026-09-30T07:18:05Z (תיוג #2555) ⇒ נענתה 2026-09-30T07:37:20Z
+   ("נרשם ✓ #2623 · נרשם ✓ #2555") — ארבע הודעות-מייקל נבדקו אחת-אחת, לכל אחת תשובת-סוכן אחריה
+החדש ביותר בפיד = 2026-10-01T14:06:25Z cowork-dev = סגירת #2771 (ריצה 135)
+זנב PHONE_THREAD.jsonl זהה לפיד-Render — אפס פער
+```
+⇒ אין (א) · אין (ב) — אפס לייב חדשה · אין (ג) — אפס חריגה-חוסמת · (ד) נשלחה בריצה 132 ⇒ **אפס כתיבה ל-`PHONE_THREAD`**.
+
+### 🩺 חובה-3 · ניטור קצר — ירוק בארבעת הסעיפים
+```raw
+פיד ([[T-430]], הפרש-timestamptz ישיר מול now() — לא mtime של קובץ-יצוא):
+  select max(ts), round(extract(epoch from (now()-max(ts)))/60.0,1) from v9_bars_5min_woodies
+  ⇒ 2026-10-01 20:05:00+03 · age_min = 1.8                    ⇒ פיד חי באמת
+backend ⇒ /api/v9/health http=200 {"status":"ok","version":"v9.0.0"}
+מאזין ⇒ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 49136 (lstart Thu Oct 1 15:36:42 · etime 04:30:22)
+   ושער-ראיית-הלוג עובר: backend.log ⇒ [boot] logging OK pid=49136 commit=03bc559b (15:36:45)
+   ספירת-תהליכים (ולא lsof — מלכודת ריצה 134): pgrep -f "uvicorn backend.main:app" ⇒ 4 =
+   שרשרת-screen אחת (49132 SCREEN → 49134 login → 49135 bash → 49136 Python) ⇒ בעלים אחד ל-:8000
+פוזיציה מול TM ⇒ sierra_state: position_qty 0 · working_orders 0 · avg_price 0.0 · is_sim 0
+   v9_trades ⇒ אפס שורת-לייב פתוחה ⇒ אפס דיברגנציה ⇒ לא נדרשה בדיקת-order_id, אין [[T-402]]
+```
+
+**ספרים — אפס לייב חדשה מאז 17:01 ⇒ אין מקרה (ב):**
+```raw
+mode=live AND entry_ts > 2026-10-01 17:01:00+03 ⇒ count = 0
+live   CLOSED n=1   pnl_usd 116.25   (#2771 OPENING_TEST_DRIVE SHORT · T1_HIT · pnl_sierra 127.50, דווחה 17:06)
+shadow CLOSED n=52  pnl_usd 167.48   ·   shadow FILLED n=13 (פתוחות, כולן של היום)
+שורות-צל פתוחות מימים קודמים ⇒ 0   (קלט לתור-הלילה: close_stale_shadow אינו נדרש על אתמול)
+הצלבת-ברוקר: acct_daily_pl = 127.50 · daily_total_qty_filled = 2  ו-COMMAND QUEUED = 2
+   (#404 op=PLACE 16:45:10 · #405 op=MODIFY 17:01:02) ⇒ שלושת המקורות מסכימים: אפס מסחר-ידני היום,
+   ה-P&L של החשבון הוא של המערכת (§3.5 נבדק, לא הונח).   ⛔ daily_pnl לא מצוטט (פסיקת ריצה 135).
+```
+
+### 🟢 [[T-435]] — אומת-כבוי, **והממצא החדש הוא מחיר-הלוג, לא הלולאה**
+ריצה 140 (cowork-אינטראקטיבי, 19:40) עצרה את הסערה ב-`bootout`. אימות עצמאי 31 דק' אחר-כך:
+```raw
+launchctl print gui/501/com.mems26.backend ⇒ Could not find service … in domain for user gui: 501
+grep "logging OK" /tmp/backend.err.log | tail -1 ⇒ 19:39:50 pid=72363 commit=10b9a002   (ואפס אחריו)
+שש הרמות אחרונות בקובץ: 19:37:19 · 19:37:49 · 19:38:20 · 19:38:50 · 19:39:21 · 19:39:50 (~30 שנ')
+stat mtime ⇒ backend.err.log 2026-10-01 19:39:52   |   backend.log 2026-10-01 20:09:43
+```
+⇒ הלולאה **כבויה ונשארה כבויה**. **אבל** כלל-בעלות-הלוג של ריצה 136 חייב ניסוח חד יותר: עד 19:39:52 `backend.err.log` היה *לוג-ילד חי*; מאז ה-bootout הוא **קובץ מת**. כל סוכן שיקרא אותו לפי `CLAUDE.md` §3.1 (שם לוג-האפליקציה הוא `backend.err.log`) יקבל מערכת-בריאה וידווח שקר — **וזה נמדד, לא נחשש:**
+```raw
+backend.err.log (קפוא) ⇒ ERROR today = 12,647   ·   COMMAND QUEUED today = 0
+backend.log      (חי)  ⇒ ERROR today =      6   ·   COMMAND QUEUED today = 2
+```
+12,647 כולם לוגר אחד — `[backend.v9.api.v9.bars] TS-OFFSET-GATE REJECTED` ([[T-164]]/[[T-380]], פיד-ה-woodies טרי ⇒ אפס נגיעה-במסחר). ששת האמיתיים: `[BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED` ×6 (16:45:02 · 17:05:02 · 18:35:05 · 18:35:11 · 18:45:03 · 18:55:03) = [[T-400]]/[[T-463]], מוכר ואינו חוסם.
+⚠️ **ועומדת אזהרת ריצה 140:** השירות פורק ⇒ **למאזין אין KeepAlive** — אם 49136 ייפול אין מי שירים אותו. אומת חי `20:09`; ניטור-RTH הבא בודק `lsof :8000` שוב.
+
+**⚠️ machine_health (WARN בלבד, שורה ולא (ג)):** `unused RAM 44M < 400M` · `swap 5,373M > 500M` (היה `6,802M` בריצה 134 ⇒ ממשיך לנקז, הלחץ לא נפתר). מחוץ-למסחר: `cowork-vm 3,056M · chrome 2,187M · claude-app 1,181M`. מחסנית-המסחר: `sierra cpu 128.6%` · `backend rss 133M`.
+
+**💵 [[T-34]] מרג'ין — דיווח-בלבד, במפורש לא (ג):** `acct_available_funds 544.94 < 1,595$` אך `under_margin 0` ודרישת-חוזה-בודד ~`287$` ⇒ **חוזה-1 ממומן, אינו חוסם מסחר** (ועסקת-לייב נכנסה ומולאה היום).
+
+**שערי-שפיות:** `flag_guard ⇒ FLAG-GUARD: PASS — all 273 ruled flags match` · `task_log_guard ⇒ ✅ 500 items, the only one` · `ruled_contracts() ⇒ 1` עם `.env` טעון (פסיקת 18.09, **מדידה בלבד**).
+
+**אפס נגיעה:** `.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט/`kickstart`/`bootstrap` · DLL · קוד-ייצור · כתיבות-DB · הודעת-טלפון. **כתיבות:** `LIVE_CHANNEL.md` · `TASK_LOG.md`.
+
+**הצעד הבא:** (1) **תור-הלילה — [[T-435]] עם snapshot**: `screen -S mems26_backend -X quit` ⇒ `launchctl bootstrap` ל-plist ⇒ boot-proof + `post_restart_verify.sh` + `fire_drill`, **ואז לתקן את §3.1 ב-`CLAUDE.md`/`COWORK_DAILY_READ` כך שנתיב-הלוג ייגזר מה-`lstart`/boot-line של המאזין ולא ייקבע מראש** (זהו תיקון-דיווח, לא שינוי-התנהגות); (2) [[T-524]] ריפליי 14 הדחיות בחוזה-אחד + הפרדת-התווית; (3) שני מועמדי-ריפליי של העץ (`tree:location`/ZLR-SHORT · `tree:bias`/לונגים); (4) [[T-523]] עם [[T-521]]; (5) עסקת-לייב נוספת ⇒ מקרה (ב); (6) ⛔ **אין לשאול שוב:** בעלות-הריסטארט/השער של היום · ציטוט `daily_pnl` · פסיקת-אי-התיקון של [[T-435]] ב-RTH.
+
+---
+
 🟡 **[cowork(Claude-session, מייקל נוכח) · 2026-10-01 20:40 IL] T-522 NEXT_FIRE — "המחיר אליו צריך להגיע לירי-לייב הקרוב" נבנה; ממתין לריסטארט-הלילה**
 
 ```raw
