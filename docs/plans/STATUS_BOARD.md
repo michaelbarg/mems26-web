@@ -1,3 +1,38 @@
+[2026-10-01 19:05-19:12 cowork-dev (ריצה 139 · חובה-1 + חובה-3 · ניטור-RTH שישי)] 🔴 **[[T-523]] — האדנדום של ריצה 137 (18:18) מופרך בשתי מדידות בלתי-תלויות, והמסקנה מתהפכת: ההשחתה השקטה לא הפכה ל"כשל-כן", היא חיה ונוחתת ברגע זה.** **הממצא (שורש הטעות, שתי טעויות נפרדות):** (א) `created_at` ב-`v9_footprint_journal` הוא `timestamp WITHOUT time zone` **ששומר UTC**, בעוד `ts` הוא `timestamptz` — ולכן הסף `created_at > '2026-10-01 15:36:42'` נקרא במסגרת-IL ודילג על 180 דק' שלמות; (ב) `5,106` ה"דחיות" שהאדנדום הציג כ"השיפור" אינן דחיות כלל אלא שורות-`[INFO]` של עליות-התהליך בלולאת [[T-435]] — שלוש שורות לכל boot. **התיקון:** אין תיקון-קוד בריצה זו (RTH ⇒ קריאה-בלבד); התוקן הוא **הרישום** — T-523 הועבר מ-🟠 ל-🔴, התווית "אובדן-כתיבה מלא" הוחלפה ב"השחתה-שקטה חיה", והנימוק לאיסור על ריכוך `safe_writer`/`DateStyle` תוקן (האיסור עומד — אבל לא כי "זה יחזיר את ההשחתה", אלא כי ההשחתה מעולם לא פסקה ואתר-התיקון הוא מקום-הכתיבה ב-`footprint_system.py:313`). נוספה מלכודת-מדידה (אחות של מלכודת-19) ונוספו שני תנאי-אימות מחייבים לתיקון של cc. **הראיה (Rule 5, פלט גולמי):**
+```raw
+$ psql ⇒ information_schema: ts = timestamp with time zone | created_at = timestamp WITHOUT time zone
+$ psql ⇒ SHOW timezone ⇒ Asia/Jerusalem
+
+# מבחן-המסגרת המכריע — אותה שורה אחת, שתי קריאות:
+max_created_naive          | il_naive                   | utc_naive                  | age_if_local | age_if_utc
+2026-10-01 16:08:33.341791 | 2026-10-01 19:08:35.203807 | 2026-10-01 16:08:35.203807 | 180.0        | 0.0
+#                                                                                      ^היסט-IDT    ^נכתבה עכשיו
+
+# מסגרת נכונה: ריסטארט 15:36:42 IL = 12:36:42 UTC
+rows_after_restart | first_after                | last_after
+380                | 2026-10-01 13:08:23.633647 | 2026-10-01 16:08:33.341791
+
+# וכולן מורעלות, כולל דלי-שנה שהאדנדום לא ראה:
+ts_year | n   | min_ts                   | max_ts
+179086  | 234 | 179086-01-03 00:00:00+02 | 179086-12-30 00:00:00+02
+179087  | 146 | 179087-01-01 00:00:00+02 | 179087-09-12 00:00:00+03
+
+poisoned | sane | max_sane_ts                  # 272 ⇒ 418 מאז ריצה 137 (+146 בשעה)
+418      | 9246 | 2026-06-05 15:51:19+03       # הטבלה עדיין בלי שורה אמיתית מאז 05.06
+
+$ grep -c "footprint" /tmp/backend.err.log ⇒ 5733
+$ ... | grep -oE "\[(INFO|WARNING|ERROR)\]" | sort | uniq -c ⇒ 5730 [INFO] · 3 [WARNING]
+$ for s in v9_footprint_journal safe_execute DateStyle "invalid input syntax" "out of range for type timestamp"; do grep -c "$s"; done ⇒ 0 0 0 0 0
+$ ... | grep "^2026-10-01" | cut -c12-13 | uniq -c ⇒ 00-14: 34-49/שעה | 15: 301 | 16,17,18: 708 כ"א | 19: 114
+$ tail -3 ⇒ 19:09:20 [INFO] [V9] footprint -> systems [3] / [INFO] [Footprint] Hydrated / [INFO] S2 ← footprint_system injected
+#            ⇒ שלוש שורות-INFO לכל boot · 708/3 ≈ 236 עליות/שעה = לולאת T-435, לא דחיות
+
+# סיכון-מסחר אפס — נמדד ולא הונח:
+$ set -a; . ./.env; set +a ⇒ S2_READ_FOOTPRINT_V1=0 · FOOTPRINT_DISABLED=0 · S3_MUTE=0 (S3 אינו רשום live/demo)
+$ python3 -c "...ruled_contracts()" ⇒ 1          # פסיקת 18.09, אפס נגיעה בדגלי-גודל
+```
+**ושאר-הריצה — ארבעת הצירים ירוקים, אפס עסקת-לייב חדשה, אפס הודעת-טלפון:** פיד `max(ts) v9_bars_5min_woodies ⇒ 2026-10-01 19:05:00+03` גיל **1.04 דק'** ב-diff ישיר על timestamptz (T-430 עובר) · `health http=200 t=0.003343s` · מאזין יחיד `:8000 ⇒ 49136 lstart Thu Oct 1 15:36:42 etime 03:29:20` · פוזיציה מוסכמת משני הצדדים `position_qty 0 · working_orders 0 · tm_open_trades 0 · tm_net_qty 0 · open_trade null · verdict "flat"` מול אפס שורת-לייב פתוחה ב-DB ⇒ שאלת-ownership לא נדרשה · לייב היום אחת בלבד `#2771 sys2 SHORT CLOSED T1_HIT pnl_usd 116.25 pnl_r 1.55 pnl_sierra 127.50`, נסגרה `17:01:01` ודווחה לטלפון `17:06` ⇒ **אפס חדשה מאז** ⇒ אין מקרה (ב) · ליגר כותב `101` רשומות היום, `8` מאז 18:50 IL (מתחת לתקרת-200 ⇒ לא חתוך): `(none) 4 · tree:bias 2 · entry_not_confirmed 1 · tree:kind 1`, `routed ⇒ 0` · צל `49` היום, `37` סגורות **−346.87$**, שתיים חדשות בחלון (`#2812 18:55` · `#2813 19:00`) · ☎️ רלה `state=running pid=1493` · `instruction/pending {"items":[]}` · `cmd/pending {"cmd":null}` · `channel_guard: phone undispositioned 0` ⇒ **שקט מוחלט בטלפון** (תיקון-עצמי הוא מחלקה אסורה בטלפון, וסיכון-המסחר אפס ⇒ אין (ג)) · 💵 [[T-34]] `acct_available_funds 544.94 < 1,595$` ⇒ שורה; **ואינו חוסם** — `margin_req 0.0 · under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · armed 1` ועסקת-לייב אכן מולאה היום; ללא שינוי מריצות 135-138 · 🟠 [[T-435]] `com.mems26.backend runs = 457` (‏`313` ב-18:02 · `224` ב-17:35) ⇒ `+144` ב-65 דק' = **~2.2 הרמות/דקה**, `448` כשלי-bind, `backend.err.log` ‎55.2MB — המאזין החי לא נפגע, אבל הספאם הזה הוא **שהפיק את המטריקה השקרית** שהופרכה למעלה. **⛔ אפס נגיעה:** ריסטארט · `.env` · דגלים · דגלי-גודל/`RISK_*` · `--apply` · FLATTEN · `op=EXIT` · פוזיציות/סלוט/פקודות · קוד-ייצור (נקרא בלבד) · כתיבת-DB · הודעת-טלפון. כתיבות: `LIVE_CHANNEL.md` + `TASK_LOG.md` + `STATUS_BOARD.md`. ראיה מלאה: `LIVE_CHANNEL` רשומת `19:05-19:12` [id:d1f4ba4f].
+
 [2026-10-01 18:35-18:52 cowork-dev (ריצה 138 · חובה-1 + חובה-3 · ניטור-RTH חמישי)] 🟠 **נולד [[T-524]] — הליגר תולה חסימת-לייב במרג'ין כשהמרג'ין תקין, וההתנהגות שמאחוריה פסוקה ואינה באג.** **הממצא (שורש):** ב-`18:20:03` העץ נתן `leaf=TAKE` ל-`CEILING_FLIP_LONG` (S2) והלייב לא יצא; הליגר רשם `live_blocked_by="margin_zero_size" · live_block_reason="effective contracts=0"`, ו-`mobile_monitor.py:836` מתרגם זאת למייקל כ-"אין מרג׳ין פנוי אפילו לחוזה אחד". **החוסם האמיתי הוא שער-האיכות הפסוק:** `floor(RISK_BUDGET_USD 225 / (risk 20.0 נק' × $5)) = 2 < RISK_MIN_CONTRACTS 3` ⇒ `_effective_contracts_raw` מחזיר 0; ו-`trading_gateway.py:6368` מקבע את התווית `margin_zero_size` לכל אפס-גודל ללא קשר למקור (דחיית-תקציב / SKIP / תקרת-מרג'ין אמיתית) ⇒ הפרת Rule 1. **התיקון (מוצע, נדחה למחוץ ל-RTH — פייתון בלבד, אפס דגלים, אפס שינוי-התנהגות):** להחזיר סיבה אמיתית משלושת מסלולי-האפס (`risk_budget_reject` / `sizer_skip` / `margin_cap`), להעביר אותה ב-`6368` במקום המחרוזת הקבועה, ולהוסיף נוסח ל-GATE_WHY. **⛔ ההתנהגות עצמה אינה משתנה:** `RULED_FLAGS.yaml:381 RISK_MIN_CONTRACTS expected "3" ruled_by מייקל 2026-09-01 "n<3=דחייה. סטופ-מקס 10 נק׳"` — השער עשה בדיוק את שנפסק, 12 פעמים היום; לשאול עליו שוב היא הפרת "פסיקה ניתנת פעם אחת" ⇒ **אפס הודעת-טלפון**. **הראיה (Rule 5, פלט גולמי):**
 ```raw
 $ grep -nE "^2026-10-01 18:20:0[0-9]" /tmp/backend.log | grep -iE "RISK_BUDGET|SKIPPED"
