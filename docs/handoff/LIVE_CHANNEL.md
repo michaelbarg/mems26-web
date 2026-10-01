@@ -1,3 +1,18 @@
+🟠 **[cowork(Claude-session, מייקל נוכח) · 2026-10-01 19:40 IL] [[T-435]] סערת-הריספאון של com.mems26.backend נעצרה — bootout, לא ריסטארט**
+
+```raw
+לפני: launchctl print gui/$UID/com.mems26.backend ⇒ state = spawn scheduled · runs = 521 · last exit code = 1 (ThrottleInterval 30)
+       backend.err.log ⇒ 477 שורות [boot] logging OK היום, מ-15:37:09 כל ~30 שנ' — כל ילד: hydration + gap-fill + TradingGateway init + FillPoller started ⇒ "[Errno 48] address already in use" ⇒ shutdown
+       uptime ⇒ load averages: 4.22 6.00 9.17
+פעולה: launchctl bootout gui/$UID/com.mems26.backend ⇒ rc=0 (19:40:1x)
+אחרי: launchctl print ⇒ Could not find service (unloaded; ה-plist לא נגע) · boot-line אחרון 19:39:50 ואפס אחריו (נמדד 19:40:55)
+       המאזין: lsof -iTCP:8000 ⇒ 49136 (screen mems26_backend, lstart 15:36:42, commit 03bc559b) · /api/v9/tree/state ⇒ 200
+       פוזיציה: position_qty 0 · open_trade None ⇒ flat
+```
+**למה עכשיו ולא ב-23:00:** הסערה היא עומס-חי על מכונת-המסחר בזמן RTH (2 עליות-אפליקציה בדקה, FillPoller בכל ילד) — ועצירתה אינה נוגעת בתהליך-המאזין. **מה נשאר לתור-הלילה (≥23:00, flat):** להחזיר את הנתיב-המפוקח: quit לשני ה-screens (backend, bridge) ⇒ `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.backend.plist` (+bridge) ⇒ boot-proof ⇒ post_restart_verify + fire_drill. עד אז אין KeepAlive — ניטור-RTH: `lsof -iTCP:8000` בכל ריצה.
+
+---
+
 🔴 **[cowork-dev(sched) · 2026-10-01 16:34-16:45 IL] ריצה 134 · חובה-1 + חובה-3 (ניטור-RTH ראשון אחרי הפתיחה) — עסקת-לייב #2771 נפתחה 16:45 (הודעת-טלפון אחת, מקרה ב) · [[T-435]] חזר במצב-כשל רביעי — `com.mems26.backend` בלולאת-רספאון מאז 15:37:10, ולראשונה בתוך RTH** — `date ⇒ Thu Oct  1 16:34:27 IDT 2026` ∈ `16:30-23:00` ⇒ חלון-RTH. `git pull --ff-only ⇒ Already up to date` · HEAD `5d879bbd`.
 
 ⛔ **בעלות-הריסטארט ([[T-369]]) — הוכרעה לפני כל נגיעה, ואינה שלי:** המאזין `49136 lstart Thu Oct 1 15:36:42` (היום, אחרי 12:00) · רשומת ריצה 132 על ריסטארט+שער · הודעת-שער `12:48:08Z` כבר נמסרה. **והשעה 16:34 > 16:10** ⇒ ממילא מחוץ לחלון. ⇒ **אפס ריסטארט · אפס GO/NO-GO · שורת-מדידה אחת בלבד, כאן.**
@@ -60129,5 +60144,154 @@ grep -c "address already in use" /tmp/backend.err.log ⇒ 448
 5. [[T-524]] (תווית `margin_zero_size`) ו-[[T-521]] נותרו פתוחים כפי שנרשמו בריצות 137-138.
 
 — cowork-dev
+
+— cowork-dev
+
+---
+### [2026-10-01 19:44] cowork-dev → cc-macbook · [id:98638078] ריצה 140 · ניטור-RTH 19:35-19:42 · ארבעה צירים ירוקים · אפס לייב חדשה · אפס טלפון · T-524 מקבל גבול: risk_pts > 15.0 הורג את הירי-החי, 14 פעמים היום, ורק אחת על מועמד שהעץ אישר
+🟠 **[cowork-dev(sched) · 2026-10-01 19:35-19:42 IL] ריצה 140 · חובה-1 + חובה-3 (ניטור-RTH שביעי) — ארבעת הצירים ירוקים, אפס עסקת-לייב חדשה מאז #2771, שקט מוחלט בטלפון; והממצא: ל-[[T-524]] יש עכשיו **גבול אמפירי חד** — `risk_pts > 15.0` הורג את הירי-החי כליל, 14 פעמים היום, ו-`RISK_MIN_CONTRACTS=3` בודק כמות שהמערכת כבר לא משתמשת בה תחת פסיקת-חוזה-אחד.**
+
+`date ⇒ 2026-10-01 19:35:11 IDT (Thu)` ∈ `16:30-23:00` ⇒ חלון-RTH ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**. `git pull ⇒ Already up to date` · HEAD `10b9a002`.
+
+⛔ **בעלות-הריסטארט ([[T-369]]) — אינה שלי:** המאזין `49136 lstart Thu Oct 1 15:36:42 2026` (היום אחרי 12:00) · הודעת-השער `12:48:08Z` נמסרה בריצה 132 · `19:35 > 16:10`. ⇒ לא נגעתי.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות, והשלילה הוכחה לפני המסקנה (מלכודת-12) ⇒ **שקט מוחלט בטלפון**
+```raw
+launchctl print gui/501/com.mems26.mobile_relay ⇒ state = running · pid = 1493 · runs = 1 · last exit code = (never exited)
+GET /instruction/pending ⇒ {"items":[]}
+GET /cmd/pending        ⇒ {"cmd":null}
+GET /chat ⇒ 200 · items 30 · senders {cowork-dev: 22, מייקל: 4, cc: 4}
+  אחרונה בפיד כולו  ⇒ 2026-10-01T14:06:25Z sender=cowork-dev  (סגירת #2771 — שלי, ריצה 135)
+  אחרונת-מייקל      ⇒ 2026-09-30T07:18:05Z ("תיוג עסקה #2555") ⇒ נענתה 2026-09-30T07:18:10Z ע"י cc
+  כל ארבע הודעות-מייקל בחלון נבדקו אחת-אחת ⇒ לכל אחת תשובת-סוכן אחריה
+channel_guard: phone channel — dispositioned 9 · undispositioned 0
+זנב PHONE_THREAD.jsonl זהה לפיד-Render — אפס פער
+דגימה-שנייה 19:41:48 מיד לפני הכתיבה ⇒ /instruction/pending {"items":[]} · last 14:06:25Z cowork-dev
+```
+אפס הודעת-מייקל · אפס תיוגי-עסקה ⇒ **אין (א)**. אפס לייב חדשה/סגורה ⇒ **אין (ב)**. הממצא למטה הוא **כימוּת של פריט-קיים, סיכון-מסחר נמדד ואפס-חדש** ⇒ **אין (ג)**. לא שער ⇒ **אין (ד)**. ⇒ **אפס כתיבה ל-`PHONE_THREAD`**.
+
+### 🟢 חובה-3 — ארבעת הצירים, נמדדו ולא הונחו (שתי דגימות לכל ציר-זמן)
+```raw
+(1) פיד — T-430 עובר, diff ישיר על timestamptz ולא mtime של קובץ-יצוא:
+    19:36:43 ⇒ max(ts) 2026-10-01 19:35:00+03 · age_min 1.7
+    19:41:25 ⇒ max(ts) 2026-10-01 19:40:00+03 · age_min 1.4      ⇒ הפיד חי באמת, לא "קובץ טרי"
+(2) בקאנד ⇒ health http=200 t=0.003590s  ואז  http=200 t=0.006362s
+    מאזין יחיד :8000 ⇒ Python 49136 · lstart Thu Oct 1 15:36:42 · etime 04:00:01 · %CPU 19.2
+    שער-ראיית-הלוג (§3.9) ⇒ /tmp/backend.log "[boot] logging OK ... pid=49136 commit=03bc559b" = המאזין
+(3) פוזיציה ⇄ TM ⇄ ברוקר — מוסכם משני הצדדים ⇒ שאלת-ownership לפי order_id לא נדרשה, אין [[T-402]]:
+    position_qty 0 · working_orders 0 · open_pnl 0.0 · is_sim 0 · last_price 7701.75
+    account/state ⇒ open_trade null · verdict "flat" · trade_account 37138283
+    DB ⇒ שורות פתוחות = shadow FILLED 6 בלבד, אפס שורת-לייב פתוחה ⇒ אפס דיברגנציה
+    חמוש ⇒ order_placement_armed 1 · acct_ok true · acct_trading_disabled 0
+           acct_loss_limit_reached 0 · acct_under_margin 0
+(4) לייב — אחת היום בלבד, וכבר דווחה:
+    2771 | live | sys 2 | OPENING_TEST_DRIVE | SHORT | CLOSED | 09:45→10:01 ET | T1_HIT
+         | pnl_usd 116.25 | pnl_sierra 127.50   (acct_daily_pl 127.50 תואם)
+    select count(*) where mode='live' and entry_ts > '2026-10-01 17:01:00+03' ⇒ 0
+    ⇒ אפס עסקת-לייב חדשה/סגורה בחלון ⇒ דיווח חוזר = הצפה ⇒ אין (ב)
+```
+⛔ `daily_pnl` לא מצוטט (פסיקת ריצה 135). **גודל:** `set -a; . ./.env; set +a; ruled_contracts() ⇒ 1` = פסיקת 18.09 ⇒ **מדידה, אפס נגיעה בדגלי-גודל**.
+
+💵 **[[T-34]] מרג'ין — דיווח בלבד, ובמפורש לא (ג):** `acct_available_funds 544.94 < 1,595$` ⇒ השורה הזו. **ואינו חוסם:** `acct_margin_req 0.0 · acct_under_margin 0 · acct_trading_disabled 0 · armed 1`, ועסקת-לייב אכן נכנסה ומולאה היום. ללא שינוי מריצות 135-139 (544.94). **וראו למטה: הוא גם לא הסיבה ל-zero-size של 18:20 — זו נחסמה ע"י תקציב-הסיכון, לא ע"י מרג'ין.**
+
+---
+
+## 🟠 ממצא-הריצה — [[T-524]] מקבל גבול-מספרי: `risk_pts > 15.0` ⇒ הירי-החי מת. 14 פעמים היום.
+
+⚠️ **קודם בדיקת-כפילות, אחר-כך דיווח** (`CLAUDE.md`: שני מרשמים = אף אחד אינו המקור). פתחתי את זה כממצא-חדש אחרי שראיתי `live_blocked_by = "margin_zero_size"` בליגר — לראשונה השבוע ערך שאינו `null` — ואז מצאתי ש-**ריצה 138 כבר פתחה בדיוק את זה כ-[[T-524]]** ("התווית `margin_zero_size` היא תווית-שקר על דחיית-תקציב פסוקה"). ⇒ **אין פריט חדש. זהו כימוּת של T-524 הקיים**, והוא מוסיף שלושה דברים שלא נמדדו שם: הגבול, התדירות, והעלות בפועל.
+
+### (1) השורש מהקוד, לא מהתווית
+```raw
+backend/v9/gateway/trading_gateway.py:6366-6369
+  _n_live = effective_contracts(setup)
+  if _n_live <= 0:
+      self._last_live_abort = ("margin_zero_size", f"effective contracts={_n_live}")
+
+backend/v9/services/sierra_command.py:799-801   (effective_contracts)
+  n = _effective_contracts_raw(setup)
+  if n <= 0: return n          ← יוצא לפני cap_to_bracketable/cap_contracts
+```
+⇒ **כש-0 מגיע מהסַייזֶר, שתי בדיקות-המרג'ין לא נקראות בכלל** — ולכן התווית "מרג'ין" נתלית על החלטה שהמרג'ין לא השתתף בה. הראיה הישירה: `MARGIN SIZING` ו-`BRACKET-SLOT CAP` ⇒ **0 מופעים היום** בשני הלוגים, בעוד `LIVE fire SKIPPED` ⇒ 1.
+
+### (2) הגבול — נמדד, לא חושב: `risk_pts > 15.0`
+`RISK_BUDGET_SIZING_V1=1 · RISK_BUDGET_USD=225 · RISK_MIN_CONTRACTS=3 · RISK_MAX_PTS_HARD=30` (`.env` שורות 707-710) ⇒ `n = floor(225 / (risk_pts × 5))`, ו-`n < 3 ⇒ return 0`. הנתונים מכריעים את הגבול בדיוק, שתי שורות צמודות:
+```raw
+18:43:36 [INFO]    RISK_BUDGET: risk=15.0 pts → raw=3.0 → floor=3 → min(ruled=1)=1     ← עובר
+18:15:05 [WARNING] RISK_BUDGET REJECT: risk=15.2 pts → n=2 < min=3 — entry too far     ← נדחה
+```
+ו-14 הדחיות היום כולן מעל הגבול, אפס יוצאות-דופן:
+```raw
+grep '^2026-10-01' /tmp/backend.log | grep -c 'RISK_BUDGET REJECT'  ⇒ 14   (מול 45 שעברו)
+risk_pts של הדחיות ⇒ 15.2 · 15.8 ×2 · 18.0 · 19.2 · 20.0 ×2 · 20.5 · 21.0 · 23.5 · 27.2 · 27.5 · 28.2 · 54.5
+שעות ⇒ 17:00 17:05 17:10 ×2 17:30 17:35 17:40 ×2 18:15 18:20 ×2 18:30 19:25 ×2
+```
+
+### (3) העלות בפועל — אחת, לא ארבע-עשרה. וזו ההבחנה שמצילה מדיווח-שקר
+מתוך 14 הדחיות, **13 נפלו על מועמדים שהעץ כבר חסם ממילא** (`tree:bias` וכו') ⇒ הן חסרות-משמעות מסחרית. **רק אחת הרגה מועמד-לייב שהעץ אישר:**
+```raw
+gateway_decisions.jsonl · 55 שורות-שער היום · live_blocked_by distinct ⇒ {None, 'margin_zero_size'}
+  ts 2026-10-01T15:20:03+00:00 (18:20 IL) · system 2 · CEILING_FLIP_LONG LONG · entry 7692.5
+  tree_v3.leaf = TAKE · id = opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/
+                             pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension
+  live_blocked_by = "margin_zero_size" · live_block_reason = "effective contracts=0"
+  outcome = shadow_only · trade_id 2799 · exit t1 7722.5 / t2 7742.5  ⇒ risk = 20.0 נק'
+/tmp/backend.log 18:20:03 [WARNING] [Gateway] LIVE fire SKIPPED — effective contracts <= 0
+                                    (margin cap / SKIP): LONG CEILING_FLIP_LONG sys=2
+```
+⇒ **העץ נתן TAKE, תקציב-הסיכון הרג, והטלפון של מייקל היה מתרגם את זה ל"אין מרג׳ין פנוי אפילו לחוזה אחד"** (`render_mobile_relay/app.py:689` · `mobile_monitor.py:836`) — בעוד `acct_available_funds 544.94` ו-`acct_under_margin 0`. זה ה-T-524.
+
+### (4) ההבחנה המבנית שלא נרשמה ב-138: רצפת-3 בודקת כמות שהמערכת לא משתמשת בה
+תחת פסיקת-18.09 (`FIXED_CONTRACTS_1=1`, `ruled_contracts() ⇒ 1`) התוצאה **תמיד** `min(n, 1) = 1` — `n` עצמו אינו נשלח לעולם. אבל מבחן-הדחייה עדיין דורש `n ≥ 3`, מספר שנכיל מעידן-3-חוזים. ⇒ מעשית, **כל כניסה עם סטופ רחב מ-15 נק' מושתקת בלייב למרות שחוזה-אחד שלה ממומן בקלות** (~287$ מול 544.94$). ⛔ **מועמד-ריפליי, לא דגל ולא תיקון** — `LEARNING_DOCTRINE`: "הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל", והתשובה חייבת להיות מספר. ⛔ **אפס נגיעה ב-`RISK_*` / דגלי-גודל** (פסיקת 31.08; T-225). השאלה לריפליי: מה הייתה התוצאה אם 14 הדחיות היו נכנסות בחוזה-אחד.
+
+---
+
+## 🌳 דלתא-הניטור — זהות-החוסם התחלפה **בשלישית** היום: `tree:bias` עקף, `tree:location` קפא
+
+ריצה 137 דיווחה ש-`tree:location` עקף את `tree:stand_down` (16 מול 6). בחלון שלי התמונה זזה שוב — `location` לא זז כלל, ו-`bias` שילש את עצמו:
+```raw
+gateway_decisions.jsonl · 120 שורות = 55 שורות-שער (ts) + 65 candidate_ledger.v1 (observed_at בלבד, [[T-420]] חי)
+  כולן מהיום · ראשונה 13:30:07Z · אחרונה 16:30:05Z (19:30 IL) · mtime 19:35 ⇒ הליגר כותב, מתחת לתקרת-200
+outcome ⇒ blocked 47 · live 1 · shadow_only 7
+blocked_by ⇒ tree:location 16 · tree:bias 15 · (none) 8 · tree:stand_down 6 · rr_entry_gate 4
+             · entry_not_confirmed 3 · tree:kind 2 · news_blackout 1
+```
+| חוסם | 18:02 (ריצה 137) | 19:30 (כאן) | דלתא |
+|---|---|---|---|
+| `tree:location` | 16 | 16 | **0 — קפא לחלוטין** |
+| `tree:bias` | 4 | 15 | **+11** |
+| `rr_entry_gate` | — | 4 | חדש |
+| `tree:kind` | — | 2 | חדש |
+| `tree:stand_down` | 6 | 6 | 0 |
+
+⇒ **ה"ממצא הגדול" של 137 (`tree:location` חוסם ZLR SHORT שמונה פעמים) נעצר ב-18:00 ולא חזר** — מה שחוסם בשעה האחרונה הוא `tree:bias` על **לונגים**, בשוק שירד `7722.50 → 7701.75`. ⇒ שני מועמדי-ריפליי נפרדים, לא אחד: `tree:location` על ZLR SHORT (ריצה 137) ו-`tree:bias` על לונגים (כאן). ⛔ לא דגל, לא שינוי-עץ.
+
+**📊 ספרים — והצל התהפך לחלוטין ב-28 דקות:**
+```raw
+shadow היום ⇒ CLOSED 50 ⇒ +119.98$ · FILLED 6 ⇒ פתוחות
+ריצה 139 (19:12) דיווחה ⇒ 37 סגורות ⇒ −346.87$      ⇒ דלתא +466.85$
+והדלתא מוסברת במלואה, לא מונחת:
+  select ... where mode='shadow' and exit_ts >= '2026-10-01 19:12:00+03'
+  ⇒ n 13 · sum +466.85 · T1_HIT 8 ⇒ +793.10 · STOP_HIT 5 ⇒ −326.25
+חדשות בחלון ⇒ 2814 ZLR LONG · 2815 CEILING_FLIP_TOUCH2 LONG T1_HIT +57.50 · 2816 ZLR LONG
+              · 2817 REACTIVE_LONG · 2818 DOUBLE_BOTTOM_EE_LONG · 2819 CEILING_FLIP_TOUCH2 SHORT STOP_HIT −26.25
+              · 2820 CEILING_FLIP_TOUCH2 SHORT (19:40, FILLED)
+```
+⚠️ **ואינו נטען שהצל היה מרוויח בלייב** — אין החלקה/מילוי-חלקי/תחרות-סלוט, והגודל הפסוק `1` עם סלוט-אחד ⇒ הלייב היה לוקח את הראשונה בלבד ולא שלוש-עשרה.
+
+**🟠 [[T-435]] — ללא שינוי, קצב יציב, ובמכוון לא תוקן (פסיקת 134-139 עומדת):**
+```raw
+launchctl print gui/501/com.mems26.backend ⇒ state = spawn scheduled · last exit code = 1
+  19:39:31 ⇒ runs = 520        19:40:03 ⇒ runs = 521        ⇒ ~1.9/דקה
+  338 (18:02, ריצה 137) → 521 (19:40) ⇒ 183 הרמות ב-98 דק' — אותו קצב, לא האצה
+boot-lines ב-/tmp/backend.err.log ב-10 הדק' האחרונות ⇒ 26, מהן commit 6eac359b ×21 · 10b9a002 ×5
+```
+⚠️ **הערה שלא נרשמה קודם:** ילדי-הלולאה עולים מעץ-העבודה ולכן על **הקומיט העדכני** (`6eac359b`/`10b9a002`), בעוד המאזין החי רץ על `03bc559b` מ-15:36. ⇒ כל עוד 49136 מחזיק את :8000 הילדים נופלים על `Errno 48` ואין נזק; אבל אם המאזין ימות, launchd ירים **גרסה אחרת מזו שנבדקה בשער-הבוקר**. ⛔ אפס נגיעה — דיווח, ו-snapshot לפני כל טיפול בתור-הלילה.
+
+**שערי-שפיות:** `flag_guard ⇒ PASS` · `channel_guard ⇒ phone undispositioned 0`.
+
+⛔ **אפס נגיעה:** `.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט/`kickstart` · DLL · קוד-ייצור · כתיבות-DB · הודעת-טלפון.
+**כתיבות:** `LIVE_CHANNEL.md` · `TASK_LOG.md`.
+
+**הצעד הבא:** (1) **[[T-524]] לתור-הלילה עם הגבול הזה כקלט** — ריפליי של 14 הדחיות בחוזה-אחד, ובמקביל תיקון-התווית (הפרדת `risk_budget_reject` מ-`margin_zero_size` בליגר ובמילון-הטלפון) שהוא תיקון-דיווח ולא שינוי-התנהגות; (2) שני מועמדי-ריפליי של העץ בנפרד — `tree:location`/ZLR-SHORT ו-`tree:bias`/לונגים; (3) [[T-435]] בתור-הלילה עם snapshot + אימות-גרסה; (4) [[T-523]] כפי שריצה 139 העמידה אותו; (5) עסקת-לייב נוספת ⇒ מקרה (ב); (6) ⛔ **אין לשאול שוב:** בעלות-הריסטארט/השער של היום · ציטוט `daily_pnl` · פסיקת-אי-התיקון של T-435 ב-RTH.
 
 — cowork-dev
