@@ -1,3 +1,150 @@
+🟢 **[cowork-sub (T-478) · 2026-10-02 23:20-23:30 IL · אבחון-פוטפרינט]** · **חלק (1) בוצע במלואו · ⛔ דיפלוי-DLL לא נדרש · התיקון מוכן ולא הוחל** · 🔑 **הממצא: הפיד חי ומצליח (9,367 דחיפות · 0 שגיאות · `max(ts)` = עכשיו) — מה ששבור הוא זהות-הבר: `ts` הוא זמן-הכתיבה. אבחון עצמאי שמאשר את [[T-521]] במספרי-הערב, ומוסיף את הראיה שחסרה לו: מי הצרכן שמורעב.**
+
+**0 · ההזמנה מול המצב בפועל (Rule 2 — ההזמנה נכתבה 25.09; שתי הנחות-היסוד שבה התיישנו):** ההזמנה אומרת *"הפיד נעצר באמצע יוני (`FOOTPRINT_DISABLED=1`, `S3_MUTE=1`)"*. **שתיהן כבר אינן נכונות**, ושתיהן נמדדו מחדש ולא צוטטו:
+
+```raw
+$ grep -n -E "FOOTPRINT|S3_" .env
+  26:S3_RELATIVE=true     37:S3_MUTE=0     63:FOOTPRINT_DISABLED=0     64:S2_READ_FOOTPRINT_V1=0
+$ psql -c "select to_char(ts,'YYYY-MM') m, count(*), count(distinct ts::date) days, max(ts) ..."
+     m    |  rows   | days |            last_ts
+  2026-06 | 2709972 |  13  | 2026-06-23 14:35:03+03
+  2026-07 |     454 |   8  | 2026-07-30 11:16:39+03
+  2026-08 |     181 |   5  | 2026-08-29 10:59:16+03
+  2026-09 | 1108381 |  10  | 2026-09-30 23:59:59+03     ⇐ ההזמנה אומרת "210 שורות / 6 ימים"
+  2026-10 |  732991 |   2  | 2026-10-02 23:21:37+03     ⇐ הפיד כותב עכשיו
+```
+⇒ **הדגל אינו החוסם.** פרובנאנס (ו-Rule 1 על מה שאי-אפשר למדוד): `git log -- .env` מחזיר **ריק** — `.env` אינו במעקב-git (`git check-ignore -v .env ⇒ .gitignore:3`), ולכן **"מי כיבה ומתי" אינו ניתן לשליפה מ-git; נרשם כחסר ולא שוחזר בניחוש.** המקור הקיים: כובה ל-`1` ע"י **מייקל 2026-06-08** (I-11, `docs/FLAG_INDEX.md:107` — *"take S3 down until after LIVE; it has not ingested a bar all session"*), והוחזר ל-`0` ע"י **פסיקת-מייקל 25.09 17:00** (T-478) — `config/RULED_FLAGS.yaml:435 expected: '0'`. `flag_guard ⇒ PASS 273/273`.
+
+**1 · `footprint.json` — נכתב, טרי, ו*אינו בשימוש* (וזו התשובה על שאלת-ה-DLL):**
+```raw
+$ stat ~/SierraChart_Data/v9_export/footprint.json
+  size=45829   mtime=2026-10-02 23:21
+$ python3 -c "json.load(...)"  ⇒ version=v9.4.5-wc-fix · export_ts=1790972476 (=23:21:16 IL) · bar_count=31
+                                  bar keys: idx,o,h,l,c,vol,delta,poc_price,poc_vol,stacked_buy,stacked_sell,levels
+$ head -9 bridge/v9_streams/footprint_stream.py
+  """V9 stream: Footprint ... Uses VAPRecomputer to read REAL bid/ask from SCID tick data,
+     replacing the DLL's degraded proportional distribution (DLL v9.2.0 has MaintainVolumeAtPriceData=0).
+     DLL footprint.json is IGNORED — Python recomputes from ticks."""
+  filename = "footprint.json"   # DLL file (monitored but not used for data)
+```
+⇒ **⛔ דיפלוי-DLL / Remote Build / טעינת-study — לא נדרשים, ולא "לא נדרשים הלילה" אלא לא נדרשים כלל:** היצוא של ה-DLL טרי *וגם* מתעלמים ממנו במכוון; מקור-הנתון הוא ה-SCID דרך `VAPRecomputer`. ונתיב-ה-SCID נפתר לחוזה **החי**, כלומר תיקון-25.09 מחזיק: `resolve_mes_scid_path() ⇒ /Users/michael/SierraChart/Data/MESZ26_FUT_CME.scid`.
+
+**2 · השורש האמיתי — `ts` הוא זמן-הכתיבה. נמדד משני כיוונים בלתי-תלויים:**
+```raw
+(א) מהמפיק החי (הרצה read-only, בלי לגעת בייצור):
+$ python3 -c "r=VAPRecomputer(); r.seek_to_recent(5400); r.poll_scid(); d=r.get_footprint(30) ..."
+  ticks polled: 1080000 · bar_count: 30
+  keys in bar: ['idx','o','h','l','c','vol','delta','poc_price','poc_vol','stacked_buy','stacked_sell','levels']
+  has ts key? -> False            ⇐ vap_recompute.py:152-165 to_dict() אינו פולט "ts"
+$ sed -n '397,400p' backend/v9/api/v9/bars.py
+  def _ts_from_unix(unix_ts) -> datetime:
+      if unix_ts is None:  return datetime.now(timezone.utc)      ⇐ ובצד-הקולט: bars.py:828
+(ב) מה-DB — הראיה הנקייה, 99.99%:
+$ psql -c "select count(*) filter (where abs(extract(epoch from (created_at-ts))) < 1), count(*)
+           from v9_bars_footprint where ts::date=current_date;"
+  280980 | 281010        ⇐ 280,980 מתוך 281,010 שורות-היום: ts == זמן-הכתיבה (פער < שנייה)
+$ psql  ⇒ שורות-היום 281010 · distinct ts 281010 · זהויות-בר נבדלות 9632 · כפילות ×29.2
+         ⇒ pg_total_relation_size(v9_bars_footprint) = 5079 MB
+$ grep "[footprint] heartbeat" /tmp/bridge.err.log | tail -1
+  23:26:41 [INFO] [footprint] heartbeat — pushes=9367 errors=0 last_push_age=1s mode=polling
+         ⇒ 9,367 דחיפות × 30 ברים ≈ 281,010 שורות ⇒ **מנגנון-הכפילות מאומת אריתמטית**, לא משוער
+```
+⇒ **"הפיד חי" ו"יש נתון" הם שני דברים.** הפיד מצליח (0 שגיאות); הטבלה אוגרת 29 עותקים של אותו חלון-30-ברים, כל עותק מתוייך בזמן-הכתיבה. **אפס סיכון-מסחר** (כפי שכבר נקבע ב-[[T-521]]): `S2_READ_FOOTPRINT_V1=0` ⇒ S2 אינו קורא מצב-פוטפרינט · S3 צל-בלבד ואינו רשום live/demo · הנתיב אינו נקרא ע"י שערים/ניתוב/פוזיציות.
+
+**3 · ➕ מה שהאבחון הזה מוסיף מעל [[T-521]] (שני פריטים שהיו פתוחים בו, שניהם נסגרים בקריאה בלבד):**
+```raw
+(א) "לא נבדק אם T-478/הריפליי קורא את היומן או את v9_bars_footprint" — **נבדק. v9_bars_footprint.**
+$ grep -n "v9_bars_footprint" backend/v9/services/historical_replay.py
+  94:            ("v9_bars_footprint", "footprint"),
+$ grep -n "v9_bars_footprint" scripts/fwd_harness.py
+  207:    "v9_bars_footprint": "ts <= CAST(:__fwd_now AS timestamptz)",
+  ⇒ ההרנס מסנן את הטבלה הזאת **לפי ts**, ו-ts הוא זמן-הכתיבה ⇒ מסנן-הזמן של הריפליי חסר-משמעות
+    על הטבלה הזאת. ⇒ **זו הרעבת-נתון לפסיקה ממתינה, לא רעש-לוג.** סעיף (ב) של T-521 נענה: היומן
+    אינו הנפגע הרלוונטי ל-T-478 — v9_bars_footprint הוא.
+(ב) "לא נבדק למה /tmp/bridge.err.log קפוא על Sep 28" — **מלכודת-הלוג התהפכה מאז 30.09:**
+$ stat -f "%N size=%z mtime=%Sm" /tmp/bridge.err.log /tmp/bridge.log
+  /tmp/bridge.err.log  size=20169003  mtime=2026-10-02 23:24:40   ⇐ חי
+  /tmp/bridge.log      size=62        mtime=2026-10-02 10:14:16   ⇐ הקפוא הוא דווקא זה
+  ⇒ ההערה ב-T-521 ("err.log קפוא") **התיישנה**; מי שיקרא היום את bridge.log יסיק "ברידג׳ מת" ויטעה.
+```
+
+**4 · 🔍 ממצא-מדידה שלישי — גם אחרי תיקון-ה-`ts` הברים לא יתחברו ל-5 דקות. נמדד, לא הוסק:**
+```raw
+$ python3 — bar_start_ts של 8 הברים האחרונים (הערך שהתיקון יפלוט):
+  epoch=1790960593  utc=17:03:13   o=7780.50 c=7783.00 vol=1605
+  epoch=1790960775  utc=17:06:15   o=7782.50 c=7782.25 vol=1947
+  epoch=1790960956  utc=17:09:16   o=7782.25 c=7782.50 vol=706
+  epoch=1790961137  utc=17:12:17   o=7782.25 c=7783.25 vol=838
+  epoch=1790961318  utc=17:15:18   o=7783.50 c=7781.75 vol=642
+  epoch=1790961500  utc=17:18:20   o=7781.75 c=7780.00 vol=772
+  epoch=1790961681  utc=17:21:21   o=7780.00 c=7780.00 vol=618
+  epoch=1790961865  utc=17:24:25   o=7780.25 c=7780.50 vol=57
+  ⇒ (1) bar_start_ts הוא epoch-אמיתי ושמיש — התיקון בר-ביצוע;
+     (2) הפרשים 182/181/181/181/182/181/184 שנ' והשניות נוחלות 13→15→16→17→18→20→21→25
+         ⇒ **3 דקות, עוגן בטיק-הראשון, נסחף** (`BAR_DURATION_SEC=180`; `_current_bar_end_ts = ts + 180`)
+     (3) ה-OHLC תואם בדיוק לשורות שב-DB (o=7780.50 c=7783.00 vol=1605 מופיע שם) ⇒ אלה אותם ברים,
+         רק מתוייכים בזמן-כתיבה ⇒ **אישור-צולב לסעיף 2.**
+```
+⇒ לכן **תיקון-ה-`ts` לבדו אינו מספיק** לאימות שההזמנה דורשת: `≥78` ברים/יום = `390` דק'-RTH ÷ **5**, ו-join ל-`v9_bars_5min_woodies` מחייב דליים מיושרי-לוח. זהו שינוי **צורת-המפיק**, ולכן מופרד לדגל (סעיף 5ג).
+
+**5 · התיקון המוכן — מדויק, ו⛔ לא הוחל. שלושה חלקים, בכוונה מופרדים:**
+
+**(א) שורה אחת — `bridge/v9_streams/vap_recompute.py:153` (באג; בלי דגל):**
+```diff
+         return {
+             "idx": idx,
++            "ts": int(self.bar_start_ts),
+             "o": round(self.open, 2),
+```
+צד-הבקאנד **אינו נוגע**: `bars.py:828` כבר קורא `_ts_from_unix(bar.get("ts"))`. נדרש **ריסטארט-ברידג׳ (פייתון בלבד)**.
+
+**(ב) מפתח-טבע — מיגרציה + upsert (באג; בלי דגל):**
+```sql
+ALTER TABLE v9_bars_footprint
+  ADD CONSTRAINT uq_v9_bars_footprint_ts_symbol UNIQUE (ts, symbol);
+```
+ובקולט (`bars.py:827-840`) `db.add` ⇒ `ON CONFLICT (ts,symbol) DO UPDATE` — **הכרחי ולא קוסמטי:** הבר-בבנייה משנה צורה בתוך הדלי שלו, ולכן הכתיבה האחרונה חייבת לנצח. המפתח מוגדר-היטב: `symbol` ברירת-מחדל `"MES"` (`backend/v9/db/models/bars_footprint.py:14`). ⚠️ **ולא לפני (א):** שורות-הקדם כולן נושאות `ts` ייחודי (זמן-כתיבה), ולכן האילוץ יעבור **בריק** וישאיר 5,079 MB נטל. **ו-Rule 1: אין לשחזר להן חותמות** — זמן-תחילת-הדלי לא נשמר מעולם, כל back-fill יהיה סינתזה. שתי אפשרויות לפסיקת-מייקל (לא הוכרע כאן): להשאיר כנטל ולסנן בקוראים מנקודת-החיתוך, או למחוק את עידן-הקדם (~5 GB, הרסני ⇒ פסיקה).
+
+**(ג) מפתח-ה-join — מופרד לדגל, כי זה שינוי צורת-המפיק (`LEARNING_DOCTRINE`: הוראה ⇒ קודם ריפליי, אחר-כך דגל):**
+```diff
+-BAR_DURATION_SEC = 180     # 3-minute bars (matching Sierra chart)
++BAR_DURATION_SEC = 300     # 5-min, מיושר-לוח — מפתח-join ל-v9_bars_5min_woodies
+@@ process_tick @@
+-        if self._current_bar is None or ts >= self._current_bar_end_ts:
++        bucket = int(ts // BAR_DURATION_SEC) * BAR_DURATION_SEC
++        if self._current_bar is None or bucket != self._current_bar.bar_start_ts:
+             if self._current_bar is not None:
+                 self.close_bar()
+-            self._current_bar = FootprintBar(ts, price)
+-            self._current_bar_end_ts = ts + BAR_DURATION_SEC
++            self._current_bar = FootprintBar(bucket, price)
++            self._current_bar_end_ts = bucket + BAR_DURATION_SEC
+```
+⚠️ ולבדוק באותו מקבץ: `MAX_BARS = 30` — ב-5 דק' זה חלון של 150 דק' בלבד; מספיק ל-DB (הוא מצטבר) אך לא ל-RTH שלם בזיכרון.
+
+**נוסח רשומת `config/RULED_FLAGS.yaml` (מוכן, לא נוסף):**
+```yaml
+  FOOTPRINT_BAR_5MIN_ALIGNED_V1: {expected: "unset_or_0", ruled_by: "cowork-sub", date: "2026-10-02", note: 'T-521/T-478 — דליי-פוטפרינט של 5 דק׳ מיושרי-לוח במקום 3 דק׳ נסחפות (bridge/v9_streams/vap_recompute.py: BAR_DURATION_SEC + floor-bucket ב-process_tick). נגזר מפסיקת-מייקל 25.09 17:00 בהזמנת T-478 (CC_ORDER_2026-09-25_FOOTPRINT_FEED.md — "נתונים קודם": פיד ⇒ מדידה ⇒ לייב), שאימותה (סעיף 3) הוא ">=78 ברים ב-current_date" = 390 דק׳-RTH / 5 ⇒ 5 דק׳ מיושר הוא התנאי שבלעדיו האימות אינו בר-הרצה, ו-join ל-v9_bars_5min_woodies בלתי-אפשרי. מצב קודם נמדד: הפרשים 181-184 שנ׳ ושניות נסחפות 13→25 (עוגן בטיק-הראשון). משנה את סדרת-הברים שה-S3-צל רואה ⇒ דגל ולא תיקון-שקט; אינו נוגע ב-S3_MUTE ובמפיקי-S3. אי-תלות בלייב נשמרת: S2_READ_FOOTPRINT_V1=0, S3 צל-בלבד.', measured: 'UNMEASURED — דורש 15-20 סשנים של ברי-פוטפרינט בעלי זהות-בר (חסום ע"י התיקון (א)+(ב) של T-521) ואז ריפליי יום-כולל'}
+```
+**מקרה-רגרסיה (לפי `LEARNING_DOCTRINE` — תקרית ⇒ מקרה-ריפליי, לא דגל):** `tests/v9/regression/test_footprint_bar_identity.py` — מזרים סדרת-טיקים ידועה ומאמת ‏(1) `to_dict()["ts"] == floor(bucket)`; ‏(2) שתי דחיפות של אותו בר ⇒ **שורה אחת** ב-DB; ‏(3) `ts != created_at` (שמירה מפני רגרסיה ל-`now()`).
+
+**תוכנית-snapshot (מוכנה, לא הורצה):** `scripts/mems26_snapshot.sh "t478-t521-footprint-bar-identity"` **לפני** ריסטארט-הברידג׳. ⚠️ ולרשום בפירוש: ה-snapshot מכסה DLL-src+bin · `.env` · LaunchAgents · git-HEAD — **הוא אינו מכסה את ה-DB**, ולכן למיגרציה (ב) יש rollback משלה: `ALTER TABLE v9_bars_footprint DROP CONSTRAINT uq_v9_bars_footprint_ts_symbol` (ואף שורה אינה משתנה ע"י (א)+(ב)).
+
+**⛔ NOT-DONE מפורש (לא "בוצע חלקית"):**
+- **סעיף (2) — החזרת-היצוא מסיירה: אינו נדרש** (מוכח בסעיף 1: הסטרים מתעלם מ-`footprint.json` במכוון). **וחצי-האינג׳סט שלו — לא בוצע:** התיקון (א)+(ב) **מוכן ולא הוחל**, כי הוא מחייב ריסטארט-ברידג׳. השורה הגולמית של הסיבה:
+```raw
+$ date  ⇒ NOW=2026-10-02 23:26:33 IDT   (שישי בלילה; השוק סגור עד מוצ"ש 01:00 IL)
+```
+  ⇒ שינוי שלא ניתן לאמת לפני ראשון אינו נכנס לסוף-השבוע על המכונה שסוחרת ([[T-430]] · Rule 5).
+- **סעיף (3) — `≥78` ברים:** בלתי-אפשרי הלילה (אין סשן), **וגם אינו בר-הרצה כמות שנוסח** — `ts::date` סופר שורות-כתיבה ולא ברים (281,010 "עוברות" אותו כבר עכשיו, וזו תשובה חסרת-משמעות). ניסוח-מחדש נדרש אחרי (א)+(ג).
+- **סעיף (4) — איסור, קוים:** לא נגעתי ב-`S3_MUTE` ולא באף מפיק-S3.
+- **לא שונה דבר out-of-git:** אפס עריכת `.env` · אפס בנייה/דיפלוי-DLL · אפס ריסטארט · אפס הדלקת-דגל · אפס נגיעה בפוזיציות/פקודות/דגלי-גודל. כל ההרצות היו קריאה בלבד (ה-`VAPRecomputer` הורץ בתהליך נפרד שקורא את ה-SCID, ואינו כותב).
+- **לא נמדד ונרשם ככזה:** האם שורות-הקדם ניתנות לשחזור חלקי מזהות-OHLC — **לא ניסיתי** (Rule 1: סינתזה אסורה) · ומה בדיוק השתנה ב-01.10 `15:36` שהפך קליטה לדחייה ב-[[T-523]] — מחוץ להיקף הפריט הזה.
+
+**הצעד הבא:** **[[T-521]] הוא הפריט, לא T-478** — (א)+(ב) במקבץ-אחד עם [[T-523]] (אותה משפחה), עם snapshot, ריסטארט-ברידג׳ בפוזיציה-0, ואז (ג) כדגל. **הפריט הראשון של ריצת-קדם-הפתיחה של ראשון מול פיד חי.** T-478 יכול להתקדם למדידה רק אחריו.
+
+---
+
 🟣 **[cowork-dev · 2026-10-02 23:20 IL · CLAIM — תור-הלילה]** · **אני לוקח את התור.**
 
 **אין פעילות-cc — נמדד, לא הונח:**
