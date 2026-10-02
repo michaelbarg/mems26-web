@@ -1,3 +1,84 @@
+🟢 **[cowork-dev · 2026-10-02 21:35-21:42 IL · ריצה 171 — חובה-1 + חובה-3 (ניטור-RTH עשירי של היום; `date ⇒ 2026-10-02 21:35:01 IDT (Fri)` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]**
+
+⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `21:35 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]).
+
+☎️ **חובה-1 · אפס ממתינות-מייקל — נמדד מ-Render, לא הונח:**
+```raw
+$ curl …/chat?key=*** ⇒ items 30
+  האחרון בפיד | 2026-10-02T15:50:02Z | cowork-dev (פתיחת 2913)  ⇐ שלנו, לא שלו
+  מייקל האחרון| 2026-10-02T12:02:01Z | id f60495b9 ⇐ נענתה פעמיים עניינית (12:09:31Z, 12:22:05Z)
+$ tail -12 docs/handoff/PHONE_THREAD.jsonl ⇒ זהה לפיד-Render (אחרון משותף 15:50:02Z)
+```
+⇒ **אין (א)**. מפקד הודעות-הטלפון היום נשאר **7** — הריצה הזו לא שלחה דבר.
+
+🩺 **חובה-3 · פקודה + פלט גולמי (Rule 5):**
+```raw
+$ curl -m8 localhost:8000/api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}
+  (⚠️ `/api/health` מחזיר 404 — הנתיב הקנוני הוא `/api/v9/health`, runbook שורה 66)
+$ pgrep -f "uvicorn backend.main:app" ⇒ 611 · ps -o lstart ⇒ Fri Oct  2 10:14:13 2026
+  ⇒ אותו PID של ריצות 165-170, never exited
+$ grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+  ⇒ 2026-10-02 10:15:04 … pid=611 commit=5d4bb4a3 stream=stderr   ⇐ שער-ד0 עבר, הלוג רואה
+
+[[T-430]] הפיד חי באמת (לא "קובץ טרי"):
+$ psql ⇒ max(ts) v9_bars_5min_woodies = 2026-10-02 21:35:00+03 · age_min 1 (<10) · is_today ✓
+
+פוזיציה ⇄ TM — מלכודת 16, בעלות לפי order_id לפני אזעקה:
+$ sierra_state.json (mtime 21:36) ⇒ position_qty -1 · avg 7772.50 · working_orders 2 · armed 1 · is_sim 0
+  orders = [{id 11398, type 1, price 7759.25, qty 1}, {id 11399, type 3, price 7786.50, qty 1}]
+$ psql ⇒ live פתוחות = {2913} (SHORT, stop 7786.50, t1 7759.25, entry 18:45)
+  ⇒ שני ה-order_id זהים לברקט של ריצות 165-170 ⇒ **התאמה מלאה ⇒ אין אזעקה**
+$ grep Reconcile ⇒ 21:35:54 IN_POSITION_OK — in position with confirmed stop (ORDER_SUBMITTED)
+
+עסקאות-לייב היום (4) — אפס פתיחה ואפס סגירה מאז דיווח 18:50 ⇒ **אין (ב)**:
+$ psql ⇒ 2875 T1_FILL +46.25 · 2877 STOP_HIT -45 · 2895 STOP_HIT -45 · 2913 FILLED (פתוחה)
+  acct_daily_pl ⇒ -43.75   ⇐ תואם את הספרים, אין פער-ברוקר
+
+🆕 **הממצא היחיד של הריצה — TAKE שלא הפך לעסקה, וזה תקין:**
+```raw
+21:35:06 [Gateway] TREE_V3 ZLR SHORT 7772.25 → TAKE [ot=OPEN_REJECTION_REVERSE/phase=D/
+                                                     day_type=Variation/rel_bias=with]
+21:35:07 [ECON-DIFF] trade=ZLR chain:{stop 7781.5, t1 7758.375} | authority:{reject:'no_anchor', n:0}
+21:35:07 [StopResolver] no valid rung in band → rejected
+$ psql ⇒ #2968 ZLR SHORT 7772.25 @21:35 mode=**shadow**  (אפס שורת-לייב חדשה)
+```
+⇒ העץ אמר TAKE, הסלוט תפוס ע"י 2913 ⇒ ירד ל-צל. ה-`no_anchor` הוא **[[T-298]] בדיוק
+כפי שנרשם** — `TRADE_ECONOMICS_AUTHORITY_V1` ב-`diff` (מדידה בלבד, לא מחייב) ⇒ לא באג
+חדש, לא פריט חדש, לא (ג).
+
+ליגר כותב:
+```raw
+$ ls -l gateway_decisions.jsonl ⇒ 193,374B · mtime 21:35 · 221 שורות
+  (היה 179,556B / 204 שורות @21:06 ⇒ **+13,818B ו-+17 שורות ב-29 דק'**)
+  outcome: blocked 81 · live 4 · shadow_only 14
+  blocked_by: tree:bias 43 ([[T-233]], ללא שינוי מריצה 170) · tree:stand_down 11 (היה 8 ⇒ +3) ·
+              tree:location 7 · entry_not_confirmed 5 · rr_entry_gate 5 · tree:kind 5 ·
+              entry_location_quality 3 · rr_hard_floor 1 · cont_trend_filter 1  (= 81 ✓)
+$ python3 scripts/flag_guard.py ⇒ EXIT=0 · "FLAG-GUARD: PASS — all 273 ruled flags match"
+```
+
+💵 **[[T-34]] מרג'ין — דיווח בלבד, ולא חוסם:**
+```raw
+$ sierra_state.json ⇒ acct_available_funds 216.36   (<$1,595)
+$ grep -iE "margin|insufficient|REJECT" /tmp/backend.err.log | grep 2026-10-02 ⇒ אפס שורות-מרג'ין
+```
+הסף $1,595 שייך לפסיקת-הסייזינג של 27.08 (4/3/2 חוזים); **הפסיקה העומדת היא 1 חוזה**
+(18.09 12:05, `FIXED_CONTRACTS_1`), המרג'ין מוחזק ע"י החוזה הפתוח של 2913, ו-ה-TAKE
+של 21:35 הוסב לצל ע"י **סלוט תפוס ולא ע"י כסף**. ⇒ שורת-מדידה, **אין (ג)** — ואין
+לבקש ממייקל להחליט מה שנפסק.
+
+🧹 **שיטפון ה-TS-OFFSET-GATE — עדיין עצור** (עקבי עם ריצות 166/168):
+```raw
+$ grep -c "2026-10-02.*\[ERROR\]" /tmp/backend.err.log ⇒ 7345
+  כולם [backend.v9.api.v9.bars] TS-OFFSET-GATE · **האחרון 16:30:02** ⇒ אפס מאז פתיחת ה-RTH
+```
+⇒ תנאי טרום-פתיחה שנסגר מעצמו בפתיחה; לא תקלה חיה. הפיד נקלט (max(ts) 21:35).
+
+**סיכום:** פיד חי · backend בריא (PID 611) · פוזיציה=TM בבעלות מוכחת · ליגר כותב ·
+flag_guard PASS · חוזה 1 · אפס ממתינות-מייקל ⇒ **שקט מוחלט בטלפון** (אין א/ב/ג/ד).
+
+---
+
 🟢 **[cowork-dev · 2026-10-02 21:05-21:12 IL · ריצה 170 — חובה-1 + חובה-3 (ניטור-RTH תשיעי של היום; `date ⇒ 2026-10-02 21:05:05 IDT (Fri)` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **אפס הודעות — ארבעת המקרים שליליים** · 🔑 **וממצא-הריצה: שער-ההטיה נמדד סוף-סוף על עצמו ולא על הצל — 43 מועמדים חסומים, `2` הגיעו ל-`T1` מול `29` לסטופ ⇒ `−278.25` נק'; השער חסך היום כסף, הפוך ממה שמסרתי למייקל ב-14:45**
 
 ⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `21:05 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); אין רשומת-ריסטארט של cowork מהיום אחרי 12:00. ⇒ **שורת-מדידה בלבד.**
