@@ -1,3 +1,97 @@
+🟢 **[cowork-dev · 2026-10-02 22:34-22:58 IL · ריצה 173 — חובה-1 + חובה-3 (ניטור-RTH שנים-עשר של היום; `date ⇒ Fri Oct  2 22:34:59 IDT 2026` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **הודעה אחת — מקרה (ב), סגירת-לייב** · 🔑 **וממצא-הריצה: פלטן-ה-EOD של T-10 ירה ועבד — נמדד בזמן-אמת, לא נחזה — ו-`SIERRA_FLAT` חוזרת UNPRICED בשתי העמודות**
+
+⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `22:34 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); `ps -o lstart -p 611 ⇒ Fri Oct  2 10:14:13` = לפני 12:00 ⇒ הבעלות אינה שלי.
+
+☎️ **חובה-1 · אפס ממתינות-מייקל — נמדד מ-Render, לא הונח:**
+```raw
+$ curl …/chat?key=*** ⇒ items 30
+  מייקל האחרון | 2026-10-02T12:02:01Z ⇐ נענתה פעמיים עניינית (12:09:31Z + 12:22:05Z)
+  האחרון בפיד  | 2026-10-02T15:50:02Z | cowork-dev (פתיחת 2913)   ⇐ שלנו, לא שלו
+$ PHONE_THREAD.jsonl tail ⇒ אחרונה 15:50:02Z = זהה לפיד-Render
+```
+⇒ **אין (א)**. ההודעה היחידה שיצאה היא (ב) למטה; מפקד-היום עולה ל-**8**.
+
+🩺 **חובה-3 · פקודה + פלט גולמי (Rule 5):**
+```raw
+$ curl -m8 localhost:8000/api/v9/health   ⇒ {"status":"ok","version":"v9.0.0"}
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN        ⇒ Python 611 (יחיד) · etime 12:22:39 · %CPU 11.2
+$ launchctl list | grep -i mems26 | sort  ⇒ 6 עם PID (backend 611 · frontend 621 · bridge 637 ·
+    export_promoter 1619 · activity_feed 1624 · mobile_relay 1629) + 3 מתוזמנים-בלבד עם `-`
+    (eod_handoff · startup_check · update_check) ⇒ **9/9, לא 6/9** (מלכודת §3.12)
+$ grep "[boot] logging OK" ⇒ 2026-10-02 10:15:04 … pid=611 commit=5d4bb4a3 ⇐ שער-ד0 עבר
+[[T-430]] הפיד חי באמת (לא "קובץ טרי"):
+$ psql ⇒ max(ts) v9_bars_5min_woodies = 2026-10-02 22:35:00+03 · age 1.2 דק' (<10) · ET-date היום
+$ ruled_contracts() עם `.env` טעון ⇒ 1   ([[T-489]], **מדידה בלבד**)
+$ flag_guard.py ⇒ "FLAG-GUARD: PASS — all 273 ruled flags match"
+$ close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do" (dry-run)
+    ⚠️ ולא טושטש: `state='FILLED'` ⇒ shadow **28** (עתיקה 11:25 ET) · live 1. הסקריפט אינו
+    מסמן אותן כ-stale כי הן **של היום**; `bar_router` 6,521 WARNING ב-21:00-22:36 ≈ 68/דק'
+    עקבי עם עבודה-לכל-בר על 28 פתוחות — **לא 1,000/דק' של 16.09** ⇒ נרשם, לא אזעקה
+$ לוג-היום: ERROR=7345 · CRITICAL=66 · ORPHAN=0 · LIVE fire BLOCKED=0 · exit_not_executed=0
+    ERROR: 100% מחלקה אחת — `[bars/5min] TS-OFFSET-GATE REJECTED batch` ([[T-380]]),
+    חלון **10:16:47 → 16:30:02** בלבד (h10=835 h11=1181 h12=1186 h13=1189 h14=1186 h15=1180
+    h16=654, **h17-h22 = 0**) ⇒ קפאה בדיוק בפתיחת-RTH; grep "^2026-10-02 22:3" ⇒ **0**
+    CRITICAL: 66, כולן `INSANE TARGET GEOMETRY trade=2867` (עסקת-**צל**), אחרונה 16:37:21
+    ⇒ שתי המחלקות **עצורות**, עקבי עם ריצות 169/171/172
+```
+
+☎️ **מקרה (ב) — ההודעה שיצאה, 275 תווים, אפס backticks, מסירה מאומתת מ-GET /chat ולא מה-`ok`:**
+```raw
+$ phone_reply.py cowork-dev "נסגרה 22:50 — 2913 DOUBLE_TOP_AA_SHORT …" ⇒ ok
+$ curl …/chat?key=*** ⇒ 2026-10-02T19:51:39Z | cowork-dev | 275ch  ⇐ הגיעה
+```
+
+🆕 **ממצא-הריצה (א) — T-10 ירה, נמדד בזמן-אמת ולא נחזה. זו הפעם הראשונה שהנתיב נראה עובד מקצה-לקצה:**
+
+ריצה 172 מדדה שהנתיב *אמור* לעבוד וסיימה שם. הריצה הזו **נשארה על הקו** מ-22:41 עד 22:51 (לוג-דגימה כל 20 שנ', `/tmp/eod_watch_1002.log`) כדי לראות אם הוא באמת יורה — כי זו שישי, ופלטן שלא יורה פירושו פוזיציית-לייב פתוחה על-פני סוף-השבוע:
+```raw
+$ sierra_state דגימות ⇒ 22:49:51 | pos=-1 wo=2 last=7776.75 open_pnl=-21.25 acct_pl=-43.75 qty=7
+                         22:50:11 | pos=0  wo=0 last=7777.50 open_pnl=0.0   acct_pl=-67.5  qty=8
+$ grep ⇒ 2026-10-02 22:50:00 [SierraCmd] COMMAND QUEUED #408 → cmd_000408.json
+                              (op=FLATTEN_ACCOUNT, pending_before=0, fast_path=True)
+         2026-10-02 22:50:00 [T-10] EOD CLOSE at 15:50 ET: FLATTEN for live trade 2913
+         2026-10-02 22:50:04 [Reconcile] IN_POSITION_OK — flatten in progress
+                              (FLATTEN_ACCOUNT_OK 1.7s ago) — naked-stop check suppressed
+```
+⇒ **שנייה 0 של החלון** (15:50:00 ET בדיוק), `FLATTEN_ACCOUNT` ולא `op=EXIT` השבור, `wo` 2→0 (הברקט בוטל), `qty_filled` 7→8, `pos` −1→0, והרקונסיילר השתיק נכון את אזעקת-הסטופ-החשוף. **אפס `ORPHAN`, אפס `exit_not_executed`.**
+
+**והציר נמדד מחדש אצלי ולא נורש מריצה 172** (Rule 2 — "verify before you trust"), כי `f(None) is True` היה מדלג **גם** על ה-CANCEL של 22:59 ⇒ החזקה על-פני סוף-השבוע:
+```raw
+$ sed -n '/_eod_close_t10/,/def /p' bar_level_detector.py ⇒ חלון `15:50 ≤ et < 16:00`,
+    `live_active = mode in ("demo","live")`, ואז `getattr(trade,"contracts",None)`
+    → fallback `quality["contracts"]` → `account_has_foreign_contracts(...)`
+$ psql ⇒ information_schema: ל-v9_trades **אין** עמודת `contracts` ו**אין** `metadata`
+    ⇒ `getattr` נופל תמיד, ו-`quality` הוא **המקור היחיד** בפועל
+    ⚠️ תיקון לריצה 172: הראיה "`metadata.sizing = 1`" **אינה קיימת** — אין עמודה כזו.
+      המסקנה שלהם נשארה נכונה; אחת משתי הראיות שתמכו בה לא.
+$ psql ⇒ 2913: quality->'contracts' = 1 · jsonb_typeof = **number** (לא string)
+$ python3 ⇒ f(1)=False · f('1')=False · f(None)=True · f(0)=True
+    ⇒ ירוק **בכל ענף** — גם לו ה-jsonb היה string
+$ stat .env ⇒ 2026-09-30 13:23:50 = **לפני** עליית 611 ב-10:14 ⇒ הדגלים הטעונים הם של `.env`:
+    EOD_CLOSE_T10_V1=1 · EOD_FLATTEN_V1=1 · EOD_RISK_WINDOW_V1=1 · SYSTEM6_AUTOCORRECT=protective
+    (`ps eww 611` **אינו** מקור — macOS אינו חושף env של תהליך אחר; rc=1 ואפס פלט)
+$ day_type/state ⇒ Variation, stage B2, conf 0.33 ⇒ C4_TREND_FLATTEN (ימי-Trend) לא נפתח — ✔
+```
+**מה שכן נשאר פתוח מהצד הזה:** `account_has_foreign_contracts` נמדד על **הפוזיציה הנוכחית**. לו מייקל היה פותח ידנית לפני 22:50, `f(1)` היה מתהפך ל-True ⇒ SKIP, והברקט (סטופ 7786.50) היה ההגנה היחידה אל סוף-השבוע. היום לא קרה (`qty_filled=7` יציב מ-18:45), אבל זה תלוי-מזל ולא תלוי-תכנון.
+
+🆕 **ממצא-הריצה (ב) — 🟠 `SIERRA_FLAT` היא מחלקת-היציאה הגרועה בספרים, ו-2913 הוא המקרה העשירי:**
+```raw
+$ psql ⇒ 2913: state CLOSED · exit_reason **SIERRA_FLAT** · exit_ts 15:50 ET
+         exit_price **NULL** · pnl_usd **NULL** · pnl_sierra **NULL** · outcome **UNPRICED**
+$ psql ⇒ live+CLOSED לפי exit_reason (n / יש pnl_sierra / יש pnl_usd):
+    STOP_FILL  26/26/26 ·  T1_HIT 13/13/13 ·  STOP_HIT 61/53/61
+    **SIERRA_FLAT 10/1/5**  ⇐ אחת מעשר עם ברוקר, חמש מעשר עם ספרים
+$ psql ⇒ Σ היום (live, n=4): sum_pnl_usd = **-36.25** · sum_pnl_sierra = **-43.75**
+$ sierra_state ⇒ acct_daily_pl **-67.50** (היה -43.75 ב-22:49:51)
+```
+**המשמעות:** כל פעם ש-T-10 עושה את עבודתו, הכסף של אותה עסקה **אינו נרשם** — הוא קיים רק אצל הברוקר. מכאן ש-2913 = `-67.50 − (-43.75)` = **−23.75** (ובדיקה: מ-`avg_price` 7772.50 ⇒ יציאה ~7777.25 = −4.75 נק' × $5 = −23.75 ✔), וצירוף ארבע העסקאות `+46.25 −45 −45 −23.75 = −67.50` = **בדיוק** `acct_daily_pl` ⇒ **4/4 מוצלב**. ⛔ **ולא כתבתי את המספר ל-DB** (Rule 1 — "honest failure > synthetic value"): `broker_truth.py --write` הוא הכותב הפסוק, והוא עמוד-הלילה הראשון ב-23:00-23:30.
+
+➡️ **לריצת-הלילה (23:00-23:30), בסדר הזה:** `broker_truth.py --since 2026-09-01 --write` ⇒ חייב לכסות את 2913 (אחרת שורת "אין רישום-ברוקר ל-#2913") · `day_review.py` · `review_report.py` · `gen_tree_board.py` · `gen_phone_pages.py --days 14` + שורת-הלקח ב-`LESSONS_TIMELINE.json` (ענף `k=b` — מדידה: T-10 אומת בשטח) · commit+push + אימות 200 על עמוד-היום.
+
+— cowork-dev, 2026-10-02 22:58 IL
+
+---
+
 🟢 **[cowork-dev · 2026-10-02 22:05-22:28 IL · ריצה 172 — חובה-1 + חובה-3 (ניטור-RTH אחד-עשר של היום; `date ⇒ 2026-10-02 22:05:08 IDT (Fri)` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]**
 
 ⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `22:05 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); `ps -o lstart -p 611 ⇒ Fri Oct  2 10:14:13` = לפני 12:00 ⇒ הבעלות אינה שלי.
