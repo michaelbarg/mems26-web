@@ -1,3 +1,27 @@
+🟢 **[cowork-dev · 2026-10-02 11:35-11:41 IL · ריצה 152 — חובה-1 בלבד (`date ⇒ Fri Oct  2 11:35:02 IDT 2026` ⇒ אינו שער-15:30, אינו RTH, אינו תור-לילה)]**
+
+☎️ **אפס ממתינות בחמש ראיות ⇒ שקט מוחלט בטלפון, אפס הודעות בריצה הזאת.** `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `GET /chat ⇒ count 30`, והאחרון `2026-10-01T20:24:34Z` הוא **של cowork-dev** (דוח-היום של 01.10) ⇒ אין הודעת-מייקל בלי תשובה עניינית · `channel_guard ⇒ ✅ every request in the window is either a task or dispositioned` · רלה חיה. **ארבעת המקרים, כולם שליליים:** (א) אין הודעת-מייקל ממתינה · (ב) אפס לייב חדש מאז `#2843` (`10-01 14:10 ET · STOP_HIT · pnl_sierra −56.25`), ו-`entry_ts::date ET = היום ⇒ 0 שורות` · (ג) אין חריגה שדורשת פסיקה · (ד) 11:35 אינו שער-15:40. ⇒ `phone_reply.py` **לא נקרא**.
+
+⚠️ **תיקון-עצמי, לרשומה כדי שלא ייקרא כתקלה: `pgrep -fl phone_relay ⇒ ריק` הוא תבנית-חיפוש שגויה שלי, לא רלה מתה.** שם-הסקריפט הוא `mobile_relay.py`. הראיה הנכונה: `ps aux ⇒ michael 1629 … scripts/mobile_relay.py` (עלה 10:21AM) ו-`launchctl list | grep mems26 ⇒ 1629 0 com.mems26.mobile_relay`. **התבנית לשימוש מכאן והלאה:** `pgrep -fl mobile_relay`, או עדיף `launchctl list | grep mems26` שמכסה את כל התשעה בבת-אחת. אותה מחלקה כמו §3.11 — אפס-תוצאות שנראה כמו תקלה כשהמערכת חיה לגמרי.
+
+⛔ **בעלות — אין לי כאן כלום.** ריצה 151 נסגרה `5e6cd914`, ופסיקת cowork-האינטראקטיבי (רשומת 10:20-10:50) עומדת: **היום אפס ריסטארט ואפס GO/NO-GO מצד הסוכן-המתוזמן.** וממילא 11:35 אינו חלון-השער. המאזין על `:8000` הוא `pid 611`, עלה `Fri Oct  2 10:14:13` ⇒ **לפני 12:00** (תנאי-הבעלות של ps -o lstart אינו מתקיים, והפסיקה הכתובה כן). **ולבעל-השער של היום, בדיקה שעשיתי כדי שלא יורם ריסטארט כפול (T-369):** `list_scheduled_tasks` ⇒ **אין משימה חד-פעמית `mems26-preopen-restart` לתאריך 02.10** (האחרונות הן 10/11/15.09, כולן `enabled: false`); המשימה היחידה הדלוקה היא `mems26-preopen-gate` עצמה.
+
+🩺 **מצב, נמדד 11:36-11:40, קריאה-בלבד:** `/api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}` · בקאנד `pid 611 commit 5d4bb4a3` · `[boot] logging OK level=INFO pid=611 … stream=stderr` ⇒ שכבת-INFO נטענה וה-pid תואם (שער ד0 עובר, אין עיוורון-לוג) · **פיד חי במבחן-T-430:** `max(ts) = 2026-10-02 11:35:00+03` מול `now() = 11:36:33` ⇒ **גיל 1.6 דק'**, ותאריך-הבר ב-IL = היום ⇒ לא "קובץ-טרי אבל פיד-מת" · גשר דוחף עכשיו (`[volume_profile] push #1601 · [tpo] #1604 · [imbalance_flags] #1604`, 11:38:59) · `contracts_cfg = 1` מהתהליך החי **וגם** `ruled_contracts() ⇒ 1` עם `.env` טעון = פסיקת 18.09 12:05, שני המקורות תואמים · `position_qty 0 · is_sim 0 · order_placement_armed 1 · send_orders_to_trade_service 1 · working_orders 0 · trading_paused False · halt_cap 800 · last_price 7759.75` · `next_fire.allowed {LONG: false, SHORT: false}` — stand-down, **נכון טרום-פתיחה** (ה-RTH נפתח 16:30 IL) · `flag_guard ⇒ PASS — all 273 ruled flags match` · `task_log_guard ⇒ ✅ current, structured, and the only one` (502 פריטים).
+
+✅ **T-259 (הריבוט של 10:13 החזיר 3/9) — אני מאמת שהוא סגור, מצד-המצב ולא מצד-ה-rc.** `launchctl list | grep mems26` ⇒ ששת השירותים-הרצים כולם עם PID: `611 backend · 621 frontend · 637 bridge · 1619 export_promoter · 1624 activity_feed · 1629 mobile_relay`; שלושת הנותרים (`eod_handoff · startup_check · update_check`) הם מתוזמנים-בלבד ויושבים על `- 0` — זה מצבם התקין בין הרצות, לא כשל. מאזינים: `Python 611 *:8000` ו-`node 754 *:3000`. ⇒ **9/9**, והתיקון הוא של cowork-האינטראקטיבי (`bb234bbb`), לא שלי.
+
+🧹 **אפס תקועות ⇒ אין מה לנקות:** `close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades — nothing to do`. `state <> 'CLOSED' GROUP BY mode, state` ⇒ **`live|CANCELLED|36` בלבד**, וזו ההיסטוריה מ-27.07 שתועדה במלכודת 3.11 — לא פוזיציות תקועות ולא שורות-צל.
+
+💰 **T-34, דיווח-בלבד (יום רביעי ברציפות):** `acct_available_funds 554.49` < 1,595 ⇒ הרשומה כאן. **אינו חוסם מסחר ⇒ אין מקרה (ג) בטלפון:** `acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_ok 1 · order_placement_armed 1`, והגודל הפסוק הוא חוזה 1.
+
+📊 **הערה, לא אזעקה — עם מגבלת-ראיה שאני מציין במפורש:** בסיירה `daily_total_qty_filled 6` ו-`daily_pnl −7.5`, מול `acct_daily_pl 0.0`. לפי §3.5 אלו **אינם של המערכת**, והראיה החזקה היא ה-DB ולא הלוג: **אפס שורות ב-`v9_trades` עם כניסה היום ב-ET** (בכל המודים), כלומר המערכת לא רשמה אף כניסה היום. **המגבלה:** `/tmp/backend.err.log` נוצר מחדש בריסטארט של 10:15 (`שורה ראשונה 10:15:02`, אחרונה `11:38:32`), ולכן `COMMAND QUEUED ⇒ 0` תקף **לחלון 10:15→11:38 בלבד** ואינו מכסה את השעות שלפניו — אני לא מרחיב אותו ליום-שלם. גם `high_during_pos`/`low_during_pos` לא דווחו: בפוזיציה-0 הם סנטינל (§3.7).
+
+**הצעד הבא:** ריצת 12:00 — חובה-1 בלבד שוב (אינה שער ואינה RTH). בעלות-השער של 15:30-16:10 נשארת ל-cowork-האינטראקטיבי לפי הפסיקה הכתובה; אם לא תופיע רשומת-שער שלו עד 16:10, זה חוזר כפריט לריצה שאחריה — לא ריסטארט יזום מצדי.
+
+— *cowork-dev, 2026-10-02 11:41 IL*
+
+---
+
 🟢 **[cowork-dev · 2026-10-02 11:05-11:09 IL · ריצה 151 — חובה-1 בלבד (11:05 אינו שער-15:30, אינו RTH, אינו תור-לילה)]**
 
 ☎️ **אפס ממתינות בחמש ראיות ⇒ שקט מוחלט בטלפון, אפס הודעות בריצה הזאת.** `GET /chat ⇒ TOTAL 30`, האחרון `2026-10-01T20:24:34Z` (דוח-היום, cowork-dev) — זהה לריצה 150, אפס הודעת-מייקל חדשה · `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `channel_guard ⇒ ✅ every request dispositioned` · `launchctl ⇒ 9/9 רשומים`, relay `pid 1629`. אפס עסקת-לייב חדשה מאז `#2843` (01.10) ⇒ אין מקרה (ב).

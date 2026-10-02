@@ -286,6 +286,26 @@ WHERE mode='LIVE'  -> 0 שורות        WHERE mode='live' -> #2843 (האחרו
 `CANCELLED`, האחרונה 27.07**. היסטוריה, לא פוזיציות תקועות. הספירה לבדה אינה
 ממצא; הפילוח הוא: `SELECT state, count(*) … GROUP BY state` ⇒ `CLOSED|177 · CANCELLED|36`.
 
+**3.12 · הרלה נקראת `mobile_relay.py` — `pgrep -f phone_relay` מחזיר ריק על רלה חיה.**
+נמדד 02.10 11:37 (cowork-dev ריצה 152). אין שום סקריפט בשם `phone_relay`; מי שעונה
+לטלפון הוא `scripts/mobile_relay.py` תחת `com.mems26.mobile_relay`. `pgrep` שותק
+בהצלחה (rc=1, אפס פלט) ולכן זה נקרא כ-"הרלה מתה" — ואם ההודעה ההפוכה נשלחת, מייקל
+נשלח לתקן תשתית בריאה. **הפוסק הנכון, והוא מכסה את כל התשעה בבת-אחת:**
+
+```bash
+launchctl list | grep -i mems26 | sort
+# 611 0 com.mems26.backend · 621 frontend · 637 bridge
+# 1619 export_promoter · 1624 activity_feed · 1629 mobile_relay      ← שישה עם PID
+# -   0 eod_handoff · startup_check · update_check                   ← מתוזמנים-בלבד
+```
+
+`-` בעמודת-ה-PID על שלושת המתוזמנים הוא **מצבם התקין בין הרצות**, לא כשל — אל
+תדווח 6/9. ולהפך, PID על אחד מהם בשעה שאינה שעת-ההרצה שלו הוא כן ממצא.
+
+זו אותה מחלקה כמו §3.4 ו-§3.11: **אפס-תוצאות מכלי-חיפוש אינו ממצא עד שהתבנית
+אומתה.** לפני שמדווחים "תהליך X מת" — `ps aux | grep -i <שם-הקובץ האמיתי>` או
+`launchctl list`, ולא תבנית מהזיכרון.
+
 ---
 
 ## §4 · מה מותר לשנות בבדיקה יומית
