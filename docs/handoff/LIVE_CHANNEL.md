@@ -1,4 +1,96 @@
 
+🟢 **[cowork-dev · 2026-10-02 19:35-19:48 IL · ריצה 167 — חובה-1 + חובה-3 (ניטור-RTH שישי של היום; `date ⇒ 2026-10-02 19:35:00 IDT (Fri)` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **אפס הודעות — ארבעת המקרים שליליים** · 🔑 **וממצא-הריצה הוא היעדר: [[T-435]] שקט היום לגמרי — `runs = 1`, שורת-boot אחת, `last exit code = (never exited)`**
+
+⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `19:35 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); `ps -o lstart -p 611 ⇒ Fri Oct  2 10:14:13 2026` = לפני 12:00 ⇒ תנאי-הבעלות השני אינו מתקיים בנפרד. ⇒ **שורת-מדידה בלבד.**
+
+☎️ **חובה-1 · אפס ממתינות-מייקל — נמדד מ-Render, לא הונח:**
+```raw
+$ curl …/chat?key=***  ⇒ http=200 t=0.421s · items 30
+  מייקל      | 2026-10-02T12:02:01Z | "למה אין תיקונים…"
+  cowork-dev | 2026-10-02T12:09:31Z + 12:22:05Z                          ⇐ נענתה פעמיים, עניינית
+  האחרון בפיד | 2026-10-02T15:50:02Z | cowork-dev (פתיחת 2913)            ⇐ שלנו, לא שלו
+$ tail -4 docs/handoff/PHONE_THREAD.jsonl ⇒ זהה לפיד-Render (אחרון משותף 15:50:02Z)
+```
+⇒ **אין (א)**. אירועי-המסחר נבדקו **פעמיים** (19:38 ו-19:40:26 — לקח-השיטה של ריצה 165) ובשתיהן אותן 4 עסקאות-לייב, 3 סגורות ו-2913 עדיין `FILLED`: **אפס פתיחה ואפס סגירה חדשה מאז ריצה 166** ⇒ **אין (ב)**. המרג'ין אינו חוסם (ראיה למטה) ⇒ **אין (ג)**. הבעלות אינה שלי ⇒ **אין (ד)**. ⇒ `phone_reply.py` **לא נקרא**; סך הודעות-הטלפון של הסוכן-המתוזמן היום נשאר **6**.
+
+🩺 **חובה-3 · ארבע הבדיקות, פקודה + פלט גולמי (Rule 5):**
+```raw
+$ curl -s -w "HTTP=%{http_code} t=%{time_total}s" localhost:8000/health
+  {"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":33825.4,"v9_mounted":true}
+  HTTP=200 t=0.014332s
+$ lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 611 (מאזין יחיד) · %CPU 30.6 · %MEM 0.7 · STARTED Fri Oct 2 10:14:13 2026
+
+[[T-430]] הפיד חי באמת ולא "קובץ-יצוא טרי":
+$ psql ⇒ max(ts) v9_bars_5min_woodies = 2026-10-02 19:35:00+03 · age_min 3.8 (<10) · is_today = true
+$ ובבדיקה-החוזרת 19:40:26 ⇒ max_bar 19:40:00 · age_min 0.4   ⇐ הפיד התקדם בתוך החלון, לא קפוא
+
+שער-ד0 (שכבת-INFO) — בלעדיו כל אפס הוא עיוורון ולא מדידה:
+$ grep "[boot] logging OK" /tmp/backend.err.log | tail -1
+  2026-10-02 10:15:04 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=611 commit=5d4bb4a3 stream=stderr
+  ⇒ pid=611 = המאזין החי ✔ עבר
+
+פוזיציה ⇄ TM — מלכודת 16, בעלות לפני אזעקה:
+$ sierra_state ⇒ position_qty -1 · working_orders 2 · order_placement_armed 1 · is_sim 0
+  orders = [{id 11398, type 1, price 7759.25, qty 1}, {id 11399, type 3, price 7786.5, qty 1}]
+$ psql        ⇒ live פתוחות = {2913} (SHORT, חוזה 1)
+⇒ -1 מול עסקה-אחת-שורט, ושני ה-order_id זהים לברקט שנרשם בריצה 165 ⇒ **התאמה מלאה, אפס פער** ⇒ אין אזעקה
+
+ליגר כותב (הקובץ הוא האמת, הפיד חסום ל-200):
+$ gateway_decisions.jsonl ⇒ 114,169B · mtime 19:35:19 · today 133 · newest 2026-10-02T16:35:19+00:00 (= 19:35 IL)
+  GATE_DECISION 46 · DETECTED 41 · EMIT_DECISION 35 · ROUTED 11
+  outcome: blocked 46 · live 4 · shadow_only 7      ⇐ סכום-בקרה: 46 = GATE_DECISION ✓ · 4+7 = 11 = ROUTED ✓
+  blocked_by: tree:bias 20 · tree:location 7 · tree:stand_down 6 · entry_not_confirmed 3 ·
+              entry_location_quality 3 · rr_entry_gate 3 · tree:kind 2 · rr_hard_floor 1 · cont_trend_filter 1  (= 46 ✓)
+  ⇒ העץ 35 מ-46 = 76.1% · live_blocked_by: live_slot_occupied 1 (שפוי — מועמד כש-2913 פתוחה) · אפס margin_zero_size
+$ מול ריצה 166 (today 96) ⇒ +37 אירועים ב-30 דק' = הליגר כותב בקצב, לא קפוא
+
+לוג-היום (grep "^2026-10-02" /tmp/backend.err.log):
+  "LIVE trade TM id" 4 · "COMMAND QUEUED" 4 · "LIVE fire BLOCKED" 0 · ORPHAN 0 · "UNMANAGED POSITION" 0 ·
+  EntryGuard 0 · Traceback 0 · exit_not_executed 0 · exit_needs_manual 0
+  [ERROR] לפי שעה: h17 0/5,838 · h18 0/4,400 · h19 0/4,570 שורות-חיות ⇒ האפס הוא מדידה, לא שקט-לוג
+$ set -a; . ./.env; set +a; python3 -c "…ruled_contracts()" ⇒ 1     ⇐ פסיקת 18.09, מדידה בלבד
+$ flag_guard ⇒ PASS 273/273 · task_log_guard ⇒ ✅ 502 items
+$ launchctl list | grep mems26 ⇒ 611 backend · 621 frontend · 637 bridge · 1619 export_promoter ·
+  1624 activity_feed · 1629 mobile_relay  ‖  "-" על eod_handoff/startup_check/update_check = תקין בין הרצות (מלכודת 3.12)
+```
+
+📊 **עסקאות-הלייב של היום — ללא שינוי מאז 18:45; המספר הוא של הברוקר (`pnl_sierra`), לא של הספרים:**
+```raw
+id   | state  | תבנית               | כיוון | כניסה   | יציאה    | ברוקר  | שעות ET
+2875 | CLOSED | DALTON_EDGE_SHORT   | SHORT | 7797.25 | T1_FILL  | +46.25 | 09:50→09:54
+2877 | CLOSED | GB100               | SHORT | 7784.75 | STOP_HIT | -45.00 | 09:55→10:02
+2895 | CLOSED | CEILING_FLIP_SHORT  | SHORT | 7801.00 | STOP_HIT | -45.00 | 10:35→10:42
+2913 | FILLED | DOUBLE_TOP_AA_SHORT | SHORT | 7773.25 | —        | פתוחה  | 11:45→
+$ Σ pnl_sierra של ה-3 הסגורות = -43.75  **וזה בדיוק** acct_daily_pl -43.75   ⇒ 3/3 מוסברות, אפס פער-ברוקר
+$ acct_open_positions_pl -37.50 (היה -36.25 ב-19:38) · last_price 7780.25 · בר 19:40 בתוקף
+```
+⇒ 2913 **עדיין בדריפט נגדה**: מחיר `7780.25` מול כניסה `7773.25`, סטופ `7786.50` במרחק `6.25` נק', יעד1 `7759.25`. **דריפט אינו סגירה ואינו חריגה** ⇒ אין (ב) ואין (ג); הדיווח לטלפון יֵצא ברגע שתיסגר.
+
+💳 **[[T-34]] — דיווח-בלבד, והאריתמטיקה סוגרת שוב:**
+```raw
+$ sierra_state ⇒ acct_account_value 474.49 = acct_available_funds 187.61 + acct_margin_req 286.88   ✔
+                 acct_cash_balance 510.74 · acct_daily_net_loss_limit -332.69
+                 acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_ok 1 · armed 1
+```
+⇒ ה-`avail` נמוך מ-$1,595 **כי המרג'ין תפוס בפוזיציה הפתוחה**, לא כי חסר כסף; המערכת חמושה והברקט חי ⇒ **אינו חוסם מסחר ⇒ אין (ג)**, שורה כפי ש-T-34 מורה.
+
+🔑 **ממצא-הריצה — [[T-435]] שקט היום לחלוטין, וזה נמדד ולא הונח:**
+```raw
+$ launchctl print gui/501/com.mems26.backend  (פעמיים, במרווח 32 שנ')
+  state = running · runs = 1 · pid = 611 · last exit code = (never exited)
+  state = running · runs = 1 · pid = 611 · last exit code = (never exited)     ⇐ אפס גידול
+$ grep -c "[boot] logging OK" /tmp/backend.err.log ⇒ 1   (10:15:04, pid=611)
+```
+**ממצא:** מאז `10:14:13` יש **ריצה אחת בלבד** של ה-LaunchAgent, בקאנד אחד, אפס ילדי-לולאה, אפס `Errno 48`. זה שונה מארבעת מצבי-הכשל של T-435 (21.09 · 22.09 · 28.09 · 01.10) שבהם `runs` עלה בעשרות-מאות וה-`[boot]` חזר כל ~30 שנ'. ⚠️ **ובמפורש אינו סגירה:** T-435 הוא כשל **חוזר** ולא קבוע, ויום שקט אחד הוא מדידה — לא ראיה שהשורש טופל. **אפס פעולה נדרשת היום, אפס (ג).**
+
+**מה נשאר פתוח מריצה 166:** האם שיטפון-ה-`TS-OFFSET-GATE` חוזר עם **סגירת**-השוק (23:00 IL)? `h19 ⇒ 0` ⇒ טרם נבדק, שעת-הסגירה לא הגיעה. נמסר לריצת-הערב.
+
+**אפס נגיעה:** `.env` · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · ריסטארט/`kickstart` · DLL · קוד-ייצור · כתיבות-DB. **כתיבות:** `LIVE_CHANNEL.md` · `TASK_LOG.md`.
+
+**הצעד הבא:** (1) ריצת-23:00 — חובה-4 (תור-הלילה + עמודי-הטלפון), ושם גם מבחן-סגירת-השוק ל-[[T-380]]; (2) 2913 תיסגר ⇒ **מקרה (ב)** בטלפון, ≤300 תווים; (3) [[T-523]]+[[T-521]] במקבץ-אחד לתור-הלילה; (4) `tree:bias` עלה ל-20 מ-46 (43.5%) — **מועמד-ריפליי**, גודל 1, ⛔ לא דגל ולא שינוי-עץ (`LEARNING_DOCTRINE`); (5) ⛔ **אין לשאול שוב:** בעלות-הריסטארט/השער של היום · פסיקת-אי-התיקון של [[T-435]] ב-RTH · ציטוט `daily_pnl`.
+
+---
+
 🟢 **[cowork-dev · 2026-10-02 19:05-19:12 IL · ריצה 166 — חובה-1 + חובה-3 (ניטור-RTH חמישי של היום; `date ⇒ 2026-10-02 19:05:05 IDT (Fri)` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **אפס הודעות — ארבעת המקרים שליליים** · 🔑 **ומחצית מפריט (3) של ריצה 164 נסגרה במדידה: שיטפון-ה-`[ERROR]` אינו "עונתי" במעורפל — הוא נעצר בדיוק בפתיחת-ה-RTH, `16:30:02`, ואפס מאז**
 
 ⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`); `19:05 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); `ps -o lstart -p 611 ⇒ Fri Oct  2 10:14:13 2026` = לפני 12:00 ⇒ תנאי-הבעלות השני אינו מתקיים בנפרד. ⇒ **שורת-מדידה בלבד.**
