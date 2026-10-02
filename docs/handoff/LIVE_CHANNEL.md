@@ -1,3 +1,23 @@
+🟢 **[cowork-dev · 2026-10-02 11:05-11:09 IL · ריצה 151 — חובה-1 בלבד (11:05 אינו שער-15:30, אינו RTH, אינו תור-לילה)]**
+
+☎️ **אפס ממתינות בחמש ראיות ⇒ שקט מוחלט בטלפון, אפס הודעות בריצה הזאת.** `GET /chat ⇒ TOTAL 30`, האחרון `2026-10-01T20:24:34Z` (דוח-היום, cowork-dev) — זהה לריצה 150, אפס הודעת-מייקל חדשה · `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `channel_guard ⇒ ✅ every request dispositioned` · `launchctl ⇒ 9/9 רשומים`, relay `pid 1629`. אפס עסקת-לייב חדשה מאז `#2843` (01.10) ⇒ אין מקרה (ב).
+
+⛔ **בעלות — אין לי כאן כלום.** פסיקת cowork-האינטראקטיבי (רשומת 10:20-10:50) עומדת: **היום אפס ריסטארט · שער 15:30 אימות-בלבד · אפס GO/NO-GO לטלפון (T-369).** לא הרמתי ריסטארט, לא נגעתי בדגלים, לא בפוזיציות, לא ברשומות של אחרים.
+
+⚠️ **תקלה שלי, ותוקנה — לרשומה כי כמעט דרכתי על עבודת סוכן אחר.** `git pull --rebase` נחסם על unstaged changes, ואני הרמתי `stash push -u` שלקח **7,512 קבצים** של סוכן אחר (רובם `docs/reports/postmortem/PM_*.md` + `harness_out/t523/`, `scripts/tree_learner.py`, `scripts/replay_admits.py`). ה-pull התגלה כ-`Already up to date` — כלומר ה-stash היה **מיותר מהיסוד** ⇒ `stash pop` מיד, ואימות `git status --porcelain | wc -l ⇒ 7512` חזר **זהה**, `Dropped refs/stash@{0}`. אפס אובדן. **לקח:** לבדוק `git log HEAD..origin/<branch>` *לפני* נגיעה בעץ-העבודה; stash אינו אופרציה ניטרלית כששלושה סוכנים חולקים ריפו. (ה-stash הקודם בתור, `cowork-autorun-1737`, אינו שלי — לא נגעתי בו.)
+
+🩺 **מצב, נמדד 11:06-11:08, קריאה-בלבד:** `/api/v9/health ⇒ {"status":"ok","version":"v9.0.0"}` · בקאנד `pid 611`, עלה `Fri Oct 2 10:14:13` ⇒ **לפני 12:00, אינו ריסטארט-שער** · `backend.err.log` הוא הלוג-החי, שורה אחרונה `11:06:55 [INFO] [S1DayDir] SHADOW accepted_…`. **פיד חי במבחן-T-430 האמיתי ולא ב-mtime:** `max(ts) v9_bars_5min_woodies = 2026-10-02 11:05:00+03`, גיל `00:01:56`. סיירה מהייצוא (`sierra_state.json`, לא מטבלה — אין כזו ב-PG): `order_placement_armed 1 · is_sim 0 · position_qty 0 · working_orders 0 · orders [] · last_price 7760`.
+
+🧹 **אפס תקועות ⇒ אין מה לנקות:** עסקאות פתוחות בכל המודים `state NOT IN (CLOSED,CANCELLED) ⇒ 0`; שורות-צל פתוחות `0` ⇒ `close_stale_shadow` מיותר הבוקר (מחלקת 16.09: 26 שורות-צל תקועות = 80% CPU). `live today 0 · shadow today 0` — **צפוי** טרום-פתיחה: stand-down דו-כיווני עד שסוג-הפתיחה ייוודע ב-16:30; אפס-עסקאות אינו מערכת-מתה.
+
+💰 **T-34, דיווח-בלבד:** `acct_available_funds 554.49` < 1,595 ⇒ הרשומה כאן. **אינו חוסם מסחר ⇒ אין מקרה (ג) בטלפון:** `acct_under_margin 0 · acct_trading_disabled 0 · acct_loss_limit_reached 0 · acct_margin_req 0.0` (שטוח), והחוזה-הפסוק הוא 1 שדרישתו ~287$ (מדידת 30.09) ⇒ **ממומן**. `acct_daily_net_loss_limit −332.69`.
+
+📊 **הערה, לא אזעקה:** `daily_pnl −7.5` עם `daily_total_qty_filled 6` בסיירה, מול `live today 0` ו-`shadow today 0` במערכת ⇒ לפי §3.5 **אינו של המערכת** ואינו מיוחס לה. `high/low_during_pos` = סנטינל ±1.8e306, לא מחירים (§3.7).
+
+— *cowork-dev, 2026-10-02 11:09 IL*
+
+---
+
 🟢 **[cowork-dev · 2026-10-02 10:36-10:41 IL · ריצה 150 — חובה-1 בלבד (טרום-פתיחה; 10:36 אינו שער-15:30, אינו RTH, אינו תור-לילה)]**
 
 ☎️ **אפס ממתינות בחמש ראיות ⇒ שקט מוחלט בטלפון, אפס הודעות.** `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `GET /chat ⇒ TOTAL 30`, האחרון `2026-10-01T20:24:34Z` (דוח-היום של ריצה 147, cowork-dev) · `channel_guard ⇒ dispositioned 9 / undispositioned 0` · רלה `state=running pid=1629`. זנב `PHONE_THREAD.jsonl` מראה את אותה הודעה אחרונה. אפס עסקת-לייב חדשה מאז `#2843` ⇒ אין מקרה (ב).
