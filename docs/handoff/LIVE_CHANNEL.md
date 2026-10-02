@@ -1,4 +1,77 @@
 
+🟢 **[cowork-dev · 2026-10-02 18:35-18:50 IL · ריצה 165 — חובה-1 + חובה-3 (ניטור-RTH רביעי של היום; `date ⇒ Fri Oct  2 18:35:11 IDT 2026` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **אפס הודעות — ארבעת המקרים שליליים** · 🔑 **והשאלה שריצה 164 השאירה פתוחה נסגרה בקוד: `RESOLVED` הוא שלב שמעולם לא נבנה, ולכן `RESOLVED=0` הוא הערך הנכון ולא באג**
+
+⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`), פסיקת-מייקל להיום ("אפס ריסטארט; שער 15:30 אימות בלבד") עומדת, ובנוסף `18:35 > 16:10` ⇒ חלון-הריסטארט סגור ממילא ([[T-369]]); `ps -o lstart -p 611 ⇒ Fri Oct  2 10:14:13` = לפני 12:00 ⇒ תנאי-הבעלות השני אינו מתקיים בנפרד. ⇒ **שורת-מדידה בלבד.**
+
+☎️ **חובה-1 · אפס ממתינות-מייקל — נמדד מ-Render, לא הונח:**
+```raw
+$ curl …/chat?key=***  ⇒ http=200 · items 30
+  מייקל      | 2026-10-02T12:02:01Z | f60495b9 | "למה אין תיקונים…"
+  cowork-dev | 2026-10-02T12:09:31Z + 12:22:05Z                        ⇐ נענתה פעמיים, עניינית
+  האחרון בפיד | 2026-10-02T14:45:26Z | cowork-dev (סגירת 2895)         ⇐ שלנו, לא שלו
+$ tail -c 4000 docs/handoff/PHONE_THREAD.jsonl  ⇒ זהה לפיד-Render (אחרון משותף 14:45:26Z)
+```
+⇒ **אין (א)**. `live היום 3 · כולן CLOSED · האחרונה יצאה 10:42 ET = 17:42 IL` — כלומר **אפס אירוע-מסחר חדש מאז דיווח ריצה 164** ⇒ **אין (ב)**. המרג'ין אינו חוסם (ראיה למטה) ⇒ **אין (ג)**. הבעלות אינה שלי ⇒ **אין (ד)**. ⇒ `phone_reply.py` **לא נקרא**; סך הודעות-הטלפון של הסוכן-המתוזמן היום נשאר **5**.
+
+🔑 **ממצא-הריצה — [[T-491]] / ציון-המודעות: `RESOLVED` אינו מיושם באף מפיק, ולכן אפס אינו תקלה.** ריצה 164 רשמה כצעד-הבא #2 "‏`RESOLVED` אפס מול `DETECTED 17` — לבדוק אם השלב נכתב בכלל או שאינו מיושם". נבדק מהקוד, קריאה-בלבד, והתשובה חד-משמעית:
+```raw
+$ sed -n 3p  backend/v9/services/candidate_ledger.py ⇒ "Appends DETECTED / EMIT_DECISION events to the existing gateway_decisions"   ⇐ RESOLVED נעדר
+$ sed -n 25p backend/v9/services/candidate_ledger.py ⇒ UI_EVENT_TYPES = {None, "GATE_DECISION", "ROUTED"}
+$ sed -n 59p backend/v9/services/candidate_ledger.py ⇒ "DETECTED / EMIT_DECISION / RESOLVED must not enter the fire panel."
+$ grep -n _stage_key -A8 …/candidate_ledger.py      ⇒ מטפל ב-EMIT_DECISION · GATE_DECISION · ROUTED, אחרת event_type.lower()
+$ grep -rn '"(DETECTED|EMIT_DECISION|GATE_DECISION|ROUTED|RESOLVED)"' backend/v9/systems/ backend/v9/gateway/
+      ⇒ שורה אחת בלבד: setup_emitter.py:39 "EMIT_DECISION"
+$ grep -rn RESOLVED backend/v9/systems/ backend/v9/gateway/
+      ⇒ trading_gateway.py:402  """Skip ledger DETECTED/EMIT/RESOLVED when hydrating the fire panel."""   ⇐ docstring, לא כתיבה
+```
+⇒ **`RESOLVED` מופיע פעמיים בלבד, בשתיהן כ*שם-להחריג* מפאנל-הירי, ואף מפיק אינו קורא `record("RESOLVED", …)`.** המסקנה: `RESOLVED = 0` מול `DETECTED 31` הוא **הערך הצפוי והנכון**, אפס חריגה, **אפס (ג)** — ובצד השני, **ציר-המועמדים של ציון-המודעות חסר שלב-סגירה למדוד**, כלומר זו **מדידה חסרה ולא דגל** (דוקטרינת-הלמידה 09.09). **הפתרון (מוצע, לא בוצע — אין לי פסיקה לגעת בקוד-גייטוויי, ובטח לא ב-RTH):** או לפלוט `RESOLVED` בסגירת-עסקה (ואז הציר מודד `DETECTED → RESOLVED`), או להסיר את השם משתי ה-docstrings כדי שרשימת-השלבים תפסיק לרמוז על שלב שאינו קיים. ⇒ **פריט לתור-הלילה, תיקון-דיווח, לא דגל.**
+
+📓 **והליגר עצמו — חי, כותב, ומצליב את הספרים בפעם השלישית** (נספר `ts → observed_at → signal_bar_ts`, מלכודת 21):
+```raw
+$ ls -l ~/SierraChart_Data/v9_export/gateway_decisions.jsonl ⇒ 81650 bytes · Oct  2 18:40:05     ⇐ mtime מהיום (מלכודת 26)
+  total rows 96 · today 96 · ts-field used {ts: 41, observed_at: 55}
+  event_type : GATE_DECISION 33 · DETECTED 31 · EMIT_DECISION 24 · ROUTED 8
+  outcome    : blocked 33 · live 3 · shadow_only 5            (33 + 8 = 41 = שורות-עם-ts ✓ סכום-בקרה)
+  blocked_by : tree:bias 12 · tree:location 7 · tree:stand_down 6 · entry_location_quality 3 · tree:kind 2 · entry_not_confirmed 2 · rr_hard_floor 1   (= 33 ✓)
+  live_blocked_by : live_slot_occupied 1
+$ curl /api/v9/gateway/decisions?limit=200 ⇒ n=40 · newest 2026-10-02T15:30:04+00:00 · oldest 13:30:04+00:00   ⇐ הפיד חסום, הקובץ הוא האמת
+```
+⇒ **העץ הוא 27 מ-33 = 81.8%** (`12+7+6+2`). ⚠️ **ושער-הלייב רשם חסימה אחת היום — `live_slot_occupied 1`, והיא שפויה:** מועמד שהגיע בזמן ש-2895 הייתה פתוחה, כלומר **הסלוט עשה בדיוק את תפקידו**; **אפס `margin_zero_size`** (להבדיל מ-01.10) ⇒ [[T-34]] לא נגע בירי היום.
+
+💵 **אמת-הכסף — ללא שינוי מריצה 164, ומוצלבת מחדש ולא מצוטטת:**
+```raw
+$ psql ⇒ live היום 3, כולן CLOSED:  2875 DALTON_EDGE_SHORT T1_FILL pnl_sierra +46.25 · 2877 GB100 STOP_HIT −45.00 · 2895 CEILING_FLIP_SHORT STOP_HIT −45.00
+  Σ pnl_sierra = −43.75      וזה בדיוק      acct_daily_pl = −43.75          ⇒ ספרים ⟂ ברוקר, 3/3 מאומתות
+```
+⇒ יום-הברוקר **מינוס 43.75** (אחת ביעד, שתיים בסטופ), מול `acct_daily_net_loss_limit −332.69` ⇒ רחוק מהתקרה. ⛔ `daily_pnl 386.25` / `daily_total_qty_filled 6.0` באותו קובץ **אינם של המערכת** (פסיקת ריצה 135) ⇒ **אינם מצוטטים כאמת**.
+
+🔍 **פוזיציה-מול-TM — תואמים, ולכן לא נדרשה הצלבת `order_id`** (מלכודת 16 / [[T-402]]: הצלבה נדרשת **לפני אזעקה**, ואין אזעקה כש-0=0):
+```raw
+$ curl /api/v9/account/state  (sierra_state.json · mtime 18:39 · age_s 0.8 · stale false)
+  position_qty 0 · working_orders 0 · open_trade null · verdict "flat" · armed 1 · is_sim 0 · last_price 7773.5
+  trade_account 37138283 · symbol MESZ26_FUT_CME · acct_ok true · under_margin 0 · trading_disabled 0 · loss_limit_reached 0
+```
+
+🩺 **אימות-מצב (פקודה + פלט, נמדד טרי):** health `200 {"status":"ok","version":"v9.0.0"}` · **[[T-430]] הפיד חי באמת ולא "קובץ-יצוא טרי":** `max(ts) v9_bars_5min_woodies = 2026-10-02 18:35:00+03` מול `now() 18:36:16` ⇒ גיל `1.3 דק'` (<10) ו-`תאריך-בר IL = היום` ✓ (קבצי-הייצוא אכן טריים — `mtime 18:36` לכולם — אבל **זה אינו המבחן**) · מאזין יחיד `Python 611` (`pgrep -f uvicorn ⇒ 1` · `rss 123MB` · `etime 08:25:20`) · `ruled_contracts() ⇒ 1` עם `.env` טעון = פסיקת 18.09 ([[T-489]], **מדידה בלבד**) · שער-ד0 עובר: `[boot] logging OK level=INFO pid=611 commit=5d4bb4a3 stream=stderr` וה-pid הוא המאזין ⇒ **הספירות למטה אינן עיוורון**.
+
+🟠 **[[T-380]]/[[T-164]] — השיטפון עדיין עצור, והפעם נמדד 2 שעות ו-10 דק' לתוך ה-RTH (הקריאה העונתית של ריצה 163 מתחזקת בטווח הארוך ביותר שנמדד עד כה):**
+```raw
+$ wc -l /tmp/backend.err.log                      ⇒ 23322        (4,111,886 bytes)
+$ grep -c "[ERROR]"                               ⇒ 7345
+$ grep "[ERROR]" | grep -c TS-OFFSET-GATE          ⇒ 7345        ⇐ מחלקה יחידה, שוויון רביעי
+$ grep "[ERROR]" | tail -1                         ⇒ 2026-10-02 16:30:02  (newest bar ts 59702s behind now)
+$ awk '$2 > "16:30:02"' | wc -l                    ⇒ 10906       ⇐ הלוג חי לגמרי
+$ awk '$2 > "16:30:02"' | grep -c "[ERROR]"        ⇒ 0           ⇐ ואפס שגיאות בכל 10,906
+```
+⇒ המונה **קפוא על 7,345** — אותו מספר בדיוק שריצות 162 ו-163 מדדו — ⇒ המחלקה נעצרה ב-`16:30:02` ולא חזרה. **הצעד שנשאר פתוח עומד בעינו:** האם היא **חוזרת** אחרי `16:55 ET` (~23:55 IL) — 18:40 מוקדם מדי לקבוע, ⛔ **ולא נגזרה מסקנה**.
+
+🖥 **מצב-מכונה (WARN-בלבד, ל-LIVE_CHANNEL ולא לטלפון):** `loadavg 4.39 / 3.69 / 3.71` (עלה מ-`2.95` בריצה 163) · קצב-הלוג `41-77 שורות/דקה` ב-`18:30-18:39` ⇒ **רחוק מאוד** מהפתולוגיה של 16.09 (~1,000/דקה + 80% CPU) · `%CPU` של ה-backend דגימתי וקופץ (`7.0` ואז `46.9` בהפרש 3 שנ'), `rss` יציב ⇒ **אין מגמה, יש דגימה** · הזולל הראשי אינו מחסנית-המסחר: `mediaanalysisd 98.8% / 354MB` (אפל) · `Sierra Menu Helper 26.6%` · `knowledgeconstructiond 20.6%`. 🧹 **ושורות-הצל נבדקו לפני שהוכרזו תקועות** ([[T-479]] 16.09): `exit_ts IS NULL AND state NOT IN (CLOSED,CANCELLED) ⇒ shadow 4, המוקדמת 10-02 11:25 ET` ⇒ **כולן מהיום ובמהלך-הסשן**, אפס שורה מאתמול ⇒ **אין מקרה ל-`close_stale_shadow --apply`**. ℹ️ לרישום בלבד: חיבור-PG אחד מופיע `idle in transaction` — נרשם, אינו אזעקה.
+
+💳 **[[T-34]] דיווח-בלבד (תשיעי ברציפות):** `acct_available_funds 510.74 < 1,595` אבל `acct_margin_req 0.0` (שטוח) · `under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · acct_ok 1 · armed 1 · is_sim 0`, והמרווח בגודל-הפסוק: `510.74` מול `MES_MARGIN_PER_CONTRACT 386.20 × 1` ⇒ **חוזה-1 ממומן**, **ושלוש עסקאות נכנסו ויצאו היום בפועל** ⇒ **אינו חוסם ⇒ אין (ג)**. הסף ל-(ג) נשאר `under_margin=1` מתמשך או `margin_zero_size` חוזר.
+
+**הצעד הבא:** (1) ניטור-RTH הבא (ה-RTH פתוח עד 23:00, הסלוט פנוי, `armed 1`) — **לייב חדש/סגור ⇒ (ב) ≤300 תווים, אחרת שקט מוחלט**; (2) **[[T-491]] / `RESOLVED` — פריט לתור-הלילה: תיקון-דיווח (לפלוט בסגירה או להסיר מה-docstrings), ⛔ לא דגל, ודורש פסיקה כי נוגע בקוד-גייטוויי**; (3) לריצת-23:00: לאמת אם שיטפון-`TS-OFFSET-GATE` חוזר אחרי `16:55 ET` — חזרה **לפני** כן היא חריגה ולא המחלקה המתועדת; (4) תור-הלילה [[T-491]] פריט-ראשון מ-23:00; (5) [[T-34]] ל-(ג) רק על `under_margin=1` מתמשך או `margin_zero_size` חוזר. ⛔ **אין לשאול שוב:** בעלות-הריסטארט/השער של היום · ציטוט `daily_pnl` · פסיקת-ה-shadow של `S1_DAY_DIRECTION_V1`. ⛔ **אפס נגיעה:** ריסטארט · `.env` (רק **נטען לקריאה** ל-`ruled_contracts`) · דגלים · דגלי-גודל/`RISK_*` · פוזיציות/סלוט/פקודות · `--apply` · FLATTEN · `op=EXIT` · DLL · קוד-ייצור · כתיבות-DB · הרנס · סוכני-משנה · הודעת-טלפון.
+
+
 🟢 **[cowork-dev · 2026-10-02 17:35-17:45 IL · ריצה 164 — חובה-1 + חובה-3 (ניטור-RTH שלישי של היום; `date ⇒ Fri Oct  2 17:35:00 IDT 2026` ∈ `16:30-23:00` ⇒ **אפס ריסטארט · אפס שער · אפס GO/NO-GO**)]** · ☎️ **שתי הודעות — שתיהן מקרה (ב): עסקת-לייב `#2895` נפתחה 17:35 ונסגרה 17:42 בתוך אותה ריצה** · 🔑 **ותיקון-עצמי לספירת-הליגר שלי, שנתפס בהצלבה ולא התפרסם**
 
 ⛔ **בעלות — ללא שינוי.** חובה-2 בוצעה בריצה 160 (`GO`), ופסיקת-מייקל להיום ("אפס ריסטארט; שער 15:30 אימות בלבד") עומדת. בנוסף `17:35 > 16:10` ⇒ ריסטארט אסור גם לולא זה ([[T-369]]). ⇒ **שורת-מדידה, בלי שער ובלי GO/NO-GO.**
