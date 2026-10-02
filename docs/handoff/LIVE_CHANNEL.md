@@ -1,3 +1,115 @@
+🟢 **[cowork(Claude-session, מייקל נוכח) · 2026-10-02 10:20-10:50 IL] בוקר: המק אותחל ~10:13 — T-259 חזר (6 סוכנים לא נרשמו) ותוקן ידנית · שערי-בוקר ירוקים · T-523 נדחה במדידה**
+
+```raw
+uptime 10:20 ⇒ up 7 mins · launchctl list|grep mems26 ⇒ backend 611 · frontend 621 · bridge 637 בלבד
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.{export_promoter,activity_feed,mobile_relay,eod_handoff,startup_check,update_check}.plist ⇒ rc=0 ×6
+אחרי: 9/9 רשומים · mobile_relay pid 1629 · export_promoter 1619 · activity_feed 1624
+סיירה: CrossOver רץ (etime 6:02 ב-10:20) · ייצוא woodies_5min/5min/tpo/sierra_state = 10:21:14 (טרי) · .tmp תקועים = 0
+בקאנד: pid 611 · commit 5d4bb4a3 · [env_loader] applied 319 vars · LIVE systems [2,4]
+flag_guard PASS 273/273 · post_restart_verify 🟢 GREEN · fire_drill 🟢 GO · account 554.49 flat · armed 1 · is_sim 0
+T-523 (run_night.out + report.py): accepted_mid Δ −190/−203$ (2/5/57) · accepted_poc Δ −76/−102$ (5/7/52) · t523ref≡t518pkg (62/62) · accepted_any 48/64 (נקטע באתחול)
+```
+**החלטה:** T-523 נדחה — אין פסיקה להציע, הקוד נשאר במוד-מדידה. **היום:** אפס ריסטארט; שער 15:30 אימות בלבד.
+
+---
+
+🟢 **[cowork-dev · 2026-10-02 10:18-10:38 IL · ריצה 149, חובה-1] אפס ממתינות בטלפון בארבע ראיות ⇒ שקט מוחלט · ממצא: הריבוט של 10:13 החזיר 3/9 סוכנים — [[T-502]] בפעם השלישית — תוקן · והשורש נמצא: BTM מסמן `disallowed`**
+
+`date ⇒ 2026-10-02 10:18:30 IDT (Fri)`. ‏`10:18` ⇒ מחוץ לחלון חובה-2 (15:30-16:10), מחוץ ל-RTH (16:30-23:00), מחוץ לתור-הלילה ⇒ **חובה-1 בלבד.** `git pull ⇒ Already up to date` · `HEAD 5d4bb4a3`.
+
+### ☎️ חובה-1 ⇒ אפס ממתינות ⇒ שקט מוחלט בטלפון (אפס הודעות בריצה הזאת)
+
+ארבע ראיות בלתי-תלויות, כי "אין ממתינות" לבד היא שלילה-כוזבת (מלכודת 12) — **והפעם המלכודת הייתה חיה ממש:** הראיה-1 נכשלה בתחילת הריצה.
+
+```raw
+1 הרלה           launchctl print … com.mems26.mobile_relay ⇒ "Could not find service … in domain for user gui: 501"
+                 ⇒ 🔴 הרלה מת ⇒ הקובץ PHONE_THREAD.jsonl אינו ראיה. נבדק במקור במקומו (ראיה 2).
+2 התיבה במקור    GET /instruction/pending ⇒ {"items":[]}      · GET /cmd/pending ⇒ {"cmd":null}
+                 (peek, חסין-רלה: הודעה שנשלחה בזמן שהרלה מת ממתינה ב-Render עד ה-ack ⇒ ריק = מייקל לא שלח)
+3 הפיד במקור     GET /chat ⇒ TOTAL 0 לפני התיקון (המראה אפלה) · TOTAL 30 אחריו
+                 האחרון = 2026-10-01T20:24:34Z (דוח-היום, cowork-dev, len 233)
+                 ⇒ אפס הודעת-מייקל אחרי 2026-09-30T07:18:05Z (תיוג #2555, נענה 07:37:20Z "נרשם ✓")
+4 הבודק          channel_guard.py ⇒ phone: dispositioned 9 · undispositioned 0 · rc=0
+```
+
+⇒ אין (א) · אין (ב) — אפס עסקת-לייב, פוזיציה 0, השוק בגלובקס · אין (ג) — הממצא למטה **תוקן בתוך הריצה**, אפס חסימת-מסחר, אפס החלטה-ממתינה · (ד) אינה בחלון. **הפסיקה: שקט מוחלט.** התיקון-העצמי הוא בדיוק מה שאסור לדחוף לטלפון — ולכן הוא כאן ולא שם.
+
+### 🔴 הממצא · הריבוט של 10:13:37 החזיר 3 סוכנים מתוך 9 — [[T-502]] חוזר (28.09 · 22.09 · היום)
+
+```raw
+sysctl -n kern.boottime  ⇒ Fri Oct  2 10:13:37 2026   (הריצה התחילה 10:18 — 5 דק' אחרי הריבוט)
+uptime                   ⇒ up 8 mins, load averages: 29.67 99.13 73.11
+launchctl list | grep mems26 (BEFORE) ⇒ 3   611 backend · 621 frontend · 637 bridge
+GET /healthz (BEFORE)    ⇒ {"ok":true,"has_snapshot":false,"age_s":null}
+```
+
+**שניים מהשישה נושאים סיכון ליום-מסחר** (כלשון [[T-502]]): `mobile_relay` — הטלפון של מייקל היה **אפל** מ-10:13 עד 10:21 · `export_promoter` — היעדרו מקפיא את פיד-סיירה (תקרית 25.06; כרגע לא הזיק, הייצוא טרי). **והשלישי שמסביר למה איש לא ידע:** `startup_check`, בדיקת-הבריאות-שבעלייה, היא עצמה אחת מהשישה.
+
+### ✅ התיקון — בסמכות-ניטור, אפס נגיעה בדגלים/`.env`/פוזיציות/backend (תקדים: [[T-502]] ריצה 39)
+
+תנאי-הקדם של הרלה אומת **לפני** ההעלאה, כי הוא מושך פקודות-חירום ומבצע אותן מקומית ⇒ עלייה עיוורת עלולה לירות `FLATTEN` ישן:
+
+```raw
+GET /cmd/pending ⇒ {"cmd":null}      ✓ תנאי-הקדם מתקיים
+launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.mems26.{mobile_relay,export_promoter,activity_feed,eod_handoff,startup_check,update_check}.plist
+  ⇒ ששתן הדפיסו "Bootstrap failed: 5: Input/output error" rc=5 — ו**בכל-זאת נטענו** (EIO על רישום-כפול
+    תוך-כדי שלaunchd עוד עיבד את הלוגין תחת load 99). ⇒ rc אינו הראיה; המצב הוא הראיה.
+launchctl list | grep mems26 (AFTER) ⇒ 9
+state = running:  backend · bridge · frontend · mobile_relay · export_promoter · activity_feed
+state = notrunning: eod_handoff · startup_check · update_check   ← תקין: סוכני-לוח-זמנים, מצב-המתנה הוא מצבם
+ps aux | grep mobile_relay ⇒ michael 1629 … scripts/mobile_relay.py   (10:21AM)
+GET /healthz (AFTER) ⇒ {"ok":true,"has_snapshot":true,"age_s":2.4}     (היה false/null)
+GET /chat    (AFTER) ⇒ TOTAL 30                                        (היה 0)
+```
+
+### 🔎 והשורש — נמצא. ‏`Background Task Management` מסמן שלושה מהם `disallowed`
+
+[[T-502]] השאיר פתוח "למה launchd טען שלושה ולא תשעה". **התשובה, מה-unified log של הריבוט עצמו** (`backgroundtaskmanagementd`, `2026-10-02 10:13:45.697` — launchd הכיר את כל תשעת ה-plists):
+
+```raw
+com.mems26.backend            enabled, allowed,    visible, notified        → נטען ✓
+com.mems26.bridge             enabled, allowed,    visible, notified        → נטען ✓
+com.mems26.frontend           enabled, allowed,    visible, notified        → נטען ✓
+com.mems26.mobile_relay       enabled, DISALLOWED, visible, not notified    → לא נטען ✗
+com.mems26.export_promoter    enabled, DISALLOWED, visible, notified        → לא נטען ✗
+com.mems26.activity_feed      enabled, DISALLOWED, visible, not notified    → לא נטען ✗
+com.mems26.eod_handoff        enabled, allowed,    visible, not notified    → לא נטען ✗  ← לא מוסבר
+com.mems26.startup_check      enabled, allowed,    visible, not notified    → לא נטען ✗  ← לא מוסבר
+com.mems26.update_check       enabled, allowed,    visible, not notified    → לא נטען ✗  ← לא מוסבר
+```
+
+**מה שהוסבר:** שלושת הסוכנים הרצים-ברציפות — ובהם `mobile_relay`, החשוב מכולם — חסומים ב-`disallowed`. זה **אינו** באג שלנו ואינו "נפילה": macOS מסרב להעלות אותם בלוגין, בזמן ש-`launchctl bootstrap` ידני עוקף את זה (עובדה שכבר נרשמה ברנבוק 06.09 `20:38`). ⇒ זה יחזור **בכל ריבוט** עד שהמתג יתהפך.
+
+**מה שלא הוסבר ונשאר פתוח:** שלושת סוכני-לוח-הזמנים `allowed` ובכל-זאת נעדרו מ-`launchctl list`. הם מחזיקים `notrunning` גם אחרי ההעלאה, ולכן ההיעדר שלהם הוא סימן חלש — תת-שאלה, לא אותו שורש.
+
+⚠️ **מלכודת שתפסתי בעצמי, נרשמת כדי שלא תחזור:** המדידה הראשונה שלי לשורש הייתה `log show --predicate 'subsystem == "com.apple.xpc.launchd"' | grep -ci mems26 ⇒ 0`, ונראתה כמו "launchd לא ניסה לטעון". היא **בלתי-קבילה**: בדיקת-הבקרה החזירה `wc -l ⇒ 1` לכל החלון ⇒ מדדתי `0` על סט ריק. הלוג הקביל הוא `com.apple.backgroundtaskmanagement` (‏284 שורות mems26 באותו חלון). זהו בדיוק `grep ⇒ 0` שמוכיח רק שהמחרוזת שניחשתי לא נמצאה (מלכודת 13).
+
+### 🟢 מצב-המערכת אחרי הריבוט — טרום-פתיחה, שלוש השאלות הנפרדות נענו בנפרד (מלכודת 13)
+
+```raw
+חיוּת-תהליך  ps aux | grep -i "sierra\|wine" ⇒ Menu Helper 761 (10:14AM) · wineserver 765 · winedevice 778
+              ⇒ סיירה עלתה עם הריבוט. (pgrep -i sierra היה מחזיר 0 — לא קביל; סיירה רצה תחת CrossOver)
+טריוּת-ייצוא  ls -laT ~/SierraChart_Data/v9_export/*.json ⇒ כולם Oct 2 10:23:02   (3 שנ' לפני המדידה)
+              live_price.json ⇒ {"price":7725.00,"ts":1790925782,"bid":7745.50,"ask":7745.75,"vol":830}
+קליטה-ל-DB    select max(ts), now()-max(ts) from v9_bars_5min_woodies
+              ⇒ 2026-10-02 10:20:00+03 · lag 00:03:12   ✅ הפיד חי באמת, לא רק "קובץ טרי" (T-430)
+backend       curl /health ⇒ http=200 · 0.016s · מאזין יחיד PID 611, ps -o lstart ⇒ Fri Oct 2 10:14:13 2026
+```
+
+⚠️ **שני דברים לשים עליהם עין בשער 15:30, לא ממצאים:** (1) `live_price` מראה `price 7725.00` מול `bid/ask 7745.50/7745.75` — פער 20 נק' בין עסקה-אחרונה לציטוט; בגלובקס דליל זה סביר, אבל אם הפער מחזיק ב-RTH זו שאלה. (2) בתהליכי-ה-wine יש `CrashReporter.exe ProgramName=SierraChart PID=240` מ-10:15 ⇒ משהו קרס בעליית סיירה; הפיד זורם ולכן זה לא חסם, אך ראוי לבדיקה.
+
+### ⛔ מה לא נגעתי
+
+אפס נגיעה ב: דגלים · `.env` · פוזיציות · פקודות · `op=EXIT`/`FLATTEN` · ריסטארט-backend (המאזין 611 הוא זה שעלה עם הריבוט, לא הרמתי אותו). אפס GO/NO-GO — זה לא החלון, ואין לי בעלות-שער בריצה הזאת. אפס הודעת-טלפון.
+
+### 👤 מה דורש את מייקל — ליד המחשב, לא בטלפון
+
+שלושה מתגים ב-**System Settings → General → Login Items & Extensions → Allow in the Background**: `mobile_relay` · `export_promoter` · `activity_feed` (הפריטים חתומים `python3 / Ned Deily / DJ3H93M7VJ`). בלי זה, **כל ריבוט יחזיר את הטלפון למצב אפל** עד שסוכן יבחין ויעלה ידנית — פעם שלישית ב-11 יום. נרשם ב-[[T-502]] כצעד-הבא ויועלה בשיחה הבאה שבה הוא ליד המחשב; **לא** נדחף לטלפון, כי אין כאן החלטה שחוסמת מסחר (מקרה ג אינו חל).
+
+— *cowork-dev, 2026-10-02 10:38 IL*
+
+---
+
 🟢 **[cowork-dev · 2026-10-01 23:35-23:57 IL · ריצה 148, חובה-1 + ניטור-לילה] אפס ממתינות בטלפון בארבע ראיות ⇒ שקט מוחלט · תור-הלילה ועמודי-הטלפון יש להם בעלים ⇒ אפס נגיעה, אפס שיגור-שני · והממצא: [[T-518]] קיבל את המספר שחיפש — **7 ברים אמיתיים, 741 שיגורים****
 
 `date ⇒ 2026-10-01 23:35:15 IDT (Thursday)`. ‏`23:35` **מאוחר מ-23:30** ⇒ חלון חובה-4 נסגר, ולכן זו ריצת **חובה-1 + ניטור** ולא ריצת-תור-לילה שנייה. `git pull ⇒ Already up to date` · HEAD `c4f64b7d` · ענף `stabilize/mems26-local-truth-2026-05-16`, מסונכרן `0/0` מול ה-upstream שלו.
