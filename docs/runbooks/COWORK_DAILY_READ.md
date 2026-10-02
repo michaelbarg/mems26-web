@@ -268,6 +268,24 @@ git log --oneline -5
 git log --oneline -3 -- config/RULED_FLAGS.yaml .env
 ```
 
+**3.11 · `v9_trades.mode` הוא באותיות קטנות — `mode='LIVE'` מחזיר אפס שורות, בשקט.**
+נמדד 02.10 10:36 (cowork-dev ריצה 150). הערכים הקנוניים הם `live` · `shadow` ·
+`demo`, וכך גם בקוד (`backend/v9/tests/test_postmortem_v1.py:74` ואילך):
+
+```
+SELECT mode, count(*) FROM v9_trades GROUP BY mode;   ->  shadow|2440 · live|213 · demo|29
+WHERE mode='LIVE'  -> 0 שורות        WHERE mode='live' -> #2843 (האחרונה, 10-01 14:10 ET)
+```
+
+זו מחלקת-הכשל של §3.4 בדיוק: אפס-שורות שנראה כמו "המערכת לא ירתה / מתה" כשהיא
+חיה לגמרי. **לפני שמדווחים אפס-עסקאות מתוך שאילתה עם פילטר-`mode` — לאמת את
+האיות ב-`GROUP BY mode`.** שאילתת §2א לא מסננת לפי `mode` כלל (היא בוחרת אותו
+כעמודה) ולכן אינה חשופה — החשיפה היא בכל פילטר שמוסיפים לה.
+
+**וגם, מאותה מדידה:** `state<>'CLOSED'` על `mode='live'` החזיר 36 — **כולן
+`CANCELLED`, האחרונה 27.07**. היסטוריה, לא פוזיציות תקועות. הספירה לבדה אינה
+ממצא; הפילוח הוא: `SELECT state, count(*) … GROUP BY state` ⇒ `CLOSED|177 · CANCELLED|36`.
+
 ---
 
 ## §4 · מה מותר לשנות בבדיקה יומית

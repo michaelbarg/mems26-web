@@ -1,3 +1,15 @@
+🟢 **[cowork-dev · 2026-10-02 10:36-10:41 IL · ריצה 150 — חובה-1 בלבד (טרום-פתיחה; 10:36 אינו שער-15:30, אינו RTH, אינו תור-לילה)]**
+
+☎️ **אפס ממתינות בחמש ראיות ⇒ שקט מוחלט בטלפון, אפס הודעות.** `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `GET /chat ⇒ TOTAL 30`, האחרון `2026-10-01T20:24:34Z` (דוח-היום של ריצה 147, cowork-dev) · `channel_guard ⇒ dispositioned 9 / undispositioned 0` · רלה `state=running pid=1629`. זנב `PHONE_THREAD.jsonl` מראה את אותה הודעה אחרונה. אפס עסקת-לייב חדשה מאז `#2843` ⇒ אין מקרה (ב).
+
+⛔ **בעלות — אין לי כאן כלום.** ריצה 149 נסגרה `ac928abf` ב-**10:33:53**, שתי דקות לפני הריצה הזו, ו-cowork-האינטראקטיבי הוא הבעלים של הבוקר **ושל השער** (רשומתו 10:20-10:50). ⇒ אפס ריסטארט · אפס GO/NO-GO · אפס claim · אפס נגיעה ברשומות של אחרים.
+
+🩺 **מצב, נמדד 10:37 (קריאה-בלבד):** בקאנד `pid 611 commit 5d4bb4a3` (= HEAD של 10:28) · `[boot] logging OK … pid=611 stream=stderr` ⇒ שכבת-INFO נטענה ו-`backend.err.log` הוא הלוג-החי (שורה אחרונה `10:37:48`) · `/api/v9/health ⇒ {"status":"ok"}` · **פיד חי במבחן-T-430 האמיתי, לא ב-mtime:** `max(ts) v9_bars_5min_woodies = 2026-10-02 10:35:00+03`, גיל 2 דק' · `contracts_cfg = 1` **מהתהליך החי** = פסיקת 18.09 12:05 · `position_qty 0 · armed 1 · is_sim 0 · acct_cash 554.49 · acct_daily_pl 0.0 · trading_paused False` · `next_fire 10:37:24` stand-down דו-כיווני (נכון טרום-פתיחה, סוג-פתיחה UNKNOWN). `today n=0` ו-`COMMAND QUEUED = 0` ל-02.10 ⇒ לפי §3.5 ה-`sierra.daily_pnl −7.5` **אינו של המערכת** ואינו מיוחס לה. `high/low_during_pos` = סנטינל ±1.8e306, לא מחירים (§3.7).
+
+📏 **ממצא חדש אחד — והוא שלי, ולכן ל-LIVE_CHANNEL ולא לטלפון: `v9_trades.mode` באותיות קטנות.** `mode='LIVE'` החזיר לי **אפס שורות, בשקט**, בתחילת הריצה — בדיוק מחלקת-§3.4 ("המערכת לא ירתה") על מערכת חיה לגמרי. **ראיה:** `SELECT mode,count(*) FROM v9_trades GROUP BY mode ⇒ shadow|2440 · live|213 · demo|29`; `WHERE mode='live' ⇒ #2843 INITIATIVE_SHORT SHORT CLOSED entry_et=10-01 14:10 pnl=-57.5 sierra=-56.25`. ובירור נלווה: `state<>'CLOSED' AND mode='live' ⇒ 36`, **כולן `CANCELLED` והאחרונה 27.07** — היסטוריה, אפס פוזיציות תקועות (`CLOSED|177 · CANCELLED|36`). **תיקון:** מלכודת **3.11** ב-`docs/runbooks/COWORK_DAILY_READ.md` (בסמכות חובה-1, "תיקון-קטן"). ואגב אותה מדידה: **`sierra_state` אינה קיימת ב-PG** — מצב-סיירה נקרא מ-`/api/v9/mobile/data` → `sierra`, ולא מטבלה.
+
+---
+
 🟡 **[cowork-dev · 2026-10-02 10:52 IL · אדנדום לריצה 149 — שני תיקונים לרשומה שלי שלמטה, אחרי שראיתי את רשומת cowork-האינטראקטיבי]**
 
 הרשומה שלי (השנייה בקובץ) נכתבה **בלי שראיתי** שבאותן דקות רצה כאן רשומת **cowork(Claude-session, מייקל נוכח) `10:20-10:50`** על אותו אירוע. שני תיקונים, ושניהם נגדי:
