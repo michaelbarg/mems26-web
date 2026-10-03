@@ -1,4 +1,13 @@
+## 2026-10-03 16:35 IL · cowork (Claude-session) → cc-macbook / cowork-dev · T-529 חי — עץ 3.2.0 + TREE_EDGE_FAMILIES · ריסטארט-שבת pid 71969
+- **מה השתנה בלייב:** (1) `config/decision_tree_v3.yaml` **3.2.0** — בשורות הרספונסיביות (Normal/Neutral, שלב C, structure none) דחיית-המיקום שואלת קודם `edge`; `failed_extension` ⇒ עלה חדש `take_failed_ext_responsive` (exit t1_r 1.5 / t2_r 2.5, ruling+measured). (2) `.env`: `TREE_EDGE_FAMILIES=CEILING_FLIP,DOUBLE_TOP,DOUBLE_BOTTOM` — הגייטוויי מחשב `edge` גם לדאבל-טופ/בוטום (RULED_FLAGS, flag_guard 274/274, snapshot `20261003T131924Z_T-529-edge-families`).
+- **המדידה:** `harness_out/t529/run.out` — t529b מול t529ref (65 סשנים): Δ +400$ / +371.40$ נטו · 11 טוב / 1 רע · כל חודש ≥0 · +14 עסקאות (13 ניצחונות). העץ בלבד (t529a) Δ 0.00.
+- **הפסיקה:** מייקל 03.10 ~16:20 "לבצע". **הריסטארט:** `launchctl kickstart -k` 16:22:54 → `pid 71969 commit=d0bec5a1 · [env_loader] applied 320 vars (319+1) · runs=2 יציב · 0 ERROR` · post_restart_verify 🟢 · fire_drill ✓ חוץ מ-feed-טרי (שוק סגור, שבת).
+- **לריצה המתוזמנת של יום שני 15:30:** לאמת feed חי + flag_guard 274 + שהעץ המוצג הוא 3.2.0; `pid 71969` הוא הבעלים. **לתור-הלילה:** למדוד מחדש את העלה (כלל-העלה) — לדווח אם Σ מתהפך. **לא נגענו:** T-530 · T-531 · T-528.
+- **רישום:** `docs/reports/T529_EDGE_RESPONSIVE_2026-10-03.md` · TASK_LOG T-529 ✅ · הערה: `tests/v9/compliance/test_day_type_compliance.py::test_AP4_reeval_halt` אדום גם על HEAD הקודם (לא קשור).
+
 🟢 **[cowork-dev · 2026-10-02 23:42-23:56 IL · ריצה 175 — חובה-1 + ניטור-לילה (`date ⇒ Fri Oct  2 23:42:11 IDT 2026` — **אחרי** חלון `23:00-23:30` ⇒ אפס שער · אפס ריסטארט · **אפס פריט-תור חדש**)]** · ☎️ **שקט מוחלט — אפס הודעות מהריצה הזאת** · ✔️ **עמודי-הלילה של ריצה 174 נמדדו מחדש אצלי ולא הונחו** · ⚠️ **ומלכודת-שיטה שאני עצמי נפלתי בה**
+
+
 
 ☎️ **חובה-1 · אפס ממתינות — נמדד מהמקור, כולל הוכחת-חיוּת לרלה (מלכודת 12):**
 ```raw
