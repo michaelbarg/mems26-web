@@ -39,7 +39,7 @@
 # DECISION_TREE_V3=1 must equal the baseline before any split is added. From there every
 # split is a branch with `measured:` and a day-total replay (Michael 24.09: positive ⇒ live).
 
-version: "3.2.0"   # 03.10 T-529: the edge question on the responsive rows (Michael 03.10 "לבצע")
+version: "3.1.0-t529"  # REPLAY VARIANT (T-529) — never the live file; DECISION_TREE_V3_PATH only
 seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity · 27.09 package S1+S5+S7 (T-494)"
 
 # ── library of shared sub-trees (YAML anchors; the loader reads only `root`) ────────────────────
@@ -192,26 +192,12 @@ library:
           against: *against_fallback
           "*": *kinds_variation
 
-  # ── T-529 (03.10): the edge question before the location skip ────────────────────────────────────
-  # 02.10: #2895 CEILING_FLIP_SHORT was stopped 1.5pt under the 17:40 spike (7810.50) and the 56.5-pt leg
-  # 17:40→18:25 ran without us — DOUBLE_TOP_AA_SHORT 17:55 @7793 (a confirmed double at the extension extreme,
-  # the very thing T-329 names) was refused by `location` because the responsive rows never asked `edge`,
-  # and the gateway computed the edge for CEILING_FLIP only (TREE_EDGE_FAMILIES now adds DOUBLE_TOP/BOTTOM).
-  # Measured 03.10 (harness_out/t529, 65 sessions, same-night reference = live config): Δ +400$ gross /
-  # +371.40$ net · better 11 / worse 1 / same 53 · every month ≥ 0 (06 +0 · 07 +48 · 08 +145 · 09 +168 · 10 +40)
-  # · +14 trades (13 wins) / −3 · max DD −295 → −277. The YAML question alone (edge = CEILING_FLIP only) is inert
-  # (Δ 0.00 on 65 sessions); the number comes with the knob. Michael 03.10 ~16:2x IL: "לבצע".
-  take_failed_ext_t529: &take_failed_ext_t529
-    leaf: TAKE
-    id: take_failed_ext_responsive
-    exit: {t1_r: 1.5, t2_r: 2.5}
-    ruling: "Michael 2026-10-03 ~16:20 IL 'לבצע' (Cowork) — after 'מה הסיפור? איך הפסדנו את היום הזה???' / 'איך מתקנים ומשפרים' / 'למה אין תיקט' on 02.10's −67.50$; the positive whole-history replay is the ruling (his standing rule)"
-    measured: {sessions: 65, usd: 400.0, usd_net: 371.4, better: 11, worse: 1, same: 53, trades_added: 14, wins_added: 13, trades_removed: 3, max_dd_ref: -295.0, max_dd: -276.9, by_month: "2026-06 +0 · 07 +48 · 08 +145 · 09 +168 · 10 +40", source: "harness_out/t529/run.out — t529b (this leaf + TREE_EDGE_FAMILIES=CEILING_FLIP,DOUBLE_TOP,DOUBLE_BOTTOM) vs t529ref (live config, same night); t529a (leaf alone) Δ 0.00", date: "2026-10-03", rule: "re-measure nightly; report if Σ turns negative"}
-    note: "T-529: a confirmed double at the extension extreme negates the location skip on a responsive row"
+  # T-529 (03.10 variant): on the responsive rows the location skip asks the edge question first —
+  # a CONFIRMED failed extension (T-329 leaf, the same measured leaf) is admitted; everything else is skipped as before
   location_fallback: &location_fallback
     split: edge
     branches:
-      failed_extension: *take_failed_ext_t529
+      failed_extension: *take_failed_ext
       "*": *skip_location
 
   # responsive rows (Normal / Neutral, phase C): location decides; no VA yet → kinds

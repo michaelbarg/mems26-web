@@ -129,7 +129,7 @@ class TestParityWithLegacyChain(unittest.TestCase):
         mismatches = []
         for opening, phase, day_type, direction, hint, pattern, zone, edge in grid:
             if edge == "failed_extension" and not pattern.startswith("CEILING_FLIP"):
-                continue   # the gateway computes the edge for CEILING_FLIP patterns only
+                continue   # the gateway computes the edge for CEILING_FLIP patterns only by default (TREE_EDGE_FAMILIES unset; T-529 adds DOUBLE_TOP/BOTTOM in .env)
             exp = legacy_verdict(opening=opening, phase=phase, day_type=day_type, direction=direction,
                                  hint=hint, pattern=pattern, zone=zone, edge=edge)
             got, path = tree_verdict(self.tree, opening=opening, phase=phase, day_type=day_type,
@@ -302,3 +302,45 @@ class TestGatewayHook(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestT529EdgeOnResponsiveRows(unittest.TestCase):
+    """03.10 (Michael "לבצע" after 02.10's −67.50$): on the responsive rows (Normal / Neutral, phase C, structure
+    none) the location skip asks the edge question first — a confirmed double at the extension extreme (T-329)
+    is taken; everything else is refused by `location` exactly as before. 02.10 17:55: DOUBLE_TOP_AA_SHORT @7793,
+    label Normal, the 17:40 spike 1.75pt above the IB high (structure `none` needs 3.5pt) → `location`."""
+
+    def setUp(self):
+        dt3.invalidate_cache()
+        self.tree = dt3.load_tree()
+
+    def _walk(self, **kw):
+        vec = {"opening_type": "OPEN_REJECTION_REVERSE", "phase": "C", "day_type": "Normal", "structure": "none",
+               "pattern": "DOUBLE_TOP_AA_SHORT", "kind": "REVERSAL", "direction": "SHORT", "rel_bias": "against",
+               "zone": "mid_value", "edge": "none"}
+        vec.update(kw)
+        return dt3.walk(self.tree, vec)
+
+    def test_failed_extension_is_taken_on_the_responsive_row_and_carries_the_ruling(self):
+        leaf, _ = self._walk(edge="failed_extension")
+        self.assertEqual(leaf["leaf"], "TAKE")
+        self.assertEqual(leaf.get("id"), "take_failed_ext_responsive")
+        self.assertIn("Michael", str(leaf.get("ruling")))
+        self.assertEqual(leaf["measured"]["sessions"], 65)
+        self.assertEqual(leaf.get("exit", {}).get("t1_r"), 1.5)
+
+    def test_without_the_edge_the_location_skip_is_unchanged(self):
+        leaf, _ = self._walk(edge="none")
+        self.assertEqual((leaf["leaf"], leaf.get("id")), ("SKIP", "location"))
+        leaf, _ = self._walk(edge="none", direction="LONG", zone="above_value")
+        self.assertEqual((leaf["leaf"], leaf.get("id")), ("SKIP", "location"))
+
+    def test_neutral_row_asks_the_edge_too(self):
+        leaf, _ = self._walk(day_type="Neutral_Center", edge="failed_extension", direction="LONG",
+                             pattern="DOUBLE_BOTTOM_EE_LONG", zone="mid_value")
+        self.assertEqual((leaf["leaf"], leaf.get("id")), ("TAKE", "take_failed_ext_responsive"))
+
+    def test_near_edge_location_take_is_untouched(self):
+        leaf, _ = self._walk(edge="none", zone="near_vah")
+        self.assertEqual((leaf["leaf"], leaf.get("id")), ("TAKE", "take_location"))
+

@@ -1,0 +1,30 @@
+START Sat Oct  3 15:50:53 IDT 2026 ·       66 sessions
+t529ref done Sat Oct  3 15:59:33 IDT 2026 · json=      65
+t529a done Sat Oct  3 16:08:16 IDT 2026 · json=      65
+t529b done Sat Oct  3 16:17:02 IDT 2026 · json=      65
+== vs the same-night reference t529ref (= live config)
+t529a vs t529ref: 65d · trades 181 (ref 181) · win 54% · Σ +2193.65$ (ref +2193.65$) · Δ gross +0.00$ · Δ net +0.00$ · better 0 / worse 0
+   exits:  STOP 83 -3559$ · WIN 98 +5661$
+   leaves: legacy 181 +2102$
+   09-28: -41.25$ (ref -41.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+      19:20 DOUBLE_BOTTOM_EE_LONG LONG @7755.5 WIN ['T1'] out 19:20 +25.00$
+
+t529b vs t529ref: 65d · trades 192 (ref 181) · win 57% · Σ +2593.65$ (ref +2193.65$) · Δ gross +400.00$ · Δ net +371.40$ · better 11 / worse 1
+   exits:  STOP 82 -3564$ · WIN 110 +6066$
+   leaves: legacy 192 +2502$
+   09-28: -41.25$ (ref -41.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+      19:20 DOUBLE_BOTTOM_EE_LONG LONG @7755.5 WIN ['T1'] out 19:20 +25.00$
+
+t529b vs t529ref · added        LONG  n=  9 wins   8 Σ  +198.75$
+t529b vs t529ref · added        SHORT n=  5 wins   5 Σ  +211.25$
+t529b vs t529ref · removed      SHORT n=  3 wins   1 Σ   +10.00$
+t529a vs t529ref: 65 sessions · t529ref Σ+2193.65$ · t529a Σ+2193.65$ · Δ +0.00$ gross, ≈+0.00$ net of +0 round-trips · better 0 / worse 0 / same 65
+by month Δ: 2026-06 +0 (8d) · 2026-07 +0 (17d) · 2026-08 +0 (19d) · 2026-09 +0 (19d) · 2026-10 +0 (2d)
+t529b vs t529ref: 65 sessions · t529ref Σ+2193.65$ · t529b Σ+2593.65$ · Δ +400.00$ gross, ≈+371.40$ net of +11 round-trips · better 11 / worse 1 / same 53
+by month Δ: 2026-06 +0 (8d) · 2026-07 +48 (17d) · 2026-08 +145 (19d) · 2026-09 +168 (19d) · 2026-10 +40 (2d)
+== drift check: t529ref vs t523ref (same config, common sessions)
+t529ref vs t523ref: 64 sessions · t523ref Σ+2282.40$ · t529ref Σ+2212.40$ · Δ -70.00$ gross, ≈-72.60$ net of +1 round-trips · better 0 / worse 1 / same 63
+by month Δ: 2026-06 +0 (8d) · 2026-07 +0 (17d) · 2026-08 +0 (19d) · 2026-09 -70 (19d) · 2026-10 +0 (1d)
+ALL DONE Sat Oct  3 16:17:05 IDT 2026

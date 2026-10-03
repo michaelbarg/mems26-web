@@ -1427,14 +1427,21 @@ class TradingGateway:
                                 pass
                             _t3_zone = _t3_zone_of(_t3_price, _t3_vah, _t3_val, _t3_ibw)
                         # edge — T-329: a CONFIRMED double at the extension extreme (the
-                        # extension failing) for CEILING_FLIP patterns only
+                        # extension failing) for CEILING_FLIP patterns only.
+                        # T-529 (03.10, replay knob — default byte-identical): TREE_EDGE_FAMILIES lists the
+                        # classification prefixes that may carry the edge (e.g. "CEILING_FLIP,DOUBLE_TOP,
+                        # DOUBLE_BOTTOM" — a double top/bottom IS a confirmed double at the extreme; its
+                        # producer sets metadata.structural_anchor). Unset ⇒ CEILING_FLIP only, as before.
                         _t3_edge = "none"
                         try:
                             _t3_cls = str(_dp_classification or "")
                             _t3_dir = (setup.get("direction") or "").upper()
                             _t3_anc = (setup.get("structural_anchor")
                                        or (setup.get("metadata") or {}).get("structural_anchor"))
-                            if (_t3_cls.startswith("CEILING_FLIP") and _t3_anc is not None
+                            _t3_edge_fams = tuple(
+                                f.strip().upper() for f in (os.getenv("TREE_EDGE_FAMILIES") or "CEILING_FLIP").split(",")
+                                if f.strip()) or ("CEILING_FLIP",)
+                            if (_t3_cls.upper().startswith(_t3_edge_fams) and _t3_anc is not None
                                     and _t3_ibh > 0 and _t3_ibl > 0 and _t3_sh > 0 and _t3_sl > 0):
                                 _t3_anc = float(_t3_anc)
                                 _t3_ftol = min(max(0.25 * (_t3_ibh - _t3_ibl), 1.0), 4.0)
