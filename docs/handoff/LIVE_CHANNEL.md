@@ -1,3 +1,68 @@
+🟢 **[cowork-dev · 2026-10-04 10:05-10:25 IL · ריצה 176 — חובה-1 בלבד (`date ⇒ Sun Oct  4 10:05:16 IDT 2026` — מחוץ לכל שלושת החלונות: לא `15:30-16:10`, לא RTH `16:30-23:00`, לא `23:00-23:30`; ובנוסף ראשון-בוקר = שוק סגור)]** ⇒ **אפס שער · אפס GO/NO-GO · אפס ריסטארט · אפס פריט-תור** · ☎️ **שקט מוחלט — אפס הודעות מהריצה הזאת** · ✔️ שני שומרים PASS + אפס דריפט מול התהליך החי · ⚠️ **מלכודת-שיטה חדשה: `exit_ts is null` אינו מבחן "צל-תקוע"**
+
+☎️ **חובה-1 · אפס ממתינות — נמדד מהמקור, כולל הוכחת-חיוּת לרלה (מלכודת 12):**
+```raw
+$ launchctl print gui/501/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+                                                     ⇐ הרלה חי ⇒ "תיבה ריקה" אינו שלילה-כוזבת
+$ curl …/instruction/pending?key=*** ⇒ {"items":[]}        ⇐ התיבה במקור, peek
+$ curl …/cmd/pending?key=***        ⇒ {"cmd":null}
+$ curl …/chat?key=*** ⇒ 30 פריטים · מייקל האחרון 2026-10-02T12:02:01Z
+    נענה עניינית פעמיים: 12:09:31Z (495 תווים) + 12:22:05Z (450, תיקון-עובדות)
+    סוכן אחרון 2026-10-02T20:13:53Z = דוח-היום 02.10, 251 תווים (≤300 ✓)
+$ tail PHONE_THREAD.jsonl (722 שורות) ⇒ זהה לפיד בייט-בבייט, אפס פער
+```
+⇒ **אין (א), אין (ב), אין (ג), אין (ד)** — הריצה הזאת לא שלחה לטלפון דבר.
+
+🩺 **מצב-המערכת — פקודה + פלט גולמי (Rule 5), לא הנחה:**
+```raw
+$ curl health ⇒ 200 ב-26.8ms
+$ ps -o lstart=,etime= -p 71969 ⇒ Sat Oct  3 16:22:52 · etime 17:43:50
+    = ריסטארט-T-529 של cowork-אינטראקטיבי, **לא היום** ⇒ אין מה להרים, אין התנגשות-בעלות
+$ psql ⇒ live where state not in (CLOSED,CANCELLED) ⇒ 0        ⇐ שטוח, אפס פוזיציות
+$ psql ⇒ live 02.10: 2875 T1_FILL +46.25 · 2877 STOP_HIT −45 ·
+          2895 STOP_HIT −45 · 2913 SIERRA_FLAT −23.75   (pnl_sierra 4/4, יום −67.50)
+$ psql ⇒ max(ts) v9_bars_5min_woodies = 2026-10-02 23:55:00+03 · גיל 1 יום 10:11
+    ⇐ **אינו פיד-מת**: Globex סגור מליל שישי עד ראשון 01:00 IDT (מלכודת 11 · T-430)
+$ tail -3000 backend.err.log | grep -cE "ERROR|Traceback" ⇒ 0   (הקובץ טרי — 10:12)
+$ python3 scripts/flag_guard.py     ⇒ FLAG-GUARD: PASS — all 274 ruled flags match
+$ python3 scripts/task_log_guard.py ⇒ 507 items, last committed 0.7 days ago ✅
+$ ruled_contracts() ⇒ 1             ⇐ תואם פסיקת 18.09 12:05 (FIXED_CONTRACTS_1)
+$ grep version config/decision_tree_v3.yaml ⇒ "3.2.0"
+$ git diff --name-only d0bec5a1(הקומיט הרץ) 72f696ae(HEAD) ⇒ 4 קבצים, **כולם docs/**
+    (LIVE_CHANNEL · STATUS_BOARD · TASK_LOG · T529 report) ⇒ **אפס דריפט קוד/קונפיג**
+    מול התהליך החי; `config/decision_tree_v3.yaml` לא נגע מאז d0bec5a1
+$ git rev-parse HEAD == @{u} ⇒ 72f696ae989d…, אפס פער
+```
+
+⚠️ **מה לא אימתתי — ואני אומר זאת במקום להמציא ערך:** גרסת-העץ **כפי שהבקנד מגיש בפועל**.
+ניסיתי ארבעה נתיבים ‏(`/api/v9/decision_tree/version`, `/decision_tree/state`, `/tree/version`,
+`/system/state`) — **כולם 404**. לפי המלכודת שריצה 175 רשמה, *404 על נתיב שניחשתי אינו ראיה*,
+ולכן לא רשמתי מכאן מספר ולא הסקתי "העץ לא מוגש". העדות העקיפה שכן יש: הקומיט הרץ `d0bec5a1`
+(שבו 3.2.0) + אפס-דריפט-קוד למעלה. **האימות הישיר נשאר לשער יום שני 15:30**, בדיוק כפי
+שרשומת 03.10 16:35 ביקשה — ושם גם הנתיב האמיתי צריך להיאמת מול טבלת-הראוטים ולא לנחש.
+
+⚠️ **מלכודת-שיטה חדשה (שלי, מהריצה הזאת) — `exit_ts is null` אינו מבחן "צל-תקוע":**
+```raw
+$ psql ⇒ where exit_ts is null: shadow 111 | live 6    ⇐ כמעט דיווחתי "111 שורות-צל תקועות"
+$ psql ⇒ אותן 111: state=CLOSED · exit_reason=STALE_UNRESOLVED (כולן 29.09 ואחורה)
+$ psql ⇒ אותן 6 live: ids 293-541, כולן state=CANCELLED
+          (PHANTOM_PENDING_FLAT / PHANTOM_FILLED_FLAT / ORDER_FAILED — יולי ואחורה)
+$ python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+```
+`close_stale_shadow` פותר שורה ע״י `state` + `exit_reason` ו**משאיר `exit_ts` ריק** ⇒ שאילתת
+`exit_ts is null` מחזירה 117 "פתוחות" בזמן שהמערכת שטוחה לחלוטין. **המבחן הנכון הוא
+`state not in (CLOSED,CANCELLED)`** — וזו הסיבה שריצה 175 כתבה אותו כך. אותה משפחה כמו
+404-על-נתיב-מנוחש ומלכודת 13: **מדד נכון שנמדד על העמודה הלא-נכונה.** תקרית 16.09 (26 שורות-צל
+שהרימו את הבקנד ל-80% CPU) הייתה על שורות **לא-פתורות** — אלה כאן פתורות, ולכן אין מה לסגור.
+
+**שורה תחתונה:** הטלפון שקט ונקי (רלה חי · תיבה ריקה · אפס פער פיד↔קובץ) · שטוח · 4/4 ברוקר
+לשישי · flag_guard 274/274 · task_log_guard ✅ · אפס ERROR · אפס דריפט מול התהליך החי · הפיד
+"ישן" כי השוק סגור ולא כי הוא מת · אפס שער · אפס ריסטארט · אפס הדלקות · אפס פריט-תור.
+**לריצה הבאה (שני 15:30):** feed חי לפי `max(ts)` מהיום · flag_guard 274 · העץ המוגש = 3.2.0
+(נתיב מאומת, לא מנוחש) · `pid 71969` הוא הבעלים.
+
+---
+
 ## 2026-10-03 16:35 IL · cowork (Claude-session) → cc-macbook / cowork-dev · T-529 חי — עץ 3.2.0 + TREE_EDGE_FAMILIES · ריסטארט-שבת pid 71969
 - **מה השתנה בלייב:** (1) `config/decision_tree_v3.yaml` **3.2.0** — בשורות הרספונסיביות (Normal/Neutral, שלב C, structure none) דחיית-המיקום שואלת קודם `edge`; `failed_extension` ⇒ עלה חדש `take_failed_ext_responsive` (exit t1_r 1.5 / t2_r 2.5, ruling+measured). (2) `.env`: `TREE_EDGE_FAMILIES=CEILING_FLIP,DOUBLE_TOP,DOUBLE_BOTTOM` — הגייטוויי מחשב `edge` גם לדאבל-טופ/בוטום (RULED_FLAGS, flag_guard 274/274, snapshot `20261003T131924Z_T-529-edge-families`).
 - **המדידה:** `harness_out/t529/run.out` — t529b מול t529ref (65 סשנים): Δ +400$ / +371.40$ נטו · 11 טוב / 1 רע · כל חודש ≥0 · +14 עסקאות (13 ניצחונות). העץ בלבד (t529a) Δ 0.00.
