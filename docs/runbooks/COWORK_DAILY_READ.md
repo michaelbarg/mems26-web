@@ -1083,3 +1083,52 @@ NO-GO מדומה, ובניטור-RTH הוא מקרה (ג) מיותר שמעיר 
 **קרובי-משפחה בקובץ:** §3.3 (זמן שנקרא בלי תחימה מפורשת, ששותק במקום לשגות), §3.2
 (פיד חתוך ל-200 שורות), ומלכודות 20 · 23 — כולן **Rule 2**: *ערך שנלקח ממכשיר
 שעונה על שאלה אחרת.* ההבדל היחיד הוא הציר — שם נתיב, שם חלון-דגימה, כאן חלון-שורות.
+
+### מלכודת 28 · `origin/main` **אינו** ה-upstream של הריפו — השוואה אליו היא "דריפט 4,241 קומיטים" על ריפו מסונכרן לחלוטין (04.10)
+
+ענף-העבודה כאן הוא `stabilize/mems26-local-truth-2026-05-16`, **לא** `main`.
+‏`origin/main` הוא ענף נטוש מ-**02.05.2026** — חמישה חודשים אחורה. מי שמאמת
+`pull`/`push` מול `origin/main` (ההרגל מכל ריפו אחר) מקבל פער-ענק מובטח.
+
+**המדידה בפועל (ריצה 180, ראשון 12:06, שוק סגור):**
+
+```raw
+$ git pull --ff-only                      ⇒ Already up to date.
+$ git rev-parse --short HEAD              ⇒ e3ae983f
+$ git rev-parse --short origin/main       ⇒ 9bdcd340          ← נראה כמו דריפט
+$ git log -1 --date=format:'%Y-%m-%d' origin/main
+    9bdcd340  2026-05-02  michaelbarg  feat(tools): pre-flight checklist script for Phase 3.2
+$ git rev-list --left-right --count origin/main...HEAD   ⇒ 572   4241
+$ git rev-parse --abbrev-ref HEAD         ⇒ stabilize/mems26-local-truth-2026-05-16
+$ git rev-parse --abbrev-ref @{u}         ⇒ origin/stabilize/mems26-local-truth-2026-05-16
+$ git rev-parse --short @{u}              ⇒ e3ae983f
+$ git rev-list --left-right --count HEAD...@{u}          ⇒ 0   0   ← מסונכרן לחלוטין
+$ git branch -r | wc -l                   ⇒ 10   (origin/main אחד מהם, ואינו ה-upstream)
+```
+
+**שתי הקריאות על אותה מציאות:** `4241/572` ו-`0/0`. השנייה היא האמת;
+הראשונה מודדת מול גווייה.
+
+**⚠️ והכיוון כאן גרוע ממלכודת 27.** שם האזעקה-הכוזבת מייצרת NO-GO מדומה או מקרה-(ג)
+מיותר. כאן **התיקון המתבקש לאזעקה הוא ההרסני**: `merge`/`reset`/`push --force` לעבר
+עץ מ-02.05 — לפני מיגרציית-Postgres, לפני עץ-ההחלטות `3.2.0`, לפני 274 הדגלים
+הפסוקים. כלומר "סגירת דריפט" שמוחקת חמישה חודשי פסיקות-מסחר. ⇒ **אף פעם לא לפעול
+על פער-ענק מול `origin/main`; קודם לאמת מול מה בכלל מודדים.**
+
+**והכיוון ההפוך, באותה מידה:** מי שמאמת **הצלחת-push** מול `origin/main` יראה כל
+דחיפה כנכשלת, ועלול לדחוף שוב ושוב או לדווח "הקומיט לא עלה" כשהוא עלה.
+
+**המדידה הקבילה — `@{u}`, ולעולם לא שם-ענף קשיח:**
+
+```bash
+# ❌ אסור — שם-ענף קשיח שאינו ה-upstream:
+[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || echo "DRIFT"
+
+# ✅ הפוסק — ה-upstream שהענף מצהיר עליו, ושתי המספרים בשורה אחת:
+git -C /Users/michael/Downloads/mems26_web_git status -sb | head -1      # ## <branch>...<upstream> [ahead/behind]
+git -C /Users/michael/Downloads/mems26_web_git rev-list --left-right --count HEAD...@{u}   # "0  0" = מסונכרן
+```
+
+**קרובי-משפחה בקובץ:** מלכודת 27 (חלון-שורות במקום חלון-זמן) · מלכודת 22 (`mtime`
+כמד-חיוּת) · מלכודת 14 ומלכודת 17 (עמודה שעונה על שאלה אחרת, וסדר-NULL ב-Postgres)
+— כולן **Rule 2**: *ערך שנלקח ממכשיר שעונה על שאלה אחרת.* הציר כאן הוא **שם-הרפרנס**.

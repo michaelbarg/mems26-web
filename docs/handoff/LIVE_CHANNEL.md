@@ -1,4 +1,39 @@
 
+🟢 **[cowork-dev · 2026-10-04 12:05-12:25 IL · ריצה 180 — חובה-1 בלבד (`date ⇒ Sun Oct  4 12:05:04 IDT 2026` — מחוץ לשלושת החלונות: לא `15:30-16:10`, לא RTH `16:30-23:00`, לא `23:00-23:30`; ראשון, Globex סגור ⇒ אפס שער · אפס GO/NO-GO · אפס ריסטארט)]** ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון.**
+
+☎️ **חובה-1 · נמדד מהמקור, עם הוכחת-חיוּת לרלה (מלכודת 12):**
+```raw
+$ launchctl print gui/501/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+$ curl …/instruction/pending?key=*** ⇒ {"items":[]}        ⇐ peek, התיבה במקור
+$ curl …/cmd/pending?key=***        ⇒ {"cmd":null}
+$ curl …/chat?key=*** ⇒ http=200 · 12,654B · 30 פריטים
+    מייקל האחרון  2026-10-02T12:02:01Z (f60495b9) — נענה עניינית פעמיים (12:09:31Z, 12:22:05Z)
+    סוכן אחרון    2026-10-02T20:13:53Z = דוח-היום 02.10
+    4 הודעות-מייקל בפיד כולו, כולן מטופלות (2× תיוג 30.09 + 2 שאלות 02.10)
+$ tail PHONE_THREAD.jsonl ⇒ זהה לפיד, אפס פער
+```
+⇒ **אין (א), אין (ב), אין (ג), אין (ד)** — הריצה לא שלחה לטלפון דבר.
+
+🩺 **מצב, פלט גולמי (Rule 5):** `health ⇒ http=200 t=0.0013s` · מאזין `:8000` = `pid 71969 · Sat Oct 3 16:22:52 · etime 19:44:04 · %cpu 0.3 · rss 103MB` ⇒ **ריסטארט-T-529 של cowork-האינטראקטיבי מאתמול, לא היום** ⇒ אפס התנגשות-בעלות · `flag_guard ⇒ PASS — all 274 ruled flags match` · `ruled_contracts() ⇒ 1` (תואם פסיקת 18.09 12:05) · `live where state not in (CLOSED,CANCELLED) ⇒ 0` ⇒ **שטוח** · `account/state ⇒ position_qty 0 · working_orders 0 · open_trade null` (‏`stale=true · age 13.1h` = שבת ~23:00, **שוק סגור ⇒ אינו פיד-מת**, מלכודת 11 · T-430) · `max(ts) v9_bars_5min_woodies ⇒ 2026-10-02 23:55+03` (שישי בסגירה) · `grep "^2026-10-04" backend.err.log | grep -cE "ERROR|CRITICAL" ⇒ 0` מתוך `2,061` שורות היום.
+
+🔎 **ממצא-שיטה חדש ⇒ `מלכודת 28` נוספה ל-`COWORK_DAILY_READ.md` (נבדקה כפילות לפני הכתיבה: `grep -c "origin/main" ⇒ 0`, `grep -nE '@\{u\}|upstream' ⇒ ריק`): `origin/main` אינו ה-upstream של הריפו, והשוואה אליו מדווחת "דריפט 4,241 קומיטים" על ריפו מסונכרן לחלוטין.**
+```raw
+$ git rev-parse --short HEAD ⇒ e3ae983f · origin/main ⇒ 9bdcd340          ← נראה כמו דריפט
+$ git log -1 origin/main ⇒ 2026-05-02 michaelbarg "pre-flight checklist … Phase 3.2"
+$ git rev-list --left-right --count origin/main...HEAD ⇒ 572   4241
+$ git rev-parse --abbrev-ref @{u} ⇒ origin/stabilize/mems26-local-truth-2026-05-16
+$ git rev-list --left-right --count HEAD...@{u}        ⇒ 0   0            ← האמת
+```
+ענף-העבודה הוא `stabilize/mems26-local-truth-2026-05-16`; `origin/main` נטוש מחמישה חודשים. **הכיוון כאן גרוע ממלכודת 27:** שם האזעקה-הכוזבת מייצרת NO-GO מדומה, כאן **התיקון המתבקש הוא ההרסני** — `merge`/`reset` לעבר עץ מ-02.05, לפני מיגרציית-Postgres, לפני עץ `3.2.0`, לפני 274 הדגלים הפסוקים. והכיוון ההפוך: מי שמאמת **הצלחת-push** מול `origin/main` יראה כל דחיפה כנכשלת. הפוסק: `git status -sb | head -1` + `rev-list --left-right --count HEAD...@{u}`.
+
+📍 **ושתי מלכודות שהקובץ תפס בזמן, ולכן אינן ממצא חדש — ראיה שהמיפוי עובד:** `where exit_ts is null ⇒ 117` (6 live + 111 shadow, הישנה 27.07, החדשה 29.09) נראה כמו 117 פתוחות — **מלכודת 14** פוסקת ש-`state` הוא השדה, וכל 6 ה-live הן רפאים (`CANCELLED` · `PHANTOM_FILLED_FLAT` · `ORDER_FAILED:-1`). ואז `order by entry_ts desc limit 3` החזיר את `398 · 293 · 296` מיולי במקום את שלוש העסקאות של שישי — **מלכודת 17** בדיוק: ב-Postgres `DESC` הוא `NULLS FIRST`, והרפאים חסרי-`entry_ts` עולים לראש. התיקון `and entry_ts is not null` החזיר את האמת: `2913 SIERRA_FLAT −23.75 · 2895 STOP_HIT −45 · 2877 STOP_HIT −45 · 2875 T1_FILL +46.25` (02.10, `pnl_sierra` 4/4, יום־ברוקר −67.50).
+
+⚠️ **לשער יום שני 15:30 (דיווח-בלבד, T-34):** `acct_available_funds ⇒ 481.39` — מתחת לרף-הדיווח `$1,595`. **אינו חוסם כרגע ואינו מקרה (ג):** שוק סגור, `acct_under_margin 0 · acct_trading_disabled 0 · acct_margin_req 0.0`, והמספר **בן 13.1 שעות** (משבת ~23:00) ⇒ לא בר-פסיקה. חוזה אחד (הפסיקה) נראה ממומן מול מרג'ין-היום `~287` שנמדד 30.09. **האימות הטרי שייך לשער 15:30 מחר, לא לכאן.**
+
+📝 **לא נגעתי:** `git status ⇒ 6 tracked M` (`MICHAEL_INBOX.md` · `MONDAY_READINESS.html` · `MARKS_VS_TREE_2026-09-24.md` · `PM_1.md` · `PM_2.md` · `harness_out/t517/wait_2300.out`) — רגנרציות של סוכנים אחרים, לא שלי, לא מקומיטות בריצה הזאת.
+
+📌 **אפס שינוי מסחרי:** אפס דגל · אפס ריסטארט · אפס כתיבה ל-DB · אפס נגיעה ב-`~/SierraChart_Data` · אפס פקודה לסיירה · אפס פוזיציה. Globex נפתח הערב 18:00 ET = `01:00 IDT` מחר; החלון הבא שיש בו חובה מעבר ל-1 הוא **שער 15:30-16:10 ביום שני**.
+
 🟢 **[cowork-dev · 2026-10-04 11:35-11:52 IL · ריצה 179 — חובה-1 בלבד (`date ⇒ NOW=2026-10-04 11:35:46 IDT` — מחוץ לשלושת החלונות: לא `15:30-16:10`, לא RTH `16:30-23:00`, לא `23:00-23:30`; ראשון-בוקר, שוק סגור ⇒ **אפס שער · אפס GO/NO-GO · אפס ריסטארט · אפס נגיעה בדגלים**)]** ☎️ **אפס ממתינות ⇒ שקט מוחלט בטלפון, אפס הודעות מהריצה הזאת** — נמדד מהמקור ולא מהקובץ (מלכודת 12): `launchctl print gui/501/com.mems26.mobile_relay ⇒ state=running · pid=1629` · `launchctl list | grep mems26 ⇒ 6 עם PID (611→71969 backend · 621 frontend · 637 bridge · 1619 export_promoter · 1624 activity_feed · 1629 mobile_relay) + 3 מתוזמנים ב-"-"` (מצבם התקין בין הרצות, §3.12) · `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · `/chat ⇒ 30 פריטים (cowork-dev 22 · מייקל 4 · cc 4)`, **מייקל האחרון `2026-10-02T12:02:01Z`** (*"למה אין תיקונים…"*) — נענה עניינית פעמיים (12:09:31Z · 12:22:05Z) **וגם בוצע**: [[T-529]] נמדד, נפסק ("לבצע") והוחל על הלייב ב-03.10 (`d0bec5a1`, עץ 3.2.0) ⇒ אין שאלה פתוחה. זהה ל-`PHONE_THREAD.jsonl` (722 שורות, אותה חותמת-קצה) ⇒ **אין (א), אין (ב), אין (ג), אין (ד)**.
 
 🩺 **מצב, פלט גולמי (Rule 5):** `health ⇒ http=200 t=0.0015s` · מאזין `:8000` = `pid 71969 · Sat Oct 3 16:22:52 · etime 19:13:21 · %cpu 0.7 · rss 103MB` ⇒ **ריסטארט-T-529 של cowork-האינטראקטיבי מאתמול, לא היום** ⇒ אין בעלות-ריסטארט להתנגש בה ואין מה להרים · שער-ד0 עובר: `[boot] logging OK level=INFO pid=71969 commit=d0bec5a1 stream=stderr` (ה-pid תואם למאזין ⇒ שכבת-INFO חיה, לא עיוורון §3.9) · `psql ⇒ v9_trades where state not in (CLOSED,CANCELLED) ⇒ (0 rows)` שטוח, לפי `state` ולא לפי עמודת-יציאה (מלכודות 14/17) · `flag_guard ⇒ FLAG-GUARD: PASS — all 274 ruled flags match (rc=0)` · `task_log_guard ⇒ 507 items, last committed 0.8 days ago ✅ (rc=0)` · `set -a; . ./.env; set +a; ruled_contracts() ⇒ 1` עם `FIXED_CONTRACTS_1=1` והשאר `0` — תואם פסיקת 18.09 12:05 (מלכודת 18) · ברידג' מקומי-בלבד: `grep -c "API push FAILED to https" /tmp/bridge.log ⇒ 0`, יעד לא-localhost ⇒ `0` (המסנן `https` הוא חלק מהמבחן, מלכודת 24) · שגיאות **תחומות-ליום ולא חלון-שורות** (מלכודת 27): `grep -c "^2026-10-04" ⇒ 1,598` שורות, מהן `[ERROR] ⇒ 0` ו-`[CRITICAL] ⇒ 0` · `HEAD = b7834a67 == @{u}`, `rev-list 0/0` ⇒ אפס דריפט.
