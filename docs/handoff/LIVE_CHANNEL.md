@@ -1,3 +1,71 @@
+🔴 **[supervisor · 2026-10-05 19:41 IL · ריצה שעתית]** בריאות: feed 1.0 דק׳ · מאזין 71969 · flag_guard PASS · מזומן 405.14 · תווית Trend_Normal (שלב C, מבנה up, הטיה LONG) · החלטות 55 / ירו 19 / לייב 2 (ספרים: #3038 −27.5, #3046 −27.5) · ריצודי-תווית 3 (17:10 Normal→Trend_Normal · 17:35 →Normal · 18:50 →Trend_Normal, יציב מאז) · אנלוגים (6): ריפליי Σ +36.25$, 3/6 חיוביים.
+🔴 אדומים: (1) **חדש — ספרים≠ברוקר על #3046**: הספרים סגרו GB100 LONG @7816 כ-LOSS −27.5 ב-19:25:05 (W2 EXIT-TRACK "activity fallback") על אירוע CLOSED_TRADE_PNL מ-19:24:06 — 58 שנ׳ לפני יצירת-העסקה (19:25:04), כנראה סגירת #3038; exit_price 7810.5 סונתז מה-PnL (7816−5.5) — שפל מאז 19:25 = 7815.25 ⇒ לא התרחש. סיירה 19:41: LONG 1 @7816.5, ברקט LIMIT 7827.25 (=t1 של 3046) / STOP_LIMIT 7808.5, open_pl +37.5, מזומן 405.14 (רק −27.5 של #3038). Reconciler 19:35:23 DESYNC "Sierra 1c, no open trade"; Gateway 19:40:04 CRITICAL — ירי-לייב INITIATIVE_LONG נחסם pre-send ("פוזיציה זרה") ⇒ אין סיכון ל-2 חוזים, אך הלייב חסום עד סגירת הפוזיציה. ☎️ הודעת-טלפון אחת נשלחה 19:42 (מסירה אומתה ב-Render /chat). (2) תווית ריצדה 3× (RTH בלבד, T-542) — דווח בטלפון כבר ב-16:40, לא חזר; (3) LaunchAgents 10/9 — ידוע מ-17:36, אינו אדום לפי הקריטריון (9 הצפויים + agents_bootstrap).
+המלצות: 1) cowork/fix-agent — תיקון-ספרים ל-#3046 (פתוח, entry 7816.5 מהברוקר) + שורש W2 EXIT-TRACK: לדחות אירוע ש-ts שלו קודם ל-created_at של העסקה ולדרוש position_qty=0 בסיירה לפני סגירה בספרים; מבחן-רגרסיה על 19:24–19:25 (משפחת T-251/T-290/T-527, §3.4); 2) היסטרזיס-תווית — דגל-כבוי + מדידה (§2.7); 3) supervisor.py:189 — `agents != "9"` ⇒ `< 9`/צפי 10 (לא בוצע — קריאה-בלבד). לא נגעתי בלייב.
+
+🔴 **[cowork-dev · 2026-10-05 19:35-19:52 IL · ריצה 194 — חובה-1 + חובה-3 (ניטור-RTH, 185-202 דק' אחרי הפתיחה) · ⛔ אפס ריסטארט (אסור 16:10-23:00) · ☎️ **הודעת-טלפון אחת — מקרה (ג): פוזיציית-לייב פתוחה שהספרים סגרו** · אפס נגיעה בפוזיציות/דגלים/גודל/`.env`]**
+
+☎️ **חובה-1 · אפס ממתינות-מייקל ⇒ שקט על ממתינות.** שני מקורות:
+```raw
+$ tail PHONE_THREAD.jsonl ⇒ last = cowork-dev 2026-10-05T16:11:55Z (פתיחת 3038)
+$ GET /chat?key=***        ⇒ http=200 · 13,474 בתים · items=30 · items[-1] = cowork-dev 2026-10-05T16:11:55Z
+    last_michael = **2026-10-02T12:02:01Z** ("למה אין תיקונים…") ⇒ נענתה עניינית ×2 (12:09:31Z · 12:22:05Z)
+```
+⇒ **אין (א), אין (ד)** ((ד) אינו בבעלות ריצת-RTH, [[T-369]]). **יש (ג)** — ממצא-① להלן.
+
+🩺 **חובה-3 · פלט גולמי (Rule 5):**
+```raw
+$ date                          ⇒ 2026-10-05 19:41:00 IDT (Mon)
+$ psql max(ts) woodies          ⇒ 2026-10-05 19:40:00+03 · גיל **1.0 דק'** ⇒ פיד חי (נמדד מה-DB, לא mtime — [[T-430]])
+$ curl /api/v9/health           ⇒ {"status":"ok","version":"v9.0.0"}
+$ lsof -nP -iTCP:8000           ⇒ PID **71969** · ps -o lstart ⇒ **Sat Oct 3 16:22:52** ⇒ אפס ריסטארט היום
+$ grep "[boot] logging OK"      ⇒ 2026-10-03 16:22:54 pid=71969 commit=d0bec5a1 ⇒ שכבת-INFO חיה ([[T-61]])
+$ flag_guard                    ⇒ **PASS — all 274 ruled flags match**
+$ ERROR מאז 16:35 ⇒ **2** (שתיהן `on_bar error: Invalid transition: CLOSED -> CLOSED`, 16:35:04 + 19:05:05)
+$ CRITICAL מאז 16:35 ⇒ **2** — שתיהן חדשות, שתיהן של ממצא-①
+$ decisions ⇒ 56 היום (13:30:04Z→16:40:04Z) · blocked_by: tree:location 27 · (none) 12 · tree:bias 5 ·
+              entry_location_quality 4 · tree:kind 2 · news_blackout 2
+```
+
+🔴 **ממצא-① — [[T-545]] (חדש): פוזיציית-לייב פתוחה בברוקר שהספרים סגרו כהפסד שנייה אחרי הכניסה, ואותו דיווח-ברוקר נספר פעמיים.** השרשרת, גולמית מ-`backend.err.log` (לא מקריאת-קוד):
+```raw
+19:23:46 [fill_poller] fill: kind=STOP order=11407 trade=3038 price=7816.5
+19:23:46 [Gateway]     LIVE trade closed (slot retained): 3038 pnl=-27.50 outcome=STOP
+19:24:06 [fill_poller] T-436 CLOSED_TRADE_PNL seen (1 event(s)) with no open demo/live trade
+                       — held for post-hoc attribution (buffer=1)          ← הדיווח של 3038 נכנס לבאפר
+19:25:04 [TradeManager] Trade 3046 created: mode=live sys=4 dir=LONG
+19:25:04 [Gateway]     LIVE trade TM id=3046: LONG GB100 system=4 t1=7827.25 t2=7838.50 t3=7853.50
+19:25:05 [fill_poller] W2 EXIT-TRACK: CLOSED_TRADE_PNL detected — closing trade 3046 (live LONG)
+                       with Sierra PnL=$-27.5, exit_price=7810.5, ts=2026-10-05 16:24:06.373185+00:00
+19:25:05 [Gateway]     LIVE slot freed: 3046 pnl=-27.50 outcome=BRACKET_EXIT_ACTIVITY
+19:25:06 [CRITICAL] [fill_poller] ORPHAN FILL — no trade for order_id=11408 kind=ENTRY price=7816.0.
+                       POSSIBLE UNTRACKED SIERRA POSITION — reconcile/flatten NOW. (orphans=1)
+19:25:21 [Reconciler]  T-43: contract mismatch DETECTED (TM=0 Sierra=1) — BLOCKING new entries
+19:40:04 [CRITICAL] [Gateway] LIVE fire BLOCKED pre-send: 2 working order(s) with foreign position +1
+                       — shared account brackets (legitimate). LONG INITIATIVE_LONG sys=2
+```
+**השורש בשורה אחת:** באפר-`T-436` מייחס דיווח-ברוקר ל"עסקת-הלייב הפתוחה" **בלי לבדוק שחותמת-האירוע מאוחרת לכניסה** — האירוע הוא `16:24:06.373Z` והעסקה נוצרה `16:25:04`, כלומר **40 שנ' אחרי האירוע שסגר אותה**. עסקה אינה יכולה להיסגר ע"י אירוע שקדם לכניסתה; שומר `event_ts >= entry_ts` הוא התיקון הזול.
+
+**הבעלות נקבעה לפי `order_id` לפני כל אזעקה** (כפי שחובה-3 וה-Reconciler מחייבים — "check POSITION_CHANGE.order_id against trade sierra_order_ids"):
+```raw
+$ trade_activity_events.jsonl (זנב):
+  16:06:04Z POSITION_CHANGE  0 → -1  order_id 11405                 (= כניסת 3038, 19:06 IL)
+  16:24:06Z POSITION_CHANGE -1 →  0  order_id 11407 + CLOSED_TRADE_PNL **-27.5**   (= סטופ 3038)
+  16:26:06Z POSITION_CHANGE  0 → **+1** order_id **11408**          (= כניסת 3046, 19:26 IL — פתוחה)
+$ sierra_state (19:41:11) ⇒ position_qty **1** · avg **7816.5** · open_pnl **+30.00** · last 7822.5 ·
+                            working_orders 2 · orders [{11409 type1 bs2 7827.25}, {11410 type3 bs2 7808.5}]
+$ ההצלבה: t1 של הגייטוויי ל-3046 = **7827.25** = בדיוק הליץ-אוררר 11409 ⇒ **הפוזיציה שלנו, לא ידנית ולא זרה**
+$ acct_daily_pl ⇒ **-76.25** = -21.25 (ידני 11401/11402) + -27.5 (ידני 11403/11404) + -27.5 (3038) ✓ מתכנס
+```
+**ולכן הספרים משקרים בשני מקומות:** (1) `v9_trades#3046` = `CLOSED / BRACKET_EXIT_ACTIVITY / pnl_usd -27.5 / pnl_sierra -27.5 / exit_price 7810.5` — בעוד הפוזיציה **פתוחה** ו-`open_pnl +30`; (2) אותו `-27.5` של הברוקר נספר **גם** ל-3038 **וגם** ל-3046 ⇒ יום-הספרים מראה `-55.00` מול `-27.50` מומש אצל הברוקר. `pnl_sierra` של 3046 הוא מספר **מיוחס-בטעות**, לא ראיית-ברוקר (מחלקת Rule 1).
+
+**מה פעיל ומה לא, מדוד:** הסטופ **חי בסיירה** (11410 @ 7808.5, qty 1) והיעד (11409 @ 7827.25) — הברקט צד-סיירה ולכן יבוצע; הפוזיציה **אינה עירומה**. אבל אין מעקב-TM ⇒ **אין T2/T3, אין העברת-סטופ ל-BE, ואין פלטן-EOD**: `_eod_close_t10` רץ רק על `active` demo/live של ה-TM (`bar_level_detector.py:652` — `live_active = [t for t in (active or []) if mode in ("demo","live")]`), ו-3046 אינו שם. `EOD_CLOSE_T10_V1=1` (פסיקת מייקל 24.08) **לא יסגור אותה**. בנוסף `T-43` חוסם ירי-לייב לשארית הסשן — ירי אחד כבר נחסם ב-19:40, והגייטוויי סיווג את הפוזיציה **שלנו** כ-`foreign position` ("shared account brackets (legitimate)") — סיווג שגוי שנרשם כלגיטימי.
+
+⛔ **מה לא עשיתי (ובמכוון):** אפס נגיעה בפוזיציה (אין פלטן, אין MODIFY_STOP, אין אימוץ-חזרה ל-TM) · אפס ריסטארט (19:41 ∈ `16:10-23:00`, והתיקון דורש ריסטארט בלא"ה) · אפס דגל · אפס `.env`. התיקון עצמו (שומר-חותמת בבאפר-T-436) הוא מסלול-יציאה-חי = **שינוי סיכון-מסחר** ⇒ נרשם ל-TASK_LOG + נשאל בטלפון, לא בוצע.
+
+☎️ **הודעת-טלפון אחת — מקרה (ג)** (שאלה אחת בסוף, ≤400 תווים, אפס backticks). **מיזוג מכוון:** היו כאן גם שני מקרי-(ב) (סגירת 3038 ב-19:24 · פתיחת 3046 ב-19:26) — שליחת שלוש הודעות בדקה אחת היא בדיוק הצפת [[T-369]], ולכן העובדות נארזו להודעת-ההחלטה האחת.
+
+---
+
 🟢 **[cowork-dev · 2026-10-05 19:05-19:15 IL · ריצה 193 — חובה-1 + חובה-3 (ניטור-RTH, 155-165 דק' אחרי הפתיחה) · ⛔ אפס ריסטארט (אסור 16:10-23:00) · ☎️ **הודעת-טלפון אחת — מקרה (ב): העסקה-לייב הראשונה של היום** · אפס נגיעה בדגלים/גודל/.env/פוזיציות]**
 
 ☎️ **חובה-1 · אפס ממתינות ⇒ שקט על ממתינות; הטלפון נקרא רק על מקרה (ב).** שלושה מקורות:
