@@ -1236,3 +1236,82 @@ ps -o pid=,lstart=,etime= -p 71969
 **קרובי-משפחה בקובץ:** מלכודת 12 (`pgrep` ששותק בהצלחה) · מלכודת 22 (`mtime`
 כמד-חיוּת) · מלכודת 28 (`origin/main` שאינו ה-upstream) · מלכודת 27 (חלון-שורות
 במקום חלון-זמן) — כולן אותה מחלקה: **הפקודה עבדה, היא פשוט נשאלה על משהו אחר.**
+
+### מלכודת 31 · ל-"כמה נחסמו ולמה" יש **שלושה משטחים** — והלוג מנפח ×3 (tree) ו-×2 (שרשרת-השער) (05.10)
+
+**מה שקרה:** ריצה 192 (18:40) דיווחה היסטוגרמת-חסימות `tree:location 26 ·
+entry_location_quality 4 · None 2 · tree:kind 2 · news_blackout 2 ·
+tree:stand_down 2 · rr_entry_gate 1 · entry_not_confirmed 1` ⇒ **40 שורות**.
+ריצה 193 (19:13) מדדה על אותו יום `tree:location 27 · None 16 · tree:bias 2 ·
+tree:kind 2 · tree:stand_down 2` ⇒ **49 שורות**, בלי `entry_location_quality`,
+בלי `news_blackout`, בלי `rr_entry_gate`, בלי `entry_not_confirmed`. **שני
+הדוחות נכונים.** הם פשוט נשאלו על שלושה משטחים שונים:
+
+```bash
+# (1) הלוג — מנפח, כי כל אירוע נכתב יותר מפעם אחת
+grep -E "^$(date +%F)" /tmp/backend.err.log | grep -oE "blocked_by=[a-z_:]+" | sort | uniq -c
+#   tree:location 81 · ELQ 8 · tree:stand_down 6 · tree:kind 6 · tree:bias 6
+#   news_blackout 4 · rr_entry_gate 2 · entry_not_confirmed 2
+
+# (2) v9_decision_vectors — שורה-לאירוע, אבל tree:* בלבד
+psql … -c "select coalesce(blocked_by,'None'), count(*) from v9_decision_vectors
+           where ts>=current_date and kind='DECISION' group by 1 order by 2 desc;"
+#   tree:location 27 · None 16 · tree:bias 2 · tree:kind 2 · tree:stand_down 2   (=49)
+
+# (3) ליגר-המועמדים (candidate_ledger.py) — שרשרת-השער המלאה: ELQ / news / rr / confirm
+```
+
+**המקדמים, ושניהם יצאו שלמים — ולכן אינם רעש:**
+
+| חסימה | לוג | DB | יחס |
+|---|---|---|---|
+| `tree:location` | 81 | 27 | **3.0** |
+| `tree:bias` · `tree:kind` · `tree:stand_down` | 6 · 6 · 6 | 2 · 2 · 2 | **3.0** |
+| `ELQ` · `news_blackout` · `rr_entry_gate` · `entry_not_confirmed` | 8 · 4 · 2 · 2 | **0** | — (÷2 ⇒ 4·2·1·1 = מספרי-192) |
+
+כלומר אותו אירוע בודד מודפס מספר פעמים שונה לפי **סוג** החוסם, וזה מאומת שורה-שורה:
+```raw
+# tree:* ⇒ שלוש שורות: BLOCKED מפורט → התאום-בצל → BLOCKED קצר
+19:05:04 [Gateway] BLOCKED … FAILED_RE_IB … blocked_by=tree:bias ot=OPEN_AUCTION_IN hint=LONG bias=LONG kinds=[…] il=19:05
+19:05:04 [Gateway] T-219 shadow_blocked: SHORT FAILED_RE_IB blocked_by=tree:bias → twin #3035 (41/150 today)
+19:05:04 [Gateway] BLOCKED system=2 pattern=FAILED_RE_IB dir=SHORT entry=7811.0 blocked_by=tree:bias
+
+# שרשרת-השער ⇒ שתי שורות בלבד: התאום-בצל → BLOCKED   (אין שורת-BLOCKED מפורטת)
+17:10:10 [Gateway] T-219 shadow_blocked: LONG GHOST blocked_by=entry_location_quality → twin #3002 (13/150 today)
+17:10:10 [Gateway] BLOCKED system=4 pattern=GHOST dir=LONG entry=7799.75 blocked_by=entry_location_quality
+```
+ואירוע של שרשרת-השער אינו מגיע **כלל** ל-`v9_decision_vectors.blocked_by` —
+העמודה הזו מתעדת רק את פסיקת-העץ.
+
+**ההצלבה שסוגרת את שלושת המשטחים לאירוע אחד:**
+```bash
+grep -oE "TREE_V3 .* → (TAKE|SKIP)" /tmp/backend.err.log | grep -coE "→ TAKE"   # 16
+psql … -c "select count(*) from v9_decision_vectors where ts>=current_date and kind='DECISION';"  # 49
+# 16 TAKE + 33 SKIP = 49  ≡  49 שורות DECISION  ⇒ אותו אירוע, שתי ספירות נכונות
+```
+
+**⚠️ והמלכודת-בתוך-המלכודת — `blocked_by IS NULL` אינו "עבר לשער":**
+אותו יום נתן `None = 16` ב-DB מול `grep -c "shadow_only setup" = 7` בלוג
+ו-`LIVE trade TM = 1`. כלומר 16 הן **כל ה-TAKE של העץ**; מהן 7 נעצרו
+ב-`shadow_only` (פסיקה — ראה `RULED_FLAGS.yaml` ל-`CEILING_FLIP_TOUCH2_V1`),
+**אחת** יצאה לייב, והיתר נפלו בשרשרת-השער שה-DB אינו מתעד. מי שקורא `None`
+כ-"נותב" מדווח פי-16 מהלייב האמיתי.
+**והראיה היא שמית, לא אריתמטית:** ארבע מ-16 שורות-ה-`None` הן בדיוק ארבעת
+החסומים-ב-ELQ של אותו יום — זיווג אחד-לאחד לפי דפוס · כיוון · מחיר:
+```raw
+DB  (blocked_by = NULL)                         LOG (blocked_by=entry_location_quality)
+17:10:10  GHOST                LONG 7799.75  ↔  17:10:10  GHOST                LONG 7799.75
+17:20:07  INITIATIVE_LONG      LONG 7805.5   ↔  17:20:08  INITIATIVE_LONG      LONG 7805.5
+17:25:04  INITIATIVE_LONG      LONG 7808.5   ↔  17:25:04  INITIATIVE_LONG      LONG 7808.5
+17:30:06  DOUBLE_BOTTOM_EE_LONG LONG 7808.0  ↔  17:30:06  DOUBLE_BOTTOM_EE_LONG LONG 7808.0
+```
+**אותו דפוס, אותו מחיר, אותה שנייה (±1) — ושתי תשובות הפוכות לשאלה "נחסמה?".**
+
+**הכלל:** לפני ציטוט מספר-חסימות — **לנקוב במשטח**. לספירת-אירועים: ליגר-המועמדים
+(שרשרת מלאה) או `v9_decision_vectors` (עץ בלבד). הלוג הוא לראיית **רצף** של אירוע
+בודד (Rule 5), לא לספירה. ו-"נותב לייב" נמדד רק מ-`COMMAND QUEUED` / `LIVE trade TM`,
+שהיו **1** באותו יום.
+
+**קרובי-משפחה בקובץ:** מלכודת 21 (לפיד-הליגר שתי צורות-שורה — שם: שדה-הזמן, כאן:
+המשטח) · מלכודת 26 (`find_ledger` שמחזיר `None` לפי לוח-זמנים) · מלכודת 27
+(חלון-שורות במקום חלון-זמן) · מלכודת 30 (הפקודה עבדה, נשאלה על אובייקט אחר).

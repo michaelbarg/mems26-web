@@ -1,3 +1,93 @@
+🟢 **[cowork-dev · 2026-10-05 19:05-19:15 IL · ריצה 193 — חובה-1 + חובה-3 (ניטור-RTH, 155-165 דק' אחרי הפתיחה) · ⛔ אפס ריסטארט (אסור 16:10-23:00) · ☎️ **הודעת-טלפון אחת — מקרה (ב): העסקה-לייב הראשונה של היום** · אפס נגיעה בדגלים/גודל/.env/פוזיציות]**
+
+☎️ **חובה-1 · אפס ממתינות ⇒ שקט על ממתינות; הטלפון נקרא רק על מקרה (ב).** שלושה מקורות:
+```raw
+$ tail PHONE_THREAD.jsonl ⇒ senders בזנב-60: cowork-dev 44 / מייקל 7 / cc 7 / cowork 1 / supervisor 1
+    last_michael = **2026-10-02T12:02:01Z** ("למה אין תיקונים…") ⇒ נענתה עניינית ×2 (12:09:31Z · 12:22:05Z)
+$ GET /chat?key=***        ⇒ http=200 · items=**30** · items[-1] = supervisor **2026-10-05T13:40:39Z**
+    last_michael בתור = **2026-10-02T12:02:01Z** ⇒ **זהה לקובץ** ⇒ אפס דריפט רלה⇄PHONE_THREAD
+$ GET /instruction/pending ⇒ **{"items":[]}**   ·   GET /cmd/pending ⇒ **{"cmd":null}**   (peek)
+```
+⇒ **אין (א), אין (ג), אין (ד)** — (ד) במכוון: GO/NO-GO אינו בבעלות ריצת-RTH ([[T-369]]). **יש (ב)** — להלן.
+
+🩺 **חובה-3 · ארבע הבדיקות — פלט גולמי (Rule 5):**
+```raw
+① בר: 19:06:18 ⇒ max(ts) v9_bars_5min_woodies = **19:05:00+03** · גיל **1.3** דק'
+     דגימה ②  19:11:14 ⇒ **19:10:00+03** · גיל **1.2** דק'   ⇒ הבר **מתקדם**, לא רק טרי ([[T-430]])
+     דגימה ③  19:13:54 ⇒ **19:10 IL** · גיל **3.9** דק'  ⇒ בתוך חלון ה-5 דק' של הבר
+② backend: `/api/v9/health` ⇒ **200** `{"status":"ok","version":"v9.0.0"}` · `/health` uptime_s **182628**
+     `lsof -nP -iTCP:8000 -sTCP:LISTEN` ⇒ Python **71969** · `ps -o lstart` ⇒ **Sat Oct 3 16:22:52**
+     ⇒ **אפס ריסטארט היום** (אותו pid של ריצות 188-192 ושל הפיקוח)
+     `awk '$0 >= "2026-10-05 16:35"' | grep -c "[ERROR]"` ⇒ **2** בחמש שעות (ממצא-① של 192 מחזיק)
+③ פוזיציה-מול-TM — **הבעלות לפי order_id לפני כל אזעקה:**
+     sierra_state ⇒ qty **-1** · avg **7811.0** · working **2** · armed **1** · is_sim **0** · last 7813.25
+     `/api/v9/account/state.open_trade` ⇒ **id 3038** · `/api/v9/trades/active` ⇒ **trade_id 3038**
+     `[FillPoller] registered order **11405** → trade **3038**` · bracket `{11406 target, 11407 stop}`
+     `trade_fills_journal.jsonl` ⇒ `kind=ENTRY order_id=**11405** price=7811.0 contracts=1 SHORT`
+     ⇒ **תואם מלא בארבעה מקורות** ⇒ אפס דיוורגנציה, אפס נגיעה
+④ עסקאות-לייב: **1** (חדשה) · v9_trades היום ⇒ live **1** / shadow **49**
+     `flag_guard` ⇒ **PASS — all 274 ruled flags match** + LIVENESS: כל דגל-ON בעל read-site
+     `ruled_contracts()` ⇒ **1** = הפסיקה (18.09 12:05) ≡ `RISK_BUDGET … → min(ruled=1)=1` בלוג
+```
+
+🆕 **ממצא ① — העסקה-לייב הראשונה של היום נפתחה ב-19:05, אחרי 155 דקות של אפס-לייב. דווחה לטלפון (מקרה ב) ואומתה במסירה.**
+```raw
+19:05:04 [Gateway] TREE_V3 **CEILING_FLIP_SHORT** SHORT 7811.0 → **TAKE**
+         [hour=*(19)/opening_type=OPEN_AUCTION_IN/phase=**C**/day_type=**Trend_Normal**/
+          rel_bias=**against**/edge=**failed_extension**]
+19:05:04 [Gateway] STRUCTURAL STOP: CEILING_FLIP_SHORT SHORT stop=**7816.50** — resolver/floor/ladder exempt
+19:05:04 [SierraCmd] RISK_BUDGET: risk=**5.5** pts → raw=8.2 → floor=8 → **min(ruled=1)=1**
+19:05:04 [SierraCmd] **COMMAND QUEUED #404** → command_queue/cmd_000404.json (op=PLACE, pending_before=0)
+19:05:04 [Gateway] **LIVE trade TM id=3038**: SHORT CEILING_FLIP_SHORT system=2
+         t1=**7802.75** t2=**7797.25** t3=**7791.75** account=37138283
+19:05:06 [SierraCmd] **ACK confirmed** for cmd_000404.json — removed from queue
+19:05:06 [FillPoller] **ENTRY fill: trade 3038 @ 7811.0**  ·  mapped 9 per-contract order ids
+$ COMMAND QUEUED היום ⇒ **1** (מול 0 בריצות 190-192) ⇒ זו הפקודה היחידה שהמערכת שלחה היום
+$ ☎️ phone_reply.py cowork-dev "…" ⇒ ok ·  **אימות-מסירה דרך GET /chat ולא מה-ok:**
+    items[-1] ⇒ sender=**cowork-dev** · ts=**2026-10-05T16:11:55Z** · len=**243** (≤300 ✓) · backticks=**0**
+```
+⇒ **שלוש עובדות שראוי לציין:** (1) `rel_bias=against` — שורט **נגד** הטיית-היום (`dir_hint=LONG`,
+`s1_state=with_trend(UP)`), אותו פרופיל כמו 2895 ב-02.10 שנפלה; (2) הסטופ **מבני** (7816.25 = VAH/UFH
++ טיק) ולא מרווח-קבוע; (3) הגודל נקרא מהפסיקה ולא מ-`.env` — `min(ruled=1)` בלוג הוא הראיה.
+📌 **ולא ביצעתי שום פעולה על העסקה** — היא מנוהלת ע"י ה-TM והברקט של סיירה.
+
+🆕 **ממצא ② — אותה עסקה בדיוק נחסמה ע"י דגל-המועמד S7, והתאום-בצל מתעד זאת. זו מדידה, לא סתירה.**
+```raw
+$ v9_shadow_ledger · 19:05:04 ⇒ S7/SYSTEM7_SCORE · trade **3037** · CEILING_FLIP_SHORT · **BLOCKED**
+  ו-3037 הוא **התאום-בצל** של 3038: אותה שנייה, אותו דפוס, אותו מחיר 7811, אותו סטופ 7816.5
+$ ליגר-הצל היום ⇒ S7 **PASSED 12 / BLOCKED 37** · TSF/TREND_STEP_ENTRY_V1 **NO_CHANGE 49**
+```
+⇒ S7 **אינו דגל-פסוק** (אינו ב-`RULED_FLAGS`; `flag_guard` PASS) — הוא נמדד בצל בלבד, ולכן
+"BLOCKED בליגר + נפתחה בלייב" הוא **המבנה המתוכנן**, לא דריפט-שער. ✋ **אפס פעולה**; הערך של הרשומה
+הוא שהיא נותנת לתור-הלילה את מה שהוא צריך: אם 3038 תיפול, S7 נכנס לחבילת-המדידה עם מקרה חי.
+
+📌 **מלכודת-מדידה חדשה — היסטוגרמת `blocked_by` מהלוג מנפחת פי-3 (tree) ופי-2 (שרשרת-השער). שני מספרים נכונים, שתי אמיתות שונות.**
+```raw
+$ מהלוג: grep -oE "blocked_by=[a-z_:]+" | uniq -c  ⇒ tree:location **81** · ELQ 8 · tree:stand_down 6
+    · tree:kind 6 · tree:bias 6 · news_blackout 4 · rr_entry_gate 2 · entry_not_confirmed 2
+$ מה-DB: v9_decision_vectors (kind='DECISION') ⇒ tree:location **27** · None 16 · tree:bias 2
+    · tree:kind 2 · tree:stand_down 2            ⇒ סה"כ **49** שורות
+$ היחס: 81/27 · 6/2 · 6/2 · 6/2 = **3.0 בכולם** ⇒ כל אירוע tree:* נכתב ללוג **שלוש פעמים**
+$ ו-ELQ/news_blackout/rr_entry_gate/entry_not_confirmed **אינם ב-DB כלל** (8/4/2/2 בלוג = ÷2
+    ⇒ 4/2/1/1 אירועים) — בדיוק המספרים שריצה 192 דיווחה ⇒ **192 קראה את ליגר-המועמדים, לא את ה-DB**
+$ והצלבה שסוגרת: TREE_V3 בלוג ⇒ **TAKE 16 / SKIP 33 = 49** ≡ 49 שורות DECISION ב-DB ⇒ **אותו אירוע**
+```
+⇒ **הכלל:** לשאלה "כמה נחסמו ולמה" יש **שלושה** משטחים — לוג (מנפח ×3/×2) · `v9_decision_vectors`
+(שורה-לאירוע, אבל **tree:\* בלבד**) · ליגר-המועמדים (שרשרת-השער המלאה, `candidate_ledger.py`).
+מי שמצטט "ליגר" בלי לנקוב במשטח מייצר שני דוחות שסותרים זה את זה **כשאף אחד מהם אינו שגוי** —
+וזו בדיוק הצורה של מלכודת 21 בראנבוק (שם: שדה-הזמן; כאן: המשטח). 📌 **לרישום בראנבוק.**
+⚠️ `shadow_only setup` בלוג ⇒ **7** היום, ואילו שורות-ה-None ב-DB ⇒ **16** — כלומר `blocked_by IS NULL`
+ב-`v9_decision_vectors` **אינו** "עבר לשער": 16 = כל ה-TAKE של העץ, מהם 7 נעצרו ב-`shadow_only`,
+1 יצא לייב (3038), והשאר נפלו בשרשרת-השער שה-DB אינו מתעד. אין לקרוא None כ"נותב".
+
+📊 **הצעד הבא (ללא בעלות שלי בריצת-RTH):** 3038 פתוחה — הדיווח הבא עליה הוא מקרה (ב) בסגירה
+(סטופ 7816.5 / יעד1 7802.75 / פלטן-EOD של [[T-10]]). לתור-הלילה: `broker_truth` יראה היום **שלוש**
+נסיעות — שתיים ידניות (11401-11404, ממצא-② של 192) ו**אחת שלנו** (11405) ⇒ `n/N` צריך לצאת **1/1**
+על ספר-המערכת, ו-−48.75 של הידניות חייב להישאר **מחוץ** לו; ו-`day_review` ל-3038 שואל את שתי
+השאלות בנפרד — התזה (CEILING_FLIP נגד-ההטיה בשלב C) מול ההצבה (סטופ מבני 5.5 נק').
+
+---
+
 🟠 **[supervisor · 2026-10-05 18:37 IL · ריצה שעתית]** בריאות: feed 2.0 דק׳ · מאזין 71969 · flag_guard PASS · פוזיציה 0 · מזומן 432.64 (481.39 ב-17:36 — round-trips ידניים, ראה cowork-dev ריצה 191; לייב-מערכת 0) · תווית Normal (שלב C) · החלטות 40 / ירו 10 / לייב 0 · ריצודי-תווית 2 · אנלוגים (6): ריפליי Σ +36.25$, 3/6 חיוביים.
 🔴 אדום-של-הסקריפט, ידוע מ-17:36 (לא חדש): "LaunchAgents רשומים: 10/9" — `launchctl list` = 9 הצפויים + `com.mems26.agents_bootstrap` (T-259). לפי הקריטריון ("סוכנים < 9") אינו אדום ⇒ **אפס הודעת-טלפון**. התיקון עדיין פתוח: `scripts/supervisor.py:189` (`agents != "9"` ⇒ `< 9`/צפי 10) — cowork/fix-agent, לא סוכן-הפיקוח (קריאה-בלבד).
 המלצות: 1) ימים-אנלוגיים — קונפיג-הלייב בריפליי Σ +36.25$ · 3/6 ימים חיוביים — תצפית, לא שער; היום עצמו יענה. 2) אין המלצה שנייה בדוח.
