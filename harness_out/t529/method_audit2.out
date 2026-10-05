@@ -1,0 +1,74 @@
+== F · which layer carries the edge? (TAKE candidates: the tree said yes) ==
+-- TAKE by what happened after the tree
+   (passed, no trade)                 n= 790 win  40% S   -1260$ per   -1.6$ | fired   0 S     +0$
+   entry_not_confirmed                n= 348 win  43% S   +1192$ per   +3.4$ | fired   0 S     +0$
+   entry_location_quality             n= 260 win  45% S   -1978$ per   -7.6$ | fired   0 S     +0$
+   live_slot_occupied                 n= 212 win  50% S   +3022$ per  +14.3$ | fired   0 S     +0$
+   FIRED                              n= 183 win  46% S   +1521$ per   +8.3$ | fired 183 S  +2375$
+   rr_entry_gate                      n= 176 win  39% S   -1994$ per  -11.3$ | fired   0 S     +0$
+   eod_entry_cutoff                   n= 160 win  38% S   -1665$ per  -10.4$ | fired   0 S     +0$
+   structural_targets_wrong_side      n=  45 win  13% S   -2231$ per  -49.6$ | fired   0 S     +0$
+   extreme_chase_guard                n=  34 win  71% S   +1085$ per  +31.9$ | fired   0 S     +0$
+   rr_hard_floor                      n=  17 win  53% S    +342$ per  +20.1$ | fired   0 S     +0$
+   duplicate_fire                     n=  17 win  47% S     -88$ per   -5.2$ | fired   0 S     +0$
+   TAKE fired: n=183 Scand +1521$ realized +2375$ | TAKE not fired: n=2071 Scand -3456$
+-- TAKE by shadow_only producer
+   live producer                      n=1305 win  44% S    -561$ per   -0.4$ | fired 183 S  +2375$
+   shadow producer                    n= 949 win  41% S   -1374$ per   -1.4$ | fired   0 S     +0$
+
+== G · label-free context (all candidates) ==
+-- by structure (what price did to the IB)
+   down                               n=1380 win  38% S   -9524$ per   -6.9$ | fired  53 S   +323$
+   up                                 n=1032 win  41% S   -3286$ per   -3.2$ | fired  46 S   +811$
+   forming                            n= 807 win  49% S   +5016$ per   +6.2$ | fired  58 S  +1019$
+   none                               n= 717 win  45% S   +2445$ per   +3.4$ | fired  23 S   +241$
+   two_sided                          n= 226 win  32% S   -3457$ per  -15.3$ | fired   3 S    -20$
+-- by edge
+   none                               n=3523 win  42% S   -9163$ per   -2.6$ | fired 131 S  +1637$
+   failed_extension                   n= 639 win  41% S    +356$ per   +0.6$ | fired  52 S   +738$
+-- by kind
+   BREAK                              n=1978 win  42% S   -7462$ per   -3.8$ | fired  73 S  +1045$
+   EDGE_FADE                          n=1863 win  41% S   -2825$ per   -1.5$ | fired  20 S    +26$
+   REVERSAL                           n= 253 win  43% S    +737$ per   +2.9$ | fired  59 S   +405$
+   WITH_DRIVE                         n=  39 win  62% S   +1077$ per  +27.6$ | fired  28 S   +791$
+   PULLBACK                           n=  29 win  31% S    -334$ per  -11.5$ | fired   3 S   +108$
+-- by test
+   none                               n=4162 win  42% S   -8807$ per   -2.1$ | fired 183 S  +2375$
+-- by volume
+   normal                             n=4162 win  42% S   -8807$ per   -2.1$ | fired 183 S  +2375$
+-- by delta
+   none                               n=4162 win  42% S   -8807$ per   -2.1$ | fired 183 S  +2375$
+-- by hour (IL)
+   20                                 n= 681 win  40% S   -3812$ per   -5.6$ | fired  26 S    +95$
+   19                                 n= 649 win  44% S   +1083$ per   +1.7$ | fired  31 S   +651$
+   17                                 n= 642 win  45% S    +928$ per   +1.4$ | fired  24 S   +300$
+   18                                 n= 637 win  39% S   -1118$ per   -1.8$ | fired  38 S   +516$
+   21                                 n= 587 win  38% S   -4348$ per   -7.4$ | fired  15 S   +145$
+   22                                 n= 491 win  38% S   -3836$ per   -7.8$ | fired   5 S    -19$
+   16                                 n= 475 win  47% S   +2296$ per   +4.8$ | fired  44 S   +687$
+-- by system
+   2                                  n=2667 win  42% S   -2726$ per   -1.0$ | fired 152 S  +1664$
+   4                                  n=1495 win  42% S   -6081$ per   -4.1$ | fired  31 S   +711$
+
+== H · the robust core: pattern x phase with n>=25, sorted by per-candidate $ ==
+   OPENING_DRIVE              <=17h    n=  32 win  62% per  +28.7$ S    +918$
+   FAILED_BREAK_SHORT         <=17h    n=  29 win  62% per  +25.3$ S    +734$
+   CEILING_FLIP_SHORT         <=17h    n=  37 win  51% per  +23.6$ S    +874$
+   GHOST                      <=17h    n=  58 win  53% per  +19.0$ S   +1101$
+   DOUBLE_TOP_AA_SHORT        >17h     n=  90 win  50% per  +12.5$ S   +1123$
+   REACTIVE_SHORT             >17h     n=  79 win  54% per  +10.6$ S    +838$
+   CONFLUENCE_RI_ZLR          >17h     n=  48 win  52% per   +8.2$ S    +391$
+   CEILING_FLIP_SHORT         >17h     n=  64 win  45% per   +7.7$ S    +490$
+   INITIATIVE_SHORT           >17h     n=  92 win  47% per   +5.6$ S    +516$
+   DALTON_EDGE_LONG           <=17h    n=  26 win  46% per   +3.5$ S     +91$
+   VA_FADE_SHORT              >17h     n=  29 win  48% per   +3.4$ S     +98$
+   CEILING_FLIP_TOUCH2        <=17h    n= 403 win  46% per   +2.3$ S    +923$
+   ... worst:
+   VA_FADE_LONG               >17h     n=  33 win  21% per  -18.6$ S    -613$
+   DOUBLE_BOTTOM_EE_LONG      >17h     n= 103 win  38% per  -12.8$ S   -1322$
+   GHOST                      >17h     n= 157 win  37% per   -9.4$ S   -1475$
+   OPENING_PULLBACK_CONT      <=17h    n=  25 win  36% per   -9.2$ S    -230$
+   ZLR                        >17h     n= 834 win  40% per   -8.1$ S   -6750$
+   FAILED_BREAK_LONG          <=17h    n=  32 win  38% per   -5.8$ S    -185$
+   CEILING_FLIP_LONG          >17h     n=  51 win  41% per   -5.7$ S    -289$
+   GB100                      <=17h    n=  36 win  39% per   -5.3$ S    -191$

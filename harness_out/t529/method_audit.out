@@ -1,0 +1,112 @@
+== A · candidate-level raw edge (fixed model: stop from the setup, target 1.5R, first touch, EOD close) ==
+sessions 65 · candidates 4398 · scored 4162
+ALL: n=4162 win 42% S -8807$ (per candidate -2.1$)
+-- by tree leaf (selection check: TAKE vs SKIP)
+   TAKE                                           n=2254 win  43% S    -1934$ · per cand   -0.9$
+   SKIP                                           n=1908 win  41% S    -6873$ · per cand   -3.6$
+-- by pattern
+   CEILING_FLIP_TOUCH2                            n=1547 win  40% S    -3728$ · per cand   -2.4$
+   ZLR                                            n=1043 win  41% S    -6780$ · per cand   -6.5$
+   GHOST                                          n= 215 win  41% S     -374$ · per cand   -1.7$
+   INITIATIVE_LONG                                n= 130 win  42% S    -1407$ · per cand  -10.8$
+   INITIATIVE_SHORT                               n= 113 win  47% S     +397$ · per cand   +3.5$
+   DOUBLE_TOP_AA_SHORT                            n= 111 win  51% S    +1505$ · per cand  +13.6$
+   DOUBLE_BOTTOM_EE_LONG                          n= 111 win  36% S    -1999$ · per cand  -18.0$
+   CEILING_FLIP_SHORT                             n= 101 win  48% S    +1364$ · per cand  +13.5$
+   GB100                                          n=  93 win  40% S     -244$ · per cand   -2.6$
+   REACTIVE_SHORT                                 n=  90 win  56% S    +1103$ · per cand  +12.3$
+   REACTIVE_LONG                                  n=  79 win  38% S     -281$ · per cand   -3.6$
+   CEILING_FLIP_LONG                              n=  68 win  38% S     -374$ · per cand   -5.5$
+   CONFLUENCE_RI_ZLR                              n=  52 win  54% S     +516$ · per cand   +9.9$
+   VA_FADE_LONG                                   n=  45 win  29% S     -562$ · per cand  -12.5$
+   VA_FADE_SHORT                                  n=  41 win  46% S      +95$ · per cand   +2.3$
+   HTLB                                           n=  38 win  50% S     +163$ · per cand   +4.3$
+   FAILED_BREAK_LONG                              n=  32 win  38% S     -185$ · per cand   -5.8$
+   OPENING_DRIVE                                  n=  32 win  62% S     +918$ · per cand  +28.7$
+-- by phase
+   C                                              n=2277 win  41% S    -5639$ · per cand   -2.5$
+   D                                              n=1078 win  38% S    -8184$ · per cand   -7.6$
+   B                                              n= 589 win  49% S    +4633$ · per cand   +7.9$
+   A                                              n= 218 win  46% S     +383$ · per cand   +1.8$
+-- by day_type (label at decision)
+   Variation                                      n=2279 win  41% S    -5944$ · per cand   -2.6$
+   Normal                                         n= 544 win  38% S    -3208$ · per cand   -5.9$
+   Trend_Normal                                   n= 495 win  48% S    +3327$ · per cand   +6.7$
+   FORMING                                        n= 491 win  46% S    +1980$ · per cand   +4.0$
+   Neutral_Center                                 n= 149 win  24% S    -3474$ · per cand  -23.3$
+   Neutral_Extreme                                n= 148 win  34% S    -2183$ · per cand  -14.7$
+   Trend_DD                                       n=  42 win  57% S     +211$ · per cand   +5.0$
+   Nontrend                                       n=  14 win  57% S     +483$ · per cand  +34.5$
+-- by zone
+   mid_value                                      n=1049 win  39% S    -4271$ · per cand   -4.1$
+   near_vah                                       n= 794 win  40% S    -3610$ · per cand   -4.5$
+   near_val                                       n= 794 win  44% S     -366$ · per cand   -0.5$
+   above_value                                    n= 682 win  38% S    -3733$ · per cand   -5.5$
+   below_value                                    n= 568 win  44% S     -655$ · per cand   -1.2$
+   unknown                                        n= 275 win  51% S    +3827$ · per cand  +13.9$
+-- by rel_bias
+   against                                        n=1542 win  38% S    -5455$ · per cand   -3.5$
+   with                                           n=1438 win  40% S    -9429$ · per cand   -6.6$
+   none                                           n=1182 win  48% S    +6077$ · per cand   +5.1$
+-- TAKE vs SKIP by period (candidate-level)
+   <=09-08 pre-doctrine       TAKE  n=1683 win  44% S    +2536$ per cand   +1.5$
+   <=09-08 pre-doctrine       SKIP  n=1314 win  42% S    -3405$ per cand   -2.6$
+   09-09..09-26 tree v1-3.0   TAKE  n= 396 win  40% S     -848$ per cand   -2.1$
+   09-09..09-26 tree v1-3.0   SKIP  n= 361 win  30% S    -6757$ per cand  -18.7$
+   >=09-27 package+           TAKE  n= 175 win  29% S    -3622$ per cand  -20.7$
+   >=09-27 package+           SKIP  n= 233 win  51% S    +3290$ per cand  +14.1$
+
+== B · ruled branches — before the ruling date (in-sample) vs from the ruling date (out-of-sample) ==
+   take_failed_ext (T-329/S7 27.09)     ruled 2026-09-27
+      before: n=407 win  42% Scand   +1090$ (per  +2.7) · trades 36 S    +621$
+      after : n= 26 win  69% Scand    +844$ (per +32.5) · trades 3 S     +31$
+   d_with_extension                     ruled 2026-09-27
+      before: n=293 win  38% Scand   -2238$ (per  -7.6) · trades 12 S    +192$
+      after : n= 28 win  18% Scand    -611$ (per -21.8) · trades 1 S     -36$
+   take_location                        ruled 2026-09-11
+      before: n=202 win  29% Scand   -2642$ (per -13.1) · trades 6 S     -45$
+      after : n= 51 win  37% Scand    -114$ (per  -2.2) · trades 5 S     +14$
+   auction_B_trend_break                ruled 2026-09-25
+      before: n= 66 win  55% Scand    +844$ (per +12.8) · trades 4 S    +159$
+      after : n=  9 win  56% Scand    +136$ (per +15.1) · trades 0 S      +0$
+   take_with_extension                  ruled 2026-09-24
+      before: n= 34 win  29% Scand   -1195$ (per -35.2) · trades 4 S     -36$
+      after : n=  3 win  67% Scand     +90$ (per +29.9) · trades 0 S      +0$
+
+== C · the live-config replay, trade-level ==
+sessions 65 · trades 192 · S +2502.40$ · per trade +13.03$ · win 57% · daily mean +39.90 sd 98.01 t=3.28 · max DD -276.90 · best +237.50 worst -162.50
+   by month: 2026-06 +449 (8 d, 4+) · 2026-07 +599 (17 d, 8+) · 2026-08 +424 (19 d, 10+) · 2026-09 +917 (19 d, 12+) · 2026-10 +204 (2 d, 2+)
+   MFE in R (all trades): median 1.59 · >=2R 45% · >=3R 28% · >=5R 8%
+   winners 110: S taken 1225 pts of S MFE 2879 pts = capture 43%
+   losers 82: reached >=1R before the stop 34% · >=0.5R 56%
+   hold-to-close alternative S -609$ vs realized +2502$ · stop-only alternative S -8872$
+-- replay trades by pattern (realized)
+   OPENING_DRIVE                                  n=  24 win  58% S     +735$ · per cand  +30.6$
+   CEILING_FLIP_SHORT                             n=  21 win  52% S     +202$ · per cand   +9.6$
+   DOUBLE_BOTTOM_EE_LONG                          n=  18 win  78% S     +282$ · per cand  +15.7$
+   CEILING_FLIP_LONG                              n=  17 win  59% S     +218$ · per cand  +12.8$
+   GHOST                                          n=  16 win  75% S     +374$ · per cand  +23.4$
+   DOUBLE_TOP_AA_SHORT                            n=  13 win  62% S     +150$ · per cand  +11.5$
+   REACTIVE_SHORT                                 n=  11 win  55% S      +45$ · per cand   +4.1$
+   REACTIVE_LONG                                  n=  11 win  45% S      -46$ · per cand   -4.2$
+   OPENING_EXTREME_REJECT                         n=  10 win  30% S     -106$ · per cand  -10.6$
+   INITIATIVE_LONG                                n=  10 win  50% S     +110$ · per cand  +11.0$
+   INITIATIVE_SHORT                               n=   7 win  43% S      -42$ · per cand   -6.1$
+   GB100                                          n=   5 win  80% S     +212$ · per cand  +42.5$
+   DALTON_EDGE_SHORT                              n=   5 win  60% S      +68$ · per cand  +13.5$
+   CONFLUENCE_RI_ZLR                              n=   4 win  75% S     +150$ · per cand  +37.5$
+
+== D · live (broker) vs the current-config replay, same days ==
+common days 49 · live S -1136.25$ (162 trades) · replay S +1924.90$ (152 trades) · gap +3061.15$
+   <=09-08 pre-doctrine       days 33 · live  -790.00 · replay +1276.80 · gap +2066.80
+   09-09..09-26 tree v1-3.0   days 11 · live  -283.75 · replay  +686.25 · gap  +970.00
+   >=09-27 package+           days  5 · live   -62.50 · replay   -38.15 · gap   +24.35
+-- live record (all live days, broker where known)
+   live days 57 · S -715.00$ · trades 181 · max DD -1463.75 · first 2026-07-07 last 2026-10-02
+   by month: 2026-07 -534 (45 trades, 16 days) · 2026-08 +1144 (74 trades, 17 days) · 2026-09 -1399 (55 trades, 22 days) · 2026-10 +74 (7 trades, 2 days)
+   friction (broker - books) per live trade since 01.09: -5.27$ on 42 trades
+   live by pattern: ZLR n=45 S-545.00 win40% ·  n=16 S-70.00 win44% · INITIATIVE_SHORT n=16 S-341.25 win38% · INITIATIVE_LONG n=14 S206.25 win71% · GB100 n=14 S290.00 win50% · REACTIVE_LONG n=11 S502.50 win73% · GHOST n=11 S-202.50 win27% · REACTIVE_SHORT n=10 S341.25 win60% · OPENING_DRIVE n=8 S-508.75 win25% · CEILING_FLIP_LONG n=4 S-56.25 win50% · TREND_STEP n=4 S-166.25 win25% · DOUBLE_BOTTOM_EE_LONG n=4 S206.25 win75%
+
+== E · day-type label: intraday vs EOD ==
+sessions with labels 65 · label at 17:30 == EOD label: 29% · label changes per session: median 3 · >=3 changes: 40 sessions
+   17:30 -> EOD: Normal->Variation 17 · Variation->Variation 15 · Trend_Normal->Variation 9 · Trend_Normal->Neutral_Center 4 · Normal->Neutral_Extreme 3 · Normal->Normal 2 · Variation->Neutral_Extreme 2 · Variation->Neutral_Center 2 · Trend_Normal->Normal 2 · Trend_Normal->Trend_Normal 2
