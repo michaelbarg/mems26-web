@@ -1,48 +1,48 @@
 {
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Variation/rel_bias=with": {
-  "n": 220,
+  "n": 227,
   "win": 41,
-  "usd": -2497.0,
-  "n_live": 9,
-  "usd_live": 31.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "usd": -2624.6,
+  "n_live": 8,
+  "usd_live": 33.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Variation/rel_bias=*(against)": {
-  "n": 191,
-  "win": 28,
-  "usd": -2744.7,
+  "n": 204,
+  "win": 32,
+  "usd": -1537.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)": {
-  "n": 186,
-  "win": 47,
-  "usd": 178.9,
+  "n": 196,
+  "win": 46,
+  "usd": 91.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
-  "n": 162,
-  "win": 32,
-  "usd": -3953.7,
+  "n": 169,
+  "win": 31,
+  "usd": -4436.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
-  "n": 130,
-  "win": 48,
-  "usd": 640.7,
+  "n": 136,
+  "win": 51,
+  "usd": 900.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Variation/rel_bias=*(none)": {
   "n": 95,
@@ -50,26 +50,53 @@
   "usd": 231.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
-  "n": 88,
-  "win": 33,
-  "usd": -668.8,
+  "n": 91,
+  "win": 32,
+  "usd": -754.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=with": {
+  "n": 84,
+  "win": 40,
+  "usd": -81.5,
+  "n_live": 4,
+  "usd_live": 130.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=*(against)": {
+  "n": 81,
+  "win": 36,
+  "usd": -1278.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=BREAK": {
-  "n": 73,
-  "win": 58,
-  "usd": 1327.1,
+  "n": 75,
+  "win": 56,
+  "usd": 1024.4,
   "n_live": 5,
   "usd_live": 223.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 74,
+  "win": 39,
+  "usd": -838.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=*(Neutral_Center)": {
   "n": 73,
@@ -77,53 +104,35 @@
   "usd": -1936.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
-  "n": 72,
-  "win": 38,
-  "usd": -1058.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=with": {
-  "n": 67,
-  "win": 46,
-  "usd": 436.4,
-  "n_live": 4,
-  "usd_live": 130.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=EDGE_FADE": {
-  "n": 66,
-  "win": 48,
-  "usd": 405.9,
-  "n_live": 1,
-  "usd_live": -38.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(EDGE_FADE)/kind=EDGE_FADE": {
-  "n": 66,
-  "win": 56,
-  "usd": 838.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
-  "n": 65,
-  "win": 40,
-  "usd": -357.1,
+  "n": 70,
+  "win": 39,
+  "usd": -508.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=EDGE_FADE": {
+  "n": 68,
+  "win": 49,
+  "usd": 415.7,
+  "n_live": 1,
+  "usd_live": -38.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(EDGE_FADE)/kind=EDGE_FADE": {
+  "n": 68,
+  "win": 56,
+  "usd": 862.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=near_vah": {
   "n": 59,
@@ -131,17 +140,8 @@
   "usd": -459.7,
   "n_live": 2,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=*(against)": {
-  "n": 56,
-  "win": 23,
-  "usd": -1387.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Variation/rel_bias=*(against)": {
   "n": 54,
@@ -149,8 +149,8 @@
   "usd": 1544.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 51,
@@ -158,8 +158,26 @@
   "usd": 294.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
+  "n": 46,
+  "win": 22,
+  "usd": -1070.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
+  "n": 45,
+  "win": 24,
+  "usd": -452.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=with": {
   "n": 44,
@@ -167,44 +185,53 @@
   "usd": 2544.4,
   "n_live": 5,
   "usd_live": 310.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=REVERSAL": {
+  "n": 42,
+  "win": 45,
+  "usd": 338.9,
+  "n_live": 17,
+  "usd_live": -193.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)/edge=*(none)": {
   "n": 42,
   "win": 64,
   "usd": 1427.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=REVERSAL": {
-  "n": 38,
-  "win": 42,
-  "usd": 216.2,
-  "n_live": 16,
-  "usd_live": -243.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
-  "n": 36,
-  "win": 28,
-  "usd": -460.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)": {
-  "n": 36,
-  "win": 36,
-  "usd": -231.1,
+  "n": 37,
+  "win": 35,
+  "usd": -308.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 37,
+  "win": 57,
+  "usd": 327.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+  "n": 34,
+  "win": 71,
+  "usd": 1662.9,
+  "n_live": 9,
+  "usd_live": 408.1,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=near_val": {
   "n": 34,
@@ -212,8 +239,8 @@
   "usd": -529.7,
   "n_live": 1,
   "usd_live": -57.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
   "n": 33,
@@ -221,8 +248,8 @@
   "usd": -258.3,
   "n_live": 1,
   "usd_live": 56.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK": {
   "n": 32,
@@ -230,17 +257,17 @@
   "usd": 548.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)/edge=*(none)": {
   "n": 32,
   "win": 25,
   "usd": -1109.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
   "n": 30,
@@ -248,8 +275,8 @@
   "usd": -391.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=near_val": {
   "n": 30,
@@ -257,17 +284,53 @@
   "usd": -119.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
   "n": 29,
-  "win": 79,
-  "usd": 1833.4,
-  "n_live": 8,
-  "usd_live": 295.6,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 41,
+  "usd": -68.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)": {
+  "n": 28,
+  "win": 25,
+  "usd": -898.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=against/edge=*(none)": {
+  "n": 28,
+  "win": 36,
+  "usd": -651.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=with": {
+  "n": 28,
+  "win": 57,
+  "usd": 660.9,
+  "n_live": 1,
+  "usd_live": 57.5,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
+  "n": 28,
+  "win": 36,
+  "usd": -49.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 27,
@@ -275,17 +338,17 @@
   "usd": -14.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
-  "n": 27,
-  "win": 33,
-  "usd": -161.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+ "opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with": {
+  "n": 26,
+  "win": 54,
+  "usd": 421.8,
+  "n_live": 17,
+  "usd_live": 500.6,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)": {
   "n": 26,
@@ -293,62 +356,26 @@
   "usd": 569.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)/edge=*(none)": {
   "n": 26,
   "win": 62,
   "usd": 723.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with": {
-  "n": 25,
-  "win": 56,
-  "usd": 499.4,
-  "n_live": 16,
-  "usd_live": 575.6,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(FORMING)/rel_bias=against/edge=*(none)": {
-  "n": 25,
-  "win": 28,
-  "usd": -669.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
-  "n": 25,
-  "win": 20,
-  "usd": -370.0,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)": {
-  "n": 24,
-  "win": 29,
-  "usd": -341.2,
+  "n": 25,
+  "win": 32,
+  "usd": -208.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=with": {
-  "n": 24,
-  "win": 62,
-  "usd": 675.1,
-  "n_live": 1,
-  "usd_live": 57.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=B/day_type=*(Trend_Normal)/rel_bias=against/edge=*(none)": {
   "n": 24,
@@ -356,8 +383,8 @@
   "usd": -204.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Variation/rel_bias=with": {
   "n": 24,
@@ -365,44 +392,53 @@
   "usd": -394.3,
   "n_live": 1,
   "usd_live": -7.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(mid_value)": {
-  "n": 23,
-  "win": 9,
-  "usd": -1095.4,
+ "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=*(none)": {
+  "n": 24,
+  "win": 54,
+  "usd": -62.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)/edge=*(none)": {
   "n": 23,
   "win": 35,
   "usd": -393.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
-  "n": 21,
-  "win": 43,
-  "usd": -50.2,
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(mid_value)/edge=*(none)": {
+  "n": 22,
+  "win": 9,
+  "usd": -1037.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)": {
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension": {
+  "n": 22,
+  "win": 45,
+  "usd": 27.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)/edge=*(none)": {
   "n": 21,
   "win": 48,
   "usd": 279.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=with": {
   "n": 20,
@@ -410,44 +446,17 @@
   "usd": 235.5,
   "n_live": 1,
   "usd_live": 70.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=*(none)": {
-  "n": 20,
-  "win": 70,
-  "usd": 1054.9,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Trend_Normal)/rel_bias=against/edge=*(none)": {
-  "n": 20,
-  "win": 40,
-  "usd": -185.8,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension": {
-  "n": 20,
-  "win": 40,
-  "usd": -97.6,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)/edge=*(none)": {
   "n": 20,
   "win": 20,
   "usd": -757.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Normal/structure=*(none)": {
   "n": 20,
@@ -455,8 +464,8 @@
   "usd": -710.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=B/day_type=*(Trend_Normal)/rel_bias=with": {
   "n": 20,
@@ -464,8 +473,8 @@
   "usd": -847.6,
   "n_live": 3,
   "usd_live": -23.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
   "n": 20,
@@ -473,17 +482,26 @@
   "usd": 157.4,
   "n_live": 1,
   "usd_live": -41.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Variation/rel_bias=*(none)": {
-  "n": 20,
-  "win": 45,
-  "usd": -181.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=failed_extension": {
+  "n": 19,
+  "win": 74,
+  "usd": 1115.0,
+  "n_live": 4,
+  "usd_live": 171.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
+  "n": 19,
+  "win": 21,
+  "usd": -1040.7,
+  "n_live": 4,
+  "usd_live": 112.5,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=near_vah": {
   "n": 19,
@@ -491,8 +509,8 @@
   "usd": 128.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=above_value": {
   "n": 19,
@@ -500,8 +518,17 @@
   "usd": -276.9,
   "n_live": 2,
   "usd_live": 22.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)": {
+  "n": 18,
+  "win": 33,
+  "usd": -243.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)": {
   "n": 18,
@@ -509,17 +536,8 @@
   "usd": 614.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
-  "n": 18,
-  "win": 61,
-  "usd": 344.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Normal/structure=*(none)": {
   "n": 18,
@@ -527,8 +545,8 @@
   "usd": -145.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with": {
   "n": 18,
@@ -536,8 +554,8 @@
   "usd": 390.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with": {
   "n": 18,
@@ -545,44 +563,17 @@
   "usd": 430.7,
   "n_live": 2,
   "usd_live": 63.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
-  "n": 18,
-  "win": 56,
-  "usd": 19.5,
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 17,
+  "win": 53,
+  "usd": 390.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(PULLBACK)/edge=*(none)": {
-  "n": 17,
-  "win": 35,
-  "usd": -188.6,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
-  "n": 17,
-  "win": 24,
-  "usd": -883.0,
-  "n_live": 4,
-  "usd_live": 112.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
-  "n": 17,
-  "win": 41,
-  "usd": -403.0,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
   "n": 17,
@@ -590,8 +581,17 @@
   "usd": 108.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
+  "n": 16,
+  "win": 56,
+  "usd": 219.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=with": {
   "n": 16,
@@ -599,8 +599,8 @@
   "usd": -115.3,
   "n_live": 3,
   "usd_live": -42.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=EDGE_FADE": {
   "n": 15,
@@ -608,17 +608,8 @@
   "usd": 182.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
-  "n": 15,
-  "win": 47,
-  "usd": 125.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=with": {
   "n": 15,
@@ -626,8 +617,17 @@
   "usd": -670.9,
   "n_live": 2,
   "usd_live": 18.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(REVERSAL)/kind=REVERSAL": {
+  "n": 14,
+  "win": 57,
+  "usd": 478.0,
+  "n_live": 5,
+  "usd_live": 173.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
   "n": 14,
@@ -635,8 +635,17 @@
   "usd": -72.0,
   "n_live": 1,
   "usd_live": -33.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
+  "n": 14,
+  "win": 43,
+  "usd": -22.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Nontrend": {
   "n": 14,
@@ -644,8 +653,8 @@
   "usd": 454.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=up/rel_bias=with": {
   "n": 14,
@@ -653,8 +662,8 @@
   "usd": -899.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK": {
   "n": 14,
@@ -662,17 +671,17 @@
   "usd": 454.2,
   "n_live": 2,
   "usd_live": 48.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Trend_Normal/kind=*(REVERSAL)/kind=REVERSAL": {
-  "n": 13,
-  "win": 54,
-  "usd": 418.7,
-  "n_live": 5,
-  "usd_live": 173.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)/edge=*(none)": {
+  "n": 14,
+  "win": 64,
+  "usd": 401.1,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with": {
   "n": 13,
@@ -680,8 +689,8 @@
   "usd": -346.3,
   "n_live": 1,
   "usd_live": 20.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
   "n": 13,
@@ -689,8 +698,17 @@
   "usd": -276.3,
   "n_live": 2,
   "usd_live": -62.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=near_vah": {
+  "n": 13,
+  "win": 31,
+  "usd": -133.2,
+  "n_live": 1,
+  "usd_live": -40.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=down/rel_bias=with": {
   "n": 13,
@@ -698,17 +716,17 @@
   "usd": -112.5,
   "n_live": 4,
   "usd_live": -133.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)/edge=*(none)": {
   "n": 13,
   "win": 38,
   "usd": -208.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Variation/rel_bias=*(none)": {
   "n": 13,
@@ -716,8 +734,8 @@
   "usd": -269.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with": {
   "n": 12,
@@ -725,8 +743,26 @@
   "usd": -74.9,
   "n_live": 3,
   "usd_live": -85.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 12,
+  "win": 75,
+  "usd": 558.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
+  "n": 12,
+  "win": 33,
+  "usd": -344.9,
+  "n_live": 1,
+  "usd_live": -28.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=below_value": {
   "n": 12,
@@ -734,8 +770,8 @@
   "usd": -105.6,
   "n_live": 1,
   "usd_live": -26.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
   "n": 12,
@@ -743,26 +779,26 @@
   "usd": -516.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)/edge=*(none)": {
   "n": 12,
   "win": 42,
   "usd": -68.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
   "n": 11,
-  "win": 73,
-  "usd": 400.1,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 55,
+  "usd": 250.2,
+  "n_live": 4,
+  "usd_live": 99.4,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension": {
   "n": 11,
@@ -770,8 +806,8 @@
   "usd": -145.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
   "n": 11,
@@ -779,8 +815,8 @@
   "usd": -99.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=above_value": {
   "n": 11,
@@ -788,17 +824,8 @@
   "usd": -327.4,
   "n_live": 1,
   "usd_live": -31.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)": {
-  "n": 11,
-  "win": 9,
-  "usd": -645.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
   "n": 10,
@@ -806,17 +833,26 @@
   "usd": -215.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 10,
-  "win": 50,
-  "usd": 151.5,
-  "n_live": 4,
-  "usd_live": 99.4,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 80,
+  "usd": 191.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK": {
+  "n": 10,
+  "win": 30,
+  "usd": 27.8,
+  "n_live": 2,
+  "usd_live": 2.5,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with": {
   "n": 10,
@@ -824,8 +860,8 @@
   "usd": -121.6,
   "n_live": 2,
   "usd_live": 77.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
   "n": 10,
@@ -833,8 +869,8 @@
   "usd": 39.0,
   "n_live": 5,
   "usd_live": 3.1,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 10,
@@ -842,35 +878,26 @@
   "usd": -254.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=failed_extension": {
   "n": 10,
-  "win": 60,
-  "usd": 104.0,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 40,
+  "usd": -101.0,
+  "n_live": 5,
+  "usd_live": 137.5,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
-  "n": 9,
-  "win": 78,
-  "usd": 141.6,
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)/edge=*(none)": {
+  "n": 10,
+  "win": 10,
+  "usd": -563.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
-  "n": 9,
-  "win": 33,
-  "usd": -52.8,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=against/edge=*(none)": {
   "n": 9,
@@ -878,8 +905,8 @@
   "usd": -573.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(Variation)": {
   "n": 9,
@@ -887,8 +914,8 @@
   "usd": 322.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)": {
   "n": 9,
@@ -896,17 +923,35 @@
   "usd": 161.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=near_vah": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=near_val": {
   "n": 9,
-  "win": 33,
-  "usd": -81.5,
+  "win": 22,
+  "usd": -230.3,
+  "n_live": 1,
+  "usd_live": 70.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)/edge=*(none)": {
+  "n": 9,
+  "win": 56,
+  "usd": -40.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)/edge=*(none)": {
+  "n": 9,
+  "win": 0,
+  "usd": -832.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=near_val": {
   "n": 9,
@@ -914,8 +959,8 @@
   "usd": -197.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_DD/rel_bias=with": {
   "n": 9,
@@ -923,8 +968,8 @@
   "usd": 204.1,
   "n_live": 1,
   "usd_live": 35.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
   "n": 9,
@@ -932,8 +977,8 @@
   "usd": -82.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=*(Neutral_Center)": {
   "n": 9,
@@ -941,8 +986,8 @@
   "usd": 499.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 8,
@@ -950,26 +995,17 @@
   "usd": 105.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
-  "n": 8,
-  "win": 50,
-  "usd": -59.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(below_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(below_value)/edge=*(none)": {
   "n": 8,
   "win": 38,
   "usd": -80.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=above_value": {
   "n": 8,
@@ -977,8 +1013,8 @@
   "usd": 12.3,
   "n_live": 1,
   "usd_live": 70.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
   "n": 8,
@@ -986,8 +1022,8 @@
   "usd": 72.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)": {
   "n": 8,
@@ -995,17 +1031,8 @@
   "usd": 106.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK": {
-  "n": 8,
-  "win": 38,
-  "usd": 183.0,
-  "n_live": 2,
-  "usd_live": 2.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension": {
   "n": 8,
@@ -1013,8 +1040,8 @@
   "usd": -213.3,
   "n_live": 3,
   "usd_live": 1.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=near_val": {
   "n": 8,
@@ -1022,17 +1049,8 @@
   "usd": -309.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(near_val)": {
-  "n": 8,
-  "win": 62,
-  "usd": 37.3,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=with": {
   "n": 7,
@@ -1040,8 +1058,26 @@
   "usd": 459.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=*(none)/kind=BREAK": {
+  "n": 7,
+  "win": 0,
+  "usd": -582.0,
+  "n_live": 5,
+  "usd_live": 18.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
+  "n": 7,
+  "win": 43,
+  "usd": -0.7,
+  "n_live": 1,
+  "usd_live": -70.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=*(none)/kind=BREAK": {
   "n": 7,
@@ -1049,8 +1085,26 @@
   "usd": 610.5,
   "n_live": 1,
   "usd_live": -31.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
+  "n": 7,
+  "win": 71,
+  "usd": 229.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 7,
+  "win": 43,
+  "usd": -301.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with": {
   "n": 7,
@@ -1058,26 +1112,26 @@
   "usd": -35.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=near_val": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with": {
   "n": 7,
   "win": 29,
-  "usd": -158.8,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "usd": -149.4,
+  "n_live": 1,
+  "usd_live": -31.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK": {
   "n": 7,
-  "win": 14,
-  "usd": -382.0,
+  "win": 100,
+  "usd": 96.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 7,
@@ -1085,17 +1139,17 @@
   "usd": -210.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)/edge=*(none)": {
   "n": 7,
   "win": 0,
   "usd": -535.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)": {
   "n": 6,
@@ -1103,35 +1157,26 @@
   "usd": -50.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(mid_value)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 6,
+  "win": 67,
+  "usd": 230.7,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(mid_value)/edge=*(none)": {
   "n": 6,
   "win": 0,
   "usd": -233.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=*(none)/kind=BREAK": {
-  "n": 6,
-  "win": 0,
-  "usd": -466.9,
-  "n_live": 5,
-  "usd_live": 18.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
-  "n": 6,
-  "win": 50,
-  "usd": 36.9,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
   "n": 6,
@@ -1139,26 +1184,17 @@
   "usd": -32.5,
   "n_live": 2,
   "usd_live": 13.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
-  "n": 6,
-  "win": 83,
-  "usd": 276.9,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=with": {
+ "opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(FORMING)": {
   "n": 6,
   "win": 33,
-  "usd": -91.8,
-  "n_live": 1,
-  "usd_live": -31.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "usd": -149.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 6,
@@ -1166,8 +1202,8 @@
   "usd": -73.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=failed_extension": {
   "n": 6,
@@ -1175,17 +1211,26 @@
   "usd": -121.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(above_value)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(above_value)/edge=*(none)": {
   "n": 6,
   "win": 100,
   "usd": 493.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
+  "n": 6,
+  "win": 33,
+  "usd": -69.3,
+  "n_live": 1,
+  "usd_live": -36.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=near_vah": {
   "n": 6,
@@ -1193,8 +1238,17 @@
   "usd": -90.0,
   "n_live": 1,
   "usd_live": -38.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=with": {
+  "n": 5,
+  "win": 60,
+  "usd": 89.5,
+  "n_live": 1,
+  "usd_live": -25.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
   "n": 5,
@@ -1202,8 +1256,8 @@
   "usd": -37.4,
   "n_live": 1,
   "usd_live": 37.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
   "n": 5,
@@ -1211,8 +1265,8 @@
   "usd": 129.5,
   "n_live": 1,
   "usd_live": 56.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
   "n": 5,
@@ -1220,8 +1274,8 @@
   "usd": -106.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK": {
   "n": 5,
@@ -1229,8 +1283,17 @@
   "usd": 205.8,
   "n_live": 2,
   "usd_live": 15.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with": {
+  "n": 5,
+  "win": 40,
+  "usd": -23.0,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=up/rel_bias=against/edge=failed_extension": {
   "n": 5,
@@ -1238,17 +1301,8 @@
   "usd": -196.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=A/day_type=*(FORMING)": {
-  "n": 5,
-  "win": 40,
-  "usd": -71.7,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 5,
@@ -1256,8 +1310,8 @@
   "usd": -59.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 5,
@@ -1265,8 +1319,8 @@
   "usd": -83.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=against/edge=*(none)": {
   "n": 5,
@@ -1274,17 +1328,8 @@
   "usd": -304.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK": {
-  "n": 5,
-  "win": 100,
-  "usd": 55.1,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
   "n": 5,
@@ -1292,17 +1337,17 @@
   "usd": 123.3,
   "n_live": 1,
   "usd_live": 42.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=with": {
-  "n": 4,
-  "win": 50,
-  "usd": 45.2,
-  "n_live": 1,
-  "usd_live": -25.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)": {
+  "n": 5,
+  "win": 80,
+  "usd": 308.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with": {
   "n": 4,
@@ -1310,17 +1355,8 @@
   "usd": 281.5,
   "n_live": 2,
   "usd_live": 3.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
-  "n": 4,
-  "win": 50,
-  "usd": -6.6,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
   "n": 4,
@@ -1328,8 +1364,8 @@
   "usd": 2.1,
   "n_live": 1,
   "usd_live": 37.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension": {
   "n": 4,
@@ -1337,17 +1373,17 @@
   "usd": 219.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(above_value)/edge=*(none)": {
   "n": 4,
-  "win": 50,
-  "usd": -0.4,
+  "win": 0,
+  "usd": -289.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=with": {
   "n": 4,
@@ -1355,8 +1391,8 @@
   "usd": 81.5,
   "n_live": 1,
   "usd_live": 36.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=A/day_type=*(FORMING)/rel_bias=with": {
   "n": 4,
@@ -1364,8 +1400,8 @@
   "usd": -202.9,
   "n_live": 1,
   "usd_live": -23.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=*(none)": {
   "n": 4,
@@ -1373,8 +1409,8 @@
   "usd": -116.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
   "n": 4,
@@ -1382,8 +1418,17 @@
   "usd": 129.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 50,
+  "usd": 30.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
   "n": 4,
@@ -1391,8 +1436,8 @@
   "usd": 2.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=*(none)": {
   "n": 4,
@@ -1400,8 +1445,8 @@
   "usd": -111.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=against/edge=*(none)": {
   "n": 4,
@@ -1409,8 +1454,8 @@
   "usd": -174.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=down/rel_bias=with": {
   "n": 4,
@@ -1418,8 +1463,8 @@
   "usd": -270.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 4,
@@ -1427,26 +1472,44 @@
   "usd": 202.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
   "n": 4,
-  "win": 75,
-  "usd": 151.8,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 50,
+  "usd": 192.7,
+  "n_live": 1,
+  "usd_live": -46.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 4,
   "win": 75,
-  "usd": 285.2,
+  "usd": 184.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=below_value": {
+  "n": 4,
+  "win": 50,
+  "usd": 5.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 75,
+  "usd": 287.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
   "n": 4,
@@ -1454,26 +1517,17 @@
   "usd": -329.1,
   "n_live": 1,
   "usd_live": -37.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(near_val)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=*(near_val)/edge=*(none)": {
   "n": 4,
   "win": 50,
   "usd": 44.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
-  "n": 4,
-  "win": 50,
-  "usd": 74.6,
-  "n_live": 1,
-  "usd_live": -36.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 4,
@@ -1481,8 +1535,17 @@
   "usd": -13.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 4,
+  "win": 100,
+  "usd": 480.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=SHORT/zone=*(mid_value)": {
   "n": 4,
@@ -1490,8 +1553,8 @@
   "usd": 439.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
   "n": 3,
@@ -1499,17 +1562,17 @@
   "usd": -25.3,
   "n_live": 1,
   "usd_live": 60.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(below_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(below_value)/edge=*(none)": {
   "n": 3,
   "win": 0,
   "usd": -120.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=below_value": {
   "n": 3,
@@ -1517,17 +1580,8 @@
   "usd": -24.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(above_value)": {
-  "n": 3,
-  "win": 0,
-  "usd": -211.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=*(none)/kind=BREAK": {
   "n": 3,
@@ -1535,35 +1589,35 @@
   "usd": 159.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(below_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(below_value)/edge=*(none)": {
   "n": 3,
   "win": 67,
   "usd": 187.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=against/edge=*(none)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=*(none)": {
   "n": 3,
   "win": 33,
-  "usd": -107.8,
+  "usd": 39.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(below_value)": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(below_value)/edge=*(none)": {
   "n": 3,
   "win": 67,
   "usd": 116.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension": {
   "n": 3,
@@ -1571,17 +1625,17 @@
   "usd": 47.8,
   "n_live": 3,
   "usd_live": 65.7,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=failed_extension": {
   "n": 3,
-  "win": 33,
-  "usd": 45.3,
-  "n_live": 1,
-  "usd_live": -46.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "win": 67,
+  "usd": 51.3,
+  "n_live": 2,
+  "usd_live": -7.5,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with": {
   "n": 3,
@@ -1589,8 +1643,8 @@
   "usd": -115.3,
   "n_live": 1,
   "usd_live": 25.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=*(none)/kind=BREAK": {
   "n": 3,
@@ -1598,8 +1652,8 @@
   "usd": 50.9,
   "n_live": 1,
   "usd_live": 17.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
   "n": 3,
@@ -1607,17 +1661,26 @@
   "usd": -45.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=below_value": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)/edge=*(none)": {
   "n": 3,
-  "win": 67,
-  "usd": 31.6,
+  "win": 33,
+  "usd": 20.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=down/rel_bias=with": {
+  "n": 3,
+  "win": 0,
+  "usd": -50.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=below_value": {
   "n": 3,
@@ -1625,8 +1688,8 @@
   "usd": -55.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=D/day_type=Trend_DD/rel_bias=against/edge=failed_extension": {
   "n": 3,
@@ -1634,17 +1697,17 @@
   "usd": -32.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(near_val)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=*(near_val)/edge=*(none)": {
   "n": 3,
   "win": 100,
   "usd": 341.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with": {
   "n": 3,
@@ -1652,17 +1715,8 @@
   "usd": -64.0,
   "n_live": 2,
   "usd_live": 18.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)": {
-  "n": 3,
-  "win": 67,
-  "usd": 89.1,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=failed_extension": {
   "n": 3,
@@ -1670,8 +1724,8 @@
   "usd": 110.3,
   "n_live": 1,
   "usd_live": 52.5,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=*(none)/kind=BREAK": {
   "n": 3,
@@ -1679,8 +1733,17 @@
   "usd": 138.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=A/day_type=*(FORMING)": {
+  "n": 3,
+  "win": 100,
+  "usd": 367.2,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 3,
@@ -1688,8 +1751,26 @@
   "usd": -184.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=failed_extension": {
+  "n": 3,
+  "win": 100,
+  "usd": 363.5,
+  "n_live": 2,
+  "usd_live": 68.8,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)": {
+  "n": 3,
+  "win": 33,
+  "usd": -25.3,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1697,8 +1778,8 @@
   "usd": -79.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1706,8 +1787,8 @@
   "usd": -69.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=failed_extension": {
   "n": 2,
@@ -1715,8 +1796,8 @@
   "usd": -40.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=with": {
   "n": 2,
@@ -1724,8 +1805,8 @@
   "usd": 219.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=LONG/zone=*(above_value)": {
   "n": 2,
@@ -1733,8 +1814,8 @@
   "usd": 193.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 2,
@@ -1742,17 +1823,8 @@
   "usd": -36.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=*(none)": {
-  "n": 2,
-  "win": 50,
-  "usd": 109.8,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=down/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 2,
@@ -1760,8 +1832,8 @@
   "usd": -49.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=REVERSAL": {
   "n": 2,
@@ -1769,8 +1841,8 @@
   "usd": -180.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1778,8 +1850,8 @@
   "usd": 15.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 2,
@@ -1787,8 +1859,8 @@
   "usd": 129.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=*(none)/kind=BREAK": {
   "n": 2,
@@ -1796,8 +1868,8 @@
   "usd": 285.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
   "n": 2,
@@ -1805,17 +1877,17 @@
   "usd": -41.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with": {
   "n": 2,
   "win": 100,
   "usd": 52.9,
-  "n_live": 1,
-  "usd_live": 48.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(HNS_TOP_SHORT)/rel_bias=with": {
   "n": 2,
@@ -1823,8 +1895,8 @@
   "usd": 132.3,
   "n_live": 1,
   "usd_live": -38.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up/rel_bias=with": {
   "n": 2,
@@ -1832,8 +1904,8 @@
   "usd": -5.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 2,
@@ -1841,8 +1913,8 @@
   "usd": -32.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1850,8 +1922,8 @@
   "usd": 134.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1859,8 +1931,8 @@
   "usd": -14.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=*(none)/kind=BREAK": {
   "n": 2,
@@ -1868,8 +1940,8 @@
   "usd": 26.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with": {
   "n": 2,
@@ -1877,8 +1949,8 @@
   "usd": -7.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 2,
@@ -1886,17 +1958,26 @@
   "usd": -90.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=down/rel_bias=with": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=*(none)": {
   "n": 2,
   "win": 0,
-  "usd": -7.7,
+  "usd": -66.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
+  "n": 2,
+  "win": 50,
+  "usd": -0.8,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TREND_STEP)/rel_bias=with": {
   "n": 2,
@@ -1904,8 +1985,8 @@
   "usd": -56.5,
   "n_live": 1,
   "usd_live": -25.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Variation)/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1913,8 +1994,8 @@
   "usd": 47.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=D/day_type=Neutral_Extreme/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1922,8 +2003,8 @@
   "usd": -67.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK": {
   "n": 2,
@@ -1931,8 +2012,8 @@
   "usd": -146.4,
   "n_live": 2,
   "usd_live": 45.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension": {
   "n": 2,
@@ -1940,8 +2021,8 @@
   "usd": 2.3,
   "n_live": 1,
   "usd_live": 48.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal/rel_bias=against/edge=*(none)": {
   "n": 2,
@@ -1949,8 +2030,8 @@
   "usd": 44.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
   "n": 2,
@@ -1958,8 +2039,8 @@
   "usd": 9.2,
   "n_live": 2,
   "usd_live": 14.4,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=with": {
   "n": 2,
@@ -1967,35 +2048,26 @@
   "usd": -55.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=A/day_type=*(FORMING)": {
-  "n": 2,
-  "win": 100,
-  "usd": 257.3,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(above_value)/edge=*(none)": {
   "n": 2,
   "win": 0,
   "usd": -155.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(near_vah)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(near_vah)/edge=*(none)": {
   "n": 2,
   "win": 0,
   "usd": -205.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=with": {
   "n": 1,
@@ -2003,8 +2075,8 @@
   "usd": 82.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension": {
   "n": 1,
@@ -2012,8 +2084,8 @@
   "usd": -57.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_DD/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2021,8 +2093,8 @@
   "usd": -15.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(WITH_DRIVE)/edge=*(none)": {
   "n": 1,
@@ -2030,17 +2102,17 @@
   "usd": -77.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(mid_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=LONG/zone=*(mid_value)/edge=*(none)": {
   "n": 1,
   "win": 0,
   "usd": -77.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2048,8 +2120,8 @@
   "usd": 49.9,
   "n_live": 1,
   "usd_live": 140.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TLB)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2057,8 +2129,8 @@
   "usd": 109.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=B/day_type=*(Variation)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2066,8 +2138,8 @@
   "usd": 124.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=below_value": {
   "n": 1,
@@ -2075,8 +2147,8 @@
   "usd": -43.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 1,
@@ -2084,8 +2156,8 @@
   "usd": -83.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=with": {
   "n": 1,
@@ -2093,8 +2165,8 @@
   "usd": 49.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=SHORT/zone=above_value": {
   "n": 1,
@@ -2102,8 +2174,8 @@
   "usd": -18.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=up/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 1,
@@ -2111,8 +2183,8 @@
   "usd": -23.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2120,8 +2192,8 @@
   "usd": 119.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2129,8 +2201,8 @@
   "usd": 109.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2138,8 +2210,8 @@
   "usd": 109.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with": {
   "n": 1,
@@ -2147,8 +2219,8 @@
   "usd": 19.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2156,8 +2228,8 @@
   "usd": -42.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_DD/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2165,8 +2237,8 @@
   "usd": 10.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2174,8 +2246,17 @@
   "usd": 16.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)/edge=failed_extension": {
+  "n": 1,
+  "win": 100,
+  "usd": 109.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=with": {
   "n": 1,
@@ -2183,8 +2264,8 @@
   "usd": 187.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2192,8 +2273,8 @@
   "usd": -53.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 1,
@@ -2201,8 +2282,8 @@
   "usd": -37.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Neutral_Extreme/rel_bias=with": {
   "n": 1,
@@ -2210,26 +2291,8 @@
   "usd": 126.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)": {
-  "n": 1,
-  "win": 100,
-  "usd": 190.5,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=*(none)": {
-  "n": 1,
-  "win": 0,
-  "usd": -31.4,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BEAR_FLAG_SHORT)/rel_bias=with": {
   "n": 1,
@@ -2237,17 +2300,8 @@
   "usd": -45.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
- },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_LONG)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
-  "n": 1,
-  "win": 0,
-  "usd": -45.1,
-  "n_live": 0,
-  "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2255,8 +2309,8 @@
   "usd": 1.1,
   "n_live": 1,
   "usd_live": -41.2,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(BEAR_FLAG_SHORT)/rel_bias=with": {
   "n": 1,
@@ -2264,8 +2318,8 @@
   "usd": 102.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(SCALE_IN)/rel_bias=with": {
   "n": 1,
@@ -2273,8 +2327,8 @@
   "usd": -35.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=with": {
   "n": 1,
@@ -2282,8 +2336,8 @@
   "usd": -27.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*(Variation)/rel_bias=with": {
   "n": 1,
@@ -2291,8 +2345,8 @@
   "usd": -43.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=down/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension": {
   "n": 1,
@@ -2300,8 +2354,8 @@
   "usd": 14.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TREND_STEP)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2309,8 +2363,17 @@
   "usd": -20.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(mid_value)/edge=failed_extension": {
+  "n": 1,
+  "win": 0,
+  "usd": -57.6,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(SCALE_IN)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2318,8 +2381,8 @@
   "usd": -32.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=B/day_type=*(Variation)/rel_bias=with": {
   "n": 1,
@@ -2327,8 +2390,8 @@
   "usd": -77.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=down/rel_bias=*(none)/kind=*(REVERSAL)/edge=*(none)": {
   "n": 1,
@@ -2336,8 +2399,8 @@
   "usd": 71.2,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(BULL_FLAG_LONG)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2345,8 +2408,8 @@
   "usd": -1.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension": {
   "n": 1,
@@ -2354,8 +2417,8 @@
   "usd": 63.0,
   "n_live": 1,
   "usd_live": 65.6,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2363,8 +2426,8 @@
   "usd": -68.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=with": {
   "n": 1,
@@ -2372,8 +2435,8 @@
   "usd": -56.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2381,17 +2444,17 @@
   "usd": 31.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=*(none)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=against/edge=failed_extension": {
   "n": 1,
   "win": 0,
   "usd": -22.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=with": {
   "n": 1,
@@ -2399,8 +2462,8 @@
   "usd": 48.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up/rel_bias=with": {
   "n": 1,
@@ -2408,8 +2471,8 @@
   "usd": 158.7,
   "n_live": 1,
   "usd_live": 40.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=with": {
   "n": 1,
@@ -2417,8 +2480,8 @@
   "usd": -18.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=against/edge=failed_extension": {
   "n": 1,
@@ -2426,8 +2489,8 @@
   "usd": -46.4,
   "n_live": 1,
   "usd_live": -43.8,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(INITIATIVE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2435,8 +2498,8 @@
   "usd": -71.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(CONFLUENCE_RI_ZLR)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2444,8 +2507,8 @@
   "usd": -37.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2453,8 +2516,8 @@
   "usd": -17.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=with": {
   "n": 1,
@@ -2462,8 +2525,8 @@
   "usd": -38.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(VEGAS)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2471,8 +2534,8 @@
   "usd": -22.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(FAMIR)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2480,8 +2543,8 @@
   "usd": -27.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2489,8 +2552,8 @@
   "usd": -76.3,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(HTLB)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2498,17 +2561,17 @@
   "usd": 117.4,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)/edge=failed_extension": {
   "n": 1,
-  "win": 100,
-  "usd": 153.0,
+  "win": 0,
+  "usd": -82.0,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=SHORT/zone=*(below_value)": {
   "n": 1,
@@ -2516,8 +2579,8 @@
   "usd": 109.9,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=B/day_type=Normal/direction=LONG/zone=below_value": {
   "n": 1,
@@ -2525,8 +2588,8 @@
   "usd": -20.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2534,8 +2597,8 @@
   "usd": 143.7,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=against/edge=*(none)": {
   "n": 1,
@@ -2543,8 +2606,17 @@
   "usd": 100.5,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_DRIVE/phase=C/day_type=Variation/pattern=*(DOUBLE_BOTTOM_EE_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 100.5,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=above_value": {
   "n": 1,
@@ -2552,8 +2624,8 @@
   "usd": -32.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TT)/rel_bias=*(none)/kind=BREAK": {
   "n": 1,
@@ -2561,8 +2633,8 @@
   "usd": 66.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)": {
   "n": 1,
@@ -2570,8 +2642,8 @@
   "usd": 38.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Normal/structure=down/rel_bias=against/edge=failed_extension": {
   "n": 1,
@@ -2579,8 +2651,8 @@
   "usd": 46.1,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=SHORT/zone=above_value": {
   "n": 1,
@@ -2588,17 +2660,17 @@
   "usd": 51.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
- "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)": {
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Center/direction=LONG/zone=*(above_value)/edge=*(none)": {
   "n": 1,
   "win": 0,
   "usd": -77.6,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  },
  "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Neutral_Extreme/direction=SHORT/zone=above_value": {
   "n": 1,
@@ -2606,7 +2678,61 @@
   "usd": 36.8,
   "n_live": 0,
   "usd_live": 0.0,
-  "source": "harness_out/t466/t518pkg · 62 sessions",
-  "date": "2026-10-01"
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(TLB)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 109.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_AUCTION_IN/phase=C/day_type=Variation/pattern=*(FAMIR)/rel_bias=with": {
+  "n": 1,
+  "win": 0,
+  "usd": -62.6,
+  "n_live": 1,
+  "usd_live": -36.2,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(mid_value)/edge=failed_extension": {
+  "n": 1,
+  "win": 100,
+  "usd": 158.7,
+  "n_live": 1,
+  "usd_live": 40.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*(none)/direction=SHORT/zone=*(below_value)/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 132.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(INITIATIVE_LONG)/rel_bias=*(none)/kind=BREAK": {
+  "n": 1,
+  "win": 100,
+  "usd": 37.4,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
+ },
+ "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=*(none)": {
+  "n": 1,
+  "win": 100,
+  "usd": 19.9,
+  "n_live": 0,
+  "usd_live": 0.0,
+  "source": "harness_out/t466/t529b · 65 sessions",
+  "date": "2026-10-05"
  }
 }
