@@ -89,8 +89,12 @@ class TestTreeShape(unittest.TestCase):
         self.tree = dt3.load_tree()
 
     def test_root_order_is_michaels(self):
-        self.assertEqual(self.tree["split"], "opening_type")
-        for child in self.tree["branches"].values():
+        root = self.tree
+        if root.get("split") == "hour":          # T-538 (05.10): the time-cutoff layer wraps the doctrine tree
+            self.assertEqual(root["branches"][">19"]["leaf"], "SKIP")
+            root = root["branches"]["*"]
+        self.assertEqual(root["split"], "opening_type")
+        for child in root["branches"].values():
             self.assertEqual(child["split"], "phase")
             self.assertEqual(child["branches"]["C"]["split"], "day_type")
 
@@ -152,7 +156,8 @@ class TestParityWithLegacyChain(unittest.TestCase):
         ruled = [lf for lf in dt3.leaves(self.tree) if lf.get("ruling")]
         self.assertTrue(ruled)
         for lf in ruled:
-            self.assertEqual(lf["leaf"], "TAKE")
+            # T-538 (05.10): a ruled SKIP is allowed only for the measured time-cutoff layer
+            self.assertIn(lf["leaf"], ("TAKE", "SKIP") if lf.get("id") == "time_cutoff" else ("TAKE",))
             self.assertIn("Michael", str(lf["ruling"]))
             self.assertTrue(lf.get("measured") and lf["measured"].get("sessions"))
         got, _ = tree_verdict(self.tree, opening="OPEN_AUCTION_IN", phase="B", day_type="Trend_Normal", direction="LONG",
@@ -168,7 +173,10 @@ class TestParityWithLegacyChain(unittest.TestCase):
         got, path = tree_verdict(self.tree, opening="OPEN_AUCTION_IN", phase="B", day_type="", direction="LONG",
                                  hint=None, pattern="INITIATIVE_LONG", zone="unknown", edge="none")
         self.assertEqual(got, "SKIP:kind", path)
-        self.assertEqual([f for f, _ in path][:3], ["opening_type", "phase", "day_type"])
+        feats = [f for f, _ in path]
+        if feats and feats[0] == "hour":          # T-538: the time-cutoff layer sits above the doctrine order
+            feats = feats[1:]
+        self.assertEqual(feats[:3], ["opening_type", "phase", "day_type"])
 
     def test_phase_d_variation_takes_only_with_the_extension(self):
         """17.09: phase D is manage-only. 27.09 (S1, Michael 'מאשר', package +387$ net over 60 sessions): on a

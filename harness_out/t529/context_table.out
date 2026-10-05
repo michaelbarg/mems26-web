@@ -1,0 +1,29 @@
+candidates 4162 · train 3399 (55 sessions <= 2026-09-19) · holdout 763 (10 sessions)
+current tree TAKE on train   n=1860 win  44% S    +1231$ per  +0.7$
+current tree TAKE on holdout n= 394 win  38% S    -3165$ per  -8.0$
+
+-- VETO (the tree takes, the data says no; train n>=20, per<=-4.0$, win<=42%) --
+   Variation        18-19  ZLR                      LONG  n= 87 win  24% S   -2601$ per -29.9$
+   Variation        18-19  CEILING_FLIP_TOUCH2      LONG  n=136 win  36% S    -643$ per  -4.7$
+   Trend_Normal     16-17  ZLR                      SHORT n= 21 win  33% S    -586$ per -27.9$
+   Normal           16-17  CEILING_FLIP_TOUCH2      LONG  n= 31 win  29% S    -531$ per -17.1$
+   Variation        20+    INITIATIVE_SHORT         SHORT n= 52 win  38% S    -530$ per -10.2$
+   Normal           16-17  CEILING_FLIP_TOUCH2      SHORT n= 38 win  26% S    -358$ per  -9.4$
+   Variation        18-19  DOUBLE_BOTTOM_EE_LONG    LONG  n= 30 win  40% S    -322$ per -10.7$
+   Neutral_Extreme  20+    CEILING_FLIP_TOUCH2      SHORT n= 21 win  24% S    -251$ per -11.9$
+   Trend_Normal     16-17  CEILING_FLIP_TOUCH2      LONG  n= 39 win  36% S    -200$ per  -5.1$
+   Variation        18-19  REACTIVE_LONG            LONG  n= 23 win  35% S    -198$ per  -8.6$
+-- ALLOW (the tree skips, the data says yes, live-capable; train n>=20, per>=6.0$, win>=50%) --
+   Variation        18-19  INITIATIVE_SHORT         SHORT n= 25 win  64% S    +892$ per +35.7$
+   Variation        18-19  REACTIVE_SHORT           SHORT n= 22 win  64% S    +883$ per +40.1$
+   Normal           18-19  ZLR                      SHORT n= 24 win  58% S    +395$ per +16.5$
+
+-- the rule layer applied (cutoff 20:00 + veto + allow) --
+   train   OLD n=1860 win  44% S    +1231$ | NEW n= 908 win  49% S    +9144$ | delta    +7913$
+      cutoff only n=1123 win  45% S    +4386$ (delta   +3155$)
+      veto only   n=1540 win  46% S    +5234$ (delta   +4004$)
+      allow only  n=1911 win  44% S    +2475$ (delta   +1244$)
+   holdout OLD n= 394 win  38% S    -3165$ | NEW n= 193 win  36% S    -1856$ | delta    +1309$
+      cutoff only n= 256 win  42% S    -1180$ (delta   +1985$)
+      veto only   n= 325 win  33% S    -3939$ (delta    -774$)
+      allow only  n= 397 win  38% S    -2998$ (delta    +167$)
