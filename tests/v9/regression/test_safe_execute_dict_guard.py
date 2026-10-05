@@ -32,6 +32,13 @@ REPO_ROOT = os.path.dirname(
 
 # ---------------------------------------------------------------- the guard
 
+
+@pytest.fixture(autouse=True)
+def _stub_engine_writes_allowed(monkeypatch):
+    """T-542: safe_writer refuses Postgres writes under pytest. These tests
+    exercise the write path against _StubEngine (no real DB), so opt in."""
+    monkeypatch.setenv("MEMS26_ALLOW_TEST_DB_WRITES", "1")
+
 def test_dict_params_raises():
     """A dict of :named binds must fail LOUD, not write zero rows quietly."""
     with pytest.raises(TypeError) as exc:

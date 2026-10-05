@@ -155,7 +155,7 @@ for r in dec:
     leaf = measured.get(path) or {}
     decisions.append({"t": t, "pattern": cls, "dir": direction, "entry": f(entry), "blocked": blocked, "path": path, "day_type": dtl, "phase": ph,
                       "leaf_n": leaf.get("n"), "leaf_win": leaf.get("win"), "leaf_usd": leaf.get("usd")})
-    if dtl:
+    if dtl and t >= "16:30":  # T-542: RTH rows only — pre-open rows carry pending/replayed labels
         label_seq.append(dtl)
 transitions = sum(1 for i in range(1, len(label_seq)) if label_seq[i] != label_seq[i - 1])
 fired = [d for d in decisions if not d["blocked"]]

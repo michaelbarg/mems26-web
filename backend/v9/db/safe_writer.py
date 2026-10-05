@@ -25,6 +25,38 @@ DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 _write_lock = threading.RLock()
 
 
+def _refuse_under_pytest(is_pg: bool) -> bool:
+    """T-542 (05.10): pytest must never write into the LIVE Postgres.
+
+    Same failure class as the 2026-08-19 audit (tests importing the real
+    gateway wrote 116 fake decisions into the production DECISIONS JSONL) —
+    that fix guarded the JSONL only. On 05.10 a regression run
+    (tests/v9/regression/test_variation_with_extension.py) wrote 14 fake
+    DECISION rows (price 7620-7654 on a 7760-7792 day) into
+    v9_decision_vectors, and the supervisor raised a false red "label
+    flickered 5x today". The root is the write path, not one logger: every
+    production write goes through safe_execute/safe_executemany, so the
+    guard lives here. SQLite engines (tests that bring their own tmp DB) are
+    unaffected; a test that genuinely needs the Postgres write sets
+    MEMS26_ALLOW_TEST_DB_WRITES=1. Production (no PYTEST_CURRENT_TEST) is
+    byte-identical.
+    """
+    if not is_pg:
+        return False
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    if os.environ.get("MEMS26_ALLOW_TEST_DB_WRITES", "").lower() in ("1", "true", "yes"):
+        return False
+    global _PYTEST_REFUSALS
+    _PYTEST_REFUSALS += 1
+    if _PYTEST_REFUSALS == 1:
+        logger.warning("[safe_writer] refusing Postgres write under pytest (T-542); set MEMS26_ALLOW_TEST_DB_WRITES=1 to allow")
+    return True
+
+
+_PYTEST_REFUSALS = 0
+
+
 def _get_engine(db_path: str = None):
     """Return the app engine. Ignores db_path when running on Postgres.
 
@@ -178,6 +210,8 @@ def safe_execute(
         )
     engine = _get_engine(db_path)
     is_pg = _is_postgres(engine)
+    if _refuse_under_pytest(is_pg):
+        return None
 
     # Convert SQL for Postgres
     exec_sql = _sqlite_to_pg_upsert(sql) if is_pg else sql
@@ -209,6 +243,8 @@ def safe_executemany(
 
     engine = _get_engine(db_path)
     is_pg = _is_postgres(engine)
+    if _refuse_under_pytest(is_pg):
+        return None
 
     exec_sql = _sqlite_to_pg_upsert(sql) if is_pg else sql
 
