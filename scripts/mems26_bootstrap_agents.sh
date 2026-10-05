@@ -48,7 +48,7 @@ DOMAIN="gui/$(id -u)"
 #   SCHEDULED  — calendar / interval / one-shot: registered is enough,
 #                `not running` is the correct state between firings
 ALWAYS_ON=(backend bridge frontend export_promoter activity_feed mobile_relay)
-SCHEDULED=(eod_handoff startup_check update_check)
+SCHEDULED=(eod_handoff startup_check update_check agents_bootstrap)   # agents_bootstrap: T-259 self-healer (RunAtLoad + every 10 min)
 # Needs the trade-safety preconditions above before it may be bootstrapped.
 GUARDED=(mobile_relay)
 

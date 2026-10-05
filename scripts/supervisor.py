@@ -186,8 +186,9 @@ if feed_age_min is not None and feed_age_min > 10 and NOW.weekday() < 5 and "16:
     red.append("feed: הבר האחרון בן %d דק׳ בתוך RTH" % feed_age_min)
 if not listener:
     red.append("אין מאזין על :8000")
-if agents != "9":
-    red.append("LaunchAgents רשומים: %s/9" % agents)
+AGENTS_EXPECTED = "10"  # T-259 (05.10): + com.mems26.agents_bootstrap (self-healing login agent); roster = scripts/mems26_bootstrap_agents.sh
+if agents != AGENTS_EXPECTED:
+    red.append("LaunchAgents רשומים: %s/%s" % (agents, AGENTS_EXPECTED))
 if fg != "0":
     red.append("flag_guard נכשל")
 if transitions >= 3:
