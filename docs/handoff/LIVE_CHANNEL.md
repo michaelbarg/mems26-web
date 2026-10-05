@@ -1,3 +1,64 @@
+🟢 **[cowork-dev · 2026-10-05 22:05-22:12 IL · ריצה 199 — חובה-1 + חובה-3 (ניטור-RTH, 335-342 דק' אחרי הפתיחה)] · ⛔ אפס ריסטארט (אסור `16:10-23:00`) · אפס נגיעה בפוזיציות/דגלים/גודל/`.env`/DB · אפס הודעת-טלפון**
+
+☎️ **חובה-1 · אפס ממתינות-מייקל ⇒ שקט מוחלט בטלפון, `phone_reply.py` לא נקרא.** אין (א) — אחרונת-מייקל נענתה לפני 3 ימים; אין (ב) — אין עסקה שנפתחה/נסגרה מאז `20:45` (דווחה `21:10`); אין (ג) — אין חריגה שדורשת החלטה; אין (ד) — אינה ריצת-שער. השלילה קבילה כי הרלה חי (מלכודת 12):
+
+```raw
+$ launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+$ GET /instruction/pending?key=***  ⇒ http=200 · bytes=12 · {"items":[]}
+$ GET /cmd/pending?key=***          ⇒ http=200 · bytes=12 · {"cmd":null}
+$ GET /chat?key=***                 ⇒ http=200 · bytes=14682 · items=30   ← 200 אומת לפני ספירה (T-260)
+  טווח          = 2026-09-30T12:45:41Z → 2026-10-05T18:10:09Z
+  senders       = {cowork-dev:24, מייקל:2, cc:2, supervisor:1, cowork:1}
+  last_michael  = 2026-10-02T12:02:01Z ⇒ נענתה עניינית ×2 (12:09:31Z + תיקון 12:22:05Z) ⇒ אין (א)
+$ tail -12 PHONE_THREAD.jsonl       ⇒ מסכים עם המקור (אותה אחרונה, אותו ts) — לא הסתמכתי על הקובץ לבדו
+```
+
+🩺 **חובה-3 · ארבעת הצירים, פלט גולמי (Rule 5):**
+
+```raw
+$ date                                     ⇒ 2026-10-05 22:11:34 IDT (Mon)  ∈ 16:30-23:00
+$ psql max(ts) v9_bars_5min_woodies        ⇒ 2026-10-05 22:10:00+03 · גיל **1.6 דק'** · 169 ברים היום
+                                             ⇒ פיד חי — מה-DB ולא מ-mtime ([[T-430]])
+$ curl /api/v9/health                      ⇒ http=200 · t=0.0836s
+$ ps -o lstart,%cpu -p 71969               ⇒ Sat Oct  3 16:22:52 2026 · 23.0% ⇒ אפס ריסטארט היום
+$ tail backend.err.log                     ⇒ 2026-10-05 22:07:40 [INFO] [S1DayDir]… ⇒ לוג חי (לא עיוורון)
+$ backend.err.log · ERROR/CRITICAL מ-21:00  ⇒ **0**
+$ sierra_state.json (age 0s)                ⇒ position_qty=0 · avg_price=0 · open_pnl=0 · working_orders=0
+                                              orders=[] · is_sim=0 · armed=1 · send_orders=1
+                                              acct_daily_pl=-22.50 · avail=458.89 · under_margin=0
+                                              trading_disabled=0 · loss_limit_reached=0 · last=7839.00
+$ psql v9_trades state='FILLED' and entry_ts < today ⇒ **0** (אפס שורות-צל תקועות — לא תנאי-16.09)
+$ psql v9_trades mode='live' today                   ⇒ #3038 CLOSED בלבד (#3046 נושר — `entry_ts` NULL)
+$ scripts/flag_guard.py                     ⇒ exit=0 · **FLAG-GUARD: PASS — all 274 ruled flags match.**
+```
+
+**פוזיציה ⟂ TM — אין פער:** ספרים `live` פתוחות 0 ⟂ ברוקר `position_qty=0` ⟂ `working_orders=0`. אין מה לייחס לפי `order_id` ואין אזעקה (מלכודת 16). **T-34 (דיווח-בלבד):** `avail 458.89 < 1,595` ⇒ שורה כאן ולא בטלפון — אינו חוסם מסחר (`trading_disabled=0`, `under_margin=0`, `armed=1`, ובלא"ה חלון-הכניסות סגור מ-`20:00` לפי T-538).
+
+🔍 **הממצא היחיד של הריצה — "שני ידניים" של [[T-545]] עבר מחשבון-שמתלכד להוכחה-לפי-חתימה.** שורת-T-545 ייחסה את פער ה-`−48.75` לשתי עסקאות-ידניות **מכוח שהסכום מתלכד** (`−21.25 −27.50 −27.50 +53.75 = −22.50 = acct_daily_pl`). התלכדות-סכומים היא ראיה חלשה — ארבעה מספרים יכולים להתלכד גם בשיוך שגוי. קראתי את חתימת-ההזמנה עצמה ב-`TradeActivityLog_2026-10-05_UTC.37138283.data`, וההפרדה דטרמיניסטית לכל `order_id` בנפרד:
+
+```raw
+$ strings TradeActivityLog_2026-10-05_UTC.37138283.data
+  oid 11401 (17:39 SHORT) ⇒ "MESZ26_FUT_CME[M] #2 | Trade DOM/User order entry | Last: 7802.75
+                             | AOE=false | AOU=false"            ← ידני, chart Michael_lap25.Cht
+  oid 11403 (18:08 SHORT) ⇒ "…| Trade DOM/User order entry | Last: 7806.75 | AOE=false | AOU=false"
+  oid 11405 (19:06 SHORT) ⇒ "…Client text: Attached order. Parent: 11405 | Attached Order
+                             | Client side bracket order | Client side OCO order"      ← #3038
+  oid 11408 (19:26 LONG)  ⇒ "Auto-trade: MESZ26_FUT_CME[M] 5 Min #8 | MES AI Data Export v9.4.3-chart5
+                             | BuyEntry | Bar start 2026-10-05 11:25:00 | AOE=true | AOU=true
+                             | Server side bracket order"                              ← #3046
+$ grep -c "Trade DOM/User order entry" ⇒ 4   (11401,11402,11403,11404 — כניסה+יציאה ביד)
+$ grep -c "Client side bracket order"  ⇒ 4   (זוגות-הברקט של 11405 ו-11408)
+$ line numbers 81→693 עולים מונוטונית בקובץ של היום ⇒ אינם שורות-ישנות שנסרקו מחדש
+```
+
+**למה זה משנה לתור-הלילה:** `broker_truth.py` מתאים round-trips לפי חלון-זמן (`abs(jt − entry_ts) ≤ 180`), וב-`#3046` ה-`entry_ts` הוא NULL. בלי דיסקרימינטור, מתאים-סדרתי על **ארבעה** round-trips מול **שתי** עסקאות-מערכת הוא הזמנה לשיוך-שגוי — בדיוק הכשל שכבר קרה היום פעם אחת (באפר-T-436 ייחס את ה-`−27.5` של `3038` ל-`3046`). החתימה `AOE/AOU + Server side bracket order` היא מפתח-בעלות לכל הזמנה בנפרד, ואינה תלויה בזמן או בסכום. ⇒ **הצעד הבא ל-T-545 ללא שינוי** (ניקוי `entry_ts` **וגם** `pnl_sierra` ל-`#3046`, "אין רישום-ברוקר ל-#3046" ב-LIVE_CHANNEL, סימון ה-`+53.75` כ-`unmatched`) — עם ההוספה שהסינון של `11401-11404` נשען מעתה על החתימה ולא על החשבון. **לא נגעתי ב-DB** — כתיבת-הספרים היא של `cc-macbook` לפי שורת-T-545, ולא ב-RTH.
+
+🌳 **סוף-יום-הכניסות מאומת שוב:** אין עסקת-לייב חדשה, ואין לצפות לכזו — העץ חוסם `tree:time_cutoff` מ-`21:25` (T-538 עובד). הריצות שנותרו = ניטור + תור-הלילה (`23:00-23:30`).
+
+⛔ **מה לא עשיתי (ובמכוון):** אפס נגיעה בפוזיציות/סלוט/פקודות · אפס ריסטארט (`22:11 ∈ 16:10-23:00`) · אפס דגל · אפס דגלי-גודל/`RISK_*` · אפס `.env` · אפס DLL · אפס כתיבה ל-DB · אפס הודעת-טלפון. **כתיבות בריצה הזאת:** `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד.
+
+---
+
 🟢 **[cowork-dev · 2026-10-05 21:36-21:40 IL · ריצה 198 — חובה-1 + חובה-3 (ניטור-RTH, 306-310 דק' אחרי הפתיחה)] · ⛔ אפס ריסטארט (אסור `16:10-23:00`) · אפס נגיעה בפוזיציות/דגלים/גודל/`.env` · אפס הודעת-טלפון**
 
 ☎️ **חובה-1 · אפס ממתינות-מייקל ⇒ שקט מוחלט בטלפון.** אין (א) — אין הודעת-מייקל פתוחה; אין (ב) — אין עסקה שנפתחה/נסגרה מאז 20:45 (דווחה ב-21:10); אין (ג) — אין חריגה שדורשת החלטה; אין (ד) — אינה ריצת-שער.
