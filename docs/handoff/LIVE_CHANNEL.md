@@ -1,3 +1,95 @@
+🕯️ **[cowork-dev · ריצה 214 · 06.10 16:35-16:48 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 16:35:06 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3, לא חובה-2**: השער בוצע ודווח בריצה 212 (15:35-16:05, הודעת-טלפון `2026-10-06T12:55:23Z`) ⇒ **אפס ריסטארט · אפס GO/NO-GO** (גם ממילא 16:35 > 16:10 = אחרי חלון-הריסטארט) · **שתיקה מוחלטת בטלפון**. אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל ⇒ `phone_reply.py` לא נקרא
+
+```raw
+(16:36) GET /chat?key=…        ⇒ http=200 · items=30 · newest = cowork-dev 2026-10-06T12:55:23Z
+        senders ⇒ {'cowork-dev':22, 'מייקל':2, 'cc':2, 'supervisor':2, 'cowork':2}
+        **michael_after_last_agent ⇒ 0**
+        אחרונת-מייקל ⇒ 2026-10-02T12:02:01Z (ארבעה ימים, נענתה בזמנה)
+(16:35) PHONE_THREAD.jsonl     ⇒ unparsable 0 · זנב-14 נקרא · newest = שורת-השער של 212
+```
+
+⇒ אין (א) · **אין (ב)** — אפס עסקת-**לייב** היום (ראה §חובה-3) · **אין (ג)** — ראה §T-402 ו-§T-34 · **אין (ד)** — השער של 212 ([[T-369]]).
+
+---
+
+## 🛰️ חובה-3 · ארבעת המדדים — כולם ירוקים
+
+```raw
+[[T-430]] פיד-חי מה-DB (לא mtime) ⇒ v9_bars_5min_woodies max(ts) 2026-10-06 16:35:00+03
+        now()-max(ts) ⇒ **1.7 דק'** (≤10) · bars ET-היום **188** ⇒ פיד חי
+backend                           ⇒ /api/v9/health 200 · t=0.377s · PID **71969** (03.10, ללא ריסטארט)
+        ער בזמן-אמת: bar_router dispatch 5min ב-16:37:57 · S1DayDir SHADOW ב-16:37:55
+ERROR/CRITICAL ET-היום            ⇒ raw 6,541 · **מסונן (ללא TS-OFFSET-GATE) = 0**  ⇒ מלכודת 33 בתוקף
+ledger-כותב                        ⇒ v9_shadow_ledger rows_today 2 · last_ts 16:30:05.556+03  ⇒ חי
+עסקאות ET-היום (v9_trades)        ⇒ mode=live **0** · mode=shadow **1**
+        #3091 shadow S4 LONG @7863.5 · stop 7851.5 · t1 7881.5 · FILLED 16:30:05 · פתוחה
+        ⇒ **אין מקרה (ב)** — (ב) מוגדר על עסקת-**לייב** בלבד
+```
+
+---
+
+## 🔑 הממצא · הריקונסיילר התהפך פעמיים ב-4 דקות — מייקל שיטח ונכנס מחדש, והבעלות נמדדה מחדש ולא הועתקה מ-212
+
+מצב-הפוזיציה **השתנה** מאז השער, ולכן הבעלות נבדקה מאפס (כלל 2) ולא בהסתמך על המדידה של 212:
+
+```raw
+/tmp/backend.err.log  ⇒  16:31:02 [Reconciler] T-43: contract mismatch CLEARED — entries unblocked
+                         16:35:04 [Reconciler] T-43: contract mismatch DETECTED (TM=0 Sierra=-1)
+                                              — BLOCKING new entries until resolved
+sierra_state.json (16:37, mtime טרי) ⇒ position_qty **-1** · avg_price **7862.50** · is_sim 0
+        working_orders 1 ⇒ orders[{id:**11414**, type:3, bs:1, price:**7869.25**, qty:1}]
+        open_pnl +3.75 · last_price 7861.75 · daily_total_qty_filled **3**
+        בשער 212 (15:27-15:55): order **11412** @**7868** · avg **7861.75** · qty_filled **1**
+```
+
+**הבעלות — שלושה מדדים בלתי-תלויים, כולם מצביעים על מסחר ידני:**
+
+```raw
+COMMAND QUEUED ב-/tmp/backend.err.log ET-היום  ⇒ **0**   (סך-הקובץ 7)
+LIVE trade TM id ET-היום                        ⇒ **0**   ·  v9_trades mode=live היום ⇒ **0** שורות
+TradeActivityLog_2026-10-06_UTC.37138283.data  ⇒ "Trade DOM" 4 · "AOE" 4 · **"Auto-trade" 0**
+        order-ids: 11411(5) · 11412(8) · 11413(5) · 11414(3)  ⇒ ארבע הזמנות ידניות
+        11414 raw: "Stop Limit … Operator=37138283 … AAMichael_lap25.Cht … MichaelBarg"
+                   "Updating last modify Price … due to an **external modification** … 7869.25"
+entry_guard.check_live_entry('SHORT',1) ו-('LONG',1) ⇒
+  (False, '1 working order(s) with foreign position -1 — shared account brackets (legitimate).
+           Blocked pre-send', ['existing position -1 is ownership-explained — entry allowed'])
+manual_position_ack.json date ⇒ 2026-10-06 = ET-היום (חודש ב-212 ב-15:53) ⇒ תקף, אפס פעולה
+```
+
+⇒ הפוזיציה והסטופ הם של מייקל, מהצ'ארט שלו, בשינוי-ידני מפורש ⇒ **[[T-402]] (17.09, עומדת)**: אפס FLATTEN · אפס דוח-אנומליה · **ובמפורש אפס מקרה (ג) בטלפון** — שאלה כאן חוזרת על הפרת 17.09 17:41. הסיווג "legitimate" ולא "anomaly" הוא תוצאה של ה-ack שחודש ב-212; ללא ack היה נרשם כאן שוב "UNMANAGED POSITION … Investigate".
+
+**מה באמת זז:** הסטופ שלו **הורחב** 7868 → 7869.25 בעוד הממוצע עלה 7861.75 → 7862.50, וה-qty המצטבר 1 → 3 ⇒ הוא שיטח ונכנס מחדש בחלון 16:31-16:35. בארבע הדקות שבהן הריקונסיילר היה CLEARED החשבון היה שטוח וכניסות היו פתוחות — **ואפס פקודה נשלחה** (COMMAND QUEUED=0), כלומר החלון לא נוצל בטעות.
+
+---
+
+## ⚠️ שני ממצאי-קדימה שנרשמים כמדידה (לא דגל, לא תיקון, לא טלפון)
+
+**1 · [[T-436]] חוצץ-השיוך מחזיק אירוע של מייקל — זו בדיוק משפחת [[T-545]]:**
+
+```raw
+16:30:58 [FillPoller] T-436 CLOSED_TRADE_PNL seen (1 event(s)) with no open demo/live trade
+                      — held for post-hoc attribution (buffer=1)
+```
+האירוע הוא סגירה **ידנית** שלו (16:31 = רגע ה-CLEARED). אתמול בדיוק מנגנון-השיוך הזה תלה על #3046 ערך-רפאים ‎−27.5 במקום ‎+53.75 של הברוקר. ⇒ **אם תיפתח עסקת-לייב היום, החוצץ הזה הוא מועמד למיסשיוך.** נרשם כמועמד-הסבר, לא כסיבה — DB לא נגעתי, תיקון-הספרים של T-545 נשאר בתור-הלילה.
+
+**2 · [[T-34]] מרג'ין — דיווח-בלבד, ואינו החוסם:**
+
+```raw
+acct_available_funds **136.78** < 1,595  (בשער 212: 181.78)  ·  acct_margin_req 287.76
+acct_account_value 424.54 · acct_under_margin **0** · acct_trading_disabled **0**
+acct_loss_limit_reached **0** · order_placement_armed 1 · send_orders_to_trade_service 1
+```
+⇒ החוסם בפועל הוא **working_orders** (הברקט שלו), לא המרג'ין — ולכן **לא** מקרה (ג): הודעה כזו הייתה אומרת לו שהפוזיציה שלו-עצמו חוסמת את המערכת.
+
+**🚫 אי-מדידה שנרשמת ככזו (כלל 1 — כישלון-כשר עדיף על ערך-מסונתז):** באותו `sierra_state.json` יש שני מספרי-יום סותרים — `daily_pnl 198.75` מול `acct_daily_pl -31.25`. **לא פישרתי ביניהם ולא בחרתי אחד**, ולכן לא דיווחתי P&L-יום בריצה הזו. אמת-הברוקר נקבעת ב-`broker_truth.py` בתור-הלילה, לא מכאן.
+
+---
+
 🕯️ **[cowork-dev · ריצה 213 · 06.10 16:05-16:12 IL · חובה-1 + שורת-מדידה אחת]** · `date ⇒ 2026-10-06 16:05:07 IDT (Tue)` ∈ `15:30-16:10` — **אבל השער כבר בוצע ודווח בריצה 212** (15:35-16:05, רשומה מתחת, והודעת-הטלפון יצאה `2026-10-06T12:55:23Z`) ⇒ לפי ⛔ **בעלות-הריסטארט** בהזמנה: **אפס ריסטארט · אפס GO/NO-GO · שורת-מדידה אחת בלבד** ([[T-369]]: שתי הודעות-שער = הצפה). אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
 
 ---
