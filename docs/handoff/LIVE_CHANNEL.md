@@ -1,3 +1,212 @@
+🕯️ **[cowork-daily · ריצה 212 · 06.10 15:35-16:05 IL · שער-היום + היומית המלאה]** · `date ⇒ 2026-10-06 15:35:04 IDT (Tue)` ∈ `15:30-16:10` ⇒ **חובה-1 + חובה-2 (א+ב)** · `list_scheduled_tasks ⇒ lastRunAt 12:34:48Z = 15:34:48` ⇒ **השער בבעלות הריצה הזו** · ⛔ **אפס ריסטארט — פוזיציה ≠ 0** · אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד · ☎️ **הודעה אחת, מקרה (ד)**
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל — שלושה מקורות
+
+```raw
+(15:36) GET /chat?key=…            ⇒ http=200 · 15,016B · items=30      ← 15:36 בתוך RELAY_WINDOW_IL=10:00-23:30 ⇒ המסירה בת-אימות (T-546 / מלכודת 32)
+         senders ⇒ {'cowork-dev':22,'מייקל':2,'cc':2,'supervisor':2,'cowork':2}
+         אחרונת-מייקל ⇒ 2026-10-02T12:02:01Z · newest overall ⇒ 2026-10-06T09:37:04Z (cowork)
+         **michael_after_last_agent ⇒ 0**                                ← הפוסק של T-547
+(15:36) PHONE_THREAD.jsonl         ⇒ 731 שורות · 132 שורות-מייקל · אחרונה cowork 2026-10-06T09:37:04Z
+(15:36) GET /instruction/pending   ⇒ {"items":[]}  http=200
+         GET /cmd/pending           ⇒ {"cmd":null}   http=200
+         launchctl com.mems26.mobile_relay ⇒ state = running · pid = 1629   ← הדוור חי ⇒ "אין ממתינות" אינו שלילה-כוזבת (מלכודת 12)
+```
+
+⇒ אין (א) · אין (ב) — אפס עסקת-מערכת נפתחה/נסגרה היום · אין (ג) — ראה §T-402 למטה · **יש (ד)** — שער.
+
+---
+
+## 📅 חובה-2א · סיכום 05.10 (ET), והמספר הקנוני שקרי בשתי דרכים
+
+**הליגר (`gateway_decisions.jsonl`, 228 שורות · זמן נגזר `ts → observed_at → signal_bar_ts` לפי מלכודת 21 — `ts` 99 · `observed_at` 129):**
+
+```raw
+DETECTED 66 → EMIT_DECISION 63 → GATE_DECISION 85 → ROUTED 14          (ROUTED/DETECTED 21.2%)
+   first 2026-10-05T13:30:04+00:00 = 09:30 ET = פתיחת-RTH   ·   last 20:00:11+00:00
+   ROUTED 14 ⇒ **2 live** (#3038, #3046) + 12 shadow_only
+   **RESOLVED אינו נפלט כלל** — נרשם כמדידה, לא כערך-חסר שהומצא (כלל 1)
+חסימות (משטח-הליגר = השרשרת המלאה, מלכודת 31):
+   tree:time_cutoff 39 · tree:location 27 · tree:bias 5 · entry_location_quality 4 ·
+   tree:stand_down 2 · entry_not_confirmed 2 · news_blackout 2 · tree:kind 2 ·
+   rr_entry_gate 1 · session_gate_closed 1          (none 143)
+משטח-ה-DB (v9_decision_vectors, עץ בלבד) ⇒ time_cutoff 39 · location 27 · None 23 · bias 5 · kind 2 · stand_down 2 = 98
+   ↳ ELQ/news/rr/confirm **אינם** בעמודה הזו מעצם התכנון ⇒ שני המספרים נכונים, שני משטחים
+```
+
+**EntryGuard (נמדד מ-`live_blocked_by` בליגר, לא מ-grep על `[EntryGuard]` — מלכודת 25):**
+
+```raw
+rows with live_blocked_by ⇒ 1   ·   {'pre_send_entry_guard': 1}
+  2026-10-05T16:40:04+00:00 INITIATIVE_LONG LONG | pre_send_entry_guard |
+  "2 working order(s) with foreign position +1 — shared account brackets (legitimate). Blocked pre-send"
+```
+
+**🔑 הממצא המרכזי — ל-"P&L של הלייב אתמול" שלוש תשובות, והקנונית היא הגרועה:**
+
+```raw
+(1) שאילתת §2א הקנונית (פילטר ET על entry_ts) ⇒ live n=1 · books −27.5 · broker −27.5
+(2) אותה טבלה, לפי id (3038+3046)            ⇒ live n=2 · books −55.0 · pnl_sierra −55.0
+(3) אמת-הברוקר                                ⇒ #3038 −27.5 (מאומת) + #3046 **+53.75** ⇒ **+26.25**
+
+הפירוק:
+$PSQL -c "select id,(entry_ts is null) entry_ts_null,pnl_usd,pnl_sierra from v9_trades where mode='live' and id in (3038,3046);"
+  3038 | f | -27.5 | -27.5
+  3046 | **t** | -27.5 | -27.5          ← entry_ts NULL **וגם** pnl_sierra שגוי
+```
+
+⇒ **שני כשלים נפרדים על אותה שורה, ושניהם שקטים:**
+**(א)** `entry_ts IS NULL` ב-#3046 מפיל אותה מ**כל** שאילתה עם פילטר-ET — כולל §2א וכולל `broker_truth.py` (ריצה 201 כבר רשמה `n/N=1/2`, 05.10 23:22). לכן הסיכום הקנוני מראה **עסקה אחת** ביום שבו היו שתיים. זו מלכודת 17 במשפחה: שדה-זמן חסר שמחזיר השמטה במקום שגיאה.
+**(ב)** `pnl_sierra = −27.5` ב-#3046 **אינו** מספר-הברוקר — זהו ערך-הפאנטום של T-545 (אירוע `CLOSED_TRADE_PNL` מ-19:24 של #3038 שנדבק ל-#3046 שנייה אחרי יצירתה). הברקט בפועל רץ עד היעד `7827.25` ב-`20:44:17` ⇒ **+53.75** (ריצות 197/198, ושורת `T-436 dropped pnl 53.75` בלוג ב-21:15). **תיקון-הספרים שנקבע "הלילה" (סופרוויזר 22:44) לא נחת** — הערך זהה היום ב-15:50.
+⇒ **לא עודכן, לא הומצא, ולא נגעתי** — `broker_truth.py --write` הוא פילר של חובה-4, ושורה עם `entry_ts NULL` נושרת ממנו ממילא. **זהו הצעד-הבא של T-545: לתקן את `entry_ts` לפני שאימות-הברוקר יכול לכסות אותה.**
+
+**צל 05.10 — 99 שורות, 90 עם P&L, `+2,826.30`, ופיצול-הכיוון הוא הסיפור:**
+
+```raw
+LONG   54  **+3,494.25**   46W / 8L
+SHORT  36    **−667.95**    6W / 30L
+   ↳ ZLR לבדו 36 עסקאות +3,147.50  ·  CEILING_FLIP_TOUCH2 23 עסקאות **−248.75** (הפסוקה shadow_only)
+   ↳ INITIATIVE_LONG 3 −138.75 · GHOST 4 −104.52 · S2_DELTA_DBL_SHORT 4 −59.20
+9 שורות STALE_UNRESOLVED (סגורות-בלי-תוצאה בכוונה, מלכודת 14) ⇒ אינן מנצחות ואינן מפסידות
+```
+
+⇒ **והלייב היחיד שנותב היה SHORT** — בדיוק הצד שהפסיד 30 מ-36. מועמד-ריפליי מרכזי לתור-הלילה; **אפס דגל ואפס שינוי-עץ** מכאן (דוקטרינת-הלמידה 09.09: הוראה ⇒ קודם ריפליי).
+
+**ציון-מודעות 05.10 — 4/4 ≥80%, לא 🔴:**
+
+```raw
+יום 65/78 83.3% ✅ · רמות 78/78 100.0% ✅ · מועמדים 21/24 87.5% ✅ · החלטות 67/78 85.9% ✅
+ליגר 228 שורות (parsed 228 + json-bad 0 + no-usable-ts 0) · TPO 13 צילומים
+נגיעות-VA בלי DETECTED: 09:30(VAH) · 09:35(VAH) · 09:45(VAH)
+```
+
+**צל-S1DayDir:** כותב — `agree=True` ×3,820 היום, `SHADOW accepted_break=UP`. **דוחות-cc:** אפס קומיט בחתימת-`cc` מאז 05.10 ⇒ אין דוח לקפל. **חריגים:** ראה §T-402 ו-§T-545 למעלה; אפס אחר.
+
+---
+
+## 🚦 חובה-2ב · שער-היום — **GO על השרשרת · אפס ריסטארט**
+
+**בעלות-הריסטארט — פנויה, ונמדדה נכון (מלכודת 30, `-sTCP:LISTEN` ולא `lsof -ti`):**
+
+```raw
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python PID 71969
+ps -o pid,lstart -p 71969        ⇒ **Sat Oct  3 16:22:52 2026**   ⇒ לא הורם היום
+ריצות 209/210/211 ⇒ כולן "אפס ריסטארט · אפס GO/NO-GO"  ·  אין משימה מתוזמנת mems26-preopen-restart-2026-10-06
+```
+
+**⛔ ולמרות שהבעלות שלי — אין ריסטארט, כי התנאי בהזמנה הוא "פוזיציה-0" והוא אינו מתקיים:**
+
+```raw
+sierra_state.json (mtime 15:39, is_sim=0, trade_account 37138283, symbol MESZ26_FUT_CME):
+  position_qty **-1**  ·  avg_price 7861.75  ·  open_pnl +18.75  ·  last_price 7858.0
+  working_orders 1 ⇒ orders[{id:11412, type:3, bs:1(buy), price:7868.0, qty:1}]   ← סטופ-מגן, ברקט חי
+  daily_total_qty_filled 1  ·  daily_pnl 226.25 (חשבון, לא מערכת — מלכודת 3.5)
+```
+
+**🔑 בעלות הפוזיציה — שלושה מדדים בלתי-תלויים, ולא הפרש-כמות (מלכודת 16):**
+
+```raw
+grep "^2026-10-06" /tmp/backend.err.log | grep -c "COMMAND QUEUED"          ⇒ **0**
+v9_trades where created_at::date(ET) = today                                 ⇒ **(0 rows)**
+strings TradeActivityLog_2026-10-06_UTC.37138283.data | grep -oE "Auto-trade|Trade DOM|AOE"
+   ⇒ 2 × "Trade DOM"  ·  2 × "AOE"  ·  **0 × "Auto-trade"**                  ← חתימת-ידני (דיסקרימינטור ריצה 199)
+```
+
+⇒ **פוזיציה זרה = של מייקל. פסיקת [[T-402]] (17.09 17:35, עומדת): כל פוזיציה שלא נפתחה ע"י המערכת היא שלו — אין FLATTEN, ואין דיווח-חריגה.** מייקל **כבר יודע** שפוזיציה ידנית חוסמת כניסות דרך T-43 ותופסת מרג'ין ⇒ **זה אינו מקרה (ג)**, ושאלה כזאת בטלפון הייתה הפרה. הריקונסיילר נעול כצפוי:
+
+```raw
+15:27:15 [WARNING] [sierra_position_reconciler] T-43: contract mismatch DETECTED (TM=0 Sierra=-1) — BLOCKING new entries until resolved
+15:37:17 [INFO]    SYS-3 DIVERGENCE: TM says 0 contracts [], Sierra says -1 (src=state) … [phantom-heal streak 0/3]
+```
+
+**🔑 ושאלת-המחיר נמדדה, לא הונחה — ל-"אין ריסטארט" אפס עלות-פרודקשן היום:**
+
+```raw
+[boot] logging OK … pid=71969 **commit=d0bec5a1**  (03.10)        vs   git HEAD ⇒ dea1b4e9
+git diff --stat d0bec5a1..HEAD -- 'backend/**/*.py' 'bridge/**/*.py'
+  ⇒ backend/v9/db/safe_writer.py | 36 ++++++  ·  **1 file changed, 36 insertions(+)**  ← כל דלתת-הקוד
+```
+
+והדלתא היא שומר-**pytest בלבד** (T-542): `_refuse_under_pytest()` חוזר `False` מיד כשאין `PYTEST_CURRENT_TEST`, ובלשון ה-docstring עצמו — *"Production (no PYTEST_CURRENT_TEST) is byte-identical."* ⇒ התהליך הרץ **זהה-בייט** לפרודקשן של HEAD. ושאר הדלתא: 34 `render_mobile_relay` · 32 `docs` · 11 `data_handoff` · 9 `scripts` · 8 `harness_out` · 8 `config` — אפס מהם נטען ע"י הבקאנד.
+**ופסיקת-היום (T-538) ממילא חיה בלי ריסטארט** (אימות ריצה 211, חוזר כאן): `decision_tree_v3.yaml` גרסה `3.4.0` · `id: time_cutoff` עם `ruling:` + `measured:{sessions:65,…}` · ולוג `13:49:04 [decision_tree] reloaded (file changed) — 536 leaves`. ⇒ **סשן-16:30 רץ על חיתוך 22:00 ועל עץ-היום, מתוך pid 71969.**
+
+**📟 השער עצמו — כל שלב, פלט גולמי:**
+
+```raw
+set -a; . ./.env; set +a; ruled_contracts()            ⇒ **1**      = פסיקת 18.09 12:05 (FIXED_CONTRACTS_1) · מלכודת 18
+GET /api/v9/mobile/data → contracts_cfg                 ⇒ **1**      = מהתהליך החי (אישוש שלישי)
+   ↳ fire_drill שלב C: "effective_contracts == 1 (לפי דגלי הפסיקה) — got 1"   ⇒ שלושתם 1 · **אפס נגיעה בדגלי-גודל** (פסיקת 31.08 / T-225)
+close_stale_shadow.py (DRY-RUN)                         ⇒ "no stale shadow trades — nothing to do"   ⇒ **אפס --apply**
+   ↳ והפוסק לפי state: v9_trades where state not in ('CLOSED','CANCELLED') ⇒ (0 rows)   (מלכודת 14)
+T-430 פיד-חי — מה-DB, לא מ-mtime (PGTZ=UTC, מלכודת 19):
+   v9_bars_5min_woodies ⇒ max(ts) 2026-10-06 12:35:00+00 · **גיל 4.8 דק'** · n=21,340 · 104 ברים היום (04:00→12:35 UTC)
+   fire_drill שלב D   ⇒ "last bar 2026-10-06 15:40:00+03:00 · age 2 min · market OPEN" ✓ · "feed טרי (<30s) — age=23ms"
+   legacy v9_bars_5min ⇒ 2026-10-05 20:35 · 964.8 דק' · n=4,764   ← קיפאון T-532, ללא שינוי (הזרם המוזנח)
+v9_decision_vectors היום                                ⇒ 57 · 05:40 → **12:35 UTC**   ⇒ הגייטוויי כותב
+ERROR+CRITICAL היום, **בלי** TS-OFFSET-GATE (מלכודת 33) ⇒ **0**   (הלא-מסונן אינו קריא ולא צוטט)
+fire_drill.py ⇒ 🟢 **GO** — A דגלים ✓ · B שרשרת-סטופ 4/4 ✓ · C חוזים+בר-אישור ✓ · Y YAML 274 ✓ ·
+   G guard_tests 170 passed/1 skipped + wire_guard 56 call sites + task_log_guard ✓ ·
+   D health ✓ · T-61 INFO ל-pid 71969 ✓ · feed ✓ · **live_slot פנוי (slot=None)** · live_enabled [2,4] ✓ · day_type UNKNOWN conf=0.0
+flag_guard.py     ⇒ **PASS — all 274 ruled flags match** + LIVENESS: all ON flags have ≥1 production read-site
+task_log_guard.py ⇒ ✅ 525 items, last committed 0.0 days ago · "the only one"
+git HEAD...@{u}   ⇒ 0  0
+ליגר-כותב: **אין בדיקה תקפה בשעת-השער** (מלכודת 26) — 0 שורות היום הוא המצב הנכון לפני RTH.
+   אתמול 228 שורות, ראשונה 13:30:04 UTC = פתיחת-RTH בדיוק ⇒ הבדיקה התקפה היא ב-16:40 (mtime מהיום).
+```
+
+**🔑 ack-תאריך — נתפס פג-יום, וחודש בסמכות פסיקה עומדת (התפיסה-הידנית השביעית מאז 18.09):**
+
+```raw
+ET today ⇒ 2026-10-06   ·   config/manual_position_ack.json date ⇒ **2026-10-05**   ⇒ STALE=True
+   ↳ ו-11 ריצות-cowork קודמות היום (10:0x…15:20) לא בדקו את השדה
+
+לפני:  _read_manual_ack() ⇒ **None**
+       check_live_entry('SHORT',1) ⇒ (False, 'UNMANAGED POSITION -1 … No manual trading (ruling 2026-08-21)
+                                      → this is an **anomaly (orphan/missed-fill). Investigate**. Blocked pre-send', [])
+אחרי:  _read_manual_ack() ⇒ {'date':'2026-10-06','owner':'michael','max_abs_qty':10}
+       check_live_entry('SHORT',1) ⇒ (False, '1 working order(s) with foreign position -1 —
+                                      **shared account brackets (legitimate)**. Blocked pre-send',
+                                      ['existing position -1 is ownership-explained — entry allowed'])
+```
+
+⇒ ‏`|−1| ≤ max_abs_qty=10`. **מה שהחידוש עשה:** הפך סיווג **"אנומליה — לחקור"** ל**"ברקט-חשבון-משותף — לגיטימי"**, בהתאמה ל-T-402. **מה שהוא במפורש לא עשה:** לא פתח מסחר — `working_orders` מאוחר ל-ack בקוד (`entry_guard.py:205-217`) וחוסם כל עוד הברקט של מייקל חי. ⇒ **כניסות ייפתחו מעצמן ברגע שהשורט שלו נסגר** (סטופ 7868; מחיר 7858). פסיקה עומדת **01.09 (T-171)** — "לחדש להיום + לבנות חידוש-אוטומטי" — פסיקה, לא בקשת-אישור חוזרת. הקובץ נקרא בזמן-קריאה ⇒ **תקף ללא ריסטארט**. שארית **T-234** (חידוש-אוטומטי) עדיין לא נבנתה.
+
+**📊 T-34 מרג'ין — דיווח-בלבד, ואינו חוסם:**
+
+```raw
+acct_available_funds **181.78**  <  $1,595   ⇒ שורת-ערוץ (ההזמנה: דיווח בלבד)
+acct_account_value 469.54 · acct_cash_balance 453.29 · acct_margin_req 287.76 · acct_open_positions_pl 16.25
+acct_under_margin 0 · acct_loss_limit_reached 0 · acct_trading_disabled 0 · acct_ok 1 · acct_daily_net_loss_limit −271.97
+```
+
+⇒ **אינו חוסם מסחר** (שלושת הדגלים אפס, ומילוי-ידני אחד כן עבר היום) ⇒ **אין מקרה (ג)** עליו. והחוסם בפועל היום אינו המרג'ין אלא הפוזיציה — בדיוק הבלבול שמלכודת 25 מתעדת מ-30.09.
+
+**⚙️ machine_health — WARN-בלבד, והצרכנים אינם המחסנית:**
+
+```raw
+WARN: load 6.14 > 6.0  ·  WARN: unused RAM 57M < 400M — compressing/swapping  ·  WARN: swap used 5684M > 500M
+trading stack: backend 130MB · bridge 15MB · sierra 2×228MB · postgres 17×400MB · frontend 2MB · phone-relay 21MB
+non-trading (MB): chrome 2143 · cowork-vm 1691 · claude-app 1335 · claude-agents 325 · adobe 136 · spotlight 120
+הצרכן הגדול: pid 4873 "Cursor Helper (Renderer)" 663MB cpu 89.8 up 23:41
+```
+
+⇒ שורה בערוץ, לא טלפון. ו**אין טענת-CPU על הבקאנד** — `ps %cpu` אינו בר-סמך כאן (מלכודת 33/22); הנתון `52.5%` לא צוטט כממצא.
+
+---
+
+## ✅ פסק-השער
+
+**🟢 GO על שרשרת-ההחלטה** — fire_drill ירוק בכל שלב · גודל 1 בשלושה מקורות · פיד חי מה-DB (בר 15:40, גיל 2 דק') · סלוט פנוי · `live_enabled [2,4]` · flag_guard 274 PASS · 0 ERROR מסונן.
+**⛔ אפס ריסטארט** — פוזיציה `−1` (של מייקל, T-402), והתנאי בהזמנה הוא פוזיציה-0. **ונמדד שאין לכך עלות:** דלתת-הקוד היחידה מאז `d0bec5a1` היא שומר-pytest **זהה-בייט בפרודקשן**, ועץ-היום (3.4.0 / חיתוך 22:00) כבר נטען חם ב-13:49:04.
+**🟡 כניסות חסומות כרגע** — T-43 + `working_orders`, שתיהן מול השורט הידני של מייקל. **פסיקה עומדת, לא חריגה** ⇒ אפס טלפון עליהן. ישוחרר מעצמו בסגירת הפוזיציה שלו.
+**☎️ הודעת-טלפון אחת, מקרה (ד)** — GO/NO-GO, ואין שנייה (T-369).
+
+**הצעד-הבא (לתור-הלילה, לא לעכשיו):** (1) **T-545** — לתקן `entry_ts` ב-#3046 לפני `broker_truth.py --write`, אחרת האימות נשאר `1/2` לנצח והספרים ממשיכים לדווח `−27.5` במקום `+53.75`. (2) **T-234** — חידוש-ack אוטומטי; שבע תפיסות ידניות ב-19 יום. (3) **ריפליי פיצול-הכיוון של 05.10** (SHORT 6W/30L מול LONG 46W/8L, והלייב היחיד היה SHORT) — מספר, לא דגל.
+
+---
+
 🕯️ **[cowork-dev · ריצה 211 · 06.10 15:05-15:20 IL]** · `date ⇒ 2026-10-06 15:06:26 IDT (Tue)` — **לא** שער-`15:30-16:10` (‏`list_scheduled_tasks ⇒ lastRunAt 12:04:48Z = 15:04 · nextRunAt 12:33:56Z = 15:33` ⇒ **השער בבעלות הריצה הבאה**, לא זו), **לא** RTH-`16:30-23:00`, **לא** תור-לילה ⇒ **חובה-1 בלבד** · ⛔ אפס ריסטארט · אפס GO/NO-GO · אפס נגיעה בפוזיציות/דגלים/גודל/`.env`/DB/DLL/עץ/קוד · ☎️ **אפס הודעות-טלפון** (אין א/ב/ג/ד)
 
 ☎️ **חובה-1 · אפס ממתינות-מייקל — שלושה מקורות:**
