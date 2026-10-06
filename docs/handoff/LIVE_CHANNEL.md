@@ -1,3 +1,68 @@
+🟢 **[cowork-dev · ריצה 223 · 06.10 21:05-21:10 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 21:05:09 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3** · אפס ריסטארט (חלון-איסור `16:10-23:00`) · **אפס הודעות-טלפון** — אין (א), אפס עסקה-לייב חדשה מאז 20:35 ⇒ אין (ב), אפס חריגה חדשה ⇒ אין (ג). אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל ⇒ שקט מוחלט בטלפון
+
+```raw
+21:08 launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+      (מלכודת 12 — "אפס ממתינות" אינה ראיה עד שהרלה מוכח חי; כאן הוא חי)
+21:08 GET /instruction/pending?key=…  ⇒ {"items":[]}      ← peek, ללא תופעות-לוואי
+21:08 GET /cmd/pending?key=…          ⇒ {"cmd":null}
+21:06 GET /chat?key=…                 ⇒ items=30 · Counter({'cowork-dev':22,'מייקל':2,'cc':2,'supervisor':2,'cowork':2})
+      הודעת-מייקל אחרונה בחוט ⇒ 2026-10-02T12:02:01Z, ואחריה הודעות-סוכן בלבד
+      ⇒ michael_after_last_agent = **False**
+      אפס שורת "תיוג עסקה #" (0/30) ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+21:06 tail PHONE_THREAD.jsonl ⇒ ההודעה האחרונה שיצאה היא שלי, 2026-10-06T17:39:19Z (מקרה ב של ריצה 222)
+```
+
+⇒ אין (א). שתי השאלות הפתוחות אליו (18:17 מרג'ין · 18:54 Sim1) **לא נשאלו שוב** — חזרה עליהן היא הפרת כלל-הטלפון ושל *Rulings are one-time and standing*. המצב מאז לא השתנה, ולכן אין (ג) חדש.
+
+---
+
+## 🩺 חובה-3 · ארבעת הצירים ירוקים · **אפס עסקת-לייב חדשה מאז ריצה 222** ⇒ אין (ב)
+
+```raw
+21:06 בר-אחרון    PGTZ=UTC select max(ts), now()-max(ts) from v9_bars_5min_woodies
+                  ⇒ 2026-10-06 18:05:00+00 | 00:01:41            (≤10 דק' ✅)
+                  (T-430: קובץ-יצוא טרי אינו פיד חי — נמדד על ה-DB; הבר של 21:05 IL הוא מהיום)
+                  מלכודת 19: PGTZ=UTC, ולכן הגיל אינו מנופח ב-180 דק'
+21:08 בקאנד       GET /api/v9/health ⇒ {"status":"ok","version":"v9.0.0"} · http=200 · t=0.0013s
+                  lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python **PID 71969**
+                  ps -o lstart ⇒ Sat Oct  3 16:22:52 2026 · ELAPSED 03-04:44 · %CPU 45.8 · %MEM 0.8
+                  = אותו PID של שער 15:55 ⇒ אפס ריסטארט, כנדרש בחלון-האיסור
+21:07 לוג          tail -200 /tmp/backend.err.log | grep -icE "error|traceback|exception" ⇒ **0**
+                  (רק WARNING שגרתי: BarRouter SLOW handler BarLevelDetector.on_bar 185.5ms,
+                   dispatch total 266.9ms — לא שגיאה, נרשם למדידה)
+21:07 פוזיציה⇄TM  /api/v9/account/state (sierra_state age_s=0.3, stale=false):
+                  position_qty=1 · avg_price=7881.00 · working_orders=2 · open_pnl=+7.50
+                  trade_account=Sim1 · is_sim=1 · order_placement_armed=1 · last_price=7882.50
+                  daily_pnl(סיירה)=-15.0 · daily_total_qty_filled=7.0
+                  open_trade ⇒ {"id":3140,"direction":"LONG","entry_price":7880.75,"stop":7873.75,
+                                "t1":7888.0,"state":"FILLED","mode":"live","contracts":1}
+                  gateway/status ⇒ live_slot="3140" · live_slot_system=4 · trades_today=3 · daily_pnl=-6.25
+                  ⇒ הפוזיציה היא **בדיוק #3140** (TM 7880.75 ⇄ סיירה 7881.00, פער רבע-נקודה)
+                  — אפס פוזיציה-זרה, אפס פער-בעלות ⇒ אפס אזעקה
+21:08 גודל        set -a; . ./.env; set +a; ruled_contracts() ⇒ **1** = הפסיקה (18.09 12:05) ✅
+                  (בלי .env טעון הפקודה מחזירה None — T-489; כאן נטען)
+21:06 עסקאות-היום select … from v9_trades where entry_ts>=current_date
+                  live   CLOSED 3  Σ -6.25   ·  live   FILLED 1 (פתוחה)
+                  shadow CLOSED 32 Σ -25.03  ·  shadow FILLED 17
+                  #3123 GB100 SHORT T1_HIT +21.25 · #3130 FAMIR LONG STOP_HIT -56.25 ·
+                  #3136 DALTON_EDGE LONG T1_HIT +28.75 · #3140 FAMIR LONG **פתוחה**
+                  ⇒ העסקה האחרונה שנפתחה היא 20:35 והאחרונה שנסגרה 20:34 — שתיהן דווחו
+                     בהודעת 17:39:19Z של ריצה 222 ⇒ **אפס (ב) חדש, שקט בטלפון**
+21:07 שערי-בטיחות cooldown_active=false (0 עצירות רצופות) · cluster_guard_active=false (1 ניסיון/60ש)
+                  SSV veto_active=false (suffering_side=NONE) · chop_state=EXPANDING
+                  live_enabled_systems=[2,4] · shadow_active_count=34
+```
+
+**הקשר שלא השתנה (אין צורך בהודעה):** הצ'ארט עדיין על `Sim1` (`is_sim=1`), כלומר #3140 וקודמותיה נרשמות אצלנו כלייב בלי כיסוי-ברוקר — זהה למה שדווח ב-18:54 וב-19:17 ומחכה לפסיקת-מייקל. אפס פעולה מצדי: החזרת הצ'ארט לחשבון-הברוקר היא שינוי סיכון-מסחר ⇒ לא בסמכותי.
+
+**מרג'ין (T-34, דיווח בלבד):** `acct_available_funds=null` · `acct_cash_balance=null` — שדות-הכסף ריקים מאז המעבר ל-Sim1 ב-18:36, ולכן בדיקת `avail < $1,595` **אינה מודדת דבר** כרגע. לא ממציא ערך חסר; אין חסימת-מסחר בפועל (המערכת יורה לסים) ⇒ אין (ג).
+
+---
+
 🟢 **[cowork-dev · ריצה 222 · 06.10 20:35-20:42 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 20:35:08 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3** · אפס ריסטארט (חלון-איסור `16:10-23:00`) · **הודעת-טלפון אחת — מקרה (ב) בלבד**, 280 תווים, נמסרה `17:39:19Z`. אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
 
 ---
