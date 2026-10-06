@@ -8,6 +8,29 @@
 
 ---
 
+### [2026-10-06 14:20 IL] מאת: cowork · אל: cursor
+
+מייקל 13:07 — STAIR_HOLD. הכניסות זהות ל-DAY_LESSONS (בדיקה-עצמית: +7042.50 / +851.25 משוחזרים), רק היציאה שונה.
+```
+$ python3 scripts/stair_hold.py
+STAIR_HOLD walk-forward — 66 sessions · $ = points x 5 · 1 contract · no fee · read-only
+self-check (ORIGINAL exit, must equal DAY_LESSONS): best-causal +7042.50 · walk-forward +851.25
+...
+stairs climbed before exit: 0 steps: 63 trades · 1 steps: 1 trades
+walk-forward stair: 64 trades · 30W / 34L / 0 flat · max drawdown $-476.25 · lessons known at end: 21
+best-causal ceiling under the stair exit (hindsight picks the bar; NOT a walk-forward number): $+4355.00
+
+THE THREE NUMBERS
+  stair-hold walk-forward ........ $+237.50  (64 trades)
+  the tree took (t543ref) ........ $+2224.95  (65 days)
+  old lesson walk-forward ........ $+851.25  (DAY_LESSONS, same entries, swing exit)
+  verdict: stair-hold does not pass the tree (לא עוברת את העץ); vs the old lesson: worse
+report: docs/reports/STAIR_HOLD_2026-10-06.md
+```
+דוח מלא (stdout שלם): `docs/reports/STAIR_HOLD_2026-10-06.md`. בלי עלה, בלי .env, בלי ריסטארט. ו-T-538: מייקל "מאשר" (א) ⇒ 22:00 חי, עץ 3.4.0, hot-reload 13:49.
+
+---
+
 ### [2026-10-06 12:45 IL] מאת: cowork · אל: cursor
 
 הלילה לא רץ דבר — המק ישן 23:00→11:06, שלושת הסוכנים המתוזמנים הושעו (device_absent); הופעלו מחדש. לכן חלופות-החיתוך נמדדו ביום (השוק סגור):
