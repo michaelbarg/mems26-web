@@ -221,11 +221,30 @@ def review_day(d):
                              exit_gap=exit_gap, change=change, candidate=cand))
         if cand: candidates.append(dict(cand, day=d, pts=round(leg["pts"], 1), start=str(bs[leg["i0"]]["t"])[:5]))
     took = sum(1 for l in out_legs if l["verdict"] == "TOOK"); missed = [l for l in out_legs if l["verdict"] == "MISSED"]
-    live_pnl = sum(float(t["pnl_sierra"]) if t["pnl_sierra"] is not None else float(t["pnl_usd"] or 0) for t in live)
+    # Rule 1 — a books number must never be printed under a broker label (added 06.10,
+    # cowork-dev, night queue). Today all four live trades were routed to Sim1 => zero
+    # broker rows, and the header still read "-6.25$ (ברוקר)" because pnl_usd is used as a
+    # silent fallback and a row with neither value counts as 0. The sum is unchanged; what
+    # changes is that the label now states the source and names the unpriced rows.
+    live_brok = [t for t in live if t["pnl_sierra"] is not None]
+    live_bks = [t for t in live if t["pnl_sierra"] is None and t["pnl_usd"] is not None]
+    live_none = [t["id"] for t in live if t["pnl_sierra"] is None and t["pnl_usd"] is None]
+    live_pnl = sum(float(t["pnl_sierra"]) for t in live_brok) + sum(float(t["pnl_usd"]) for t in live_bks)
+    if not live:
+        live_src = "אין לייב"
+    elif not live_brok:
+        live_src = f"ספרים · אין רישום-ברוקר ל-{len(live)}"
+    elif live_bks or live_none:
+        live_src = f"מעורב: ברוקר {len(live_brok)}/{len(live)} · ספרים {len(live_bks)}"
+    else:
+        live_src = "ברוקר"
+    if live_none:
+        live_src += " · ללא תמחור " + ", ".join(f"#{i}" for i in live_none)
     return dict(day=d, day_type=dtype, opening=meta.get("opening_type") or "?", depth=depth, vol_ratio=round(vr, 2), atr=round(atr0, 2),
                 range=round(h_ - l_, 2), net=round(c_ - o, 2), legs=out_legs, n_legs=len(out_legs), took=took, late=sum(1 for l in out_legs if l["verdict"] == "LATE"),
                 opposite=sum(1 for l in out_legs if l["verdict"] == "OPPOSITE"), missed=len(missed), missed_pts=round(sum(l["pts"] for l in missed), 1),
                 available_pts=round(sum(l["pts"] for l in out_legs), 1), live_n=len(live), live_pnl=round(live_pnl, 2),
+                live_src=live_src, live_broker_n=len(live_brok), live_unpriced=live_none,
                 decisions=len(dec), blocked=sum(1 for r in dec if r.get("outcome") == "blocked"),
                 shadow_only=sum(1 for r in dec if r.get("outcome") == "shadow_only"), fired=sum(1 for r in dec if r.get("outcome") == "live"),
                 gates=dict(collections.Counter((r.get("blocked_by") or r.get("live_blocked_by") or "").split(" ")[0] for r in dec if r.get("outcome") != "live" and (r.get("blocked_by") or r.get("live_blocked_by"))).most_common(8)),
@@ -252,7 +271,7 @@ for d in days:
     if not args.suffix: json.dump(R, open(os.path.join(args.out, "review", f"{d}.json"), "w"), ensure_ascii=False, default=str, indent=0)
     for c in R["candidates"]: agg[(c["kind"], c.get("gate", ""), c["phase"], c["day_type"], c["zone"], c["dir"])].append(c)
     md = [f"# מבחן-היום — {d} · {R['day_type']} · פתיחה {R['opening']} · {DEPTH_HEB[R['depth']]} (×{R['vol_ratio']}) · טווח {R['range']} נק׳ · סגירה {R['net']:+.1f}", "",
-          f"**מהלכים ששווה לתפוס:** {R['n_legs']} ({R['available_pts']} נק׳) · נלקחו בזמן {R['took']} · מאוחר {R['late']} · הפוך {R['opposite']} · **פוספסו {R['missed']} ({R['missed_pts']} נק׳)** · לייב {R['live_n']} עסקאות {R['live_pnl']:+.2f}$ (ברוקר)",
+          f"**מהלכים ששווה לתפוס:** {R['n_legs']} ({R['available_pts']} נק׳) · נלקחו בזמן {R['took']} · מאוחר {R['late']} · הפוך {R['opposite']} · **פוספסו {R['missed']} ({R['missed_pts']} נק׳)** · לייב {R['live_n']} עסקאות {R['live_pnl']:+.2f}$ ({R['live_src']})",
           f"**מה הגייטוויי ראה:** {R['decisions']} סטאפים · נורו לייב {R['fired']} · נחסמו {R['blocked']} · עברו אבל המפיק צל-בלבד {R['shadow_only']} · שערים: " + ", ".join(f"{gate_heb(k)} {v}" for k, v in R['gates'].items()), "",
           "## 1 · ראייה מלאה — איפה עסקה הייתה צריכה לצאת ואיך ממקסמים", ""]
     for l in R["legs"]:
