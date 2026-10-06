@@ -1,3 +1,128 @@
+🟢 **[cowork-dev · ריצה 225 · 06.10 22:05-22:12 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 22:05:07 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3** · `22:05` בתוך `16:10-23:00` ⇒ ⛔ **אפס ריסטארט · אפס GO/NO-GO** · אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל ⇒ שקט מוחלט בטלפון
+
+```raw
+22:10 launchctl list | grep mems ⇒ com.mems26.mobile_relay 1629 · com.mems26.backend 71969
+      launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+      (מלכודת 12 — "אפס ממתינות" אינה ראיה עד שהרלה מוכח חי; כאן הוא חי)
+22:10 GET /instruction/pending?key=… ⇒ {"items":[]}      ← peek, ללא תופעות-לוואי
+22:10 GET /cmd/pending?key=…         ⇒ {"cmd":null}
+22:06 GET /chat?key=… ⇒ http=200 · bytes=15977 · items=30
+      {'cowork-dev': 22, 'מייקל': 2, 'cc': 2, 'supervisor': 2, 'cowork': 2}
+      last_michael= 2026-10-02T12:02:01Z · last_agent= 2026-10-06T17:39:19Z
+      ⇒ michael_after_last_agent = **False**  ([[T-547]])
+      (מלכודת 32: 22:06 בתוך חלון-התצוגה 10:00-23:30 ⇒ items=30 הוא נתון, לא [] שקרי)
+      tag_lines= 0  ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+22:05 tail PHONE_THREAD.jsonl ⇒ ההודעה האחרונה שיצאה היא שלי, 2026-10-06T17:39:19Z
+      (מקרה ב של ריצה 222) · המפתח הוא `sender` · unparsable 0
+22:06 git fetch; git rev-list --left-right --count HEAD...@{u} ⇒ 0  0
+      ⚠️ `git pull --rebase` **נדחה** ("cannot pull with rebase: You have unstaged
+      changes") — `git status --porcelain` ⇒ 15 M + 14 ?? מעבודת-סוכן-אחר חיה
+      (`backend/v9/api/v9/mobile_monitor.py`, `five_min_system.py`, `FLAG_REGISTRY.yaml`,
+      `cc_orders/CC_ORDER_2026-10-05_DAILY_DALTON.md`, `DAY_*_2026-10-06.md`…)
+      ⇒ **אפס stash ואפס checkout** (היו מוחקים עבודה בתהליך); מאחר ש-`0 0`,
+      אין מה למשוך ⇒ הדרישה "git pull לפני" מקוימת לגופה. קומיט **by path** בלבד.
+```
+
+⇒ **אין (א) · אין (ב) · אין (ג) · אין (ד) ⇒ אפס הודעות-טלפון בריצה זו.**
+שלוש השאלות הפתוחות אליו (18:17 מרג'ין · 18:54+19:17 Sim1) **אינן נשאלות שוב**
+(*Rulings are one-time and standing* + כלל-הטלפון; [[T-369]] הצפה).
+
+---
+
+## 🛰️ חובה-3 · ארבעת הצירים ירוקים
+
+```raw
+A · פיד  [[T-430]] מה-DB ולא מ-mtime (מלכודת 22):
+    select max(ts), now()-max(ts) from v9_bars_5min_woodies;
+      2026-10-06 22:05:00+03 | 00:03:39.751783     ⇒ בר **מהיום**, גיל 3.7 דק' (≤10 ✅)
+    (הבר של 22:05 נסגר: open 7882.75 high 7884.00 low 7880.50 close 7880.75)
+B · בקאנד
+    GET /api/v9/health ⇒ http=200 t=0.0024s (שלוש מדידות: 0.0024/0.0022/0.0042)
+      ⚠️ הקריאה הראשונה בריצה החזירה t=0.4214s — **חימום, לא פתולוגיה**; נמדד שוב ⇒ מילישניות
+    lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python PID 71969 (מאזין יחיד, מלכודת 30)
+    ps -o lstart -p 71969 ⇒ Sat Oct 3 16:22:52 2026 · ELAPSED 03-05:45 ⇒ **אפס ריסטארט**
+    הלוג רואה (§3.9 ד0): [boot] logging OK level=INFO **pid=71969** commit=d0bec5a1
+      ⇒ ולכן ERROR/CRITICAL/Traceback בחלון 21:10-22:10 = **0** הוא ממצא ולא עיוורון,
+        בחלון-**זמן** ולא חלון-שורות (מלכודת 27)
+    ERROR/CRITICAL היום מסונן-TS-OFFSET-GATE (מלכודת 33) ⇒ **2**, שתיהן ההגנה המתוכננת
+    חיוּת-לוג: 29,037,742 בתים · mtime 22:09:54 · 8,612 שורות ב-21:xx + 1,696 ב-22:0x
+    השורה האחרונה 22:09:59 [WARNING] BarRouter: dispatch total 120.3ms — תפעולי
+    ps -o %cpu -p 71969 ⇒ 20.8 · load averages 2.78 3.74 4.27 (לא (ג), לא אזעקה)
+C · פוזיציה⇄TM — **בעלות לפני אזעקה** (מלכודת 16), ולא לפי הפרש-כמות:
+    GET /api/v9/account/state  (sierra_state ok=true · stale=false · **age_s 0.7**)
+      position_qty=1 · avg_price=7881.00 · working_orders=2 · open_pnl=**-2.50**
+      last_price=7880.50 · high_during_pos=7884.50 · low_during_pos=7876.75
+      trade_account="Sim1" · is_sim=1 · order_placement_armed=1 · verdict="**system**"
+      open_trade {"id":3140,"LONG",entry 7880.75, stop 7873.75, t1 7888.0, FILLED, live, 1}
+    gateway/status ⇒ live_slot="3140" · live_slot_system=4 · trades_today=3 · daily_pnl=-6.25
+    fills_journal זנב ⇒ ENTRY order_id **11431** @7880.75 ×1 ואפס T1/STOP אחריו
+      ⇒ הברקט פתוח, וה-order_id הוא של המערכת (c1_target 11432 · c1_stop 11433)
+    T-43 אחרון: 18:10:01 DETECTED ⇒ **18:14:02 CLEARED — entries unblock** (אפס חסימה מאז)
+    ⇒ **הפוזיציה היא בדיוק `#3140`, בעלות המערכת ⇒ אפס פוזיציה-זרה, אפס אזעקה**
+D · ליגר כותב
+    v9_shadow_ledger rows_today=**114** · last_row 22:05:07 (גיל ~0)
+    v9_decision_vectors היום ⇒ BAR 10,109 · DECISION 57 · TREE_SHADOW 32
+```
+
+**ספרי-היום (ET-היום):** `live CLOSED 3 Σ -6.25 · live FILLED 1 (פתוחה) · shadow CLOSED 32
+Σ -25.03 · shadow FILLED 25` (צל `19 ⇒ 25` מול ריצה 224 — צל, **לא** לייב).
+**חוסמי-היום:** `tree:location 30 · tree:kind 15 · tree:bias 15 · entry_location_quality 10 ·
+tree:time_cutoff 9 · tree:stand_down 6 · entry_not_confirmed 6`.
+**שורות-צל תקועות מימים קודמים = 0** (‏`mode=shadow AND state=FILLED AND entry_ts < current_date`)
+⇒ אפס `--apply`, ואפס הישנות של תקרית-16.09 (שם: 80% CPU + ~1,000 שורות/דקה).
+
+---
+
+## 🔑 הממצא — אין אירוע-עסקה, ויש **נתון חדש אחד** על הפוזיציה הפתוחה
+
+```raw
+LIVE trade TM id=…  היום ⇒ 4   ·  COMMAND QUEUED ⇒ 6  ·  LIVE fire BLOCKED ⇒ 2  ·  ORPHAN ⇒ 0
+אחרונה-שנפתחה  #3140  20:35:01   ·   אחרונה-שנסגרה  #3136  20:34:11
+⇒ בין 20:35 ל-22:12 (97 דק') **לא נפתחה ולא נסגרה שום עסקת-לייב**
+⇒ שתיהן כבר דווחו בהודעת 17:39:19Z (ריצה 222) ⇒ **אין מקרה (ב)**
+```
+
+**מה כן חדש, ואינו אירוע-עסקה ולכן אינו הודעת-טלפון:** מנעד-הפוזיציה הפתוחה נמדד
+לראשונה מהשדות החיים — `high_during_pos 7884.50` ו-`low_during_pos 7876.75` מול
+`entry 7880.75 · stop 7873.75 · t1 7888.00` ⇒ ב-97 הדקות שהיא פתוחה `#3140` התקרבה
+עד **3.50 נק'** מ-T1 ועד **3.00 נק'** מהסטופ, **ולא נגעה באף אחד מהם** (MFE `+3.75` /
+MAE `-4.00` נק'). השינוי היחיד מול ריצה 224 הוא **מחיר** (`open_pnl -10.00 ⇒ -2.50`,
+`last_price 7879.00 ⇒ 7880.50`), ותנודת-מחיר אינה אירוע ⇒ דיווח "אין חדש" לטלפון היה
+הפרת כלל-הטלפון ([[T-369]]). ⇒ **נתון-ערב לסקירת-היום, אפס דגל, אפס טלפון.**
+
+📎 **שני מודדים ל-P&L של היום, ושניהם אינם אמת-ברוקר:** `sierra daily_pnl -15.00` מול
+ספרים `-6.25` — הפער הוא טבעו של מודד-סיירה בחשבון-סים (`daily_total_qty_filled 7.0`),
+ו-**T-551 הופך את שניהם ללא-ברוקריים** ⇒ אין להציג אף אחד מהם כיום-ברוקר ([[Rule 1]]).
+
+⚠️ **[[T-551]] ללא שינוי** — `is_sim=1 · trade_account="Sim1"` ⇒ `#3140` ברקט-סימולציה
+הנרשם כלייב. נשאל 18:54+19:17 ו**אינו נשאל שוב**; החזרת-הצ'ארט היא שינוי סיכון-מסחר
+⇒ **לא בסמכותי**. 📏 **[[T-34]] מרג'ין — דיווח-בלבד וחסר-קלט:** `acct_available_funds=null ·
+acct_cash_balance=null · acct_account_value=null · acct_margin_req=null` ([[T-388]]
+סנטינל-`DBL_MAX`⇒null, והחשבון עבר ל-Sim1) ⇒ מבחן `avail < $1,595` **אינו מדיד**; לא
+ממציא ערך ([[Rule 1]]), ואין חסימת-מסחר בפועל (`acct_under_margin=0 · acct_trading_disabled=0
+· order_placement_armed=1`) ⇒ **אין (ג)**.
+
+**הצעד הבא:** (1) **ריצת-RTH הבאה (~22:35, האחרונה לפני סגירת-RTH 23:00):** `#3140` פתוחה —
+סטופ `7873.75`, `t1 7888`, פתוח `-2.50`, מנעד `7876.75/7884.50`; תוצאתה היא מקרה (ב) הבא,
+ואם היא נעצרת ⇒ **שלוש FAMIR בסטופ** מול אותה שורת-צל `t367_rule_b_midvalue_block` ⇒
+**מקרה-ריפליי, לא דגל** ([[LEARNING_DOCTRINE]]). (2) **תור-הלילה (23:00-23:30):**
+`broker_truth --write` יחזיר `אין רישום-ברוקר` ל-**ארבע** — `#3123/#3130/#3136/#3140` —
+ולכתוב זאת ב-LIVE_CHANNEL במפורש; **אין להציג `-6.25` ולא `-15.00` כיום-ברוקר**.
+(3) [[T-545]] 42 שורות `mode=live AND entry_ts IS NULL` ל-`cc-macbook` **לפני**
+`broker_truth --write` · [[T-550]] ל-cc. (4) **אזהרת-קומיט לכל סוכן הערב:** עבודת-סוכן
+חיה בעץ-העבודה (29 נתיבים) ⇒ `git add <path>` מפורש, **לעולם לא `commit -a`**.
+(5) `flag_guard`/`task_log_guard` לא הורצו בריצה זו (ניטור-RTH, אפס עריכת-דגל).
+
+**אפס נגיעה:** ריסטארט · `.env` · דגל · דגלי-גודל/`RISK_*` · `--apply` · FLATTEN ·
+`op=EXIT` · פוזיציות/סלוט/פקודות · DLL · קוד-ייצור · כתיבה ל-DB · הודעת-טלפון.
+**כתיבות:** `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד, קומיט by path.
+
+---
+
 🟢 **[cowork-dev · ריצה 224 · 06.10 21:35-21:40 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 21:35:06 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3** · `21:35` בתוך `16:10-23:00` ⇒ ⛔ **אפס ריסטארט · אפס GO/NO-GO** · אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
 
 ---
