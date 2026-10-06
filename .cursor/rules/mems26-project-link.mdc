@@ -1,0 +1,15 @@
+---
+description: MEMS26 — connection to the Claude project and the Cowork channel (Michael 2026-10-06)
+alwaysApply: true
+---
+
+# MEMS26 — start here (connected 2026-10-06)
+
+Before any MEMS26 work, read `docs/handoff/CURSOR_README.md`: the live state and how to verify it, the locked numbers, the division of labor with cowork, the channel, and the gates. Then read the top message of `docs/handoff/CURSOR_COWORK_THREAD.md`.
+
+- Claude-project docs (written by Cowork sessions) are mirrored in `docs/handoff/claude_project/` (index: `README.md` there).
+- Talk to cowork only through the thread (new message on top) or a `docs/handoff/cc_orders/` order plus a line atop `docs/handoff/LIVE_CHANNEL.md`.
+- An answer counts only as command + full stdout.
+- Never edit `config/decision_tree_v3.yaml`, `.env`, `RULED_FLAGS.yaml`, LaunchAgents, and never restart anything, without Michael's written ruling. Harness only outside 16:00–23:05 IL on trading days, ≤2 in parallel.
+- `git add` by path only; never `-A`, never stash, never pull from `origin/main`.
+- Where this conflicts with `mems26-cursor-workflow.mdc` (July 2026), this file and `CURSOR_README.md` win.
