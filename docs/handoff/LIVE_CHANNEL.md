@@ -1,3 +1,142 @@
+🕯️ **[cowork-dev · ריצה 215 · 06.10 17:05-17:13 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 17:05:07 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3, לא חובה-2**: השער בוצע ודווח בריצה 212 ⇒ **אפס ריסטארט · אפס GO/NO-GO** (ממילא 17:05 ≫ 16:10) · **שתיקה מוחלטת בטלפון**. אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל משלושה מקורות ⇒ `phone_reply.py` לא נקרא
+
+```raw
+(17:06) GET /chat?key=…                 ⇒ http=200 · 15,315B · items=30
+        senders ⇒ {'cowork-dev':22,'מייקל':2,'cc':2,'supervisor':2,'cowork':2}
+        newest ⇒ cowork-dev 2026-10-06T12:55:23Z (שורת-השער) · **michael_after_last_agent ⇒ 0**
+        אחרונת-מייקל ⇒ 2026-10-02T12:02:01Z (נענתה בזמנה)
+(17:06) GET /instruction/pending (peek)  ⇒ {"items":[]}
+(17:06) GET /cmd/pending (peek)          ⇒ {"cmd":null}
+(17:06) [[מלכודת 12]] הרלה חי לפני שמסיקים שקט ⇒ launchctl com.mems26.mobile_relay state=running pid=1629
+(17:05) PHONE_THREAD.jsonl               ⇒ זנב-12 נקרא · unparsable 0
+```
+
+⇒ אין (א) · אין (ב) · אין (ג) · אין (ד). **אפס הודעות-טלפון בריצה הזאת.**
+
+---
+
+## 🛰️ חובה-3 · ארבעת המדדים — כולם ירוקים
+
+```raw
+[[T-430]] פיד-חי מה-DB (לא mtime) ⇒ v9_bars_5min_woodies max(ts) 2026-10-06 17:05:00+03
+        now()-max(ts) ⇒ **2.0 דק'** (≤10) · bars ET-היום **242** ⇒ פיד חי
+backend                 ⇒ /api/v9/health 200 · t=0.0024s · PID **71969** (03.10 16:22, ללא ריסטארט, etime 3d)
+ERROR/CRITICAL ET-היום  ⇒ raw **6,542** · **מסונן (ללא TS-OFFSET-GATE) = 1** ⇒ [[מלכודת 33]] בתוקף
+        והאחת הזאת היא ההגנה המתוכננת, לא תקלה — ראה §הממצא
+ledger-כותב             ⇒ v9_shadow_ledger rows_today **10** · last_ts 17:05:03.916+03 ⇒ חי
+                           v9_decision_vectors RTH ⇒ BAR 1,106 · DECISION 5 · TREE_SHADOW 1
+פוזיציה-מול-TM          ⇒ sierra_state (mtime 17:07) position_qty **0** · working_orders **0** · orders[]
+                           v9_trades mode=live פתוחה ⇒ **0** ⇒ **מתואמים, אפס אזעקה**
+עסקאות ET-היום          ⇒ mode=live **0** · mode=shadow **45** (מהן RTH 5: #3091-#3095)
+        #3091 S4 FAMIR LONG 7863.5 → T1_HIT +90 · #3092 S2 CF_TOUCH2 → T1_HIT +13.75
+        #3093 S2 OPENING_EXTREME_REJECT → T1_HIT +72.5 · #3094/#3095 FILLED פתוחות
+        ⇒ **אין מקרה (ב)** — (ב) מוגדר על עסקת-**לייב** בלבד
+```
+
+---
+
+## 🔑 הממצא · ההחלטה היחידה שהעץ אישר היום נחסמה טרום-שליחה — ונמדדה מהלוג-הגולמי, לא מהסקה
+
+ריצה 212 **חזתה** ש"כניסות-המערכת חסומות עד שהשורט שלך נסגר". הנה השרשרת המלאה כפי שהיא נמדדה
+מקצה-לקצה — חמש החלטות-RTH, מהעץ עד הברוקר:
+
+```raw
+v9_decision_vectors RTH (16:30+) · blocked_by ⇒ tree:stand_down 2 · tree:kind 2 · allow 1
+ 16:30:05 S4 FAMIR            LONG 7863.50 phase A ⇒ tree:stand_down  "no doctrine row … stand down"
+ 16:40:07 S2 CF_TOUCH2        LONG 7865.25 phase A ⇒ tree:stand_down  "no doctrine row … stand down"
+ 16:45:07 S2 OPENING_EXTREME_REJECT LONG 7867.50 phase B ⇒ blocked_by **NULL**
+          TREE_SHADOW ⇒ **allow** · row=t355_phase_b_location real=allow(FIRED)
+ 16:50:03 S2 OPENING_DRIVE    LONG 7871.50 phase B ⇒ tree:kind "entry kind not in this row's list"
+ 17:05:03 S2 INITIATIVE_LONG  LONG 7881.00 phase B ⇒ tree:kind "entry kind not in this row's list"
+
+/tmp/backend.err.log — מה קרה ל-16:45:07 אחרי שהעץ אישר:
+ 16:45:07 [INFO]     [entry_guard]      pos=-1 coexist_manual (ack 2026-10-06, owner=michael) — ownership PASS
+ 16:45:07 [WARNING]  [trading_gateway]  LIVE pre-send warning: existing position -1 is ownership-explained — entry allowed
+ 16:45:07 [CRITICAL] [trading_gateway]  LIVE fire BLOCKED pre-send: 1 working order(s) with foreign position -1
+                                        — shared account brackets (legitimate). no trade row, no slot, no Sierra command
+```
+
+**וזה בדיוק המסלול שתועד** (`entry_guard.py:205-217`): ה-ack שחודש בריצה 212 עשה את שלו —
+הסיווג עבר ל-"ownership-explained", **אבל `working_orders` נבדק אחרי ה-ack**, ולכן הברקט-המגן
+של מייקל חסם את הירי. ⇒ **אפס עסקאות-לייב היום אינו כשל — זו ההגנה על חשבון-משותף.**
+‏`#3093` נרשמה shadow ו**הרוויחה** `+72.5` (T1 ב-17:00) — כלומר הלייב הפסיד הזדמנות, לא כסף.
+
+**הסלוט פנוי מאז 16:47 — ונמדד, לא הונח:**
+
+```raw
+ 16:35:04 [Reconciler] T-43 contract mismatch DETECTED (TM=0 Sierra=-1) — BLOCKING new entries
+ 16:46:59 [FillPoller] T-436 CLOSED_TRADE_PNL seen (buffer=2)
+ 16:47:08 [Reconciler] T-43 contract mismatch **CLEARED — entries unblocked**
+ 17:07    sierra_state ⇒ position_qty 0 · working_orders 0 · daily_total_qty_filled 4
+```
+
+⇒ השורט הידני של מייקל נסגר ~16:47 (`acct_daily_pl -65.00`, שתי ידניות). **שתי ההחלטות שאחרי —
+‏16:50 ו-17:05 — נחסמו ע"י העץ (`tree:kind`), לא ע"י השער.** המערכת כשירה-ללייב 24 דק',
+והדוקטרינה היא שאמרה לא. המחיר של ה-stand_down נמדד: המחיר מ-7867.5 ל-**7886.50** (17:13).
+
+---
+
+## ✅ ממצא 2 · חוצץ-30-הדקות של [[T-436]] התנהג **נכון** היום — ההיפך מכשל 05.10
+
+זה המבחן הראשון של החוצץ מאז [[T-545]], והוא עבר:
+
+```raw
+ 16:30:58 [FillPoller] T-436 CLOSED_TRADE_PNL seen (1 event) with no open demo/live trade — held (buffer=1)
+ 16:46:59 [FillPoller] T-436 CLOSED_TRADE_PNL seen (1 event) with no open demo/live trade — held (buffer=2)
+ 17:00:58 [FillPoller] T-436 **dropped** 1 unattributed CLOSED_TRADE_PNL after 30 min (pnl sum -31.25)
+```
+
+ב-05.10 אירוע-ברוקר של `#3038` נספר פעמיים ונדבק ל-`#3046` כ-`-27.5` ([[T-545]]). היום אותו
+סוג-אירוע בדיוק — דיווח-סגירה של עסקה **ידנית** — **נזרק** אחרי 30 דק' במקום להידבק לעסקת-מערכת.
+⇒ החוצץ הוא ההגנה הנכונה; `T-545` נשאר פתוח על ה-`entry_ts NULL` של `#3046`, לא על החוצץ.
+
+---
+
+## 🔵 ממצא 3 · [[T-550]] חדש · שורת-הלוג `VIRTUAL STOP SET` מפרסמת פלטן שפסיקת 28.07 **ביטלה** — ואני כמעט דיווחתי על סיכון שאינו קיים
+
+```raw
+ 16:36:04 [WARNING] [Reconciler] VIRTUAL STOP SET: SHORT @ 7872.50 for 1c @ 7862.50
+                                 (**flatten on stop-cross or loss >= $200**)
+```
+
+המחיר עבר `7872.50` מאז (עכשיו `7886.50`) ⇒ קראתי את זה כסיכון שהמערכת תשטח פוזיציה **של מייקל**.
+‏**כלל 2 — לאמת לפני שסומכים:** הקוד אומר אחרת.
+
+```raw
+sierra_position_reconciler.py:644-650  _auto_flatten_enabled() ⇒ ORPHAN_AUTO_FLATTEN_V1 default "0"
+   docstring: "default OFF (Michael ruling 2026-07-28). The system no longer market-exits a
+   position it could not protect. It still watches and still alerts; the decision returns to Michael."
+‏.env ⇒ ORPHAN_AUTO_FLATTEN_V1 unset · PLACE_BRACKET_OP_V1 unset (default 0, לכן נפל לסטופ-הווירטואלי)
+לוג 06.10 ⇒ ORPHAN STOP BREACHED|FLATTEN TRIGGER|FLATTENED|REAL BRACKET ⇒ **0 התאמות**
+מסלול-הפריצה בפועל (:668-700) ⇒ CRITICAL + phone_alert "your call" + `return BREACH_ALERT_ONLY` — **בלי פלטן**
+```
+
+⇒ **אפס סיכון-פלטן. הבאג הוא בטקסט**: הפרנתזה מבטיחה התנהגות שהפסיקה הסירה, ולכן קורא-הלוג
+(אדם או סוכן) מסיק סיכון-מסחר שאינו קיים — וזה בדיוק המסלול להודעת-טלפון-שקרית במקרה (ג).
+**הצעד הבא:** לנסח את השורה לפי הדגל בזמן-ריצה (`ALERT ONLY (ruling 07-28)` כש-OFF) —
+שינוי-טקסט בלבד, **לא בוצע עכשיו** בכוונה: אין תועלת-מסחר ואין נגיעה ב-reconciler בתוך RTH.
+לתור-הלילה.
+
+---
+
+## 📋 שני דיווחים-בלבד (ללא פעולה, ללא טלפון)
+
+```raw
+[[T-34]] מרג'ין ⇒ acct_available_funds **388.29** (בשער 212 היה 181.78) · < $1,595 ⇒ דיווח-בלבד
+   **ואינו חוסם — נמדד ולא הונח:** acct_trading_disabled 0 · acct_under_margin 0 ·
+   acct_loss_limit_reached 0 (daily_pl -65.00 מול limit -271.97) · order_placement_armed 1 ·
+   send_orders_to_trade_service 1 — והראיה החזקה: כניסת-לייב הגיעה **טרום-שליחה** ב-16:45
+   ונעצרה ע"י working_orders, **לא** ע"י מרג'ין. ⇒ אין מקרה (ג).
+‏`daily_pnl` בסיירה 198.75 מול `acct_daily_pl` -65.00 ⇒ שני מודדים שונים; החשבון הוא הקובע.
+‏[[T-402]] (17.09, פסוק-עומד) ⇒ פוזיציה-זרה = של מייקל ⇒ אפס FLATTEN · אפס שאלה · אפס דיווח-חריגה.
+HEAD...@{u} ⇒ 0 0 · TASK_LOG עודכן היום 16:13
+```
+
+---
 🕯️ **[cowork-dev · ריצה 214 · 06.10 16:35-16:48 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 16:35:06 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3, לא חובה-2**: השער בוצע ודווח בריצה 212 (15:35-16:05, הודעת-טלפון `2026-10-06T12:55:23Z`) ⇒ **אפס ריסטארט · אפס GO/NO-GO** (גם ממילא 16:35 > 16:10 = אחרי חלון-הריסטארט) · **שתיקה מוחלטת בטלפון**. אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
 
 ---
