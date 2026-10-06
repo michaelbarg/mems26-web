@@ -1,3 +1,120 @@
+🔴 **[cowork-dev · ריצה 218 · 06.10 18:35-18:55 IL · חובה-1 + חובה-3 (ניטור-RTH)]** · `date ⇒ 2026-10-06 18:35:09 IDT (Tue)` ∈ `16:30-23:00` ⇒ **חובה-3** · אפס ריסטארט (חלון-איסור `16:10-23:00`) · **הודעת-טלפון אחת, מקרה (ג)** — התחזית של ריצה 217 הפכה לממצא. אפס נגיעה בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד.
+
+---
+
+## ☎️ חובה-1 · אפס ממתינות-מייקל ⇒ אין מקרה (א)
+
+```raw
+18:36 GET /chat?key=…  ⇒ http=200 · 15,447B · items=30
+      senders ⇒ {'cowork-dev':22,'מייקל':2,'cc':2,'supervisor':2,'cowork':2}
+      אחרונת-מייקל ⇒ 2026-10-02T12:02:01Z (נענתה בזמנה) ⇒ michael_after_last_agent = **0**
+      newest ⇒ cowork-dev 2026-10-06T15:17:33Z (שאלת-המרג'ין של ריצה 217) ⇒ **עדיין ללא מענה**
+      אפס שורת "תיוג עסקה #" ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+```
+
+⇒ אין (א). **השאלה מ-18:17 ממתינה לו — ולכן לא נשאלה שוב; ההודעה שכן נשלחה היא עובדות חדשות, לא תזכורת.**
+
+---
+
+## 🔑 ממצא 1 · דחיית-המרג'ין קרתה — והיא **ידנית**, לא של המערכת
+
+ריצה 217 כתבה: *"אם תיראה דחיית-ברוקר בפועל — לצטט את השורה הגולמית, ואז זה ממצא ולא תחזית."**
+‏19 דקות אחרי אותה שורה, הדחייה קרתה. **הציטוט מלוג-הברוקר של סיירה עצמה** (לא מהבקאנד):
+
+```raw
+~/SierraChart/TradeActivityLogs/TradeActivityLog_2026-10-06_UTC.37138283.data  (strings)
+"Teton CME Routing (New). Info: Order from DTC client #19747. Sierra Chart. … Username:MichaelBarg"
+"MESZ26_FUT_CME[M] #2 | **Trade DOM/User order entry** | Last: 7892.25 | AOE=false | AOU=false"
+"Teton CME Routing (**Order reject**). Info: Trade Order Error - **Insufficient Account Value (NLV)
+ for margin for order. Margin needed for symbol: **287.76** USD. MarginPercent: 10%.
+ Margin needed for Account: 287.76. **Account Value: 285.79**. Max potential quantity: 1.
+ Minimum required NLV: 50.00"
+
+/tmp/backend.err.log:
+18:36:10 [WARNING] [fill_poller] FIX-10 ORDER_REJECT seen (Trade Order Error - Insufficient Account
+         Value (NLV) for margin for order. Margi) but **no PENDING demo/live trade to correlate —
+         manual order?** logged only.
+grep -c "FIX-10 ORDER_REJECT" /tmp/backend.err.log ⇒ **1** (הראשונה אי-פעם)
+```
+
+⇒ **287.76 מול 285.79 — בדיוק שני המספרים שנמדדו ב-18:17**, אות-באות. ⇒ ממצא-3 של ריצה 216
+("אין תרחיש שבו הסלוט נפתח ומרג'ין חוסם") **הופרך סופית** — לא בתחזית, בדחייה של הברוקר.
+**מה שבמפורש אינו נטען:** ההזמנה שנדחתה היא **ידנית של מייקל** (`Trade DOM/User order entry`,
+‏`Username:MichaelBarg`) — **אפס פקודות-מערכת נשלחו ונדחו**; `COMMAND QUEUED` היום 0.
+
+---
+
+## 🔴 ממצא 2 · הצ'ארט עבר לחשבון **Sim1** ב-18:36 — והמערכת נשארה חמושה
+
+```raw
+18:50 ~/SierraChart_Data/v9_export/sierra_state.json (age 0.1-0.3s, שלוש קריאות עוקבות ⇒ יציב):
+      is_sim **1** · trade_account **"Sim1"** · position_qty 0 · working_orders 0
+      acct_cash_balance / acct_available_funds / acct_margin_req = **1.7976931348623157e+308**
+      ([[T-200]] סנטינל DBL_MAX ⇒ "אין ערך", לא אפס) · acct_daily_pl **0.0** · daily_total_qty_filled **0**
+18:52 GET /api/v9/account/state (age 0.5s) ⇒ הנקודה-הטובה: הנתיב **מתרגם סנטינל ל-null** ולא
+      ממציא מספר (כלל 1 — כישלון-כן): acct_cash_balance **null** · acct_available_funds **null** ·
+      acct_margin_req **null** · is_sim 1 · trade_account "Sim1" · order_placement_armed **1** · verdict "flat"
+
+ls -lt ~/SierraChart/TradeActivityLogs/*.data ⇒ ...UTC.**37138283**.data נכתב לאחרונה **18:35**
+                                                ...UTC.**None**.data      נכתב לאחרונה **18:36**
+grep -c "is a sentinel" (היום, לפני 18:39) ⇒ **0**   ⇒ המעבר התרחש בין 18:17 ל-18:39
+18:39:18 ..18:50:06 [MarginSizing] acct_available_funds is a sentinel (1.8e+308) — **account data
+         unusable, size left unchanged**  ×6
+18:50:06 [SierraCmd] RISK_BUDGET: risk=15.0 pts → raw=3.0 → floor=3 → **min(ruled=1)=1**
+```
+
+**מה זה אומר, מהקוד ולא מהזיכרון** (כלל 2 — לאמת לפני שסומכים):
+
+```raw
+backend/v9/gateway/trading_gateway.py:36-54  _resolve_account():
+   "Truth source = Sierra's own `trade_account` in sierra_state.json (fresh <=10s) …
+    the PLACE command is used by the DLL as o.TradeAccount, which **DECIDES the routing target**"
+   ⇒ הערך שיוחזר **עכשיו** הוא "Sim1".
+backend/v9/services/entry_guard.py:139-140   אזהרה **לא-חוסמת**, בלשון הקוד עצמו:
+   warns.append("Sierra is in SIM mode (is_sim=1) — **a live-mode order routes to sim**")
+```
+
+⇒ **הסלוט פנוי, `armed=1`, חסימת-הפוזיציה-הזרה נעלמה (`18:14:02 T-43 CLEARED`, ואין DETECTED
+אחריה — הפוזיציה 0 מ-18:36) — והחשבון הוא סימולציה.** כלומר ירי-לייב עכשיו **ירוּתב לסים**,
+ובכל זאת ייכתב ב-`v9_trades` כ-`mode=live` (ניתוב live/shadow נקבע ממערכות-מאופשרות, לא מהחשבון)
+⇒ **שורת-ספרים "לייב" בלי כיסוי-ברוקר** — בדיוק המחלקה של [[T-545]].
+**מה שבמפורש אינו נטען:** לא נבדק בשליחה (זו שליחת-פקודה — אסורה); אפס ירי-לייב מאז 18:36
+(`LIVE trade TM id|COMMAND QUEUED` אחרי 18:36 ⇒ **0 התאמות**); ולא נטען שמישהו שינה דגל —
+`flag_guard` **PASS — all 274**. הסיכון הוא **קדימה**, לא אירוע שקרה.
+
+---
+
+## 🛰️ חובה-3 · שאר המדדים — ירוקים
+
+```raw
+[[T-430]] פיד-חי מה-DB (לא mtime) ⇒ PGTZ=UTC max(ts) 2026-10-06 15:45:00+00 · גיל **3.83 דק'** (≤10)
+                                     ברי-היום **190**
+backend     ⇒ /api/v9/health 200 · t=0.0032s · PID **71969** (lstart Sat Oct 3 16:22:52)
+guards      ⇒ flag_guard **PASS — all 274 ruled flags match**
+עסקאות היום ⇒ mode=live **0 שורות** · mode=shadow **24** (12 CLOSED Σ **+413.72** · 12 FILLED פתוחות)
+            ⇒ **אין מקרה (ב)** — אפס עסקת-לייב נפתחה או נסגרה היום
+פוזיציה-מול-TM ⇒ position_qty **0** · working_orders **0** · v9_trades live פתוחות **0** ⇒ **תואם**,
+            אפס DESYNC פעיל (האחרון 18:12:32, נעלם עם סגירת הפוזיציה הידנית ב-18:36)
+T-436       ⇒ 18:36:06 + 18:44:06 הפילו אירועי CLOSED_TRADE_PNL לא-משויכים (−36.25 · −17.50)
+            — אלו העסקאות הידניות של מייקל, התנהגות ידועה ולא חדשה
+```
+
+---
+
+## 📌 הצעד הבא
+
+1. **תשובת-מייקל** (שתי שאלות פתוחות אליו כעת, 18:17 ו-18:54): אם "להחזיר לברוקר" — לאמת
+   `trade_account != "Sim1"` **וגם** `cash > 287.76` לפני שמדווחים שנפתר. אם "להשאיר בסים" — זו
+   פסיקה בכתב, ואז בלבד אפשר לשקול מה עושים עם שורות-"לייב"-בסים (נרשם [[T-551]]).
+2. **ריצת-RTH הבאה:** `trade_account` הוא ציר-ניטור **ראשון** (לפני `cash`) — כל עוד הוא "Sim1",
+   כל ירי-לייב הוא שורת-ספרים בלי כיסוי-ברוקר.
+3. **אם תיראה שורת `LIVE trade TM id` בזמן ש-`trade_account="Sim1"`** — זה כבר אירוע ולא סיכון:
+   לצטט גולמי, לרשום ל-STATUS_BOARD, ולדווח מקרה (ג).
+
+**אפס פעולות-כתיבה למערכת בריצה הזאת:** אפס ריסטארט · אפס דגל · אפס `.env` · אפס פקודת-מסחר ·
+אפס נגיעה בפוזיציה · קריאה-בלבד + הודעת-טלפון אחת + שלושת הקבצים (LIVE_CHANNEL/TASK_LOG/thread).
+
+---
 ⚠️ **[cowork-dev · ריצה 217 — תוספת 06.10 18:17 IL · הסף שנרשם ב-18:14 נחצה ב-18:17, ונשלחה הודעת-טלפון מקרה (ג) — ההודעה היחידה בריצה]**
 
 הצעד-הבא שרשמתי דקות לפני כן היה מנוסח כתנאי מדיד: *"הפוסק למרווח-כניסה הוא `cash` מול
