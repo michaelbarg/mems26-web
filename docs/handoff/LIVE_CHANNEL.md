@@ -1,3 +1,64 @@
+🟢 **[cowork-dev · ריצה 228 · 06.10 23:36-23:45 IL · חובה-1 + חובה-4]** · `date ⇒ 2026-10-06 23:36:11 IDT (Tue)` ⇒ חלון תור-הלילה · **בעלות ריצה 227** (אותו תפקיד, רשומה מהיום 23:05-23:50) ⇒ **אפס claim · אפס סוכן-משנה · אפס הרצה-חוזרת של הצינור · אפס הודעת-טלפון נוספת · אפס ריסטארט**. תפקיד הריצה הזו: **אימות-עצמאי** של מה ש-227 הצהירה, ושורת-מדידה אחת.
+
+## ☎️ חובה-1 · אפס ממתינות ⇒ שתיקה מוחלטת
+
+```raw
+23:36 git pull --ff-only ⇒ "Already up to date."
+23:37 GET /chat?key=… ⇒ HTTP=200 bytes=15751 items=30
+      senders ⇒ {'cowork-dev': 22, 'מייקל': 2, 'cc': 2, 'supervisor': 2, 'cowork': 2}
+      last_michael = 2026-10-02T12:02:01Z (נענתה)
+      last_agent   = 2026-10-06T20:32:46Z  ⇒ michael_after_agent = False
+      הודעת-היום של 227 מופיעה **פעם אחת** בחלון-30 ⇒ T-552 נקי
+23:36 tail PHONE_THREAD.jsonl ⇒ האחרונה היא הודעת-היום של 227
+```
+
+⇒ אין (א)/(ב)/(ג)/(ד). **אפס הודעות-טלפון בריצה 228** — דוח-היום כבר נשלח ב-23:32, ושנייה הייתה הצפה ([[T-369]]).
+
+## 🔎 אימות-עצמאי של הצהרות 227 — פלט גולמי (Rule 5)
+
+```raw
+23:37 curl …/doc/days/2026-10-06.html?key=… ⇒ 200 t=0.48s
+      curl …/doc/days/2026-10-05.html?key=… ⇒ 200 t=0.51s
+      ⇒ **מאשר את מלכודת-227**: ה-404 של 23:31 היה פיגור-דיפלוי של Render,
+        לא עמוד חסר. העמוד חי ויציב 5 דק' אחרי.
+23:37 GET /api/v9/health ⇒ 200 t=0.0017s
+      lsof -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 71969  (אותו מאזין מ-Oct 3)
+      ⇒ אפס ריסטארט, לא ב-227 ולא ב-228
+23:37 select max(ts), now()-max(ts) from v9_bars_5min_woodies
+      ⇒ 2026-10-06 23:35:00+03 | 00:02:31   ⇒ **ציר T-430 ירוק** (בר מהיום, בן <10 דק')
+23:37 v9_trades state not in (CLOSED,CANCELLED) ⇒ shadow | 17   (אפס live)
+      v9_trades mode=live entry_ts::date=current_date ⇒ 4
+23:40 json LESSONS_TIMELINE.json ⇒ days=22 (האחרון "2026-10-06", לקח 2,146 תווים)
+      threads: 3 פריטים עם day=2026-10-06 (k=b אימות-ברוקר 0/4 · k=c באג-התווית ·
+      k=d ניתוב Sim1)  ⇒ שלב-ה-timeline **בוצע בפועל**, לא רק הוכרז
+23:41 git rev-parse --abbrev-ref @{u} ⇒ origin/stabilize/mems26-local-truth-2026-05-16
+      git rev-list --left-right --count @{u}...HEAD ⇒ 0  0   ⇒ **227 דחופה לרימוט**
+23:41 task_log_guard ⇒ 529 items · "current, structured, and the only one" ✅
+23:38 tail -4000 /tmp/backend.err.log | grep -iE 'error|traceback|critical|exception'
+      ⇒ **אפס שורות**. האחרונות הן WARNING בלבד:
+      23:38:05 [S2-CVD] insufficient coverage: 1/20 rows (min=18) — returning None (Rule 1)
+      23:38:03/05 BarRouter: dispatch total 119.9ms / 133.4ms for 5min
+      ⇒ ה-backend מעבד ברים ב-23:38; ה-CVD הוא כשל-כשר של Rule 1 אחרי הסגירה, לא תקלה
+```
+
+## 📐 שורת-המדידה · הפריט לשער-המחר חודד: **17/17 שורות-הצל הן של היום, כולן FILLED**
+
+```raw
+23:37 select entry_ts::date, count(*), min(state), max(state)
+        from v9_trades where state not in ('CLOSED','CANCELLED') group by 1
+      ⇒ 2026-10-06 | 17 | FILLED | FILLED      (אין אף שורה מתאריך מוקדם יותר)
+```
+
+227 רשמה את הפריט כ"אם השורות של היום עוד פתוחות ⇒ `--apply`". **המדידה מכריעה את ה"אם":** כל 17 הן מ-06.10 ובמצב `FILLED`, כלומר בשער של מחר (15:30-16:10) הן **שורות-צל של אתמול** ⇒ הדריי-ראן של `scripts/close_stale_shadow.py` יציג אותן, ו-`--apply` הוא הצעד הפסוק לפני הריסטארט (16.09: 26 שורות תקועות ⇒ 80% CPU ו-1,000 שורות-לוג בדקה). ⛔ **לא הרצתי `--apply` הלילה** — הצעד הפסוק הוא בטרום-הריסטארט, לא בתור-הלילה, ואין תקלה כרגע (health 1.7ms, פיד בן 2.5 דק').
+
+## ⛔ עבודת cc הלא-מקומטת — ללא נגיעה
+
+`git status --short` מציג את אותם חמישה קבצים של שלב-4 (`five_min_system.py` · `tree_routes.py` · `FLAG_REGISTRY.yaml` · `mobile_monitor.py` · `render_mobile_relay/app.py`) **בדיוק כפי שהיו** לפני הריצה. אפס stash, אפס checkout, אפס קומיט עליהם. שלב-5 הוא ליל-ד׳ ובעלות `cc-macbook` — לא הוקדם.
+
+**אפס נגיעה** בפוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/קוד-מסחר/הרנס · אפס ריסטארט · אפס הודעת-טלפון.
+
+---
+
 🟢 **[cowork-dev · ריצה 227 · תוספת-סגירה · 06.10 23:33 IL]** — מצב-הסגירה נמדד אחרי הפוש, ופריט אחד נולד לשער-המחר.
 
 ```raw
