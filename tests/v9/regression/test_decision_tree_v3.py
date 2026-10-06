@@ -90,8 +90,11 @@ class TestTreeShape(unittest.TestCase):
 
     def test_root_order_is_michaels(self):
         root = self.tree
-        if root.get("split") == "hour":          # T-538 (05.10): the time-cutoff layer wraps the doctrine tree
-            self.assertEqual(root["branches"][">19"]["leaf"], "SKIP")
+        if root.get("split") == "hour":          # T-538: the time-cutoff layer wraps the doctrine tree
+            cut = [k for k in root["branches"] if k != "*"]
+            self.assertEqual(cut, [">21"], "T-538 cutoff is 22:00 IL since 06.10 (Michael 'מאשר' after the whole-day measurement)")
+            self.assertEqual(root["branches"][">21"]["leaf"], "SKIP")
+            self.assertEqual(root["branches"][">21"]["id"], "time_cutoff")
             root = root["branches"]["*"]
         self.assertEqual(root["split"], "opening_type")
         for child in root["branches"].values():

@@ -39,7 +39,7 @@
 # DECISION_TREE_V3=1 must equal the baseline before any split is added. From there every
 # split is a branch with `measured:` and a day-total replay (Michael 24.09: positive ⇒ live).
 
-version: "3.3.0"   # 05.10 T-538: no new entries from 20:00 IL (Michael 05.10 "לבצע עכשיו") · 03.10 T-529 edge on the responsive rows
+version: "3.4.0"   # 06.10 T-538: cutoff 20:00 → 22:00 (Michael 06.10 "מאשר", measured on all 65) · 05.10 T-538: cutoff layer added · 03.10 T-529 edge on the responsive rows
 seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity · 27.09 package S1+S5+S7 (T-494)"
 
 # ── library of shared sub-trees (YAML anchors; the loader reads only `root`) ────────────────────
@@ -593,11 +593,11 @@ root_full: &root_full
 root:
   split: hour
   branches:
-    ">19":
+    ">21":
       leaf: SKIP
       id: time_cutoff
-      ruling: "Michael 2026-10-05 15:30 IL 'לבצע עכשיו' (Cowork) — bar-by-bar calibration per day type; the only rule layer that held out-of-sample"
-      measured: {sessions: 10, usd: 14.4, usd_net: 35.2, better: 2, worse: 4, same: 4, trades_removed: 8, source: "harness_out/t538 (t538h vs t529b, holdout 21.09-02.10; rule picked on sessions <= 19.09)", candidate_level: "20h -5.6 · 21h -7.4 · 22h -7.8 $/cand on 65 sessions (-12k$ after 20:00)", date: "2026-10-05", rule: "re-measure on all 65 tonight; report if the day-total turns negative"}
-      note: "T-538: no new entries from 20:00 IL — phase-D candidates lose at candidate level; open trades are managed, not entered"
+      ruling: "Michael 2026-10-06 13:0x IL 'מאשר' (Cowork) — option א: cutoff moved 20:00 → 22:00 after all alternatives were measured whole-day on 65 sessions; the 20:00 layer (05.10) had been applied on the 10-session holdout only and lost on the full set"
+      measured: {sessions: 65, usd: 88.75, usd_net: 104.35, better: 4, worse: 2, same: 59, trades_removed: 6, wins_removed: 0, holdout_usd: 36.25, by_month: "2026-06 +0 · 07 +0 · 08 -19 · 09 +108 · 10 +0", vs_live_2000: "usd +366.20 / net +259.60 · better 19 / worse 10", source: "harness_out/t543/run_cutoffs.out — t543c22 vs t529b (no cutoff) and vs t543ref (20:00); docs/reports/T538_CUTOFF_ALTERNATIVES_2026-10-06.md", date: "2026-10-06", rule: "re-measure whole-day on all sessions nightly; report if the day-total turns negative; one month -19 (Aug, one trade) accepted as a risk-cut"}
+      note: "T-538: no new entries from 22:00 IL — the six entries after 22:00 in 65 sessions all lost; 20:00-22:00 entries were net positive in whole-day replay (47 trades, +277) even though the candidate stream after 20:00 is deeply negative"
     "*": *root_full
 
