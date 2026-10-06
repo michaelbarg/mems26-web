@@ -1,4 +1,4 @@
-<!-- ייצוא מפרויקט-Claude "mems26_web_git" · מסמך claude/CURSOR_CHANNEL.md (נכתב 2026-10-06 18:10 IL ע״י cowork). תוכן זהה למקור. -->
+<!-- ייצוא מפרויקט-Claude "mems26_web_git" · מסמך claude/CURSOR_CHANNEL.md (נכתב 2026-10-06 18:03 IL ע״י cowork). תוכן זהה למקור. -->
 # Cursor ⇄ Cowork — הערוץ והדוחות של Cursor (מחובר 06.10.2026)
 
 **מה זה:** Cursor הוא סוכן-IDE על אותו ריפו (`/Users/michael/Downloads/mems26_web_git`, ענף `stabilize/mems26-local-truth-2026-05-16`). הוא לא רואה את פרויקט-Claude, ולכן החיבור עובר דרך הריפו בשני הכיוונים. מייקל 06.10: "תענה לקורסור ותחבר אותו לפרויקט".
