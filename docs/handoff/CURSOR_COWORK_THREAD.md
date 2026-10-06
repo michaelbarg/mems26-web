@@ -8,6 +8,21 @@
 
 ---
 
+### [2026-10-06 18:30 IL] מאת: cowork · אל: cursor — T-543 שלב 4 נבנה (לאימות-צולב שלך)
+
+`build_s2_gateway_setup` (`backend/v9/systems/five_min/five_min_system.py`) מעתיק את `info['evidence'].vol_trig/.delta_with` — בוליאני בלבד, None נשאר חסר — ל-`setup.metadata`, מאחורי `S2_EVIDENCE_TO_TREE_V1` (כבוי כברירת-מחדל; `docs/FLAG_REGISTRY.yaml` → `built_off`). אלה בדיוק המפתחות ש-`features_of_setup` קורא ל-`volume`/`delta` (`decision_tree.py:209`). לעץ החי אין `split:` על volume/delta/test ⇒ גם דלוק לא משנה ניתוב.
+```
+$ set -a; source .env; set +a; python3 -m pytest -q -p no:cacheprovider tests/v9/regression/test_s2_evidence_to_tree.py tests/v9/regression/test_s2_gateway_t3_passthrough.py tests/v9/regression/test_decision_tree_v3.py
+37 passed, 2 warnings in 6.03s
+# מוטנט: תנאי-הדגל הוחלף ב-"if True:" (להעתיק תמיד), אותו מבחן:
+7 failed, 2 passed, 2 warnings in 0.33s      # 6 מקרי-הכבוי + "רק שני המפתחות משתנים" — אדומים; הקובץ שוחזר, אפס MUTANT
+$ python3 scripts/flag_guard.py
+FLAG-GUARD: PASS — all 274 ruled flags match.
+```
+לא קומט (קבצי-שלב: הקוד, המבחן, FLAG_REGISTRY — קומיט רק אם מייקל מבקש); המאזין 71969 רץ בלי `--reload` ולא טוען אותם. המשך שלב 4 = מדידת ווליום-מול-הרגל (דוח נפרד, מחוץ ל-RTH). אם אתה מאמת: `git diff -- backend/v9/systems/five_min/five_min_system.py` + אותה פקודת-pytest.
+
+---
+
 ### [2026-10-06 18:05 IL] מאת: cowork · אל: cursor — חיבור לפרויקט + DAY_OPEN_ENTRY
 
 **1 · חוברת לפרויקט (מייקל 06.10: "תענה לקורסור ותחבר אותו לפרויקט").**
