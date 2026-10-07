@@ -1,0 +1,25 @@
+START Wed Oct  7 23:47:27 IDT 2026 ·       68 sessions
+t564ref done Thu Oct  8 00:08:29 IDT 2026 · json=      67
+t564a done Thu Oct  8 01:08:06 IDT 2026 · json=      67
+== T-564 allow vs same-night reference t564ref (= live config)
+t564a vs t564ref: 67d · trades 202 (ref 195) · win 56% · Σ +2543.00$ (ref +2621.75$) · Δ gross -78.75$ · Δ net -96.95$ · better 3 / worse 2
+   exits:  STOP 88 -3812$ · WIN 114 +6264$
+   leaves: legacy 202 +2452$
+   09-28: -41.25$ (ref -41.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+      19:20 DOUBLE_BOTTOM_EE_LONG LONG @7755.5 WIN ['T1'] out 19:20 +25.00$
+
+t564a vs t564ref: 67 sessions · t564ref Σ+2621.75$ · t564a Σ+2543.00$ · Δ -78.75$ gross, ≈-96.95$ net of +7 round-trips · better 3 / worse 2 / same 62
+by month Δ: 2026-06 +0 (8d) · 2026-07 -111 (17d) · 2026-08 +38 (19d) · 2026-09 -5 (19d) · 2026-10 +0 (4d)
+trades: added 8 (wins 4, Σ-63.75$) · removed 1 (Σ+32.50$) · the rest of Δ is changed exits/targets of the same trades
+== drift check: t564ref vs t529b (same config, common sessions)
+t564ref vs t529b: 65 sessions · t529b Σ+2593.65$ · t564ref Σ+2633.65$ · Δ +40.00$ gross, ≈+55.60$ net of -6 round-trips · better 4 / worse 3 / same 58
+by month Δ: 2026-06 +0 (8d) · 2026-07 +0 (17d) · 2026-08 -68 (19d) · 2026-09 +108 (19d) · 2026-10 +0 (2d)
+trades: added 1 (wins 0, Σ-28.75$) · removed 7 (Σ-68.75$) · the rest of Δ is changed exits/targets of the same trades
+PRIMARY DONE Thu Oct  8 01:08:12 IDT 2026
+t561s2 done Thu Oct  8 01:32:06 IDT 2026 · json=      67
+== T-561 second slot vs t564ref
+t561s2 vs t564ref: 67 sessions · t564ref Σ+2621.75$ · t561s2 Σ+2909.25$ · Δ +287.50$ gross, ≈+277.10$ net of +4 round-trips · better 3 / worse 1 / same 63
+by month Δ: 2026-06 +0 (8d) · 2026-07 +0 (17d) · 2026-08 +159 (19d) · 2026-09 +129 (19d) · 2026-10 +0 (4d)
+trades: added 6 (wins 6, Σ+331.25$) · removed 2 (Σ+43.75$) · the rest of Δ is changed exits/targets of the same trades
+ALL DONE Thu Oct  8 01:32:07 IDT 2026

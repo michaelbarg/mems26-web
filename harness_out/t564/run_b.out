@@ -1,0 +1,25 @@
+START Thu Oct  8 01:32:19 IDT 2026 ·       68 sessions
+t564b done Thu Oct  8 01:57:14 IDT 2026 · json=      67
+== T-564b permit-alone vs same-night reference t564ref (= live config)
+t564b vs t564ref: 67d · trades 195 (ref 195) · win 57% · Σ +2704.25$ (ref +2621.75$) · Δ gross +82.50$ · Δ net +82.50$ · better 4 / worse 1
+   exits:  STOP 83 -3614$ · WIN 112 +6227$
+   leaves: legacy 195 +2613$
+   09-28: -41.25$ (ref -41.25$)
+      16:50 OPENING_EXTREME_REJECT LONG @7769.5 STOP ['STOP'] out 17:35 -66.25$
+      19:20 DOUBLE_BOTTOM_EE_LONG LONG @7755.5 WIN ['T1'] out 19:20 +25.00$
+
+t564b vs t564ref: 67 sessions · t564ref Σ+2621.75$ · t564b Σ+2704.25$ · Δ +82.50$ gross, ≈+82.50$ net of +0 round-trips · better 4 / worse 1 / same 62
+by month Δ: 2026-06 +0 (8d) · 2026-07 +24 (17d) · 2026-08 +60 (19d) · 2026-09 -1 (19d) · 2026-10 +0 (4d)
+  2026-07-21 t564ref   -13.75 (2) → t564b   +10.00 (2)  Δ  +23.75
+  2026-08-19 t564ref   -45.00 (4) → t564b   -11.25 (5)  Δ  +33.75
+  2026-08-20 t564ref  +148.75 (5) → t564b  +175.00 (4)  Δ  +26.25
+  2026-09-01 t564ref  +221.20 (5) → t564b  +289.95 (6)  Δ  +68.75
+  2026-09-14 t564ref  +148.75 (6) → t564b   +78.75 (5)  Δ  -70.00
+trades: added 3 (wins 3, Σ+143.75$) · removed 3 (Σ+61.25$) · the rest of Δ is changed exits/targets of the same trades
+  + 2026-07-21  INITIATIVE_SHORT SHORT 7549.5 WIN +41.25
+  + 2026-08-19  INITIATIVE_SHORT SHORT 7744.5 WIN +33.75
+  + 2026-09-01  INITIATIVE_SHORT SHORT 7652.25 WIN +68.75
+  - 2026-07-21  DOUBLE_TOP_AA_SHORT SHORT 7544.75 WIN +17.50
+  - 2026-08-20  CEILING_FLIP_LONG LONG 7685.25 STOP -26.25
+  - 2026-09-14  CEILING_FLIP_SHORT SHORT 7712.75 WIN +70.00
+ALL DONE Thu Oct  8 01:57:17 IDT 2026
