@@ -400,6 +400,35 @@ def _ts_from_unix(unix_ts) -> datetime:
     return datetime.fromtimestamp(float(unix_ts), tz=timezone.utc)
 
 
+# T-521 (2026-10-07): footprint bars must carry their own bar-start ts. The permissive
+# `_ts_from_unix(None) → now()` fallback above silently stamped every footprint row with the
+# WRITE time (5.3M rows, ts == created_at). Honest failure (Rule 1): a bar whose ts is
+# missing / non-numeric / non-finite / non-positive / outside the plausibility window is
+# NOT written — never replaced with now() and marked valid.
+_FOOTPRINT_TS_FUTURE_SLACK = timedelta(minutes=5)
+
+
+def _footprint_bar_ts(unix_ts, now: Optional[datetime] = None) -> Optional[datetime]:
+    """Strict epoch→aware-UTC for footprint bars. Returns None (= skip the bar) on any
+    missing/garbage ts, or a ts older than MAX_STALE_AGE / more than 5 min in the future."""
+    if unix_ts is None or isinstance(unix_ts, bool):
+        return None
+    try:
+        f = float(unix_ts)
+    except (TypeError, ValueError):
+        return None
+    if f != f or f in (float("inf"), float("-inf")) or f <= 0:
+        return None
+    try:
+        ts = datetime.fromtimestamp(f, tz=timezone.utc)
+    except (OverflowError, OSError, ValueError):
+        return None
+    now = now or datetime.now(timezone.utc)
+    if ts < now - MAX_STALE_AGE or ts > now + _FOOTPRINT_TS_FUTURE_SLACK:
+        return None
+    return ts
+
+
 def _trend_from_cci(trend, cci):
     """TREND_CCI_DIRECT_V1 (Michael 2026-07-17, live: "GRAY... צריך לבטל את זה").
 
@@ -823,9 +852,15 @@ def post_footprint(
     _token: str = Depends(verify_bridge_token),
 ):
     created = 0
+    skipped_bad_ts = 0
     for bar in payload.bars:
+        # T-521: bar-start ts from the bridge (vap_recompute.to_dict) — never now().
+        bar_ts = _footprint_bar_ts(bar.get("ts"))
+        if bar_ts is None:
+            skipped_bad_ts += 1
+            continue
         row = V9BarFootprint(
-            ts=_ts_from_unix(bar.get("ts")),
+            ts=bar_ts,
             open=bar["o"], high=bar["h"], low=bar["l"], close=bar["c"],
             volume=bar.get("vol", 0),
             delta=bar.get("delta"),
@@ -838,12 +873,24 @@ def post_footprint(
         db.add(row)
         created += 1
     db.commit()
+    if skipped_bad_ts:
+        # No-silent-failures: rate-limited (once/min) — the pre-T-521 bridge sends no `ts`
+        # at all, so until it reloads EVERY bar is skipped here; that must be visible.
+        global _fp_bad_ts_warn_ts
+        import time as _fp_time
+        _fp_now = _fp_time.time()
+        if _fp_now - globals().get("_fp_bad_ts_warn_ts", 0) > 60:
+            globals()["_fp_bad_ts_warn_ts"] = _fp_now
+            logger.warning(
+                "[bars/footprint] T-521: skipped %d/%d bars with missing/garbage ts "
+                "(not written; never substituted with now())",
+                skipped_bad_ts, len(payload.bars))
     # Route last bar to EventDispatcher
     if payload.bars:
         _dispatch("footprint", payload.bars[-1])
     _record_push("footprint")
     _route_bar("footprint", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
-    return {"ok": True, "inserted": created, "type": "footprint"}
+    return {"ok": True, "inserted": created, "skipped_bad_ts": skipped_bad_ts, "type": "footprint"}
 
 
 # ── POST /api/v9/bars/volume_profile ──

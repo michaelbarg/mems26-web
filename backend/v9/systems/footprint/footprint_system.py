@@ -307,12 +307,39 @@ class FootprintSystem(BaseV9TradingSystem):
             return "TACTICAL"
         return "NO_SETUP"
 
+    # T-523 (2026-10-07): BarEvent.ts is `str(bar_data["ts"])` — for tick_reversal bars that is
+    # the raw epoch, e.g. "1790881230". Written as-is into a timestamptz column, Postgres parsed
+    # the digit string as a DATE → ts = 179088-12-30 (712 rows in v9_footprint_journal, 01.10
+    # 19:00 IL). Parse to an aware-UTC ISO string first; a missing/garbage ts is NOT replaced
+    # with now() — the row is skipped and the failure logged (Rule 1: honest failure).
+    _bad_ts_warn_ts: float = 0.0
+
+    def _event_ts_iso(self, event) -> Optional[str]:
+        from backend.v9.services.market_clock import parse_market_timestamp
+        raw = getattr(event, "ts", None)
+        try:
+            dt = parse_market_timestamp(raw)
+        except Exception:
+            dt = None
+        if dt is None:
+            import time as _t
+            now = _t.time()
+            if now - self._bad_ts_warn_ts > 60:
+                self._bad_ts_warn_ts = now
+                logger.warning("[Footprint] T-523: event ts %r unparseable — journal/setup row "
+                               "skipped (not substituted with now())", raw)
+            return None
+        return dt.isoformat()
+
     def _write_journal(self, event, bar, cluster, empty, ctx, pattern, signals, confluence, classification):
         from backend.v9.db.safe_writer import safe_execute
+        ts_iso = self._event_ts_iso(event)
+        if ts_iso is None:
+            return
         safe_execute(
             "INSERT OR IGNORE INTO v9_footprint_journal (ts, bar_id, cluster_data, empty_zone_data, accumulation, jumps_count, jumps_direction, otf_state, pattern_detected, zohar_signals, industry_signals, confluence_total, classification, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                getattr(event, 'ts', ''), getattr(event, 'bar_id', ''),
+                ts_iso, getattr(event, 'bar_id', ''),
                 json.dumps({"poc": cluster.yellow_poc_price, "pct": cluster.yellow_poc_pct}),
                 json.dumps(empty.zones),
                 int(ctx.accumulation), ctx.jumps_count, ctx.jumps_direction,
@@ -327,10 +354,13 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def _write_setup(self, event, bar, classification, pattern, confluence):
         from backend.v9.db.safe_writer import safe_execute
+        ts_iso = self._event_ts_iso(event)  # T-523: same raw-epoch path as the journal
+        if ts_iso is None:
+            return
         safe_execute(
             "INSERT INTO v9_footprint_setups (ts, classification, pattern_type, direction, confluence, entry_price, stop_price, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                getattr(event, 'ts', ''), classification, pattern,
+                ts_iso, classification, pattern,
                 "LONG" if bar.get("close", 0) > bar.get("open", 0) else "SHORT",
                 confluence, bar.get("close"), bar.get("low"),
                 getattr(event, 'session', 'UNKNOWN'),

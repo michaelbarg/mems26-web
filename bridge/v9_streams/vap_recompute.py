@@ -12,7 +12,7 @@ import os
 import struct
 import time
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,12 @@ SCID_HEADER_SIZE = 56
 SCID_RECORD_SIZE = 40
 SCID_RECORD_FMT = "<q4f4I"  # int64 + 4 floats + 4 uint32
 
-SC_EPOCH = datetime(1899, 12, 30)
+# T-521 (2026-10-07): the SCID DateTime field is **UTC** (Sierra SCDateTimeMS = µs since
+# 1899-12-30 00:00 UTC). The epoch used to be a NAIVE datetime, so `.timestamp()` read the
+# UTC wall-clock as Asia/Jerusalem local → every bar_start_ts was 3h (IDT) too early
+# (probe 2026-10-07 13:21Z: code_ts age=10805s vs utc_explicit age=5s). TZ-aware epoch,
+# per Rule 4 (no TZ-ambiguous spec values).
+SC_EPOCH = datetime(1899, 12, 30, tzinfo=timezone.utc)
 PRICE_SCALE = 100.0       # SCID stores price * 100
 TICK_SIZE = 0.25           # MES tick size in points
 IMB_THRESHOLD = 2.5        # 250% ratio for imbalance detection
@@ -151,6 +156,11 @@ class FootprintBar:
 
         return {
             "idx": idx,
+            # T-521 (2026-10-07): bar START time as unix epoch seconds (UTC) — same convention
+            # as the woodies/5min payloads (`ts` epoch → backend `_ts_from_unix` → aware UTC).
+            # Without it, post_footprint fell back to now() and v9_bars_footprint.ts was the
+            # WRITE time (5.3M rows, ts == created_at ±20ms), useless for any bar alignment.
+            "ts": self.bar_start_ts,
             "o": round(self.open, 2),
             "h": round(self.high, 2),
             "l": round(self.low, 2),

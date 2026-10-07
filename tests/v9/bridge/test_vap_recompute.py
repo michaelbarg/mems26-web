@@ -14,7 +14,7 @@ import os
 import struct
 import tempfile
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -61,8 +61,12 @@ def make_scid_file(records: list) -> str:
 
 
 def unix_to_scid_us(unix_ts: float) -> int:
-    """Convert Unix timestamp to SCDateTimeMS (microseconds since 1899-12-30)."""
-    dt = datetime.fromtimestamp(unix_ts)
+    """Convert Unix timestamp to SCDateTimeMS (microseconds since 1899-12-30 **UTC**).
+
+    T-521: this helper used to mirror the production bug (naive local-time epoch), so the
+    round-trip test passed while every bar_start_ts was 3h off. SCID DateTime is UTC.
+    """
+    dt = datetime.fromtimestamp(unix_ts, tz=timezone.utc)
     delta = dt - SC_EPOCH
     return int(delta.total_seconds() * 1_000_000)
 
