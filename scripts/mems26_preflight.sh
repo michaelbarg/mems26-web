@@ -103,7 +103,9 @@ DT=$(curl -sf -m4 "$BASE/api/v9/day_type/state" 2>/dev/null | python3 -c "import
 curl -sf -m4 "$BASE/api/v9/status" >/dev/null 2>&1 && ok "status endpoint (S2/S4 slots) חי" || wn "status endpoint לא-ענה"
 
 echo -e "${B}── 7. שערי-החלטה: flags + fire_drill ──${N}"
-python3 scripts/flag_guard.py 2>/dev/null | tail -1 | grep -q PASS && ok "flag_guard PASS" || gp "flag_guard NO-GO → python3 scripts/flag_guard.py"
+# T-563b (08.10): judge by exit code, not by the LAST line — flag_guard prints its liveness/plist
+# reports AFTER the PASS line since 25.08, so `tail -1 | grep PASS` was a false NO-GO.
+python3 scripts/flag_guard.py >/dev/null 2>&1 && ok "flag_guard PASS" || gp "flag_guard NO-GO → python3 scripts/flag_guard.py"
 python3 scripts/fire_drill.py 2>/dev/null | tail -1 | grep -q "GO" && ok "fire_drill GO" || wn "fire_drill לא-GO (בדוק — ייתכן מחוץ-לשעות)"
 
 echo -e "${B}── 8. HEAD מסונכרן ל-origin ──${N}"

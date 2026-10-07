@@ -111,7 +111,116 @@ def main():
     # These REPORT but do not block GO.
     _second_tooth(ruled, envs)
 
+    # ── Third tooth (T-563b, cowork 08.10): what the LaunchAgent exports AFTER
+    # `source .env` overrides .env for those keys (env_loader never overrides).
+    # REPORTS only — the ownership decision (T-435 step 3) is Michael's.
+    _third_tooth_plist(envs, ruled)
+
     return 0
+
+
+_PLIST = os.path.expanduser("~/Library/LaunchAgents/com.mems26.backend.plist")
+_PLIST_EXPORT_RE = re.compile(r'export\s+([A-Z0-9_]+)=("?)([^";]*)\2')
+
+
+def _plist_exports(path=_PLIST):
+    """{KEY: value} of the `export KEY=VAL` statements in the LaunchAgent's
+    bash -c wrapper (ProgramArguments[2]). Values of the form
+    ${KEY:-default} resolve to the default. [] if the plist is unreadable."""
+    try:
+        import plistlib
+        with open(path, "rb") as fh:
+            prog = plistlib.load(fh).get("ProgramArguments") or []
+    except Exception:
+        return {}
+    script = " ; ".join(a for a in prog if isinstance(a, str) and "export " in a)
+    out = {}
+    for m in _PLIST_EXPORT_RE.finditer(script):
+        key, val = m.group(1), m.group(3).strip()
+        dm = re.match(r'\$\{' + re.escape(key) + r':-(.*)\}$', val)
+        out[key] = dm.group(1) if dm else val
+    return out
+
+
+def _live_backend_env(keys):
+    """{KEY: value} from the environment of the listening backend (the
+    LaunchAgent's pid via launchctl, `ps -E` on macOS). For keys the plist
+    exports this IS what the process sees: they were in the environment before
+    env_loader ran, and env_loader skips keys already present. (For keys set
+    by code at runtime — gate overrides — ps shows nothing; feedback
+    verify_live_flags_not_ps_eww still holds for those.) {} if unknown."""
+    import subprocess
+    try:
+        uid = os.getuid()
+        txt = subprocess.run(["launchctl", "print", f"gui/{uid}/com.mems26.backend"],
+                             capture_output=True, text=True, timeout=10).stdout
+        pm = re.search(r"^\s*pid = (\d+)", txt, re.M)
+        if not pm:
+            return {}
+        env_txt = subprocess.run(["ps", "-E", "-p", pm.group(1), "-o", "command=", "-ww"],
+                                 capture_output=True, text=True, timeout=10).stdout
+    except Exception:
+        return {}
+    out = {}
+    for tok in env_txt.split():
+        if "=" in tok:
+            k, v = tok.split("=", 1)
+            if k in keys:
+                out[k] = v
+    return out
+
+
+def _mask(key, val):
+    """Never print a credential: tokens/secrets/urls-with-userinfo show as ***."""
+    if val is None:
+        return None
+    if re.search(r"TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY", key) or "@" in str(val):
+        return "***"
+    return val
+
+
+def _third_tooth_plist(envs, ruled):
+    exports = _plist_exports()
+    if not exports:
+        print("\n  ── PLIST REPORT: LaunchAgent plist not readable — skipped ──")
+        return
+    live = _live_backend_env(set(exports))
+    envs = {k: _mask(k, v) for k, v in envs.items()}
+    live = {k: _mask(k, v) for k, v in live.items()}
+    exports = {k: _mask(k, v) for k, v in exports.items()}
+    def _norm(v):
+        """flag() semantics: 1/true/yes are one value, 0/false/no/'' another."""
+        s = str(v).strip().lower()
+        if s in ("1", "true", "yes"):
+            return "on"
+        if s in ("0", "false", "no", ""):
+            return "off"
+        return s
+
+    drift = []
+    for key, pval in sorted(exports.items()):
+        eval_ = envs.get(key)
+        lval = live.get(key)
+        if eval_ is not None and _norm(eval_) != _norm(pval):
+            drift.append((key, pval, eval_, lval, "plist ≠ .env"))
+        elif eval_ is None and ruled.get(key):
+            drift.append((key, pval, "unset", lval, "ruled, set only by plist"))
+    print(f"\n  ── PLIST REPORT (T-563b): {len(exports)} keys exported by the LaunchAgent "
+          f"AFTER `source .env` — they win over .env for the live process ──")
+    for key, pval in sorted(exports.items()):
+        tag = "live=" + (live[key] if key in live else "?")
+        if envs.get(key) is None:
+            print(f"  · {key}: plist={pval} .env=unset {tag}")
+        elif _norm(envs.get(key)) == _norm(pval):
+            print(f"  · {key}: plist={pval} .env={envs[key]} {tag}")
+    for key, pval, eval_, lval, why in drift:
+        print(f"  ⚠ {key}: plist={pval} .env={eval_} live={lval if lval is not None else '?'}  ← {why} "
+              f"— .env is DEAD for this key under the LaunchAgent")
+    if drift:
+        print(f"  ⚠ {len(drift)} key(s) where the plist overrides .env — REPORT only; "
+              f"ownership (T-435 step 3 / T-563) is Michael's ruling.")
+    else:
+        print("  ✓ no plist/.env disagreement")
 
 
 def _second_tooth(ruled, envs):

@@ -47,6 +47,19 @@ _PNL_POSTHOC_WINDOW_S = 300.0   # |trade.exit_ts - group scan_ts| tolerance (±5
 _PNL_POSTHOC_SETTLE_S = 90.0    # wait > one feeder period past exit_ts so EVERY leg of that close is in
 _PNL_BUFFER_TTL_S = 1800.0      # an event nobody claims is dropped after 30 min (one warning)
 _PNL_ENTRY_SLACK_S = 60.0       # a line scanned before entry_ts - slack cannot be that trade's leg
+
+
+def _w2_ownership_on() -> bool:
+    """T-545 W2_EXIT_OWNERSHIP_V1 (default OFF, read at call time like every
+    flag here): (1) a CLOSED_TRADE_PNL line scanned before the trade's
+    created_at is never its leg (the 60s slack applies to entry_ts only);
+    (2) a trade still PENDING — never observed in position by POSITION_TRUTH
+    (Sierra flat is its INITIAL state, not evidence of an exit) — cannot be
+    closed by the activity fallback; its events stay buffered and go post-hoc
+    to the trade they belong to. Books-only: no order, no gateway decision."""
+    return os.getenv("W2_EXIT_OWNERSHIP_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
 _PNL_POSTHOC_EVERY_S = 2.0      # cadence of the post-hoc DB lookup while events are held
 
 
@@ -536,6 +549,28 @@ class FillPoller:
                 return
             pnl_events = [e["ev"] for e in own]
 
+            # T-545 (W2_EXIT_OWNERSHIP_V1): a trade still PENDING was never seen
+            # in position (POSITION_TRUTH flips it to FILLED the first poll
+            # Sierra holds a position for an ACKed command). For it, "Sierra is
+            # flat" is the state it was BORN in — not evidence that it exited —
+            # so a CLOSED_TRADE_PNL cannot be its exit. #3046 (05.10 19:25:04):
+            # created, closed 1s later as LOSS −27.5 by #3038's line, then
+            # filled in Sierra and ran to +53.75 with the books saying closed.
+            # The legs stay buffered: post-hoc attribution (below) hands them to
+            # the CLOSED trade whose exit_ts they match; nothing is dropped.
+            if _w2_ownership_on() and getattr(filled[-1], "state", "") == "PENDING":
+                self._warn_throttled(
+                    f"w2_pending_{filled[-1].id}",
+                    "[FillPoller] W2 T-545: trade %s is PENDING (never seen in "
+                    "position) — %d CLOSED_TRADE_PNL event(s) cannot be its exit; "
+                    "held for the trade they belong to", filled[-1].id, len(pnl_events))
+                # Offer them post-hoc now (#3038's leg finds #3038 instead of
+                # waiting for #3046 to fill); unmatched ones stay buffered and
+                # keep being re-offered — the open trade never consumes them
+                # while PENDING.
+                self._pnl_attribute_posthoc(own, _now_wall)
+                return
+
             # Double-check: sierra_state.json says position is flat
             try:
                 if STATE_PATH.exists():
@@ -744,7 +779,21 @@ class FillPoller:
         for attr in ("entry_ts", "created_at"):
             ts = cls._pnl_aware(getattr(trade, attr, None))
             if ts is not None:
-                return ts - timedelta(seconds=_PNL_ENTRY_SLACK_S)
+                floor = ts - timedelta(seconds=_PNL_ENTRY_SLACK_S)
+                # T-545 (W2_EXIT_OWNERSHIP_V1, default OFF — #3046 05.10 19:25:04,
+                # #1337 T-290): the slack exists for entry_ts being STAMPED late
+                # (the poller notices the fill after the DLL scanned the close of
+                # a seconds-long trade). It can never reach before created_at —
+                # the trade did not exist, so the line is an earlier trade's or
+                # a manual close. #3046 was closed 1s after creation by #3038's
+                # line scanned 58s BEFORE it was created (inside the 60s slack),
+                # then filled in Sierra and ran untracked (+53.75 broker vs
+                # −27.5 books).
+                if _w2_ownership_on():
+                    created = cls._pnl_aware(getattr(trade, "created_at", None))
+                    if created is not None and floor < created:
+                        floor = created
+                return floor
         return None
 
     def _pnl_buffer_add(self, pnl_events: list, now_wall: float) -> None:

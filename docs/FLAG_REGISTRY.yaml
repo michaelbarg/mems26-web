@@ -806,6 +806,13 @@ flags:
     why: "OFF (default, awaiting sim-verify + Michael ruling). Trade 513 ZLR LONG exited in Sierra but backend never recorded the close — slot blocked, PnL missing."
     status: awaiting_backtest
     ref: "backend/v9/services/fill_poller.py:_check_activity_exits · backend/v9/tests/test_w2_exit_tracking.py"
+  W2_EXIT_OWNERSHIP_V1:
+    category: execution
+    group: "order lifecycle"
+    what: "T-545 (08.10, cowork): W2 EXIT-TRACK ownership — (1) a CLOSED_TRADE_PNL line scanned before the trade's created_at is never its leg (the 60s entry slack applies to entry_ts only); (2) a trade still PENDING (never observed in position by POSITION_TRUTH) cannot be closed by the activity fallback — its legs are offered post-hoc to the CLOSED trade they belong to and otherwise stay buffered. Books only: no order, no gateway decision."
+    why: "OFF (default — awaiting Michael's ruling). #3046 05.10 19:25:04 (GB100 LONG) was closed one second after creation as LOSS −27.5 by #3038's line scanned 58s BEFORE it existed, then filled in Sierra and ran to +53.75 untracked; same class as #1337 / T-290. Flag OFF = today's behaviour byte-for-byte (pinned by the first test)."
+    status: built_off
+    ref: "backend/v9/services/fill_poller.py:_w2_ownership_on/_pnl_trade_floor/_check_activity_exits · tests/v9/regression/test_t545_w2_exit_ownership.py · TASK_LOG T-545"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"
