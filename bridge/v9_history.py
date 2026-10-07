@@ -35,17 +35,30 @@ BATCH_SIZE = int(os.getenv("V9_HISTORY_BATCH_SIZE", "50"))
 # DLL bug: bar.ts is Chicago wall-clock encoded as unix UTC. Re-interpret
 # as Chicago tz → convert to true UTC. Remove when CC ships DLL fix.
 # Keep this in sync with base_stream.py:_fix_chicago_bar_ts.
+#
+# T-526 (fix-agent 08.10): the live stream (base_stream.py) reads the chart's
+# timezone from V9_CHART_TZ (.env on this Mac: America/Chicago), but this
+# startup backfill had the zone HARDCODED to America/New_York — one hour
+# ahead of Chicago all year. Every bridge restart therefore re-posted the
+# export's last 50 bars to /api/v9/bars/woodies_5min with ts −1h (+4h
+# instead of +5h), and the backend's INSERT … ON CONFLICT DO UPDATE wrote
+# the 19:xx bars over the 18:xx rows (01.10 23:07:47 restart → the 12
+# overwritten bars of T-526; the live stream's own 50-bar window then
+# re-corrected everything newer). Same env var, same default as the live
+# stream — with V9_CHART_TZ unset the behaviour is unchanged.
+# Regression: tests/v9/regression/test_t526_history_tz_and_closed_bar_guard.py
 _DISABLE_CHICAGO_TS_FIX = os.getenv("V9_DISABLE_CHICAGO_TS_FIX", "").lower() in (
     "1", "true", "yes",
 )
+_CHART_TZ_NAME = os.getenv("V9_CHART_TZ", "America/New_York")
 try:
     from zoneinfo import ZoneInfo
-    _CHICAGO_TZ = ZoneInfo("America/New_York")
+    _CHICAGO_TZ = ZoneInfo(_CHART_TZ_NAME)
     _CHICAGO_TZ_USES_LOCALIZE = False
 except ImportError:  # pragma: no cover
     try:
         import pytz
-        _CHICAGO_TZ = pytz.timezone("America/New_York")
+        _CHICAGO_TZ = pytz.timezone(_CHART_TZ_NAME)
         _CHICAGO_TZ_USES_LOCALIZE = True
     except ImportError:
         _CHICAGO_TZ = None

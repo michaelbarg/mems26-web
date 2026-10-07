@@ -1311,6 +1311,112 @@ def _sticky_zlr(ts_iso: str, zlr_flag: int, zlr_dir):
     return zlr_flag, zlr_dir
 
 
+# ── T-526 (fix-agent 08.10): closed-bar overwrite guard — WOODIES_CLOSED_BAR_GUARD_V1, default OFF ──
+# 01.10 23:07:47: the bridge restart's history backfill (bridge/v9_history.py, zone hardcoded to
+# America/New_York while the chart is America/Chicago) re-posted the last 50 bars with ts −1h, and the
+# INSERT … ON CONFLICT (ts, symbol) DO UPDATE below wrote the 19:xx bars over the 18:xx rows; the live
+# stream's own window then re-corrected everything newer, leaving 12 rows (18:00–18:55) wrong for the
+# 01.10 replay. The bridge-side root is fixed in v9_history.py; THIS is the second line (BRIEF §3.2):
+# a bar that is already CLOSED (older than WOODIES_CLOSED_BAR_SEC, default 900s, by server clock) and
+# already stored is never re-written with DIFFERENT OHLC — the row is kept, the push is refused loudly
+# (Rule 1: honest failure > silent overwrite). The forming bar and the just-closed bar still update on
+# every push (the DLL finalizes them), an identical re-push (backfill after an outage) still passes,
+# and a bar with no stored row is a plain INSERT. Flag OFF ⇒ nothing here runs (byte-identical).
+# Regression: tests/v9/regression/test_t526_history_tz_and_closed_bar_guard.py (the 01.10 CSV pair).
+def _closed_bar_guard_active() -> bool:
+    return os.getenv("WOODIES_CLOSED_BAR_GUARD_V1", "0").lower() in ("1", "true", "yes")
+
+
+def _bar_epoch(ts) -> "Optional[int]":
+    """Numeric bar ts → int epoch; anything else (ISO string, None) → None (the guard stays out)."""
+    if isinstance(ts, bool) or not isinstance(ts, (int, float)):
+        return None
+    try:
+        v = float(ts)
+    except (TypeError, ValueError):
+        return None
+    if v != v or v <= 0:
+        return None
+    return int(round(v))
+
+
+def _closed_bar_guard_load(bars: list) -> dict:
+    """ONE read per push: {epoch: (open, high, low, close)} of every stored bar in the payload's ts span.
+    Any error → {} (fail-open: nothing is refused, the write path is today's)."""
+    try:
+        epochs = [e for e in (_bar_epoch(b.get("ts")) for b in bars if isinstance(b, dict)) if e]
+        if not epochs:
+            return {}
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT ts, open, high, low, close FROM v9_bars_5min_woodies "
+            "WHERE symbol = 'MES' AND ts >= :a AND ts <= :b",
+            {"a": datetime.fromtimestamp(min(epochs), tz=timezone.utc).isoformat(),
+             "b": datetime.fromtimestamp(max(epochs), tz=timezone.utc).isoformat()},
+        )
+        out = {}
+        for r in rows or []:
+            ts = r.get("ts")
+            if isinstance(ts, datetime):
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                out[int(round(ts.timestamp()))] = (r.get("open"), r.get("high"), r.get("low"), r.get("close"))
+        return out
+    except Exception as _e:  # never break ingest on the guard
+        logger.warning("[woodies_5min] CLOSED-BAR-GUARD load errored (pass-through): %s", _e)
+        return {}
+
+
+def _closed_bar_overwrite_reason(stored, o, h, l, c, bar_epoch, now_epoch,
+                                 closed_sec: "Optional[float]" = None, tol: float = 1e-6) -> "Optional[str]":
+    """Why this push must NOT touch the stored row — or None (write as today).
+
+    Refuse only when ALL hold: the bar has a stored row; it is closed by the server clock
+    (now − ts ≥ closed_sec); and the incoming OHLC differs from the stored OHLC beyond `tol`.
+    """
+    if stored is None or bar_epoch is None:
+        return None
+    if closed_sec is None:
+        try:
+            closed_sec = float(os.getenv("WOODIES_CLOSED_BAR_SEC", "900") or 900)
+        except (TypeError, ValueError):
+            closed_sec = 900.0
+    age = float(now_epoch) - float(bar_epoch)
+    if age < closed_sec:
+        return None  # forming / just closed — the DLL still finalizes it
+    try:
+        diffs = []
+        for name, s, v in zip(("o", "h", "l", "c"), stored, (o, h, l, c)):
+            if s is None or v is None:
+                continue
+            if abs(float(s) - float(v)) > tol:
+                diffs.append("%s %s→%s" % (name, s, v))
+    except (TypeError, ValueError):
+        return None  # unreadable values — fail-open
+    if not diffs:
+        return None
+    return "closed bar (age %.0fs) stored OHLC differs: %s" % (age, ", ".join(diffs))
+
+
+def _log_closed_bar_refusals(refused: list, bars: list, export_ts, now_epoch) -> None:
+    """One loud line per push (+ up to three example bars) — the writer log BRIEF §3.2 asks for."""
+    try:
+        epochs = [e for e in (_bar_epoch(b.get("ts")) for b in bars if isinstance(b, dict)) if e]
+        lo = datetime.fromtimestamp(min(epochs), tz=timezone.utc).isoformat() if epochs else "?"
+        hi = datetime.fromtimestamp(max(epochs), tz=timezone.utc).isoformat() if epochs else "?"
+        examples = "; ".join(
+            "%s: %s" % (datetime.fromtimestamp(e, tz=timezone.utc).isoformat(), why)
+            for e, why in refused[:3])
+        logger.error(
+            "[woodies_5min] CLOSED-BAR-OVERWRITE REFUSED %d/%d bars (T-526): payload ts %s..%s · "
+            "export_ts=%s · server_now=%s · newest-bar lag %.0fs — stored rows kept; examples: %s",
+            len(refused), len(bars), lo, hi, export_ts,
+            datetime.fromtimestamp(float(now_epoch), tz=timezone.utc).isoformat(),
+            (float(now_epoch) - max(epochs)) if epochs else -1.0, examples)
+    except Exception:
+        logger.error("[woodies_5min] CLOSED-BAR-OVERWRITE REFUSED %d bars (T-526)", len(refused))
+
+
 # ── POST /api/v9/bars/woodies_5min (D-074: primary S4 path) ──
 
 @router.post("/woodies_5min")
@@ -1349,6 +1455,12 @@ def post_woodies_5min(
     # 2026-07-22 P2: default OFF (WOODIES_TS_HOUR_FIX=0). See _hour_shift_fix docstring.
     _hour_shift_fix(bars, "woodies_5min")
 
+    # T-526: closed-bar overwrite guard — WOODIES_CLOSED_BAR_GUARD_V1 (default OFF ⇒ _cbg_stored is None
+    # and nothing below changes). One read per push; refusals are collected and logged once after the loop.
+    _cbg_stored = _closed_bar_guard_load(bars) if _closed_bar_guard_active() else None
+    _cbg_refused: list = []
+    _cbg_now = datetime.now(timezone.utc).timestamp()
+
     # Frozen-tail fix: when current_bar exists AND history is present,
     # override history[-1] study fields with current_bar's live Sierra values.
     # history[-1] may have frozen values from DLL mapIdx clamp (cross-chart
@@ -1381,6 +1493,15 @@ def post_woodies_5min(
             logger.debug("[woodies_5min] Skipping stale bar ts=%s (frozen studies)", bar.get("ts"))
             continue
         _prev_studies = _cur_studies
+
+        # T-526: a CLOSED, already-stored bar is never re-written with different OHLC (flag ON only)
+        if _cbg_stored is not None:
+            _cbg_epoch = _bar_epoch(bar.get("ts"))
+            _cbg_why = _closed_bar_overwrite_reason(
+                _cbg_stored.get(_cbg_epoch) if _cbg_epoch else None, o, h, l, c, _cbg_epoch, _cbg_now)
+            if _cbg_why:
+                _cbg_refused.append((_cbg_epoch, _cbg_why))
+                continue  # the stored row is kept — no write, no routing of this bar
 
         # D3 v2 / BAR_SEAM_REJECT_V1 (2026-07-29, v2 night fixes):
         # Three proven flaws from today's live:
@@ -1508,13 +1629,20 @@ def post_woodies_5min(
         }
     _record_push("woodies_5min")
 
+    # T-526: one loud writer-log line per push; a refused current_bar is not routed to S4 either
+    _cbg_cb_refused = False
+    if _cbg_refused:
+        _log_closed_bar_refusals(_cbg_refused, bars, payload.export_ts, _cbg_now)
+        if payload.current_bar:
+            _cbg_cb_refused = _bar_epoch(payload.current_bar.get("ts")) in {e for e, _ in _cbg_refused}
+
     # === BEGIN current_bar routing override (Cursor audit §6 rank-2 fix) ===
     # `history[-1]` is FROZEN for the last ~13 bars per the DLL
     # `GetContainingIndexForDateTimeIndex` clamp (see
     # AUDIT_S2_S4_LIVE_FORENSICS_2026-05-28 §3). `current_bar` carries LIVE
     # Sierra study values via direct `arr[idx]` read in MES_AI_DataExport.cpp.
     # Prefer it for routing to S4 so calculate_size() sees live SWI/TCCI.
-    if payload.current_bar:
+    if payload.current_bar and not _cbg_cb_refused:
         _cb = payload.current_bar
         _cb_ohlc = _cb.get("ohlc", {}) or {}
         last_flat = {
@@ -1602,6 +1730,8 @@ def post_woodies_5min(
                     (_now_ts - float(_fo_last)) if _fo_last else -1.0)
         except Exception as _fo_err:
             logger.warning("[bars/woodies_5min] 5min failover check errored: %s", _fo_err)
+    if _cbg_stored is not None:  # T-526: the count only exists while the guard is ON
+        return {"ok": True, "inserted": created, "type": "woodies_5min", "refused_closed": len(_cbg_refused)}
     return {"ok": True, "inserted": created, "type": "woodies_5min"}
 
 
