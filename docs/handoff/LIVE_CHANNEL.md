@@ -1,3 +1,109 @@
+🟠 **[cowork-dev · ריצה 245 · 07.10 18:05-18:20 IL · חובה-1 + חובה-3 (ניטור-RTH, 95-110 דק' אחרי הפתיחה)]** · `date ⇒ 2026-10-07 18:05:08 IDT (3)` ∈ `16:30-23:00` ⇒ **חובה-3**. חלון-השער `15:30-16:10` **עבר**, ובעלות-הריסטארט אינה שלי (`ps -o lstart` ⇒ `pid 49501 · Wed Oct 7 15:18:17` = היום אחרי 12:00) ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` · אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ/הרנס**. קריאה-בלבד.
+
+## ☎️ חובה-1 · **אפס ממתינות ⇒ שקט מוחלט בטלפון**
+
+```raw
+18:05 git pull --ff-only ⇒ "Already up to date."  ·  HEAD = 8f90fe55 (T-561, cc)
+18:06 פוסק א׳ — זנב PHONE_THREAD.jsonl ⇒ שלוש האחרונות:
+      2026-10-07T10:50:03Z | מייקל      "תבקש מקלוד שיבדוק מה הולך ומה בוצע…"
+      2026-10-07T10:50:03Z | cc         ack ("סוכן יענה בהרחבה") — לא תשובה עניינית
+      2026-10-07T11:11:10Z | cowork-dev התשובה העניינית (ריצה 237)
+18:06 פוסק ב׳ — peek ישיר ⇒ GET /chat http=200 TOTAL=30
+      items[-1] = 2026-10-07T11:11:10Z — זהה לקובץ ⇒ שני הפוסקים מסכימים
+⇒ last_michael = 10:50:03Z (נענתה) · michael_after_agent = False ⇒ אפס הודעת-טלפון
+```
+
+ושאר שלושת המקרים ריקים: **אפס עסקת-לייב היום** (ב׳), אפס חריגה שדורשת פסיקה (ג׳ — ההכרעה מנומקת למטה), והשער עבר ואינו בבעלותי (ד׳).
+
+## 🔭 חובה-3 · שני צירים ירוקים, **וציר-הפוזיציה נשבר ב-17:51:28** — אפס סיכון-לייב (Sim1+דמו), חוב פתוח ל-LIVE
+
+```raw
+18:05 curl /api/v9/health  ⇒ http=200  t=0.0029s  {"status":"ok","version":"v9.0.0"}
+18:08 lsof -iTCP:8000 -sTCP:LISTEN ⇒ pid 49501 · Wed Oct 7 15:18:17 · etime 02:50:46
+      ps %cpu ⇒ 28.2 · rss 123MB   (244 מדדה 23.1 · 243 מדדה 49.5 ⇒ בטווח, לא בריחה)
+      uptime ⇒ load 6.96 11.38 12.19  (ממוצע-1-דק' יורד מול 5 ו-15 ⇒ לא מצטבר)
+18:05 PGTZ-בטוח (מלכודת 19) ⇒ v9_bars_5min_woodies max(ts) 2026-10-07 18:05:00+03 · age 0.9 דק'
+                              v9_bars_5min         max(ts) 2026-10-07 18:05:00+03 · age 0.9 דק'
+      ⇒ ציר T-430 ("פיד חי", לא "קובץ טרי") ירוק בשני הזרמים; T-558 (זרם תחום-RTH) מאושש שוב
+18:07 /api/v9/account/state ⇒ verdict="manual" · open_trade=null · stale=false · age_s 0.8
+      position_qty −1 · avg_price 7823.25 · working_orders 2 · is_sim 1 · trade_account Sim1
+      daily_total_qty_filled 1.0 · open_pnl +7.5 → −3.75 (18:08)
+18:07 /api/v9/agent/sierra_live_check ⇒ verdict="🟡 יש פער"
+      open_trade_detect: ok=false · sierra_qty −1 · working_orders 2 · tm_open_trades 0 · tm_net_qty 0
+      ⇒ "🔴 אי-התאמה סיירה↔TM — reconciler יטפל"
+18:07 ⚠️ **ההשוואה לריצה 244 היא הראיה שהפער נולד בתוך החלון:** 244 מדדה ב-17:37
+      verdict="system" + open_trade={id 3164, demo, FILLED} ⇒ **תאימות מלאה**;
+      עכשיו verdict="manual" + open_trade=null מול אותה פוזיציה בדיוק ⇒ **הספרים השתנו, לא השוק**
+18:08 עסקאות-היום ⇒ shadow 37 (ספרים −126.25$) · demo 2 (3164 UNPRICED, 3191 CANCELLED)
+      **live ⇒ 0 שורות** ⇒ אפס מקרה (ב׳)
+```
+
+### בעלות לפי `order_id` **לפני אזעקה** (הכלל של חובה-3) — נמדדה ואינה ידנית
+
+```raw
+18:07 ~/SierraChart_Data/v9_export/sierra_state.json (mtime 18:07, ts 1791385657) ⇒
+      orders = [{"id":11437,"type":1,"bs":1,"price":7800.75,"qty":1},
+                {"id":11438,"type":2,"bs":1,"price":7838.25,"qty":1}]
+18:07 psql v9_trades #3164 ⇒ entry 7823.25 · stop 7838.25 · t1 7800.75
+18:07 backend.err.log 16:50:10 ⇒ "[TradeManager] Sierra IDs stored on trade 3164:
+      {'sierra_order_id': 11436, 'c1_target_id': 11437, 'c1_stop_id': 11438}"
+⇒ 11437 = t1 של 3164 · 11438 = הסטופ של 3164 ⇒ הפוזיציה היא **של המערכת**, לא ידנית של מייקל
+  (ולכן verdict="manual" של ה-API הוא תוצאה של ספרים ריקים, לא של בעלות ידנית)
+```
+
+### 🆕 **T-562 נפתח — "פלטן-שקרי" של 20 שנ׳ ביצוא סגר בספרים עסקה שעודה פתוחה בברוקר**
+
+```raw
+17:51:09→17:51:27 [Reconcile] AGREED_FLAT — Sierra reports FLAT (position_qty=0)   × 11 שורות
+17:51:28 [WARNING] [TradeManager] T-160: close_trade #3164 reason=SIERRA_FLAT WITHOUT
+         exit_price — pnl=NULL, status=UNPRICED (Rule 1)
+17:51:28 [Gateway] DEMO slot freed: 3164
+17:51:28 [WARNING] [fill_poller] POSITION_TRUTH: Sierra FLAT for 20s → closed trade 3164
+         (was FILLED) + freed slot
+17:52:01 [WARNING] [sierra_position_reconciler] T-43: contract mismatch DETECTED
+         (TM=0 Sierra=-1) — BLOCKING new entries until resolved
+```
+
+**ההכרעה שזו קריאה-שקרית ולא סבב-אמת — נמדדה, לא הונחה:** `daily_total_qty_filled = 1.0` (מילוי **אחד** בכל היום, והוא ה-ENTRY של 16:50:09 `order=11436`), והברקט המקורי `11437/11438` **עדיין עובד** באותם מחירים. סגירה-אמיתית ופתיחה-מחדש היו דורשות ≥3 מילויים ו-`order_id` חדשים. ⇒ הפוזיציה **מעולם לא נסגרה**; ציר-הפוזיציה ביצוא קרא `0` ל-20 שנ׳ וחזר ל-`−1`. חיזוק: `open_pnl` רצוף מ-`avg_price 7823.25` (`+7.5` ב-18:07 ⇒ `−3.75` ב-18:08 מול `last_price`) ⇒ אחזקה רצופה.
+
+**הנזק-במורד-הזרם נמדד (לא הושער):** מאחר שהפוזיציה אינה בבעלות-ספרים, הגייטוויי פתח ב-18:00:04 עסקת-דמו חדשה **לתוך חשבון שמחזיק פוזיציה הופכית** — והברוקר דחה:
+
+```raw
+18:00:04 [TradeManager] Trade 3191 created: mode=demo sys=2 dir=LONG
+18:00:04 [SierraCmd] COMMAND QUEUED #405 → cmd_000405.json (op=PLACE, fast_path=True)
+18:00:05 [WARNING] [fill_poller] POSITION_TRUTH: Sierra holds -1c but trade 3191 has NO
+         submit-ack — NOT attributing (manual/not-ours position? …) [throttled 300s]
+18:00:09 [WARNING] [fill_poller] ORDER_FAILED from Sierra: error=-1
+         (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling pending trade + releasing slot
+18:00:09 [TradeManager] T-160: close_trade #3191 reason=ORDER_FAILED:-1 WITHOUT exit_price
+```
+
+**⛔ מה שבמפורש אינו נטען — וזו התיקון של ההשערה שלי באמצע הריצה:** ש**חסם נכשל**. קראתי את הגוף ולא את ההערה (`sierra_position_reconciler.py:50-73`): `position_mismatch_blocks_entry()` פותח ב-`if not _mismatch_block_enabled(): return False`, ו-`POSITION_MISMATCH_BLOCK_V1` הוא `"0"` כברירת-מחדל בקוד **וגם** `.env:660 ⇒ POSITION_MISMATCH_BLOCK_V1=0`. ⇒ ה-PLACE של 18:00:04 הוא **ההתנהגות המתוכננת כשהדגל כבוי**, לא פריצת-גדר. הדגל כבוי ב**פסיקה עומדת** (cowork 29.08, מתועדת בדוקסטרינג: cc בנה אותו דלוק-כברירת-מחדל בלי בדיקת-בעלות, והוא חסם יום-מסחר שלם כולל פוזיציה ידנית לגיטימית של מייקל לפי `RECONCILER_OWNERSHIP_AWARE` 24.07). ⛔ **אין להדליק** — CLAUDE.md §פסיקות-עומדות: סיכון-מסחר ⇒ עצירה-אסטרטגית + פסיקת-מייקל, ותנאי-ההדלקה שנרשמו אז (בדיקת-בעלות + ניקוי/TTL בכל מסלולי-היציאה) **טרם מולאו**.
+
+**חוב-יושר בלוג (משפחת [[T-550]], לא פריט חדש):** השורה `T-43: … BLOCKING new entries until resolved` נדפסת גם כשהדגל שמייצר את החסימה כבוי ⇒ קורא-הלוג מסיק חסימה שלא קיימת. זו **אותה חתימה** של T-550 (שורת-ריקונסיילר שמפרסמת התנהגות שפסיקה ביטלה).
+
+**סיכון היום: אפס-לייב.** `trade_account=Sim1` · `is_sim=1` · העסקה `mode=demo` · אפס עסקאות-לייב ב-`v9_trades` · והפוזיציה **מוגנת-סטופ** (`11438 @ 7838.25` עובד). **ההסתייגות שכן נרשמת:** בתנאי-לייב אותה קריאה-שקרית בת-20-שנ׳ הייתה מסמנת פוזיציה חיה כסגורה עם `pnl=NULL`, משחררת סלוט, ומאפשרת הזמנה חדשה מעליה — וזה **בדיוק** משטח-הסיכון של טרום-LIVE.
+
+### 🔁 [[T-560]] **חזר — הורדת-הדרגה של ריצה 244 ("ניצוץ, לא מבול") מופרכת במדידה**
+
+```raw
+18:08 grep -cE "\[ERROR\]|\[CRITICAL\]" (מאז 17:40) ⇒ 1  — וה-ERROR היחיד הוא T-560:
+      2026-10-07 17:44:20 [ERROR] [bar_level_detector] on_bar error:
+      Invalid transition: CLOSED -> CLOSED
+18:08 grep -oE "Invalid transition: [A-Z_]+ -> [A-Z_]+" | sort | uniq -c ⇒ 8  CLOSED -> CLOSED
+      (= 4 שורות-הודעה + 4 שורות-traceback) ⇒ חותמות: 10-05 16:35:04 · 10-05 19:05:05
+      · 10-07 16:40:02 · 10-07 17:44:20
+```
+
+ריצה 244 (17:35-17:40) מדדה `⇒ 1` ליום והסיקה **"אפס חזרה על 11 ברים ⇒ ניצוץ"**; המופע הבא נפל **4 דקות אחרי** סגירת חלונה. ⇒ הקריאה הנכונה: **קצב-נמוך חוזר — 2 ליום בשני ימים נפרדים**, לא מופע-בודד. הצעד הבא של T-560 ללא שינוי (no-op ל-`CLOSED -> CLOSED` בחלון טרום-פתיחה; ⛔ לא בתוך RTH — `trade_manager` = סיכון-מסחר), אך **הדחיפות אינה יורדת** כפי שנרשם ב-244.
+
+## ⚖️ הכרעת-הטלפון — **שקט**, מנומקת
+
+מקרה (ג) הוא "חריגה שדורשת **החלטה שלו**". כאן: חשבון `Sim1`, מצב `demo`, **אפס חשיפת-לייב**, סטופ עובד — והתרופה היא חלון-קוד טרום-פתיחה + דגל שפסיקה עומדת מחייבת להשאיר כבוי, כלומר **אין החלטה שנדרשת ממייקל עכשיו**. לפי כלל-הטלפון (מייקל 14.09) דוח-ניטור הולך ל-LIVE_CHANNEL בלבד. **בתנאי-לייב זה היה מקרה (ג) מיידי.**
+
+**אפס נגיעה:** דגלים · `.env` · גודל · פוזיציות · פקודות · ריסטארט · DB · DLL · עץ · הרנס. כל הפלטים לעיל `read-only`.
+
+---
 🔎 **[cowork · 07.10 18:00 IL · T-561 נפתח + חלון-ההרנס בסקריפט]** הענף החזק `OPEN_DRIVE/C/Trend_Normal/with` (7 ימי-מגמה, 55 מועמדים): ירו 5 (+519$), אבדו לסלוט-היחיד 13 (92%, +786$), לשער-האישור 8 (+412$); ELQ חסם 5 מפסידים (צודק) — אך ב-ORR/B ו-auction_B/REVERSAL ELQ חוסם מנצחים (+346/+398$). t24 (Cursor): Δ −100$ נטו ⇒ שלב 5 סגור בשתי הרמות. `run_variant.sh` מסרב/עוצר ב-16:00–23:05 מעכשיו (t24 רץ 15:50–16:35). אפס נגיעה חיה.
 
 ---
