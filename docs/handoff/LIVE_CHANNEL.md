@@ -1,3 +1,95 @@
+🟢 **[cowork-dev · ריצה 244 · 07.10 17:35-17:40 IL · חובה-1 + חובה-3 (ניטור-RTH, 65-70 דק' אחרי הפתיחה)]** · `date ⇒ Wed Oct  7 17:35:10 IDT 2026` ∈ `16:30-23:00` ⇒ **חובה-3**. חלון-השער `15:30-16:10` **עבר**, ובעלות-הריסטארט אינה שלי (`ps -o lstart` ⇒ `pid 49501 · Wed Oct 7 15:18:17` = היום אחרי 12:00) ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` · אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ/הרנס**. קריאה-בלבד.
+
+## ☎️ חובה-1 · **אפס ממתינות ⇒ שקט מוחלט בטלפון**
+
+```raw
+17:35 git fetch + rev-list --left-right --count HEAD...@{u} ⇒ "0	0"  (סונכרן; pull --rebase
+      נדחה על unstaged — עבודה פתוחה של cc בעץ, לא נגעתי)
+17:36 פוסק א׳ — זנב PHONE_THREAD.jsonl ⇒ שלוש האחרונות:
+      2026-10-07T10:50:03Z | מייקל      "תבקש מקלוד שיבדוק מה הולך ומה בוצע…"
+      2026-10-07T10:50:03Z | cc         ack ("סוכן יענה בהרחבה") — לא תשובה עניינית
+      2026-10-07T11:11:10Z | cowork-dev התשובה העניינית (ריצה 237)
+17:36 פוסק ב׳ — peek ישיר ⇒ GET /chat http=200 total=30
+      items[-1] = 2026-10-07T11:11:10Z len=470 — זהה לקובץ ⇒ שני הפוסקים מסכימים
+⇒ last_michael = 10:50:03Z (נענתה) · michael_after_agent = False ⇒ אפס הודעת-טלפון
+```
+
+ושאר שלושת המקרים ריקים: **אפס עסקת-לייב היום** (ב׳), אפס חריגה שדורשת פסיקה (ג׳), והשער עבר ואינו בבעלותי (ד׳).
+
+## 🔭 חובה-3 · **כל ארבעת הצירים ירוקים** — פוזיציה −1 בבעלות-המערכת, דמו ל-`Sim1`, אפס לייב
+
+```raw
+17:36 curl /api/v9/health                    ⇒ health=200  t=0.0027s
+17:36 lsof -iTCP:8000 -sTCP:LISTEN ⇒ pid 49501 · Wed Oct 7 15:18:17 · etime 02:20:04
+      ps %cpu ⇒ 23.1  (ריצה 243 מדדה 49.5 — ממוצע-חיים יורד, לא קפיצה) · rss 126MB
+17:36 שער-ד0 (עיוורון-לוג, §3.9) ⇒ "2026-10-07 15:18:30 [INFO] [mems26.boot] [boot] logging OK
+      level=INFO pid=49501 commit=ef0c41c0 stream=stderr"  ⇒ pid תואם ⇒ הלוג רואה
+17:36 PGTZ-בטוח (מלכודת 19) ⇒ v9_bars_5min_woodies max(ts) 2026-10-07 17:35:00+03 · age 1.5 דק'
+                              v9_bars_5min         max(ts) 2026-10-07 17:35:00+03 · age 1.5 דק'
+      ⇒ ציר T-430 ("פיד חי", לא "קובץ טרי") ירוק בשני הזרמים
+17:37 /api/v9/account/state ⇒ verdict="system" · source="sierra_state.json" · stale=false · age_s 0.0
+      position_qty −1 · avg_price 7823.25 · working_orders 2 · is_sim 1 · trade_account Sim1
+      open_pnl −7.5 · daily_total_qty_filled 1.0 · last_price 7824.75
+      open_trade: id 3164 · mode=demo · SHORT · FILLED · entry 7823.25 · stop 7838.25 · t1 7800.75
+                  · contracts 1
+      ⇒ ברוקר ⟷ TM תואמים לשנייה ולמחיר, והבעלות **נקבעה מהפקודה** (verdict=system) לפני אזעקה
+17:37 עסקאות-היום (ET-תחום, §2א) ⇒ demo|FILLED|1 · shadow|CLOSED|11 · shadow|FILLED|15 = 27
+      **live ⇒ 0 שורות** ⇒ אפס מקרה (ב׳), ופוזיציית-הדמו אינה סיכון-מסחר (Sim1 · חוזה 1 · ברקט מאוכלס)
+17:37 פיד-ההחלטות (חסום ל-200, §3.2) ⇒ returned 26 · today 26 · טווח 13:30:05Z → 14:35:18Z
+      blocked_by: 8 (none) · 7 tree:location · 6 tree:stand_down · 3 entry_not_confirmed
+                  · 1 rr_hard_floor · 1 tree:kind   ⇒ העץ חוסם, לא תקוע: 8/26 עברו
+```
+
+## ✅ [[T-558]] — האישור השני והנפרד: הקיפאון היה **תחום-RTH**, לא זרם מת
+
+ההודעה לטלפון מ-11:11 ("שני זרמי-יצוא קפואים 14.2 שעות — `bars_5min` ודלתא") נסגרה כשלילי-כזוי בריצה 242 על סמך ה-DB. הריצה הזו מאמתת אותה **מהצד השני** — mtime של הקבצים עצמם:
+
+```raw
+17:38 ls -lT ~/SierraChart_Data/v9_export/ + גיל מחושב:
+      1s  5min.json            1s  5min_continuous.json
+      1s  cumulative_delta.json   1s  cumulative_delta_continuous.json
+      1s  footprint.json        0s  live_price.json     0s  sierra_state.json
+      1s  tpo.json              1s  woodies_30min.json  1s  volume_profile.json
+      182s gateway_decisions.jsonl   (נכתב בהחלטה, לא כל 3 שנ' — תקין)
+      2892s trade_command.json / trade_result.json  (נכתבים בפקודה — האחרונה 16:50 #404)
+⇒ אפס קובץ-יצוא קפוא. שני הזרמים שהיו "קפואים 14.2 שעות" כותבים כל שנייה מאז הפתיחה.
+```
+
+## 📊 [[T-559]] + [[T-560]] — שניהם **אירוע-בודד**, אפס חזרה (69 / 59 דק' בהתאמה)
+
+הראיה שהריצה הזו מוסיפה היא **מונה-החזרה**, לא התקרית: שני הפריטים נפתחו בריצה 242 על מדידה אחת כל אחד, ועכשיו יש מספר שאומר אם הם מבול או ניצוץ.
+
+```raw
+17:39 grep "^2026-10-07" /tmp/backend.err.log | grep -c "\[ERROR\]"     ⇒ 1
+      grep "^2026-10-07" /tmp/backend.err.log | grep -c "\[CRITICAL\]"  ⇒ 1
+17:39 T-560: grep -c "Invalid transition: CLOSED -> CLOSED" ⇒ 1
+      האחרונה: 2026-10-07 16:40:02 [ERROR] [backend.v9.services.trade_manager.bar_level_detector]
+      ⇒ אירוע בודד · לפני 59 דק' · אפס חזרה על 11 ברים מאז ⇒ **ניצוץ, לא מבול**
+17:39 T-559: grep -c "ESCALATION-3" ⇒ 1  (16:30:02, היחיד של היום)
+      PGTZ=UTC psql v9_day_type_state ⇒ Normal | 2026-10-07 14:30:04.590626 | age 7.2 דק'
+      ⇒ המצב **טרי** עכשיו ⇒ ה-CRITICAL של 16:30 היה שעון-ותק לא-מודע-לריסטארט (49501 עלה 15:18),
+        לא פיד מת — בדיוק החיזוי בר-ההפרכה שהפריט נפתח עליו. מאומת.
+```
+
+**הצעד הבא לשניהם (לא בוצע כאן — דורש עריכת-קוד, וזו ריצת-קריאה):** T-559 — להצמיד את חלון-הוותק של ה-watchdog ל-`boot_ts` של התהליך; T-560 — `on_bar` לבלוע `CLOSED -> CLOSED` כ-no-op במקום לזרוק, כדי שיתר עבודת-הגלאי באותו בר לא תידלג.
+
+## 🛡️ שומרים + ציר-מרג'ין (T-34, דיווח-בלבד)
+
+```raw
+17:38 python3 scripts/task_log_guard.py ⇒ "536 items, last committed 0.0 days ago"
+                                           "✅ the task log is current, structured, and the only one"
+17:38 python3 scripts/flag_guard.py     ⇒ "FLAG-GUARD: PASS — all 274 ruled flags match."
+                                           + LIVENESS: all ON flags have ≥1 production read-site
+17:37 שדות-הכסף: acct_available_funds=null · acct_margin_req=null · acct_cash_balance=null
+      acct_daily_pl 0.0 · acct_loss_limit_reached 0 · acct_under_margin 0 · acct_trading_disabled 0
+      ⇒ הצ'ארט על Sim1 ⇒ **אי-אפשר להשוות ל-$1,595** (אל-תמציא-ערך-חסר). לא חוסם מסחר כרגע
+        (אפס לייב, דמו בלבד) ⇒ שורה כאן, **אפס מקרה (ג׳) בטלפון**. ממתין לחזרת-הצ'ארט לחשבון-הלייב.
+```
+
+**סיכום-הריצה:** אפס ממצא חדש, אפס כתיבה מחוץ ל-3 קבצי-הדיווח, אפס הודעת-טלפון. שני הפריטים הפתוחים של היום ירדו מדרגת-דחיפות — שניהם אירוע-בודד שלא חזר.
+
+---
+
 🟢 **[cowork-dev · ריצה 243 · 07.10 17:05-17:15 IL · חובה-1 + חובה-3 (ניטור-RTH, 35-45 דק' אחרי הפתיחה)]** · `date ⇒ 2026-10-07 17:05:11 IDT (Wed)` ∈ `16:30-23:00` ⇒ **חובה-3**. חלון-השער `15:30-16:10` **עבר**, וריצה 242 כבר כיסתה `16:35-16:50`; בעלות-השער לא הייתה שלי (`ps -o lstart` ⇒ `pid 49501 · Wed Oct 7 15:18:17` = היום אחרי 12:00) ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` · אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ/הרנס**. קריאה-בלבד.
 
 ## ☎️ חובה-1 · **אפס ממתינות ⇒ שקט מוחלט בטלפון**
