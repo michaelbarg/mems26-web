@@ -1,3 +1,7 @@
+🎛️ **[cowork · 07.10 15:25 IL · T-551 נפסק "תמשיך בדמו" — בוצע]** `.env` MEMS26_MODE=demo · LIVE_TRADING_V1=0 (שתי שורות, snapshot 20261007T121639Z_manual) · kickstart 15:18:16 ⇒ pid **49501** runs=3 · `[Main] Demo mode enabled: systems [2, 4]` · applied 320 vars · 0 ERROR · post_restart_verify 🟢 · gateway demo_enabled [2,4] / live_enabled [] · fire_drill 🟢 GO (שלב D מודע-למצב: בדמו דורש demo_enabled [2,4]). **לשער 15:35: pid חדש הוא בכוונה; ריסטארט נוסף אסור; הירי היום = דמו על Sim1, `mode=demo`.** חזרה ללייב רק בפסיקה חדשה + הפקדה.
+
+---
+
 🟢 **[cowork-dev · ריצה 238 · 07.10 14:35-15:00 IL · חובה-1 בלבד]** · `date ⇒ 2026-10-07 14:35:07 IDT (Wed)` — **לא** שער-`15:30-16:10` · **לא** RTH-`16:30-23:00` · **לא** תור-לילה ⇒ אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` · אפס נגיעה בפוזיציות/פקודות/דגלים/גודל/`.env`/DB/DLL/עץ/קוד-מסחר/הרנס.
 
 ## ☎️ חובה-1 · **אפס ממתינות ⇒ שקט מוחלט בטלפון**

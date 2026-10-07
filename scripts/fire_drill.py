@@ -285,8 +285,17 @@ def stage_d():
     g = api("/api/v9/gateway/status")
     if g:
         check("live_slot פנוי", g.get("live_slot") is None, f"slot={g.get('live_slot')}")
-        check("live_enabled == [2,4]", sorted(g.get("live_enabled_systems") or []) == [2, 4],
-              str(g.get("live_enabled_systems")))
+        # T-551 (Michael 07.10 15:1x "תמשיך בדמו"): the ruled mode decides which registration the
+        # drill demands — MEMS26_MODE=demo ⇒ demo_enabled [2,4] and live_enabled [] (orders go to
+        # Sierra's sim account and the books say demo); any other mode ⇒ live_enabled [2,4] as before.
+        if (os.getenv("MEMS26_MODE") or "").strip().lower() == "demo":
+            check("demo_enabled == [2,4] (MEMS26_MODE=demo)",
+                  sorted(g.get("demo_enabled_systems") or []) == [2, 4], str(g.get("demo_enabled_systems")))
+            check("live_enabled == [] (MEMS26_MODE=demo)", not (g.get("live_enabled_systems") or []),
+                  str(g.get("live_enabled_systems")))
+        else:
+            check("live_enabled == [2,4]", sorted(g.get("live_enabled_systems") or []) == [2, 4],
+                  str(g.get("live_enabled_systems")))
     else:
         check("gateway/status", False, "no response")
     dt = api("/api/v9/day_type/state")

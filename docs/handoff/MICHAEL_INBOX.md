@@ -9,7 +9,7 @@
 4. צל-הלילה: #3152 SHORT S2 נעצר 03:45 (−27.5$, צל בלבד, PM: NORMAL_NOISE).
 5. מדידות-יום 06.10 (Cursor, קריאה-בלבד) — שתיהן "לא עובר": STAIR_HOLD walk-forward +237.50$ (64 עסקאות, DD −476$) מול העץ +2,224.95$ ⇒ לא עוברת את העץ; DAYTYPE_MATRIX — רק 11/65 סשנים מתויגים (DECISION rows מ-17.09) ⇒ N לא מספיק לכל תא.
 
-**ממתין לך מ-06.10 (לא נשאל שוב — Rulings are one-time and standing):** T-551 — הצ'ארט על Sim1 (הבוקר עדיין `is_sim=1 · trade_account=Sim1`; כל לייב בלי רישום-ברוקר עד שיוחזר) · T-259 — System Settings → Login Items → Allow in the Background → Python (לחיצה אחת).
+**T-551 — נפסק 07.10 15:1x "תמשיך בדמו" ⇒ בוצע 15:18 (MEMS26_MODE=demo, LIVE_TRADING_V1=0, pid 49501, GO).** **ממתין לך מ-06.10 (לא נשאל שוב — Rulings are one-time and standing):** ~~T-551 — הצ'ארט על Sim1~~ (הבוקר עדיין `is_sim=1 · trade_account=Sim1`; כל לייב בלי רישום-ברוקר עד שיוחזר) · T-259 — System Settings → Login Items → Allow in the Background → Python (לחיצה אחת).
 
 **הלילה הבא (בתור, לפי CC_ORDER):** T-543 שלב 5 = §2.4 (שורש C/D: מבנה-IB + שעה + סוג-כניסה, walk-forward מול t529b) — בעלות cc; שלב 4 (`S2_EVIDENCE_TO_TREE_V1`, דגל-כבוי) עדיין לא-מקומט בעץ-העבודה (`tree_routes.py +48 · five_min_system.py +18 · FLAG_REGISTRY.yaml +6`).
 
