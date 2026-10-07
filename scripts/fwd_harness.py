@@ -637,6 +637,16 @@ _SECOND_PATHS = [p.strip() for p in (os.getenv("HARNESS_SECOND_SLOT_PATHS") or "
 _SECOND = {"trade": None, "opened": 0}
 
 
+def _path_key(path):
+    """Tree 3.4.0 prefixes every walked path with the root split, `hour=*(19)/…` (T-538); the T-561 finding was
+    read on 3.2.0 paths without it. Compare paths with the hour segment(s) dropped, so a listed path matches the
+    same branch on either tree version. Smoke 07.10 23:32 on 2026-08-03: exact match found 0 of 16 on-path routes."""
+    return "/".join(seg for seg in str(path or "").split("/") if not seg.startswith("hour="))
+
+
+_SECOND_KEYS = {_path_key(p) for p in _SECOND_PATHS}
+
+
 def _route_setup_capture(setup, system_id):
     n = _NOW["utc"]
     rec = {
@@ -656,11 +666,16 @@ def _route_setup_capture(setup, system_id):
                              "dtmod_is_fake": _dt_mod.datetime is FakeDatetime, "fake_now": str(FakeDatetime.now(timezone.utc))}
     except Exception as _e:
         rec["_dbg_clock"] = repr(_e)
+    _rf_before = list(getattr(gw, "_recent_fires", None) or []) if _SECOND_PATHS else None
     res = _orig_route(setup, system_id)
     if (_SECOND_PATHS and res.get("live_blocked_by") == "live_slot_occupied" and _SECOND["trade"] is None
-            and isinstance(res.get("tree_v3"), dict) and res["tree_v3"].get("path") in _SECOND_PATHS):
+            and isinstance(res.get("tree_v3"), dict) and _path_key(res["tree_v3"].get("path")) in _SECOND_KEYS):
         _held = gw.live_slot
         gw.live_slot = None
+        if _rf_before is not None and getattr(gw, "_recent_fires", None) is not None:
+            gw._recent_fires = _rf_before      # the first routing registered this very fire (DEDUP_FIRE_GUARD, after all
+                                                # gates) — the re-route is the same candidate, not a duplicate (smoke 23:34:
+                                                # all 10 re-routes came back duplicate_fire)
         try:
             res = _orig_route(setup, system_id)           # same candidate, slot free — the gates decide again
         finally:
