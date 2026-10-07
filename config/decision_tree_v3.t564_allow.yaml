@@ -39,7 +39,7 @@
 # DECISION_TREE_V3=1 must equal the baseline before any split is added. From there every
 # split is a branch with `measured:` and a day-total replay (Michael 24.09: positive ⇒ live).
 
-version: "3.4.0-t562_allow"   # 06.10 T-538: cutoff 20:00 → 22:00 (Michael 06.10 "מאשר", measured on all 65) · 05.10 T-538: cutoff layer added · 03.10 T-529 edge on the responsive rows
+version: "3.4.0-t564_allow"   # 06.10 T-538: cutoff 20:00 → 22:00 (Michael 06.10 "מאשר", measured on all 65) · 05.10 T-538: cutoff layer added · 03.10 T-529 edge on the responsive rows
 seeded_from: "dalton_playbook.yaml (09.09) · auth_matrix (T-319b location) · T-329 · 25.09 parity · 27.09 package S1+S5+S7 (T-494)"
 
 # ── library of shared sub-trees (YAML anchors; the loader reads only `root`) ────────────────────
@@ -177,7 +177,7 @@ library:
       with: *take_with_hint
       against: *against_fallback
       "*": *kinds_trend
-  var_default: &var_default        # T-562 variant: the row's existing bias logic, reused under the allow branch
+  var_default: &var_default        # T-564 variant: the row's existing bias logic, reused under the allow branch
     split: rel_bias
     branches:
       with: *take_with_hint
@@ -191,14 +191,14 @@ library:
         branches:
           against: *skip_bias
           "*": {leaf: TAKE, note: "VAR_CONT: structural pullback-continuation with the extension"}
-      INITIATIVE_SHORT:    # T-562 (Michael 07.10 17:52, BRIEF §2.2 allow #1): measurement variant, not live
+      INITIATIVE_SHORT:    # T-564 (Michael 07.10 17:52, BRIEF §2.2 allow #1): measurement variant, not live
         split: hour
         branches:
           "18|19":
             leaf: TAKE
             id: allow_initiative_short_variation_1819
             exit: {t1_r: 1.5, t2_r: 2.5}
-            note: "T-562 allow: INITIATIVE_SHORT on a Variation day 18:00-19:59 IL regardless of the hint (calibration: train +35$/cand)"
+            note: "T-564 allow: INITIATIVE_SHORT on a Variation day 18:00-19:59 IL regardless of the hint (calibration: train +35$/cand)"
           "*": *var_default
       "*": *var_default
 

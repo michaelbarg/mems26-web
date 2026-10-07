@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""T-562 (Michael 07.10 17:52): ONE allow-list entry as a tree variant — INITIATIVE_SHORT on a Variation day between
+"""T-564 (Michael 07.10 17:52): ONE allow-list entry as a tree variant — INITIATIVE_SHORT on a Variation day between
 18:00 and 19:59 IL (BRIEF §2.2, calibration context (Variation, 18-19h, INITIATIVE_SHORT, SHORT)). Builds
-config/decision_tree_v3.t562_allow.yaml from the live 3.4.0 by text: the Variation row gets a `pattern` branch
+config/decision_tree_v3.t564_allow.yaml from the live 3.4.0 by text: the Variation row gets a `pattern` branch
 INITIATIVE_SHORT → hour 18|19 → TAKE (exit 1.5R/2.5R like the row's own BREAK leaf); everything else, including
 INITIATIVE_SHORT at other hours, keeps the row's existing rel_bias logic. The live file is never touched.
 Then verifies on every t529b vector that the ONLY decisions that change are INITIATIVE_SHORT · phase C ·
 Variation|Normal_Variation · hour 18/19, and reports leaf counts."""
 import glob, json, os, sys
 ROOT = "/Users/michael/Downloads/mems26_web_git"; os.chdir(ROOT); sys.path.insert(0, ROOT)
-SRC = "config/decision_tree_v3.yaml"; DST = "config/decision_tree_v3.t562_allow.yaml"
+SRC = "config/decision_tree_v3.yaml"; DST = "config/decision_tree_v3.t564_allow.yaml"
 t = open(SRC, encoding="utf-8").read()
 OLD = ('  variation_row: &variation_row\n    split: pattern\n    branches:\n'
        '      VAR_CONT:            # T-458א producer (flag VAR_CONT_V1, measured Δ+16$ net ⇒ OFF): kinds/location skipped, bias kept\n'
@@ -16,20 +16,20 @@ OLD = ('  variation_row: &variation_row\n    split: pattern\n    branches:\n'
        '          "*": {leaf: TAKE, note: "VAR_CONT: structural pullback-continuation with the extension"}\n'
        '      "*":\n        split: rel_bias\n        branches:\n          with: *take_with_hint\n'
        '          against: *against_fallback\n          "*": *kinds_variation\n')
-NEW = ('  var_default: &var_default        # T-562 variant: the row\'s existing bias logic, reused under the allow branch\n'
+NEW = ('  var_default: &var_default        # T-564 variant: the row\'s existing bias logic, reused under the allow branch\n'
        '    split: rel_bias\n    branches:\n      with: *take_with_hint\n      against: *against_fallback\n      "*": *kinds_variation\n'
        '  variation_row: &variation_row\n    split: pattern\n    branches:\n'
        '      VAR_CONT:            # T-458א producer (flag VAR_CONT_V1, measured Δ+16$ net ⇒ OFF): kinds/location skipped, bias kept\n'
        '        split: rel_bias\n        branches:\n          against: *skip_bias\n'
        '          "*": {leaf: TAKE, note: "VAR_CONT: structural pullback-continuation with the extension"}\n'
-       '      INITIATIVE_SHORT:    # T-562 (Michael 07.10 17:52, BRIEF §2.2 allow #1): measurement variant, not live\n'
+       '      INITIATIVE_SHORT:    # T-564 (Michael 07.10 17:52, BRIEF §2.2 allow #1): measurement variant, not live\n'
        '        split: hour\n        branches:\n          "18|19":\n            leaf: TAKE\n'
        '            id: allow_initiative_short_variation_1819\n            exit: {t1_r: 1.5, t2_r: 2.5}\n'
-       '            note: "T-562 allow: INITIATIVE_SHORT on a Variation day 18:00-19:59 IL regardless of the hint (calibration: train +35$/cand)"\n'
+       '            note: "T-564 allow: INITIATIVE_SHORT on a Variation day 18:00-19:59 IL regardless of the hint (calibration: train +35$/cand)"\n'
        '          "*": *var_default\n'
        '      "*": *var_default\n')
 assert t.count(OLD) == 1, "variation_row block not found verbatim - the live file changed; stop"
-v = t.replace(OLD, NEW, 1).replace('version: "3.4.0"', 'version: "3.4.0-t562_allow"', 1)
+v = t.replace(OLD, NEW, 1).replace('version: "3.4.0"', 'version: "3.4.0-t564_allow"', 1)
 open(DST, "w", encoding="utf-8").write(v); print("wrote", DST)
 
 import yaml
