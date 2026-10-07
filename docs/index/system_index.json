@@ -1,12 +1,12 @@
 {
- "generated_at": "2026-10-05 14:37:11",
+ "generated_at": "2026-10-07 06:11:51",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "affa48df 2026-10-05 13:35 docs(cowork-dev run182): phone page dark - case (c) delivery unverified at 13:07, hand to 15:30 gate agent",
+   "head": "b61cdc3a 2026-10-06 23:41 cowork-dev run 228 (06.10 23:36-23:45, duty-1 + duty-4): run 227 owns tonight's queue — this run verified it independently and sharpen",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
-   "dirty_files": 7988,
-   "tree_version": "3.2.0",
+   "dirty_files": 8768,
+   "tree_version": "3.4.0",
    "ruled_flags": 274,
    "flags_mismatch": [],
    "flags_on": [
@@ -2718,31 +2718,31 @@
   {
    "pattern": "ZLR",
    "system": "4",
-   "decisions": 490,
-   "passed_tree_gates": 143,
+   "decisions": 550,
+   "passed_tree_gates": 154,
    "live_fires": 1,
    "live_pnl": 2.5,
    "live_capable": false,
    "switch": "ZLR_SHADOW_V1",
    "top": [
     "tree:stand_down 173",
-    "(passed) 143",
-    "dalton_intent:stand_down 75"
+    "(passed) 154",
+    "tree:location 77"
    ]
   },
   {
    "pattern": "CEILING_FLIP_TOUCH2",
    "system": "2",
-   "decisions": 322,
-   "passed_tree_gates": 157,
+   "decisions": 358,
+   "passed_tree_gates": 174,
    "live_fires": 2,
    "live_pnl": -137.5,
    "live_capable": false,
    "switch": "CEILING_FLIP_TOUCH2_V1",
    "top": [
-    "(passed) 157",
+    "(passed) 174",
     "dalton_intent:stand_down 48",
-    "tree:stand_down 41"
+    "tree:stand_down 43"
    ]
   },
   {
@@ -2756,8 +2756,23 @@
    "switch": "live producer",
    "top": [
     "tree:stand_down 61",
-    "tree:location 2",
+    "tree:bias 2",
     "(passed) 2"
+   ]
+  },
+  {
+   "pattern": "GHOST",
+   "system": "4",
+   "decisions": 46,
+   "passed_tree_gates": 17,
+   "live_fires": 5,
+   "live_pnl": -93.75,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 17",
+    "tree:stand_down 10",
+    "dalton_intent:stand_down 8"
    ]
   },
   {
@@ -2776,32 +2791,32 @@
    ]
   },
   {
-   "pattern": "GHOST",
-   "system": "4",
-   "decisions": 39,
-   "passed_tree_gates": 13,
-   "live_fires": 5,
-   "live_pnl": -93.75,
+   "pattern": "INITIATIVE_LONG",
+   "system": "2",
+   "decisions": 36,
+   "passed_tree_gates": 9,
+   "live_fires": 3,
+   "live_pnl": 5.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 13",
-    "tree:stand_down 10",
-    "dalton_intent:stand_down 8"
+    "(passed) 9",
+    "tree:stand_down 7",
+    "tree:bias 7"
    ]
   },
   {
    "pattern": "GB100",
    "system": "4",
-   "decisions": 30,
-   "passed_tree_gates": 5,
-   "live_fires": 2,
-   "live_pnl": -18.75,
+   "decisions": 34,
+   "passed_tree_gates": 8,
+   "live_fires": 4,
+   "live_pnl": -25.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
     "dalton_intent:stand_down 9",
-    "(passed) 5",
+    "(passed) 8",
     "tree:bias 5"
    ]
   },
@@ -2821,25 +2836,10 @@
    ]
   },
   {
-   "pattern": "INITIATIVE_LONG",
-   "system": "2",
-   "decisions": 28,
-   "passed_tree_gates": 4,
-   "live_fires": 3,
-   "live_pnl": 5.0,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:bias 7",
-    "tree:stand_down 7",
-    "dalton_intent:stand_down 6"
-   ]
-  },
-  {
    "pattern": "DOUBLE_BOTTOM_EE_LONG",
    "system": "2",
-   "decisions": 27,
-   "passed_tree_gates": 2,
+   "decisions": 29,
+   "passed_tree_gates": 3,
    "live_fires": 2,
    "live_pnl": 102.5,
    "live_capable": true,
@@ -2853,61 +2853,61 @@
   {
    "pattern": "TREND_STEP",
    "system": "4",
-   "decisions": 21,
-   "passed_tree_gates": 7,
+   "decisions": 28,
+   "passed_tree_gates": 9,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "TREND_STEP_ENTRY_V1",
    "top": [
-    "(passed) 7",
-    "tree:location 4",
+    "(passed) 9",
+    "tree:location 5",
     "dalton_intent:stand_down 3"
+   ]
+  },
+  {
+   "pattern": "FAMIR",
+   "system": "4",
+   "decisions": 27,
+   "passed_tree_gates": 8,
+   "live_fires": 3,
+   "live_pnl": -17.5,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:stand_down 10",
+    "tree:bias 8",
+    "(passed) 8"
    ]
   },
   {
    "pattern": "REACTIVE_LONG",
    "system": "2",
-   "decisions": 21,
+   "decisions": 26,
    "passed_tree_gates": 6,
    "live_fires": 4,
    "live_pnl": 10.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 6",
     "(passed) 6",
+    "tree:stand_down 6",
     "tree:bias 5"
    ]
   },
   {
    "pattern": "S2_DELTA_DBL_SHORT",
    "system": "2",
-   "decisions": 21,
-   "passed_tree_gates": 6,
+   "decisions": 25,
+   "passed_tree_gates": 7,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "S2_DELTA_DBL_V1",
    "top": [
+    "(passed) 7",
     "dalton_intent:bias 6",
-    "(passed) 6",
-    "tree:location 5"
-   ]
-  },
-  {
-   "pattern": "FAMIR",
-   "system": "4",
-   "decisions": 20,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 38.75,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:stand_down 9",
-    "tree:bias 8",
-    "(passed) 2"
+    "tree:location 6"
    ]
   },
   {
@@ -2941,7 +2941,7 @@
   {
    "pattern": "FAILED_RE_IB",
    "system": "2",
-   "decisions": 15,
+   "decisions": 16,
    "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -2956,16 +2956,31 @@
   {
    "pattern": "CEILING_FLIP_SHORT",
    "system": "2",
-   "decisions": 13,
-   "passed_tree_gates": 8,
-   "live_fires": 2,
-   "live_pnl": -45.0,
+   "decisions": 15,
+   "passed_tree_gates": 9,
+   "live_fires": 3,
+   "live_pnl": -72.5,
    "live_capable": true,
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
-    "(passed) 8",
+    "(passed) 9",
     "dalton_intent:stand_down 3",
     "tree:location 2"
+   ]
+  },
+  {
+   "pattern": "INITIATIVE_SHORT",
+   "system": "2",
+   "decisions": 14,
+   "passed_tree_gates": 6,
+   "live_fires": 5,
+   "live_pnl": -371.25,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 6",
+    "tree:bias 4",
+    "tree:time_cutoff 2"
    ]
   },
   {
@@ -2979,7 +2994,7 @@
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
     "(passed) 9",
-    "dalton_intent:bias 1",
+    "tree:bias 1",
     "tree:location 1"
    ]
   },
@@ -2995,13 +3010,13 @@
    "top": [
     "tree:bias 4",
     "dalton_intent:stand_down 3",
-    "tree:location 1"
+    "dalton_intent:bias 1"
    ]
   },
   {
    "pattern": "FAILED_BREAK_LONG",
    "system": "2",
-   "decisions": 9,
+   "decisions": 10,
    "passed_tree_gates": 1,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3010,58 +3025,13 @@
    "top": [
     "tree:stand_down 4",
     "dalton_intent:stand_down 3",
-    "(passed) 1"
-   ]
-  },
-  {
-   "pattern": "INITIATIVE_SHORT",
-   "system": "2",
-   "decisions": 9,
-   "passed_tree_gates": 5,
-   "live_fires": 5,
-   "live_pnl": -371.25,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 5",
-    "tree:bias 2",
-    "dalton_intent:bias 1"
-   ]
-  },
-  {
-   "pattern": "VEGAS",
-   "system": "4",
-   "decisions": 9,
-   "passed_tree_gates": 1,
-   "live_fires": 2,
-   "live_pnl": -73.75,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:bias 2",
-    "tree:location 2",
-    "dalton_intent:stand_down 2"
-   ]
-  },
-  {
-   "pattern": "FAILED_BREAK_SHORT",
-   "system": "2",
-   "decisions": 8,
-   "passed_tree_gates": 4,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "failed_break.py: shadow_only by code",
-   "top": [
-    "(passed) 4",
-    "tree:location 2",
-    "dalton_intent:stand_down 2"
+    "tree:location 1"
    ]
   },
   {
    "pattern": "VA_FADE_SHORT",
    "system": "2",
-   "decisions": 8,
+   "decisions": 9,
    "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3074,32 +3044,92 @@
    ]
   },
   {
+   "pattern": "FAILED_BREAK_SHORT",
+   "system": "2",
+   "decisions": 9,
+   "passed_tree_gates": 4,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "failed_break.py: shadow_only by code",
+   "top": [
+    "(passed) 4",
+    "tree:location 2",
+    "dalton_intent:stand_down 2"
+   ]
+  },
+  {
+   "pattern": "VEGAS",
+   "system": "4",
+   "decisions": 9,
+   "passed_tree_gates": 1,
+   "live_fires": 2,
+   "live_pnl": -73.75,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:location 2",
+    "tree:bias 2",
+    "dalton_intent:stand_down 2"
+   ]
+  },
+  {
    "pattern": "VA_FADE_LONG",
    "system": "2",
-   "decisions": 7,
-   "passed_tree_gates": 2,
+   "decisions": 8,
+   "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
+    "(passed) 3",
     "tree:bias 3",
-    "(passed) 2",
+    "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_EXTREME_REJECT",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 4,
+   "live_fires": 1,
+   "live_pnl": -61.25,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 4",
+    "dalton_intent:kind 2",
     "tree:location 1"
    ]
   },
   {
    "pattern": "DALTON_EDGE_LONG",
    "system": "2",
-   "decisions": 6,
-   "passed_tree_gates": 2,
-   "live_fires": 0,
-   "live_pnl": 0.0,
+   "decisions": 7,
+   "passed_tree_gates": 3,
+   "live_fires": 1,
+   "live_pnl": 28.75,
    "live_capable": true,
    "switch": "DALTON_EDGE_V1",
    "top": [
-    "(passed) 2",
-    "tree:bias 1",
+    "(passed) 3",
+    "dalton_intent:stand_down 1",
+    "tree:bias 1"
+   ]
+  },
+  {
+   "pattern": "S2_DELTA_DBL_LONG",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 3,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "S2_DELTA_DBL_V1",
+   "top": [
+    "tree:location 3",
+    "(passed) 3",
     "dalton_intent:bias 1"
    ]
   },
@@ -3118,18 +3148,18 @@
    ]
   },
   {
-   "pattern": "S2_DELTA_DBL_LONG",
+   "pattern": "OPENING_DRIVE",
    "system": "2",
-   "decisions": 5,
-   "passed_tree_gates": 3,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "S2_DELTA_DBL_V1",
+   "decisions": 6,
+   "passed_tree_gates": 4,
+   "live_fires": 5,
+   "live_pnl": -77.5,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 3",
+    "(passed) 4",
     "dalton_intent:bias 1",
-    "tree:location 1"
+    "tree:kind 1"
    ]
   },
   {
@@ -3143,36 +3173,22 @@
    "switch": "DALTON_EDGE_V1",
    "top": [
     "(passed) 2",
-    "tree:stand_down 1",
-    "dalton_intent:bias 1"
+    "dalton_intent:stand_down 1",
+    "tree:stand_down 1"
    ]
   },
   {
-   "pattern": "OPENING_EXTREME_REJECT",
+   "pattern": "BULL_FLAG_LONG",
    "system": "2",
-   "decisions": 5,
-   "passed_tree_gates": 3,
-   "live_fires": 1,
-   "live_pnl": -61.25,
+   "decisions": 4,
+   "passed_tree_gates": 2,
+   "live_fires": 2,
+   "live_pnl": -131.25,
    "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
+   "switch": "live producer",
    "top": [
-    "(passed) 3",
-    "dalton_intent:kind 2"
-   ]
-  },
-  {
-   "pattern": "OPENING_DRIVE",
-   "system": "2",
-   "decisions": 5,
-   "passed_tree_gates": 4,
-   "live_fires": 5,
-   "live_pnl": -77.5,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "(passed) 4",
-    "dalton_intent:bias 1"
+    "tree:stand_down 2",
+    "(passed) 2"
    ]
   },
   {
@@ -3188,20 +3204,6 @@
     "tree:kind 2",
     "tree:bias 1",
     "dalton_intent:kind 1"
-   ]
-  },
-  {
-   "pattern": "BULL_FLAG_LONG",
-   "system": "2",
-   "decisions": 4,
-   "passed_tree_gates": 2,
-   "live_fires": 2,
-   "live_pnl": -131.25,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:stand_down 2",
-    "(passed) 2"
    ]
   },
   {
@@ -3227,8 +3229,21 @@
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:location 1",
-    "dalton_intent:bias 1"
+    "dalton_intent:bias 1",
+    "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_TEST_DRIVE",
+   "system": "2",
+   "decisions": 2,
+   "passed_tree_gates": 2,
+   "live_fires": 1,
+   "live_pnl": 127.5,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 2"
    ]
   },
   {
@@ -3244,19 +3259,6 @@
     "dalton_intent:stand_down 18",
     "tree:stand_down 12",
     "dalton_intent:bias 9"
-   ]
-  },
-  {
-   "pattern": "OPENING_TEST_DRIVE",
-   "system": "2",
-   "decisions": 2,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 127.5,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "(passed) 2"
    ]
   },
   {
@@ -3289,31 +3291,35 @@
  "gates": [
   {
    "blocked_by": "(passed)",
-   "n": 411
+   "n": 466
   },
   {
    "blocked_by": "tree:stand_down",
-   "n": 388
+   "n": 392
   },
   {
    "blocked_by": "dalton_intent:stand_down",
    "n": 206
   },
   {
-   "blocked_by": "tree:bias",
-   "n": 114
+   "blocked_by": "tree:location",
+   "n": 145
   },
   {
-   "blocked_by": "tree:location",
-   "n": 108
+   "blocked_by": "tree:bias",
+   "n": 124
   },
   {
    "blocked_by": "dalton_intent:bias",
    "n": 77
   },
   {
+   "blocked_by": "tree:time_cutoff",
+   "n": 45
+  },
+  {
    "blocked_by": "tree:kind",
-   "n": 16
+   "n": 23
   },
   {
    "blocked_by": "dalton_intent:kind",
@@ -3326,158 +3332,165 @@
  ],
  "tree": {
   "take": 294,
-  "skip": 241,
+  "skip": 242,
   "shadow": 0,
   "ruled": [
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
+    "id": "time_cutoff",
+    "sessions": 65,
+    "usd": 88.75,
+    "usd_net": 104.35,
+    "date": "2026-10-06"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=A/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=A/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3491,42 +3504,28 @@
     "date": "2026-09-24"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3540,7 +3539,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3554,7 +3553,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3568,7 +3567,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3582,7 +3581,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3596,21 +3595,35 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3631,98 +3644,98 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3736,42 +3749,28 @@
     "date": "2026-09-24"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3785,7 +3784,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3799,7 +3798,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3813,7 +3812,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3827,7 +3826,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3841,21 +3840,35 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3876,98 +3889,98 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=near_val|below_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=near_vah|above_value/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3981,42 +3994,28 @@
     "date": "2026-09-24"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4030,7 +4029,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4044,7 +4043,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4058,7 +4057,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4072,7 +4071,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4086,21 +4085,35 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4128,7 +4141,7 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4142,7 +4155,7 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Normal|Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4163,7 +4176,7 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Trend_Normal|Trend_DD/kind=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=Trend_Normal|Trend_DD/kind=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4177,49 +4190,49 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=B/day_type=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4233,42 +4246,28 @@
     "date": "2026-09-24"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4282,7 +4281,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4296,7 +4295,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4310,7 +4309,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4324,7 +4323,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4338,21 +4337,35 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4373,42 +4386,42 @@
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=PULLBACK|BREAK",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Trend_Normal|Trend_DD/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Variation|Normal_Variation/pattern=*/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4422,42 +4435,28 @@
     "date": "2026-09-24"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=BREAK|VALUE_RETURN",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=up|down/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=two_sided/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4471,7 +4470,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=two_sided/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4485,7 +4484,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4499,7 +4498,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Normal/structure=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4513,7 +4512,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4527,21 +4526,35 @@
     "date": "2026-10-03"
    },
    {
-    "id": "opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=against/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
     "date": "2026-09-27"
    },
    {
-    "id": "opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=PULLBACK|BREAK",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "hour=*/opening_type=*/phase=D/day_type=Trend_Normal|Trend_DD|Neutral_Extreme/rel_bias=*/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4562,47 +4575,47 @@
     "date": "2026-09-27"
    }
   ],
-  "n": 535
+  "n": 536
  },
  "db_tables": [
   {
    "table": "v9_trades",
-   "rows": 2806,
-   "max_ts_il": "2026-10-02 23:00"
+   "rows": 2971,
+   "max_ts_il": "2026-10-06 22:35"
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 152858,
-   "max_ts_il": "2026-10-05 14:35"
+   "rows": 179352,
+   "max_ts_il": "2026-10-07 06:10"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 21052,
-   "max_ts_il": "2026-10-05 14:35"
+   "rows": 21503,
+   "max_ts_il": "2026-10-07 06:10"
   },
   {
    "table": "v9_bars_5min",
-   "rows": 4678,
-   "max_ts_il": "2026-10-02 23:55"
+   "rows": 4856,
+   "max_ts_il": "2026-10-06 23:55"
   },
   {
    "table": "v9_day_type_state",
-   "rows": 3,
+   "rows": 36,
    "max_ts_il": ""
   },
   {
    "table": "v9_exit_decisions",
-   "rows": 15767,
+   "rows": 16439,
    "max_ts_il": ""
   },
   {
    "table": "v9_trade_management_log",
-   "rows": 352169,
+   "rows": 352382,
    "max_ts_il": ""
   },
   {
    "table": "v9_woodies_signals",
-   "rows": 3773,
+   "rows": 3856,
    "max_ts_il": ""
   },
   {
@@ -4612,8 +4625,8 @@
   },
   {
    "table": "v9_bars_cumulative_delta",
-   "rows": 8784,
-   "max_ts_il": "2026-10-02 23:55"
+   "rows": 8964,
+   "max_ts_il": "2026-10-06 23:55"
   },
   {
    "table": "broker_truth",
@@ -4622,6 +4635,11 @@
   }
  ],
  "launch_agents": [
+  {
+   "label": "com.mems26.agents_bootstrap",
+   "pid": "-",
+   "rc": "0"
+  },
   {
    "label": "com.mems26.mobile_relay",
    "pid": "1629",
@@ -4774,6 +4792,10 @@
    "doc": "§9א config_consumer_guard — every YAML config field must have ≥1 consumer."
   },
   {
+   "file": "scripts/context_table.py",
+   "doc": "context_table.py — bar-by-bar calibration per day type (Michael 05.10 15:30: \"לעבור בר-בר … ולהתאים את ההחלטות שבזיהוי"
+  },
+  {
    "file": "scripts/credentials_self_test.sh",
    "doc": "scripts/credentials_self_test.sh — verifies CC can access all needed credentials"
   },
@@ -4784,6 +4806,10 @@
   {
    "file": "scripts/d1_exit_proof.sh",
    "doc": "D1-EXIT Proof Script — runs on SIM after Michael's Sierra reload."
+  },
+  {
+   "file": "scripts/daily_dalton.py",
+   "doc": "daily_dalton.py — נתב-דלתון יומי · שלב 1 (CC_ORDER 2026-10-05 17:11)."
   },
   {
    "file": "scripts/daily_extremes_playbook.py",
@@ -5064,6 +5090,14 @@
   {
    "file": "scripts/mems26_verify.sh",
    "doc": "mems26_verify.sh — one-shot \"is everything consistent + up to date?\" check."
+  },
+  {
+   "file": "scripts/method_audit.py",
+   "doc": "method_audit.py — is the method right, do the branches work (Michael 05.10 15:1x). Read-only."
+  },
+  {
+   "file": "scripts/method_audit2.py",
+   "doc": "method_audit2.py — which layer carries the edge (tree vs the gates after it), and label-free context cuts. Read-only."
   },
   {
    "file": "scripts/migrate_ts_varchar_to_timestamptz.py",
@@ -5414,6 +5448,10 @@
    "doc": "────────────────────────────────────────────────────────────────"
   },
   {
+   "file": "scripts/stair_hold.py",
+   "doc": "STAIR_HOLD — the DAY_LESSONS walk-forward with ONE change: the exit (Michael 06.10 13:07 IL)."
+  },
+  {
    "file": "scripts/stall_exit_backtest.py",
    "doc": "STALL_EXIT backtest — flag OFF, research only (Michael 2026-07-11)."
   },
@@ -5436,6 +5474,10 @@
   {
    "file": "scripts/structure_exit_replay.py",
    "doc": "When do the StructureExit conditions actually occur, and would exiting help?"
+  },
+  {
+   "file": "scripts/supervisor.py",
+   "doc": "supervisor.py — פיקוח והמלצות (T-536, Michael 05.10: \"פיקוח והמלצות לשיפור המערכת כדי למקסם רווחים כבר מהיום\","
   },
   {
    "file": "scripts/swing_turn_test.py",
@@ -5508,6 +5550,10 @@
   {
    "file": "scripts/tree_measure.py",
    "doc": "tree_measure.py — the nightly measurement of DECISION_TREE_V3: every node and every leaf of the tree gets"
+  },
+  {
+   "file": "scripts/tree_prune_variant.py",
+   "doc": "tree_prune_variant.py — build a replay VARIANT of the live tree with named leaves set to SKIP."
   },
   {
    "file": "scripts/uat_hotfix_4_3.sh",
@@ -5622,6 +5668,10 @@
    "doc": "Read-only sim harness for T17 — 4-contract E2E ladder (Michael 07-19/07-20)."
   },
   {
+   "file": "scripts/walk_forward.py",
+   "doc": "walk_forward.py — out-of-sample (OOS) validation of the live decision tree's branches (METHOD_AUDIT_2026-10-05 §3 step 1)."
+  },
+  {
    "file": "scripts/week_replay.py",
    "doc": "Week Replay: per-day simulation of Aug 11-14 with today's code."
   },
@@ -5647,26 +5697,27 @@
   }
  ],
  "tickets": {
-  "total": 373,
-  "open": 312,
+  "total": 395,
+  "open": 330,
   "by_status": {
-   "🔴": 101,
-   "🟠": 159,
-   "🟡": 27,
-   "✅": 46,
-   "🔵": 25,
+   "🔴": 104,
+   "🟠": 162,
+   "🟡": 30,
+   "✅": 49,
+   "🔵": 34,
    "⚠️": 3,
    "🔴🔴": 9,
    "🟢": 1,
    "📄": 1,
-   "📊": 1
+   "📊": 1,
+   "⚪": 1
   },
   "open_rows": [
    {
     "id": "T-259",
     "status": "🔴",
     "title": "שישה LaunchAgents של mems26 לא נרשמו כלל ב-launchd אחרי ריסטארט-המק של `17:03` — ביניהם `com.mems26.mobile_relay`, שהוא ",
-    "next": "(א) לוודא מול Render ש**אין פקודת-חירום ממתינה בתור**, ואז להעלות: `launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.mems26.mobile_relay.plist` (וכנ\"ל `export_promoter` ו-`activity_feed`). **אימות-סגירה:** `launchctl print gui/$UID/com.mems26.mobile_rel",
+    "next": "**השורש נמצא (05.10, `sfltool dumpbtm`):** macOS Background-Task-Management משייך LaunchAgent לפי `ProgramArguments[0]` — ששת הסוכנים שמופעלים ב-Python משויכים ל-\"Python / Ned Deily\" ויושבים **disallowed** ב-BTM (היום: `activity_feed`, `export_promoter`, `mobi",
     "measurable": false
    },
    {
@@ -7840,15 +7891,148 @@
     "measurable": true
    },
    {
+    "id": "T-533",
+    "status": "🔵",
+    "title": "סוכן-האינדקס — `scripts/system_index.py` → `docs/index/SYSTEM_INDEX.md` + `system_index.json`: כל המערכת בקריאה אחת (HEAD/עץ/דגלים · מפיקים 30 יום עם live-capability · שערים · עלי-עץ מדודים · טבלאות-D",
+    "next": "(1) המשימה המתוזמנת \"MEMS26 — סוכן-אינדקס\" מריצה כל בוקר, מאמתת ומקמטת `docs/index/` בלבד; (2) v2: שערי-הגייטוויי שאינם בעץ (entry_not_confirmed / rr_entry_gate / live_slot / ELQ) מתוך `live_blocked_by`, ו-$-צפוי לכל פריט מדיד מתוך review.json.",
+    "measurable": true
+   },
+   {
+    "id": "T-534",
+    "status": "🔵",
+    "title": "סוכן-התיקונים — משימה מתוזמנת לילית (23:40 IL) שעובדת רק לפי דוקטרינת-הלמידה: מדידה בהרנס מול ייחוס-אותו-לילה · בניית-דגל-כבוי זהה-בייט עם מבחנים · תיקון-באג עם רגרסיה; מניח פסיקות באינבוקס ובטלפון; א",
+    "next": "ריצה 1 = **[[T-540]] walk-forward** — לקרוא `docs/reports/WALK_FORWARD_2026-10-05.md` §7 לפני כל עלה חדש; רשימת-הגיזום (OOS ≤ 0, n≥10) היא הסדר-יום, אפס עלה חדש ב-YAML הלילה; ריצה 2 = [[T-531]] + [[T-528]]; ריצה 3 = [[T-530]] (ספירת-N); ריצה 4 = מפיק-צל CEILIN",
+    "measurable": false
+   },
+   {
+    "id": "T-535",
+    "status": "🟠",
+    "title": "שמונה עלים בשלים לפיצול במדידת-העץ של 05.10 (t529b, 65 סשנים, 4,398 מועמדים) — ובראשם SKIP שמרוויח: `OPEN_AUCTION_IN/C/Normal/structure=none/SHORT/zone=mid_value/edge=none` n=42 · 64% · +1,427$ ברמת-מ",
+    "next": "(1) וריאנט ל-(1): ב-`responsive_normal` SHORT/mid_value → TAKE רק תחת `OPEN_AUCTION_IN` (או split נוסף: `structure`/`prior_zone`) — הרנס מול ייחוס; (2) (5): למדוד את עלה-S1 **עם** השערים שאחריו כפי שהוא (יום-שלם) — אם Σ-יום-שלם שלילי ⇒ פסיקה על צמצום (למשל רק ",
+    "measurable": true
+   },
+   {
+    "id": "T-536",
+    "status": "🔵",
+    "title": "סוכן-הפיקוח — `scripts/supervisor.py` (קריאה-בלבד): ימים-אנלוגיים לכל סשן מאז יוני (טביעת-אצבע: טווח/נטו אתמול · לילה · גאפ · מ-17:30 גם IB/30-דק׳) עם תווית-EOD, ריפליי-קונפיג-הלייב ולייב · ההחלטות של",
+    "next": "(1) ריצה ראשונה 15:35; הודעת-טלפון רק על אדום חדש או בסיכום 22:35; (2) v2: את \"SKIP על עלה חיובי\" להפוך למדידה אוטומטית של סוכן-התיקונים (וריאנט-יום-שלם); (3) לשונית 🛡️ בפרונט (Next route על `data/supervision.json`) — בניית-לילה, בלי ריסטארט ב-RTH.",
+    "measurable": true
+   },
+   {
+    "id": "T-537",
+    "status": "🔴",
+    "title": "ביקורת-השיטה (מייקל 05.10 15:10: \"מפקח על מפקח על מפקח … עוד פלסתר — תבדוק האם השיטה נכונה והאם רעיון-הענפים עובד\"): לזרם-המועמדים אין יתרון (4,162 מועמדים · 42% · −2.1$/מועמד); העץ מפריד דק (TAKE −0.",
+    "next": "פסיקות-מייקל על סעיף 3 בדוח: (1) הקפאת הוספת-ענפים עד פרוטוקול-ולידציה מחוץ-לדגימה (walk-forward, 10 סשנים אחרונים = סט-החזקה); (2) מדידת קונפיג-ליבה (תבניות חסונות × שעה, ארבעת שערי-האיכות, חיתוך 20:00) יום-שלם + OOS; (3) שורש שלב C/D = מבנה-IB+שעה+סוג-כניסה ",
+    "measurable": true
+   },
+   {
+    "id": "T-539",
+    "status": "🔵",
+    "title": "סוכנים מסביב לשעון + הנחיות ל-Claude Fable — `docs/runbooks/AGENT_BRIEF_FABLE.md` הוא מקור-האמת לכל הסוכנים המתוזמנים",
+    "next": "(1) ✅ 16:25–16:45 שלושת הפרומפטים (אינדקס/תיקונים/פיקוח) נפתחים ב\"קרא את ה-BRIEF ופעל לפיו\" (re-signed ע״י Claude Desktop); (2) ✅ 08:30 הכנת-פסיקות נוצרה (`trig_01UBT7QYoYnSWHXyQbvRLYZW`); ⛔ 12:00 החלה — יצירת סוכן-החלה אוטונומי נחסמה ע״י מסנן-ההרשאות ⇒ ההחלה ",
+    "measurable": false
+   },
+   {
+    "id": "T-543",
+    "status": "🔵",
+    "title": "נתב יומי דלתון (CC_ORDER 2026-10-05 17:11, Cursor → Claude) — עץ אחד, משפחת-ענפים לפי מצב-המכרז, שיפור בין-סשנים בחלון של 10; פיקוח במספרים נעולים.",
+    "next": "**שלב 4 ✅ (06.10 ~18:05, cowork; קוד בלבד בזמן RTH — המאזין 71969 רץ בלי --reload ולא טוען קוד חדש):** `build_s2_gateway_setup` (`five_min_system.py`) מעתיק את `info['evidence'].vol_trig/.delta_with` (בוליאני בלבד; None נשאר חסר) ל-`setup.metadata` מאחורי `S2_",
+    "measurable": false
+   },
+   {
+    "id": "T-541",
+    "status": "🟡",
+    "title": "לוח-ההחלטות לא יוכל להראות את חיתוך-20:00 של T-538 — נקודת-התצוגה אינה מאכלסת `hour`, ולכן נופלת תמיד ל-`\"*\": *root_full`.",
+    "next": "(1) **המבחן המכריע קודם לתיקון** — מועמד אמיתי אחרי 20:00 IL בליגר עם `hour=\">19\" ⇒ SKIP`; רק הוא מוכיח שהחיתוך פועל בנתיב-הירי; (2) אם אומת ⇒ החלטה אם לאכלס `hour` ב-`tree_routes.py` (שינוי-תצוגה, אפס נגיעה בעץ/דגלים) או להשאיר ולתעד שהלוח עיוור לשכבת-הזמן; (",
+    "measurable": false
+   },
+   {
     "id": "T-532",
     "status": "🔴",
     "title": "סדרת-הברים של סיירה קפואה על שישי `23:55` 60 שעות, בעוד היצוא נכתב כל 3 שניות עם חותמת-עכשיו והציטוט חי וזז — ולכן המערכת עיוורת לגלובקס של שני בלי שאף מדד-בריאות יצעק.",
-    "next": "",
+    "next": "הפוסק הוא **woodies** — woodies רועש אחרי `16:35` או `max(ts)` לא בן <10 דק' ⇒ NO-GO + מקרה (ג); **רעש `[bars/5min]` לבדו בעוד woodies טרי אינו NO-GO** (מלכודות 24/27/28). **לא נמדד:** מי דוחף את זרם-ה-legacy ומאיפה בו `23:55` בעוד הקובץ עוצר ב-`18:55`. 🆕 **רי",
+    "measurable": false
+   },
+   {
+    "id": "T-540",
+    "status": "🔴",
+    "title": "ולידציה מחוץ-לדגימה של ענפי-העץ — `scripts/walk_forward.py` → `docs/reports/WALK_FORWARD_2026-10-05.md` (05.10 16:2x, על ה-JSON הקיים של `t529b`, 65 סשנים, 4,205 מועמדים, בלי הרנס ב-RTH).",
+    "next": "(1) סוכן-ה-23:40 קורא `docs/reports/WALK_FORWARD_2026-10-05.md` §7 **לפני כל עלה חדש** — רשימת-הגיזום (8 עלים, OOS ≤ 0, n≥10) היא הסדר-יום, לא T-531/T-528; הלילה אין עלה חדש ב-YAML. (2) שורת-אינבוקס אחת בבוקר: \"holdout TAKE −3,212$ / SKIP +53$; S1 `d_with_exte",
+    "measurable": false
+   },
+   {
+    "id": "T-544",
+    "status": "🟠",
+    "title": "חוסם-הלייב של 05.10 התחלף באמצע הסשן — מ",
+    "next": "(1) **ריצת-RTH הבאה:** מה קרה ל-4 התאומים הפתוחים (3003/3004/3006/3008) — הם הופכים את המאזן להכרעה או משאירים אותו תלוי; (2) **מועמד-ריפליי צר** ([[דוקטרינת-הלמידה]] — ריפליי קודם דגל): להריץ את 10 סשני-ה-holdout של [[T-540]] עם ELQ מוחרג **רק** על `Trend_Nor",
+    "measurable": true
+   },
+   {
+    "id": "T-545",
+    "status": "🔴",
+    "title": "פוזיציית-לייב פתוחה בברוקר שהספרים סגרו כהפסד ",
+    "next": "תור-הלילה מנקה ל-#3046 את `entry_ts` **וגם** את `pnl_sierra`, וכותב ב-LIVE_CHANNEL \"אין רישום-ברוקר ל-#3046\" + מסמן את ה-`+53.75` כ-`unmatched` במפורש. 🆕 **ריצה 199 (05.10 22:11) — הסינון של `11401-11404` עבר מחשבון להוכחה:** \"שני ידניים\" נשען עד כה על התלכדות",
+    "measurable": false
+   },
+   {
+    "id": "T-546",
+    "status": "🟠",
+    "title": "`GET /chat` מחזיר `{\"items\":[]}` מחוץ ל-`10:00-23:30` גם כשיש חוט שלם — ולכן אימות-המסירה שההזמנה מחייבת שקר בדיוק בשעות שבהן סוכן-לילה עובד.",
+    "next": "**(1) ✅ בוצע ואומת — cowork-dev ריצה 203 (06.10 11:16-11:30):** נוספה **מלכודת 32** ל-`docs/runbooks/COWORK_DAILY_READ.md` עם טבלת-הפוסקים (ממתינה ⇒ `PHONE_THREAD.jsonl` · מסירה ⇒ `/chat` **רק** בתוך החלון · פקודה ⇒ `/instruction|cmd/pending`). **והראיה היא A/",
+    "measurable": false
+   },
+   {
+    "id": "T-547",
+    "status": "🔵",
+    "title": "הפוסק-לממתינות נבדק במפתח שלו עצמו — `PHONE_THREAD.jsonl` שלם, אבל הכותב מקבל `sender` ששווה לשם-דגל.",
+    "next": "**(1)** להוסיף ל-`scripts/phone_reply.py` שער-קלט שנכשל בקול על `sender` ריק או כזה שמתחיל ב-`--` (לא לכתוב שורה בכלל) + מקרה-רגרסיה; תיקון-קטן בסקריפט לא-מסחרי ולכן **בסמכות**, אך **לא בריצת-חובה-1** — נתיב-הטלפון לא נוגעים בו בלי מבחן. **(2)** שתי השורות ההי",
+    "measurable": false
+   },
+   {
+    "id": "T-549",
+    "status": "🔵",
+    "title": "`harness_out/` אינו ב-`.gitignore` כלל — 1.88GB / 7,811 קבצי-ריפליי פר-יום יושבים כ-untracked בעץ-העבודה, ו-`git add -A` רפלקסיבי אחד הופך אותם להיסטוריה שהריפו הזה אוסר לשכתב.",
+    "next": "כלל `.gitignore` **ממוקד-תיקייה** לבורות (`harness_out/t466/` ראשון, ואחריו `t458`/`t458a`/`t426`) + **אימות `git check-ignore -v` על זוג** — קובץ-פסולת אחד וקובץ-סיכום אחד — לפני הקומיט, כך שהכלל מוכח שאינו משתיק ראיות. ⛔ **לא בריצת-חובה-1 ולא בזמן שעץ-העבודה",
+    "measurable": false
+   },
+   {
+    "id": "T-550",
+    "status": "🔵",
+    "title": "שורת-הלוג `VIRTUAL STOP SET` של הריקונסיילר מפרסמת פלטן-אוטומטי שפסיקת מייקל 28.07 ביטלה — ולכן קורא-הלוג מסיק סיכון-מסחר שאינו קיים.",
+    "next": "לנסח את שורת-הלוג לפי הדגל בזמן-ריצה — `ALERT ONLY (ruling 07-28)` כשהדגל OFF, והנוסח הקיים רק כשהוא ON — **שינוי-טקסט בלבד ב-`sierra_position_reconciler.py:771-773`, בלי נגיעה בדגל ובלי שינוי התנהגות**, + טסט-רגרסיה שמאשר ששתי הצורות נבחרות לפי `ORPHAN_AUTO_F",
+    "measurable": false
+   },
+   {
+    "id": "T-551",
+    "status": "🟡",
+    "title": "הצ'ארט של סיירה עבר לחשבון `Sim1` ב-18:36 בעוד המערכת חמושה והסלוט פנוי — ירי-לייב עכשיו מנותב לסימולציה ובכל זאת נכתב ב-`v9_trades` כ-`mode=live`, כלומר שורת-ספרים בלי כיסוי-ברוקר.",
+    "next": "(1) **מייקל מכריע** — להחזיר את הצ'ארט לחשבון-הברוקר `37138283`, או להשאיר `Sim1` עד מחר. (2) **\"להחזיר\"** ⇒ לאמת שניהם לפני שמדווחים שנפתר: `trade_account != \"Sim1\"` **וגם** `cash > 287.76`. (3) **\"להשאיר בסים\"** ⇒ זו פסיקה בכתב, ואז בלבד להכריע מה עושים עם ש",
+    "measurable": false
+   },
+   {
+    "id": "T-552",
+    "status": "🟡",
+    "title": "הודעת-טלפון יחידה הגיעה למייקל פעמיים — הכפילות ממוקמת אחרי ה-POST היחיד, לא בהרצה כפולה.",
+    "next": "(1) **לא לשלוח הודעת-בדיקה לטלפון** כדי לשחזר — זו בדיוק ההצפה. (2) להכריע מלוגי-השרת: `list_logs` של שירות `mems26-mobile` ברנדר סביב `15:53:59-15:54:01Z` ⇒ **שתי בקשות POST /reply או אחת?** שתיים ⇒ הכפלת-מסירה בצד-הרשת/פרוקסי; אחת ⇒ `/reply` כותב פעמיים. ⚠️ ",
+    "measurable": false
+   },
+   {
+    "id": "T-554",
+    "status": "🔵",
+    "title": "17 שורות-צל נשארו פתוחות (`state=FILLED`) בסגירת 06.10, וכולן מ-06.10 עצמו — כלומר בשער של מחר הן \"שורות-הצל של אתמול\", הקלט המדויק של `close_stale_shadow.py` ברשימת-הטרום-ריסטארט.",
+    "next": "בשער 15:30-16:10 של **07.10**, ובסדר הזה: (1) `python3 scripts/close_stale_shadow.py` **דריי-ראן** ⇒ לוודא שהוא מציג את 17 השורות של 06.10 (אם הוא מציג פחות — זה ממצא על **כלי-הסגירה**, לא על הנתונים, ונרשם כשורה חדשה). (2) `--apply`. (3) לחזור על השאילתה למעל",
     "measurable": false
    }
   ]
  },
  "measurable_now": [
+  {
+   "id": "T-537",
+   "status": "🔴",
+   "title": "ביקורת-השיטה (מייקל 05.10 15:10: \"מפקח על מפקח על מפקח … עוד פלסתר — תבדוק האם השיטה נכונה והאם רעיון-הענפים עובד\"): לזרם-המועמדים אין יתרון (4,162 מועמדים · 42% · −2.1$/מועמד); העץ מפריד דק (TAKE −0.",
+   "next": "פסיקות-מייקל על סעיף 3 בדוח: (1) הקפאת הוספת-ענפים עד פרוטוקול-ולידציה מחוץ-לדגימה (walk-forward, 10 סשנים אחרונים = סט-החזקה); (2) מדידת קונפיג-ליבה (תבניות חסונות × שעה, ארבעת שערי-האיכות, חיתוך 20:00) יום-שלם + OOS; (3) שורש שלב C/D = מבנה-IB+שעה+סוג-כניסה ",
+   "measurable": true
+  },
   {
    "id": "T-458",
    "status": "🔴",
@@ -7924,6 +8108,20 @@
    "status": "🔴",
    "title": "`acct_available_funds` מחזיר `DBL_MAX` (1.7976931348623157e+308) — קלט-השער של T-34 הוא סנטינל \"לא-זמין\" שנראה כמו מספר.",
    "next": "**(א) בשער-15:30 היום, לפני כל השוואה:** `if not (0 < avail < 1e12): הקלט אינו מדיד ⇒ אפס עריכה ב-.env, אפס ריסטארט, הגודל נשאר `ruled_contracts()` כפי שהוא, ומדווח למייקל בטלפון כ\"מרג'ין לא-נמדד\" — **לא** \"אין מרג'ין\" ו**לא** \"יש מרג'ין\". לאמת גם `is_sim==0` ",
+   "measurable": true
+  },
+  {
+   "id": "T-544",
+   "status": "🟠",
+   "title": "חוסם-הלייב של 05.10 התחלף באמצע הסשן — מ",
+   "next": "(1) **ריצת-RTH הבאה:** מה קרה ל-4 התאומים הפתוחים (3003/3004/3006/3008) — הם הופכים את המאזן להכרעה או משאירים אותו תלוי; (2) **מועמד-ריפליי צר** ([[דוקטרינת-הלמידה]] — ריפליי קודם דגל): להריץ את 10 סשני-ה-holdout של [[T-540]] עם ELQ מוחרג **רק** על `Trend_Nor",
+   "measurable": true
+  },
+  {
+   "id": "T-535",
+   "status": "🟠",
+   "title": "שמונה עלים בשלים לפיצול במדידת-העץ של 05.10 (t529b, 65 סשנים, 4,398 מועמדים) — ובראשם SKIP שמרוויח: `OPEN_AUCTION_IN/C/Normal/structure=none/SHORT/zone=mid_value/edge=none` n=42 · 64% · +1,427$ ברמת-מ",
+   "next": "(1) וריאנט ל-(1): ב-`responsive_normal` SHORT/mid_value → TAKE רק תחת `OPEN_AUCTION_IN` (או split נוסף: `structure`/`prior_zone`) — הרנס מול ייחוס; (2) (5): למדוד את עלה-S1 **עם** השערים שאחריו כפי שהוא (יום-שלם) — אם Σ-יום-שלם שלילי ⇒ פסיקה על צמצום (למשל רק ",
    "measurable": true
   },
   {
@@ -8107,87 +8305,78 @@
    "title": "הכיוון צדק וההצבה לא — שתי עסקאות-לייב SHORT של 08.09 היו בכיוון-היום ובהסכמה מלאה עם צל-S1DayDir, ונעצרו לפני התנועה.",
    "next": "להוסיף את 1224/1231/1262 כ**מקרי-ריפליי** לסט-הרגרסיה (דוקטרינת-הלמידה: תקרית ⇒ מקרה-ריפליי, לא דגל), ולמדוד את עוגן-הסטופ **פר-סוג-יום** — לא גלובלית, כי הריפליי הגלובלי כבר נדחה. אין שינוי-התנהגות עד מספר.",
    "measurable": true
-  },
-  {
-   "id": "T-277",
-   "status": "🟠",
-   "title": "הספרים והברוקר נושאים מחירי-ברקט שונים על עסקת-הלייב הפתוחה `#1231` — הזזה מסודרת פר-חוזה, לא רעש-עיגול.",
-   "next": "(1) **לתפוס את המטען הגולמי לפני שהוא נמחק** — הנתיב היחיד להכרעה: להוסיף שמירת-עותק של `cmd_*.json` (או לוג של המטען) לפני ה-ACK, או לקרוא את הצד השני מהיומן של סיירה. בלי זה השאלה בלתי-מדידה גם בעסקה הבאה — אותה מחלקה כמו [[T-272]] סעיף 3 ו-[[T-276]] סעיף 4.",
-   "measurable": true
-  },
-  {
-   "id": "T-271",
-   "status": "🟠",
-   "title": "\"סוף-הרחבה = טריגר לצד השני\" נמדד על 15 סשנים — הקריאה נכונה, מבנה-העסקה מפסיד.",
-   "next": "(1) לא לבנות T1 בשום צורה שמשאירה סטופ בקיצון — גם וריאנט סטופ-על-בר-האות נמדד: -$432.50, -8.92R, 11/15 סטופים. (2) לא T3b (חזרה דרך מקור-הרגל) — 0 מועמדים ב-15 סשנים. (3) **המדידה היחידה שראויה להמשך: אותו טריגר T3 עם היעד לצד הרחוק של הערך** כדי שה-R:R יעבור",
-   "measurable": true
-  },
-  {
-   "id": "T-244",
-   "status": "🟠",
-   "title": "אחרי [[T-242]]+[[T-235]] שער-הצ'ייסר `entry_location_quality` הופך כמעט-אינרטי ביום-מגמה: בשחזור על ",
-   "next": "אין לגעת בסף ואין להחזיר את החסימה. **למדוד יום-מסחר אחד** עם [[T-219]] (`mode='shadow_blocked'`, חי מ-`23:56:08`, `0` שורות עד עכשיו כי השוק היה סגור — `SELECT count(*) FROM v9_trades WHERE mode='shadow_blocked'`) ולהביא למייקל את המספר האמיתי: מתוך המועמדים ",
-   "measurable": true
   }
  ],
  "reports": [
   {
-   "file": "docs/reports/T529_EDGE_RESPONSIVE_2026-10-03.md",
-   "mtime": "2026-10-03 16:26"
+   "file": "docs/reports/OPS_LOG_2026-10-06.md",
+   "mtime": "2026-10-07 03:45"
   },
   {
-   "file": "docs/reports/OPS_LOG_2026-10-03.md",
-   "mtime": "2026-10-03 16:23"
+   "file": "docs/reports/DAY_REVIEW_2026-10-06.md",
+   "mtime": "2026-10-06 23:19"
   },
   {
-   "file": "docs/reports/REPLAY_REVIEW_2026-10-02.md",
-   "mtime": "2026-10-02 23:06"
+   "file": "docs/reports/REPLAY_REVIEW_2026-10-06.md",
+   "mtime": "2026-10-06 23:15"
   },
   {
-   "file": "docs/reports/DAY_REVIEW_2026-10-02.md",
-   "mtime": "2026-10-02 23:06"
+   "file": "docs/reports/DAY_OPEN_ENTRY_2026-10-06.md",
+   "mtime": "2026-10-06 16:05"
   },
   {
-   "file": "docs/reports/OPS_LOG_2026-10-02.md",
-   "mtime": "2026-10-02 23:06"
+   "file": "docs/reports/SUPERVISION_LATEST.md",
+   "mtime": "2026-10-06 15:36"
   },
   {
-   "file": "docs/reports/MARKS_VS_TREE_2026-09-25.md",
-   "mtime": "2026-10-02 11:05"
+   "file": "docs/reports/SUPERVISION_2026-10-06_1536.md",
+   "mtime": "2026-10-06 15:36"
   },
   {
-   "file": "docs/reports/MARKS_VS_TREE_2026-09-24.md",
-   "mtime": "2026-10-02 11:05"
+   "file": "docs/reports/STAIR_HOLD_2026-10-06.md",
+   "mtime": "2026-10-06 13:54"
   },
   {
-   "file": "docs/reports/T523_ACCEPTANCE_2026-10-02.md",
-   "mtime": "2026-10-02 10:28"
+   "file": "docs/reports/DAY_LESSONS_2026-10-06.md",
+   "mtime": "2026-10-06 12:39"
   },
   {
-   "file": "docs/reports/TREE_V3_MEASURE_2026-10-01.md",
-   "mtime": "2026-10-01 23:25"
+   "file": "docs/reports/T538_CUTOFF_ALTERNATIVES_2026-10-06.md",
+   "mtime": "2026-10-06 12:36"
   },
   {
-   "file": "docs/reports/REPLAY_REVIEW_2026-10-01.md",
-   "mtime": "2026-10-01 23:08"
+   "file": "docs/reports/CELL_MAP_2026-10-06.md",
+   "mtime": "2026-10-06 12:05"
   },
   {
-   "file": "docs/reports/OPS_LOG_2026-10-01.md",
-   "mtime": "2026-10-01 23:08"
+   "file": "docs/reports/DAYTYPE_MATRIX_2026-10-06.md",
+   "mtime": "2026-10-06 11:32"
   },
   {
-   "file": "docs/reports/DAY_REVIEW_2026-10-01.md",
-   "mtime": "2026-10-01 23:07"
+   "file": "docs/reports/STAIRS_2026-10-06.md",
+   "mtime": "2026-10-06 11:28"
   }
  ],
  "harness_runs": [
+  {
+   "dir": "harness_out/t543",
+   "last": "report: docs/reports/STAIR_HOLD_2026-10-06.md"
+  },
   {
    "dir": "harness_out/t466",
    "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
   },
   {
+   "dir": "harness_out/t542",
+   "last": "25 passed, 2 warnings in 16.63s"
+  },
+  {
+   "dir": "harness_out/t538",
+   "last": "ALL DONE t538h Mon Oct  5 16:04:17 IDT 2026"
+  },
+  {
    "dir": "harness_out/t529",
-   "last": "ALL DONE Sat Oct  3 16:17:05 IDT 2026"
+   "last": "→ /Users/michael/Downloads/mems26_web_git/docs/reports/TREE_V3_MEASURE_2026-10-05.md"
   },
   {
    "dir": "harness_out/t523",
@@ -8208,18 +8397,6 @@
   {
    "dir": "harness_out/t494",
    "last": "ALL DONE t498ec0 Sun Sep 27 15:43:51 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t480",
-   "last": "ALL DONE t3v3b Fri Sep 25 13:18:32 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t459",
-   "last": ""
-  },
-  {
-   "dir": "harness_out/t458a",
-   "last": "ALL DONE Thu Sep 24 10:52:48 IDT 2026"
   }
  ]
 }
