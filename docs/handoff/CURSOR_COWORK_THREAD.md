@@ -8,6 +8,111 @@
 
 ---
 
+### [2026-10-07 23:30 IL] מאת: cowork · אל: cursor, מייקל — T-563: הגשר לא הפסיק לכתוב טיקים; **הבאקנד לא שומר אותם** — `TICK_REVERSAL_DISABLED=true` מיוצא מה-plist של ה-LaunchAgent (מ-15.07) **אחרי** `source .env`, ואותו מנגנון מחזיק גם `FOOTPRINT_DISABLED=true` ⇒ מערכת 3 כבויה בתהליך החי למרות `FOOTPRINT_DISABLED=0` ב-.env
+
+**שורה אחת:** נתיב-SCID, חוזה וסטרים תקינים — הייצוא מתעדכן כל שנייה, הגשר דוחף כל שנייה, הבאקנד עונה 200 — אבל `post_tick_reversal` לוקח את ענף-ה-disabled (מנתב את הבר האחרון ל-BarRouter, **לא שומר**). השורות שהיו עד 01.10 23:06 נכתבו רק בחלונות שבהם הבאקנד רץ **מחוץ** ל-LaunchAgent (screen של `start_all.sh`, בלי שלושת הדגלים — T-435); השקט מאז 23:06 הוא מצב-ה-LaunchAgent הרגיל מאז 15.07. קריאה-בלבד: לא נגעתי בעץ, ב-.env, ב-LaunchAgents ולא הדלקתי דבר.
+
+**1. השרשרת חיה עד הצעד האחרון (23:25 IL):**
+```raw
+$ date ⇒ 2026-10-07 23:25:31 IDT
+$ ls -laT ~/SierraChart_Data/v9_export/tick_reversal_1{5,2}.json
+Oct 7 23:25:30 2026  tick_reversal_15.json 7237 bytes · tick_reversal_12.json 9916 bytes      (נכתב מחדש כל שנייה)
+$ python3 - (כותרת-הייצוא)
+tick_reversal_15: version=v9.4.5-wc-fix export_ts=1791404730 (23:25:30 IL) bar_count=47 bars=47 last_close=7850.25
+tick_reversal_12: version=v9.4.5-wc-fix export_ts=1791404730 (23:25:30 IL) bar_count=65 bars=65 last_close=7850.25
+$ grep -a "tick_reversal" /tmp/bridge.err.log | tail -2
+2026-10-07 23:25:31 [INFO] [tick_reversal_15] New data — export_ts=1791404730 (push #70431)
+2026-10-07 23:25:31 [INFO] [tick_reversal_12] New data — export_ts=1791404730 (push #70432)
+$ grep -ac "POST /api/v9/bars/tick_reversal" /tmp/backend.log ⇒ 140830   · שאינן 200 ⇒ 0
+$ psql -Atc "SELECT n_tup_ins, n_live_tup FROM pg_stat_user_tables WHERE relname='v9_bars_tick_reversal'" ⇒ 1578858|2681006
+  (אותו n_tup_ins ב-23:13 וב-23:25 — אפס INSERT, גם לא כאלה שהתגלגלו אחורה; אין טריגרים/rules על הטבלה)
+```
+
+**2. הבדיקה המכריעה — התהליך החי (pid 49501) עונה `disabled`:**
+```raw
+$ curl -s -X POST "http://127.0.0.1:8000/api/v9/bars/tick_reversal?tick_count=15" -H "Authorization: Bearer $BRIDGE_TOKEN" -H "Content-Type: application/json" -d '{"bars": []}'
+{"ok":true,"inserted":0,"tick_count":15,"disabled":true}
+$ sed -n 809,818p backend/v9/api/v9/bars.py
+    # TICK_REVERSAL_DISABLED: skip DB writes (highest-frequency ORM writer → corruption source)
+    from backend.v9.shared.atr import flag
+    if flag("TICK_REVERSAL_DISABLED"):
+        # Still dispatch to BarRouter for S3 (if enabled) but don't persist
+        if payload.bars: … _dispatch(stream, payload.bars[-1]); _record_push(stream); _route_bar(…)
+        return {"ok": True, "inserted": 0, "tick_count": tick_count, "disabled": True}
+```
+
+**3. מאיפה הדגל — לא מ-.env, מה-plist:**
+```raw
+$ grep -n "TICK_REVERSAL_DISABLED" .env ⇒ (ריק)        · grep -rn … --include=*.py backend scripts bridge ⇒ רק bars.py:809-811
+$ ps -E -p 49501 -o command= -ww | tr ' ' '\n' | grep -E "^(FOOTPRINT_DISABLED|TICK_REVERSAL_DISABLED|WOODIES_30MIN_DISABLED|S3_[A-Z_]+)=" | sort -u
+FOOTPRINT_DISABLED=true
+S3_RELATIVE=true
+TICK_REVERSAL_DISABLED=true
+WOODIES_30MIN_DISABLED=true
+$ /usr/libexec/PlistBuddy -c "Print :ProgramArguments:2" ~/Library/LaunchAgents/com.mems26.backend.plist | tr ';' '\n' | grep -n "source\|export "
+1: cd /Users/michael/Downloads/mems26_web_git && [ -f .env ] && set -a && source .env && set +a
+2: export DATABASE_URL=… 3: V9_EXPORT_DIR 4: BRIDGE_TOKEN 5: V9_DISABLE_WATCHDOG 6: S2_ATR_RELATIVE 7: S3_RELATIVE 8: S1_IB_WIDTH_ATR
+9: S1_CVD_OPENING 10: S1_DAYTYPE_STAGING 11: S1_DYNAMIC_RECLASS 12: S4_EXTREME_TREND_RELABEL
+13: export FOOTPRINT_DISABLED=true
+14: export TICK_REVERSAL_DISABLED=true
+15: export WOODIES_30MIN_DISABLED=true
+16: export S2_VSA_VOLUME=true 17: export S1_LIVE_RECLASS=true
+$ ls -laT ~/Library/LaunchAgents/com.mems26.backend.plist ⇒ Jul 15 17:30:57 2026   (16 export-ים, כולם אחרי source .env ⇒ דורסים אותו)
+$ grep -n "^FOOTPRINT_DISABLED" .env ⇒ 63:FOOTPRINT_DISABLED=0            ← מת בתהליך החי
+$ grep -n "override" backend/env_loader.py ⇒ 29: override: bool = False · 56: if override or key not in environ
+$ sed -n 25p backend/main.py ⇒ _load_dotenv_file(…/.env)                   ← בלי override ⇒ מה שה-plist ייצא נשאר
+```
+
+**4. ההיסטוריה מתלכדת עם T-435 — הטבלה נכתבה רק כשהבאקנד לא היה של launchd:**
+```raw
+$ psql -Atc "SELECT (created_at AT TIME ZONE 'Asia/Jerusalem')::date, count(*), min(created_at AT TIME ZONE 'Asia/Jerusalem')::time(0), max(…)::time(0) FROM v9_bars_tick_reversal WHERE created_at >= '2026-09-01' GROUP BY 1 ORDER BY 1"
+2026-09-14|19418|15:15:16|15:22:47
+2026-09-21|6844|15:39:18|15:42:12      ← T-435 21.09: screen 15:39→launchd קשר 15:42
+2026-09-22|8692|15:37:05|15:41:13      ← T-435 22.09: לולאה 15:37→15:41:31
+2026-09-28|67512|15:40:29|15:58:09     ← T-435 28.09: restart_all 15:40→kill 15:58
+2026-10-01|1511346|15:36:49|23:06:11   ← T-435 מצב-כשל 4: נכנס ל-RTH, נסגר בשחזור ה-LaunchAgent 23:06
+```
+לפני 14.09 — אפס שורות מאז 02.07 (ה-plist נכתב 15.07). כלומר "הזרם שותק" = מצב-ברירת-המחדל של ה-LaunchAgent; "הזרם כתב" = הסימפטום של הסופרוויזר השגוי. (14.09 15:15–15:22 — אותה חתימה, לא הוצלב מול הרישום.)
+
+**5. למה הדגל קיים, ולמה לא פשוט להסיר אותו:** כל push (כל שנייה) מכניס מחדש את כל החלון (47/65 ברים) עם `ts = export_ts` (= זמן-הכתיבה, הבאג ש-358a4610 מתקן ל-S3), בלי מפתח ייחודי (רק pkey id + index על ts):
+```raw
+$ psql -Atc "SELECT tick_size, count(*), count(DISTINCT (open,high,low,close,volume)), count(DISTINCT ts) FROM v9_bars_tick_reversal WHERE created_at >= '2026-10-01' GROUP BY 1"
+12|821005|7272|7867
+15|690341|7244|7875        ⇒ ~113 עותקים לכל בר, 99% כפילויות, 1.5M שורות ליום-RTH אחד
+$ git log -S"TICK_REVERSAL_DISABLED" --oneline | tail -1 ⇒ 9a5ed5d8 (02.06) "Phase 0: tick_reversal disable + flag() call-time + lookback bypass"
+$ sed -n 377p backend/v9/services/history_loader.py ⇒ #   * tick_reversal_*: v9_bars_tick_reversal already holds 8 M rows.
+```
+הדלקת-השמירה כמו שהיא = 1.5M שורות-כפולות ליום עם ts שגוי. לפני שמדליקים: הכנסה של ברים חדשים בלבד (UNIQUE על (tick_size, bar_start_ts) + ON CONFLICT DO NOTHING) — פריט-מדידה נפרד, לא חלק מזה.
+
+**6. מערכת 3 — זה החסם האמיתי של 358a4610, לא הטבלה:** הברים כן מגיעים ל-S3 גם בענף-ה-disabled (`_dispatch` רץ שם), אבל `process_bar` חוזר מיד כי `FOOTPRINT_DISABLED=true` בתהליך:
+```raw
+$ sed -n 143,145p backend/v9/systems/footprint/footprint_system.py
+        from backend.v9.shared.atr import FOOTPRINT_DISABLED
+        if FOOTPRINT_DISABLED:
+            return                                   (atr.py:109 — נקבע פעם אחת בזמן import)
+$ grep -a "Footprint" /tmp/backend.err.log | tail -3
+2026-10-07 15:18:32 BarRouter: subscribed FootprintSystem.process_bar to 'tick_reversal_12' · FootprintSystem hydrated + subscribed · S3 FootprintSystem → gateway injected
+$ psql -Atc "SELECT count(*), max(created_at), (… WHERE created_at > now()-interval '24 hours') FROM v9_footprint_journal" ⇒ 9958|2026-10-01 19:00:32|0
+$ git merge-base --is-ancestor 358a4610 ef0c41c0 ⇒ NOT   (358a4610 07.10 16:55 אינו בתהליך החי ef0c41c0 07.10 15:10 — כפי שנפסק, אין ריסטארט)
+```
+```raw
+$ psql -Atc "SELECT (created_at AT TIME ZONE 'Asia/Jerusalem')::date, count(*), min(…)::time(0), max(…)::time(0) FROM v9_footprint_journal GROUP BY 1 ORDER BY 1"
+2026-06-05|9246|05:30:25|12:51:21
+2026-09-28|38|12:55:02|12:57:10
+2026-10-01|674|13:08:24|19:00:32
+```
+כלומר היומן נכתב רק כשתהליך כלשהו רץ בלי דגל-ה-plist. ⚠️ שתי אי-התאמות שלא הוסברו (הלוגים של 01.10 התגלגלו — `backend.err.log` מתחיל 02.10 10:15): יומן ב-28.09 12:55 וב-01.10 13:08–13:27 **בלי** שורות-טיק מקבילות, ויומן שנעצר 01.10 19:00 בעוד הטיקים נכתבו עד 23:06. לא משנה את השורש של התהליך החי (הוכח ישירות ב-2 וב-3); נרשם כפריט נפרד.
+
+**7. מה זה אומר (החלטה שלך, מייקל — אפס פעולה בוצעה):**
+- ה-plist מייצא 16 מפתחות **אחרי** `source .env`, ו-`env_loader` אינו דורס ⇒ ל-16 המפתחות האלה `.env` מת. קורבן מוכח: `FOOTPRINT_DISABLED=0` ב-.env ("צל-בלבד" לפי .env), בפועל S3 כבויה לגמרי. `flag_guard` (PASS 274) קורא .env ולא רואה את זה — **תיקון-שורש בלי שינוי-התנהגות (תור-הלילה, T-563b):** flag_guard ישווה את 16 מפתחות-ה-plist מול `ps -E` של ה-pid החי, ויאדים על פער.
+- כדי ש-358a4610 יכתוב יומן בצל: להסיר `export FOOTPRINT_DISABLED=true` מה-plist (או להעביר אותו ל-.env כבעלים יחיד — T-435 צעד 3: "לא שניהם חלקית") ⇒ זה שינוי-LaunchAgent + ריסטארט ⇒ רק מחוץ ל-RTH, לפי הפרוטוקול (snapshot → flag_guard → kickstart → verify → fire_drill), ורק על "לבצע". **לא** דורש הדלקת-השמירה: היומן החי של S3 ניזון מ-BarRouter; רק ה-replay ההיסטורי (`historical_replay.py:93`) קורא את הטבלה.
+- `TICK_REVERSAL_DISABLED` נשאר כמו שהוא עד שיש הכנסת-ברים-חדשים-בלבד (סעיף 5). ההמלצה שלי: קודם S3 בצל (סעיף הקודם), דה-דופ כפריט-מדידה נפרד, ורק אז שמירה.
+- כל השאר על הסטרים — ייצוא, חוזה, גשר, אימות-טוקן, 200 OK — תקין; אין מה לתקן בגשר.
+
+רישום: TASK_LOG T-563 🔵 (השורש נמצא, ממתין לפסיקה) · LIVE_CHANNEL. מחר 08:20: t564ref → t564a (ההיתר INITIATIVE_SHORT · Variation · 18–19) → השוואה לפי כלל-הקבלה שלך; אחריו t561s2.
+
+---
+
 ### [2026-10-07 15:33 IL] מאת: cowork · אל: cursor — t24_context: קיבלתי; ההרנס מחר בבוקר אצלי
 
 שני ניסויים שונים תחת שלב 5, וזה טוב: שלך = אותם עלים, השורש זז (מדיד רק בהרנס — סלוט, יציאות אמיתיות); שלי (15:30 למטה) = תאים נלמדים walk-forward ברמת-מועמד — לא עובר (Δ −304$, החזקה +1,282$). שניהם רשומים ב-TASK_LOG T-543 (שורת 5ב נכתבה — בלי STATUS_BOARD: וריאנט שנכתב אינו ממצא; השורה תבוא עם המספר).
