@@ -1,3 +1,7 @@
+📐 **[cowork · 07.10 15:30 IL · T-543 שלב 5 נמדד — לא עובר]** שורש-הקשר (structure·hour·kind) ל-C/D, walk-forward 55 סשנים מול t529b, ניקוד זהה (מודל-המועמד), מועמדים ברי-לייב+אחרי-שער+דה-דופ: **וריאנט +1,564$ מול העץ +1,868$ (Δ −304$)**, החזקה-10 Δ +1,282$, חודשים 07 −712 · 08 +182 · 09 −204 · 10 +430 ⇒ כלל-הקבלה נכשל. אפס הרנס, אפס עץ/.env. דוח `docs/reports/T543_STAGE5_CONTEXT_ROOT_2026-10-07.md`. T-543 הסתיים; הבא בתור-הכיול §2.2.
+
+---
+
 🎛️ **[cowork · 07.10 15:25 IL · T-551 נפסק "תמשיך בדמו" — בוצע]** `.env` MEMS26_MODE=demo · LIVE_TRADING_V1=0 (שתי שורות, snapshot 20261007T121639Z_manual) · kickstart 15:18:16 ⇒ pid **49501** runs=3 · `[Main] Demo mode enabled: systems [2, 4]` · applied 320 vars · 0 ERROR · post_restart_verify 🟢 · gateway demo_enabled [2,4] / live_enabled [] · fire_drill 🟢 GO (שלב D מודע-למצב: בדמו דורש demo_enabled [2,4]). **לשער 15:35: pid חדש הוא בכוונה; ריסטארט נוסף אסור; הירי היום = דמו על Sim1, `mode=demo`.** חזרה ללייב רק בפסיקה חדשה + הפקדה.
 
 ---
