@@ -628,6 +628,14 @@ gw._persist_exit = lambda *a, **k: None
 
 _orig_route = gw.route_setup
 
+# T-561 (07.10, cowork): HARNESS_SECOND_SLOT_PATHS — measurement-only second live slot, for setups whose walked tree
+# path is in the ';'-separated list (exact `tree_v3.path`). The live gateway has ONE slot and is untouched; here, when
+# the first routing says live_slot_occupied, the walked path is listed and the second slot is free, the same setup is
+# routed again with the slot cleared, and the trade it opens is held as the second slot until it closes. Unset
+# (default) ⇒ this block never runs ⇒ byte-identical replay. Finding behind it: TASK_LOG T-561.
+_SECOND_PATHS = [p.strip() for p in (os.getenv("HARNESS_SECOND_SLOT_PATHS") or "").split(";") if p.strip()]
+_SECOND = {"trade": None, "opened": 0}
+
 
 def _route_setup_capture(setup, system_id):
     n = _NOW["utc"]
@@ -649,6 +657,18 @@ def _route_setup_capture(setup, system_id):
     except Exception as _e:
         rec["_dbg_clock"] = repr(_e)
     res = _orig_route(setup, system_id)
+    if (_SECOND_PATHS and res.get("live_blocked_by") == "live_slot_occupied" and _SECOND["trade"] is None
+            and isinstance(res.get("tree_v3"), dict) and res["tree_v3"].get("path") in _SECOND_PATHS):
+        _held = gw.live_slot
+        gw.live_slot = None
+        try:
+            res = _orig_route(setup, system_id)           # same candidate, slot free — the gates decide again
+        finally:
+            if gw.live_slot is not None and gw.live_slot is not _held:
+                _SECOND["trade"] = gw.live_slot            # the second trade lives here, not in the gateway's slot
+                _SECOND["opened"] += 1
+            gw.live_slot = _held
+        rec["second_slot"] = True
     rec["blocked_by"] = res.get("blocked_by")
     rec["reason"] = res.get("reason")
     rec["live_blocked_by"] = res.get("live_blocked_by")
@@ -1090,6 +1110,8 @@ def _close_trade(tr, il, eod=False, eod_price=None):
     # gateway bookkeeping the live on_trade_close would do (slot, daily stats, cooldown)
     if gw.live_slot and str(gw.live_slot.get("trade_id")) == str(tr["trade_id"]):
         gw.live_slot = None
+    if _SECOND["trade"] and str(_SECOND["trade"].get("trade_id")) == str(tr["trade_id"]):
+        _SECOND["trade"] = None                            # T-561: the second slot is free again
     gw._daily_trades += 1; gw._daily_pnl += pnl
     gw._consecutive_losses = gw._consecutive_losses + 1 if pnl < 0 else 0
     try:
@@ -1293,6 +1315,7 @@ out = {
     "pd_ctx": {k: PD_CTX.get(k) for k in ("pd_high", "pd_low", "pd_close", "pd_context_status")},
     "prev_tpo": {k: PREV_TPO.get(k) for k in ("found", "poc", "vah", "val")},
     "s1": S1_LOG, "routes": RECORDS, "would_write": _WOULD_WRITE,
+    "second_slot": {"paths": _SECOND_PATHS, "opened": _SECOND["opened"]},   # T-561 (empty list ⇒ not in play)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
