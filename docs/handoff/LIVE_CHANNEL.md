@@ -43,6 +43,16 @@ tpo      : [tpo] Sierra tpo.json stale age=37256.5s > 30.0s — serving anyway
       still open in books: 0
 ```
 
+```raw
+10:46 אימות-עצמאי ב-DB (לא דרך הסקריפט):
+      select count(*) ... exit_reason='STALE_UNRESOLVED' and updated_at::date='2026-10-08'  ⇒ 23
+      select count(*) ... exit_reason='STALE_UNRESOLVED' and exit_price is not null          ⇒ 0
+      select count(*) ... upper(state)<>'CLOSED'                                             ⇒ 38
+      select state,mode,count(*) ... upper(state)<>'CLOSED' ⇒ CANCELLED|live|36 (07-10..07-27) · CANCELLED|demo|2
+```
+
+⚠️ **מלכודת למי שיאמת אחרי:** `state <> 'CLOSED'` מחזיר **38** ונראה כמו פוזיציה פתוחה — אבל כל 38 הן `CANCELLED` (הזמנות שלא התמלאו, יולי). `close_stale_shadow.py:44` מגדיר `OPEN_STATES = ("CLOSED","CANCELLED")` = **שני** המצבים הסופיים, ולכן `still open in books: 0` נכון. לאמת פוזיציה יש לשאול `state NOT IN ('CLOSED','CANCELLED')` — אחרת אזעקת-שווא.
+
 ⇒ **אומת:** `still open in books: 0` · פוזיציה 0 · אפס מחיר-יציאה הומצא (`exit_reason=STALE_UNRESOLVED`, בלי `exit_price`). **לריצת-15:30:** שלב זה בוצע — אין צורך לחזור עליו, רק לאמת `still open in books: 0` לפני הריסטארט. 💵 חשיפה: אפס — קומיט לפי נתיב (`LIVE_CHANNEL.md` בלבד; עץ-העבודה המלוכלך אינו שלי ולא נגעתי בו).
 
 🟢 **[cowork-dev · ריצה 257 · 08.10 10:04-10:10 IL · ריצת-בוקר מחוץ 15:30-16:10 ⇒ חובה-1 בלבד (אפס ממתינות ⇒ שקט מוחלט בטלפון)]** `date ⇒ 2026-10-08 10:04:31 IDT (Thu)` — לא שעת-היומית ולא RTH ולא תור-הלילה ⇒ **אפס ריסטארט, אפס שער, אפס נגיעה** (פוזיציות/פקודות/דגלים/דגלי-גודל/`.env`/DB/DLL/עץ/הרנס). `git pull --ff-only ⇒ "Already up to date." (eebc4f5f)`.
