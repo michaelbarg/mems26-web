@@ -1,3 +1,108 @@
+🟢 **[cowork-dev · ריצה 284 · 08.10 23:34-23:48 IL · חובה-1 + חובה-4 · אפס ממתינות בטלפון ⇒ שקט מוחלט · תור-הלילה של cc מתקדם ⇒ אפס claim · אימות-חוזר לחמשת העמודים בלי הרצה-כפולה · שתי תיקוני-מדידה (ה-"ליגר" אינו `ledger.html`; ספרים ≠ ברוקר ב-6.25$) · שתי אזהרות-מכונה]**
+
+`date ⇒ 2026-10-08 23:34:31 IDT (Thu)` ⇒ חלון **חובה-4**. המאזין `pid 85469` מ-`Thu Oct  8 15:22:38 2026`
+⇒ בעלות-הריסטארט אינה שלי, וממילא `23:34 > 16:10` ⇒ ⛔ אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` ·
+אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ. ריצה 283 (23:04-23:20) סגרה את חמשת
+העמודים ושלחה את הודעת-היום ⇒ הריצה הזאת **מאמתת ולא מריצה מחדש**, ושותקת בטלפון.
+
+## ☎️ חובה-1 — אפס ממתינות · שקט מוחלט
+
+```raw
+git pull ⇒ Already up to date.  (HEAD d7c6a52a, ריצה 283)
+GET https://mems26-mobile.onrender.com/chat?key=<MOBILE_ACCESS_KEY 12ch> ⇒ http=200 bytes=17683 items=30
+senders ⇒ {'cowork-dev': 19, 'cowork': 5, 'supervisor': 4, 'מייקל': 1, 'cc': 1}
+אחרון בשרשור: 2026-10-08T20:23:22Z <cowork-dev> (271ch) — דוח-היום של 283, סוכן ולא מייקל
+אחרונת-מייקל: idx 14 · 2026-10-07T10:50:03Z ⇒ followed by ['cc','cowork-dev','supervisor'] ⇒ נענתה
+   ⇒ michael_after_agent = False · אפס שורה שמתחילה ב-"תיוג עסקה #"
+tail -6 docs/handoff/PHONE_THREAD.jsonl == זנב /chat ⇒ שני הפוסקים מסכימים
+```
+
+⇒ אין (א) · אין (ב) — אפס עסקת-לייב חדשה מאז 19:48 · אין (ג) — האזהרות להלן הן WARN ולא חוסמות ·
+אין (ד) — אינה ריצת-שער. **אפס הודעת-טלפון בריצה הזאת** (283 כבר דיווחה ב-23:23; שתי הודעות על אותו
+יום = מחלקת-T-369).
+
+## 🌙 חובה-4 — התור של cc רץ ומתקדם ⇒ אפס claim, ניטור בלבד
+
+```raw
+ps -eo pid,lstart,etime,command ⇒ 95999  Thu Oct  8 23:07:47 2026  30:23  bash harness_out/t567/run_night.sh
+                                   1757  (child, 07:17)  bash harness_out/t466/run_variant.sh t567c9 DECISION_TREE_V3=1 …
+harness_out/t567/night.out  6,400B  mtime 23:38:12  (זז דקה לפני המדידה ⇒ חי)
+grep -c "done .* <v> rc=0" ⇒ t567ref=67  ·  t567a=67  ·  t567c9=48 (בעיצומו)
+```
+
+⇒ שתי הזרועות הראשונות **סגורות ב-67/67** — מאשר את תוספת-המדידה של 283 (`sessions.txt`=68, סשן
+2026-08-07 נופל `rc=1` בשני הצדדים ⇒ `n` אפקטיבי 67). הזרוע השלישית `t567c9` בתהליך. התור אינו שלי
+⇒ אפס `claim`, אפס סוכן-משנה, אפס נגיעה בקבצי-ההרנס.
+
+## 🧾 אימות-חוזר · חמשת העמודים של 283 נחתו (ולא הורצו מחדש)
+
+```raw
+render_mobile_relay/static/docs/data/review.json        198,468B  23:08:50
+docs/reports/DAY_REVIEW_2026-10-08.md                    10,004B  23:08:50
+docs/plans/LESSONS_TIMELINE.json                         64,678B  23:13:49   days=24  threads=5
+render_mobile_relay/static/docs/days/2026-10-08.html    257,541B  23:13:58
+render_mobile_relay/static/docs/lessons.html             98,141B  23:13:58
+--- Render (key) ---
+/doc/days/2026-10-08.html  http=200  257,541B  ==  מקומי 257,541  ✓ זהה-בבתים
+/doc/lessons.html          http=200   98,141B  ==  מקומי  98,141  ✓ זהה-בבתים
+/doc/index.html 200 25,036 · /doc/trades.html 200 350,557 · /doc/review.html 200 171,434
+/doc/tree_board.html 200 76,707 · /doc/review_report.html 200 108,752
+LESSONS days[-1].day == "2026-10-08" (לקח-היום: ארבע עסקאות, אפס מחמשת המהלכים נתפסו בזמן)
+```
+
+## 🪤 שתי תיקוני-מדידה מהריצה הזאת
+
+1. **ה-"ליגר" אינו `ledger.html`.** `/doc/ledger.html ⇒ http=404` — אין עמוד בשם הזה ואין קובץ מקומי
+   כזה. עמוד-הליגר-עם-הפילטרים הוא `trades.html` (350,557B) יחד עם `review.html` (171,434B), שניהם
+   200. ה-404 היה ניחוש-URL שלי, **לא תקלת-פרסום** — לריצות הבאות: לבדוק `trades.html`/`review.html`.
+2. **`state != 'CLOSED'` אינו "תקוע".** SQL גולמי החזיר **17 שורות-צל `FILLED` מהיום** (3323…3367),
+   ו-`python3 scripts/close_stale_shadow.py` (dry-run) החזיר `no stale shadow trades — nothing to do`.
+   הפוסק הוא התסריט (תקוע = שורת-צל מיום קודם), לא המונה הגולמי שלי — אחרת כל ערב-מסחר נראה כמו
+   תקרית-16.09. אפס `--apply`.
+3. **ספרים ≠ ברוקר ב-6.25$** — תיקון לנוסח של ריצות 280/282 ("broker 4/4 == books -152.50"):
+
+```raw
+select count(*), sum(pnl_usd), sum(pnl_sierra), count(pnl_sierra) from v9_trades
+  where date(entry_ts)=date '2026-10-08' and mode='live';
+⇒ 4 | -158.75 | -152.50 | 4
+id   | system | dir   | state  | pnl_usd | pnl_sierra
+3272 |   2    | SHORT | CLOSED |  -46.25 |  -43.75    (+2.50 לטובת הברוקר)
+3281 |   2    | SHORT | CLOSED |  -53.75 |  -55.00    (-1.25)
+3289 |   2    | SHORT | CLOSED |   +6.25 |  +11.25    (+5.00 — הסטופ הידני של מייקל)
+3314 |   2    | LONG  | CLOSED |  -65.00 |  -65.00    (0)
+```
+
+   מאומת **4 מ-4** (`count(pnl_sierra)=4`) — זה החלק שהיה נכון. אבל ה-`==` לא: הספרים −158.75
+   והברוקר −152.50, פער +6.25 לטובת הברוקר, שרובו (+5.00) מ-#3289. מכאן והלאה לנסח "ברוקר −152.50
+   מול ספרים −158.75, מאומת 4/4", לא "==".
+
+## ⚠️ אזהרות-מכונה (WARN-בלבד ⇒ כאן, לא בטלפון)
+
+```raw
+python3 scripts/machine_health.py
+WARN: unused RAM 88M < 400M — the Mac is compressing/swapping
+WARN: swap used 7610M > 500M
+trading stack: backend 129MB/56.8% · sierra 206MB/90.9% · bridge 19MB/3.6% · postgres 502MB · relay 26MB
+non-trading (MB): cowork-vm 2862 · claude-app 2035 · chrome 1781 · spotlight 619 · claude-agents 477
+```
+
+הצרכן הגדול אינו המסחר — `cowork-vm` 2.8GB ועוד 2.0GB ל-Claude.app. עם תור-הלילה פעיל זה סביר, אבל
+swap של 7.6GB בלילה לפני יום-מסחר הוא מועמד-לבדיקה לבוקר (**לא** לגעת עכשיו — התור של cc רץ והריגת
+תהליכים באמצע הרנס תזהם את התוצאות). לריצת-הקדם-פתיחה: למדוד שוב אחרי שהתור נגמר, ולפני ריסטארט.
+
+## ✅ בריאות שאר-הצירים (ירוק)
+
+```raw
+feed:  select max(ts), now() from v9_bars_5min_woodies ⇒ 2026-10-08 23:35:00+03 | 23:36:53+03 ⇒ 1.9 דק׳
+backend: GET /api/v9/health ⇒ http=200 t=0.0026s {"status":"ok","version":"v9.0.0"}
+listener: lsof :8000 ⇒ Python 85469, up 08:13:58
+flag_guard ⇒ rc=0 PASS (⚠ 1 מפתח REPORT-בלבד: FOOTPRINT_DISABLED plist=true ≠ .env=0 — T-435/T-563, בעלות של מייקל)
+task_log_guard ⇒ rc=0 · 554 פריטים · עודכן לפני 0.0 ימים · "current, structured, and the only one"
+פוזיציות-לייב פתוחות ⇒ אפס (כל 4 ב-CLOSED)
+```
+
+---
+
 🟢 **[cowork-dev · ריצה 283 · 08.10 23:04-23:20 IL · חובה-1 + חובה-4 (תור-הלילה + עמודי-הטלפון) · אפס ממתינות בטלפון · תור-הלילה כבר רץ ⇒ אפס claim ואפס הרצה-כפולה · חמשת העמודים הורצו ועלו · הודעת-טלפון אחת (מקרה-ב מורחב: קישור עמוד-היום)]**
 
 `date ⇒ 2026-10-08 23:04:32 IDT (Thu)` ∈ `23:00-23:30` ⇒ **חובה-4**. המאזין `pid 85469` עלה
