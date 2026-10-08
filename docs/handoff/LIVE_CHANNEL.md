@@ -1,3 +1,110 @@
+🟢 **[cowork-daily · ריצה 268 · 08.10 15:34-15:55 IL · חובה-1 + חובה-2א (היומית המלאה על 07.10) + שורת-מדידת-שער]**
+
+`date ⇒ 2026-10-08 15:34:38 IDT (Thu)` ⇒ **בתוך** חלון-השער `15:30-16:10`.
+⛔ **בעלות-השער אינה שלי** — שני פוסקים בלתי-תלויים, שניהם נמדדו ולא הונחו:
+(א) רשומת-`cowork` בראש הקובץ הזה, 08.10 15:25, מילה-במילה *"לשער 15:35: pid חדש הוא
+בכוונה (פסיקה); ריסטארט נוסף אסור"*; (ב) `ps -o lstart` של המאזין על `:8000` ⇒
+`pid 85469 · Thu Oct  8 15:22:38 2026` = **היום אחרי 12:00**.
+⇒ **אפס ריסטארט · אפס GO/NO-GO לטלפון** ([[T-369]]: שתי הודעות-שער = הצפה) · אפס `--apply` ·
+אפס נגיעה בדגלים/דגלי-גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ/הרנס. הכל דרך Desktop Commander.
+
+## ☎️ חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון
+
+| מקור | מה נמצא |
+|---|---|
+| `PHONE_THREAD.jsonl` | 746 שורות · `items[-1] = 2026-10-08T10:45:33Z · cowork-dev` (מקרה-ג של ריצה 264) |
+| peek חי `GET /chat` | `LIVE_TOTAL 30` · זהה לקובץ · אחרון בחוט = אותה רשומת cowork-dev 10:45 |
+| הודעת-מייקל אחרונה | `2026-10-07T10:50:03Z` *"תבקש מקלוד שיבדוק מה הולך…"* — **נענתה** עניינית ב-`cowork-dev 2026-10-07T11:11:10Z` (ה-`cc ✓ התקבל` הוא אישור-קבלה, לא תשובה) |
+
+⇒ אין הודעת-מייקל בלי תשובה ⇒ **אפס הודעות-טלפון בריצה הזאת** (לא מקרה א/ב/ג/ד).
+**הפסיקות הממתינות מ-08:30 לא נשאלות שוב** (כלל "פסיקה ניתנת פעם אחת"): 1) [[T-564]] היתר
+INITIATIVE_SHORT/Variation 18–19h 2) [[T-563]]+[[T-545]] ריסטארט-אחד 3) [[T-561]] סלוט-שני=2 חוזים.
+[[T-568]] כן נפסק ("לייב") ובוצע 15:22 ע"י cowork-האינטראקטיבי.
+
+## 📅 חובה-2א · סיכום 07.10 (ET) — תווית-EOD `Neutral_Center`
+
+**כסף.** `(entry_ts AT TIME ZONE 'America/New_York')::date = '2026-10-07'`:
+
+```
+  mode  |  n  | wins | losses | stale |  books  | broker | n_broker
+--------+-----+------+--------+-------+---------+--------+----------
+ demo   |   2 |    0 |      2 |     0 | -106.25 |        |        0
+ shadow | 108 |   39 |     46 |    23 | -115.77 |        |        0
+```
+
+**לייב 0 עסקאות** (פסיקת [[T-551]] — הצ'ארט היה על Sim1 וכל ירי נרשם דמו).
+**אימות-ברוקר 0 מ-2** — `pnl_sierra` NULL בשתי עסקאות-הדמו ⇒ *אין רישום-ברוקר ל-#3164 ול-#3220*.
+הדמו: `#3164 OPENING_DRIVE SHORT 09:50 STOP_FILL −75` · `#3220 CEILING_FLIP_SHORT 12:40 STOP_HIT −31.25`.
+
+**ליגר** (`~/SierraChart_Data/v9_export/gateway_decisions.jsonl` · 234 שורות · json-bad 0 · כתיבה אחרונה 07.10 23:00):
+
+```
+DETECTED 65 · EMIT_DECISION 61 · GATE_DECISION 82 · ROUTED 26 · RESOLVED 0
+חוסמים (82 = בדיוק מספר ה-GATE_DECISION):
+  24 tree:location · 15 entry_not_confirmed · 10 tree:bias · 9 rr_entry_gate ·
+   8 tree:time_cutoff · 6 tree:stand_down · 3 structural_targets_wrong_side ·
+   2 tree:kind · 2 session_gate_closed · 1 rr_hard_floor ·
+   1 entry_location_quality · 1 news_blackout
+```
+
+**ציון-מודעות (4 אחוזים)** — `scripts/awareness_score.py --day 2026-10-07`:
+
+```
+יום 65/78 83.3% ✅ · רמות 78/78 100.0% ✅ · מועמדים 16/18 88.9% ✅ · החלטות 66/78 84.6% ✅
+סיכום: 4/4 צירים ≥80%   (⇒ לא 🔴)
+נגיעות-VA בלי DETECTED: 10:15(VAL) · 11:15(VAH)
+```
+
+**צל-S1DayDir — הממצא של 02.10 עומד בעינו, במספרים של אתמול ושל היום.**
+`grep "^2026-10-07" /tmp/backend.err.log | grep -oE "agree=[a-z/]+" | sort | uniq -c` ⇒
+**`10176 agree=n/a`** ואפס שורות אחרות. הנוסח החי: `[S1DayDir] SHADOW accepted_break=none |
+s1_state=fade_both→UNDETERMINED | agree=n/a (live returns legacy None → LSMA fallback)`.
+היום עד 15:4x: **`7775 agree=n/a`**, גם כן אפס אחרות ⇒ **הלייב לא קיבל את כיוון-היום של
+מערכת-1 אף פעם, גם לא אתמול; הצל מודד 10,176 פעם ואומר אותו דבר.** אפס דגל, אפס שינוי.
+
+**EntryGuard.** 15 חסימות `entry_not_confirmed` בליגר · 38 שורות-לוג ביום ·
+מונה-התאומים [[T-219]] הגיע ל-`twin #3266 (82/150 today)` ב-23:00.
+
+**חריגים 07.10 — `backend.err.log` (לא `backend.log`), 139,335 שורות ביום, מהן 3 בלבד ERROR/CRITICAL:**
+
+```
+16:30:02 [CRITICAL] [daytype_watchdog] ESCALATION-3: day_type_state stale 71 min
+         despite sig-reset + force-close — the 5min feed is ALIVE (newest bar 5.0 min old)
+16:40:02 [ERROR] [bar_level_detector] on_bar error: Invalid transition: CLOSED -> CLOSED
+17:44:20 [ERROR] [bar_level_detector] on_bar error: Invalid transition: CLOSED -> CLOSED
+```
+
+⇒ שלושה חריגים ידועים-בצורה ולא-חדשים; **23 עסקאות-צל נסגרו `STALE_UNRESOLVED`** (21% מהצל) —
+זו השורה שראויה למדידה, לא לדגל.
+
+**דוחות-cc/פיקוח מאז אתמול:** `T564_ALLOW_INITIATIVE_SHORT_VAR_1819_2026-10-08.md` (08:24) ·
+`T566_STRUCTURE_EXIT_TIGHTEN_PRE_T1_2026-10-08.md` (12:51) · `DOCTRINE_CELLS_2026-10-08.md` (13:04) ·
+`OPS_LOG_2026-10-08.md` (15:23) · `SUPERVISION_2026-10-08_1536.md` (15:36 — ריצודי-תווית היום 0).
+
+## 🚦 חובה-2ב · שורת-מדידה אחת (בלי שער, בלי GO/NO-GO)
+
+| ציר | נמדד | פלט-גולמי |
+|---|---|---|
+| **גודל (פסוק)** | ✅ **1** | `set -a; . ./.env; set +a; python3 -c "…ruled_contracts()"` ⇒ `ruled_contracts() = 1` · `MEMS26_MODE=live LIVE_TRADING_V1=1 FIXED_CONTRACTS_1=1` |
+| **פיד חי ([[T-430]])** | ✅ | `max_ts 2026-10-08 15:40:00+03 · lag 00:01:17 · bars_today 82` — בר מהיום, לא "קובץ טרי" |
+| **fire_drill** | ✅ `rc=0` | `🟢 GO — כל שרשרת ההחלטה כשרה לירי` · 19 ✓ · 0 ✗ · שלבים A/B/C/Y/G/D · `effective_contracts == 1` · `guard_tests 170 passed, 1 skipped` · `task_log_guard 545 items, last committed 0.0 days ago` |
+| **flag_guard** | ✅ `rc=0` | `FLAG-GUARD: PASS — all 274 ruled flags match` · ⚠ ידוע: `FOOTPRINT_DISABLED: plist=true .env=0 live=true` ⇒ ה-plist דורס — דיווח-בלבד, הבעלות היא פסיקת-מייקל ([[T-563]]) |
+| **שורות-צל תקועות** | ✅ נקי | `python3 scripts/close_stale_shadow.py` (dry-run) ⇒ `no stale shadow trades — nothing to do` ⇒ **אפס `--apply`** |
+| **מכונה (WARN-בלבד)** | ⚠ | `WARN: load 10.1 > 6.0` · `WARN: swap used 8565M > 500M` · backend cpu 64.8% rss 112MB · לא-מסחר: cowork-vm 2,651MB · claude-app 1,783MB · chrome 1,380MB |
+| **מצב חי** | ✅ | `sierra_state.json` גיל 0.7 שנ': `trade_account 37138283 · is_sim 0 · order_placement_armed 1 · position_qty 0 · working_orders 0 · last_price 7820.5` |
+| **מרג'ין ([[T-34]]) — דיווח בלבד** | 🟠 | `acct_available_funds 506.29` **< 1,595$** — אבל `acct_under_margin 0 · acct_trading_disabled 0 · acct_margin_req 0.0 · acct_daily_net_loss_limit −303.77 (לא מולא)` ⇒ **אינו חוסם מסחר בחוזה-1** ⇒ שורה כאן, **אפס מקרה-(ג) בטלפון** |
+| **עץ** | ✅ 3.4.0 | `md5 config/decision_tree_v3.yaml` = `cc8f5080debdc296f9bbdbd401821c19` = `md5 config/decision_tree_v3.3.4.0.yaml` ⇒ זהים. הטעינה החיה: `09:37:02 [decision_tree] reloaded — 536 leaves` (ה-611-leaves של `00:26:12` אינו טעון יותר) · `/api/v9/tree/state ⇒ mode=on, phase A, day_type FORMING` |
+| **אדומים אחרי הריסטארט** | ✅ 0 | `awk '$1=="2026-10-08" && $2>="15:22:46"' /tmp/backend.err.log` + `grep -cE "ERROR\|CRITICAL"` ⇒ **0**. 2,787 האדומים של היום כולם **לפני** 15:22:37 והם `bars/5min TS-OFFSET-GATE` ([[T-265]]/[[T-532]], קיים מלפני, לא NO-GO) |
+| **ליגר-כותב** | ⏳ קדם-פתיחה | כתיבה אחרונה 07.10 23:00 · `GET /api/v9/gateway/decisions?limit=2000 ⇒ returned 0` · `trades_today 0` · `live_slot null` · `live_enabled_systems [2,4] · demo_enabled_systems []` — שקט לפני 16:30 הוא הצפוי; האימות האמיתי הוא בריצת-RTH הראשונה |
+
+**המשמעות לפתיחה של היום:** הירי = **לייב, חוזה 1, חשבון 37138283** (פסיקת [[T-568]], בוצעה 15:22) —
+ו-`demo_enabled_systems []` מסיר את הסכנה שעליה התריעה ריצה 264 (ענף-דמו בכסף אמיתי).
+אפס פריט-T חדש מהריצה הזאת.
+
+— *cowork-daily, 08.10 15:55 IL*
+
+---
+
 🎛️ **[cowork · 08.10 15:25 IL · T-568 נפסק "לייב" (מייקל בצ׳אט 15:0x) — בוצע 15:22]** snapshot `20261008T122201Z_T-568-live-switch` · `.env` **MEMS26_MODE=live · LIVE_TRADING_V1=1** (שתי שורות — היפוך מדויק של 07.10; `diff` מול snapshot-הלייב `20261007T121639Z_manual` ⇒ זהה) · flag_guard rc=0 PASS 274 · פוזיציה 0 / working 0 (sierra_state גיל 1 שנ׳, 37138283, is_sim 0, 506.29$) · `launchctl kickstart -k` 15:22:37 ⇒ pid **85469** runs=4 · health 200 ב-15:22:51 · `[Main] LIVE mode enabled: systems [2, 4] (LIVE_TRADING_V1)` · `[env_loader] applied 320 vars` · `/api/v9/gateway/status` ⇒ live_enabled_systems **[2,4]** · demo_enabled_systems **[]** · live_slot null · trades_today 0 · post_restart_verify 🟢 GREEN · fire_drill 4/4 צירים ≥80% · עץ על הדיסק 3.4.0 נקי (`/api/v9/tree/state` mode=on, שלב A) · ERROR אחרי הריסטארט: רק TS-OFFSET-GATE של `bars/5min` (T-265/T-532, קיים מלפני, לא NO-GO). **לשער 15:35: pid חדש הוא בכוונה (פסיקה); ריסטארט נוסף אסור; הירי היום = לייב, חוזה 1, חשבון 37138283.**
 
 🟢 **[cowork-dev · ריצה 267 · 08.10 15:04-15:09 IL · חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס פריט-T חדש]**
