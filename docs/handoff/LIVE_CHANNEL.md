@@ -1,3 +1,138 @@
+🟢 **[cowork-dev · ריצה 267 · 08.10 15:04-15:09 IL · חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס פריט-T חדש]**
+
+`date ⇒ 2026-10-08 15:04:33 IDT (Thursday)` — **מחוץ** ל-`15:30-16:10` (שער), **מחוץ** ל-RTH
+`16:30-23:00`, **מחוץ** לתור-הלילה `23:00-23:30` ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` ·
+אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/עץ/DB/DLL/סיירה.** קריאה-בלבד.
+`git pull --ff-only ⇒ Already up to date` (HEAD `b7f24c94` = T-569, הזמנת-Cursor). עץ-העבודה הושאר
+כפי שנמצא (14 M · 1 D · 7 לא-מנוטרים — אפס נגיעה).
+
+## 🗓️ מי מחזיק את השער — נמדד במתזמן, לא בהנחה
+
+```raw
+list_scheduled_tasks ⇒ mems26-preopen-gate · cron "0,30 10-23 * * 0-5" · enabled=true · jitter 236s
+                       lastRunAt 2026-10-08T12:04:13Z = 15:04 IDT   ← הריצה הזאת (סלוט 15:00 + jitter)
+                       nextRunAt 2026-10-08T12:33:56Z = 15:33:56 IDT ← **בתוך 15:30-16:10 ⇒ זו ריצת-השער**
+                       אפס משימת mems26-preopen-restart-2026-10-08
+                       (כל ה-preopen-restart הן חד-פעמיות מספטמבר, enabled=false)
+```
+
+⇒ הריצה הזאת **אינה** ריצת-השער (26 דק' לפני החלון) ⇒ חובה-2 לא חלה, והוצאת GO/NO-GO מכאן הייתה
+הודעת-שער שנייה ([[T-369]]). **אפס סיכון ריסטארט-כפול:** אין משימה ל-15:45, ובעלות-הריסטארט
+נשארת לריצת 15:33 או ל-cowork-האינטראקטיבי.
+
+## ☎️ חובה-1 — אפס ממתינות (אין א/ב/ג/ד) ⇒ אפס הודעות-טלפון
+
+שני הפוסקים מסכימים. ה-peek רץ עם **`RENDER_MOBILE_URL`** (הממצא של ריצה 266; `MOBILE_REMOTE_URL`
+נמדד שוב ⇒ אורך 0) ⇒ נתון אמיתי ולא שקט-שקרי.
+
+```raw
+15:05  GET /chat?key=…&items=30   ⇒ http=200 · bytes=16898 · items=30
+                                     items[-1] = 2026-10-08T10:45:33Z · cowork-dev (מקרה-ג של 264/265)
+15:08  GET /instruction/pending   ⇒ {"items":[]}   http=200
+15:08  GET /cmd/pending           ⇒ {"cmd":null}   http=200
+15:08  GET /marks/pending         ⇒ {"items":[]}   http=200
+15:08  GET /upload/pending        ⇒ {"items":[]}   http=200
+       senders ב-746 שורות החוט   ⇒ cowork 400 · מייקל 133 · cc 116 · cowork-dev 92 · supervisor 3
+       אחרונת-מייקל               ⇒ 2026-10-07T10:50:03Z (idx 739/746)
+                                     **נענתה ענייניות** ע"י cowork-dev 2026-10-07T11:11:10Z
+       6 הפריטים שאחריה           ⇒ cc 10:50 · cowork-dev 11:11 · supervisor 19:38 · cowork-dev 20:22
+                                     · cowork 08.10 05:49 · cowork-dev 08.10 10:45 — כולן סוכנים
+       מייקל-אחרי-סוכן            ⇒ False  ⇒ אפס מקרה-א
+       "תיוג עסקה #" בחוט         ⇒ 2 (מייקל 30.09: #2623, #2555)
+                                     **שתיהן כבר ב-TRADE_TAGS.jsonl** (2 שורות, אותם ts) ⇒ אפס append
+```
+
+⚠️ **ממצא-שיטה חדש (משפחת מלכודת-32 — לריצות הבאות):** בקצוות-הממתינות **הסיומת `/pending` היא
+חובה.** `GET /instruction`, `/cmd`, `/upload` **בלי** הסיומת מחזירים **HTTP=405** (method not
+allowed — הם POST-only), ו-405 נראה בדיוק כמו "אין ממתינות" אם סופרים bytes בלבד. כלומר שתי צורות
+של שקט-שקרי נמדדו כבר על אותו peek: **משתנה-URL ריק ⇒ 000** (ריצה 266) ו**סיומת חסרה ⇒ 405** (כאן).
+הצורה הנכונה היא זו שבגוף-ה-raw למעלה. אפס שינוי בקוד/`.env`.
+
+⏳ **ארבע פסיקות ממתינות — ואפס תזכורת נשלחה** (כלל-הטלפון: הודעה שאינה אחד מארבעת המקרים = הפרה;
+[[T-369]] הצפה. ההודעות של 08:30 ו-13:45 כבר בחוט אצלו): [[T-564]] היתר-עץ · [[T-563]]+[[T-545]]
+ריסטארט · [[T-561]] סלוט-שני · [[T-568]] חשבון-אמת/Sim1 (יעד-פסיקה 15:45 לפי רשומת cowork 14:45).
+
+## 📏 דגימה-חוזרת של [[T-568]] — **ללא שינוי, רביעית ברצף**, 1ש'24ד' לפני הפתיחה
+
+התוצר שיש לריצה הזאת לתת לבעל-השער: **נכון ל-15:06 הצ'ארט עוד על חשבון-האמת 37138283, חמוש,
+פוזיציה 0.** שלוש דגימות, גיל-קובץ 0.7-0.8 שנ':
+
+```raw
+15:06  age=0.7s  is_sim=0 armed=1 send_orders_to_trade_service=1 trade_account=37138283
+                 symbol=MESZ26_FUT_CME  pos=0  px=7821.75
+15:06  age=0.8s  (זהה)  pos=0  px=7821.50
+15:06  age=0.8s  (זהה)  pos=0  px=7821.50
+       working_orders=0 · orders=[] · daily_pnl=0.0 · daily_total_qty_filled=0
+       acct_ok=1 · acct_available_funds=506.29 · acct_margin_req=0.0 · acct_under_margin=0
+       acct_trading_disabled=0 · acct_loss_limit_reached=0 · acct_daily_net_loss_limit=-303.77
+       acct_is_sim=0
+```
+
+⇒ פוזיציה **0** בשלוש הדגימות ⇒ אפס פוזיציה-זרה, אפס אזעקה. **אפס פעולה מצידי** — החלפת חשבון/סים,
+`DEMO_EXECUTION_ENABLED`, `LIVE_*`, `.env` כולם מעבר לגבול-הפסיקה (CLAUDE.md §Standing Decisions +
+כלל-הגבול-היחיד).
+
+🔧 **תיקון-שיטה לדוחות הבאים (כלל 1 — None כנה ולא ערך-מסונתז):** שמות-המפתחות ב-`sierra_state.json`
+הם `send_orders_to_trade_service` · `trade_account` · `acct_margin_req`. קריאה בשמות הקצרים
+(`send_orders`/`account`/`margin_req`) מחזירה `None` — דיווחתי None ולא השלמתי מספר מהזיכרון, ואז
+נדגמו 28 המפתחות המלאים והערכים נקראו בשמם הנכון.
+
+**בדיקת-מרג'ין [[T-34]] = דיווח בלבד:** `avail 506.29 < 1,595` — אך `acct_margin_req=0.0`,
+`under_margin=0`, `trading_disabled=0` ולחוזה-1 מספיק ⇒ **אינו חוסם מסחר** ⇒ אפס מקרה-ג (המספר כבר
+בהודעת 13:45 אצלו).
+
+### שאר הצירים — ירוקים
+
+```raw
+feed   woodies  max(ts)=2026-10-08 15:05:00+03 · lag 00:01:59 · 75 ברי-יום
+                ⇒ ציר [[T-430]] ירוק — **בר מהיום ב-DB**, לא רק קובץ-יצוא טרי
+health GET /api/v9/health ⇒ http=200 {"status":"ok","version":"v9.0.0"} · t=0.0018s
+listen lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ pid 49501 · lstart Wed Oct 7 15:18:17 · cpu 43.5 · rss 127MB
+       ⇒ אפס ריסטארט היום ⇒ **בעלות-הריסטארט לשער 15:30-16:10 עוד פנויה** ([[T-369]])
+size   set -a; . ./.env; set +a; ruled_contracts() ⇒ 1   ✅ = פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1)
+flags  python3 scripts/flag_guard.py ⇒ "FLAG-GUARD: PASS — all 274 ruled flags match." exit=0
+       ⚠ FOOTPRINT_DISABLED: plist=true .env=0 live=true — ידוע, דיווח-בלבד, פסיקת-מייקל ([[T-563]])
+shadow python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+       (dry-run; אפס --apply)
+trades select count(*) from v9_trades where entry_ts::date=current_date ⇒ 0
+```
+
+### ✅ אומת בעצמי: ה-🔴 של עץ-3.4.1 סגור — אפס פעולה נדרשה ב-15:00
+
+הודעת-08:30 אמרה *"בלי מילה עד 15:00 cowork מחזיר 3.4.0"*. המועד עבר **בתוך** הריצה הזאת, ולכן
+נבדק ישירות ולא אומצה טענת-סוכן (כלל 5):
+
+```raw
+ls -l config/decision_tree_v3.yaml ⇒ Oct 8 09:36
+grep ^version                      ⇒ version: "3.4.0"  # 06.10 T-538 cutoff 20:00 → 22:00 (מייקל "מאשר")
+git status config/decision_tree_v3.yaml ⇒ נקי (אפס פלט)
+backend.err.log  00:26:12 reloaded — 611 leaves  ← 3.4.1 הלא-פסוק
+                 09:37:02 reloaded — 536 leaves  ← ההחזרה ל-3.4.0
+```
+
+⇒ העץ החי הוא **3.4.0 הפסוק**, נקי-git, וההחזרה בוצעה **09:37 — חמש שעות לפני** מועד-15:00 ⇒ אפס
+שחזור, אפס נגיעה בעץ, אפס פסיקה ממתינה על הפריט. (מסכים עם רשומת 12:08; כאן נמדד מחדש.)
+
+### ⚠️ machine_health — WARN, דיווח-בלבד (לריצת-השער: לשקלל לפני ריסטארט)
+
+```raw
+WARN: unused RAM 305M < 400M — the Mac is compressing/swapping
+WARN: swap used 7358M > 500M
+trading stack  backend rss 125MB cpu 29.8% · bridge 18MB cpu 2.4% · sierra 228MB cpu 101.7%
+               · postgres 446MB · frontend 2MB · phone-relay 22MB
+non-trading MB cowork-vm 2723 · chrome 1820 · claude-app 1521 · claude-agents 452
+               · spotlight 258 · adobe 143
+```
+
+⇒ הצרכן הגדול **אינו** מחסנית-המסחר (≈6.5GB לסוכנים/דפדפן מול ≈0.84GB למחסנית). לא חוסם כרגע
+(health 1.8ms · פוזיציה 0 · אפס עסקאות · feed בפיגור 2 דק') — אך ריצת-השער צריכה לשקלל את זה
+לפני ריסטארט, שכן ריסטארט על 305MB RAM פנוי הוא הסיכון שהפיל את ה-backend ל-80% CPU ב-16.09.
+
+💵 **חשיפה: אפס.** אפס דגלים · אפס גודל · אפס `.env` · אפס פוזיציות/פקודות · אפס עץ · אפס DB · אפס
+DLL/סיירה · אפס ריסטארט · אפס `--apply` · אפס הודעת-טלפון. קומיט לפי נתיב: `LIVE_CHANNEL.md` בלבד
+(`TASK_LOG.md` עודכן היום ע"י ריצה 266 ⇒ שומר-3-הימים של `task_log_guard` מרוצה, ואין פריט-T חדש
+לרשום — ממצא-השיטה 405 הוא שיטת-בדיקה, לא משימה פתוחה, ולכן אינו פותח מרשם מתחרה).
+
 📨 **[cowork · 08.10 14:45 IL · T-569 הזמנה ל-Cursor: ביקורת וצמיחת-חשבון חוזה 1 → 2 → 3 (מייקל 14:33)]** — `docs/handoff/cc_orders/CC_ORDER_2026-10-08_ACCOUNT_GROWTH.md` (קריאה-בלבד, A–F) + הודעה בראש `CURSOR_COWORK_THREAD.md`. מספרי-פתיחה: חוזה-1 בריפליי `t564ref`/67 = +2,114.75$ נטו · +31.56$/יום · DD 292$ · חלון-5 −249$ (`harness_out/t569/equity_1c.py`); לייב 23.09–06.10 (10 סשנים) ברוקר −102.50$ מול ריפליי +51.35$ ⇒ פער ≈ −154$; חשבון 506.29$ מול מרג׳ין 288.53$ ⇒ כרית 217.76$ < DD. אפס שינוי חי. הקשר: T-568 (דמו + צ׳ארט על חשבון-האמת) — פסיקת-מייקל ממתינה עד 15:45, נשאל 14:37.
 
 🟢 **[cowork-dev · ריצה 266 · 08.10 14:35-14:42 IL · חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס פריט-T חדש]**
