@@ -58,6 +58,36 @@ def api(path, timeout=4):
         return None
 
 
+def cme_globex_open(now_et) -> bool:
+    """T-265/T-532 (BRIEF §3.3, fix-agent 09.10): is the CME Globex session for MES open at this ET
+    instant? Sun 18:00 ET → Fri 17:00 ET, minus the daily 17:00–18:00 ET maintenance break.
+    One predicate for both stage-D feed checks (price export AND newest DB bar), so the drill never
+    declares "feed stale" on a closed market (Saturday restart window, Friday evening, the daily
+    break) — on a closed market both lines are informational. Exchange holidays are NOT modelled on
+    purpose: Globex trades most of them on reduced hours, and the drill would rather ask for a fresh
+    feed on such a day than go quiet on it. Pure, so the test pins every edge."""
+    wd, hm = now_et.weekday(), now_et.hour * 60 + now_et.minute
+    if wd == 5:                      # Saturday
+        return False
+    if wd == 6:                      # Sunday: opens 18:00 ET
+        return hm >= 18 * 60
+    if wd == 4 and hm >= 17 * 60:    # Friday: weekly close 17:00 ET
+        return False
+    return not (17 * 60 <= hm < 18 * 60)   # Mon–Thu: daily break 17:00–18:00 ET
+
+
+def feed_price_line(p, market_open: bool) -> bool:
+    """Stage-D line 1: the price export's age. A hard check only while Globex is open; on a closed
+    market it is printed as information and never reaches FAILS (T-265/T-532: no "feed ישן" NO-GO
+    on a Saturday restart window). Returns the freshness verdict either way."""
+    fresh = bool(p and p.get("age_ms", 1e9) < 30000)
+    detail = f"age={p.get('age_ms')}ms" if p else "no price"
+    if market_open:
+        return check("feed טרי (<30s)", fresh, detail)
+    print(f"  ℹ feed (live_price): {detail} — השוק סגור (Globex), מידע בלבד")
+    return fresh
+
+
 def stage_a():
     print("— שלב A · דגלים שנפסקו —")
     r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "flag_guard.py")],
@@ -242,9 +272,12 @@ def stage_d():
         check_logging_layer()
     except Exception as _lg_e:
         check("T-61 שכבת-INFO בלוג", False, f"{type(_lg_e).__name__}: {_lg_e}")
-    p = api("/api/v9/live_price")
-    check("feed טרי (<30s)", bool(p and p.get("age_ms", 1e9) < 30000),
-          f"age={p.get('age_ms')}ms" if p else "no price")
+    # T-265/T-532 (BRIEF §3.3, fix-agent 09.10): one market predicate for both feed lines. On a
+    # closed market (Saturday window, Friday evening, the 17:00–18:00 ET break) a stale price
+    # export is not a fault — the drill used to say "feed ישן" and go NO-GO on it.
+    from datetime import timezone as _fd_tz0
+    _fd_open = cme_globex_open(datetime.now(_fd_tz0.utc).astimezone(ZoneInfo("America/New_York")))
+    feed_price_line(api("/api/v9/live_price"), _fd_open)
     # T-430 (20.09): the export files are rewritten every ~3s by the DLL even
     # when Sierra's DATA feed is dead, so mtime/`live_price.age_ms` can read
     # "fresh" while the newest BAR is days old. The truth is the newest BAR,
@@ -264,12 +297,8 @@ def stage_d():
         from zoneinfo import ZoneInfo as _fd_ZI
         from backend.v9.db.read import read_scalar as _fd_rs
         _fd_max = _fd_rs("SELECT max(ts) FROM v9_bars_5min_woodies WHERE symbol='MES'", {})
-        _fd_now_et = _fd_dt.now(_fd_tz.utc).astimezone(_fd_ZI("America/New_York"))
-        _fd_wd, _fd_hm = _fd_now_et.weekday(), _fd_now_et.hour * 60 + _fd_now_et.minute
-        _fd_open = (_fd_wd <= 4 and not (17 * 60 <= _fd_hm < 18 * 60)) \
-            or (_fd_wd == 6 and _fd_hm >= 18 * 60)
-        if _fd_wd == 4 and _fd_hm >= 17 * 60:
-            _fd_open = False
+        # market predicate: cme_globex_open (same instant as the price-export line above —
+        # T-265/T-532: the inline weekday arithmetic that lived here moved into one tested function)
         _fd_age_min = None
         if _fd_max is not None:
             _fd_mx = _fd_max if getattr(_fd_max, "tzinfo", None) else _fd_max.replace(tzinfo=_fd_tz.utc)

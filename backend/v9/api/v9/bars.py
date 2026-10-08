@@ -42,10 +42,65 @@ _RTH_END_HOUR, _RTH_END_MIN = 17, 0  # 17:00 ET = 16:00 CT — includes post-clo
 import os as _os
 MAX_STALE_AGE = timedelta(hours=int(_os.environ.get("MAX_STALE_HOURS", "24")))
 STALE_PRICE_BAND = float(_os.environ.get("STALE_PRICE_BAND", "50"))  # points
+# T-265/T-532 root-fix (fix-agent, night 08→09.10): the "fresh raw 5-min bar" window. The
+# latest-price tracker only takes a bar younger than this, the two price-band guards only consult a
+# tracker younger than this, and a raw push that delivered no such bar INSIDE RTH no longer counts
+# as a live '5min' push (see _raw_5min_push_counts — that is what lets the woodies failover take
+# over). Same scale as the TS-OFFSET gate's TS_OFFSET_REJECT_SEC; a healthy RTH channel refreshes
+# every 5 min (newest bar ≤ ~10 min old at any push ⇒ always fresh ⇒ byte-identical).
+BAR5_RAW_STALE_SEC = float(_os.environ.get("BAR5_RAW_STALE_SEC", "900"))
 
-# Module-level latest-price tracker (updated on every valid 5min bar ingest)
+# Module-level latest-price tracker (updated on every FRESH valid 5min bar ingest — T-265/T-532)
 _latest_known_price: Optional[float] = None
 _latest_bar_ts: Optional[datetime] = None
+
+
+def _tracker_is_fresh(now_utc: Optional[datetime] = None) -> bool:
+    """T-265/T-532: the price-band guards compare a bar to the latest KNOWN price. A tracker that
+    last moved 17 h ago (yesterday's close, or Friday's on a Monday) cannot tell a ghost price from
+    a gap — and because only an ACCEPTED bar refreshes it, a gap wider than the band would reject
+    every fresh bar of the morning with nothing able to move the tracker (S1/S2 blind all day).
+    So the band is consulted only while the tracker itself is within BAR5_RAW_STALE_SEC."""
+    if _latest_bar_ts is None:
+        return False
+    now_utc = now_utc or datetime.now(timezone.utc)
+    return (now_utc - _latest_bar_ts).total_seconds() <= BAR5_RAW_STALE_SEC
+
+
+# ── T-265/T-532 root-fix (fix-agent, night 08→09.10): does this raw push COUNT as a live '5min' push? ──
+# The 2026-08-14 woodies failover asks one question — "has the raw '5min' channel pushed lately?" —
+# and the Monday class answers it wrongly: the RTH export stuck on Friday is pushed every ~4s (fresh
+# mtime, frozen content; the TS-OFFSET gate passes a NON-advancing batch "but logged"), the push is
+# recorded, the health row says "5min fresh", the failover stays quiet, and _route_bar blocks the
+# stale bar — S2 and the day-type machine are fed by nobody behind a screen that looks alive
+# (T-265 07.09, T-532 05.10). Now a push counts only if it DELIVERED a fresh bar — or if the market
+# is outside RTH (market_clock: weekends, holidays, half-days), where the RTH chart legitimately has
+# none, so the overnight accounting is byte-identical and the failover cannot start feeding Globex
+# bars it did not feed before. A grace of BAR5_RAW_STALE_SEC after the 09:30 ET open lets the first
+# bar of the day arrive (it closes at 09:35). An uncounted push leaves the health row stale (the
+# metric finally shouts) and the existing failover takes over after BAR5_FAILOVER_SECONDS.
+_uncounted_push_warn_ts = 0.0
+
+
+def _raw_5min_push_counts(now_utc: datetime, newest_valid_ts: Optional[datetime]):
+    """Return (counts, reason). Pure — no I/O, no module state — so the test can pin every branch."""
+    if newest_valid_ts is not None and (now_utc - newest_valid_ts).total_seconds() <= BAR5_RAW_STALE_SEC:
+        return True, "fresh"
+    try:
+        from backend.v9.services.market_clock import is_rth_open as _mc_rth_open
+        rth = bool(_mc_rth_open(now_utc))
+    except Exception:  # the clock must never break ingest — fall back to the plain window
+        rth = _is_within_rth(now_utc)
+    if not rth:
+        return True, "outside RTH"
+    et = now_utc.astimezone(_ET)
+    since_open = (et - et.replace(hour=9, minute=30, second=0, microsecond=0)).total_seconds()
+    if since_open < BAR5_RAW_STALE_SEC:
+        return True, "grace after the open"
+    if newest_valid_ts is None:
+        return False, "inside RTH, no valid bar in the push"
+    return False, "inside RTH, newest valid bar %.0fs old (> %.0fs)" % (
+        (now_utc - newest_valid_ts).total_seconds(), BAR5_RAW_STALE_SEC)
 
 
 def _is_within_rth(ts_utc: datetime) -> bool:
@@ -69,8 +124,9 @@ def _is_stale_bar(ts_utc: datetime, close_price: float) -> Optional[str]:
     if ts_utc < now - MAX_STALE_AGE:
         return f"stale_ts (bar {ts_utc.isoformat()} older than {MAX_STALE_AGE})"
 
-    # (b) Price band: deviation from latest known market price
-    if _latest_known_price is not None and close_price > 0:
+    # (b) Price band: deviation from latest known market price — only while that price is
+    # itself fresh (T-265/T-532: a 17-h-old tracker turns an overnight gap into an all-day reject)
+    if _latest_known_price is not None and close_price > 0 and _tracker_is_fresh(now):
         deviation = abs(close_price - _latest_known_price)
         if deviation > STALE_PRICE_BAND:
             return (
@@ -184,8 +240,11 @@ def _route_bar(bar_type: str, bar_data: dict) -> None:
                 logger.warning("[bars/%s] _route_bar BLOCKED stale bar: stale_ts (bar %s older than %s)",
                                bar_type, ts.isoformat(), MAX_STALE_AGE)
                 return
-            # Price-band check: ONLY for 5min (the stream that owns _latest_known_price)
-            if bar_type == "5min" and _latest_known_price is not None and float(close) > 0:
+            # Price-band check: ONLY for 5min (the stream that owns _latest_known_price), and only
+            # while the tracker is fresh (T-265/T-532 — see _tracker_is_fresh; a stale tracker would
+            # also block the canonical woodies bar the failover routes on '5min' after a gap)
+            if bar_type == "5min" and _latest_known_price is not None and float(close) > 0 \
+                    and _tracker_is_fresh(now):
                 deviation = abs(float(close) - _latest_known_price)
                 if deviation > STALE_PRICE_BAND:
                     logger.warning("[bars/%s] _route_bar BLOCKED stale bar: off_market "
@@ -785,13 +844,39 @@ def post_bars_5min(
         "last": {"o": last_valid_bar.o, "h": last_valid_bar.h, "l": last_valid_bar.l,
                  "c": last_valid_bar.c, "vol": last_valid_bar.vol} if last_valid_bar else {},
     })
-    _record_push("5min")
+    global _latest_known_price, _latest_bar_ts, _uncounted_push_warn_ts
+    _now_utc = datetime.now(timezone.utc)
+    _lvb_ts = _ts_from_unix(last_valid_bar.ts) if last_valid_bar is not None else None
+    # T-265/T-532 root-fix (fix-agent, night 08→09.10): the push is counted for the '5min' stream
+    # health only if it delivered a fresh bar or the market is outside RTH (_raw_5min_push_counts) —
+    # an uncounted push is what lets the woodies failover feed S1/S2 from the canonical stream.
+    _counts, _why = _raw_5min_push_counts(_now_utc, _lvb_ts)
+    if _counts:
+        _record_push("5min")
+    else:
+        try:
+            if _now_utc.timestamp() - _uncounted_push_warn_ts > 60:  # once a minute, not per push
+                _uncounted_push_warn_ts = _now_utc.timestamp()
+                logger.warning(
+                    "[bars/5min] raw channel pushes but DELIVERS nothing (%s) — push NOT counted for "
+                    "stream health; the woodies failover feeds S1/S2 after %ss (T-265/T-532 class: "
+                    "RTH export stuck while the canonical stream is live)",
+                    _why, os.getenv("BAR5_FAILOVER_SECONDS", "120") or "120")
+        except Exception:
+            pass
     # B-13: update latest-price tracker for staleness guard
     if last_valid_bar is not None:
-        global _latest_known_price, _latest_bar_ts
-        _latest_known_price = last_valid_bar.c
-        _latest_bar_ts = _ts_from_unix(last_valid_bar.ts)
-        _route_bar("5min", _flat_5min_for_router(last_valid_bar, _ts_from_unix(last_valid_bar.ts)))
+        # T-265/T-532: a STALE bar's close is not the latest price. The tracker used to take it
+        # anyway — the RTH export stuck on Friday, re-pushed every ~4s on Monday with a fresh
+        # mtime, or the 601-bar backfill after a restart — so the write-guard's 50-pt band then
+        # measured every fresh bar against Friday's close: a gap wider than the band would reject
+        # the whole morning, and nothing could ever refresh the tracker since only an accepted
+        # bar does. Now only a bar within BAR5_RAW_STALE_SEC moves it (a healthy RTH push always
+        # carries one ⇒ byte-identical); see _tracker_is_fresh for the guards' side.
+        if _lvb_ts >= _now_utc - timedelta(seconds=BAR5_RAW_STALE_SEC):
+            _latest_known_price = last_valid_bar.c
+            _latest_bar_ts = _lvb_ts
+        _route_bar("5min", _flat_5min_for_router(last_valid_bar, _lvb_ts))
     if rth_skipped:
         logger.info("[bars/5min] RTH time-gate skipped %d bars outside 09:30-16:00 ET", rth_skipped)
     return {"ok": True, "inserted": inserted, "rejected": rejected, "rth_skipped": rth_skipped}
@@ -1721,6 +1806,9 @@ def post_woodies_5min(
                             _fo_last = _r.get("last_push_ts")
                             break
             _now_ts = _fo_time.time()
+            # T-265/T-532 root-fix (fix-agent 09.10): "silent" now means "delivered no fresh bar
+            # inside RTH" too — the raw side stopped counting such pushes (_raw_5min_push_counts),
+            # so the stuck-on-Friday export no longer keeps this failover quiet. Nothing changes here.
             if _fo_last is None or (_now_ts - float(_fo_last)) > _fo_gap:
                 _route_bar("5min", last_flat)
                 _record_push("5min")
