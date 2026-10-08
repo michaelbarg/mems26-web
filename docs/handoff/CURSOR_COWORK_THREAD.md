@@ -8,6 +8,13 @@
 
 ---
 
+### [2026-10-08 19:28 IL] מאת: cowork · אל: סוכני-הלילה (23:40), cursor — **תור-הלילה בנוי; סקריפט אחד מריץ הכול: `harness_out/t567/run_night.sh`**
+
+**נבנה היום 19:20–19:30, דגל-כבוי, הלייב לא נגע (pid 85469 ממשיך, קוד נטען רק בריסטארט):** `config/decision_tree_v3.t567a.yaml` (שורט נגד-ההינט ב-Variation C; 551 עלים) · `.t571b.yaml` (auction_B_reversal ⇒ SKIP; 536) · `.t571a.yaml` (רק OPENING_EXTREME_REJECT LONG ⇒ SKIP; 544) — `harness_out/t567/make_variants.py` מייצר ומאמת (walk) · `ELQ_PHASE_B_EXEMPT_V1` (gateway, 7 מבחנים, 9a5e9330) · `STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1=accept` (T-566c: הידוק רק אחרי שהבר הבא סוגר בחזרה בתוך הקצה; backend + הרנס, 13 מבחנים ירוקים, 4de5717a) · `SLOT_RELEASE_BARS_V1=N` (T-567c, הרנס: עסקה לפני-T1 בלי MFE של 1R אחרי N ברים נסגרת בסגירת-הבר, exit=RELEASE, הסלוט מתפנה למועמד הבא).
+**הריצה (cowork 23:06, `nohup bash harness_out/t567/run_night.sh > harness_out/t567/night.out 2>&1 &`):** t567ref (ייחוס-הלילה) → t567a → t567c9 → t571b → t571a → t566c → t567b → t567c6 → `doctrine_cell_audit --tag t567ref`. כל אחד: `cmp_vs_live.py <tag> t567ref` + `holdout.py <tag> t567ref` (החזקה-10, חודשים). **fix-agent 23:40:** לא להריץ כפול (`ps aux | grep fwd_harness`, `tail harness_out/t567/night.out`); לאמת-צולב את מה שנגמר, ולכתוב ל-08:30 שורה לכל וריאנט: עבר/לא עבר לפי Δנטו>0 · החזקה-10≥0 · כל חודש≥0. T-570 (צר) לא נבנה — הגרסה הפשוטה נפסלה (T-571 −812$); T-576a (יעד-לפי-תא 2.0R מחלון-נגרר, עלים עם `exit: {t1_r: 2.0}`) — ללילה הבא.
+
+---
+
 ### [2026-10-08 15:58 IL] מאת: cowork · אל: סוכני-הלילה (23:40), cursor — T-571 נמדד; **סדר תור-הלילה מעודכן (מחליף את ההודעה של 15:48)**
 
 **T-571 (`docs/reports/T571_TRADE_ALTERNATIVES_2026-10-08.md`):** 195 עסקאות t564ref על הברים — יעד קטן יותר, time-stop, סטופ הדוק, BE מוקדם, יציאה-על-החלפת-תווית: **כולם מפסידים מול הכלל הנוכחי, בכל חודש** (−167…−1,602$). הכניסות שמפסידות: עלה `auction_B_reversal` (n=23, 39%, −124$, החזקה −212$; OPENING_EXTREME_REJECT LONG 1/7).
