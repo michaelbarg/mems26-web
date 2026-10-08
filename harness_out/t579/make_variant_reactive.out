@@ -1,0 +1,17 @@
+leaves live=536 variant=596
+vectors 4520 · same 4507 · changed 13 · same-decision-but-policy-drift 0
+changed outside the intended context: 0
+    ('2026-06-15', '19:40', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-06-22', '19:10', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-06-30', '19:35', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-07-06', '19:05', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-07-17', '19:20', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-07-17', '19:45', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-07-21', '18:50', 'REACTIVE_SHORT', 'C', 'Variation', 18, 'against', 'SKIP', 'TAKE')
+    ('2026-08-10', '19:15', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-08-21', '19:25', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-08-21', '19:55', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-09-03', '19:10', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-09-03', '19:30', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+    ('2026-09-03', '19:55', 'REACTIVE_SHORT', 'C', 'Variation', 19, 'against', 'SKIP', 'TAKE')
+VERDICT: OK - only the against-the-hint allow flips SKIP->TAKE, no policy drift
