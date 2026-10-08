@@ -1795,6 +1795,58 @@ class BarLevelDetector:
             pass
         return False
 
+    # ── T-566 pre-T1 tighten helpers (variant c = 'accept': wait for the next closed bar) ────────────
+    def _se_emit_tighten(self, trade, direction, _ns, why) -> bool:
+        """Emit ONE MODIFY_STOP to `_ns` when it is strictly tighter than the readable current stop and a stop
+        order exists. Never widens, never flattens. Returns True when emitted."""
+        _cs = None
+        try:
+            _cs = float(trade.stop) if trade.stop else None
+        except (TypeError, ValueError):
+            _cs = None
+        _tighter = (_ns is not None and _cs is not None
+                    and ((direction == "LONG" and float(_ns) > _cs)
+                         or (direction == "SHORT" and float(_ns) < _cs)))
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        _has_stop_order = any(q.get(f"c{i}_stop_id") for i in (1, 2, 3, 4))
+        if _tighter and _has_stop_order:
+            self._tm._emit_modify_stop(trade, float(_ns))
+            logger.warning("[StructureExit] TIGHTEN pre-T1 (%s): trade %d %s — stop %.2f → %.2f "
+                           "(failed break against the trade; STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1)",
+                           why, trade.id, direction, _cs, float(_ns))
+            return True
+        logger.info("[StructureExit] TIGHTEN pre-T1 skip (%s): trade %d — new_stop %s vs stop %s "
+                    "(tighter=%s, stop_order=%s)", why, trade.id, _ns, _cs, _tighter, _has_stop_order)
+        return False
+
+    def _se_accept_pending(self, trade, direction, bar_high, bar_low, bar_close) -> None:
+        """T-566c: a pre-T1 tighten stored at the signal bar acts only if THIS (next) closed bar closes back
+        inside the value edge again — acceptance back in value. Otherwise it is dropped. One bar of patience."""
+        _pend = getattr(self, "_se_pending", {}).get(trade.id)
+        if _pend is None:
+            return
+        _key = (bar_high, bar_low, bar_close)
+        if _key == _pend.get("bar_key"):
+            return                                  # the same closed bar seen again — not the next bar
+        self._se_pending.pop(trade.id, None)
+        if trade.t1_hit_ts is not None:
+            return
+        _typ = str(_pend.get("type") or "")
+        try:
+            if _typ.startswith("FB_HIGH"):
+                _accepted = float(bar_close) < float(_pend["edge_high"])
+            elif _typ.startswith("FB_LOW"):
+                _accepted = float(bar_close) > float(_pend["edge_low"])
+            else:
+                _accepted = False
+        except (TypeError, ValueError, KeyError):
+            _accepted = False
+        if _accepted:
+            self._se_emit_tighten(trade, direction, _pend.get("ns"), "accepted")
+        else:
+            logger.info("[StructureExit] TIGHTEN pre-T1 dropped: trade %d — no acceptance on the next bar "
+                        "(%s close %.2f)", trade.id, _typ, float(bar_close))
+
     def _maybe_structure_exit(self, trade, direction, bar_high, bar_low,
                               bar_close) -> None:
         """STRUCTURE_EXIT (Michael 30.08, T-142): exit on structural failure.
@@ -1827,6 +1879,9 @@ class BarLevelDetector:
                     pass
 
                 if len(_se_bars) >= 3:
+                    # T-566c: a tighten pending acceptance from the previous closed bar acts (or drops) now
+                    if getattr(self, "_se_pending", None):
+                        self._se_accept_pending(trade, direction, bar_high, bar_low, bar_close)
                     # Get levels for the failed break detector
                     _se_tpo = {}
                     try:
@@ -1917,9 +1972,11 @@ class BarLevelDetector:
                                     # tick beyond the return bar) — TIGHTEN only, never
                                     # widen, never FLATTEN, never realize at market.
                                     # Default OFF ⇒ the skip below, byte-identical.
-                                    _tighten_pre_t1 = _se_os.getenv(
+                                    _tighten_mode = _se_os.getenv(
                                         "STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0"
-                                    ).strip().lower() in ("1", "true", "live")
+                                    ).strip().lower()
+                                    _tighten_pre_t1 = _tighten_mode in (
+                                        "1", "true", "live", "accept")
                                     if _tighten_pre_t1:
                                         _ns = _se_result.get("new_stop")
                                         # room knob (variant b): N × ATR beyond the return
@@ -1934,43 +1991,33 @@ class BarLevelDetector:
                                                             _se_atr_val, _room)
                                         except (TypeError, ValueError):
                                             pass
-                                        _cs = None
-                                        try:
-                                            _cs = (float(trade.stop)
-                                                   if trade.stop else None)
-                                        except (TypeError, ValueError):
-                                            _cs = None
-                                        # A stop we cannot read (None/0 — records≠reality)
-                                        # is never "tightened": no proof it tightens.
-                                        _tighter = (_ns is not None and _cs is not None
-                                                    and ((direction == "LONG"
-                                                          and float(_ns) > _cs)
-                                                         or (direction == "SHORT"
-                                                             and float(_ns) < _cs)))
-                                        q = trade.quality if isinstance(
-                                            trade.quality, dict) else {}
-                                        _has_stop_order = any(
-                                            q.get(f"c{i}_stop_id") for i in (1, 2, 3, 4))
-                                        if _tighter and _has_stop_order:
+                                        if _tighten_mode == "accept":
+                                            # T-566c: act only after the NEXT closed bar
+                                            # closes inside the edge again (acceptance back
+                                            # in value) — stored here, judged in
+                                            # _se_accept_pending on the next bar.
+                                            if not hasattr(self, "_se_pending"):
+                                                self._se_pending = {}
+                                            self._se_pending[trade.id] = {
+                                                "ns": _ns, "type": _se_fb.get("type", ""),
+                                                "edge_high": _se_fb.get("edge_high"),
+                                                "edge_low": _se_fb.get("edge_low"),
+                                                "bar_key": (bar_high, bar_low, bar_close)}
+                                            logger.warning(
+                                                "[StructureExit] TIGHTEN pre-T1 pending "
+                                                "acceptance: trade %d %s — new_stop %s "
+                                                "(%s; decides on the next closed bar)",
+                                                trade.id, direction, _ns,
+                                                _se_fb.get("type", ""))
+                                        else:
                                             # One emit: _emit_modify_stop addresses every
                                             # stop order of the trade (c1..c4 ids), dedups
                                             # identical stops within 60s and writes
-                                            # trade.stop back — so successive fires
-                                            # compare against the tightened stop.
-                                            self._tm._emit_modify_stop(trade, float(_ns))
-                                            logger.warning(
-                                                "[StructureExit] TIGHTEN pre-T1: trade %d "
-                                                "%s — stop %.2f → %.2f (failed break "
-                                                "against the trade; "
-                                                "STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1)",
-                                                trade.id, direction, _cs, float(_ns))
-                                        else:
-                                            logger.info(
-                                                "[StructureExit] TIGHTEN pre-T1 skip: "
-                                                "trade %d — new_stop %s vs stop %s "
-                                                "(tighter=%s, stop_order=%s)",
-                                                trade.id, _ns, _cs, _tighter,
-                                                _has_stop_order)
+                                            # trade.stop back. A stop we cannot read
+                                            # (None/0 — records≠reality) is never
+                                            # "tightened": no proof it tightens.
+                                            self._se_emit_tighten(
+                                                trade, direction, _ns, "signal")
                                     else:
                                         logger.info(
                                             "[StructureExit] REALIZE skip: trade %d "

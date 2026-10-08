@@ -1001,10 +1001,32 @@ _TURN_EXIT = _TURN_EXIT_MODE in ("1", "true", "yes", "both", "long", "short", "l
 # bars against the VA edges as observable at that instant), the SAME should_exit_on_failbreak, the SAME action —
 # stop → its `new_stop` (one tick beyond the return bar), tighten only, never widen, never flatten. Applied at the
 # bar's close ⇒ effective from the next bar, like the live MODIFY_STOP. Unset (default) ⇒ byte-identical replay.
-_SE_TIGHTEN = os.getenv("STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0").strip().lower() in ("1", "true", "live")
+_SE_MODE = os.getenv("STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0").strip().lower()
+_SE_TIGHTEN = _SE_MODE in ("1", "true", "live", "accept")
+_SE_ACCEPT = _SE_MODE == "accept"   # T-566c: act only after the next closed bar closes inside the edge again
+_SE_PENDING = {}  # trade_id → {bar, ns, type, edge_high, edge_low}
 _SE_FIRED = {}   # trade_id → set (the live code keeps one set per detector instance; here one per trade)
 _SE_ROOM = float(os.getenv("STRUCTURE_EXIT_TIGHTEN_ROOM_ATR", "0") or 0)   # variant b knob, 0 = detector tick
 _SE_STATS = {"checked": 0, "signals": 0, "tightened": 0}   # proof the mechanism ran (a silent no-op must not read as "no effect")
+# T-567c (08.10, harness measurement, default off): SLOT_RELEASE_BARS_V1=N — a filled pre-T1 trade that has not
+# reached SLOT_RELEASE_MFE_R × risk within N closed bars is closed at that bar's close (exit=RELEASE) so the slot
+# is free for the next doctrine candidate ("stop early and allow a new trade"). Measured WITH the candidates that
+# then enter — the whole-day total decides (T-571/T-575 light sims: the exit alone loses).
+_SLOT_RELEASE_N = int(os.getenv("SLOT_RELEASE_BARS_V1", "0") or 0)
+_SLOT_RELEASE_R = float(os.getenv("SLOT_RELEASE_MFE_R", "1.0") or 1.0)
+_SLOT_RELEASE_STATS = {"checked": 0, "released": 0}
+
+
+def _se_apply_tighten(tr, bar_index, ns, why):
+    """Tighten only (never widen); records the move on the trade. Mirrors bar_level_detector._se_emit_tighten."""
+    cs = float(tr["stop"]); b = BARS[bar_index]
+    tighter = ns is not None and ((tr["direction"] == "LONG" and float(ns) > cs)
+                                  or (tr["direction"] == "SHORT" and float(ns) < cs))
+    if tighter:
+        tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": cs,
+                                               "to": round(float(ns), 2), "reason": why})
+        tr["stop"] = round(float(ns), 2)
+        _SE_STATS["tightened"] += 1
 
 
 def _se_tighten_pre_t1(tr, bar_index):
@@ -1012,6 +1034,17 @@ def _se_tighten_pre_t1(tr, bar_index):
         from backend.v9.systems.failed_break import detect_failed_break
         from backend.v9.services.trade_manager.structure_exit import should_exit_on_failbreak
         from backend.v9.shared.atr import atr_5min
+        # T-566c: a tighten pending acceptance decides on THIS bar (the one after the signal bar) — then detection
+        pend = _SE_PENDING.get(tr["trade_id"])
+        if pend is not None and bar_index > pend["bar"]:
+            _SE_PENDING.pop(tr["trade_id"], None)
+            if bar_index == pend["bar"] + 1:
+                c = float(BARS[bar_index]["close"]); typ = str(pend.get("type") or "")
+                accepted = ((typ.startswith("FB_HIGH") and pend.get("edge_high") is not None and c < float(pend["edge_high"]))
+                            or (typ.startswith("FB_LOW") and pend.get("edge_low") is not None and c > float(pend["edge_low"])))
+                _SE_STATS["accepted" if accepted else "dropped"] = _SE_STATS.get("accepted" if accepted else "dropped", 0) + 1
+                if accepted:
+                    _se_apply_tighten(tr, bar_index, pend["ns"], f"accepted: {pend.get('reason')}")
         bars = [{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"]), "o": float(x["open"])}
                 for x in BARS[max(0, bar_index - 13): bar_index + 1]]
         if len(bars) < 3:
@@ -1042,13 +1075,14 @@ def _se_tighten_pre_t1(tr, bar_index):
         if ns is not None and _SE_ROOM > 0:          # variant b: N × ATR of room beyond the return bar (same helper as live)
             from backend.v9.services.trade_manager.structure_exit import tighten_stop_with_room
             ns = tighten_stop_with_room(float(ns), tr["direction"], atr_5min(bars, period=14), _SE_ROOM)
-        tighter = ns is not None and ((tr["direction"] == "LONG" and float(ns) > cs)
-                                      or (tr["direction"] == "SHORT" and float(ns) < cs))
-        if tighter:
-            tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": cs,
-                                                   "to": round(float(ns), 2), "reason": res.get("reason")})
-            tr["stop"] = round(float(ns), 2)
-            _SE_STATS["tightened"] += 1
+        if _SE_ACCEPT:
+            # T-566c: store; the next closed bar decides (acceptance back inside the edge) — see the top of this function
+            _SE_PENDING[tr["trade_id"]] = {"bar": bar_index, "ns": ns, "type": fb.get("type", ""),
+                                           "edge_high": fb.get("edge_high"), "edge_low": fb.get("edge_low"),
+                                           "reason": res.get("reason")}
+            _SE_STATS["pending"] = _SE_STATS.get("pending", 0) + 1
+            return
+        _se_apply_tighten(tr, bar_index, ns, res.get("reason"))
     except Exception as _e:
         _SE_STATS["errors"] = _SE_STATS.get("errors", 0) + 1
         print("se-tighten failed:", _e)
@@ -1137,6 +1171,22 @@ def _settle_bar(b, bar_index):
         # bar_level_detector runs on the closed bar; its MODIFY_STOP takes effect from the next bar).
         if _SE_TIGHTEN and tr.get("filled") and not tr["be_moved"]:
             _se_tighten_pre_t1(tr, bar_index)
+        # SLOT_RELEASE_BARS_V1 (T-567c) — pre-T1 only, at the close of the N-th bar since the fill: no MFE of
+        # SLOT_RELEASE_MFE_R × risk yet ⇒ out at this close, slot freed for the next candidate.
+        if (_SLOT_RELEASE_N > 0 and tr.get("filled") and not tr["be_moved"]
+                and bar_index - tr.get("fill_bar_index", bar_index) >= _SLOT_RELEASE_N):
+            _SLOT_RELEASE_STATS["checked"] += 1
+            _risk = abs(e - float(tr["stop_initial"])) or 0.25
+            _fb = tr.get("fill_bar_index", bar_index)
+            _mfe = max(((float(BARS[i]["high"]) - e) if d == "LONG" else (e - float(BARS[i]["low"])))
+                       for i in range(_fb, bar_index + 1))
+            if _mfe < _SLOT_RELEASE_R * _risk:
+                for leg in tr["legs"]:
+                    if not leg["exit"]:
+                        leg.update(exit="RELEASE", exit_price=cl, pts=sgn * (cl - e), bar_il=il)
+                _SLOT_RELEASE_STATS["released"] += 1
+                _close_trade(tr, il)
+                continue
 
 
 def _harness_stop_cooldown(pattern_id, direction, entry_price):
@@ -1394,6 +1444,7 @@ out = {
     "s1": S1_LOG, "routes": RECORDS, "would_write": _WOULD_WRITE,
     "second_slot": {"paths": _SECOND_PATHS, "opened": _SECOND["opened"]},   # T-561 (empty list ⇒ not in play)
     "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN, room_atr=_SE_ROOM),   # T-566 (on=False ⇒ not in play)
+    "slot_release": dict(_SLOT_RELEASE_STATS, bars=_SLOT_RELEASE_N, mfe_r=_SLOT_RELEASE_R),   # T-567c (bars=0 ⇒ off)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
