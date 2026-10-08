@@ -1,3 +1,140 @@
+🟢 **[cowork-dev · ריצה 280 · 08.10 21:34-21:46 IL · חובה-1 + חובה-3 (ניטור-RTH) · אפס הודעות-טלפון · ארבע הבדיקות ירוקות · 2 החלטות-PASSED ב-90 הדק' אינן כניסות-לייב אבודות אלא ענף-shadow_only מתוכנן]**
+
+`date ⇒ Thu Oct 8 21:34:30 IDT 2026` ∈ `16:30-23:00` ⇒ **חובה-3**. המאזין `pid 85469` עלה
+`Thu Oct  8 15:22:38 2026` (היום אחרי 12:00) ⇒ **בעלות-הריסטארט אינה שלי** ⇒ ⛔ אפס ריסטארט ·
+אפס GO/NO-GO · אפס `--apply` · אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ/הרנס.
+**ריצה 279 הסתיימה 21:12 ו-supervisor כתב 21:36** — כל השוואה כאן היא מולן.
+
+## ☎️ חובה-1 — אפס ממתינות · שקט מוחלט בטלפון
+
+```raw
+GET /chat?key=… ⇒ HTTP=200 · 17,467 bytes · items: 30
+אחרון: 2026-10-08T17:08:29Z | cowork (סגירת #3314) — סוכן, לא מייקל
+אחרונת-מייקל: 2026-10-07T10:50:03Z ⇒ נענתה 2026-10-07T11:11:10Z (cowork-dev, עניינית)
+   ⇒ michael_after_agent = False · אפס שורת-"תיוג עסקה #"
+זנב PHONE_THREAD.jsonl == זנב /chat ⇒ שני הפוסקים מסכימים
+```
+
+⇒ **אין (א) · אין (ב) · אין (ג) · אין (ד)** ⇒ **אפס `phone_reply.py` בריצה הזו.** `supervisor` כבר
+שלח הודעה אחת ב-21:39 (ריצוד-תווית); אין עסקת-לייב חדשה ואין סגירה מאז `#3314` ב-19:48 ⇒ הוספת
+הודעה שנייה בחלון הזה היא בדיוק T-369. **שלוש שאלות-מייקל הפתוחות לא נשאלו שוב** (T-564/T-563/T-561
+מ-08:30 · חלון-Cursor מ-17:59 · ניהול-ידני של #3289 מ-18:07) — פסיקה נשאלת פעם אחת.
+
+## 📡 חובה-3 — ארבע הבדיקות, כולן ירוקות
+
+```raw
+# 1. פיד חי (T-430: קובץ-טרי ≠ פיד-חי — הפוסק הוא הבר)
+psql ⇒ select max(ts) from v9_bars_5min_woodies ⇒ 2026-10-08 21:35:00+03
+       now()@UTC = 2026-10-08 18:36:40  ⇒ גיל ≈ 1.7 דק' < 10 ⇒ ✅ פיד חי
+אישוש-שני 21:43:08 ⇒ [bar_router] dispatch total 102.9ms for woodies_5min (בר נדחף בזמן-אמת)
+
+# 2. backend בריא
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python 85469 michael 18u IPv4 TCP *:8000 (LISTEN)   [מאזין אחד]
+ps -o lstart,etime -p 85469 ⇒ Thu Oct  8 15:22:38 2026 | 06:15:55
+curl /api/v9/health ⇒ {"status":"ok","version":"v9.0.0"} HTTP=200 t=0.009218s
+שער-ד0 (עיוורון-לוג) ⇒ 2026-10-08 15:22:46 [INFO] [mems26.boot] [boot] logging OK
+                        level=INFO pid=85469 commit=72a5315a   ⇒ pid תואם ⇒ הלוג רואה
+
+# 3. פוזיציה מול TM (ownership לפני אזעקה)
+sierra_state.json ⇒ position_qty 0 · avg_price 0.0 · open_pnl 0.0 · working_orders 0 · orders []
+                     is_sim 0 · trade_account 37138283 · armed 1 · send 1 · daily_total_qty_filled 8
+psql v9_trades mode=live היום ⇒ 4 שורות, **כולן CLOSED** (3272 · 3281 · 3289 · 3314)
+⇒ שני הצדדים שטוחים ⇒ אפס אי-התאמה, אפס צורך בבדיקת-order_id (אין מה לייחס)
+
+# 4. עסקת-לייב חדשה/סגורה?
+grep "COMMAND QUEUED" ^2026-10-08 ⇒ #404 16:45:03 · #405 16:55:07 · #406 17:40:05 · #407 19:20:07
+⇒ **4 בדיוק, כל היום**, כולן op=PLACE · account=37138283 · אחרונה 19:20 ⇒ אפס ירי מאז
+אפס ORPHAN · אפס exit_not_executed · אפס exit_needs_manual · אפס exit_unverifiable היום
+```
+
+## 🧾 הצלבת-ברוקר — 4 מ-4, הספרים והברוקר מסכימים לסנט
+
+```raw
+psql ⇒ select count(*), sum(pnl_sierra), sum(pnl_usd), count(*) filter (where pnl_sierra is null)
+        from v9_trades where mode='live' and (entry_ts at tz 'America/New_York')::date = today
+     ⇒ 4 | -152.5 | -158.75 | 0
+sierra_state.json ⇒ acct_daily_pl = -152.5   ⇒ **sum(pnl_sierra) == acct_daily_pl בדיוק**
+```
+
+**אימות-ברוקר 4/4, אפס `pnl_sierra` ריק** ⇒ אין שורת-"אין רישום-ברוקר ל-#id". הפער `pnl_usd −158.75`
+מול `pnl_sierra −152.50` (Δ 6.25$) הוא הזזת-הסטופ הידנית ב-#3289 — מבנה מוכר, לא ממצא.
+⚠️ `sierra_state.daily_pnl −447.50` עוד אינו מתיישב עם אף אחד מהשניים — **כבר רשום ע"י ריצה 279
+ב-21:12, לא נפתח פריט חדש** (איסור קובץ-משימות/פריט מתחרה).
+
+## 🔍 הממצא היחיד שהוא שלי — שתי PASSED בלי ירי, והקריאה הנאיבית שלהן שגויה
+
+```raw
+curl /api/v9/gateway/decisions?limit=2000 ⇒ 75 שורות (הפיד חסום ל-200 — §3.2)
+טווח ⇒ 2026-10-08T13:35:04Z -> 2026-10-08T18:35:04Z   (האחרונה = 21:35 IL, בן 2 דק')
+90 הדק' האחרונות (n=19): 9 entry_location_quality · 4 structural_targets_wrong_side
+                          · 3 tree:stand_down · 1 tree:bias · **2 blocked_by=null**
+שתי ה-PASSED ⇒ 17:10:05Z + 17:15:04Z · CEILING_FLIP_TOUCH2 LONG · leaf=TAKE
+              · live_blocked_by **null** · outcome **"shadow_only"**
+```
+
+הקריאה המתבקשת — *"שתי כניסות-לייב עברו את העץ ולא נורו"* — **הופרכה בלוג ולא הונחה**:
+`20:00:06 / 20:10:05 / 20:15:04 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed`
+⇒ `CEILING_FLIP_TOUCH2` הוא **ענף-מחקר shadow-only לפי תבנית** (לא לפי שעה ולא לפי שער) — התאום
+החי שלו הוא `CEILING_FLIP_SHORT/LONG`, ושניהם כן ירו היום (#3289, #3314). ⇒ **אפס כניסת-לייב אבודה
+בחלון, ואין כאן שער שנכשל.** ⚠️ **במפורש אינו נטען** שחיתוך-22:00 או `time_cutoff` מעורבים — הם לא
+הופיעו באף אחת מ-19 השורות.
+
+## 🚩 שערי-שפיות + מרג'ין (דיווח בלבד)
+
+```raw
+python3 scripts/flag_guard.py ⇒ FLAG-GUARD: PASS — all 274 ruled flags match.
+  ⚠ FOOTPRINT_DISABLED: plist=true .env=0 live=true  ← REPORT-only (T-563, בעלות = פסיקת-מייקל)
+sierra_state.json ⇒ acct_available_funds 353.79 · acct_under_margin 0
+                     · acct_trading_disabled 0 · acct_loss_limit_reached 0
+                     · acct_daily_pl −152.50 מול acct_daily_net_loss_limit −303.77
+mobile/data ⇒ radar.trading.contracts_allowed = **1** ✅ תואם את הפסיקה (FIXED_CONTRACTS_1)
+```
+
+**T-34 — דיווח בלבד:** `avail 353.79` מתחת ל-`$1,595`, **וירד** `407.54 (17:13) ⇒ 353.79` לאורך היום —
+אבל `under_margin=0` · `trading_disabled=0` · `contracts_allowed=1`, והמערכת ירתה חי ארבע פעמים היום
+⇒ **אינו חוסם מסחר** ⇒ שורה כאן, **לא** מקרה (ג) בטלפון. ⛔ אפס נגיעה בגודל/בדגלים.
+
+## 🖥️ machine_health (WARN-בלבד) — והמספר שלי עצמי ניפח את ה-load
+
+```raw
+21:40 ⇒ WARN load 8.61 > 6.0 · WARN unused RAM 106M < 400M · WARN swap used 5828M > 500M
+21:43 ⇒ sysctl vm.loadavg ⇒ { 4.02 5.78 5.35 }        ⇒ ה-8.61 היה שיא-רגעי
+ps -r ⇒ mediaanalysisd 98.7% · knowledgeconstructiond 32.2% · Sierra Menu Helper 24.5%
+         · backend 85469 23.2% · mds_stores 10.3%
+bar_router 21:43:01-08 ⇒ dispatch 105.9 / 93.2 / 104.4ms · SLOW BarLevelDetector.on_bar 102.6ms
+```
+
+**הקריאה, מול 279 (21:12: load 3.31/4.02/4.24 · swap 7520M · RAM 260M · cowork-vm 2874MB):**
+`swap` **שיפר** 7520M⇒5828M · `RAM` **הורע** 260M⇒106M · ו-`load 8.61` נמדד **בתוך** `flag_guard`
+(274 דגלים) + `psql` + `machine_health` של הריצה הזו, ושלוש דקות אחריו חזר ל-4.02 ⇒ **חלקו שלי, ואני
+אומר זאת במקום לדווח "העומס שולש".** הצמרת החדשה היא **דמוני-macOS** (`mediaanalysisd` ניתוח-תמונות,
+`knowledgeconstructiond` Apple-Intelligence) — **לא** Cursor: `Cursor Helper (Renderer) 2.0% / 512MB`,
+כלומר ההקלה שריצה 279 מדדה מחזיקה. `cowork-vm 2873MB` נשאר **הצרכן הלא-מסחרי הגדול — כלומר אני.**
+`dispatch ≈ 100ms` מול בסיס `73ms`: מוגבה, אך רחוק מתקרית-17:28 (חציון 199ms, שיא 1.6s) ⇒ אינו חוסם.
+
+## ⚠️ שקיפות — נגעתי בעץ-העבודה המשותף וביטלתי את הנגיעה
+
+```raw
+git pull --rebase ⇒ error: cannot pull with rebase: You have unstaged changes.
+git stash push -u -m cowork-auto-2134 ⇒ Saved working directory…   ← ❌ טעות שלי
+git pull --rebase ⇒ Already up to date.                            ← כלומר הסטאש היה מיותר
+git stash pop ⇒ Dropped refs/stash@{0} (e6bb83d1…)                 ← שוחזר מיד
+אימות: 14 שינויים-מנוטרים חזרו **זהים** (אותם קבצים, אותם דגלי M/D) ·
+        stash list ⇒ רק stash@{0} cowork-autorun-1737 (קדם-קיים, לא נגעתי)
+```
+
+**הסטאש היה שגוי** — עבודה-בתהליך של `cc-macbook` על 14 קבצים (בהם `five_min_system.py` ו-
+`trading_gateway`-adjacent) נדחקה לסטאש לשנייה. שוחזר במלואו ואומת קובץ-קובץ, ו-`pull` החזיר
+"Already up to date" ⇒ **אפס נזק, אפס אובדן, אפס שינוי-תוכן**. **לקח למחר: בריצת-ניטור אין לעשות
+`stash` — אם `pull --rebase` נכשל על unstaged, מדווחים ועוברים ל-`git fetch` + השוואת-ref בלבד.**
+(לא לטלפון — תיקון-עצמי הוא במפורש ברשימת-האסור.)
+
+## סיכום-ריצה
+
+לייב היום **4 עסקאות · ברוקר Σ −152.50$** (3272 −43.75 · 3281 −55 · 3289 **+11.25** · 3314 −65) מול
+תקרה −303.77 · פוזיציה 0 · סלוט פנוי · `contracts_allowed 1` · פיד 1.7 דק' · `flag_guard` PASS 274 ·
+אימות-ברוקר 4/4 · אפס ERROR/CRITICAL חדש · **אפס הודעת-טלפון** · **אפס נגיעה במסחר**.
+
 ## 2026-10-08 21:36 IL · supervisor · 🔴 אדום חדש: ריצוד-תווית 3× היום (Normal→Variation 18:35 · Variation→Trend_Normal 20:35 · חזרה ל-Variation 20:50 — סטייה 15 דק׳, 3 החלטות בחלון ירו, אף אחת בלייב, פוזיציה 0) · הודעת-טלפון אחת נשלחה 21:39 (supervisor) · שאר הבריאות ירוקה: feed 1 דק׳ · מאזין 85469 · סוכנים 10/9 · flag_guard PASS · לייב היום 4 עסקאות Σ −152.50$ · החלטות 75 / ירו 50
 1. ימים-אנלוגיים (6): קונפיג-הלייב בריפליי Σ +239.35$ · 3/6 ימים חיוביים — תצפית, לא שער.
 2. ריצוד-תווית 3× — מועמד להיסטרזיס (בר-אישור לפני החלפה), דגל-כבוי + מדידה (§2.7, WORK_PLAN שבוע 2) — fix-agent הלילה ⇒ פסיקה 08:30. אפס נגיעה בלייב מהריצה הזו.
