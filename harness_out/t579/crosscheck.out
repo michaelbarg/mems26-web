@@ -1,0 +1,66 @@
+=== t567a (fix-agent cross-check 00:08)
+t567a vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t567a Σ+2611.75$ · Δ -58.75$ gross, ≈-76.95$ net of +7 round-trips · better 2 / worse 4 / same 61
+by month Δ: 2026-06 -115 (8d) · 2026-07 +18 (17d) · 2026-08 -2 (19d) · 2026-09 +41 (19d) · 2026-10 +0 (4d)
+trades: added 9 (wins 4, Σ+37.50$) · removed 2 (Σ+96.25$) · the rest of Δ is changed exits/targets of the same trades
+2026-06-15 Δ   -93.75   (ref  +191.25 →   +97.50)
+2026-06-30 Δ   -21.25   (ref  +108.10 →   +86.85)
+2026-07-21 Δ   +17.50   (ref   -13.75 →    +3.75)
+=== t567c9 (fix-agent cross-check 00:08)
+t567c9 vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t567c9 Σ+1862.95$ · Δ -807.55$ gross, ≈-877.75$ net of +27 round-trips · better 13 / worse 15 / same 39
+by month Δ: 2026-06 -249 (8d) · 2026-07 -298 (17d) · 2026-08 -81 (19d) · 2026-09 -162 (19d) · 2026-10 -18 (4d)
+trades: added 27 (wins 10, Σ-334.40$) · removed 0 (Σ+0.00$) · the rest of Δ is changed exits/targets of the same trades
+2026-06-15 Δ  -248.75   (ref  +191.25 →   -57.50)
+2026-07-06 Δ   +12.50   (ref   -51.25 →   -38.75)
+2026-07-14 Δ    +8.75   (ref   -36.25 →   -27.50)
+=== t571b (fix-agent cross-check 00:08)
+t571b vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t571b Σ+2612.45$ · Δ -58.05$ gross, ≈-8.65$ net of -19 round-trips · better 11 / worse 10 / same 46
+by month Δ: 2026-06 -9 (8d) · 2026-07 -42 (17d) · 2026-08 +262 (19d) · 2026-09 -264 (19d) · 2026-10 -5 (4d)
+trades: added 9 (wins 5, Σ+59.40$) · removed 28 (Σ+109.30$) · the rest of Δ is changed exits/targets of the same trades
+2026-06-29 Δ    -8.75   (ref   +81.25 →   +72.50)
+2026-07-01 Δ   -84.35   (ref  +170.00 →   +85.65)
+2026-07-09 Δ   +42.50   (ref   -42.50 →    +0.00)
+=== t567a holdout (fix-agent cross-check 00:08)
+sessions 67 · Σ Δ -58.75 gross · holdout-10 (2026-09-23..2026-10-06) Δ +0.00 · better 2 / worse 4 / same 61
+months: 2026-06 -115 · 2026-07 +18 · 2026-08 -2 · 2026-09 +41 · 2026-10 +0
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t567c9 holdout (fix-agent cross-check 00:08)
+sessions 67 · Σ Δ -800.05 gross · holdout-10 (2026-09-23..2026-10-06) Δ -48.75 · better 13 / worse 15 / same 39
+months: 2026-06 -249 · 2026-07 -291 · 2026-08 -81 · 2026-09 -162 · 2026-10 -18
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t571b holdout (fix-agent cross-check 00:08)
+sessions 67 · Σ Δ -49.90 gross · holdout-10 (2026-09-23..2026-10-06) Δ +121.25 · better 11 / worse 10 / same 46
+months: 2026-06 -9 · 2026-07 -42 · 2026-08 +262 · 2026-09 -256 · 2026-10 -5
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t579b holdout (fix-agent cross-check 00:08)
+sessions 67 · Σ Δ -100.00 gross · holdout-10 (2026-09-23..2026-10-06) Δ +0.00 · better 1 / worse 1 / same 65
+months: 2026-06 -118 · 2026-07 +18 · 2026-08 +0 · 2026-09 +0 · 2026-10 +0
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t571a (fix-agent cross-check 00:18)
+t571a vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t571a Σ+2637.40$ · Δ -33.10$ gross, ≈-25.30$ net of -3 round-trips · better 3 / worse 4 / same 60
+by month Δ: 2026-06 +0 (8d) · 2026-07 -84 (17d) · 2026-08 +86 (19d) · 2026-09 -35 (19d) · 2026-10 +0 (4d)
+trades: added 5 (wins 1, Σ-196.85$) · removed 8 (Σ-171.90$) · the rest of Δ is changed exits/targets of the same trades
+sessions 67 · Σ Δ -24.95 gross · holdout-10 (2026-09-23..2026-10-06) Δ +35.00 · better 4 / worse 4 / same 59
+months: 2026-06 +0 · 2026-07 -84 · 2026-08 +86 · 2026-09 -27 · 2026-10 +0
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t566c (fix-agent cross-check 00:18)
+t566c vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t566c Σ+2942.40$ · Δ +271.90$ gross, ≈+222.50$ net of +19 round-trips · better 12 / worse 6 / same 49
+by month Δ: 2026-06 +0 (8d) · 2026-07 -144 (17d) · 2026-08 +280 (19d) · 2026-09 +298 (19d) · 2026-10 -162 (4d)
+trades: added 21 (wins 9, Σ+0.00$) · removed 2 (Σ-60.00$) · the rest of Δ is changed exits/targets of the same trades
+sessions 67 · Σ Δ +271.90 gross · holdout-10 (2026-09-23..2026-10-06) Δ +24.40 · better 12 / worse 6 / same 49
+months: 2026-06 +0 · 2026-07 -144 · 2026-08 +280 · 2026-09 +298 · 2026-10 -162
+mechanism: {'checked': 1467, 'signals': 36, 'tightened': 27} · tightened trades: 27
+=== t567b (fix-agent cross-check 00:28)
+t567b vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t567b Σ+2524.30$ · Δ -146.20$ gross, ≈-169.60$ net of +9 round-trips · better 9 / worse 14 / same 44
+by month Δ: 2026-06 +29 (8d) · 2026-07 +102 (17d) · 2026-08 -108 (19d) · 2026-09 -64 (19d) · 2026-10 -106 (4d)
+trades: added 29 (wins 15, Σ+108.15$) · removed 20 (Σ+254.35$) · the rest of Δ is changed exits/targets of the same trades
+sessions 67 · Σ Δ -146.20 gross · holdout-10 (2026-09-23..2026-10-06) Δ -60.60 · better 9 / worse 14 / same 44
+months: 2026-06 +29 · 2026-07 +102 · 2026-08 -108 · 2026-09 -64 · 2026-10 -106
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== t567c6 (fix-agent cross-check 00:38)
+t567c6 vs t567ref: 67 sessions · t567ref Σ+2670.50$ · t567c6 Σ+1571.10$ · Δ -1099.40$ gross, ≈-1206.00$ net of +41 round-trips · better 13 / worse 23 / same 31
+by month Δ: 2026-06 -264 (8d) · 2026-07 -108 (17d) · 2026-08 -272 (19d) · 2026-09 -499 (19d) · 2026-10 +44 (4d)
+trades: added 43 (wins 18, Σ-193.75$) · removed 2 (Σ+31.25$) · the rest of Δ is changed exits/targets of the same trades
+sessions 67 · Σ Δ -972.50 gross · holdout-10 (2026-09-23..2026-10-06) Δ -238.10 · better 13 / worse 24 / same 30
+months: 2026-06 -133 · 2026-07 -77 · 2026-08 -272 · 2026-09 -534 · 2026-10 +44
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 0
+=== summary table (fix-agent, 00:38)
