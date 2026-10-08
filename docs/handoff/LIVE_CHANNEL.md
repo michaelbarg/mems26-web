@@ -1,3 +1,157 @@
+🔴 **[cowork-dev · ריצה 264 · 08.10 13:34-13:58 IL · ריצת-צהריים מחוץ 15:30-16:10 ⇒ חובה-1 בלבד · אפס ממתינות מהטלפון — אבל מקרה (ג) יצא: הצ'ארט חזר לחשבון-האמת וענף-הדמו דלוק ⇒ פריט חדש T-568]**
+
+**חובה-1 — אפס ממתינות (א).** זנב `PHONE_THREAD.jsonl` (745 שורות) + peek ישיר מ-Render: הודעת-מייקל
+אחרונה בחוט `2026-10-07T10:50:03Z` — **נענתה ענייניות** ע"י cowork-dev `11:11:10Z` (ה-cc `✓ התקבל` הוא
+אישור-קבלה, לא תשובה). אפס שורת-"תיוג עסקה #".
+
+```raw
+13:35:59  GET /chat?key=…            ⇒ http=200 · bytes=17149 · items=30 · michael_msgs=1
+                                       (07.10 10:50, נענתה) · michael_after_agent=False · tag-lines=0
+13:36     GET /instruction/pending   ⇒ {"items":[]}
+13:36     GET /cmd/pending           ⇒ {"cmd":null}
+13:36     GET /marks/pending         ⇒ {"items":[]}
+13:36     GET /upload/pending        ⇒ {"items":[]}
+```
+
+## 🔴 הממצא — T-568 · הצ'ארט חזר לחשבון-האמת 37138283 אחרי שסיירה עלתה ב-13:00, וענף-הדמו אינו בודק חשבון
+
+אתמול הצ'ארט היה על `Sim1` וכל ירי נרשם דמו ([[T-551]]). סיירה נפלה 00:15 ועלתה 13:00:32 (ריצה 263
+תיעדה את העלייה). **עכשיו הצ'ארט על חשבון-האמת, חמוש, ושולח להזמנות** — ואת זה אף ריצה לא מדדה עד
+כה, כי 258-262 ראו סיירה למטה ו-263 מדדה את הפיד ולא את מצב-החשבון.
+
+```raw
+13:45  sierra_state.json ×3 דגימות ב-5 שנ' הפרש (גיל-קובץ <1 שנ' בכל אחת) — זהות:
+       is_sim=0  acct_is_sim=0  order_placement_armed=1  send_orders_to_trade_service=1
+       trade_account=37138283  symbol=MESZ26_FUT_CME  position_qty=0  working_orders=0  orders=[]
+       acct_ok=1  acct_cash_balance=506.29  acct_available_funds=506.29  acct_margin_req=0.0
+       acct_daily_net_loss_limit=-303.77  acct_loss_limit_reached=0  acct_under_margin=0
+       acct_trading_disabled=0  daily_total_qty_filled=0  last_price=7808.0
+```
+
+**שלוש סיבות שאין שומר שיתפוס את זה** (נקרא מהקוד, לא מהזיכרון — Pre-LIVE "Read the current code"):
+
+1. `_is_demo_enabled` (`backend/v9/gateway/trading_gateway.py:5888-5892`) בודק **רק** את
+   `DEMO_EXECUTION_ENABLED` + חברות-מערכת. אפס בדיקת חשבון/סים — בעוד `docs/FLAG_REGISTRY.yaml` פוסק
+   על הדגל עצמו: *"DEMO + Sim account ONLY"*. ⇒ הפסיקה הכתובה של הדגל אינה מאוכפת בקוד.
+2. `backend/v9/services/entry_guard.py:139` מתריע **רק** על `is_sim=1`
+   (*"Sierra is in SIM mode — a live-mode order routes to sim"*) ⇒ `is_sim=0` מפיק **אפס אזהרה**.
+3. שער-ה-SIM של ה-API (`backend/v9/api/v9/trade_commands.py:74-98`) **כן** מסרב `BUY`/`SELL` על
+   `is_sim≠1` — אבל הנתיב האוטונומי אינו עובר בו (`command_from_setup` מ-`sierra_command`,
+   `trading_gateway.py:23`), ו-`LIVE_TRADING_ARMED=1` כבר ב-`.env:390`.
+
+**ולמה זה דווקא ענף-הדמו ולא הלייב:** `LIVE_TRADING_V1=0` ⇒ `_live_enabled_systems` ריק ⇒
+`_execute_live` לא נקרא בכלל (לפי `backend/main.py:1401-1411` + `FLAG_REGISTRY`), בעוד
+`DEMO_EXECUTION_ENABLED=1`. כלומר הנתיב שיפעל ב-16:30 הוא **ענף-הדמו**, שכותב `trade_command.json`
+לסיירה — וסיירה מנתבת לחשבון שהצ'ארט יושב עליו. ⇒ **שורה בספרים תיכתב `mode=demo` בעוד הכסף אמיתי.**
+זו מראת-התמונה של [[T-551]] (שם: לייב-בספרים, סימולציה-בפועל; כאן: דמו-בספרים, אמת-בפועל).
+
+**אישוש-צד:** שדות-החשבון חזרו להיות קריאים — `avail 506.29` במקום סנטינל `1.8e+308` של
+**מלכודת 36** (שנרשמה ב-06.10 כשהצ'ארט היה על Sim1 ולסיירה לא היו נתוני-חשבון) ⇒ עוד ראיה
+שהצ'ארט על חשבון-אמת.
+
+☎️ **מקרה (ג) — הודעה יחידה, 326 תווים, שאלה אחת, אפס backticks.** אומתה ב-`GET /chat` ולא מה-`ok`:
+`items[-1] = 2026-10-08T10:45:33Z · cowork-dev` ⇒ נמסרה. **אפס החלפת-חשבון מצידי** — החלפת חשבון/סים
+בסיירה, `DEMO_EXECUTION_ENABLED`, `LIVE_*` ו-`.env` כולם מעבר לגבול-הפסיקה (CLAUDE.md §Standing
+Decisions + כלל-הגבול-היחיד) ⇒ זו שאלה למייקל, לא פעולה שלי.
+
+### 📏 מרג'ין T-34 — דיווח-בלבד, **אינו חוסם**, ואינו ה-(ג) שנשלח
+
+`acct_available_funds = 506.29$ < 1,595$` (סף-4-החוזים) ⇒ שורת-דיווח כנדרש. אבל הפסיקה החיה היא
+**חוזה אחד** (`FIXED_CONTRACTS_1=1` · `ruled_contracts() = 1` ✅), ולוג-הברוקר של 06-07.10 נקב
+ב-`Margin needed for Account: 288.53` לחוזה ⇒ `506.29 > 288.53` ⇒ **מספיק לחוזה אחד ⇒ לא חוסם**.
+ה-(ג) שנשלח הוא על **זהות-החשבון**, לא על המרג'ין.
+
+## 📏 מדידת-מצב (קריאה-בלבד, 13:37-13:52 — פלט גולמי, Rule 5)
+
+```raw
+backend : lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 49501 · lstart Wed Oct 7 15:18:17 · etime 22:19:17
+          rss 128,140K · ⇒ בעלות-הריסטארט אינה שלי (מלכודת 30), וממילא מחוץ לחלון 15:30-16:10
+health  : curl /api/v9/health ⇒ http=200 t=0.030178s {"status":"ok","version":"v9.0.0"}
+log-gate: grep "[boot] logging OK" ⇒ 2026-10-07 15:18:30 … pid=49501 commit=ef0c41c0  (==הרץ ⇒ §ד0 עבר)
+sierra  : pgrep ⇒ 50947 Menu Helper · 50958 wine64-preloader SierraChart_64 · 50998 services.exe
+יצוא    : ls -lT ~/SierraChart_Data/v9_export/ ⇒ 5min.json · 5min_continuous · cumulative_delta(+_continuous)
+          כולם Oct 8 13:37:34  (⚠️ T-430: קובץ טרי ≠ פיד חי — הפוסק הוא ה-DB מתחת)
+feed    : select max(ts), age_min, rows_today from v9_bars_5min_woodies
+          ⇒ 2026-10-08 13:35:00+03 | 2.8 | 57     ואז 13:40:00+03 | ~1.0 | 58
+שלמות   : woodies ביום-ET ⇒ n=58 · first 08:55 · last 13:40 (IL) · מרווחים-צפויים 57 == מדורגים 57
+          ⇒ אפס פערים בתוך הסדרה (T-430 בשני הצירים: טריות + שלמות)
+מחירים  : last 6 ברים (IL) 13:15 7819.25 · 13:20 7818 · 13:25 7807.75 · 13:30 7803.75 · 13:35 7808.5 · 13:40 7808.25
+legacy  : select max(ts) from v9_bars_5min ⇒ 2026-10-07 23:55:00+03 (age 822.8 דק')  ← T-532, לא הפוסק
+פוזיציה : sierra_state qty 0 · working_orders 0 · orders []   מול
+          select … from v9_trades where state NOT IN ('CLOSED','CANCELLED') ⇒ 0 שורות  ⇒ מסכימים,
+          אין פער ⇒ אין צורך ב-ownership-by-order_id ואין אזעקה (מלכודת 16)
+ספרים   : עסקאות-היום (entry_ts ב-ET = היום) ⇒ 0 שורות
+          36 שעות אחרונות ⇒ demo|CLOSED|2 · shadow|CLOSED|108   ⇒ אין (ב)
+צל      : python3 scripts/close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do"
+          ⇒ אפס --apply
+גודל    : set -a; . ./.env; set +a; ruled_contracts() ⇒ 1  = פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1) ✓
+שערים   : python3 scripts/flag_guard.py ⇒ exit=0 · "FLAG-GUARD: PASS — all 274 ruled flags match."
+          דיווח-בלבד: FOOTPRINT_DISABLED plist=true .env=0 live=true ← T-563/T-435, בעלות-מייקל
+לוג     : python3 scripts/task_log_guard.py ⇒ "543 items, last committed 0.0 days ago
+          ✅ the task log is current, structured, and the only one"
+git     : pull --ff-only ⇒ Already up to date · ענף stabilize/mems26-local-truth-2026-05-16
+          status ⇒ 12 קבצים M מעבודת-סוכן-אחר (T-566/T-567) ⇒ קומיט ב-pathspec מפורש בלבד
+```
+
+### 🪤 מלכודת 33 עבדה — ולכן **לא** דיווחתי אזעקת-שגיאות
+
+```raw
+grep "^2026-10-08" /tmp/backend.err.log | grep -cE "\[(ERROR|CRITICAL)\]"            ⇒ 776
+grep "^2026-10-08" /tmp/backend.err.log | grep -E "\[(ERROR|CRITICAL)\]" \
+                                        | grep -vc "TS-OFFSET-GATE"                   ⇒ 0
+TS-OFFSET-GATE לפי שעה ⇒ 194 בשעה 00 (כשסיירה נפלה) · 755 בשעה 13 (מאז שחזרה)
+שורה מייצגת: [bars/5min] TS-OFFSET-GATE REJECTED batch: newest bar ts 49428s behind now
+             (> 900s) while feed advances (1788874200 -> 1791406500) — live-but-mislabeled TS
+```
+
+**אפס שגיאה אמיתית היום.** 776 הגולמיות הן 100% [[T-532]] — ‏`5min.json` נכתב כל 3 שנ' אבל הבר-החדש
+בו עוד מ-`23:55` (49,428 שנ' = 13.7 ש' מאחור) ⇒ שער-ה-TS דוחה **בצדק** (`TS_OFFSET_INGEST_GATE_V1=1`
+פסוק, `RULED_FLAGS.yaml:185`, מייקל 21.07 ⇒ אין לגעת). **רעש `[bars/5min]` לבדו בעוד woodies טרי
+אינו NO-GO** — פסיקת-ריצה-207 ומלכודות 24/27/28. מי שיתן NO-GO על "776 ERROR" ייפול בדיוק שם.
+
+### 📉 ממצא-פיד לשער 15:30-16:10 — חלון-הגלובקס של הלילה חסר
+
+```raw
+select ts from v9_bars_5min_woodies where ts > '2026-10-07 23:00+03' and ts < '2026-10-08 09:30+03'
+⇒ 10-07 23:05 … 23:55  (11 ברים)  ואז דילוג ישר ל-  10-08 08:55
+```
+
+סיירה הייתה למטה `00:15 → 13:00`, וההורדה-ההיסטורית בחיבור מילאה רק מ-`08:55` ⇒ **00:00-08:50 IL
+חסרים לגמרי**. ⇒ `max(ts)` מהיום ובן <10 דק' — כלומר **שלב D של `fire_drill` צפוי לעבור** — אבל כל
+אינדיקטור שנשען על קיצוני-הלילה/טווח-גלובקס יקרא **חלקי**, והקריאה הזו אינה שקרית אלא חסרה.
+**הבעלות על המשמעות ל-GO/NO-GO היא של ריצת-השער**, לא שלי; אני רק מניח את המספר על השולחן.
+
+### 🟡 WARN מכונה (machine_health, דיווח-בלבד ל-LIVE_CHANNEL — לא לטלפון)
+
+```raw
+load 1/5/15: 3.99/4.83/6.97  (cores 8)        ← שיפור מ-7.81/11.28/11.95 בריצה 263
+mem: 16G used (3550M wired, 983M compressor), 46M unused.
+swap: total = 8192.00M  used = 7310.00M  free = 882.00M  (encrypted)
+WARN: unused RAM 31M < 400M — the Mac is compressing/swapping
+WARN: swap used 7342M > 500M
+trading stack: backend 124 MB 62.8% · bridge 18 MB · sierra n=2 207 MB 33.2% · postgres n=17 493 MB
+non-trading (MB): cowork-vm 2735 · chrome 1839 · claude-app 1323 · claude-agents 469
+```
+
+העומס ירד בחצי מריצה 263 (ה-extension-host של Cursor ב-159% כבר אינו בראש), אבל הסוואפ עוד
+`7,310/8,192`. **לא חוסם** (health 30ms, פיד חי, פוזיציה 0). סגירת תהליכי-עורך/VM היא החלטת-מייקל
+⇒ **אפס הרג-תהליכים**. ריצת-השער תריץ `machine_health.py` שוב ותשקול אותו ב-GO/NO-GO.
+
+### ⏳ פסיקות שלא נענו (מהודעת-08:30) — לא נגעתי, ולא הוזכרו שוב בטלפון
+
+1. **T-564** היתר `INITIATIVE_SHORT`/Variation 18–19h לעץ (hot-reload) — כן/לא · טרם נענה.
+2. **T-563+T-545** ריסטארט אחד (plist דורס `FOOTPRINT_DISABLED`) — טרם נענה.
+3. **T-561** סלוט-שני = 2 חוזים (פסיקת-הון) — טרם נענה.
+
+כלל-הטלפון אוסר תזכורות-ניטור ⇒ שלושתן נשארות כאן, ומקרה-(ג) של היום עומד בפני עצמו (חדש, לא תזכורת).
+
+**אפס חשיפה:** אפס `.env` · אפס דגלים · אפס גודל · אפס פוזיציות/פקודות/`op=EXIT` · אפס ריסטארט ·
+אפס נגיעה בסיירה (לא בחשבון, לא בסים, לא בחיבור) · אפס DLL/LaunchAgents · אפס `--apply` · אפס
+נגיעה בעץ · אפס כתיבה ל-DB · אפס `fire_drill`/GO-NO-GO (אינו בבעלותי בשעה הזו). עץ-העבודה נשאר
+כפי שמצאתי אותו — קומיט ל-`LIVE_CHANNEL.md` + `TASK_LOG.md` + `PHONE_THREAD.jsonl` בלבד.
+
+---
+
 🟢 **[cowork-dev · ריצה 263 · 08.10 13:04-13:12 IL · ריצת-צהריים מחוץ 15:30-16:10 ⇒ חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · ✅ סיירה חזרה והפיד חי]**
 
 **חובה-1 — אפס ממתינות ⇒ אפס `phone_reply.py`.** זנב `PHONE_THREAD.jsonl` + peek ישיר מ-Render:
