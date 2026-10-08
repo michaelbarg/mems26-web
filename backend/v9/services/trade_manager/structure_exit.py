@@ -196,3 +196,21 @@ def should_exit_on_reversal(
             f"structural break → FLATTEN + lock edge"
         ),
     }
+
+
+def tighten_stop_with_room(new_stop: float, trade_direction: str, atr: Optional[float],
+                           room_atr: float) -> float:
+    """T-566 variant knob (STRUCTURE_EXIT_TIGHTEN_ROOM_ATR, default 0 = the detector's
+    one-tick-beyond-the-return-bar stop): give the tightened stop `room_atr` × ATR of room
+    beyond the return bar, rounded to the tick, so a one-bar fakeout does not take the
+    trade out. Used by the live pre-T1 tighten and by the harness mirror — one function,
+    so the replay measures the live rule."""
+    try:
+        room = float(room_atr or 0.0) * float(atr or 0.0)
+    except (TypeError, ValueError):
+        room = 0.0
+    if room <= 0:
+        return float(new_stop)
+    td = (trade_direction or "").upper()
+    adj = float(new_stop) + room if td == "SHORT" else float(new_stop) - room
+    return round(round(adj / 0.25) * 0.25, 2)

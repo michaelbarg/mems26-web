@@ -1003,6 +1003,7 @@ _TURN_EXIT = _TURN_EXIT_MODE in ("1", "true", "yes", "both", "long", "short", "l
 # bar's close ⇒ effective from the next bar, like the live MODIFY_STOP. Unset (default) ⇒ byte-identical replay.
 _SE_TIGHTEN = os.getenv("STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0").strip().lower() in ("1", "true", "live")
 _SE_FIRED = {}   # trade_id → set (the live code keeps one set per detector instance; here one per trade)
+_SE_ROOM = float(os.getenv("STRUCTURE_EXIT_TIGHTEN_ROOM_ATR", "0") or 0)   # variant b knob, 0 = detector tick
 _SE_STATS = {"checked": 0, "signals": 0, "tightened": 0}   # proof the mechanism ran (a silent no-op must not read as "no effect")
 
 
@@ -1038,6 +1039,9 @@ def _se_tighten_pre_t1(tr, bar_index):
         fired.add(key)
         _SE_STATS["signals"] += 1
         ns = res.get("new_stop"); cs = float(tr["stop"])
+        if ns is not None and _SE_ROOM > 0:          # variant b: N × ATR of room beyond the return bar (same helper as live)
+            from backend.v9.services.trade_manager.structure_exit import tighten_stop_with_room
+            ns = tighten_stop_with_room(float(ns), tr["direction"], atr_5min(bars, period=14), _SE_ROOM)
         tighter = ns is not None and ((tr["direction"] == "LONG" and float(ns) > cs)
                                       or (tr["direction"] == "SHORT" and float(ns) < cs))
         if tighter:
@@ -1389,7 +1393,7 @@ out = {
     "prev_tpo": {k: PREV_TPO.get(k) for k in ("found", "poc", "vah", "val")},
     "s1": S1_LOG, "routes": RECORDS, "would_write": _WOULD_WRITE,
     "second_slot": {"paths": _SECOND_PATHS, "opened": _SECOND["opened"]},   # T-561 (empty list ⇒ not in play)
-    "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN),   # T-566 (on=False ⇒ not in play)
+    "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN, room_atr=_SE_ROOM),   # T-566 (on=False ⇒ not in play)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }

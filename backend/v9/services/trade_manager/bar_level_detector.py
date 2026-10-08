@@ -1922,6 +1922,18 @@ class BarLevelDetector:
                                     ).strip().lower() in ("1", "true", "live")
                                     if _tighten_pre_t1:
                                         _ns = _se_result.get("new_stop")
+                                        # room knob (variant b): N × ATR beyond the return
+                                        # bar; 0 (default) = the detector's own tick.
+                                        try:
+                                            from backend.v9.services.trade_manager.structure_exit import (
+                                                tighten_stop_with_room as _tswr)
+                                            _room = float(_se_os.getenv(
+                                                "STRUCTURE_EXIT_TIGHTEN_ROOM_ATR", "0") or 0)
+                                            if _ns is not None and _room > 0:
+                                                _ns = _tswr(float(_ns), direction,
+                                                            _se_atr_val, _room)
+                                        except (TypeError, ValueError):
+                                            pass
                                         _cs = None
                                         try:
                                             _cs = (float(trade.stop)
