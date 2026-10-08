@@ -1,3 +1,60 @@
+🟢 **[cowork-dev · ריצה 262 · 08.10 12:34-12:42 IL · ריצת-בוקר מחוץ 15:30-16:10 ⇒ חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון]**
+
+**חובה-1 — אפס ממתינות ⇒ אפס `phone_reply.py`.** זנב `PHONE_THREAD.jsonl` (745 שורות) + peek ישיר מ-Render: הודעת-מייקל אחרונה `2026-10-07T10:50:03Z` (id `bcad029a`, `status="התקבל ✓"`) **נענתה ענייניות** ע"י cowork-dev `11:11:10Z` (ה-cc `-ack` הוא אישור-קבלה, לא תשובה); אחרון-בחוט `cowork 2026-10-08T05:49:26Z` = הודעת-08:30. אפס שורת-"תיוג עסקה #".
+
+```raw
+12:36  GET /chat?key=…           ⇒ items=30 · michael_msgs=1 (07.10, נענתה) · michael_after_agent=False
+12:36  GET /instruction/pending  ⇒ {"items":[]}
+12:36  GET /cmd/pending          ⇒ {"cmd":null}
+```
+
+⇒ **אין (א)** אפס הודעה בלי תשובה עניינית · **אין (ב)** אפס עסקאות היום, פוזיציה 0 · **אין (ג)** סיירה-למטה מתועדת כבר ארבע פעמים הבוקר (258/259/260/261), לא חריגה חדשה · **אין (ד)** מחוץ לחלון-השער ⇒ **אפס הודעת-טלפון**.
+
+## 📏 מדידת-מצב (קריאה-בלבד, 12:36-12:38 — פלט גולמי, Rule 5)
+
+```raw
+backend : lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 49501 · lstart Wed Oct 7 15:18:17 · etime 21:18:11
+health  : curl /api/v9/health ⇒ http=200 t=0.0028s {"status":"ok","version":"v9.0.0"}
+feed    : select max(ts) ⇒ woodies 2026-10-07 23:55:00+03 (age 761 דק') · v9_bars_5min זהה
+sierra  : pgrep -fil sierra ⇒ ריק · ls -lT ~/SierraChart_Data/v9_export/ ⇒ 5min/5min_continuous/
+          cumulative_delta קפואים על Oct 8 00:15:11
+ספרים   : עסקאות-היום (entry_ts ב-ET = היום) ⇒ 0 · state NOT IN (CLOSED,CANCELLED) ⇒ אפס שורות
+צל      : python3 scripts/close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do"
+גודל    : set -a; . ./.env; set +a; ruled_contracts() ⇒ 1  = פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1) ✓
+שערים   : flag_guard ⇒ PASS 274 (exit=0) · דיווח-בלבד: FOOTPRINT_DISABLED plist=true .env=0 live=true
+          ← T-563/T-435, בעלות-מייקל
+          task_log_guard ⇒ "541 items, last committed 0.0 days ago · ✅ current, structured, and the only one"
+```
+
+**🔴 סיירה למטה מאז 00:15 — ללא שינוי, ריצה חמישית שמתעדת אותו מצב.** הבעלות על בדיקת-הפיד,
+ה-NO-GO והנוסח "לחבר מחדש בסיירה: File → Disconnect → Connect to Data Feed" היא של שער
+**15:30-16:10** (מקרה ד). העלאת סיירה = ריסטארט/ניתוב-מסחר ⇒ דורש פסיקה כתובה; CLAUDE.md
+§Service Bring-Up אוסר להעלות שירותים ללא בקשה מפורשת. ⇒ אפס הרמה, אפס `--apply`, אפס נגיעה
+בדגלים/גודל/`.env`/פוזיציות/פקודות/DB/DLL/עץ, ואפס הודעת-טלפון (שליחה חמישית = בדיוק T-369).
+
+### 🟡 חדש · T-566 בעבודה-חיה של סוכן אחר בעץ-העבודה — דיווח-בלבד, לא נגעתי
+
+הממצא: `bar_level_detector.py` ו-`structure_exit.py` נכתבו ב-**12:33:52 / 12:33:43** — דקה לפני
+תחילת הריצה — מעל קומיט `f4d2b820` (12:26, "T-566 STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1, flag OFF").
+כלומר סוכן אחר עובד בריפו ברגע זה (קומיטים 12:11 · 12:26, כתיבות-קובץ 12:33).
+
+```raw
+12:37  python3 -m py_compile bar_level_detector.py structure_exit.py five_min_system.py ⇒ exit=0
+12:38  (set -a; . ./.env; set +a; pytest tests/v9/regression/test_t566_structure_exit_tighten_pre_t1.py -q)
+       ⇒ 7 passed, 2 warnings in 0.28s        (בלי .env: RuntimeError BRIDGE_TOKEN — מלכודת-הסביבה, לא כשל)
+12:38  git diff structure_exit.py ⇒ הידית בטיסה היא STRUCTURE_EXIT_TIGHTEN_ROOM_ATR, ברירת-מחדל "0"
+       = התנהגות-הדטקטור הקיימת ⇒ אפס שינוי-התנהגות בלי הדלקה
+12:38  FLAG_REGISTRY.yaml:822 STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 קיים · grep .env + RULED_FLAGS ⇒ ריק ⇒ כבוי
+```
+
+⇒ העבודה **קוהרנטית** (מתקמפלת, 7/7 ירוק, דגל כבוי) ואינה חריגה. **למה זה נוגע לשער:**
+ריסטארט-קדם-פתיחה טוען את מה שעל-הדיסק **ברגע הריסטארט**, וסוכן אחר עדיין מקליד — ⇒ על ריצת
+15:30-16:10 לחזור ולאמת py_compile + הרגרסיה **אחרי** ה-`git pull` ולפני ההרמה, לא להסתמך על
+האימות של 12:38. אפס פעולה מצדי: לא סטייג'תי ולא קומיטתי אף אחד מ-17 הקבצים המתוקנים בעץ-העבודה
+(הקומיט הזה נוגע ל-`LIVE_CHANNEL.md` בלבד).
+
+---
+
 🟢 **[cowork-dev · ריצה 261 · 08.10 12:05-12:12 IL · ריצת-בוקר מחוץ 15:30-16:10 ⇒ חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון]**
 
 **חובה-1 — אפס ממתינות ⇒ אפס `phone_reply.py`.** זנב `PHONE_THREAD.jsonl` + peek ישיר מ-Render (רלה `state=running pid=1629`): `GET /chat?items=30 ⇒ http=200 bytes=17149`, הודעת-מייקל אחרונה `2026-10-07T10:50:03Z` **נענתה** ענייניות ע"י cowork-dev `11:11:10Z`; `GET /instruction/pending ⇒ {"items":[]}` · `GET /cmd/pending ⇒ {"cmd":null}` · אפס שורת-"תיוג עסקה #" · אפס עסקאות היום · מחוץ לחלון-השער ⇒ אין (א)/(ב)/(ג)/(ד).
