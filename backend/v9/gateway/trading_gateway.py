@@ -79,6 +79,21 @@ def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
 logger = logging.getLogger(__name__)
 
 
+def _elq_phase_b_exempt(t3v) -> bool:
+    """T-567b (08.10, flag-OFF): ELQ_PHASE_B_EXEMPT_V1=1 exempts a tree TAKE in phase B from the
+    entry_location_quality gate. Cell audit 08.10 (doctrine_cell_audit, t564ref/67): 21 phase-B candidates
+    refused by ELQ, 67%, +1,027$ candidate-level — in the aggregate (T-244) the gate is right, in phase B it
+    is the exception that pays. Decided by the tree path only (phase=B segment); never in phase A/C/D."""
+    try:
+        if os.getenv("ELQ_PHASE_B_EXEMPT_V1", "0").strip().lower() not in ("1", "true", "yes"):
+            return False
+        if not isinstance(t3v, dict) or t3v.get("mode") != "on" or str(t3v.get("leaf") or "").upper() != "TAKE":
+            return False
+        return "phase=B" in str(t3v.get("path") or "").split("/")
+    except Exception:
+        return False
+
+
 def _opening_gate_exempt(setup, gate_name: str) -> bool:
     """Opening-trade gate exemptions (Michael enabled OPENING_PLAYBOOK_V1 2026-07-29).
 
@@ -2900,7 +2915,14 @@ class TradingGateway:
                               and "entry_location_quality" in (_t3v.get("skip_gates") or []))
         except Exception:
             _elq_skip_tree = False
-        if _elq_skip_tree and _elq_mode in ("1", "true", "shadow") and not _elq_skip_vc:
+        # T-567b (08.10, flag-OFF): ELQ exempt in phase B — see _elq_phase_b_exempt
+        if not _elq_skip_tree and _elq_phase_b_exempt(_t3v):
+            _elq_skip_tree = True
+            result["elq_skipped"] = "phase_b_exempt_t567b"
+            logger.warning("[Gateway] T-567b ELQ exempt in phase B (ELQ_PHASE_B_EXEMPT_V1) for %s %s @%s",
+                           setup.get("classification"), direction, setup.get("entry_price"))
+        if (_elq_skip_tree and _elq_mode in ("1", "true", "shadow") and not _elq_skip_vc
+                and result.get("elq_skipped") != "phase_b_exempt_t567b"):
             result["elq_skipped"] = f"tree_leaf:{_t3v.get('id')}"
             logger.warning("[Gateway] T-480 ELQ skipped by the tree leaf %s for %s %s @%s",
                            _t3v.get("id"), setup.get("classification"), direction, setup.get("entry_price"))
