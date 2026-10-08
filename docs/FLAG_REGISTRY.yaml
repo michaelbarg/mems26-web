@@ -813,6 +813,13 @@ flags:
     why: "OFF (default — awaiting Michael's ruling). #3046 05.10 19:25:04 (GB100 LONG) was closed one second after creation as LOSS −27.5 by #3038's line scanned 58s BEFORE it existed, then filled in Sierra and ran to +53.75 untracked; same class as #1337 / T-290. Flag OFF = today's behaviour byte-for-byte (pinned by the first test)."
     status: built_off
     ref: "backend/v9/services/fill_poller.py:_w2_ownership_on/_pnl_trade_floor/_check_activity_exits · tests/v9/regression/test_t545_w2_exit_ownership.py · TASK_LOG T-545"
+  STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1:
+    category: execution
+    group: "structure exit"
+    what: "T-566 (08.10, cowork — Michael 11:5x 'if the day changes, at least move the stop; where is System 6'): pre-T1, when the grade-A structure exit fires AGAINST the open trade (failed break detected by the same detector the entry uses, VA edges), move the stop to the detector's own new_stop = one tick beyond the return bar. Tighten only (never widen), never FLATTEN, never realize at market; one emit per fire (the emitter addresses every stop order and writes trade.stop back). Mirrored in scripts/fwd_harness.py (_se_tighten_pre_t1) so the whole-day replay measures the same rule."
+    why: "OFF (default — awaiting Michael's ruling on the 67-session number). 07.10 #3164 OPENING_DRIVE SHORT: grade-A fired 16:55:06 and the pre-T1 rule (STRUCTURE_EXIT_REALIZE_V1, 02.09 'before T1 → no action') skipped it; System 6 alerted stop_too_wide 12× for 55 min; the 15-pt stop was hit at 17:51 (−75$). Harness on 07.10: −131.25 → −40.00 (short tightened at 17:15 → −22.5, slot freed, two trades followed). Flag OFF = the REALIZE skip, byte-identical (pinned by the first regression test)."
+    status: built_off
+    ref: "backend/v9/services/trade_manager/bar_level_detector.py:_maybe_structure_exit (pre-T1 branch) · scripts/fwd_harness.py:_se_tighten_pre_t1 · tests/v9/regression/test_t566_structure_exit_tighten_pre_t1.py · harness_out/t566/run.sh · TASK_LOG T-566"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"

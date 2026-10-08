@@ -996,6 +996,59 @@ def _open_trade(rec, cmd, bar_index):
 _TURN_EXIT_MODE = os.getenv("TURN_EXIT_V1", "0").strip().lower()      # 1|both · long · short · longr (T-515 29.09)
 _TURN_EXIT = _TURN_EXIT_MODE in ("1", "true", "yes", "both", "long", "short", "longr")
 
+# STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 (08.10, Michael "לפחות היית מזיז את הסטופ") — harness mirror of the live pre-T1
+# branch in bar_level_detector._maybe_structure_exit: the SAME detector (detect_failed_break on the last 14 closed
+# bars against the VA edges as observable at that instant), the SAME should_exit_on_failbreak, the SAME action —
+# stop → its `new_stop` (one tick beyond the return bar), tighten only, never widen, never flatten. Applied at the
+# bar's close ⇒ effective from the next bar, like the live MODIFY_STOP. Unset (default) ⇒ byte-identical replay.
+_SE_TIGHTEN = os.getenv("STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0").strip().lower() in ("1", "true", "live")
+_SE_FIRED = {}   # trade_id → set (the live code keeps one set per detector instance; here one per trade)
+_SE_STATS = {"checked": 0, "signals": 0, "tightened": 0}   # proof the mechanism ran (a silent no-op must not read as "no effect")
+
+
+def _se_tighten_pre_t1(tr, bar_index):
+    try:
+        from backend.v9.systems.failed_break import detect_failed_break
+        from backend.v9.services.trade_manager.structure_exit import should_exit_on_failbreak
+        from backend.v9.shared.atr import atr_5min
+        bars = [{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"]), "o": float(x["open"])}
+                for x in BARS[max(0, bar_index - 13): bar_index + 1]]
+        if len(bars) < 3:
+            return
+        _SE_STATS["checked"] += 1
+        tpo = fake_load_sierra_tpo() or {}
+        vah = float(tpo.get("vah") or 0) or None
+        val = float(tpo.get("val") or 0) or None
+        if not (vah and val):
+            return
+        fired = _SE_FIRED.setdefault(tr["trade_id"], set())
+        fb = detect_failed_break(bars, vah, val, edge_label="VA", already_fired=fired)
+        if not fb:
+            return
+        b = BARS[bar_index]
+        res = should_exit_on_failbreak(
+            trade_direction=tr["direction"], trade_entry_price=float(tr["fill_price"] or tr["entry"]),
+            trade_stop=float(tr["stop"]), trade_t1_hit=False, bar_high=float(b["high"]), bar_low=float(b["low"]),
+            bar_close=float(b["close"]), failed_break=fb, atr=atr_5min(bars, period=14))
+        if not res:
+            return
+        key = f"SE_A_{tr['trade_id']}_{fb.get('type', '')}"
+        if key in fired:
+            return
+        fired.add(key)
+        _SE_STATS["signals"] += 1
+        ns = res.get("new_stop"); cs = float(tr["stop"])
+        tighter = ns is not None and ((tr["direction"] == "LONG" and float(ns) > cs)
+                                      or (tr["direction"] == "SHORT" and float(ns) < cs))
+        if tighter:
+            tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": cs,
+                                                   "to": round(float(ns), 2), "reason": res.get("reason")})
+            tr["stop"] = round(float(ns), 2)
+            _SE_STATS["tightened"] += 1
+    except Exception as _e:
+        _SE_STATS["errors"] = _SE_STATS.get("errors", 0) + 1
+        print("se-tighten failed:", _e)
+
 
 def _turn_before(bar_index):
     """T-515: the turn state from today's CLOSED RTH bars before bar_index — what the market showed at its open."""
@@ -1075,6 +1128,11 @@ def _settle_bar(b, bar_index):
             tr["stop"] = e; tr["be_moved"] = True
         if all(l["exit"] for l in tr["legs"]):
             _close_trade(tr, il)
+            continue
+        # STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 — at the close of a bar the trade survived, pre-T1 only (the live
+        # bar_level_detector runs on the closed bar; its MODIFY_STOP takes effect from the next bar).
+        if _SE_TIGHTEN and tr.get("filled") and not tr["be_moved"]:
+            _se_tighten_pre_t1(tr, bar_index)
 
 
 def _harness_stop_cooldown(pattern_id, direction, entry_price):
@@ -1331,6 +1389,7 @@ out = {
     "prev_tpo": {k: PREV_TPO.get(k) for k in ("found", "poc", "vah", "val")},
     "s1": S1_LOG, "routes": RECORDS, "would_write": _WOULD_WRITE,
     "second_slot": {"paths": _SECOND_PATHS, "opened": _SECOND["opened"]},   # T-561 (empty list ⇒ not in play)
+    "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN),   # T-566 (on=False ⇒ not in play)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }

@@ -1908,10 +1908,62 @@ class BarLevelDetector:
                                         "after T1)", trade.id, direction,
                                         _rlz_emitted, _rlz_stop)
                                 elif _realize_on and trade.t1_hit_ts is None:
-                                    logger.info(
-                                        "[StructureExit] REALIZE skip: trade %d "
-                                        "pre-T1 — no action on failed break signal",
-                                        trade.id)
+                                    # STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 (Michael 08.10
+                                    # 11:5x: "לפחות היית מזיז את הסטופ"): #3164 07.10 —
+                                    # grade-A fired 16:55:06 ("failed break LONG while
+                                    # SHORT — tighten stop"), the pre-T1 rule skipped it,
+                                    # the 15-pt stop was hit 56 min later (−75$). Pre-T1
+                                    # the action is the detector's own `new_stop` (one
+                                    # tick beyond the return bar) — TIGHTEN only, never
+                                    # widen, never FLATTEN, never realize at market.
+                                    # Default OFF ⇒ the skip below, byte-identical.
+                                    _tighten_pre_t1 = _se_os.getenv(
+                                        "STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1", "0"
+                                    ).strip().lower() in ("1", "true", "live")
+                                    if _tighten_pre_t1:
+                                        _ns = _se_result.get("new_stop")
+                                        _cs = None
+                                        try:
+                                            _cs = (float(trade.stop)
+                                                   if trade.stop else None)
+                                        except (TypeError, ValueError):
+                                            _cs = None
+                                        # A stop we cannot read (None/0 — records≠reality)
+                                        # is never "tightened": no proof it tightens.
+                                        _tighter = (_ns is not None and _cs is not None
+                                                    and ((direction == "LONG"
+                                                          and float(_ns) > _cs)
+                                                         or (direction == "SHORT"
+                                                             and float(_ns) < _cs)))
+                                        q = trade.quality if isinstance(
+                                            trade.quality, dict) else {}
+                                        _has_stop_order = any(
+                                            q.get(f"c{i}_stop_id") for i in (1, 2, 3, 4))
+                                        if _tighter and _has_stop_order:
+                                            # One emit: _emit_modify_stop addresses every
+                                            # stop order of the trade (c1..c4 ids), dedups
+                                            # identical stops within 60s and writes
+                                            # trade.stop back — so successive fires
+                                            # compare against the tightened stop.
+                                            self._tm._emit_modify_stop(trade, float(_ns))
+                                            logger.warning(
+                                                "[StructureExit] TIGHTEN pre-T1: trade %d "
+                                                "%s — stop %.2f → %.2f (failed break "
+                                                "against the trade; "
+                                                "STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1)",
+                                                trade.id, direction, _cs, float(_ns))
+                                        else:
+                                            logger.info(
+                                                "[StructureExit] TIGHTEN pre-T1 skip: "
+                                                "trade %d — new_stop %s vs stop %s "
+                                                "(tighter=%s, stop_order=%s)",
+                                                trade.id, _ns, _cs, _tighter,
+                                                _has_stop_order)
+                                    else:
+                                        logger.info(
+                                            "[StructureExit] REALIZE skip: trade %d "
+                                            "pre-T1 — no action on failed break signal",
+                                            trade.id)
                                 elif _se_a_mode != "shadow":
                                     # EXECUTE the action
                                     if _se_result.get("flatten"):
