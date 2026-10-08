@@ -33,8 +33,14 @@ class TestStalenessGuard:
         assert result is None, "Recent bar should pass staleness check"
 
     def test_off_market_price_rejected(self):
-        """Bar with price 220pts below latest known is rejected."""
+        """Bar with price 220pts below latest known is rejected.
+
+        T-265/T-532 (fix-agent 09.10): the band is consulted only while the tracker itself is fresh
+        (`_latest_bar_ts` within BAR5_RAW_STALE_SEC) — a tracker that last moved on Friday's close
+        must not reject a gap Monday (tests/v9/regression/test_t265_raw_5min_push_counts.py pins that
+        side). So the live-session case sets a fresh tracker timestamp, as the ingest path does."""
         bars._latest_known_price = 7580.0
+        bars._latest_bar_ts = datetime.now(timezone.utc) - timedelta(minutes=3)
         try:
             recent_ts = datetime.now(timezone.utc) - timedelta(minutes=1)
             result = bars._is_stale_bar(recent_ts, 7341.0)  # 239pts deviation
@@ -42,6 +48,19 @@ class TestStalenessGuard:
             assert "off_market" in result
         finally:
             bars._latest_known_price = None
+            bars._latest_bar_ts = None
+
+    def test_off_market_band_ignores_a_stale_tracker(self):
+        """T-265/T-532: a tracker last refreshed 65 h ago (Friday's close) cannot tell a ghost price
+        from a weekend gap — the band is skipped, the bar passes on its timestamp alone."""
+        bars._latest_known_price = 7580.0
+        bars._latest_bar_ts = datetime.now(timezone.utc) - timedelta(hours=65)
+        try:
+            recent_ts = datetime.now(timezone.utc) - timedelta(minutes=1)
+            assert bars._is_stale_bar(recent_ts, 7341.0) is None
+        finally:
+            bars._latest_known_price = None
+            bars._latest_bar_ts = None
 
     def test_within_band_accepted(self):
         """Bar with price 10pts from latest is accepted."""
