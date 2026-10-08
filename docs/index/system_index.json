@@ -1,12 +1,12 @@
 {
- "generated_at": "2026-10-07 06:11:51",
+ "generated_at": "2026-10-08 06:11:37",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "b61cdc3a 2026-10-06 23:41 cowork-dev run 228 (06.10 23:36-23:45, duty-1 + duty-4): run 227 owns tonight's queue — this run verified it independently and sharpen",
+   "head": "8f8c0eb7 2026-10-08 02:43 fix-agent 08.10 02:45: Sierra not running since 00:15 IL (exports frozen, last bar 23:55) — inbox + LIVE_CHANNEL observation, no actio",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
-   "dirty_files": 8768,
-   "tree_version": "3.4.0",
+   "dirty_files": 9784,
+   "tree_version": "3.4.1",
    "ruled_flags": 274,
    "flags_mismatch": [],
    "flags_on": [
@@ -2718,52 +2718,52 @@
   {
    "pattern": "ZLR",
    "system": "4",
-   "decisions": 550,
-   "passed_tree_gates": 154,
-   "live_fires": 1,
-   "live_pnl": 2.5,
+   "decisions": 591,
+   "passed_tree_gates": 170,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": false,
    "switch": "ZLR_SHADOW_V1",
    "top": [
-    "tree:stand_down 173",
-    "(passed) 154",
-    "tree:location 77"
+    "tree:stand_down 174",
+    "(passed) 170",
+    "tree:location 96"
    ]
   },
   {
    "pattern": "CEILING_FLIP_TOUCH2",
    "system": "2",
-   "decisions": 358,
-   "passed_tree_gates": 174,
+   "decisions": 388,
+   "passed_tree_gates": 201,
    "live_fires": 2,
    "live_pnl": -137.5,
    "live_capable": false,
    "switch": "CEILING_FLIP_TOUCH2_V1",
    "top": [
-    "(passed) 174",
+    "(passed) 201",
     "dalton_intent:stand_down 48",
-    "tree:stand_down 43"
+    "tree:stand_down 45"
    ]
   },
   {
    "pattern": "REACTIVE_SHORT",
    "system": "2",
-   "decisions": 69,
-   "passed_tree_gates": 2,
+   "decisions": 70,
+   "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
     "tree:stand_down 61",
-    "tree:bias 2",
-    "(passed) 2"
+    "(passed) 3",
+    "tree:bias 2"
    ]
   },
   {
    "pattern": "GHOST",
    "system": "4",
-   "decisions": 46,
+   "decisions": 49,
    "passed_tree_gates": 17,
    "live_fires": 5,
    "live_pnl": -93.75,
@@ -2793,7 +2793,7 @@
   {
    "pattern": "INITIATIVE_LONG",
    "system": "2",
-   "decisions": 36,
+   "decisions": 37,
    "passed_tree_gates": 9,
    "live_fires": 3,
    "live_pnl": 5.0,
@@ -2801,14 +2801,14 @@
    "switch": "live producer",
    "top": [
     "(passed) 9",
-    "tree:stand_down 7",
-    "tree:bias 7"
+    "tree:bias 8",
+    "tree:stand_down 7"
    ]
   },
   {
    "pattern": "GB100",
    "system": "4",
-   "decisions": 34,
+   "decisions": 36,
    "passed_tree_gates": 8,
    "live_fires": 4,
    "live_pnl": -25.0,
@@ -2818,6 +2818,36 @@
     "dalton_intent:stand_down 9",
     "(passed) 8",
     "tree:bias 5"
+   ]
+  },
+  {
+   "pattern": "TREND_STEP",
+   "system": "4",
+   "decisions": 31,
+   "passed_tree_gates": 9,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "TREND_STEP_ENTRY_V1",
+   "top": [
+    "(passed) 9",
+    "tree:location 8",
+    "dalton_intent:stand_down 3"
+   ]
+  },
+  {
+   "pattern": "DOUBLE_BOTTOM_EE_LONG",
+   "system": "2",
+   "decisions": 31,
+   "passed_tree_gates": 4,
+   "live_fires": 2,
+   "live_pnl": 102.5,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:bias 7",
+    "dalton_intent:stand_down 6",
+    "tree:stand_down 5"
    ]
   },
   {
@@ -2836,39 +2866,9 @@
    ]
   },
   {
-   "pattern": "DOUBLE_BOTTOM_EE_LONG",
-   "system": "2",
-   "decisions": 29,
-   "passed_tree_gates": 3,
-   "live_fires": 2,
-   "live_pnl": 102.5,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:bias 7",
-    "dalton_intent:stand_down 6",
-    "tree:stand_down 5"
-   ]
-  },
-  {
-   "pattern": "TREND_STEP",
-   "system": "4",
-   "decisions": 28,
-   "passed_tree_gates": 9,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "TREND_STEP_ENTRY_V1",
-   "top": [
-    "(passed) 9",
-    "tree:location 5",
-    "dalton_intent:stand_down 3"
-   ]
-  },
-  {
    "pattern": "FAMIR",
    "system": "4",
-   "decisions": 27,
+   "decisions": 30,
    "passed_tree_gates": 8,
    "live_fires": 3,
    "live_pnl": -17.5,
@@ -2876,23 +2876,23 @@
    "switch": "live producer",
    "top": [
     "tree:stand_down 10",
-    "tree:bias 8",
+    "tree:bias 9",
     "(passed) 8"
    ]
   },
   {
    "pattern": "REACTIVE_LONG",
    "system": "2",
-   "decisions": 26,
+   "decisions": 28,
    "passed_tree_gates": 6,
    "live_fires": 4,
    "live_pnl": 10.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 6",
     "tree:stand_down 6",
-    "tree:bias 5"
+    "(passed) 6",
+    "tree:bias 6"
    ]
   },
   {
@@ -2906,8 +2906,8 @@
    "switch": "S2_DELTA_DBL_V1",
    "top": [
     "(passed) 7",
-    "dalton_intent:bias 6",
-    "tree:location 6"
+    "tree:location 6",
+    "dalton_intent:bias 6"
    ]
   },
   {
@@ -2926,14 +2926,14 @@
   {
    "pattern": "DOUBLE_TOP_AA_SHORT",
    "system": "2",
-   "decisions": 16,
-   "passed_tree_gates": 6,
+   "decisions": 19,
+   "passed_tree_gates": 8,
    "live_fires": 3,
    "live_pnl": 7.5,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 6",
+    "(passed) 8",
     "tree:location 4",
     "tree:bias 3"
    ]
@@ -2941,7 +2941,7 @@
   {
    "pattern": "FAILED_RE_IB",
    "system": "2",
-   "decisions": 16,
+   "decisions": 17,
    "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -2949,23 +2949,38 @@
    "switch": "RE_ACCEPTANCE_V1",
    "top": [
     "tree:stand_down 4",
-    "tree:location 3",
-    "dalton_intent:bias 3"
+    "dalton_intent:bias 3",
+    "tree:location 3"
    ]
   },
   {
    "pattern": "CEILING_FLIP_SHORT",
    "system": "2",
-   "decisions": 15,
-   "passed_tree_gates": 9,
+   "decisions": 16,
+   "passed_tree_gates": 10,
    "live_fires": 3,
    "live_pnl": -72.5,
    "live_capable": true,
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
-    "(passed) 9",
+    "(passed) 10",
     "dalton_intent:stand_down 3",
     "tree:location 2"
+   ]
+  },
+  {
+   "pattern": "CEILING_FLIP_LONG",
+   "system": "2",
+   "decisions": 15,
+   "passed_tree_gates": 12,
+   "live_fires": 4,
+   "live_pnl": -56.25,
+   "live_capable": true,
+   "switch": "CEILING_FLIP_SHORT_V1",
+   "top": [
+    "(passed) 12",
+    "dalton_intent:bias 1",
+    "tree:location 1"
    ]
   },
   {
@@ -2984,40 +2999,25 @@
    ]
   },
   {
-   "pattern": "CEILING_FLIP_LONG",
-   "system": "2",
-   "decisions": 12,
-   "passed_tree_gates": 9,
-   "live_fires": 4,
-   "live_pnl": -56.25,
-   "live_capable": true,
-   "switch": "CEILING_FLIP_SHORT_V1",
-   "top": [
-    "(passed) 9",
-    "tree:bias 1",
-    "tree:location 1"
-   ]
-  },
-  {
    "pattern": "HTLB",
    "system": "4",
-   "decisions": 10,
-   "passed_tree_gates": 1,
+   "decisions": 12,
+   "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:bias 4",
+    "tree:bias 5",
     "dalton_intent:stand_down 3",
-    "dalton_intent:bias 1"
+    "(passed) 2"
    ]
   },
   {
    "pattern": "FAILED_BREAK_LONG",
    "system": "2",
-   "decisions": 10,
-   "passed_tree_gates": 1,
+   "decisions": 11,
+   "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
@@ -3025,28 +3025,28 @@
    "top": [
     "tree:stand_down 4",
     "dalton_intent:stand_down 3",
-    "tree:location 1"
+    "(passed) 2"
    ]
   },
   {
    "pattern": "VA_FADE_SHORT",
    "system": "2",
-   "decisions": 9,
-   "passed_tree_gates": 3,
+   "decisions": 10,
+   "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "(passed) 3",
+    "(passed) 4",
     "tree:bias 3",
-    "dalton_intent:stand_down 1"
+    "tree:kind 1"
    ]
   },
   {
    "pattern": "FAILED_BREAK_SHORT",
    "system": "2",
-   "decisions": 9,
+   "decisions": 10,
    "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3054,8 +3054,8 @@
    "switch": "failed_break.py: shadow_only by code",
    "top": [
     "(passed) 4",
-    "tree:location 2",
-    "dalton_intent:stand_down 2"
+    "tree:stand_down 2",
+    "tree:location 2"
    ]
   },
   {
@@ -3069,23 +3069,53 @@
    "switch": "live producer",
    "top": [
     "tree:location 2",
-    "tree:bias 2",
-    "dalton_intent:stand_down 2"
+    "dalton_intent:stand_down 2",
+    "tree:bias 2"
    ]
   },
   {
    "pattern": "VA_FADE_LONG",
    "system": "2",
-   "decisions": 8,
-   "passed_tree_gates": 3,
+   "decisions": 9,
+   "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "(passed) 3",
+    "(passed) 4",
     "tree:bias 3",
     "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "DALTON_EDGE_LONG",
+   "system": "2",
+   "decisions": 8,
+   "passed_tree_gates": 3,
+   "live_fires": 1,
+   "live_pnl": 28.75,
+   "live_capable": true,
+   "switch": "DALTON_EDGE_V1",
+   "top": [
+    "(passed) 3",
+    "tree:stand_down 1",
+    "tree:bias 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_DRIVE",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 5,
+   "live_fires": 5,
+   "live_pnl": -77.5,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 5",
+    "dalton_intent:bias 1",
+    "tree:kind 1"
    ]
   },
   {
@@ -3104,21 +3134,6 @@
    ]
   },
   {
-   "pattern": "DALTON_EDGE_LONG",
-   "system": "2",
-   "decisions": 7,
-   "passed_tree_gates": 3,
-   "live_fires": 1,
-   "live_pnl": 28.75,
-   "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
-   "top": [
-    "(passed) 3",
-    "dalton_intent:stand_down 1",
-    "tree:bias 1"
-   ]
-  },
-  {
    "pattern": "S2_DELTA_DBL_LONG",
    "system": "2",
    "decisions": 7,
@@ -3128,9 +3143,24 @@
    "live_capable": false,
    "switch": "S2_DELTA_DBL_V1",
    "top": [
-    "tree:location 3",
     "(passed) 3",
+    "tree:location 3",
     "dalton_intent:bias 1"
+   ]
+  },
+  {
+   "pattern": "DALTON_EDGE_SHORT",
+   "system": "2",
+   "decisions": 6,
+   "passed_tree_gates": 2,
+   "live_fires": 1,
+   "live_pnl": 46.25,
+   "live_capable": true,
+   "switch": "DALTON_EDGE_V1",
+   "top": [
+    "(passed) 2",
+    "dalton_intent:stand_down 1",
+    "tree:time_cutoff 1"
    ]
   },
   {
@@ -3148,33 +3178,18 @@
    ]
   },
   {
-   "pattern": "OPENING_DRIVE",
+   "pattern": "OPENING_PULLBACK_CONT",
    "system": "2",
-   "decisions": 6,
-   "passed_tree_gates": 4,
-   "live_fires": 5,
-   "live_pnl": -77.5,
+   "decisions": 5,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": true,
    "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 4",
-    "dalton_intent:bias 1",
-    "tree:kind 1"
-   ]
-  },
-  {
-   "pattern": "DALTON_EDGE_SHORT",
-   "system": "2",
-   "decisions": 5,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 46.25,
-   "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
-   "top": [
-    "(passed) 2",
-    "dalton_intent:stand_down 1",
-    "tree:stand_down 1"
+    "tree:kind 3",
+    "dalton_intent:kind 1",
+    "tree:bias 1"
    ]
   },
   {
@@ -3187,23 +3202,8 @@
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 2",
-    "(passed) 2"
-   ]
-  },
-  {
-   "pattern": "OPENING_PULLBACK_CONT",
-   "system": "2",
-   "decisions": 4,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "tree:kind 2",
-    "tree:bias 1",
-    "dalton_intent:kind 1"
+    "(passed) 2",
+    "tree:stand_down 2"
    ]
   },
   {
@@ -3229,8 +3229,8 @@
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "dalton_intent:bias 1",
-    "tree:location 1"
+    "tree:location 1",
+    "dalton_intent:bias 1"
    ]
   },
   {
@@ -3262,19 +3262,6 @@
    ]
   },
   {
-   "pattern": "RE_ACCEPTANCE",
-   "system": "2",
-   "decisions": 1,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "RE_ACCEPTANCE_V1",
-   "top": [
-    "tree:stand_down 1"
-   ]
-  },
-  {
    "pattern": "OPENING_ORR",
    "system": "2",
    "decisions": 1,
@@ -3286,16 +3273,29 @@
    "top": [
     "(passed) 1"
    ]
+  },
+  {
+   "pattern": "RE_ACCEPTANCE",
+   "system": "2",
+   "decisions": 1,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "RE_ACCEPTANCE_V1",
+   "top": [
+    "tree:stand_down 1"
+   ]
   }
  ],
  "gates": [
   {
    "blocked_by": "(passed)",
-   "n": 466
+   "n": 522
   },
   {
    "blocked_by": "tree:stand_down",
-   "n": 392
+   "n": 398
   },
   {
    "blocked_by": "dalton_intent:stand_down",
@@ -3303,11 +3303,11 @@
   },
   {
    "blocked_by": "tree:location",
-   "n": 145
+   "n": 169
   },
   {
    "blocked_by": "tree:bias",
-   "n": 124
+   "n": 134
   },
   {
    "blocked_by": "dalton_intent:bias",
@@ -3315,11 +3315,11 @@
   },
   {
    "blocked_by": "tree:time_cutoff",
-   "n": 45
+   "n": 53
   },
   {
    "blocked_by": "tree:kind",
-   "n": 23
+   "n": 25
   },
   {
    "blocked_by": "dalton_intent:kind",
@@ -3331,8 +3331,8 @@
   }
  ],
  "tree": {
-  "take": 294,
-  "skip": 242,
+  "take": 339,
+  "skip": 272,
   "shadow": 0,
   "ruled": [
    {
@@ -3581,7 +3581,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3595,7 +3595,42 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "take_with_extension",
+    "sessions": 58,
+    "usd": -85.0,
+    "usd_net": null,
+    "date": "2026-09-24"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3826,7 +3861,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3840,7 +3875,42 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "take_with_extension",
+    "sessions": 58,
+    "usd": -85.0,
+    "usd_net": null,
+    "date": "2026-09-24"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4071,7 +4141,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4085,7 +4155,42 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "take_with_extension",
+    "sessions": 58,
+    "usd": -85.0,
+    "usd_net": null,
+    "date": "2026-09-24"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4323,7 +4428,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4337,7 +4442,42 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "take_with_extension",
+    "sessions": 58,
+    "usd": -85.0,
+    "usd_net": null,
+    "date": "2026-09-24"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4512,7 +4652,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4526,7 +4666,42 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "take_with_extension",
+    "sessions": 58,
+    "usd": -85.0,
+    "usd_net": null,
+    "date": "2026-09-24"
+   },
+   {
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "sessions": 60,
+    "usd": 166.25,
+    "usd_net": 163.65,
+    "date": "2026-09-27"
+   },
+   {
+    "id": "take_failed_ext_responsive",
+    "sessions": 65,
+    "usd": 400.0,
+    "usd_net": 371.4,
+    "date": "2026-10-03"
+   },
+   {
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4575,47 +4750,47 @@
     "date": "2026-09-27"
    }
   ],
-  "n": 536
+  "n": 611
  },
  "db_tables": [
   {
    "table": "v9_trades",
-   "rows": 2971,
-   "max_ts_il": "2026-10-06 22:35"
+   "rows": 3083,
+   "max_ts_il": "2026-10-07 23:00"
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 179352,
-   "max_ts_il": "2026-10-07 06:10"
+   "rows": 192994,
+   "max_ts_il": "2026-10-07 23:55"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 21503,
-   "max_ts_il": "2026-10-07 06:10"
+   "rows": 21716,
+   "max_ts_il": "2026-10-07 23:55"
   },
   {
    "table": "v9_bars_5min",
-   "rows": 4856,
-   "max_ts_il": "2026-10-06 23:55"
+   "rows": 5054,
+   "max_ts_il": "2026-10-07 23:55"
   },
   {
    "table": "v9_day_type_state",
-   "rows": 36,
+   "rows": 63,
    "max_ts_il": ""
   },
   {
    "table": "v9_exit_decisions",
-   "rows": 16439,
+   "rows": 16695,
    "max_ts_il": ""
   },
   {
    "table": "v9_trade_management_log",
-   "rows": 352382,
+   "rows": 352511,
    "max_ts_il": ""
   },
   {
    "table": "v9_woodies_signals",
-   "rows": 3856,
+   "rows": 3913,
    "max_ts_il": ""
   },
   {
@@ -4625,8 +4800,8 @@
   },
   {
    "table": "v9_bars_cumulative_delta",
-   "rows": 8964,
-   "max_ts_il": "2026-10-06 23:55"
+   "rows": 9090,
+   "max_ts_il": "2026-10-07 23:55"
   },
   {
    "table": "broker_truth",
@@ -4647,7 +4822,7 @@
   },
   {
    "label": "com.mems26.backend",
-   "pid": "71969",
+   "pid": "49501",
    "rc": "-15"
   },
   {
@@ -5448,6 +5623,10 @@
    "doc": "────────────────────────────────────────────────────────────────"
   },
   {
+   "file": "scripts/stage5_context_root_wf.py",
+   "doc": "stage5_context_root_wf.py — T-543 stage 5 (CC_ORDER_2026-10-05_DAILY_DALTON §3, BRIEF §2.4), read-only."
+  },
+  {
    "file": "scripts/stair_hold.py",
    "doc": "STAIR_HOLD — the DAY_LESSONS walk-forward with ONE change: the exit (Michael 06.10 13:07 IL)."
   },
@@ -5518,6 +5697,10 @@
   {
    "file": "scripts/t319a_normal_day_zones.py",
    "doc": "T-319a — Normal Day Zone Analysis"
+  },
+  {
+   "file": "scripts/t563_plist_footprint_fix.sh",
+   "doc": "t563_plist_footprint_fix.sh — T-563 (cowork 08.10): let S3 run in SHADOW under the LaunchAgent."
   },
   {
    "file": "scripts/task_log_guard.py",
@@ -5697,14 +5880,14 @@
   }
  ],
  "tickets": {
-  "total": 395,
-  "open": 330,
+  "total": 406,
+  "open": 339,
   "by_status": {
    "🔴": 104,
-   "🟠": 162,
-   "🟡": 30,
-   "✅": 49,
-   "🔵": 34,
+   "🟠": 163,
+   "🟡": 29,
+   "✅": 51,
+   "🔵": 43,
    "⚠️": 3,
    "🔴🔴": 9,
    "🟢": 1,
@@ -7859,8 +8042,8 @@
     "id": "T-526",
     "status": "🟠",
     "title": "12 ברים של `v9_bars_5min_woodies` (01.10 `18:00-18:55 IL`) נדרסו בערכי הברים של `19:00-19:55` — ‏`+4h` במקום `+5h` — ולכן ריפליי של 01.10 רץ על טבלה דרוסה.",
-    "next": "**(1) בבוקר, לפני שסומכים על ריפליי של 01.10:** לאתר את **הכותב**. הדפוס `+4h` על 12 ברים רצופים מצביע על שניים בלבד — המרת-TZ של הגשר, או `WoodiesSystem._persist_bar` שמקבל `ts` של אירוע שגוי. לקרוא את שניהם בקוד (לא מהזיכרון) ולהכריע מי כתב, **לפני** כל תיקו",
-    "measurable": true
+    "next": "**(1) הכותב נמצא:** ה-backfill ההיסטורי של הגשר בעלייה (`bridge/v9_history.py::historical_load`, אזור קשיח `America/New_York` מול `V9_CHART_TZ=America/Chicago` של הזרם החי ⇒ +4h במקום +5h, הדוקסטרינג \"keep in sync\" לא התקיים) — ריסטארט-הגשר של 01.10 **23:07:47",
+    "measurable": false
    },
    {
     "id": "T-527",
@@ -8003,13 +8186,6 @@
     "measurable": false
    },
    {
-    "id": "T-551",
-    "status": "🟡",
-    "title": "הצ'ארט של סיירה עבר לחשבון `Sim1` ב-18:36 בעוד המערכת חמושה והסלוט פנוי — ירי-לייב עכשיו מנותב לסימולציה ובכל זאת נכתב ב-`v9_trades` כ-`mode=live`, כלומר שורת-ספרים בלי כיסוי-ברוקר.",
-    "next": "(1) **מייקל מכריע** — להחזיר את הצ'ארט לחשבון-הברוקר `37138283`, או להשאיר `Sim1` עד מחר. (2) **\"להחזיר\"** ⇒ לאמת שניהם לפני שמדווחים שנפתר: `trade_account != \"Sim1\"` **וגם** `cash > 287.76`. (3) **\"להשאיר בסים\"** ⇒ זו פסיקה בכתב, ואז בלבד להכריע מה עושים עם ש",
-    "measurable": false
-   },
-   {
     "id": "T-552",
     "status": "🟡",
     "title": "הודעת-טלפון יחידה הגיעה למייקל פעמיים — הכפילות ממוקמת אחרי ה-POST היחיד, לא בהרצה כפולה.",
@@ -8021,6 +8197,76 @@
     "status": "🔵",
     "title": "17 שורות-צל נשארו פתוחות (`state=FILLED`) בסגירת 06.10, וכולן מ-06.10 עצמו — כלומר בשער של מחר הן \"שורות-הצל של אתמול\", הקלט המדויק של `close_stale_shadow.py` ברשימת-הטרום-ריסטארט.",
     "next": "בשער 15:30-16:10 של **07.10**, ובסדר הזה: (1) `python3 scripts/close_stale_shadow.py` **דריי-ראן** ⇒ לוודא שהוא מציג את 17 השורות של 06.10 (אם הוא מציג פחות — זה ממצא על **כלי-הסגירה**, לא על הנתונים, ונרשם כשורה חדשה). (2) `--apply`. (3) לחזור על השאילתה למעל",
+    "measurable": false
+   },
+   {
+    "id": "T-555",
+    "status": "🔵",
+    "title": "17 שורות-צל של 06.10 נושאות `exit_ts` של 07.10 — ולכן כל מדידת-צל שנחתכת לפי `exit_ts::date` מייחסת ליום-היום 17 עסקאות ו-`-27.5$` שאינם שלו.",
+    "next": "בתור-הלילה של 07.10, **לפני** `day_review.py`/`review_report.py`/`gen_phone_pages.py` — לקרוא באיזה שדה הם חותכים את ספרי-היום. אם `entry_ts::date` ⇒ נקי, לסגור את הפריט עם הראיה. אם `exit_ts::date` ⇒ לרשום בדוח-היום במפורש את ההפרש (17 שורות / `-27.5$` שמקורם",
+    "measurable": false
+   },
+   {
+    "id": "T-556",
+    "status": "🔵",
+    "title": "סוכן-הכיול 23:40 אינו רשום באף אחד משני מרשמי-ההרצה שנמדדו — מה שמסביר \"ריצה ריקה\" בלי להניח תקלה בסוכן עצמו.",
+    "next": "(1) ⛔ **לא** לשלוח הודעת-טלפון נוספת בנושא — השאלה כבר אצל מייקל, וחזרה עליה = [[T-369]]. (2) בתור-הלילה של 07.10, לסרוק את המשטח השלישי (צד-cc / רשימת-ה-10-agents של `agents_bootstrap`) ולרשום כאן את הממצא. (3) אם מייקל מאשר שהמשימה אמורה להתקיים ⇒ היא נוצרת ",
+    "measurable": false
+   },
+   {
+    "id": "T-557",
+    "status": "🔵",
+    "title": "מבול-WARNING חדש שאינו מכוסה ב-[[מלכודת 33]]: `[S2-CVD] insufficient coverage: 1/20 rows (min=18) — returning None (Rule 1)` רץ ב-20/דקה בלי הפסקה מאז `2026-10-06 23:00:55`, וביחד עם זה ",
+    "next": "(1) ⛔ **לא** הודעת-טלפון — זה דוח-ניטור, לא אחד מארבעת המקרים. (2) בריצת-ה-RTH של היום (16:30-23:00), למדוד את `[S2-CVD]` פר-שעה **בתוך** ה-RTH ואת `max(ts)` של `v9_bars_cumulative_delta` בשעה 17:30 — אם הכיסוי מגיע ל-`≥18/20` ⇒ הפריט הוא רעש-לוג בלבד ונסגר כמ",
+    "measurable": true
+   },
+   {
+    "id": "T-563",
+    "status": "🔵",
+    "title": "זרם `v9_bars_tick_reversal` שותק מאז 01.10 23:06 (מייקל 07.10 17:52) — השורש נמצא 07.10 23:30, קריאה-בלבד, אפס הדלקה.",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-564",
+    "status": "🔵",
+    "title": "היתר אחד מול ייחוס-אותו-בוקר (מייקל 07.10 17:52): INITIATIVE_SHORT ביום Variation 18–19h — BRIEF §2.2 #1.",
+    "next": "פסיקת-מייקל על (2); היתר #2 REACTIVE_SHORT ו-#3 ZLR SHORT · Normal באותה תבנית, לילה הבא. ~~קודם:~~ **הצעד הבא:** `harness_out/t564/run.sh` (ברצף: t564ref → t564a → t561s2), לילה 23:12 אם המק ער, אחרת 08:20; `cmp_vs_live.py t564a t564ref`; קבלה: החזקה-10 ≥ 0 ∧",
+    "measurable": false
+   },
+   {
+    "id": "T-561",
+    "status": "🔵",
+    "title": "הענף החזק בעץ מפסיד את רוב המועמדים שלו לסלוט-היחיד ולשער-האישור — לא לעץ.",
+    "next": "(א) וריאנט-הרנס 'סלוט שני רק ל-`OPEN_DRIVE/C/Trend_Normal/with`' — דורש כפתור-env בגייטוויי (ברירת-מחדל זהה-בייט: סלוט אחד) + מבחן-זהות; בנייה דגל-כבוי (לילה), מדידה בחלון-בוקר מול ייחוס-אותו-בוקר, קבלה §2ד. (ב) ~~Cursor: ELQ לפי ענף~~ **נסגר — מייקל 07.10 17:",
+    "measurable": true
+   },
+   {
+    "id": "T-560",
+    "status": "🔵",
+    "title": "`BarLevelDetector.on_bar` ",
+    "next": "(1) ⛔ **לא** הודעת-טלפון — דמו, פוזיציה 0, אין החלטה שנדרשת ממייקל. (2) ⛔ **אפס שינוי-קוד בתוך RTH** — הנתיב הוא `trade_manager`, כלומר שינוי בו הוא סיכון-מסחר ⇒ דורש חלון טרום-פתיחה. (3) **בקריאת-קוד בלבד**: למצוא מי קורא ל-transition פעם שנייה על אותה עסקה ב",
+    "measurable": false
+   },
+   {
+    "id": "T-559",
+    "status": "🔵",
+    "title": "שעון-הוותק של `daytype_watchdog` אינו מודע-לריסטארט/סשן ⇒ `CRITICAL` שקרי אחרי כל ריסטארט-טרום-פתיחה.",
+    "next": "(1) ⛔ **לא** הודעת-טלפון — אינו אחד מארבעת המקרים. (2) **חיזוי בר-הפרכה:** ה-CRITICAL יחזור אחרי **כל** ריסטארט-טרום-פתיחה, כי השעון מודד מ-`last_write` ולא מ-`max(boot_ts, session_open)` — לאמת בריסטארט-השער הבא, לפני שנוגעים בקוד. (3) התיקון המוצע, **בקריאת-",
+    "measurable": false
+   },
+   {
+    "id": "T-562",
+    "status": "🟠",
+    "title": "קריאת-`position_qty=0` שקרית בת-20 שנ' ביצוא-סיירה סגרה בספרים עסקה שעודה פתוחה בברוקר — ומכאן הגייטוויי שלח הזמנה חדשה לתוך חשבון שמחזיק פוזיציה הופכית.",
+    "next": "(1) ⛔ **לא** הודעת-טלפון — Sim1+דמו, אפס חשיפת-לייב, סטופ עובד, והתרופה היא חלון-קוד + דגל שפסיקה עומדת מחייבת להשאיר כבוי ⇒ **אין החלטה שנדרשת ממייקל עכשיו**; **בתנאי-לייב זה מקרה (ג) מיידי.** (2) ⛔ **אין להדליק `POSITION_MISMATCH_BLOCK_V1`** — פסיקה עומדת de",
+    "measurable": false
+   },
+   {
+    "id": "T-565",
+    "status": "🔵",
+    "title": "07.10 (דמו): שתי כניסות-LONG נדחו ע״י סיירה (`ORDER_FAILED:-1` = GENERAL_ERROR_OR_NOT_ENABLED; #3191 18:00 @7823.5, #3196 18:15 @7828.25) כי על Sim1 ישבה פוזיציה −1 שאינה שלנו (17:52:01 → לפני 19:40);",
+    "next": "",
     "measurable": false
    }
   ]
@@ -8150,13 +8396,6 @@
    "status": "🟠",
    "title": "`SIERRA_FLAT` היא מחלקת-היציאה הגרועה בספרים — כל פעם שפלטן-ה-EOD של T-10 עושה את עבודתו, הכסף של אותה עסקה אינו נרשם, והוא קיים רק אצל הברוקר.",
    "next": "(1) ריצת-הלילה 23:00-23:30 מריצה `broker_truth.py --since 2026-09-01 --write` ולאמת שהיא מכסה את `#2913` — אם לא, שורת \"אין רישום-ברוקר ל-#2913\" ב-LIVE_CHANNEL. (2) לאחר-מכן למדוד אם `broker_truth` סוגר גם את 9 ה-`SIERRA_FLAT` ההיסטוריות (`10/1/5` ⇒ צפוי `10/1",
-   "measurable": true
-  },
-  {
-   "id": "T-526",
-   "status": "🟠",
-   "title": "12 ברים של `v9_bars_5min_woodies` (01.10 `18:00-18:55 IL`) נדרסו בערכי הברים של `19:00-19:55` — ‏`+4h` במקום `+5h` — ולכן ריפליי של 01.10 רץ על טבלה דרוסה.",
-   "next": "**(1) בבוקר, לפני שסומכים על ריפליי של 01.10:** לאתר את **הכותב**. הדפוס `+4h` על 12 ברים רצופים מצביע על שניים בלבד — המרת-TZ של הגשר, או `WoodiesSystem._persist_bar` שמקבל `ts` של אירוע שגוי. לקרוא את שניהם בקוד (לא מהזיכרון) ולהכריע מי כתב, **לפני** כל תיקו",
    "measurable": true
   },
   {
@@ -8305,66 +8544,85 @@
    "title": "הכיוון צדק וההצבה לא — שתי עסקאות-לייב SHORT של 08.09 היו בכיוון-היום ובהסכמה מלאה עם צל-S1DayDir, ונעצרו לפני התנועה.",
    "next": "להוסיף את 1224/1231/1262 כ**מקרי-ריפליי** לסט-הרגרסיה (דוקטרינת-הלמידה: תקרית ⇒ מקרה-ריפליי, לא דגל), ולמדוד את עוגן-הסטופ **פר-סוג-יום** — לא גלובלית, כי הריפליי הגלובלי כבר נדחה. אין שינוי-התנהגות עד מספר.",
    "measurable": true
+  },
+  {
+   "id": "T-277",
+   "status": "🟠",
+   "title": "הספרים והברוקר נושאים מחירי-ברקט שונים על עסקת-הלייב הפתוחה `#1231` — הזזה מסודרת פר-חוזה, לא רעש-עיגול.",
+   "next": "(1) **לתפוס את המטען הגולמי לפני שהוא נמחק** — הנתיב היחיד להכרעה: להוסיף שמירת-עותק של `cmd_*.json` (או לוג של המטען) לפני ה-ACK, או לקרוא את הצד השני מהיומן של סיירה. בלי זה השאלה בלתי-מדידה גם בעסקה הבאה — אותה מחלקה כמו [[T-272]] סעיף 3 ו-[[T-276]] סעיף 4.",
+   "measurable": true
   }
  ],
  "reports": [
   {
-   "file": "docs/reports/OPS_LOG_2026-10-06.md",
-   "mtime": "2026-10-07 03:45"
+   "file": "docs/reports/T564_ALLOW_INITIATIVE_SHORT_VAR_1819_2026-10-08.md",
+   "mtime": "2026-10-08 02:40"
   },
   {
-   "file": "docs/reports/DAY_REVIEW_2026-10-06.md",
-   "mtime": "2026-10-06 23:19"
+   "file": "docs/reports/NIGHT_INSIGHTS_2026-10-07.md",
+   "mtime": "2026-10-08 00:17"
   },
   {
-   "file": "docs/reports/REPLAY_REVIEW_2026-10-06.md",
-   "mtime": "2026-10-06 23:15"
+   "file": "docs/reports/T526_WOODIES_OVERWRITE_WRITER_2026-10-08.md",
+   "mtime": "2026-10-08 00:06"
   },
   {
-   "file": "docs/reports/DAY_OPEN_ENTRY_2026-10-06.md",
-   "mtime": "2026-10-06 16:05"
+   "file": "docs/reports/OPS_LOG_2026-10-07.md",
+   "mtime": "2026-10-07 23:37"
+  },
+  {
+   "file": "docs/reports/REPLAY_REVIEW_2026-10-07.md",
+   "mtime": "2026-10-07 23:09"
+  },
+  {
+   "file": "docs/reports/DAY_REVIEW_2026-10-07.md",
+   "mtime": "2026-10-07 23:09"
   },
   {
    "file": "docs/reports/SUPERVISION_LATEST.md",
-   "mtime": "2026-10-06 15:36"
+   "mtime": "2026-10-07 22:36"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-06_1536.md",
-   "mtime": "2026-10-06 15:36"
+   "file": "docs/reports/SUPERVISION_2026-10-07_2236.md",
+   "mtime": "2026-10-07 22:36"
   },
   {
-   "file": "docs/reports/STAIR_HOLD_2026-10-06.md",
-   "mtime": "2026-10-06 13:54"
+   "file": "docs/reports/SUPERVISION_2026-10-07_2136.md",
+   "mtime": "2026-10-07 21:36"
   },
   {
-   "file": "docs/reports/DAY_LESSONS_2026-10-06.md",
-   "mtime": "2026-10-06 12:39"
+   "file": "docs/reports/SUPERVISION_2026-10-07_2036.md",
+   "mtime": "2026-10-07 20:37"
   },
   {
-   "file": "docs/reports/T538_CUTOFF_ALTERNATIVES_2026-10-06.md",
-   "mtime": "2026-10-06 12:36"
+   "file": "docs/reports/SUPERVISION_2026-10-07_1936.md",
+   "mtime": "2026-10-07 19:36"
   },
   {
-   "file": "docs/reports/CELL_MAP_2026-10-06.md",
-   "mtime": "2026-10-06 12:05"
-  },
-  {
-   "file": "docs/reports/DAYTYPE_MATRIX_2026-10-06.md",
-   "mtime": "2026-10-06 11:32"
-  },
-  {
-   "file": "docs/reports/STAIRS_2026-10-06.md",
-   "mtime": "2026-10-06 11:28"
+   "file": "docs/reports/SUPERVISION_2026-10-07_1836.md",
+   "mtime": "2026-10-07 18:37"
   }
  ],
  "harness_runs": [
   {
-   "dir": "harness_out/t543",
-   "last": "report: docs/reports/STAIR_HOLD_2026-10-06.md"
-  },
-  {
    "dir": "harness_out/t466",
    "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t564",
+   "last": "ALL DONE Thu Oct  8 02:37:50 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t561",
+   "last": ""
+  },
+  {
+   "dir": "harness_out/t543",
+   "last": "report: docs/reports/T543_STAGE5_CONTEXT_ROOT_2026-10-02.md"
+  },
+  {
+   "dir": "harness_out/t24",
+   "last": "PHASE_SUMS {'C': (200, -11825.96), 'B': (76, -698.43), 'D': (20, -66.46), 'A': (2, -450.0)}"
   },
   {
    "dir": "harness_out/t542",
@@ -8385,18 +8643,6 @@
   {
    "dir": "harness_out/t518",
    "last": "ALL DONE t518pkg Wed Sep 30 11:11:08 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t517",
-   "last": "ALL DONE t517smoke Tue Sep 29 23:00:32 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t514",
-   "last": "ALL DONE t514zlr Tue Sep 29 08:02:26 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t494",
-   "last": "ALL DONE t498ec0 Sun Sep 27 15:43:51 IDT 2026"
   }
  ]
 }
