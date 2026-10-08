@@ -1,3 +1,100 @@
+🟢 **[cowork-dev · ריצה 266 · 08.10 14:35-14:42 IL · חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס פריט-T חדש]**
+
+`date ⇒ 2026-10-08 14:34:57 IDT (Thursday)` — **מחוץ** ל-`15:30-16:10` (שער), **מחוץ** ל-RTH
+`16:30-23:00`, **מחוץ** לתור-הלילה `23:00-23:30` ⇒ **אפס ריסטארט · אפס GO/NO-GO · אפס `--apply` ·
+אפס נגיעה בדגלים/גודל/`.env`/פוזיציות/פקודות/עץ/DB/DLL/סיירה.** קריאה-בלבד.
+`git pull ⇒ Already up to date` (HEAD `aaba9587` = קומיט ריצה 265). עץ-העבודה הושאר כפי שנמצא
+(14 שינויי-סוכן-אחר + 17 לא-מנוטרים — אפס נגיעה).
+
+## ☎️ חובה-1 — אפס ממתינות (אין א/ב/ג/ד) ⇒ אפס הודעות-טלפון
+
+שני הפוסקים מסכימים. ה-peek רץ ב-14:36, **בתוך** חלון `10:00-23:30` ⇒ נתון אמיתי ולא `[]` שקרי
+(**מלכודת 32**). אחרונת-מייקל בחוט `2026-10-07T10:50:03Z` — **נענתה ענייניות** ע"י cowork-dev
+`11:11:10Z`; כל 4 הפריטים שאחריה הם סוכנים (supervisor/cowork/cowork-dev).
+
+```raw
+14:36  GET /chat?key=…            ⇒ http=200 · bytes=16898 · items=30
+                                     items[-1] = 2026-10-08T10:45:33Z · cowork-dev  (מקרה-ג של 264)
+14:36  GET /instruction/pending   ⇒ {"items":[]}            http=200
+14:36  GET /cmd/pending           ⇒ {"cmd":null}            http=200
+14:36  GET /marks/pending         ⇒ {"items":[]}            http=200
+14:36  GET /upload/pending        ⇒ {"items":[]}            http=200
+       senders ב-746 שורות החוט   ⇒ cowork 400 · מייקל 133 · cc 116 · cowork-dev 92 · supervisor 3
+       מייקל-אחרי-סוכן            ⇒ False   ⇒ אפס מקרה-א
+       grep "תיוג עסקה #"         ⇒ 0       ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+```
+
+⚠️ **הערת-מכשול שנפתרה בריצה הזו (לטובת ריצות הבא):** `MOBILE_REMOTE_URL` ב-`.env` ריק (אורך 4) —
+השם הנכון ל-peek הוא **`RENDER_MOBILE_URL`** (שורה 418, אורך 38). peek עם המשתנה הראשון מחזיר
+`HTTP=000 BYTES=0` על כל חמשת הקצוות — כלומר **שקט-שקרי שנראה כמו "אפס ממתינות"**. זו אותה
+משפחה של מלכודת 32: קריאה שנכשלת-בשקט אינה ראיה לאפס-ממתינות. אפס שינוי ב-`.env` (מעבר לגבול).
+
+⏳ **ארבע פסיקות ממתינות — ואפס תזכורת נשלחה** (כלל-הטלפון: הודעה שאינה אחד מארבעת המקרים =
+הפרה; [[T-369]] הצפה. ההודעות של 08:30 ושל 13:45 כבר בחוט אצלו): [[T-564]] היתר-עץ ·
+[[T-563]]+[[T-545]] ריסטארט · [[T-561]] סלוט-שני · [[T-568]] חשבון-אמת/Sim1.
+
+## 📏 דגימה-חוזרת של [[T-568]] — 30 דק' אחרי ריצה 265: **ללא שינוי, שלישית ברצף**
+
+התוצר היחיד שיש לריצה הזו לתת לבעל-השער: **נכון ל-14:37, שעה ו-53 דק' לפני הפתיחה, הצ'ארט עוד על
+חשבון-האמת וחמוש.** שלוש דגימות, גיל-קובץ 0.5-2.0 שנ':
+
+```raw
+14:37  age=1.1s  is_sim=0 armed=1 send_orders=1 acct=37138283 pos=0 avail=506.29 margin_req=0.0 px=7813.00
+14:37  age=0.5s  is_sim=0 armed=1 send_orders=1 acct=37138283 pos=0 avail=506.29 margin_req=0.0 px=7812.00
+14:37  age=2.0s  is_sim=0 armed=1 send_orders=1 acct=37138283 pos=0 avail=506.29 margin_req=0.0 px=7812.00
+       acct_ok=1 · acct_under_margin=0 · acct_trading_disabled=0 · contracts_cfg=1 · active=[] · today={pnl:0,n:0,w:0}
+```
+
+⇒ פוזיציה **0** בשלוש הדגימות ⇒ אפס פוזיציה-זרה, אפס אזעקה. **אפס פעולה מצידי** — החלפת
+חשבון/סים, `DEMO_EXECUTION_ENABLED`, `LIVE_*`, `.env` כולם מעבר לגבול-הפסיקה (CLAUDE.md
+§Standing Decisions + כלל-הגבול-היחיד). **בדיקת-מרג'ין [[T-34]] = דיווח בלבד:** `avail 506.29 <
+1,595` — אך `margin_req=0.0`, `under_margin=0`, `trading_disabled=0` ולחוזה-1 מספיק ⇒ **אינו חוסם
+מסחר** ⇒ אפס מקרה-ג (המספר כבר בהודעת 13:45 אצלו).
+
+### שאר הצירים — ירוקים
+
+```raw
+feed   woodies  max(ts)=2026-10-08 14:35:00+03 · age 2.5 דק' · 69 ברי-יום   ⇒ ציר T-430 ירוק
+health GET /api/v9/health ⇒ http=200 {"status":"ok","version":"v9.0.0"} · t=0.0026s
+listen lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ pid 49501 · lstart Wed Oct 7 15:18:17 · cpu 29.1 · rss 124MB
+       ⇒ אפס ריסטארט היום ⇒ **בעלות-הריסטארט לשער 15:30-16:10 עוד פנויה** (T-369)
+size   set -a; . ./.env; set +a; ruled_contracts() ⇒ 1   ✅ = פסיקת 18.09 12:05 (FIXED_CONTRACTS_1=1)
+flags  python3 scripts/flag_guard.py ⇒ "FLAG-GUARD: PASS — all 274 ruled flags match." exit=0
+       ⚠ FOOTPRINT_DISABLED: plist=true .env=0 live=true — ידוע, דיווח-בלבד, פסיקת-מייקל ([[T-563]])
+shadow python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"  (dry-run; אפס --apply)
+trades select count(*) from v9_trades where entry_ts::date = current_date ⇒ 0
+gate   attempts=108 · fired=4 · blocked=82 · last=2026-10-07T20:00:08Z (session_gate_closed, מחוץ לחלון)
+```
+
+### 🪤 `v9_bars_5min` הקפוא — ללא שינוי, ונשאר **אינו-NO-GO**
+
+```raw
+select max(ts) from v9_bars_5min ⇒ 2026-10-07 23:55:00+03   (ללא שינוי מ-265)
+```
+
+הקיפאון יוחס בריצה 265 ל**תוכן** קובץ-היצוא (`newest_ts` = אותו בר של 07.10 23:55 לפי מוסכמת
+ה-`-5h` של [[T-558]]) ⇒ **כותב-ה-DLL** ([[T-532]]), לא כשל-דחיפה. הפיד החי של המסחר הוא
+`v9_bars_5min_woodies` והוא טרי (2.5 דק') ⇒ אפס פריט-T חדש, אפס NO-GO מהציר הזה.
+
+### 🟠 machine_health — WARN, דיווח-בלבד, אך **שער 15:30 חייב לשקול זאת מחדש**
+
+```raw
+WARN: load 10.33 > 6.0
+WARN: unused RAM 70M < 400M — the Mac is compressing/swapping
+WARN: swap used 7196M > 500M
+trading stack: backend 118MB/5.6% · bridge 13MB/0.0% · sierra 216MB/135.5% (n=2) · postgres 434MB/3.0% · phone-relay 19MB
+non-trading (MB): cowork-vm 2733 · claude-app 1538 · chrome 1463 · claude-agents 319 · spotlight 232 · adobe 76
+```
+
+אינו-חוסם כרגע (health 2.6ms, פוזיציה 0, אפס עסקאות) — אך לחץ-ההחלפה נמשך מריצה 263 (אז 7371MB,
+עכשיו 7196MB) ו-Sierra על 135% ב-2 תהליכים. **הצרכן הגדול אינו המסחר** אלא cowork-vm+claude+chrome
+(5.7GB יחד). אפס פעולה: הריגת-תהליכים אינה בסמכותי לפני הפתיחה.
+
+**💵 חשיפה: אפס.** אפס ריסטארט · אפס `.env`/דגלים/גודל · אפס פוזיציות/פקודות · אפס עץ/DB/DLL/סיירה ·
+אפס הודעת-טלפון. קומיט: `LIVE_CHANNEL.md` + `TASK_LOG.md` בלבד.
+
+---
+
 🟢 **[cowork-dev · ריצה 265 · 08.10 14:04-14:12 IL · חובה-1 בלבד · אפס ממתינות ⇒ שקט מוחלט בטלפון · אפס פריט-T חדש]**
 
 `date ⇒ 2026-10-08 14:04:32 IDT (Thursday)` — **מחוץ** ל-`15:30-16:10` (שער), **מחוץ** ל-RTH `16:30-23:00`,
