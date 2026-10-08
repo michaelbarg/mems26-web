@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""T-573 (08.10, Michael 18:0x): one-slot sequential simulation of System-6 alternatives WITH the candidates that the
+"""T-575 (08.10, Michael 18:0x): one-slot sequential simulation of System-6 alternatives WITH the candidates that the
 slot blocked — release-when-stuck, release-when-negative, swap-for-a-new-candidate, entry SKIPs — on the live-config
 replay (t564ref, 67 sessions). Candidates = routes that fired live (outcome live) + routes blocked ONLY by the slot
 (live_blocked_by=live_slot_occupied). Management engine = own stop / own T1 on v9_bars_5min_woodies (conservative bar
 order: stop before target). Read-only; no harness. Caveat: a slot-freed candidate bypasses the gates the harness evaluates
 after the slot (dedup/cooldown) — the full harness run (T-567c tonight) is the confirmation.
-Usage: LC_ALL=en_US.UTF-8 PYTHONIOENCODING=utf-8 python3 harness_out/t573/slot_sim.py [TAG]"""
+Usage: LC_ALL=en_US.UTF-8 PYTHONIOENCODING=utf-8 python3 harness_out/t575/slot_sim.py [TAG]"""
 import json, glob, subprocess, collections, sys, re
 TAG = sys.argv[1] if len(sys.argv) > 1 else "t564ref"
 PSQL = '/Applications/Postgres.app/Contents/Versions/latest/bin/psql'
