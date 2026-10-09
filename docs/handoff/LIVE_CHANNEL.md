@@ -1,3 +1,214 @@
+🟢 **[cowork-dev · ריצה 296 · 09.10 15:34-16:00 IL · חובה-1 + **חובה-2 מלאה** (היומית + שער-היום) · ריסטארט-קדם-פתיחה בוצע · הודעת-טלפון אחת (מקרה ד) · אפס דגל / אפס `--apply` / אפס נגיעה בפוזיציות]**
+
+`date ⇒ 2026-10-09 15:34:35 IDT` ∈ `15:30-16:10` ⇒ **חובה-2**. `git pull --ff-only ⇒ Already up to date` (HEAD `c44e7fc4` = ריצה 295, לפני 14 דקות). ריצה 295 הפנתה את שני ממצאיה לכאן, וזו הריצה שביצעה אותם.
+
+## ☎️ חובה-1 — שלושה פוסקים מסכימים ⇒ אפס מקרה (א)
+
+```raw
+GET /instruction/pending ⇒ http=200 · {"items":[]}
+GET /cmd/pending         ⇒ http=200 · {"cmd":null}
+GET /chat?key=…          ⇒ http=200 · bytes=17683 · items=30
+   אחרון לפני השליחה ⇒ 2026-10-08T20:23:22Z <cowork-dev> = סוכן ⇒ michael_after_agent=False
+PHONE_THREAD.jsonl ⇒ 755 שורות · michael_rows=133 · אחרון ⇒ 2026-10-07T10:50:03Z
+   ונענה: ack <cc> באותה דקה + ענייני <cowork-dev> 2026-10-07T11:11:10Z
+tag_lines("תיוג עסקה #") היום ⇒ 0            ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+```
+
+⇒ **אין (א)** · **אין (ב)** (אפס עסקה נכנסה היום) · **אין (ג)** — [[T-34]] נמדד שאינו חוסם. ההודעה היחידה בריצה היא **מקרה (ד)**, ובתוכה — לפי הצעד-הבא של [[T-580]] — שורת-האינבוקס §1.
+
+## 📅 חובה-2א · סיכום 08.10 — חתימת `cowork-daily`
+
+**הכסף (מ-`v9_trades` + העמודה `pnl_sierra`, לא מה-DLL):**
+
+```raw
+mode   | n  | books_pnl | broker_pnl | verified
+live   | 4  | −158.75   | −152.50    | 4/4      ← Δ ספרים-ברוקר = 6.25
+shadow | 97 | −413.47   | (אין)      | 0        ← 97/97 CLOSED · 0 תקועות
+id   sys dir  entry_ts  entry    stop     exit     reason    books  broker
+3272  2  S   16:45:07  7824.75  7833.75  7834.00  STOP_HIT  −46.25 −43.75
+3281  2  S   16:55:10  7827.75  7838.25  7838.50  STOP_HIT  −53.75 −55.00
+3289  2  S   17:40:07  7840.00  7844.75  7838.75  STOP_HIT   +6.25 +11.25   ← הסטופ הידני שלך
+3314  2  L   19:20:11  7833.00  7819.75  7820.00  STOP_HIT  −65.00 −65.00
+צל לפי מערכת: sys4 49 עסקאות −239.07 · sys2 48 עסקאות −174.40
+```
+
+**ארבע מתוך ארבע יצאו ב-`STOP_HIT`, וכולן `firing_system=2`** — אפס יציאה ביעד, ואפס עסקת-sys4 חיה ביום שבו הצל שלה הפסיד הכי הרבה.
+
+**הליגר (‏`~/SierraChart_Data/v9_export/gateway_decisions.jsonl`, 204 שורות, `bad=0`):**
+
+```raw
+GATE_DECISION 77 · DETECTED 54 · EMIT_DECISION 53 · ROUTED 20
+טווח-ts ⇒ 2026-10-08T13:35:04Z .. 2026-10-08T19:56:49Z   (= 16:35-22:56 IL)
+החוסמים הגדולים:
+  tree:stand_down 15 · tree:time_cutoff 14 · entry_location_quality 12
+  tree:bias 9 · entry_not_confirmed 7 · tree:location 5 · tree:kind 4
+  structural_targets_wrong_side 4
+  reason "T-538: no new entries from 22:00 IL" 14
+  reason "no doctrine row for this circumstance — stand down" 11+3
+```
+
+⇒ **החוסם הגדול ביום הוא העץ עצמו** (`stand_down` + `time_cutoff` + `bias` + `location` + `kind` = 47 מתוך 77 שערים), ולא איכות-המיקום.
+
+**ציון-המודעות (4 צירים, מתוך `fire_drill`, ל-2026-10-08 ET, 78 ברי-RTH) — 🔴 2/4 מתחת ל-80%:**
+
+```raw
+יום      65/78   83.3%  ✅     רמות    78/78  100.0%  ✅
+מועמדים  20/32   62.5%  🔴     החלטות  57/78   73.1%  🔴
+ליגר 204 שורות (parsed 204 · json-bad 0 · no-usable-ts 0) · TPO 13 צילומים
+12 נגיעות-VA בלי DETECTED: 09:30 VAL · 10:05/10:10/10:15/10:40 VAH · 11:10 VAL
+   · 11:40 VAL · 12:20/12:25 VAH · 14:20/14:30 VAL   (ET)
+```
+
+**צל-S1DayDir (18,335 שורות ב-08.10, 7 גוונים בלבד):**
+
+```raw
+7,597  accepted_break=none  fade_both→UNDETERMINED        agree=n/a
+6,240  accepted_break=DOWN  with_extension(DOWN)→DOWN     agree=True
+2,806  accepted_break=none  none→none                     agree=n/a
+  611  accepted_break=none  fade_both(UP)→UNDETERMINED    agree=n/a
+  464  accepted_break=DOWN  fade_both(DOWN)→UNDETERMINED  agree=False
+  409  accepted_break=none  with_extension(DOWN)→DOWN     agree=n/a
+  208  accepted_break=DOWN  with_trend(DOWN)→none         agree=n/a
+⇒ מתוך השורות שבהן ההסכמה מוכרעת: 6,240 True מול 464 False = 93.1%
+```
+
+⚠️ **ומה שהמספר הזה אינו אומר (כלל 1):** **כל** 18,335 השורות נושאות את הסיומת
+`(live returns legacy None → LSMA fallback)` ⇒ ההשוואה היא מול **נפילת-LSMA** ולא
+מול כיוון-יום-S1 חי. ה-93.1% הוא הסכמה עם תחליף, ולכן **אינו** ראיה שהצל מוכן
+להדלקה — זו בדיוק מחלקת-ההוראה-בלי-מדידה של דוקטרינת-הלמידה.
+
+**EntryGuard 08.10 ⇒ `grep -c "pre_send_entry_guard|UNMANAGED POSITION|Blocked pre-send" ⇒ 0`** — אפס חסימת-כניסה, בניגוד ל-30.09 (שמונה) ול-17.09 (שלוש); החשבון היה שטוח כל היום.
+
+**דוחות-cc שנולדו מאז הסיכום הקודם:** `OPS_LOG_2026-10-08.md` (09.10 06:58) · `DOCTRINE_CELLS_2026-10-09.md` + `NIGHT_QUEUE_2026-10-09.md` (00:47) · `T265_T532_RAW_5MIN_CANONICAL_FAILOVER_2026-10-09.md` (00:11) · `T579_ALLOW_REACTIVE_SHORT_VAR_1819_2026-10-09.md` (00:09) · `REPLAY_REVIEW_2026-10-08.md` (08.10 23:08).
+
+**חריגים של 08.10:** (1) תווית-סוג-היום ריצדה 3× (‏`Normal→Variation` 18:35 · `→Trend_Normal` 20:35 · `→Variation` 20:50) — פיקוח רשם 🔴. (2) פער-ספרים-ברוקר על `#3289` הפתוחה: היעד `11453` נעלם בברוקר ונותר סטופ בודד, והסטופ הידני שלך הפך את העסקה לרווח. (3) `Cursor extension-host` ב-145-267% CPU מ-17:28:53 ⇒ חריגה **במכונה**, לא במערכת.
+
+## 🚪 חובה-2ב · שער-היום — 🟢 GO, והריסטארט בוצע כאן
+
+**בעלות-הריסטארט נבדקה בשלושה משטחים לפני שנגעתי במשהו, ולא הונחה מריצה 295:**
+
+```raw
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ pid 85469 · lstart Thu Oct 8 15:22:38 · etime 01-00:14:20
+   ⇒ לא עלה היום ⇒ אין בעלות-cowork-אינטראקטיבי
+LIVE_CHANNEL 09.10 ⇒ ריצות 292/293/294/295 כולן "חובה-1 בלבד · ללא ריסטארט"
+list_scheduled_tasks ⇒ enabled=true רק mems26-preopen-gate (lastRunAt 2026-10-09T12:34:16Z
+   = 15:34 IDT = הריצה הזו) · כל mems26-preopen-restart-* הן חד-פעמיות ספטמבר enabled=false
+   ⇒ אפס משימת-ריסטארט מתחרה היום ⇒ **הבעלות כאן**
+```
+
+**לפני הריסטארט — שני השערים של ההזמנה, בסדר:**
+
+```raw
+python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"  ⇒ אפס --apply
+python3 scripts/machine_health.py ⇒ backend 1×122MB · bridge 1×18MB · sierra 2×204MB
+   · postgres 16×503MB · frontend 1×2MB · phone-relay 1×25MB
+   WARN unused RAM 155M < 400M · WARN swap 8,036M > 500M   ← דיווח-בלבד, [[T-416]]
+   לא-מסחרי: cowork-vm 3,209 + claude-app 1,981 + chrome 1,871 = 7.0GB מול ~0.9GB למסחר
+```
+
+**הריסטארט — בפוזיציה-0, assert בקוד ולא בעין, במסלול הקנוני ([[T-435]]: `restart_all.sh` פסול):**
+
+```raw
+assert ⇒ position_qty 0 · working_orders 0 · armed 1 · is_sim 0 ⇒ "ASSERT OK — flat, safe to restart"
+launchctl kickstart -k gui/$UID/com.mems26.backend ⇒ rc=0
+לפני: state=running pid=85469    אחרי: state=running pid=69665
+בעלים אחד, מאומת פעמיים: lsof ⇒ 69665 (יחיד) · pgrep -f "uvicorn backend.main" ⇒ 69665 (יחיד)
+[boot] logging OK level=INFO pid=69665 commit=c44e7fc4 stream=stderr   ← commit == HEAD
+   (ה-pid הקודם נשא commit=72a5315a מ-08.10 15:22:46 ⇒ 22 שעות מאחורי הקומיט)
+/api/v9/health ⇒ http=200 · 2.5ms · {"status":"ok","version":"v9.0.0"}
+716 שורות-לוג אחרי הריסטארט · [ERROR]+[CRITICAL] = 0 · קצב 88/85/84/84/86 לדקה
+```
+
+**fire_drill ⇒ 🟢 GO בכל שלב:**
+
+```raw
+שלב A flag_guard ✓            שלב Y RULED_FLAGS.yaml 274 ruled flags ✓
+שלב B ATR-14 ≈ 5.7 נק' · 4/4 וריאנטי-סטופ (3.0/4.5 נק', LONG+SHORT) עוברים ולידציה ✓
+שלב C effective_contracts == 1 ✓ · בר-אישור (סגירה-נגד 70% = 0.57 נק') ✓
+שלב G guard_tests 170 passed / 1 skipped ✓ · wire_guard 56 call sites / 11 חתימות ✓
+      task_log_guard 557 items, last committed 0.0 days ago ✓
+שלב D health ✓ · T-61 INFO זורם (127 שורות אחרי שורת-הבוט) ✓ · feed age=967ms ✓
+      בר-DB last 2026-10-09 15:40:00+03 · גיל 1 דקה · market OPEN ✓
+      live_slot=None ✓ · live_enabled == [2,4] ✓ · day_type קיים (UNKNOWN conf=0.0) ✓
+flag_guard ⇒ "FLAG-GUARD: PASS — all 274 ruled flags match" (⚠ FOOTPRINT_DISABLED
+   plist=true vs .env=0 — דיווח-בלבד הידוע, [[T-435]] שלב 3 / [[T-563]])
+```
+
+**הגודל — פסוק, נקרא ולא הונח (‏[[T-489]]: בלי `.env` טעון הפקודה מחזירה None):**
+
+```raw
+set -a; . ./.env; set +a; python3 -c "…ruled_contracts()" ⇒ 1
+== הפסיקה מ-18.09 12:05 (FIXED_CONTRACTS_1=1) · ו-fire_drill שלב C מסכים (effective=1)
+⇒ אפס נגיעה בדגלי-גודל (פסיקת 31.08)
+```
+
+**[[T-430]] — "פיד חי" נמדד מה-DB ולא מ-mtime של קובץ-יצוא:**
+
+```raw
+select max(ts), now()-max(ts), count(*) filter (ts::date=current_date) from v9_bars_5min_woodies
+   ⇒ 2026-10-09 15:35:00+03 · גיל 2m36s · rows_today 176   (ב-15:37)
+   ⇒ 2026-10-09 15:40:00+03 · גיל 1 דקה                     (ב-15:40, שלב D)
+gaps>5min ⇒ 0 · max_gap ⇒ 5.00min                          ⇒ ברי-Globex רצופים, אפס חור
+```
+
+**ack-תאריך — נמצא פג יומיים, וחודש בסמכות פסיקה עומדת (התפיסה-הידנית התשיעית מאז 18.09):**
+
+```raw
+config/manual_position_ack.json date ⇒ 2026-10-07 מול today_et ⇒ 2026-10-09  ⇒ פג
+אומת לפני:  _read_manual_ack() ⇒ None
+             check_live_entry('LONG',1) ⇒ (True,'account flat (pos=0, working=0) — clear to send 1')
+             check_live_entry('SHORT',1) ⇒ (True,'account flat …')
+חודש ⇒ date 2026-10-09 (owner michael · max_abs_qty 10 · written_by cowork-dev)
+אומת אחרי:  _read_manual_ack() ⇒ dict(date='2026-10-09') · check_live_entry('LONG',1) ⇒ (True,'account flat …')
+⇒ פסיקה עומדת 01.09 ([[T-171]]); שארית [[T-234]] (חידוש-אוטומטי) עדיין לא נבנתה
+⇒ החידוש אינו משנה דבר כל עוד החשבון שטוח — הוא מתקן את **הסיווג** אם תיפתח פוזיציה ידנית
+```
+
+⚠️ **"ליגר-כותב" — מה שבמפורש לא נאמר בהודעת-השער, כי אי-אפשר לאמת אותו לפני הפתיחה:**
+
+```raw
+mtime(gateway_decisions.jsonl) ⇒ 2026-10-08 22:56:49 · שורות עם חותמת 2026-10-09 ⇒ 0
+GET /api/v9/gateway/decisions?limit=200 ⇒ {"decisions":[],"today":{"fired":0,"blocked":0},
+   "buffer_len":0,"note":"persisted to JSONL since P10 (2026-07-22)"}
+```
+
+הליגר של **אתמול** נפתח ב-`13:35:04Z` = `16:35 IL`, **ארבע דקות אחרי הפתיחה** ⇒ אפס-שורות ב-15:45 הוא **הצפוי** ולא כשל. לכן הודעת-השער אינה טוענת "ליגר כותב", והאימות נדחה לריצת-הניטור הראשונה ב-16:30+ (כלל 1: כישלון-כנה עדיף על ערך-מסונתז).
+
+**[[T-34]] — דיווח-בלבד, ונמדד שאינו חוסם:**
+
+```raw
+acct_cash_balance = acct_available_funds = acct_account_value ⇒ 348.19
+acct_margin_req 0.0 · acct_under_margin 0 · acct_trading_disabled 0
+acct_loss_limit_reached 0 · acct_ok 1 · acct_daily_net_loss_limit −208.91
+⇒ 348.19 < 1,595 (סף T-34) אבל אפס דגל-חסימה דלוק ⇒ אינו חוסם מסחר
+⇒ 348.19 − 288.53 (מרג׳ין-לחוזה, אינבוקס §1) = **כרית 59.66$**
+```
+
+## 🆕 ממצא — הריסטארט **כן** מאפס את `shadow_active_count`, וזה סוגר את מה שריצה 295 במפורש לא טענה
+
+ריצה 295 מדדה את משפחת-השקר של [[T-581]] (‏`daily_pnl` · `trades_today` · `shadow_active_count` כולם מאז-הבוט) ו**לא טענה** שהריסטארט יאפס את השלישי, כי הקוד שמתחזק אותו לא נקרא. הריסטארט כאן הוא הניסוי:
+
+```raw
+לפני (pid 85469, 15:37):  daily_pnl −158.75 · trades_today 4 · shadow_active_count 20
+אחרי (pid 69665, 15:39):  daily_pnl 0.0    · trades_today 0 · shadow_active_count 0
+   (אותה בקשה, אותו endpoint, 2 דקות הפרש · live_slot/demo_slot None בשניהם)
+```
+
+⇒ **שלושת השדות מתאפסים יחד בבוט** ⇒ הם חולקים את אותו מסלול-איפוס, והתחזית של [[T-581]] ("ריסטארט-קדם-פתיחה נופל על ענף ה-`counters=0`") **אושרה בפועל** ולא רק מקריאת-קוד. ⚠️ **ומה שעדיין אינו נטען:** שיש להם צרכן-מסחר, ושה-D5-reset ירוץ נכון גם **בלי** ריסטארט — זה נשאר הצעד-הבא של [[T-581]], ועכשיו עם ראיה שהסט אחד.
+
+**אפס שינוי-מסחר בריצה:** אפס דגל · אפס דגל-גודל · אפס `.env` · אפס `--apply` · אפס נגיעה בפוזיציות/פקודות/עץ/DLL/DB · אפס ריסטארט שני. **כתיבות:** `config/manual_position_ack.json` (תאריך+הערה) · `LIVE_CHANNEL.md` · `TASK_LOG.md` · `PHONE_THREAD.jsonl` (הודעה אחת, 426 תווים, מקרה ד).
+
+**אימות-המסירה דרך `GET /chat` ולא מה-`ok`:**
+
+```raw
+python3 scripts/phone_reply.py cowork-dev "<שער …>" ⇒ ok            (15:45:23)
+GET /chat?key=… ⇒ http=200 · bytes=17745 · items=30
+   items[-1] ⇒ ts 2026-10-09T12:45:23Z · sender cowork-dev · len 426 · startswith("שער 09.10 — GO") True
+⇒ נמסר (15:45:52)
+```
+
+---
+
 🟢 **[cowork-dev · ריצה 295 · 09.10 15:04-15:20 IL · חובה-1 בלבד · אפס ממתינות בשלושה פוסקים ⇒ שקט מוחלט בטלפון · ללא ריסטארט / דגל / `--apply` / נגיעה בפוזיציות]**
 
 `date ⇒ 2026-10-09 15:04:33 IDT` ∉ `15:30-16:10` ∉ `16:30-23:00` ∉ `23:00-23:30` ⇒ **אין חובה-2/3/4**. `git pull --ff-only ⇒ Already up to date` (HEAD `4f3d635d` = ריצה 294, לפני 17 דקות).
