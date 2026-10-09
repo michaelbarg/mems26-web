@@ -1,12 +1,12 @@
 {
- "generated_at": "2026-10-08 06:11:37",
+ "generated_at": "2026-10-09 06:11:58",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "8f8c0eb7 2026-10-08 02:43 fix-agent 08.10 02:45: Sierra not running since 00:15 IL (exports frozen, last bar 23:55) — inbox + LIVE_CHANNEL observation, no actio",
+   "head": "1b99adee 2026-10-09 00:49 claude_project mirror: NIGHT_2026-10-08 (night queue 0/7, live day, rulings for 08:30) + README row",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
-   "dirty_files": 9784,
-   "tree_version": "3.4.1",
+   "dirty_files": 11334,
+   "tree_version": "3.4.0",
    "ruled_flags": 274,
    "flags_mismatch": [],
    "flags_on": [
@@ -2718,60 +2718,60 @@
   {
    "pattern": "ZLR",
    "system": "4",
-   "decisions": 591,
-   "passed_tree_gates": 170,
+   "decisions": 624,
+   "passed_tree_gates": 186,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "ZLR_SHADOW_V1",
    "top": [
-    "tree:stand_down 174",
-    "(passed) 170",
-    "tree:location 96"
+    "(passed) 186",
+    "tree:stand_down 180",
+    "tree:location 98"
    ]
   },
   {
    "pattern": "CEILING_FLIP_TOUCH2",
    "system": "2",
-   "decisions": 388,
-   "passed_tree_gates": 201,
+   "decisions": 413,
+   "passed_tree_gates": 217,
    "live_fires": 2,
    "live_pnl": -137.5,
    "live_capable": false,
    "switch": "CEILING_FLIP_TOUCH2_V1",
    "top": [
-    "(passed) 201",
-    "dalton_intent:stand_down 48",
-    "tree:stand_down 45"
+    "(passed) 217",
+    "tree:stand_down 50",
+    "dalton_intent:stand_down 48"
    ]
   },
   {
    "pattern": "REACTIVE_SHORT",
    "system": "2",
-   "decisions": 70,
-   "passed_tree_gates": 3,
+   "decisions": 71,
+   "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
     "tree:stand_down 61",
-    "(passed) 3",
-    "tree:bias 2"
+    "(passed) 4",
+    "tree:location 2"
    ]
   },
   {
    "pattern": "GHOST",
    "system": "4",
-   "decisions": 49,
-   "passed_tree_gates": 17,
-   "live_fires": 5,
-   "live_pnl": -93.75,
+   "decisions": 54,
+   "passed_tree_gates": 19,
+   "live_fires": 4,
+   "live_pnl": -41.25,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 17",
-    "tree:stand_down 10",
+    "(passed) 19",
+    "tree:stand_down 11",
     "dalton_intent:stand_down 8"
    ]
   },
@@ -2791,6 +2791,21 @@
    ]
   },
   {
+   "pattern": "GB100",
+   "system": "4",
+   "decisions": 38,
+   "passed_tree_gates": 8,
+   "live_fires": 4,
+   "live_pnl": -25.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "dalton_intent:stand_down 9",
+    "(passed) 8",
+    "tree:bias 5"
+   ]
+  },
+  {
    "pattern": "INITIATIVE_LONG",
    "system": "2",
    "decisions": 37,
@@ -2806,39 +2821,39 @@
    ]
   },
   {
-   "pattern": "GB100",
-   "system": "4",
-   "decisions": 36,
-   "passed_tree_gates": 8,
-   "live_fires": 4,
-   "live_pnl": -25.0,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "dalton_intent:stand_down 9",
-    "(passed) 8",
-    "tree:bias 5"
-   ]
-  },
-  {
    "pattern": "TREND_STEP",
    "system": "4",
-   "decisions": 31,
-   "passed_tree_gates": 9,
+   "decisions": 36,
+   "passed_tree_gates": 10,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "TREND_STEP_ENTRY_V1",
    "top": [
-    "(passed) 9",
-    "tree:location 8",
-    "dalton_intent:stand_down 3"
+    "tree:location 11",
+    "(passed) 10",
+    "tree:stand_down 4"
+   ]
+  },
+  {
+   "pattern": "FAMIR",
+   "system": "4",
+   "decisions": 33,
+   "passed_tree_gates": 8,
+   "live_fires": 3,
+   "live_pnl": -17.5,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:bias 12",
+    "tree:stand_down 10",
+    "(passed) 8"
    ]
   },
   {
    "pattern": "DOUBLE_BOTTOM_EE_LONG",
    "system": "2",
-   "decisions": 31,
+   "decisions": 33,
    "passed_tree_gates": 4,
    "live_fires": 2,
    "live_pnl": 102.5,
@@ -2848,6 +2863,21 @@
     "tree:bias 7",
     "dalton_intent:stand_down 6",
     "tree:stand_down 5"
+   ]
+  },
+  {
+   "pattern": "REACTIVE_LONG",
+   "system": "2",
+   "decisions": 31,
+   "passed_tree_gates": 7,
+   "live_fires": 4,
+   "live_pnl": 10.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 7",
+    "tree:stand_down 7",
+    "tree:bias 6"
    ]
   },
   {
@@ -2866,36 +2896,6 @@
    ]
   },
   {
-   "pattern": "FAMIR",
-   "system": "4",
-   "decisions": 30,
-   "passed_tree_gates": 8,
-   "live_fires": 3,
-   "live_pnl": -17.5,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:stand_down 10",
-    "tree:bias 9",
-    "(passed) 8"
-   ]
-  },
-  {
-   "pattern": "REACTIVE_LONG",
-   "system": "2",
-   "decisions": 28,
-   "passed_tree_gates": 6,
-   "live_fires": 4,
-   "live_pnl": 10.0,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:stand_down 6",
-    "(passed) 6",
-    "tree:bias 6"
-   ]
-  },
-  {
    "pattern": "S2_DELTA_DBL_SHORT",
    "system": "2",
    "decisions": 25,
@@ -2906,43 +2906,44 @@
    "switch": "S2_DELTA_DBL_V1",
    "top": [
     "(passed) 7",
-    "tree:location 6",
-    "dalton_intent:bias 6"
+    "dalton_intent:bias 6",
+    "tree:location 6"
+   ]
+  },
+  {
+   "pattern": "DOUBLE_TOP_AA_SHORT",
+   "system": "2",
+   "decisions": 22,
+   "passed_tree_gates": 11,
+   "live_fires": 3,
+   "live_pnl": 7.5,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 11",
+    "tree:location 4",
+    "tree:bias 3"
    ]
   },
   {
    "pattern": "CONFLUENCE_RI_ZLR",
    "system": "4",
-   "decisions": 20,
+   "decisions": 21,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "CONFLUENCE_RI_ZLR_LIVE",
    "top": [
-    "tree:stand_down 20"
-   ]
-  },
-  {
-   "pattern": "DOUBLE_TOP_AA_SHORT",
-   "system": "2",
-   "decisions": 19,
-   "passed_tree_gates": 8,
-   "live_fires": 3,
-   "live_pnl": 7.5,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 8",
-    "tree:location 4",
-    "tree:bias 3"
+    "tree:stand_down 20",
+    "tree:time_cutoff 1"
    ]
   },
   {
    "pattern": "FAILED_RE_IB",
    "system": "2",
-   "decisions": 17,
-   "passed_tree_gates": 2,
+   "decisions": 19,
+   "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
@@ -2950,52 +2951,52 @@
    "top": [
     "tree:stand_down 4",
     "dalton_intent:bias 3",
-    "tree:location 3"
+    "tree:bias 3"
    ]
   },
   {
    "pattern": "CEILING_FLIP_SHORT",
    "system": "2",
-   "decisions": 16,
-   "passed_tree_gates": 10,
-   "live_fires": 3,
-   "live_pnl": -72.5,
+   "decisions": 17,
+   "passed_tree_gates": 11,
+   "live_fires": 4,
+   "live_pnl": -61.25,
    "live_capable": true,
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
-    "(passed) 10",
+    "(passed) 11",
     "dalton_intent:stand_down 3",
     "tree:location 2"
    ]
   },
   {
-   "pattern": "CEILING_FLIP_LONG",
-   "system": "2",
-   "decisions": 15,
-   "passed_tree_gates": 12,
-   "live_fires": 4,
-   "live_pnl": -56.25,
-   "live_capable": true,
-   "switch": "CEILING_FLIP_SHORT_V1",
-   "top": [
-    "(passed) 12",
-    "dalton_intent:bias 1",
-    "tree:location 1"
-   ]
-  },
-  {
    "pattern": "INITIATIVE_SHORT",
    "system": "2",
-   "decisions": 14,
-   "passed_tree_gates": 6,
-   "live_fires": 5,
-   "live_pnl": -371.25,
+   "decisions": 17,
+   "passed_tree_gates": 9,
+   "live_fires": 3,
+   "live_pnl": -242.5,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 6",
+    "(passed) 9",
     "tree:bias 4",
     "tree:time_cutoff 2"
+   ]
+  },
+  {
+   "pattern": "CEILING_FLIP_LONG",
+   "system": "2",
+   "decisions": 16,
+   "passed_tree_gates": 13,
+   "live_fires": 5,
+   "live_pnl": -121.25,
+   "live_capable": true,
+   "switch": "CEILING_FLIP_SHORT_V1",
+   "top": [
+    "(passed) 13",
+    "tree:location 1",
+    "tree:bias 1"
    ]
   },
   {
@@ -3016,7 +3017,7 @@
   {
    "pattern": "FAILED_BREAK_LONG",
    "system": "2",
-   "decisions": 11,
+   "decisions": 12,
    "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3029,24 +3030,9 @@
    ]
   },
   {
-   "pattern": "VA_FADE_SHORT",
-   "system": "2",
-   "decisions": 10,
-   "passed_tree_gates": 4,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "va_fade.py: shadow_only by code",
-   "top": [
-    "(passed) 4",
-    "tree:bias 3",
-    "tree:kind 1"
-   ]
-  },
-  {
    "pattern": "FAILED_BREAK_SHORT",
    "system": "2",
-   "decisions": 10,
+   "decisions": 11,
    "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3054,8 +3040,38 @@
    "switch": "failed_break.py: shadow_only by code",
    "top": [
     "(passed) 4",
-    "tree:stand_down 2",
-    "tree:location 2"
+    "tree:stand_down 3",
+    "dalton_intent:stand_down 2"
+   ]
+  },
+  {
+   "pattern": "VA_FADE_SHORT",
+   "system": "2",
+   "decisions": 11,
+   "passed_tree_gates": 5,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "va_fade.py: shadow_only by code",
+   "top": [
+    "(passed) 5",
+    "tree:bias 3",
+    "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "VA_FADE_LONG",
+   "system": "2",
+   "decisions": 10,
+   "passed_tree_gates": 5,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "va_fade.py: shadow_only by code",
+   "top": [
+    "(passed) 5",
+    "tree:bias 3",
+    "tree:location 1"
    ]
   },
   {
@@ -3069,23 +3085,8 @@
    "switch": "live producer",
    "top": [
     "tree:location 2",
-    "dalton_intent:stand_down 2",
-    "tree:bias 2"
-   ]
-  },
-  {
-   "pattern": "VA_FADE_LONG",
-   "system": "2",
-   "decisions": 9,
-   "passed_tree_gates": 4,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "va_fade.py: shadow_only by code",
-   "top": [
-    "(passed) 4",
-    "tree:bias 3",
-    "tree:location 1"
+    "tree:bias 2",
+    "dalton_intent:stand_down 2"
    ]
   },
   {
@@ -3099,23 +3100,38 @@
    "switch": "DALTON_EDGE_V1",
    "top": [
     "(passed) 3",
-    "tree:stand_down 1",
-    "tree:bias 1"
+    "dalton_intent:bias 1",
+    "dalton_intent:stand_down 1"
    ]
   },
   {
-   "pattern": "OPENING_DRIVE",
+   "pattern": "S2_DELTA_DBL_LONG",
    "system": "2",
    "decisions": 7,
-   "passed_tree_gates": 5,
-   "live_fires": 5,
-   "live_pnl": -77.5,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
+   "passed_tree_gates": 3,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "S2_DELTA_DBL_V1",
    "top": [
-    "(passed) 5",
-    "dalton_intent:bias 1",
-    "tree:kind 1"
+    "tree:location 3",
+    "(passed) 3",
+    "dalton_intent:bias 1"
+   ]
+  },
+  {
+   "pattern": "DALTON_EDGE_SHORT",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 3,
+   "live_fires": 2,
+   "live_pnl": -8.75,
+   "live_capable": true,
+   "switch": "DALTON_EDGE_V1",
+   "top": [
+    "(passed) 3",
+    "tree:stand_down 1",
+    "tree:time_cutoff 1"
    ]
   },
   {
@@ -3134,33 +3150,33 @@
    ]
   },
   {
-   "pattern": "S2_DELTA_DBL_LONG",
+   "pattern": "OPENING_DRIVE",
    "system": "2",
    "decisions": 7,
-   "passed_tree_gates": 3,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "S2_DELTA_DBL_V1",
+   "passed_tree_gates": 5,
+   "live_fires": 4,
+   "live_pnl": -77.5,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 3",
-    "tree:location 3",
-    "dalton_intent:bias 1"
+    "(passed) 5",
+    "dalton_intent:bias 1",
+    "tree:kind 1"
    ]
   },
   {
-   "pattern": "DALTON_EDGE_SHORT",
+   "pattern": "OPENING_PULLBACK_CONT",
    "system": "2",
    "decisions": 6,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 46.25,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 2",
-    "dalton_intent:stand_down 1",
-    "tree:time_cutoff 1"
+    "tree:kind 4",
+    "dalton_intent:kind 1",
+    "tree:bias 1"
    ]
   },
   {
@@ -3178,35 +3194,6 @@
    ]
   },
   {
-   "pattern": "OPENING_PULLBACK_CONT",
-   "system": "2",
-   "decisions": 5,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "tree:kind 3",
-    "dalton_intent:kind 1",
-    "tree:bias 1"
-   ]
-  },
-  {
-   "pattern": "BULL_FLAG_LONG",
-   "system": "2",
-   "decisions": 4,
-   "passed_tree_gates": 2,
-   "live_fires": 2,
-   "live_pnl": -131.25,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 2",
-    "tree:stand_down 2"
-   ]
-  },
-  {
    "pattern": "STRATEGIC",
    "system": "2",
    "decisions": 4,
@@ -3220,30 +3207,30 @@
    ]
   },
   {
-   "pattern": "TT",
-   "system": "4",
-   "decisions": 2,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
+   "pattern": "BULL_FLAG_LONG",
+   "system": "2",
+   "decisions": 4,
+   "passed_tree_gates": 2,
+   "live_fires": 2,
+   "live_pnl": -131.25,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:location 1",
-    "dalton_intent:bias 1"
+    "tree:stand_down 2",
+    "(passed) 2"
    ]
   },
   {
    "pattern": "OPENING_TEST_DRIVE",
    "system": "2",
-   "decisions": 2,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 127.5,
+   "decisions": 3,
+   "passed_tree_gates": 3,
+   "live_fires": 2,
+   "live_pnl": 83.75,
    "live_capable": true,
    "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 2"
+    "(passed) 3"
    ]
   },
   {
@@ -3262,16 +3249,17 @@
    ]
   },
   {
-   "pattern": "OPENING_ORR",
-   "system": "2",
-   "decisions": 1,
-   "passed_tree_gates": 1,
+   "pattern": "TT",
+   "system": "4",
+   "decisions": 2,
+   "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
+   "switch": "live producer",
    "top": [
-    "(passed) 1"
+    "dalton_intent:bias 1",
+    "tree:location 1"
    ]
   },
   {
@@ -3286,16 +3274,29 @@
    "top": [
     "tree:stand_down 1"
    ]
+  },
+  {
+   "pattern": "OPENING_ORR",
+   "system": "2",
+   "decisions": 1,
+   "passed_tree_gates": 1,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 1"
+   ]
   }
  ],
  "gates": [
   {
    "blocked_by": "(passed)",
-   "n": 522
+   "n": 572
   },
   {
    "blocked_by": "tree:stand_down",
-   "n": 398
+   "n": 413
   },
   {
    "blocked_by": "dalton_intent:stand_down",
@@ -3303,11 +3304,11 @@
   },
   {
    "blocked_by": "tree:location",
-   "n": 169
+   "n": 174
   },
   {
    "blocked_by": "tree:bias",
-   "n": 134
+   "n": 143
   },
   {
    "blocked_by": "dalton_intent:bias",
@@ -3315,11 +3316,11 @@
   },
   {
    "blocked_by": "tree:time_cutoff",
-   "n": 53
+   "n": 67
   },
   {
    "blocked_by": "tree:kind",
-   "n": 25
+   "n": 29
   },
   {
    "blocked_by": "dalton_intent:kind",
@@ -3331,8 +3332,8 @@
   }
  ],
  "tree": {
-  "take": 339,
-  "skip": 272,
+  "take": 294,
+  "skip": 242,
   "shadow": 0,
   "ruled": [
    {
@@ -3581,7 +3582,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3595,42 +3596,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "take_with_extension",
-    "sessions": 58,
-    "usd": -85.0,
-    "usd_net": null,
-    "date": "2026-09-24"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3861,7 +3827,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -3875,42 +3841,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "take_with_extension",
-    "sessions": 58,
-    "usd": -85.0,
-    "usd_net": null,
-    "date": "2026-09-24"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_TEST_DRIVE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4141,7 +4072,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4155,42 +4086,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "take_with_extension",
-    "sessions": 58,
-    "usd": -85.0,
-    "usd_net": null,
-    "date": "2026-09-24"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4428,7 +4324,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4442,42 +4338,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "take_with_extension",
-    "sessions": 58,
-    "usd": -85.0,
-    "usd_net": null,
-    "date": "2026-09-24"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=OPEN_AUCTION_IN|OPEN_AUCTION_OUT/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4652,7 +4513,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4666,42 +4527,7 @@
     "date": "2026-10-03"
    },
    {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "take_with_extension",
-    "sessions": 58,
-    "usd": -85.0,
-    "usd_net": null,
-    "date": "2026-09-24"
-   },
-   {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=LONG/zone=unknown/kind=*/edge=failed_extension",
-    "sessions": 60,
-    "usd": 166.25,
-    "usd_net": 163.65,
-    "date": "2026-09-27"
-   },
-   {
-    "id": "take_failed_ext_responsive",
-    "sessions": 65,
-    "usd": 400.0,
-    "usd_net": 371.4,
-    "date": "2026-10-03"
-   },
-   {
-    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Extreme/rel_bias=*/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
+    "id": "hour=*/opening_type=*/phase=C/day_type=Neutral_Center|Neutral_Extreme/direction=SHORT/zone=unknown/kind=*/edge=failed_extension",
     "sessions": 60,
     "usd": 166.25,
     "usd_net": 163.65,
@@ -4750,47 +4576,47 @@
     "date": "2026-09-27"
    }
   ],
-  "n": 611
+  "n": 536
  },
  "db_tables": [
   {
    "table": "v9_trades",
-   "rows": 3083,
-   "max_ts_il": "2026-10-07 23:00"
+   "rows": 3184,
+   "max_ts_il": "2026-10-08 22:56"
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 192994,
-   "max_ts_il": "2026-10-07 23:55"
+   "rows": 206601,
+   "max_ts_il": "2026-10-09 06:10"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 21716,
-   "max_ts_il": "2026-10-07 23:55"
+   "rows": 21960,
+   "max_ts_il": "2026-10-09 06:10"
   },
   {
    "table": "v9_bars_5min",
-   "rows": 5054,
-   "max_ts_il": "2026-10-07 23:55"
+   "rows": 5180,
+   "max_ts_il": "2026-10-08 23:55"
   },
   {
    "table": "v9_day_type_state",
-   "rows": 63,
+   "rows": 78,
    "max_ts_il": ""
   },
   {
    "table": "v9_exit_decisions",
-   "rows": 16695,
+   "rows": 17127,
    "max_ts_il": ""
   },
   {
    "table": "v9_trade_management_log",
-   "rows": 352511,
+   "rows": 352652,
    "max_ts_il": ""
   },
   {
    "table": "v9_woodies_signals",
-   "rows": 3913,
+   "rows": 3965,
    "max_ts_il": ""
   },
   {
@@ -4800,8 +4626,8 @@
   },
   {
    "table": "v9_bars_cumulative_delta",
-   "rows": 9090,
-   "max_ts_il": "2026-10-07 23:55"
+   "rows": 9216,
+   "max_ts_il": "2026-10-08 23:55"
   },
   {
    "table": "broker_truth",
@@ -4822,7 +4648,7 @@
   },
   {
    "label": "com.mems26.backend",
-   "pid": "49501",
+   "pid": "85469",
    "rc": "-15"
   },
   {
@@ -5033,6 +4859,10 @@
   {
    "file": "scripts/direction_accuracy_replay.py",
    "doc": "direction_accuracy_replay.py — real-time direction-ID accuracy over all RTH days."
+  },
+  {
+   "file": "scripts/doctrine_cell_audit.py",
+   "doc": "doctrine_cell_audit.py — the doctrine table, cell by cell (Michael 08.10: \"עליך להתאים את האופן שהמערכת סוחרת בכל"
   },
   {
    "file": "scripts/drive_sync_upload.py",
@@ -5880,14 +5710,14 @@
   }
  ],
  "tickets": {
-  "total": 406,
-  "open": 339,
+  "total": 420,
+  "open": 353,
   "by_status": {
-   "🔴": 104,
-   "🟠": 163,
+   "🔴": 105,
+   "🟠": 166,
    "🟡": 29,
    "✅": 51,
-   "🔵": 43,
+   "🔵": 53,
    "⚠️": 3,
    "🔴🔴": 9,
    "🟢": 1,
@@ -6212,6 +6042,48 @@
     "measurable": false
    },
    {
+    "id": "T-574",
+    "status": "🟠",
+    "title": "שינוי-ברקט ידני בסיירה אינו מגיע לספרים — ו-`BarLevelDetector` נכנס ללופ-המתנה-לנצח לפקודה שנמחקה.",
+    "next": "(א) **תשובת-מייקל על הכוונה** — אם 3289 עברה לניהול ידני, הרשומה צריכה לשאת תיוג-ידני ולא ברקט-שרת מיושן. (ב) **נתיב-קליטה, קריאה-בלבד קודם:** `trade_activity_events.jsonl` **כבר** מפיק `USER_ORDER_MODIFY`/`BRACKET_MODIFY` עם `price`+`account` ⇒ המידע קיים ואי",
+    "measurable": false
+   },
+   {
+    "id": "T-575",
+    "status": "🔵",
+    "title": "סימולציית-סלוט רציפה עם המועמדים — \"מערכת 6 עוצרת מבעוד מועד ומאפשרת עסקה חדשה\" (מייקל 08.10 18:0x: \"להמשיך בפיתוח ולהריץ סימולציה… כולל מערכת 6\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-576",
+    "status": "🔵",
+    "title": "\"למקסם יום 1 → לכתוב לעץ → יום 2, ושכבת-מערכת-6 כענפים\" (מייקל 08.10 18:1x) — נמדד walk-forward.",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-578",
+    "status": "🔵",
+    "title": "קרטוע-הדיספאטץ' של ה-backend אינו מוסבר לא ע\"י תחרות-מכונה ולא ע\"י `open FILLED rows` — שתי ההשערות הופרכו באותה ריצה, ומה ששרד הוא פרץ פנימי של מחזור-הדיספאטץ'-לבר.",
+    "next": "(א) **למדוד את `n` עצמו ולא את ההשהיה** — מה מפעיל `dispatch total` ומה קובע את תדירותו (`bar_router` נקרא פעם-לבר או פעם-לדחיפה?); `n=544` ב-0 שורות מול `n=303` ב-0 שורות **באותו יום** ⇒ הגורם לנפח אינו מספר-השורות, ובלי המספר הזה אין על מה לדון בצמצום. (ב) *",
+    "measurable": true
+   },
+   {
+    "id": "T-577",
+    "status": "🔵",
+    "title": "`shadow_active_count` של הגייטוויי אינו ספירת-עסקאות-צל-פתוחות — הוא append-only, ולכן אינו יכול לרדת; וסוכנים (כולל אני) כבר דיווחו אותו 46 פעמים כאילו הוא כן.",
+    "next": "(א) **שינוי-שם לפני שינוי-התנהגות** — `shadow_active_count` ⇒ `shadow_routed_since_boot`, ולהוסיף לידו `shadow_open_count` שנקרא **מה-DB** (`exit_ts IS NULL AND state='FILLED' AND mode='shadow'`) ולא ממצב-תהליך; זה ההבדל בין ספירה שאפשר לאמת לספירה שאי-אפשר. (",
+    "measurable": false
+   },
+   {
+    "id": "T-572",
+    "status": "🟠",
+    "title": "`t1` מתחת ל-`entry_price` ב-LONG ⇒ ביקורת-המועמדים-החסומים תספור \"פגיעת-t1 מיידית\" ותפיק ראיה כוזבת ש\"השער עלה לנו מנצח\".",
+    "next": "(א) **ללא שינוי-התנהגות, מדידה קודם** — להריץ את `blocked_candidate_audit.py` על ההיסטוריה ולספור כמה מועמדים-חסומים נשענים על `t1 ≤ entry` ב-LONG / `t1 ≥ entry` ב-SHORT; המספר הזה הוא שמכריע אם הפריט דחוף או שולי. (ב) **שער-שפיות בבונה-הסטאפ של S2** (`five_mi",
+    "measurable": true
+   },
+   {
     "id": "T-251",
     "status": "🔴",
     "title": "הספרים סגרו את הלייב `#1008` בעוד חוזה אחד עדיין חי בשוק — והשומר שאמור לתפוס בדיוק את זה קפוא על `stuck_seconds=0.0`.",
@@ -6251,6 +6123,13 @@
     "status": "🟡",
     "title": "בקשת-מייקל מהטלפון 04.09 (‏`4d0e8c9d` 17:43 + `a57bdf73` 18:02): \"תאפשר למערכת לבצע תבניות שורט\" · \"לבטל את הדגל המגוחך הזה במיידי ולאפשר ירי של שורטים\".",
     "next": "(א) להשאיר `=1` ולתקן את **חלון-המדידה** של T-31 (החשד: שני הצדדים לא מודדים אותו חלון) · (ב) להחליף את הסף מחציון ל-אחוזון-נמוך (למשל 0.85×חציון) ⇒ נעבר ברוב הימים · (ג) `OPENING_DIR_FUSION_V1=0` — ביטול מלא, שמוותר גם על הדילוג ב-73%-מהמחקר. מענה-טלפון מלא נ",
+    "measurable": true
+   },
+   {
+    "id": "T-573",
+    "status": "🟠",
+    "title": "תחרות-מכונה על ה-Mac שסוחר — תהליך לא-מסחרי מקרטע את ה-backend בזמן פוזיציה בכסף-אמת.",
+    "next": "(א) **פסיקת-מייקל אחת, קטנה:** לסגור/להגביל את חלון-Cursor על `mems26_web_git` בשעות-המסחר? (זו מכונתו ואפליקציה שלו — לא בסמכותי לסגור, ולכן נשאלה ולא נעשתה). (ב) **מדידת-אישוש לפני כל טענת-סיבתיות:** לדגום `dispatch total` ל-15 דק' **לפני ואחרי** סגירת ה-ext",
     "measurable": true
    },
    {
@@ -8268,6 +8147,55 @@
     "title": "07.10 (דמו): שתי כניסות-LONG נדחו ע״י סיירה (`ORDER_FAILED:-1` = GENERAL_ERROR_OR_NOT_ENABLED; #3191 18:00 @7823.5, #3196 18:15 @7828.25) כי על Sim1 ישבה פוזיציה −1 שאינה שלנו (17:52:01 → לפני 19:40);",
     "next": "",
     "measurable": false
+   },
+   {
+    "id": "T-566",
+    "status": "🔵",
+    "title": "\"אם סוג-היום משתנה, לפחות תזיז את הסטופ — איפה מערכת 6\" (מייקל 08.10 11:5x).",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-567",
+    "status": "🔵",
+    "title": "טבלת-הדוקטרינה תא-תא (מייקל 08.10 ~13:00: \"להתאים את האופן שהמערכת סוחרת בכל יום ובכל שלב לפי הדוקטרינה\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-568",
+    "status": "🔴",
+    "title": "אחרי שסיירה עלתה ב-13:00:32 הצ'ארט חזר לחשבון-האמת `37138283` (`is_sim=0`, `acct_is_sim=0`, `order_placement_armed=1`, `send_orders_to_trade_service=1`) — בעוד אתמול הוא היה על `Sim1` וכל ירי נרשם דמו",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-569",
+    "status": "🔵",
+    "title": "הזמנה ל-Cursor — ביקורת וצמיחת-חשבון, חוזה 1 → 2 → 3 (מייקל 08.10 14:33: \"שאילתא לקורסור שיבדוק וייתן המלצות… שכל יום מסחר הסכום יגדל עד 2 חוזים ועד 3 ועוד\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-570",
+    "status": "🔵",
+    "title": "יציאה-על-החלפת-תווית (מייקל 08.10 15:3x: \"האם יש מערכת שיודעת להגיד בזמן אמת שהזיהוי לא נכון ולסגור עסקה… המחיר שינה התנהגות\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-571",
+    "status": "🔵",
+    "title": "\"מה נדרש כדי שחוזה 1 ירוויח יותר — לא להיכנס למפסידות / רווח נמוך יותר / מערכת 6 עוצרת מבעוד מועד ומאפשרת עסקה חדשה\" (מייקל 08.10 15:5x).",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-579",
+    "status": "🔵",
+    "title": "היתר REACTIVE_SHORT ביום Variation 18:00–19:59 נגד-ההינט — BRIEF §2.2 #2, לבדו (fix-agent ליל 08→09.10).",
+    "next": "",
+    "measurable": false
    }
   ]
  },
@@ -8354,6 +8282,20 @@
    "status": "🔴",
    "title": "`acct_available_funds` מחזיר `DBL_MAX` (1.7976931348623157e+308) — קלט-השער של T-34 הוא סנטינל \"לא-זמין\" שנראה כמו מספר.",
    "next": "**(א) בשער-15:30 היום, לפני כל השוואה:** `if not (0 < avail < 1e12): הקלט אינו מדיד ⇒ אפס עריכה ב-.env, אפס ריסטארט, הגודל נשאר `ruled_contracts()` כפי שהוא, ומדווח למייקל בטלפון כ\"מרג'ין לא-נמדד\" — **לא** \"אין מרג'ין\" ו**לא** \"יש מרג'ין\". לאמת גם `is_sim==0` ",
+   "measurable": true
+  },
+  {
+   "id": "T-573",
+   "status": "🟠",
+   "title": "תחרות-מכונה על ה-Mac שסוחר — תהליך לא-מסחרי מקרטע את ה-backend בזמן פוזיציה בכסף-אמת.",
+   "next": "(א) **פסיקת-מייקל אחת, קטנה:** לסגור/להגביל את חלון-Cursor על `mems26_web_git` בשעות-המסחר? (זו מכונתו ואפליקציה שלו — לא בסמכותי לסגור, ולכן נשאלה ולא נעשתה). (ב) **מדידת-אישוש לפני כל טענת-סיבתיות:** לדגום `dispatch total` ל-15 דק' **לפני ואחרי** סגירת ה-ext",
+   "measurable": true
+  },
+  {
+   "id": "T-572",
+   "status": "🟠",
+   "title": "`t1` מתחת ל-`entry_price` ב-LONG ⇒ ביקורת-המועמדים-החסומים תספור \"פגיעת-t1 מיידית\" ותפיק ראיה כוזבת ש\"השער עלה לנו מנצח\".",
+   "next": "(א) **ללא שינוי-התנהגות, מדידה קודם** — להריץ את `blocked_candidate_audit.py` על ההיסטוריה ולספור כמה מועמדים-חסומים נשענים על `t1 ≤ entry` ב-LONG / `t1 ≥ entry` ב-SHORT; המספר הזה הוא שמכריע אם הפריט דחוף או שולי. (ב) **שער-שפיות בבונה-הסטאפ של S2** (`five_mi",
    "measurable": true
   },
   {
@@ -8537,92 +8479,90 @@
    "title": "השער בחר שורת-פלייבוק לפי תווית סוג-יום בת ~10 דקות — פיגור שני ברים בין `v9_day_type_state` ל-`get_live_day_type`.",
    "next": "למדוד את הפיגור, לא לכוונן אותו — לקרוא את שכבת ה-antiflap ב-`trade_context.get_live_day_type` ולענות **בשתי שורות**: (א) כמה ברים היא מחזיקה תווית ישנה ובאיזה תנאי, (ב) האם זה מכוון (יש פסיקה/`measured:`) או תופעת-לוואי. אם מכוון — לתעד ב-`RULED_FLAGS.yaml` ו",
    "measurable": true
-  },
-  {
-   "id": "T-285",
-   "status": "🟠",
-   "title": "הכיוון צדק וההצבה לא — שתי עסקאות-לייב SHORT של 08.09 היו בכיוון-היום ובהסכמה מלאה עם צל-S1DayDir, ונעצרו לפני התנועה.",
-   "next": "להוסיף את 1224/1231/1262 כ**מקרי-ריפליי** לסט-הרגרסיה (דוקטרינת-הלמידה: תקרית ⇒ מקרה-ריפליי, לא דגל), ולמדוד את עוגן-הסטופ **פר-סוג-יום** — לא גלובלית, כי הריפליי הגלובלי כבר נדחה. אין שינוי-התנהגות עד מספר.",
-   "measurable": true
-  },
-  {
-   "id": "T-277",
-   "status": "🟠",
-   "title": "הספרים והברוקר נושאים מחירי-ברקט שונים על עסקת-הלייב הפתוחה `#1231` — הזזה מסודרת פר-חוזה, לא רעש-עיגול.",
-   "next": "(1) **לתפוס את המטען הגולמי לפני שהוא נמחק** — הנתיב היחיד להכרעה: להוסיף שמירת-עותק של `cmd_*.json` (או לוג של המטען) לפני ה-ACK, או לקרוא את הצד השני מהיומן של סיירה. בלי זה השאלה בלתי-מדידה גם בעסקה הבאה — אותה מחלקה כמו [[T-272]] סעיף 3 ו-[[T-276]] סעיף 4.",
-   "measurable": true
   }
  ],
  "reports": [
   {
-   "file": "docs/reports/T564_ALLOW_INITIATIVE_SHORT_VAR_1819_2026-10-08.md",
-   "mtime": "2026-10-08 02:40"
+   "file": "docs/reports/OPS_LOG_2026-10-08.md",
+   "mtime": "2026-10-09 05:45"
   },
   {
-   "file": "docs/reports/NIGHT_INSIGHTS_2026-10-07.md",
-   "mtime": "2026-10-08 00:17"
+   "file": "docs/reports/DOCTRINE_CELLS_2026-10-09.md",
+   "mtime": "2026-10-09 00:47"
   },
   {
-   "file": "docs/reports/T526_WOODIES_OVERWRITE_WRITER_2026-10-08.md",
-   "mtime": "2026-10-08 00:06"
+   "file": "docs/reports/NIGHT_QUEUE_2026-10-09.md",
+   "mtime": "2026-10-09 00:47"
   },
   {
-   "file": "docs/reports/OPS_LOG_2026-10-07.md",
-   "mtime": "2026-10-07 23:37"
+   "file": "docs/reports/T265_T532_RAW_5MIN_CANONICAL_FAILOVER_2026-10-09.md",
+   "mtime": "2026-10-09 00:11"
   },
   {
-   "file": "docs/reports/REPLAY_REVIEW_2026-10-07.md",
-   "mtime": "2026-10-07 23:09"
+   "file": "docs/reports/T579_ALLOW_REACTIVE_SHORT_VAR_1819_2026-10-09.md",
+   "mtime": "2026-10-09 00:09"
   },
   {
-   "file": "docs/reports/DAY_REVIEW_2026-10-07.md",
-   "mtime": "2026-10-07 23:09"
+   "file": "docs/reports/REPLAY_REVIEW_2026-10-08.md",
+   "mtime": "2026-10-08 23:08"
+  },
+  {
+   "file": "docs/reports/DAY_REVIEW_2026-10-08.md",
+   "mtime": "2026-10-08 23:08"
   },
   {
    "file": "docs/reports/SUPERVISION_LATEST.md",
-   "mtime": "2026-10-07 22:36"
+   "mtime": "2026-10-08 22:36"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-07_2236.md",
-   "mtime": "2026-10-07 22:36"
+   "file": "docs/reports/SUPERVISION_2026-10-08_2236.md",
+   "mtime": "2026-10-08 22:36"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-07_2136.md",
-   "mtime": "2026-10-07 21:36"
+   "file": "docs/reports/SUPERVISION_2026-10-08_2136.md",
+   "mtime": "2026-10-08 21:36"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-07_2036.md",
-   "mtime": "2026-10-07 20:37"
+   "file": "docs/reports/WALK_FORWARD_2026-10-05.md",
+   "mtime": "2026-10-08 21:35"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-07_1936.md",
-   "mtime": "2026-10-07 19:36"
-  },
-  {
-   "file": "docs/reports/SUPERVISION_2026-10-07_1836.md",
-   "mtime": "2026-10-07 18:37"
+   "file": "docs/reports/T24_CONTEXT_VARIANT_2026-10-07.md",
+   "mtime": "2026-10-08 21:35"
   }
  ],
  "harness_runs": [
+  {
+   "dir": "harness_out/t579",
+   "last": "=== summary table (fix-agent, 00:38)"
+  },
+  {
+   "dir": "harness_out/t567",
+   "last": "ALL DONE 00:37:28"
+  },
   {
    "dir": "harness_out/t466",
    "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
   },
   {
-   "dir": "harness_out/t564",
-   "last": "ALL DONE Thu Oct  8 02:37:50 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t561",
+   "dir": "harness_out/t575",
    "last": ""
   },
   {
-   "dir": "harness_out/t543",
-   "last": "report: docs/reports/T543_STAGE5_CONTEXT_ROOT_2026-10-02.md"
+   "dir": "harness_out/t571",
+   "last": ""
   },
   {
-   "dir": "harness_out/t24",
-   "last": "PHASE_SUMS {'C': (200, -11825.96), 'B': (76, -698.43), 'D': (20, -66.46), 'A': (2, -450.0)}"
+   "dir": "harness_out/t566",
+   "last": "ALL DONE Thu Oct  8 12:50:41 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t564",
+   "last": "ALL DONE t564ref2 Thu Oct  8 02:37:47 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t543",
+   "last": ""
   },
   {
    "dir": "harness_out/t542",
@@ -8631,18 +8571,6 @@
   {
    "dir": "harness_out/t538",
    "last": "ALL DONE t538h Mon Oct  5 16:04:17 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t529",
-   "last": "→ /Users/michael/Downloads/mems26_web_git/docs/reports/TREE_V3_MEASURE_2026-10-05.md"
-  },
-  {
-   "dir": "harness_out/t523",
-   "last": "ALL DONE t523ref Thu Oct  1 23:39:08 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t518",
-   "last": "ALL DONE t518pkg Wed Sep 30 11:11:08 IDT 2026"
   }
  ]
 }
