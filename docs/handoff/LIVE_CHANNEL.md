@@ -1,3 +1,184 @@
+🟢 **[cowork-dev · ריצה 302 · 09.10 18:34-18:45 IL — חובה-1 + חובה-3 · אפס הודעות-טלפון]**
+
+`date ⇒ Fri Oct 9 18:34:32 IDT 2026` ∈ `16:30-23:00` ⇒ **חובה-3**. `18:34` מעבר ל-`16:10`
+והשער שייך לריצה 296 ⇒ **אפס ריסטארט, אפס GO/NO-GO** (`lsof :8000 ⇒ Python 69665` ·
+`ps -o lstart ⇒ Fri Oct 9 15:39:17 2026` · `etime 03:00:42` ⇒ המאזין לא זז מהשער).
+`git pull --ff-only ⇒ Already up to date`.
+
+## ☎️ חובה 1 — אפס ממתינות ⇒ שקט מוחלט בטלפון
+
+```raw
+/chat ⇒ http=200 bytes=17707 items=30 · md5 b6b912882acf2de3fb7d26878dd17f58
+  אחרונה-בשרשור ⇒ 2026-10-09T15:09:47Z <cowork-dev> len 322  = ההודעה שלי מריצה 301
+  /instruction/pending ⇒ http=200 {"items":[]} · /cmd/pending ⇒ http=200 {"cmd":null}
+  סריקה לפי "כל מי שאינו סוכן" (מלכודת-האיות: sender=='michael' מפספס את "מייקל"):
+    non-agent ⇒ {"מייקל"} · אחרונה idx 11 2026-10-07T10:50:03Z · 18 הודעות-סוכן אחריה ⇒ נענתה
+PHONE_THREAD.jsonl ⇒ 758 שורות · grep -c 2026-10-09 ⇒ 3, שלושתן שלי (שער + ב-פתיחה + ב-סגירה)
+```
+
+אפס שורות-תיוג חדשות ⇒ `TRADE_TAGS.jsonl` לא נגעתי.
+
+**השאלה מריצה 301 (18:09, "להמשיך לייב עד 23:00 או להעביר ל-Sim1?") עדיין בלי תשובה — 25 דקות.**
+**לא נשאלה שוב, במכוון** (T-369 / "פסיקה ניתנת פעם אחת"): מערך-האפשרויות זהה, המספרים זהים,
+ומה שהריצה הזו מצאה **מחזק את ההנחה שנשלחה ואינו מרחיב את הבחירה שלו**.
+
+## 🎯 ממצא 1 — שתי עסקאות-לייב נוספות ירו ו**נדחו ע"י הברוקר על מרג'ין** · ו**זו התנהגות פסוקה, לא באג**
+
+זה הממצא המרכזי, והוא כולל **תיקון של הקריאה שלי באמצע-הריצה**: פתחתי בהשערה
+"המערכת יורה בלי לדעת שהיא נדחית ⇒ פער", ואחרי קריאת הפסיקה והקוד — **ההשערה שגויה**.
+
+```raw
+psql ⇒ SELECT id,mode,firing_system,direction,state,entry_ts,entry_price,exit_ts,exit_price,exit_reason,pnl_usd,pnl_sierra
+       FROM v9_trades WHERE mode='live' AND entry_ts::date=current_date
+ 3380 | live | 2 | SHORT | CLOSED | 16:45:06.945 | 7831.75 | 17:51:29     | 7846.25 | STOP_HIT    | -72.5 | -80
+ 3402 | live | 2 | SHORT | CLOSED | 18:10:06.660 | 7843.25 | 18:10:25.226 |  (NULL) | SIERRA_FLAT | (NULL)| (NULL)
+ 3406 | live | 2 | LONG  | CLOSED | 18:15:06.616 | 7847.00 | 18:15:26.040 |  (NULL) | SIERRA_FLAT | (NULL)| (NULL)
+
+backend.err.log (לוג-האפליקציה, לא backend.log):
+ 18:10:52 [WARNING] [fill_poller] FIX-10 ORDER_REJECT seen (Trade Order Error - Insufficient
+          Account Value (NLV) for margin for order. Margi) but no PENDING demo/live trade
+          to correlate — manual order? logged only.
+ 18:15:53 [WARNING] [fill_poller] FIX-10 ORDER_REJECT seen (… אותו טקסט בדיוק …)
+ grep -c ORDER_REJECT ⇒ 5 בקובץ · מהיום ⇒ 2 בלבד: 18:10:52 · 18:15:53
+```
+
+**אפס כסף זז, ואפס פוזיציה נפתחה** — הראיה אינה "אין P&L" אלא מדידת-ברוקר ישירה:
+
+```raw
+sierra_state ⇒ daily_total_qty_filled = 2.0
+```
+
+`2` = כניסת `#3380` (חוזה אחד) + יציאת-הסטופ שלה (חוזה אחד). לו `#3402`/`#3406` היו מתמלאות
+היה כאן `4` או `6`. ⇒ **שתיהן אפס-מילויים.** `pnl_usd`/`exit_price` נשמרו `NULL` ולא אופסו —
+`T-160 … WITHOUT exit_price — pnl=NULL, status=UNPRICED (Rule 1)` ⇒ חוק-1 נשמר בקוד עצמו.
+
+### למה זו **פסיקה ולא תקלה** — הראיה מהרגיסטר ומהקוד, לא מהזיכרון
+
+```raw
+config/RULED_FLAGS.yaml ⇒ MARGIN_AWARE_SIZING_V1: {expected: "1", ruled_by: "מייקל", date: "2026-08-19"}
+  הפסיקה המצוטטת שם: "אם אין מספיק מרגין לסחור על 4 לא לשאול לבצע"
+  "בקשה ≤4 לא מכווצת לעולם … הברוקר מכריע, לא ממציאים 3/2/1/0"
+.env:497 ⇒ MARGIN_AWARE_SIZING_V1=1 · .env:499 ⇒ MES_MARGIN_PER_CONTRACT=386.20
+
+backend/v9/services/margin_sizing.py:111 def cap_contracts(requested) — מתוך ה-docstring:
+  "- requested <= 4 → unchanged  (08-13 '1:1' still governs below the fallback: no silent
+     shrink to 3/2/1/0. If even 4 cannot clear margin the broker rejects it — same net
+     outcome as any smaller guess, without inventing a size Michael never ruled.)"
+```
+
+הגודל הפסוק היום הוא **1** (`ruled_contracts() ⇒ 1`, נקרא עם `.env` טעון לפי T-489), כלומר
+`requested=1 ≤ 4` ⇒ **`cap_contracts` מחזיר 1 ללא כיווץ, בכוונה**, והדחייה נופלת אצל הברוקר.
+זה **בדיוק** המסלול שמייקל פסק ב-19.08 אחרי שתי דחיות-NLV על 5 חוזים ב-18.08. ⇒
+**אין כאן חריגה שדורשת החלטה, אין מקרה (ג), ואין מה "לתקן".** מה שחדש הוא רק
+ש**הפסיקה נצפית בפעם הראשונה בגודל הפסוק 1** (העדות הקודמת הייתה 5 חוזים, `$1,931` מול `$1,925`).
+
+**לא נטען:** שהמערכת "צריכה" לחסום את עצמה מתחת למרג'ין — זו בדיוק האפשרות שהפסיקה דחתה.
+
+## 🔍 ממצא 2 — הפער האמיתי הוא **נאמנות-אבחון, לא סיכון-מסחר**: FIX-10 לא מתאם את הדחייה
+
+```raw
+backend/v9/services/fill_poller.py:984 _check_rejections — מתוך הקוד עצמו:
+  pending = [t for t in self._tm.get_active_trades()
+             if getattr(t, "state", "") == "PENDING"
+             and getattr(t, "mode", "shadow") in ("demo", "live")]
+  if not pending:  → logger.warning("… no PENDING demo/live trade to correlate …"); return
+  docstring: "FILLED trades are never touched (that's the 308 naked-bracket family)."
+```
+
+הכרונולוגיה מסבירה את הכל, והיא מדודה ולא משוחזרת:
+
+```raw
+18:15:05 Trade 3406 created: mode=live  → state PENDING
+18:15:06 [fill_poller] fill: kind=ENTRY order=11464 trade=3406 price=7847.0  → state FILLED
+18:15:06 [Reconciler] SYS-3 DIVERGENCE: TM says 1 ['#3406(live,LONG,1c/assumed_open)'],
+                      Sierra says 0 (src=state) [phantom-heal streak 1/3]
+18:15:26 T-160: close_trade #3406 reason=SIERRA_FLAT WITHOUT exit_price — UNPRICED (Rule 1)
+18:15:53 FIX-10 ORDER_REJECT seen … no PENDING demo/live trade to correlate   ← 47 שנ' מאוחר מדי
+```
+
+הדחייה מגיעה **אחרי** שהעסקה עברה `PENDING → FILLED(פנטום) → CLOSED(SIERRA_FLAT)`, ולכן
+`pending == []` ו-FIX-10 מוותר. **התוצאה:** דחיית-מרג'ין נרשמת בספרים כ-`SIERRA_FLAT/UNPRICED`
+במקום `REJECTED` + `CRITICAL`, כלומר **הכסף נשאר כשר אבל האבחנה נאבדת** — מי שיקרא את
+הספרים מחר יראה "סיירה הייתה שטוחה" ולא "הברוקר סירב על מרג'ין". זה **אותה משפחה** ש-FIX-10
+נבנה עבורה (עסקה 337), בגרסה שהוא לא תופס. ⇒ פריט-לוג חדש, **לא** תיקון בזמן RTH.
+
+**מדוד ובמפורש לא מוסבר:** `fill: kind=ENTRY … price=7847.0` הוא **מילוי-פנטום** —
+`daily_total_qty_filled=2` שולל מילוי אמיתי. **לא קראתי** את גלאי-המילויים, ולכן אפס טענה
+על המקור (הד-פקודה? קובץ-מילויים? תזמון?) ואפס טענה "באג" או "מכוון".
+
+## ⏸️ ממצא 3 — אחרי 18:15 אין יותר ניתוב-לייב · ומה שחוסם **לא** נקבע כאן
+
+```raw
+אפס שורות mode='live' חדשות אחרי 18:15 (ה-fire ב-18:30 נרשם shadow):
+ 18:30:04 [Gateway] TREE_V3 CEILING_FLIP_TOUCH2 SHORT 7846.25 → TAKE
+ 18:30:04 Trade 3408 created: mode=shadow · S7_SHADOW: trade=3408 score=30 sizing=0 blocked=True
+ 18:30:04 [Gateway] shadow_only setup (CEILING_FLIP_TOUCH2) — recorded, not routed
+ 18:35:22 S7_SHADOW: trade=3410 score=30 sizing=0 blocked=True
+ 18:25:05 / 18:35:03 ⇒ score=40 / 45 · sizing=1 · blocked=False — ובכל זאת shadow
+ 18:18:06 [Cooldown] 2 consecutive stops → cooldown until 2026-10-09T15:48:06Z
+ 18:33:45 [Cooldown] 2 consecutive stops → cooldown until 2026-10-09T16:03:45Z  (= 19:03:45 IL)
+gateway/status ⇒ cooldown {consecutive_stops: 4, cooldown_active: FALSE, remaining_sec: 1493,
+                           "2-stop cooldown: 4 consecutive stops"}
+                 consecutive_losses: 0 · cluster_guard false · ssv veto false · chop RESPECTING
+                 live_enabled_systems [2,4] · live_slot None · trades_today 3 · daily_pnl -72.5
+```
+
+`sizing=0` תלוי-ציון (30 ⇒ 0, 40/45 ⇒ 1) ולא תלוי-מרג'ין. **לא נטען מי השער המכריע** —
+לא קראתי את קוד-הניתוב, ו-`cooldown_active=false` לצד `remaining_sec=1493` הוא **אי-עקביות
+בתצוגה** מאותה משפחה כמו T-581 (ולא ראיה שהקירור כבוי או דלוק). מה שכן מדוד: `consecutive_stops 4`
+מול **סטופ-לייב אחד בלבד** היום ⇒ המונה סופר גם צל. ⇒ **הניתוב-לייב הבא צפוי אחרי 19:03**,
+ואם הכרית לא תשתנה הוא ייפול שוב אצל הברוקר — בדיוק לפי הפסיקה.
+
+## 🩺 שאר הניטור — נקי · הפיד נמדד מה-DB ולא מ-mtime (T-430)
+
+```raw
+psql ⇒ SELECT max(ts), now()-max(ts), count(*) WHERE ts::date=current_date FROM v9_bars_5min_woodies
+  last_bar 2026-10-09 18:35:00+03 · age 00:00:41 · rows_today 212   (194@17:05 ⇒ +6 ברים/חצי-שעה)
+health ⇒ http=200 t=0.002211s · t=0.001796s
+position-מול-TM ⇒ sierra position_qty 0 · working_orders 0 · orders [] ·
+  sierra_live_check ⇒ tm_open_trades 0 · tm_net_qty 0 · "flat בשני הצדדים" · verdict flat ·
+  live_slot None ⇒ שטוח בשני הצדדים, אפס שאלת-בעלות, אפס אזעקה (ownership נבדק לפני אזעקה)
+ERROR|CRITICAL מהיום ⇒ 2:  16:30:03 DAYTYPE_WATCHDOG (T-582, מאובחן בריצה 298)
+  + חדש: 18:18:36 [ERROR] [BarLevelDetector] on_bar error: Invalid transition: CLOSED -> CLOSED
+  ⇒ מופע אחד, לא-פטאלי, בעקבות עסקה שנסגרה כבר — נרשם, לא מטופל ב-RTH
+CPU ⇒ TIME 45:46.71 → 45:53.51 על 30 שנ' = 6.80s/30s = 22.7%  (הרחבה שישית של רצועת 22-27%)
+קצב-לוג ⇒ 535,561 → 535,611 ב-30 שנ' = 100/דקה  (מול 1,000/דקה בפתולוגיה של 16.09)
+ruled_contracts() ⇒ 1 == פסיקת 18.09 ⇒ **אפס נגיעה בדגלי-גודל**
+flag_guard ⇒ rc=0 (האזהרה הידועה FOOTPRINT_DISABLED plist≠.env, דיווח-בלבד — בעלות T-435/T-563)
+task_log_guard ⇒ rc=0 · 558 פריטים · "the task log is current, structured, and the only one"
+close_stale_shadow (dry-run) ⇒ "no stale shadow trades — nothing to do" ⇒ **אפס --apply**
+צל היום ⇒ 34 CLOSED −678.71 · 6 FILLED פתוחות תוך-יומית (תקין — הסקריפט נוגע רק באתמול)
+סוג-יום ⇒ id 13245 18:35 Variation / stage B2 / OPEN_DRIVE / LOCKED_LOW_CONF
+  (הלוג מראה גם OPEN_REJECTION_REVERSE/phase=C בעץ ⇒ ריצוד-התווית של §2.7 נמשך — פריט-הפיקוח)
+machine_health (WARN-בלבד) ⇒ unused RAM 141M < 400M · swap 7,524M > 500M
+  non-trading: cowork-vm 2,961MB · claude-app 1,961MB · chrome 1,841MB · postgres 572MB
+  ⇒ הלחץ אינו מהסטאק-הסוחר; אפס פעולה, דיווח בלבד
+```
+
+## 📵 למה אפס הודעת-טלפון — החלטה, לא השמטה
+
+לא מקרה (א): אפס ממתינות. לא מקרה (ד): עברנו 16:10 והשער של ריצה 296.
+**לא מקרה (ב)** אף ש-`#3402`/`#3406` נפתחו ונסגרו בחלון: תבנית (ב) דורשת מחיר-יציאה ו-P&L,
+ושניהם `NULL` כי **אף פוזיציה לא נפתחה** (`daily_total_qty_filled=2`). לדווח עליהן כעסקאות-לייב
+היה מדווח משהו שלא קרה — חוק-1 בדיוק. **לא מקרה (ג)**: ההתנהגות **פסוקה** (19.08), אפס כסף
+בסיכון, `acct_under_margin 0`, `acct_trading_disabled 0`, פוזיציה 0, אפס פקודות תלויות —
+כלומר כלום לא חוסם ואין מה להחליט שלא הוחלט. והשאלה היחידה שכן פתוחה **כבר אצלו מ-18:09**
+עם אותן שתי אפשרויות בדיוק ⇒ שליחה שנייה באותו אחר-צהריים = מחלקת T-369.
+דוח-היום לטלפון הוא תפקידה של ריצת-הלילה (23:00-23:30), לא של ריצת-ניטור.
+
+**אפס:** דגל · דגל-גודל · `.env` · `--apply` · ריסטארט · נגיעה בפוזיציות/פקודות/עץ/DLL/DB · הודעת-טלפון.
+**אפס שורת-STATUS_BOARD** — שום פריט ממוספר לא נסגר (ממצא 1 מחזק פסיקה קיימת, ממצא 2 הוא פריט חדש).
+**כתיבות:** `LIVE_CHANNEL` + `TASK_LOG` בלבד. קבצים-שבעבודה של סוכנים אחרים לא נגעתי; קומיט ב-pathspec מפורש.
+
+**הצעד הבא, מנוסח להיות ניתן-לפסיקה ולא אזעקה תוך-עסקה:** (1) אחרי 19:03 — האם הניתוב-לייב
+חוזר, והאם הוא נדחה שוב? אם כן, זו **הסדרה** (ולא מופע) שמצדיקה להציג למייקל מספר אחד:
+"כמה הזדמנויות-לייב אבדו היום על מרג'ין" — נתון לפסיקה **לפני** יום-המסחר הבא, לא בתוכו.
+(2) ממצא 2 נכנס ל-TASK_LOG כפריט נאמנות-אבחון: `SIERRA_FLAT` מסתיר `REJECTED`; התיקון
+המוצע הוא להרחיב את החיפוש של FIX-10 גם לעסקה שנסגרה `SIERRA_FLAT` בחלון של 60 שנ' לפני
+הדחייה — **לא** לגעת ב-`FILLED` (משפחת 308). (3) ל-`day_review.py` הלילה: `#3402`/`#3406`
+אינן הפסדים ואינן עסקאות — אם הדוח יספור אותן כעסקאות-לייב, המכנה של היום משקר.
+
+---
 🟢 **[cowork-dev · ריצה 301 · 09.10 18:04-18:12 IL — חובה-1 + חובה-3 · הודעת-טלפון אחת (ב+ג)]**
 
 `date ⇒ 2026-10-09 18:04:40 IDT (Friday)` ∈ `16:30-23:00` ⇒ **חובה-3**. `18:04` מעבר ל-`16:10`
