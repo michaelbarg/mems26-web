@@ -1,3 +1,65 @@
+🟢 **[cowork-dev · ריצה 286 · 09.10 10:34-10:41 IL · חובה-1 בלבד · אפס ממתינות בשלושה פוסקים ⇒ שקט מוחלט בטלפון · הפיד חי 65 שנ' · T-532 עדיין נראה חי לפני הריסטארט]** `date ⇒ 2026-10-09 10:35:52 IDT (Fri)` · `TZ=America/New_York ⇒ 03:35:52 EDT` ∉ `15:30-16:10` ∉ `16:30-23:00` ∉ `23:00-23:30` ⇒ **אין חובה-2/3/4** (שער-היום והיומית שייכים לריצת-15:3x). `git pull ⇒ Already up to date` (HEAD `2836be40`).
+
+## ☎️ חובה-1 — שלושה פוסקים מסכימים ⇒ אפס הודעת-טלפון
+
+```raw
+GET https://mems26-mobile.onrender.com/chat?key=<MOBILE_ACCESS_KEY> ⇒ http=200 items=30
+senders ⇒ {'cowork-dev','cowork','supervisor','cc','מייקל'}
+אחרון בשרשור: 2026-10-08T20:23:22Z <cowork-dev> — סוכן ולא מייקל
+אחרונת-מייקל: 2026-10-07T10:50:03Z ("תבקש מקלוד שיבדוק מה הולך…") ⇒ 14 הודעות-סוכן אחריה,
+   הראשונה 2026-10-07T11:11:10Z <cowork-dev> (מענה ענייני) ⇒ michael_after_agent = False
+tag_lines("תיוג עסקה #") = 0
+GET /instruction/pending ⇒ {"items":[]}   ·   GET /cmd/pending ⇒ {"cmd":null}
+זנב PHONE_THREAD.jsonl (755 שורות, אחרון 2026-10-08T20:23:22Z <cowork-dev>) == זנב /chat
+```
+
+⚠️ **מלכודת-כתובת שתיעדתי לריצה הבאה:** `MOBILE_REMOTE_URL` ב-`.env` **ריק בכוונה** (הוסר ע"י cowork-night 30.08, T-158) — הכתובת החיה היא `RENDER_MOBILE_URL`. `set -a; . ./.env` + `$MOBILE_REMOTE_URL` מחזיר מחרוזת-ריקה ו-`curl` נכשל בלי לומר למה; זו הייתה יכולה להיראות כמו "הרלה מת" ‑ והיא רק שם-משתנה שגוי. כנ"ל `GET /api/v9/mobile/data` **בלי** `key=` ⇒ `401 {"detail":"mobile access key required"}` — "תיבה ריקה" מסיבה לא-קשורה.
+
+⇒ **אין (א)** · **אין (ב)** — `live_slot=None · demo_slot=None` · אפס שורת `state='FILLED'` · `live_today=0` · אחרונת-הלייב `#3314` נסגרה 08.10 19:48 (דווחה ע"י ריצה 277) · **אין (ג)** — ראה בריאות למטה, אפס חוסם · **אין (ד)** — אינה ריצת-שער. **אפס הודעת-טלפון · אפס דגל · אפס `--apply` · אפס ריסטארט · אפס נגיעה בפוזיציות/פקודות/`.env`/דגלי-גודל/עץ/DB/DLL.**
+
+## 🩺 בריאות (מדידה, לא קביעה)
+
+```raw
+lsof :8000 ⇒ PID 85469  STARTED Thu Oct  8 15:22:38 2026  ELAPSED 19:13:14  %CPU 9.9  RSS 132MB
+GET /api/v9/health ⇒ http=200 t=0.002577s
+select max(ts) from v9_bars_5min_woodies ⇒ 2026-10-09 10:35:00+03  | age_sec=65 | rows_today=116
+sierra: position_qty=0 · orders=[] · working_orders=0 · is_sim=0 · trade_account=37138283
+        order_placement_armed=1 · acct_trading_disabled=0 · acct_under_margin=0 · acct_loss_limit_reached=0
+launchctl list | grep -c mems ⇒ 10   ==   ls ~/Library/LaunchAgents | grep -c mems ⇒ 10
+```
+
+**הפיד חי** — ברי-Globex נכתבים עכשיו (בר בן 65 שנ'), ולא רק קובץ-יצוא טרי ([[T-430]]); מבחן-השער עצמו שייך ל-15:3x.
+
+**T-34 · בדיקת-מרג'ין — דיווח בלבד, לא הוסלם:** `acct_available_funds = 348.19` **<** `1,595` ⇒ שורה כאן. **לא** מקרה (ג) בטלפון כי אינו חוסם מסחר כרגע: `acct_trading_disabled=0 · acct_under_margin=0 · acct_loss_limit_reached=0 · order_placement_armed=1`, והפסיקה על הגודל ממילא נבדקת בריצת-15:3x. (`acct_daily_net_loss_limit = -208.91`.)
+
+## ⚠️ שתי תיקוני-מדידה שלא ייכנסו לשום דוח
+
+1. **`sierra.daily_pnl = -447.5` אינו מספר-היום ואינו מספר-אתמול.** באותה דגימה `acct_daily_pl = 0.0` (שדה-הברוקר כבר התגלגל לסשן החדש) בעוד `daily_pnl=-447.5` נושא `daily_total_qty_filled=8` — צובר צד-DLL שנגרר מסשן-חמישי. אף אחד מהשניים אינו `-152.50` המאומת. ⇒ **אין לקרוא את היום מ-`sierra.daily_pnl`**, בדיוק כמו `gateway/status daily_pnl` ([[feedback_gateway_status_daily_pnl_is_yesterday]]). אין לייב ב-09.10 בכלל.
+2. **ברוקר-08.10 אומת מחדש 4/4:** `3272 OPENING_TEST_DRIVE SHORT ספרים −46.25 / ברוקר −43.75` · `3281 DALTON_EDGE_SHORT −53.75 / −55` · `3289 CEILING_FLIP_SHORT +6.25 / +11.25` · `3314 CEILING_FLIP_LONG −65 / −65` ⇒ `Σ ברוקר −152.50` מול `Σ ספרים −158.75`, **Δ 6.25$** (כולו מ-3272 ו-3289). המספר לסיכום-אתמול ב-15:3x הוא **−152.50**.
+
+## 🔎 [[T-532]]/[[T-265]] — התיקון של fix-agent בקוד, אבל עדיין לא בתהליך
+
+```raw
+tail /tmp/backend.err.log ⇒ 2026-10-09 10:37:29 [WARNING] [backend.v9.api.v9.bars]
+  [bars_5min] TS-OFFSET-GATE: non-advancing batch 38550s old (> 900s) — stale re-push (pass but logged)
+```
+
+זו **בדיוק החתימה** ש-fix-agent תיקן אמש ב-`bars.py` (דחיפה נספרת רק עם בר ≤900ש׳). `38550s ≈ 10.7h` ⇒ הלגאסי `5min.json` קפוא מליל-חמישי ועדיין נדחף כל ~4ש׳. המאזין `85469` עלה `Thu 15:22` ⇒ **רץ קוד שלפני התיקון**, ולכן אין כאן רגרסיה ואין ממצא חדש — **הריסטארט של 15:3x הוא האימות** שהרשומה של fix-agent ממתינה לו. הערוץ הקנוני (woodies) בריא במקביל (65 שנ'), כצפוי מהאבחנה.
+
+## 🧹 היגיינת-קדם-ריסטארט נמדדה מוקדם (read-only, אפס `--apply`)
+
+```raw
+python3 scripts/close_stale_shadow.py ⇒ "no stale shadow trades — nothing to do"
+shadow exit_ts IS NULL לפי תאריך ⇒ 2026-10-07 n=23 · 09-29 n=14 · 09-25 n=3 · 09-17 n=43 …
+   אפס שורה מ-08.10 ואפס מ-09.10; כולן state='CLOSED' (מחלקה אחרת מתקיעת-16.09), ו-%CPU 9.9 ולא 80
+```
+
+⇒ ריצת-15:3x נכנסת לרצף-הקדם-ריסטארט כשהצעד הזה כבר ירוק.
+
+**הצעד הבא:** ריצת-15:3x = **חובה-2** — (א) סיכום-08.10: ברוקר **−152.50** מאומת 4/4 (ספרים −158.75, Δ 6.25) · ליגר · ציון-4-אחוזים · צל-S1DayDir · EntryGuard · האדום הפתוח של supervisor (ריצוד-תווית 3×) · פסיקות-08:30 מהאינבוקס (7 ווריאנטים — אף אחד לא עובר §2ד). (ב) שער-היום: גודל **רק** מ-`set -a; . ./.env; set +a; ruled_contracts()` (פסיקה 18.09: **1 חוזה**) · `machine_health.py` · `fire_drill` שלב-D על **בר-woodies מהיום** · `flag_guard PASS` · ack-תאריך · ובדיקת-בעלות-הריסטארט לפני כל נגיעה. הודעת-טלפון אחת בלבד (ד): GO/NO-GO.
+
+---
+
 🟢 **[cowork-dev · ריצה 285 · 09.10 10:04-10:08 IL · חובה-1 בלבד · אפס ממתינות בשלושה פוסקים ⇒ שקט מוחלט בטלפון]** `date ⇒ 2026-10-09 10:04:39 IDT (Fri)` ∉ `15:30-16:10` ∉ `16:30-23:00` ∉ `23:00-23:30` ⇒ **אין חובה-2/3/4 בריצה הזאת** (שער-היום והיומית שייכים לריצת-15:3x). `git pull ⇒ Already up to date` (HEAD `52140bce`). ☎️ `GET /chat?key=<MOBILE_ACCESS_KEY> ⇒ http=200 items=30` · אחרונת-מייקל `idx 14 · 2026-10-07T10:50:03Z`, ואחריה `['cc','cowork-dev','supervisor','cowork-dev','cowork','cowork-dev']` ⇒ `michael_after_agent=False` · `tag_lines("תיוג עסקה #") = 0` · `/instruction/pending ⇒ {"items":[]}` · `/cmd/pending ⇒ {"cmd":null}` · זנב `PHONE_THREAD.jsonl` (755 שורות, אחרון `2026-10-08T20:23:22Z <cowork-dev>`) == זנב `/chat` ⇒ **שלושה פוסקים מסכימים**. 🛰️ **הרלה מוכח-מושך — לא `state` ולא `pid`:** `GET /api/v9/mobile/data ⇒ ts=10:06:50` בשעון `10:06:51`, ואז `ts=10:06:58` בשעון `10:07:00` ⇒ ה-`ts` **מתקדם בין שתי דגימות** (9 שנ') = מושך ודוחף עכשיו ([[feedback_relay_running_is_not_polling]]; החלון `10:00-23:30` נפתח 7 דק' לפני המדידה, ולכן זו בדיוק הריצה שבה "תיבה ריקה" הייתה יכולה להיות שלילה-כוזבת). `launchctl list | grep mems ⇒ 10` רשומים מול `10` plists ב-`~/Library/LaunchAgents/`. ⇒ אין (א) · **אין (ב)** — `live_slot=None · demo_slot=None`, אפס שורת `state='FILLED'` בכל המודים (`select mode,count(*) … group by mode ⇒ 0 שורות`), ואחרונת-הלייב `#3314` נסגרה 08.10 `19:48` (דווחה ע"י ריצה 277) · **אין (ג)** — `health ⇒ http=200 t=0.009s`, מאזין `pid 85469` מ-`Thu Oct  8 15:22:38` (ELAPSED 18:45) ⇒ אפס קריסה, ובעלות-הריסטארט אינה שלי · **אין (ד)** — אינה ריצת-שער. **אפס הודעת-טלפון · אפס דגל · אפס `--apply` · אפס ריסטארט · אפס נגיעה בפוזיציות/פקודות/`.env`/דגלי-גודל/עץ/DB/DLL.** ⚠️ **תיקון-מדידה שלא ייכנס לשום דוח:** `gateway/status daily_pnl = −158.75` הוא **ספרי-08.10** ולא מספר-היום ([[feedback_gateway_status_daily_pnl_is_yesterday]]) — אין לייב ב-09.10 בכלל. **הצעד הבא:** ריצת-15:3x = חובה-2 — סיכום-08.10 (ברוקר `−152.50` מאומת 4/4) + שער-היום: גודל רק מ-`set -a; . ./.env; set +a; ruled_contracts()` (פסיקה 18.09: **1 חוזה**), `close_stale_shadow.py` dry-run, `machine_health.py`, ו-fire_drill שלב-D על **בר-woodies מהיום** ([[T-430]]: קובץ-יצוא טרי ≠ פיד חי) ⇒ הודעת-טלפון אחת, GO/NO-GO.
 
 🔵 **[fix-agent · תור-הלילה · 09.10 00:45 IL · אימות-צולב לשבעת הווריאנטים של cowork מול t567ref — אף אחד לא עובר §2ד; שורה לכל אחד באינבוקס ל-08:30]** התור (`run_night.sh`, pid 95999, 23:07–00:37) רץ פעם אחת — לא הרצתי כפול (`ps aux | grep fwd_harness`, `tail night.out`); אימתתי מהפלטים באותם סקריפטים (`harness_out/t579/crosscheck.out`): **t567a** −76.95 נטו · 06 −115 ✗ · **t567c9** −877.75 · החזקה −48.75 ✗ · **t571b** −8.65 · החזקה +121.25 · 09 −264 ✗ · **t571a** −25.30 · 07 −84 ✗ · **t566c** +222.50 · החזקה +24.40 · 07 −144 · 10 −162 ✗ (הקרוב ביותר; רק כסטייה בכתב) · **t567b** −169.60 · החזקה −60.60 ✗ · **t567c6** −1,206.00 · החזקה −238.10 ✗. הסתייגות-מדידה ל-Cursor: `cmp_vs_live` (P&L-יומי) מול `holdout.py` (Σ pnl_usd) נבדלים בווריאנטי-שחרור-הסלוט (c9 7.5$ · c6 127$ · t571b 8$) — אותו פסק-דין. `doctrine_cells_t567ref.md` נוצר 00:37. הבקאנד pid 85469 כל הלילה; אפס נגיעה בלייב.
