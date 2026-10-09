@@ -1,3 +1,100 @@
+🟢 **[cowork-dev · ריצה 291 · 09.10 13:04-13:20 IL · חובה-1 בלבד · אפס ממתינות בשלושה פוסקים ⇒ שקט מוחלט בטלפון · ללא ריסטארט / דגל / `--apply` / נגיעה בפוזיציות]**
+
+`date ⇒ Fri Oct  9 13:04:34 IDT 2026` ∉ `15:30-16:10` ∉ `16:30-23:00` ∉ `23:00-23:30` ⇒ **אין חובה-2/3/4** (שער-היום והיומית שייכים לריצת-15:3x, ו-[[T-580]] כבר מחכה לה שם). `git pull --ff-only ⇒ Already up to date` (HEAD `b4952b06` = ריצה 290, לפני 10 דקות).
+
+## 🆕 הממצא — הרפאים `daily_pnl −447.50` אינו יכול להפיל את הפתיחה: שלוש תקרות-ההפסד-היומי נקראו בקוד, ואף אחת אינה קוראת את שדה-ה-DLL
+
+ריצות 276/279/290 רשמו את המספר כ**פער-לא-מוסבר, לא כמספר-יום** (§3.5) — נכון, ונשאר נכון. מה שאף אחת מהן לא מדדה הוא **התוצאה**: `−447.50` גדול משתי התקרות הכתובות (200$ ו-250$), ולכן אם קו-קוד אחד כן היה מזין אותו, **כל ירי ב-16:30 היה נחסם ב-`DAILY_LOSS_CAP`** — ו-NO-GO של השער היה נראה מוצדק לגמרי. נמדד שלא. זו שלילת-מסוכנוּת, לא תיקון.
+
+```raw
+(1) גייטוויי — trading_gateway.py:654   self._daily_pnl ← read_scalar(SUM(pnl_usd) … session_date)   = ספרים, לא DLL
+                trading_gateway.py:5288 if _dl_cap > 0 and self._daily_pnl <= -_dl_cap  (STOP DAY)
+                trading_gateway.py:5281 "Default OFF → ZERO effect until …"
+    ספרי-היום:  entry_ts::date = current_date ⇒ live 0 · shadow 0 · state='FILLED' 0   ⇒  _daily_pnl = 0
+
+(2) a7       — a7_universal_checks.py:19 DAILY_LOSS_CAP_USD = 200.0 · :77 if daily_pnl <= -DAILY_LOSS_CAP_USD
+                :57 daily_pnl: float = 0.0            ← פרמטר עם ברירת-מחדל
+                grep -rn "daily_pnl=" backend/ ללא tests ⇒ אפס אתר-קריאה שמעביר ערך (רק לוגים של הגייטוויי)
+                A7UniversalChecks מיובא מחוץ ל-tests ע"י entry_phase.py בלבד (:30 import · :59 במפת-השלבים)
+                entry_phase.py:7-10 מצהיר על עצמו:
+                   "STATUS (Prompt 23): NOT the active runtime path.
+                    Active runtime: WoodiesSystem.process_bar() → decision_tree.evaluate_bar() → gateway.
+                    This module is an ALTERNATIVE YAML-driven orchestrator."
+    הנתיב החי — decision_tree.py:349 _a7_universal ⇒ pre_fire_validator.validate_fire(FireRequest(
+                   system_id · direction · entry_price · stop_price · t1_price · t2_price ·
+                   time_stop_minutes · confidence))      ⇒ **ל-FireRequest אין שדה-P&L כלל**
+
+(3) risk_validator — validator.py:28 DAILY_LOSS_CAP_USD = 250.0 · :100 if self.daily_loss_usd >= CAP
+                :54 daily_loss_usd: float = 0.0 · :136 self.daily_loss_usd += abs(pnl_usd) בסגירה ·
+                :146 daily_reset() ⇒ **מצטבר-עצמי מהספרים**, לא מוזן מבחוץ
+                session_boundary/manager.py:149-151 קורא daily_reset() בגבול-הסשן
+```
+
+⚠️ **מה שבמפורש אינו נטען (כלל 1):** **הסיבה** ל-`−447.50` — נותרה לא-מיוחסת, בדיוק כפי שריצה 279 כתבה (אין מקור שמסביר; `acct_daily_pl 0.0` באותה דגימה) · שאין ב-`validate_fire` שער-הפסד **אחר** — הקובץ **לא נקרא**, נמדד רק שהקלט שלו נטול-P&L · ושאין לשדה צרכן נוסף במערכת — נבדקו **שלוש התקרות**, לא כל צרכן. ⇒ **אפס פריט-T חדש** (אין פער-נכונות ואין מה לתקן) · **אפס שורת-STATUS_BOARD** (אין סגירה). **למה זה נרשם בכל זאת:** כדי ש**שער-15:3x לא יפיק NO-GO מהמספר הזה**, ושקורא-דשבורד ב-16:30 לא יסיק "היום כבר במינוס 447" — הוא מונה-תצוגה.
+
+## ☎️ חובה-1 — שלושה פוסקים מסכימים ⇒ אפס הודעת-טלפון
+
+```raw
+GET /chat?key=<MOBILE_ACCESS_KEY>   ⇒ http=200 · bytes=17683 · items=30
+   טווח ⇒ 2026-10-05T16:42:52Z .. 2026-10-08T20:23:22Z
+   אחרון בשרשור ⇒ 2026-10-08T20:23:22Z <cowork-dev>  = סוכן ולא מייקל ⇒ michael_after_agent = False
+   count(sender='מייקל' AND ts LIKE '2026-10-09%') ⇒ 0
+   הודעת-מייקל האחרונה ⇒ 2026-10-07T10:50:03Z ("תבקש מקלוד שיבדוק…")
+      ⇒ <cc> "✓ התקבל" באותה שנייה (ack) · <cowork-dev> 11:11:10Z "בוצע מאז השיח עם קורסור…" = מענה ענייני
+GET /instruction/pending ⇒ {"items":[]}   (http=200)
+GET /cmd/pending         ⇒ {"cmd":null}   (http=200)
+PHONE_THREAD.jsonl ⇒ 755 שורות · grep -c '"ts": "2026-10-09' ⇒ 0 · הזנב המקומי == זנב /chat
+tag_lines("תיוג עסקה #") ב-30 ⇒ 0   ⇒  אפס רישום ל-TRADE_TAGS.jsonl
+```
+
+⇒ **אין (א)**. **אין (ב):** `entry_ts::date=current_date ⇒ live 0 · shadow 0` ו-`state='FILLED' ⇒ 0`; שלוש האחרונות בספרים `#3367/#3366 shadow CLOSED` (כניסה 08.10 22:5x, יציאה היום 05:45/06:55) ו-`#3365 shadow CLOSED` — **צל ולא לייב, וכניסתן אינה מהיום** ⇒ אינן מקרה-(ב). **אין (ג)** (ראה T-34 למטה — אינו חוסם) · **לא (ד)** (לא חלון-שער) ⇒ **שקט מוחלט בטלפון, אפס הודעות נשלחו**; הרישום כאן בלבד.
+
+**שתי תיבות-הממתינות נקראו ישירות מ-Render** ולא דרך הרלה ⇒ ריקות-במקור; ה-`/chat` נדגם 13:06 **בתוך** חלון-התצוגה `10:00-23:30` ⇒ `items=30` אמיתי ולא `[]` של מחוץ-לשעות ([[T-546]]); ושני מקורות בלתי-תלויים (ה-jsonl המקומי ו-Render) מסכימים על אותו זנב. **[[T-580]] אינו נשלח על-ידי** — ההסבר המלא ברשומת 290 ובשורת-הפריט: שאלת "סוכן-מתוזמן לא רץ" אצל מייקל מ-07.10 ו-[[T-556]] קובע שחזרה = [[T-369]]; חלון-הטלפון המאושר הוא מקרה-(ד) של **ריצת-15:3x**, לפני הפתיחה.
+
+## 🩺 בריאות — מדידה, לא קביעה
+
+```raw
+GET /api/v9/health ⇒ http=200 · t=0.001306s · {"status":"ok","version":"v9.0.0"}
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ pid 85469 · STARTED Thu Oct  8 15:22:38 2026 · ELAPSED 21:43:44 · %CPU 18.7 · RSS 132MB
+שער-INFO ([[T-61]]) ⇒ "2026-10-08 15:22:46 [INFO] [mems26.boot] [boot] logging OK level=INFO
+                       pid=85469 commit=72a5315a stream=stderr"      ← ה-pid תואם למאזין החי
+[ERROR] ב-2026-10-09 ⇒ 0  ·  [CRITICAL] ⇒ 0  ·  בשעה 13 ⇒ 0        (/tmp/backend.err.log, 77MB, mtime 13:06)
+קצב-לוג ⇒ 502,650 ⇒ 502,665 שורות ב-10 שנ' ≈ 90 שורות/דקה
+אירועי-מסחר היום (LIVE trade|SHADOW trade|LIVE fire BLOCKED|ORPHAN|COMMAND QUEUED) ⇒ 0
+flag_guard ⇒ "FLAG-GUARD: PASS — all 274 ruled flags match."  (rc=0 ישיר, לא דרך pipe)
+   ⚠ אזהרה אחת ללא שינוי: FOOTPRINT_DISABLED plist=true .env=0 live=true ⇒ ".env is DEAD for this key"
+     — דיווח-בלבד, הבעלות היא פסיקת-מייקל ([[T-435]] שלב 3 / [[T-563]]), אפס נגיעה
+```
+
+**שער-ה-INFO עבר לפני ש"0 שגיאות" נאמר** ⇒ האפס הוא ממצא ולא עיוורון ([[T-61]]). **90 שורות/דקה** מול 1,000 באירוע 16.09 ⇒ אינו מחלקת-[[T-532]]. **בעלות-הריסטארט אינה שלי וממילא מחוץ-לחלון** — המאזין בן 21:43 שעות (מ-08.10 15:22), **אפס ריסטארט היום** ⇒ הבעלות לשער `15:30-16:10` עוד **פנויה** ([[T-369]]).
+
+## 🛰️ [[T-430]] — הפיד חי, וגם שלם
+
+```raw
+v9_bars_5min_woodies ⇒ max(ts) 2026-10-09 13:05:00+03 · age_s = 82 · rows_today = 146
+רציפות: bars=146 · first 2026-10-09 01:00:00+03 · last 13:05:00+03 · gaps=0 · max_gap_min=5.00
+```
+
+`122 (11:05, ריצה 287) ⇒ 128 (11:35, 288) ⇒ 134 (12:05, 289) ⇒ 140 (12:35, 290) ⇒ 146 (13:05, 291)` = **+6 ברים לכל 30 דקות, ארבע פעמים ברצף** ⇒ ברי-Globex נכתבים בזמן-אמת, ולא "קובץ-יצוא טרי" ([[T-430]]). `gaps=0` ו-`max_gap=5.00` דק' על כל 146 הברים `01:00→13:05 IL` ⇒ חלון-הגלובקס שלם. **מבחן-השער עצמו (`fire_drill` שלב D) שייך לריצת-15:3x.**
+
+## 💵 חשבון — שטוח, חמוש, בכסף-אמת; והתקרה התהדקה שוב
+
+```raw
+GET /api/v9/account/state ⇒ sierra_state{ ok true · stale false · age_s 0.3 ·
+   position_qty 0 · working_orders 0 · is_sim 0 · trade_account "37138283" · order_placement_armed 1 ·
+   last_price 7848.75 · daily_total_qty_filled 8.0 ·
+   acct_ok true · acct_cash_balance 348.19 · acct_account_value 348.19 · acct_available_funds 348.19 ·
+   acct_margin_req 0.0 · acct_daily_pl 0.0 · acct_daily_net_loss_limit -208.91 ·
+   acct_loss_limit_reached 0 · acct_under_margin 0 · acct_trading_disabled 0 }
+set -a; . ./.env; set +a; ruled_contracts() ⇒ 1        ← == פסיקת 18.09 12:05 (קריאה-בלבד, [[T-489]])
+```
+
+📎 **[[T-34]] דיווח-בלבד:** `acct_available_funds 348.19 < 1,595` **אינו חוסם** — `under_margin 0 · trading_disabled 0 · loss_limit_reached 0 · margin_req 0.0 · armed 1`, וארבע הלייב של אתמול נמלאו על אותה יתרה ⇒ **אין מקרה (ג)**, ואין הודעת-טלפון (הציר אצל מייקל מ-08.10 10:45:33Z; חזרה = [[T-369]]). 📉 **`acct_daily_net_loss_limit −208.91`** ממשיך לעקוב אחרי היתרה (`−271.97` ב-06.10 ⇒ `−303.77` ב-08.10 ⇒ `−208.91` היום) ⇒ **חדר-הנשימה של היום קטן ב-31% מאתמול** — נתון להקשר בהודעת-השער, אפס פעולה. ⚠️ `daily_total_qty_filled 8.0` ו-`daily_pnl −447.50` הם **מונים שלא התאפסו** מסשן-אתמול (4 לייב × 2 מילויים = 8), בעוד `acct_daily_pl 0.0` **כן** התאפס — ראה הממצא למעלה: מונה-תצוגה, מחוץ לשלוש התקרות.
+
+**הצעד הבא:** (1) **ריצת-15:3x נושאת את חובה-2 במלואה** — ו-[[T-580]] בתוך הודעת-השער (מקרה ד, ≤500 תווים, שאלה אחת: א הפקדה / ב יום-דמו + הצ'ארט ל-Sim1 / ג להמשיך לייב), עם האמירה המפורשת שבלי פסיקה עד 16:00 ברירת-המחדל בפועל היא (ג). (2) **בעלות-הריסטארט פנויה** — אפס ריסטארט היום, המאזין מ-08.10 15:22 ⇒ ריצת-15:3x היא הבעלים, ולפניו `close_stale_shadow.py` (dry-run תחילה) + `machine_health.py` (WARN-בלבד). (3) ⛔ **אל תפיק NO-GO מ-`daily_pnl −447.50`** — נמדד בריצה זו שאינו מגיע לאף תקרה; הפוסק לגודל הוא `ruled_contracts() ⇒ 1`, והפוסק לפיד הוא `max(ts)` מה-DB ולא טריוּת-הקובץ. **אפס פריט-T חדש · אפס שורת-STATUS_BOARD · אפס הודעת-טלפון.**
+
+---
+
 🟢 **[cowork-dev · ריצה 290 · 09.10 12:34-12:55 IL · חובה-1 בלבד · אפס ממתינות בשלושה פוסקים ⇒ שקט מוחלט בטלפון · פיד חי **וגם** שלם · פוזיציה-0 · ללא ריסטארט / דגל / `--apply`]**
 
 🆕 **הממצא של הריצה — בכיוון היוצא, לא הנכנס: אפס הודעות הגיעו למייקל היום, ובאינבוקס יושב פריט 🔴 "דורש פסיקה לפני 16:00".** לא נשלח עכשיו (ראה למה), **הועבר כחובה לריצת-15:3x** ונפתח [[T-580]].
