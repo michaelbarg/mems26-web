@@ -1,3 +1,136 @@
+🟢 **[cowork-dev · ריצה 306 · 11.10 13:10 → 20:16 IL — **יום ראשון, שוק סגור** ⇒ חובה-1 בלבד · אפס הודעות-טלפון · אפס ריסטארט · והריצה עצמה אכלה את חלון-השער]**
+
+`date ⇒ Sun Oct 11 13:10:21 IDT 2026` — **יום ראשון**: אין RTH אמריקאי, ו-Globex נפתח רק ב-01:00 IL (ראשון 18:00 ET) ⇒ **אין פתיחה · אין שער · אין RTH** ⇒ **חובה-1 בלבד · אפס ריסטארט · אפס GO/NO-GO · אפס דגל · אפס `--apply` · אפס נגיעה בפוזיציות/פקודות/`.env`/גודל/DLL/DB**. `git pull --ff-only ⇒ Already up to date` · HEAD `c7e20c59` (= ריצה 305, שנחתמה 05:01 היום) ⇒ ריצה זו היא **306**.
+
+⚠️ **הריצה נמשכה 7 שעות ולא 20 דקות, הזמן עצמו הוא המדידה — והוא אכל את חלון-השער:** `13:10 → 16:06 → 17:12 → 19:14 → 20:16`, כל סבב-כלי 1-2 שעות **קיר** בעוד הפקודות עצמן נמשכו שניות (‏`T0→T1` בתוך הסבבים: `17:12:00→17:12:32` · `20:15:18→20:15:51` · `20:16:08→20:16:09`). ⇒ כשהריצה הגיעה לחלון `15:30-16:10` השעון כבר הראה `16:06`. **וזה אינו הנימוק לאי-ביצוע חובה-2** — הנימוק הוא שאין יום-מסחר היום; ציר-הזמן נרשם כי הוא גוף-הממצא של ריצות 304/305 ומחמיר (‏`load 150 → 451 → 598`).
+
+## ☎️ חובה 1 — אפס ממתינות ב**ארבעה** פוסקים ⇒ **שקט מוחלט בטלפון**
+
+```raw
+הרלה חי לפני שמסיקים שקט (מלכודת 12 · §3.12 — השם הוא mobile_relay, לא phone_relay):
+  launchctl print …com.mems26.mobile_relay ⇒ state = running · pid = 1629
+  launchctl list | grep mems26 ⇒ שישה עם PID (backend 69665 · frontend 621 · bridge 637 ·
+    export_promoter 1619 · activity_feed 1624 · mobile_relay 1629)
+    + ארבעה מתוזמנים-בלבד עם "-" (agents_bootstrap · eod_handoff · startup_check · update_check)
+    ⇒ מצבם התקין בין הרצות, לא 6/10
+
+הפוסק במקור (peek, אפס תופעות-לוואי):
+  GET /instruction/pending ⇒ http=200 bytes=12 t=7.6s   {"items":[]}
+  GET /cmd/pending         ⇒ http=200 bytes=12 t=0.6s   {"cmd":null}
+הפוסק על הדיסק (חי גם כשהרלה ישן):
+  PHONE_THREAD.jsonl ⇒ 760 שורות · mtime 2026-10-10 14:09:04 · 1,000,517 bytes
+  סריקה לפי "כל מי שאינו סוכן" (מלכודת-האיות: sender=='michael' מפספס את "מייקל"):
+    non-agent אחרון ⇒ idx 739/759 · 2026-10-07T10:50:03Z · sender 'מייקל' · len 78
+    ואחריו 20 הודעות-סוכן (cc · cowork-dev ×15 · supervisor ×3 · cowork) ⇒ **נענתה** ⇒ אין מקרה (א)
+  שורות "תיוג עסקה #" ⇒ 2 היסטוריות, **אפס חדשות** ⇒ אפס לרשום ל-TRADE_TAGS.jsonl
+```
+
+🔴 **ומדידה שמפרקת פוסק אחד מתוך הארבעה — `GET /chat` החזיר `{"items":[]}` בתוך חלון-הרלה, וזו מלכודת 32 בדיוק:**
+
+```raw
+date ⇒ 16:06 IDT · RELAY_WINDOW_IL=10:00-23:30  ⇒ **בתוך** החלון
+GET /chat ⇒ http=200 bytes=12   {"items":[]}        ← ולא items=30 כמו בריצה 303
+/tmp/mobile_relay.log · mtime Oct 11 16:06 · 38,439 bytes
+  284 שורות "timed out" בקובץ
+  tail ⇒ [relay] cmd poll: The read operation timed out  ·  [relay] fail #5: timed out
+  ובכל-זאת: [relay] recovered after 10 fails  ·  [relay] idle notice pushed (window=10:00-23:30) ×4
+```
+
+**הקריאה הנכונה, ולמה היא לא משנה את המסקנה:** ‏`/chat` מורכב מ-`_PUSHED_THREAD` + `_INBOX` + `_REPLIES` + `_UPLOADS`, **כולם בזיכרון** (‏`render_mobile_relay/app.py:320,189,294,399`), ו-`_PUSHED_THREAD` מתמלא רק מ-`POST /chat_push` שהמק דוחף. ⇒ `{"items":[]}` פירושו **ש-Render התעורר קר ו/או שה-`chat_push` לא נחת**, לא "אין ממתינות". אבל הודעות-מייקל נכנסות ל-`_INBOX` דרך `POST /instruction` (‏`app.py:192,211`) ו-**`GET /instruction/pending` מחזיר בדיוק את מי ש-`status != "done"`** (‏`app.py:288`) — כלומר הוא **מצב-ה-Render עצמו ולא שכבת-תצוגה**, והוא החזיר `{"items":[]}` ב-`http=200`. ⇒ **אפס ממתינות נקבע מהמקור, לא מהתצוגה.**
+
+⛔ **אפס הודעת-טלפון, וארבעת המקרים נשללים אחד-אחד במפורש כדי שלא ייקרא כעיוורון:**
+- **(א) אין הודעת-מייקל בלי תשובה** — ארבעת הפוסקים למעלה; האחרונה מ-07.10 נענתה 20 פעמים.
+- **(ב) אין עסקת-לייב** — שוק סגור; `position_qty 0` · `working_orders 0` · `daily_total_qty_filled 0`; אפס שורת-לייב מאז 06.10.
+- **(ג) אין חריגה שדורשת החלטה** — הפיד בסינגטורת-שוק-סגור **התקינה** (ממצא 1), בריאות-המכונה היא `WARN-בלבד` לפי ההזמנה ואינה לטלפון (ממצא 2), ו-`acct_available_funds = DBL_MAX` הוא [[T-200]]/מלכודת-36 **מתועד** עם `size left unchanged` ⇒ אינו חוסם. ושאלת 09.10 21:28 על חיבור-סיירה **אינה נשאלת שוב** ([[T-369]] · "פסיקה נִתנת פעם אחת").
+- **(ד) אין שער** — אין יום-מסחר, והמאזין לא זז (להלן).
+
+## 🛰️ ממצא 1 — הפיד בסינגטורת-**שוק-סגור התקינה** (מלכודת 22 + חידוד 04.10), ולא תקלה
+
+```raw
+psql · now()-max(ts) ישירות על timestamptz (בלי at time zone — §מ-34ג):
+  woodies    ⇒ 2026-10-09 22:15:00+03 · age 1 day 18:58:39
+  bars_5min  ⇒ 2026-10-09 22:15:00+03 · age 1 day 18:58:39     (אותו בר ⇒ אפס בר מאז שישי)
+  rows_36h   ⇒ 0
+שער-ד0 (‏§3.9 — בלי זה כל "אפס" הוא עיוורון):
+  [boot] logging OK level=INFO pid=69665 commit=c44e7fc4 stream=stderr   (2026-10-09 15:39:20)
+health ⇒ http=200 t=0.0042s {"status":"ok","version":"v9.0.0"}
+```
+
+`max(ts)` = **סגירת-שישי שאינה זזה** + `rows_36h = 0` = בדיוק הסינגטורה שמלכודת 22 מגדירה כ"סגור-כמצופה". ‏`rows_36h=0` כאן אינו דריפט אלא **שעון-עצר שהגיע לקצה** (חידוד 04.10): `max(ts)+36h = 10-11 10:15 IL`, כלומר הוא נגע ב-0 הבוקר לפי לוח-הזמנים. ⇒ **אין NO-GO ואין מקרה (ג).** ⚠️ **ומה שבמפורש אינו נטען:** שהבר האחרון בשישי (`22:15` = `15:15 ET`, 8 ברים לפני הסגירה) נסגר כראוי — זה ממצא [[T-430]]/[[T-532]] הפתוח מריצה 304, **לא נבדק כאן ולא נפתר**.
+
+## 🖥️ ממצא 2 — `load 598` ושוב **`contactsd`**, הפעם `370.8%` לבדו — ומחסנית-המסחר שוב אינה העומס
+
+```raw
+20:14  up 9 days, 9:01 · load averages: 598.65 464.92 436.21      (ובהמשך 513 → 422)
+machine_health.py (WARN-בלבד):
+  load 1/5/15: 513.82/450.93/435.66  (cores 8)   ⇒ ~64× מספר-הליבות
+  mem: 16G used (3064M wired, 1712M compressor), 188M unused
+  swap: used 5108.50M / 6144.00M
+ps -r · ששת צרכני-ה-CPU הראשונים:
+    768  370.8%  Contacts.framework/Support/contactsd        (up 09-10:01)
+    505   45.7%  sharingd                                    (up 09-10:02)
+    646   34.4%  IMDPersistence.framework                    (up 09-10:01)
+  96185   25.3%  Mail.app                                    (up 05-05:10)
+    446   22.8%  CoreSuggestions.framework                   (up 09-10:02)
+  69665   18.7%  python3.9 (= הבקאנד)                        (up 02-04:36)
+top RSS: 1946MB com.apple.Virtualization.VirtualMachine (סנדבוק-Cowork) · 632MB Cursor ·
+  443+428+323MB Claude · 403MB Mail · ~940MB ב-Chrome helpers
+trading stack: backend 119MB/29.7% · bridge 18MB/2.1% · sierra 213MB/79.4%
+```
+
+**זה אישוש-חוזר של ממצא 1 מריצה 305, עם מספר חד יותר:** `contactsd` עלה `175.5% → 370.8%`, והוא רץ `9 ימים ו-10 שעות` ברצף. **אפס תהליך נהרג — אינו בסמכותי**, וההזמנה מסמנת את בריאות-המכונה כ-`WARN-בלבד` ⇒ **LIVE_CHANNEL, לא טלפון.** ⚠️ **ומה שאינו נטען:** שהעומס פגע במסחר — אין מסחר היום למדוד עליו; מה שנמדד הוא פגיעה ב**אגף-המדידה** (7 שעות-קיר לריצה בת-דקות).
+
+## 🧮 ממצא 3 — מונה-מלכודת-33 **להיום = 0**; ה-`2,522` הוא אשכול **08.10** של `BarLevelDetector`, ולא היום
+
+```raw
+D=2026-10-11
+  today_lines                  ⇒ 900
+  today ERROR|CRITICAL         ⇒ 729      ([ERROR] 731 · [INFO] 135 · [WARNING] 42 · [CRITICAL] 0)
+  today ERR|CRIT מינוס TS-OFFSET-GATE  ⇒ **0**        ← המונה של מלכודת 33, תחום ליום
+  פילוח-מודול להיום            ⇒ [backend.v9.api.v9.bars] · [woodies_5min] בלבד
+כל-הקובץ מינוס TS-OFFSET-GATE  ⇒ 2,522 — ולכן פורק לפי תאריך, לא דווח כמספר:
+  10-02: 66 · 10-05: 5 · 10-06: 2 · 10-07: 3 · **10-08: 2,442** · 10-09: 4 · **10-11: 0**
+  לפי מחלקה: 2,505 × [CRITICAL] [BarLevelDetector] INSANE TAR… · 8 × on_bar error ·
+             4 × DAYTYPE_WATCHDOG ESCALATION-3 · 2 × LIVE fire BLOCKED pre-send · 2 × ORPHAN FILL
+```
+
+**ולמה זה נרשם כהקשר ולא כפריט חדש:** `BarLevelDetector` מופיע כבר `43` פעמים ב-`TASK_LOG` · `22` ב-`STATUS_BOARD` · `144` ב-`LIVE_CHANNEL` ⇒ **שטח מתועד, לא גילוי** (ומלכודת 14ג: פריט כפול גרוע מהיעדרו). ⚠️ **מה שבמפורש אינו נטען:** שהאשכול הזה אובחן, נפתר, או שייך לפריט מסוים — **לא נבדק בריצה הזו.** נרשם כאן רק כדי שהמונה `2,522` לא ייקרא כ"2,522 שגיאות טריות" בריצה הבאה — **היום הוא 0.**
+
+## 🔒 בעלות-ריסטארט · גודל · פוזיציות — שלושתם נמדדו, אפס נגיעה
+
+```raw
+מאזין (מלכודת 30 — -sTCP:LISTEN בלבד, לא lsof -ti):
+  lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 69665
+  ps -o lstart ⇒ Fri Oct  9 15:39:17 2026 · etime 02-01:32:52
+  ⇒ לא עלה היום, ובכלל לא אחרי 12:00 היום ⇒ **אפס ריסטארט** (וממילא אין יום-מסחר)
+גודל (T-489 — .env טעון, אחרת None):
+  set -a; . ./.env; set +a; ruled_contracts() ⇒ **1**        ✅ תואם פסיקת 18.09 12:05
+  .env ⇒ FIXED_CONTRACTS_1=1 · _2=0 · _3=0 · _4=0 · _5=0 · _6=0     ⇒ אפס דגל-גודל נגעתי
+עסקאות פתוחות — state הוא הפוסק (מלכודת 14), לא exit_ts/exit_price/pnl:
+  select mode,state,count(*) … where state not in ('CLOSED','CANCELLED')  ⇒ **אפס שורות**
+  python3 scripts/close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do"
+ברוקר/פוזיציה: trade_account Sim1 · is_sim 1 · position_qty 0 · working_orders 0 ·
+  daily_total_qty_filled 0 · acct_available_funds 1.7976931348623157e+308  ([[T-200]]/מלכודת-36)
+git (מלכודת 28 — @{u}, לעולם לא origin/main):
+  status -sb ⇒ ## stabilize/mems26-local-truth-2026-05-16...origin/stabilize/…
+  rev-list --left-right --count HEAD...@{u} ⇒ 0   0            ⇒ מסונכרן לחלוטין
+```
+
+## ⚠️ NOT-DONE מפורש — `flag_guard` לא סיים, ולכן **לא** מדווח PASS
+
+```raw
+nohup python3 scripts/flag_guard.py > /tmp/fg_run306.out   (רקע, בגלל load 598)
+20:16:08 · tail -6 ⇒ … ✓ RR_BREAKOUT_MM_V1: expected=1 actual=1
+                        ✓ RR_ENTRY_GATE_V1: expected=1 actual=1       ← הקובץ נגמר כאן, בלי newline
+161 שורות · **אפס שורת-verdict** · הסדר אלפביתי נעצר ב-R ⇒ S/T/V/W עדיין לא נבדקו ⇒ **עוד רץ**
+```
+
+**לא נטען PASS ולא נטען FAIL.** כל `161` הבדיקות שכן הודפסו הן `✓` (כולל `RISK_HALT_V1=1` · `RISK_MAX_PTS_HARD=30` · `RISK_MIN_CONTRACTS=3` · `DIRECTION_COMPASS_V1=1` · `FAILED_BREAK_VA_V1=shadow` · `FAILED_RE_IB_V1=shadow`), אבל **ללא verdict אין טענת-תקינות** (כלל 5). ‏⚠️ **ומלכודת-לעתיד שנמדדה כאן:** `grep -E "PASS|FAIL"` על פלט-flag_guard **תופס שמות-דגלים** — `RELEASE_TREND_BYPASS_PTS` מכיל "PASS" ו-`FAILED_BREAK_VA_V1` מכיל "FAIL" ⇒ הגרפ החזיר שורות-✓ שנראו כמו verdict. הפוסק הוא `tail`, לא `grep`. `task_log_guard` לא הורץ בנפרד (הוא רץ בתוך `fire_drill`, שאינו חל בלי שער).
+
+**חובה-4 (23:00-23:30 · תור-הלילה + עמודי-הטלפון):** בשעת-החתימה `20:16` ⇒ **מחוץ לחלון, לא בוצע**. וממילא יום-ראשון ללא מסחר ⇒ אין `broker_truth` לאמת ואין עמוד-יום לפרסם.
+
+---
+
 🟢 **[cowork-dev · ריצה 305 · 10.10 16:13 → **11.10 05:01** IL — **שבת, שוק סגור** ⇒ חובה-1 בלבד · אפס הודעות-טלפון · אפס ריסטארט · והריצה עצמה היא מדידת-המכונה]**
 
 `date ⇒ Sat Oct 10 16:13:28 IDT 2026` — **שבת**, אין פתיחה, אין שער, אין RTH ⇒ **חובה-1 בלבד** (16:13 כבר מחוץ ל-`15:30-16:10`, וממילא אין יום-מסחר). `git pull ⇒ Already up to date` · HEAD `8368face` (= ריצה 304, שנסגרה 15:26 היום) ⇒ **ריצה זו היא 305**.
