@@ -44,13 +44,14 @@ def tpo_asof(d, il):
         if row[0] <= il: best = row
         else: break
     return best
+MFE = {"v": 0.0}
 def sim(bars, i, d, e, stop, t1):
-    fill = e; mfe = 0.0; t0 = 0
+    fill = e; mfe = 0.0; t0 = 0; MFE["v"] = 0.0
     for k in range(i + 1, len(bars)):
         _, o, h, l, c = bars[k]
         if (l <= stop) if d == 1 else (h >= stop): return d * (stop - fill), "STOP", t0
-        mfe = max(mfe, d * ((h if d == 1 else l) - fill)); t0 = int(mfe >= T0)
-        if (h >= t1) if d == 1 else (l <= t1): return d * (t1 - fill), "T1", 1
+        mfe = max(mfe, d * ((h if d == 1 else l) - fill)); t0 = int(mfe >= T0); MFE["v"] = mfe
+        if (h >= t1) if d == 1 else (l <= t1): MFE["v"] = max(mfe, d * (t1 - fill)); return d * (t1 - fill), "T1", 1
     return d * (bars[-1][4] - fill), "EOD", t0
 def ref_open(bars):
     o = bars[0][1]; closes = [b[4] for b in bars[:6]]; lows = [b[3] for b in bars[:6]]; highs = [b[2] for b in bars[:6]]
@@ -85,7 +86,7 @@ for s in sessions:
         xi = next((k for k in range(i + 1, len(bars)) if ((bars[k][3] <= stop) if d == 1 else (bars[k][2] >= stop)) or ((bars[k][2] >= t1) if d == 1 else (bars[k][3] <= t1))), len(bars) - 1)
         busy_until = xi
         rows.append(dict(session=s, rule=rule, il=bars[i][0], dir="LONG" if d == 1 else "SHORT", R=round(abs(e - stop), 2), t1_dist=round(abs(t1 - e), 2),
-                         pts=round(pts, 2), net=round(pts * PT - COMM, 2), exit=ex, t0=t0, t1hit=int(ex == "T1"), dtype=dtype))
+                         pts=round(pts, 2), net=round(pts * PT - COMM, 2), exit=ex, t0=t0, t1hit=int(ex == "T1"), dtype=dtype, mfe=round(MFE["v"], 2)))
     ext_up = ext_dn = 0
     for i in range(1, len(bars) - 1):
         il, bo, bh, bl, bc = bars[i]

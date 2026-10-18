@@ -15,7 +15,8 @@ df = pd.read_csv(f).fillna({"kind": "?", "opening_type": "?", "phase": "?", "day
 df["cell"] = df[KEY].astype(str).agg("|".join, axis=1); df["month"] = df["session"].str[:7]
 df["m"] = df["il"].str[:2].astype(int) * 60 + df["il"].str[3:5].astype(int)
 df["xm"] = df["exit_il"].astype(str).str[:2].astype(int) * 60 + df["exit_il"].astype(str).str[3:5].astype(int)
-df["gate_ok"] = df["blocked_by"].fillna("").astype(str).isin(["", "nan"])
+df["gate_ok"] = df["blocked_by"].fillna("").astype(str).isin(["", "nan"]) & (df.get("shadow_only", 0) == 0) & ((df.taken == 1) | (df.get("live_blocked_by", pd.Series("", index=df.index)).fillna("") == "live_slot_occupied"))
+if "r_pts" in df: df = df[(df.r_pts > 0) & (df.r_pts <= 20)]
 df = df.sort_values(["session", "m"]).reset_index(drop=True)
 def slot_sum(sub, admit):
     """sequential one-slot simulation: admit(row) -> bool; returns (net, n) per session summed."""
