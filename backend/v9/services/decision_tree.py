@@ -219,3 +219,15 @@ def leaves(tree: Dict[str, Any], path: Optional[List[Tuple[str, str]]] = None) -
     for key, child in (tree.get("branches") or {}).items():
         out.extend(leaves(child, path + [(tree.get("split"), key)]))
     return out
+
+
+def kind_policy(action: str, leaf: Dict[str, Any], kind: Any, skip_kinds: Optional[str]) -> Tuple[str, Dict[str, Any]]:
+    """T-586 (18.10, measurement knob, default off): TREE_SKIP_KINDS="REVERSAL,EDGE_FADE" — a TAKE leaf whose
+    candidate kind is listed becomes SKIP (id ``kind_policy``, blocked_by ``tree:kind_policy``). Pure: no env read,
+    no I/O. Unset / empty ⇒ (action, leaf) unchanged. Reading of the 70-session reference (t567ref): BREAK /
+    WITH_DRIVE / PULLBACK follow the market's answer (+2,117$, every month ≥ 0); REVERSAL / EDGE_FADE predict a turn
+    (+124$, Aug and Oct < 0). Measured whole-day as t586k: Σ net +2,238$ vs +1,799$, max DD 284$ vs 476$."""
+    ks = {k.strip().upper() for k in str(skip_kinds or "").split(",") if k.strip()}
+    if ks and str(action or "").upper() == "TAKE" and str(kind or "").upper() in ks:
+        return "SKIP", dict(leaf, leaf="SKIP", id="kind_policy", note=f"kind {kind} refused by TREE_SKIP_KINDS")
+    return action, leaf

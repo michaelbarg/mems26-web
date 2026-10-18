@@ -669,7 +669,9 @@ def _route_setup_capture(setup, system_id):
     _rf_before = list(getattr(gw, "_recent_fires", None) or []) if _SECOND_PATHS else None
     res = _orig_route(setup, system_id)
     if (_SECOND_PATHS and res.get("live_blocked_by") == "live_slot_occupied" and _SECOND["trade"] is None
-            and isinstance(res.get("tree_v3"), dict) and _path_key(res["tree_v3"].get("path")) in _SECOND_KEYS):
+            and isinstance(res.get("tree_v3"), dict)
+            and ("*" in _SECOND_KEYS or _path_key(res["tree_v3"].get("path")) in _SECOND_KEYS)):
+        # T-586 (18.10): HARNESS_SECOND_SLOT_PATHS="*" — a universal second slot (every TAKE path), measurement only.
         _held = gw.live_slot
         gw.live_slot = None
         if _rf_before is not None and getattr(gw, "_recent_fires", None) is not None:

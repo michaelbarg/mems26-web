@@ -827,6 +827,13 @@ flags:
     why: "OFF (default — night-queue variant, measured whole-day on 67 sessions vs the same-night reference before any ruling). doctrine_cell_audit 08.10 (t564ref): 21 phase-B candidates refused by ELQ, 67% winners, +1,027$ candidate-level; in the aggregate (T-244, 04.09) the gate is right — phase B is the exception that pays."
     status: built_off
     ref: "backend/v9/gateway/trading_gateway.py:_elq_phase_b_exempt (+ the ELQ block ~2918) · tests/v9/regression/test_t567b_elq_phase_b_exempt.py (7) · docs/reports/DOCTRINE_CELLS_2026-10-08.md"
+  TREE_SKIP_KINDS:
+    category: doctrine
+    group: "decision tree v3"
+    what: "T-586 (18.10, cowork — Michael 'go over the system, see why it is wrong'): comma list of candidate kinds (WITH_DRIVE|REVERSAL|EDGE_FADE|PULLBACK|BREAK|VALUE_RETURN) that a TAKE leaf refuses — the leaf becomes SKIP id=kind_policy, blocked_by tree:kind_policy. Applied right after the tree walk; SKIP/SHADOW leaves untouched. Unset ⇒ byte-identical."
+    why: "OFF (default — measured whole-day on 70 sessions vs t567ref as t586k = REVERSAL,EDGE_FADE): Σ net +2,238$ vs +1,799$ (Δ +439$ net, 163 vs 205 trades, better 32 / worse 24), max DD 284$ vs 476$, worst 10-day −68$ vs −436$, holdout-10 (28.09..09.10) −2$ vs −436$, every month ≥ 0 in absolute terms; relative Δ by month 06 +9 · 07 +178 · 08 +321 · 09 −535 · 10 +366 ⇒ passes only under the declared-risk-cut exception (fewer entries, the 46%-win turn-prediction family out). Doctrine: 'don't predict — let the market answer'. Awaiting Michael's ruling (18.10 report)."
+    status: built_off
+    ref: "backend/v9/services/decision_tree.py:kind_policy · backend/v9/gateway/trading_gateway.py (after _dt3.walk) · tests/v9/regression/test_t586_tree_skip_kinds.py (9) · harness_out/t586/run_day.sh · docs/plans/WORK_PLAN_2026-10-18.md"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"

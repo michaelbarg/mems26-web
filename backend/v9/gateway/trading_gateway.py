@@ -1568,6 +1568,12 @@ class TradingGateway:
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
                         _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
+                        # T-586 (18.10, harness measurement, default off): TREE_SKIP_KINDS=REVERSAL,EDGE_FADE — a TAKE
+                        # leaf whose candidate kind is listed becomes SKIP (blocked_by tree:kind_policy). Doctrine reading
+                        # of the 70-session reference: BREAK / WITH_DRIVE / PULLBACK follow the market's answer (+2,117$,
+                        # every month ≥ 0); REVERSAL / EDGE_FADE predict a turn (+124$, Aug and Oct < 0). Unset ⇒ inert.
+                        _t3_action, _tree_leaf = _dt3.kind_policy(_t3_action, _tree_leaf, _t3_vec.get("kind"),
+                                                                  os.getenv("TREE_SKIP_KINDS"))
                         result["tree_v3"] = {"leaf": _t3_action, "id": _tree_leaf.get("id"),
                                              "path": _t3_path_s, "mode": "shadow" if _dt3.is_shadow() else "on",
                                              "vec": {k: v for k, v in _t3_vec.items() if k in _dt3.FEATURES},
