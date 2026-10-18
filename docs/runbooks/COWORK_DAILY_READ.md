@@ -386,7 +386,12 @@ Task Management. ⚠️ **לפני העלאת `mobile_relay` בלבד:** לוו�
 
 ```bash
 ps aux | grep -i "sierra\|SierraChart" | grep -v grep     # תופס את wine
-cat ~/SierraChart_Data/v9_export/live_price.json          # ts טרי + bid/ask ⇒ הפיד חי
+cat ~/SierraChart_Data/v9_export/live_price.json          # ⚠️ ts טרי + bid/ask ≠ פיד חי (ראה ↓)
+# ה-DLL חותם את live_price.ts ב-**עכשיו** כל ~3 שנ' גם כשהציטוט קפוא ⇒ `ts`/`age_ms` אינם
+# פוסק-חיוּת. נמדד 18.10 17:06 (ריצה 315): שלוש דגימות /api/v9/live_price ב-12 שנ' הפרש
+# ⇒ price 7703.0 · bid 7702.25 · ask 7703.0 · vol 1387 **זהים**, ts_utc 14:06:48→14:07:13,
+# age_ms 1086→101→45 — בעוד הפיד מת מ-16.10 (סגירת-שישי = אותו 7703.0). ⇒ רק
+# price/bid/ask ש**זזים** בין שתי דגימות ≥10 שנ' מוכיחים זרימה. [[T-532]]/[[T-430]]
 psql … -c "select max(ts), now()-max(ts) from v9_bars_5min_woodies;"   # הקנוני נקלט?
 ```
 
