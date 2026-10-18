@@ -1,3 +1,173 @@
+🟢 **[cowork-dev · ריצה 327 · 18.10 23:04→23:25 IL · חובה-1 + חובה-4 (תור-הלילה) + ניטור · אפס הודעות-טלפון — שתיקה מוחלטת לפי הכלל · בעלות-התור לא נלקחה, בכוונה · מלכודת 38 + פריט-ברוקר חדש]**
+
+**חובה 1 — אין ממתינות ⇒ שקט מוחלט בטלפון.** `date ⇒ 2026-10-18 23:04:35 IDT (Sunday)` ·
+`git pull --ff-only ⇒ Already up to date` · HEAD בכניסה `65b80bb5` = ריצה 326 ·
+`rev-list --left-right --count HEAD...@{u} ⇒ 0	0`.
+
+```raw
+פוסקי-חובה-1 (keyed peek, קריאה-בלבד; 23:0x ∈ RELAY_WINDOW_IL=10:00-23:30, מלכודת 32)
+  launchctl print … com.mems26.mobile_relay ⇒ state = running · pid = 1629   ← הדוור חי (מלכודת 12)
+  GET /instruction/pending ⇒ http=200 bytes=12 {"items":[]}                  ← התיבה במקור
+  GET /cmd/pending         ⇒ http=200 bytes=12 {"cmd":null}                  ← אפס פקודת-חירום
+  GET /chat                ⇒ http=200 bytes=17642 · items=30
+  שורת-מייקל אחרונה בחוט: 07.10 10:50:03Z — נענתה באותו יום (cc 10:50 + cowork-dev 11:11)
+```
+
+⇒ **(א) אין** הודעת-מייקל בלי מענה · **(ב) אין** עסקת-לייב (`trades_today = 0`, פוזיציה 0) ·
+**(ג) אין** חריגה הדורשת פסיקה · **(ד) אין** שער (23:0x ≫ 16:10) ⇒ **`phone_reply.py` לא נקרא.**
+שתי השאלות הפתוחות (`06:06` חיבור-הפיד · `07:11` הפסיקות) הן ממתינות-**מייקל**, ותזכורת היא
+הפרה ([[T-369]]). 📌 ה-`bytes` של `/chat` עלו `17436 ⇒ 17642` מאז 326 — ההודעה של ה-supervisor
+מ-`22:40` נכנסה לתצוגה; סוכן אחר, כלל אחר.
+
+---
+
+## ⛔ חובה 4 · בעלות-התור **לא נלקחה** — והסיבה מדודה ב-`ps`, לא משוערת
+
+**המבחן הפורמלי החזיר פנוי:** הקומיט היחיד מ-23:00+ הוא `4b40a9ef 23:05:22 eod-handoff(מק-1)`
+= **launchd + data-only** ⇒ אינו פעילות-cc; `grep` לשורת-claim ב-200 השורות הראשונות של
+LIVE_CHANNEL ⇒ **אפס**. לפי אותיות ההזמנה, בעלות פנויה והייתי אמור לכתוב claim ולפתוח
+סוכן-משנה על ההזמנה העדכנית.
+
+**ובאותן שניות, הכלי שההזמנה דורשת לערוך רץ ברקע אצל סוכן אחר:**
+
+```raw
+23:13:27  ps ⇒ 46909 00:19 74.9%  scripts/fwd_harness.py --session 2023-05-08 --variant hist_k --out harness_out/t466
+          ps ⇒ 47021 00:13 69.9%  scripts/fwd_harness.py --session 2023-05-11 --variant hist_k --out harness_out/t466
+23:14:56  ps ⇒ 49229 00:21 24.0%  scripts/fwd_harness.py --session 2023-05-08 …
+          ps ⇒ 49468 00:11 72.6%  scripts/fwd_harness.py --session 2023-05-11 …
+  ⇒ ה-PID התחלפו לגמרי ב-89 שנ' ⇒ סריקת-2023 רצה (שני עובדים, ~20-30 שנ' לסשן)
+git log -1 -- scripts/fwd_harness.py ⇒ 3e1a9b40 10-18 19:52 "T-597: harness crashed on 2026-08-07…"
+vm.swapusage ⇒ used 2,962M / 4,096M · unused RAM 121M < 400M · load 6.08 6.57 6.36 (8 ליבות)
+```
+
+**פריט 1 של `CC_ORDER_2026-10-18_OPEN_PARITY.md` דורש בדיוק את שני המשטחים התפוסים:**
+לוג-INFO של `_cls_result` ב-`s1_on_bar` — שקיים **רק** ב-`scripts/fwd_harness.py:790` — והרצה
+לתוך `harness_out/t466/`, שהיא גם יעד-הכתיבה של הסריקה החיה **וגם** ספריית-הקריאה של ההזמנה
+(`t567ref_2026-10-06.json`). ⇒ **עריכת הקובץ הייתה נבלעת בשתיקה**: כל עובד חדש נטען מהדיסק
+בזמן-ההרצה, כך ששורת-לוג באמצע סריקה משנה את הפלט של סוכן אחר על מאות סשנים — **בלי
+קונפליקט-git, בלי שגיאה, בלי שאיש ידע**.
+
+⇒ **ההתנגשות שהכלל נועד למנוע נמדדה ישירות, גם כשהמבחן הפורמלי החזיר פנוי** ⇒ אפס claim,
+אפס סוכן-משנה, אפס נגיעה ב-`fwd_harness.py` וב-`harness_out/`. נרשם כ-**מלכודת 38**
+ב-`COWORK_DAILY_READ` (קומיט הוא עדות-בדיעבד · תהליך הוא עדות-בזמן-אמת).
+
+### ✅ מה כן נמסר במקום: T-588 פריט 1, **חצי-הלייב** — נמדד במלואו ונסגר
+
+`docs/reports/OPEN_PARITY_2026-10-18.md`. קריאה-בלבד מ-`/tmp/backend.err.log` (אפס תחרות,
+אפס CPU). **זמינות-הראיה נבדקה ולא הונחה:** הלוג = 90,530,909 בתים ומחזיק `2026-10-02`
+והלאה, מהם **67,563 שורות של 06.10** ⇒ החלון מדיד **מהלוג החי** ולא מציטוט-ההזמנה.
+
+```raw
+awk '$1=="2026-10-06" && $2>="16:25:00" && $2<="17:15:00" ' | grep -E "TREE_V3|[DayType]|locked opening"
+16:30:05 TREE_V3 FAMIR LONG 7863.5              → SKIP [ot=OPEN_AUCTION_IN/phase=A/day_type=*(Trend_Normal)]
+16:30:06 [DayType] FIX-9 RTH-boundary reset: dropping carried pre-RTH state (day_type=UNKNOWN, bars=66)
+16:40:07 TREE_V3 CEILING_FLIP_TOUCH2 LONG       → SKIP [ot=OPEN_AUCTION_IN/phase=A/day_type=*(Variation)]
+16:45:07 TREE_V3 OPENING_EXTREME_REJECT LONG    → TAKE [ot=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=REVERSAL]
+16:50:03 TREE_V3 OPENING_DRIVE LONG 7871.5      → SKIP [ot=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(WITH_DRIVE)/edge=*(none)]
+17:00:06 [DayType] Classification changed: UNKNOWN -> Trend_Normal (conf=0.35)
+17:05:03 TREE_V3 INITIATIVE_LONG LONG 7881.0    → SKIP [ot=OPEN_AUCTION_IN/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)]
+grep -c "locked opening" ⇒ 06.10 = 0  ·  08.10 = 1  ·  09.10 = 1
+```
+
+**שרשרת-השורש של ההזמנה מאומתת משלושה משטחים בלתי-תלויים** — ספירת-הנעילה (0 מול 1/1),
+הלוג (`OPEN_AUCTION_IN` בכל חמשת הפושים), וסדר-הקוד ב-HEAD (`trading_gateway.py` ~`1160`
+ברירת-מחדל `UNKNOWN` → ~`1167` נעילת-T-314 שלא קרתה → `1177` `_resolve_live_cls()` = מקור 1).
+תיקון פריט 2 קיים ב-HEAD ומאומת כבוי: `_cls_session_guard` (`:231`) מאחורי
+`CLS_RESULT_SESSION_GUARD_V1` ברירת-מחדל `"0"` ⇒ זהה-בייט. **אפס הדלקה** (פסיקה של מייקל).
+
+🔎 **ושני ממצאים שההזמנה לא רשמה:**
+1. **הלייב לא סירב לכל החלון — ב-`16:45:07` הוא לקח** (`OPENING_EXTREME_REJECT`, `kind=REVERSAL`).
+   ⇒ `OPEN_AUCTION_IN`+`Variation` **אינם החוסם**: אותו צמד-תוויות בדיוק נתן TAKE אחד
+   ו-SKIP ארבעה, וההבדל ב-`kind`/`edge` (`REVERSAL` עבר · `WITH_DRIVE`/`BREAK`+`edge=none` נפלו).
+   מי שמייחס את ההחמצה לתווית-היום לבדה — מייחס לשדה הלא-נכון.
+2. **הפער בין שני מקורות-התווית אינו נסגר אחרי הסיווג.** ההזמנה כתבה "Variation בגייטוויי
+   בעוד המכונה UNKNOWN עד 17:00"; המדידה מחדדת: ב-`17:00:06` המכונה עברה ל-`Trend_Normal`
+   ובכל זאת ב-`17:05:03` — **חמש דקות אחרי** — הגייטוויי עוד `Variation` ⇒ זה **לא** "המכונה
+   עוד לא מוכנה" אלא מקור שונה שאינו מתכנס. ההיסטרזיס `_dp_hyst` ("hold Trend", ~1130-1156)
+   הוא מועמד-מכניזם, **לא נמדד** — הערך-הגולמי של `get_live_day_type()` אינו בלוג ⇒ **לא
+   מיוחס** (כלל 1). זה מצמצם את פריט 3 לשאלה אחת: `trade_context.py:565`.
+
+---
+
+## 🔴 פריט חדש · 06.10 — **ארבע עסקאות-לייב בלי שום רישום-ברוקר** (ולא חוסר-backfill)
+
+חובה-4 מורה לוודא `n/N = כל העסקאות`, ואחרת לכתוב כאן "אין רישום-ברוקר ל-#id". **נמדד:**
+
+```raw
+psql ⇒ live trades + pnl_sierra coverage, since 01.10
+  2026-10-01  3/3 ✓   2026-10-02  4/4 ✓   2026-10-05  1/1 ✓
+  2026-10-06  4 live / 0 מאומתות ← הפער      2026-10-08  4/4 ✓   2026-10-09  3/1
+broker_truth.py --since 2026-10-06 (DRY-RUN, --json ל-/tmp ⇒ אפס כתיבת-DB ואפס נגיעה בריפו)
+  events 64 · round-trips 10 · live trades 11 · matched 5 (by order id 5) · never-filled 0
+  3123 06.10 19:10 SHORT GB100             books +21.25  broker —  T1_HIT
+  3130 06.10 19:35 LONG  FAMIR             books -56.25  broker —  STOP_HIT
+  3136 06.10 20:25 LONG  DALTON_EDGE_LONG  books +28.75  broker —  T1_HIT
+  3140 06.10 20:35 LONG  FAMIR             books    —    broker —  SIERRA_FLAT
+  unmatched broker round-trips (לא של המערכת — T-402): 5 · Σ -167.50
+     15:26→16:30 / 16:34→16:46 / 17:27→17:45 / 17:53→18:06 / 18:10→18:14  — כולן SHORT x1
+     orders 11411 · 11413 · 11415 · 11417 · 11419
+```
+
+**מה שזה אומר, ומה שזה לא אומר:** המתאם מצא **אפס** מקבילה-ברוקר לארבעתן, ושלוש מהארבע הן
+**LONG** בעוד כל חמש הנסיעות-בברוקר של אותו יום הן **SHORT** ⇒ אין כאן זיווג שהוחמץ.
+⇒ **`--write` היה no-op ל-06.10** (אפס matched) ⇒ **הפער אינו backfill חסר אלא היעדר
+רישום-ברוקר**, וזו תשובה שסוגרת את השאלה ולא משאירה אותה. 🚫 **הסיבה לא מיוחסת** (כלל 1):
+ניתוב-Sim ([[T-551]] — חשבון Sim1 נרשם אצלנו `mode=live`) מתאים לחתימה, אך **לא נמדד**
+עבור 06.10 ואינו נטען. ℹ️ שתי הלא-מאומתות של 09.10 (`3402`/`3406`) **אינן** פער — הברוקר
+דחה אותן מחוסר-מרג'ין ([[T-585]], `SIERRA_FLAT`) ⇒ בלתי-מאומתות-בדין.
+
+## ⏭️ צינור-עמודי-הטלפון — **לא הורץ**, והחלטה מבוססת-ראיה
+
+יום ראשון: אפס RTH, `trades_today = 0`, `decisions_today = 0`, `trades_since_10.10 = 0`.
+הראיה שזו הנוהג ולא קיצור-דרך שלי: `ls -t docs/reports/DAY_REVIEW_*.md ⇒ האחרון 2026-10-09`
+(אין 11.10 ראשון, אין 12-16.10) · `data/review.json` ו-`TREE_BOARD*.html` **אינם קיימים** ·
+`LESSONS_TIMELINE.json` עודכן לאחרונה `Oct 10 13:09` ⇒ **תשעה ימים שבהם הצינור נדלג
+בצדק, כי אין יום לסקור.** הרצתו הייתה מייצרת עמוד-יום ריק, מתחרה על CPU/swap נגד סריקת-2023,
+ו**הודעת-טלפון שהיא דוח-ניטור** — הפרה של כלל-הטלפון, ובפרט אחרי שה-supervisor שלח סיכום-יום
+ב-`22:40`. ⇒ יורץ בריצת-הערב שאחרי יום-מסחר אמיתי.
+
+## 📊 ניטור (קריאה-בלבד, Rule 5)
+
+```raw
+health 200 ×3 ⇒ 2.233ms · 1.562ms · 1.813ms
+מאזין :8000 ⇒ pid 2030 · lstart Sun Oct 18 09:40:38 · etime 13:28:12  ← רציף מ-320, אפס ריסטארט
+הפוסק של הפיד (select max(ts), לא mtime — מלכודת 22 / T-430):
+  v9_bars_5min_woodies  2026-10-12 07:55+03   גיל 6d15:13   rows_36h=0
+  v9_bars_5min          2026-10-09 23:55+03   גיל 8d23:13   rows_36h=0
+  v9_decision_vectors   2026-10-09 22:10+03   גיל 9d00:58   rows_36h=0
+  ⇒ הגילים גדלו בדיוק כשעון-הקיר מול 326 (woodies 6d14:41 ⇒ 6d15:13 = +32 דק' ב-32 דק')
+עסקאות: CLOSED 3198 · CANCELLED 38 · non-final 0 · trades_today 0
+sierra_state (age 1.0s) ⇒ Sim1 · is_sim=1 · position_qty=0 · working_orders=0 · armed=1
+  acct_available_funds / acct_cash_balance ⇒ 1.797e+308 = סנטינל DBL_MAX (מלכודת 36)
+  ⇒ T-34 **בלתי-קריא** ⇒ נרשם missing, לא מספר, אפס שורת-מרג'ין ואפס מקרה (ג)
+gateway/status ⇒ shadow_active_count 0 · live_enabled_systems [] ⇒ שני המשטחים אפס,
+  אין שאלת-בעלות לפי order_id, אפס אזעקה
+close_stale_shadow (dry-run) ⇒ no stale shadow trades — nothing to do
+flag_guard rc=0 (רק אזהרת-הדיווח הידועה FOOTPRINT_DISABLED: plist=true ≠ .env=0)
+task_log_guard rc=0 ⇒ 573 פריטים, עודכן לפני 0.0 יום
+ruled_contracts() = 1  (עם .env טעון — T-489) == פסיקת 18.09 12:05 · דיווח בלבד
+machine_health: WARN unused RAM 121M · WARN swap 2,968M — WARN-בלבד, אפס תהליך נהרג;
+  הערימה הסוחרת קטנה (backend rss 103MB · bridge 17MB · postgres n=23 627MB), והצרכנים הם
+  claude-app 2,691MB + chrome 1,151MB + סריקת-2023
+bridge ⇒ grep -cE "https://|onrender" /tmp/bridge.err.log = 0 ✅  (⚠️ תיקון-עצמי: שורת
+  "bridge.err.log absent" שהדפסתי היא ארטיפקט — `grep -c` מחזיר rc=1 על 0 התאמות ומפעיל
+  את ענף-ה-||; הקובץ קיים והספירה אפס)
+```
+
+**אפס נגיעה:** ריסטארט · GO/NO-GO · דגלים · דגלי-גודל · `.env` · פוזיציות · פקודות ·
+`op=EXIT` · קוד-פרודקשן · DLL · סיירה · עץ-ההחלטות · כתיבות-DB · `broker_truth --write` ·
+`fwd_harness.py` · `harness_out/` · הטלפון. 14 הקבצים-המלוכלכים של הסשן האחר (ביניהם
+`five_min_system.py`, `tree_routes.py`, `render_mobile_relay/app.py`) **לא נוגעו** — הועלו
+לאינדקס שלושת המסמכים שלי בלבד, תוספות בלבד, אפס מחיקה.
+
+**הצעד הבא (לבעלים — Cursor/fix-agent):** `ps | grep fwd_harness ⇒ 0` **לפני** כל נגיעה,
+ואז לוג-INFO ב-`s1_on_bar` + `--session 2026-10-06` כדי למלא את חמש שורות-ה-NOT-DONE בטבלת
+§2 של הדוח; פריט 3 מצומצם ל-`get_live_day_type()` (`trade_context.py:565`) ב-16:40 וב-17:05.
+
+— cowork-dev
+
+---
+
 🟢 **[cowork-dev · ריצה 326 · 18.10 22:34→23:02 IL · חובה-1 + חובה-3 ניטור-קצר · אפס הודעות-טלפון — שתיקה מוחלטת לפי הכלל · אפס פריט חדש · אפס נגיעה]**
 
 **אין ממתינות.** `date ⇒ 2026-10-18 22:34:45 IDT (Sunday)` · `git pull --ff-only ⇒ Already up to date` ·
