@@ -277,6 +277,8 @@ class FillPoller:
             if qty is None:
                 return  # stale/missing → honest no-op
             grace = float(os.getenv("POSITION_TRUTH_GRACE_S", "20"))
+            # T-527 (fix-agent 18.10, BRIEF §3.4) — POSITION_TRUTH_UNFILLED_CANCEL_V1, default OFF (byte-identical).
+            _unfilled_cancel = os.getenv("POSITION_TRUTH_UNFILLED_CANCEL_V1", "0").lower() in ("1", "true", "yes")
             now = time.time()
             open_trades = [t for t in self._tm.get_active_trades()
                            if getattr(t, "state", "") in ("PENDING", "FILLED")
@@ -348,8 +350,36 @@ class FillPoller:
                     # date is the dangerous direction (Rule 1 / fail-safe).
                     continue
                 _state_before = getattr(t, "state", "?")
+                # T-527 (fix-agent 18.10, BRIEF §3.4): a PENDING trade with NO submit-ack
+                # (quality.sierra_order_id absent — the same K1e signal that refuses to
+                # attribute a position above) that Sierra never held is not an unpriced
+                # trade, it is an entry that never happened. Closing it as SIERRA_FLAT /
+                # UNPRICED put 4 of the 13 UNPRICED rows in the books (#571 #955 #979 #1220:
+                # entry_ts NULL, no DLL ENTRY fill within ±3 min, no broker round-trip) and
+                # dropped them from scripts/broker_truth.py (NULL entry_ts fails
+                # `entry_ts >= since`). Flag ON: the same close, with outcome CANCELLED
+                # (P8 precedent: ORDER_FAILED) + quality.never_filled; pnl stays NULL
+                # (T-160). Nothing is priced or invented (Rule 1). OFF: byte-identical.
+                _outcome_override = None
+                if _unfilled_cancel and _state_before == "PENDING":
+                    _q = t.quality if isinstance(getattr(t, "quality", None), dict) else {}
+                    if not _q.get("sierra_order_id"):
+                        _outcome_override = "CANCELLED"
+                        try:
+                            t.quality = dict(_q, never_filled=True,
+                                             never_filled_reason="POSITION_TRUTH: Sierra flat past grace, "
+                                                                 "no submit-ack, no fill (T-527)")
+                        except Exception:
+                            pass
                 try:
-                    self._tm.close_trade(t.id, "SIERRA_FLAT")
+                    if _outcome_override:
+                        self._tm.close_trade(t.id, "SIERRA_FLAT", outcome_override=_outcome_override)
+                        logger.warning(
+                            "[FillPoller] POSITION_TRUTH T-527: trade %s was PENDING with no submit-ack "
+                            "and Sierra is flat → closed as SIERRA_FLAT / outcome CANCELLED (never filled)",
+                            t.id)
+                    else:
+                        self._tm.close_trade(t.id, "SIERRA_FLAT")
                     # TradeManager does NOT auto-commit (the gateway commits
                     # explicitly after accept_setup). Without this the close
                     # lived only in memory: the DB row stayed FILLED and the

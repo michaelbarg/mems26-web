@@ -1,0 +1,118 @@
+[env_loader] applied 333 vars from /Users/michael/Downloads/mems26_web_git/.env | HFE_DISABLED=1 NONTREND_DISABLE_ALL=1 DIRECTION_LSMA_VETO=1 S1_NEW_CLASSIFIER=1 ZLR_SPEC_V2=1 VEGAS_SPEC_V2=1 DAYTYPE_POSITION_GATE=0 DAYTYPE_PLAYBOOK=1
+events since 2026-08-25: 941 · round-trips 115 · journal entries 243 · live trades 99 · matched 60 (by order id 60) · never-filled 6
+    id day        entry dir   pattern               c    books   broker       Δ match        qty  reason
+   809 2026-08-26 17:00 LONG  INITIATIVE_LONG       2   -75.00        —       — —                 STOP_FILL
+   812 2026-08-26 20:25 LONG  INITIATIVE_LONG       2   +32.50        —       — —                 phantom_reconcile
+   818 2026-08-26 21:47 LONG                        2   +41.25        —       — —                 phantom_reconcile
+   820 2026-08-26 22:12 LONG                        2    +0.00        —       — —                 SIERRA_FLAT
+   822 2026-08-27 16:55 LONG  OPENING_ORR           2  -100.00   -95.00   +5.00 order-joined   2  STOP_FILL
+   824 2026-08-27 17:15 LONG  ZLR                   2  +105.00        —       — —                 T2_HIT
+   828 2026-08-27 19:02 LONG  ZLR                   2   +45.00        —       — —                 T2_HIT
+   830 2026-08-27 21:00 SHORT INITIATIVE_SHORT      2   +22.50        —       — —                 phantom_reconcile
+   831 2026-08-27 21:05 SHORT                       1   +51.25        —       — —                 phantom_reconcile
+   838 2026-08-28 17:05 SHORT ZLR                   3   +82.50        —       — —                 phantom_reconcile
+   840 2026-08-28 17:10 SHORT                       2   +61.25        —       — —                 phantom_reconcile
+   841 2026-08-28 17:15 SHORT                       2   -77.50        —       — —                 STOP_FILL
+   848 2026-08-28 18:20 LONG  ZLR                   2    +0.00        —       — —                 MAE_SCRATCH
+   851 2026-08-28 18:55 SHORT INITIATIVE_SHORT      3   +58.75        —       — —                 manual
+   853 2026-08-28 19:01 SHORT                       2   +60.00        —       — —                 STOP_HIT
+   859 2026-08-28 20:00 SHORT ZLR                   3  +155.00        —       — —                 T3_HIT
+   862 2026-08-28 21:40 SHORT TT                    2    +8.75        —       — —                 phantom_reconcile
+   873 2026-08-31 16:35 SHORT GB100                 2   +11.25        —       — —                 STOP_HIT
+   875 2026-08-31 16:40 SHORT OPENING_DRIVE         5  -100.00        —       — —                 STOP_FILL
+   877 2026-08-31 17:00 SHORT REACTIVE_SHORT        5        —        —       — —                 phantom_reconcile
+   881 2026-08-31 17:10 SHORT                       2        —        —       — —                 phantom_reconcile
+   885 2026-08-31 17:35 SHORT                       2   -60.00        —       — —                 STOP_FILL
+   936 2026-08-31 21:15 LONG  ZLR                   2   -55.00        —       — —                 STOP_FILL
+   939 2026-08-31 22:05 SHORT ZLR                   2        —        —       — —                 SIERRA_FLAT
+   942 2026-09-01 17:20 LONG  INITIATIVE_LONG       4   +55.00        —       — —                 STOP_FILL
+   948 2026-09-01 18:45 LONG  GB100                 5  -135.00        —       — —                 STOP_FILL
+   950 2026-09-01 19:35 SHORT INITIATIVE_SHORT      5  -156.25        —       — —                 STOP_FILL
+   953 2026-09-02 17:15 LONG  INITIATIVE_LONG       5  +277.50  +162.50 -115.00 order-joined   5  STOP_HIT
+   955 2026-09-02 17:30 LONG                        4        —        —       — —                 SIERRA_FLAT  NEVER-FILLED (entry_ts NULL, T-527)
+   963 2026-09-02 18:59 LONG  ZLR                   5        —  -137.50 -137.50 order-joined   5  MAE_SCRATCH
+   968 2026-09-02 19:40 SHORT ZLR                   5        —   -70.00  -70.00 order-joined   5  MAE_SCRATCH
+   971 2026-09-02 20:10 LONG  GHOST                 5  +145.00   +76.25  -68.75 order-joined   5  STOP_FILL
+   979 2026-09-02 21:18 LONG                        4        —        —       — —                 SIERRA_FLAT  NEVER-FILLED (entry_ts NULL, T-527)
+   981 2026-09-03 17:20 LONG  ZLR                   3        —  -127.50 -127.50 order-joined   3  MAE_SCRATCH
+   987 2026-09-03 20:20 SHORT ZLR                   5  -143.75  -156.25  -12.50 order-joined   5  STOP_FILL
+   998 2026-09-04 16:55 LONG  ZLR                   5  -137.50  -125.00  +12.50 order-joined   5  STOP_FILL
+  1008 2026-09-04 18:05 SHORT INITIATIVE_SHORT      5   +32.50   +13.75  -18.75 order-joined   5  STOP_FILL
+  1069 2026-09-04 19:25 LONG  INITIATIVE_LONG       5   +62.50   +68.75   +6.25 order-joined   5  STOP_FILL
+  1073 2026-09-04 20:10 SHORT GB100                 5   +70.00   +70.00   +0.00 order-joined   5  STOP_FILL
+  1141 2026-09-04 22:00 LONG  INITIATIVE_LONG       5  -125.00  -143.75  -18.75 order-joined   5  STOP_FILL
+  1191 2026-09-07 17:55 SHORT ZLR                   2    +2.50    +2.50   +0.00 order-joined   2  BRACKET_EXIT_ACTIVITY
+  1220 2026-09-08 16:40 SHORT OPENING_DRIVE         3        —        —       — —                 SIERRA_FLAT  NEVER-FILLED (entry_ts NULL, T-527)
+  1224 2026-09-08 16:55 SHORT INITIATIVE_SHORT      2   -50.00   -42.50   +7.50 order-joined   2  STOP_HIT
+  1231 2026-09-08 17:19 SHORT INITIATIVE_SHORT      2  -103.75   -86.25  +17.50 order-joined   2  STOP_HIT
+  1262 2026-09-08 20:35 LONG  GHOST                 2   -52.50   -52.50   +0.00 order-joined   2  STOP_HIT
+  1328 2026-09-09 19:05 LONG  VEGAS                 2   -40.00   -40.00   +0.00 order-joined   2  STOP_HIT
+  1337 2026-09-09 20:15 LONG  DOUBLE_BOTTOM_EE_LON  5   +30.00        —       — —                 BRACKET_EXIT_ACTIVITY  NEVER-FILLED (entry_ts NULL, T-527)
+  1343 2026-09-09 20:55 LONG  BULL_FLAG_LONG        5  -131.25  -137.50   -6.25 order-joined   5  STOP_HIT
+  1409 2026-09-10 17:30 LONG  INITIATIVE_LONG       4   -33.75  -113.75  -80.00 order-joined  11  STOP_HIT  MIXED
+  1498 2026-09-11 18:30 LONG  INITIATIVE_LONG       4        —   +10.00  +10.00 order-joined   4  phantom_reconcile
+  1512 2026-09-11 19:45 LONG  FAMIR                 2   +38.75  -301.25 -340.00 order-joined  10  STOP_HIT  MIXED
+  1563 2026-09-14 19:05 SHORT CEILING_FLIP_TOUCH2   5  -183.75  -521.25 -337.50 order-joined   8  STOP_HIT  MIXED
+  1584 2026-09-14 19:55 SHORT CEILING_FLIP_TOUCH2   5   +46.25    -6.25  -52.50 order-joined   8  STOP_HIT  MIXED
+  1647 2026-09-15 19:15 SHORT INITIATIVE_SHORT      3   -86.25        —       — —                 STOP_HIT
+  1659 2026-09-15 20:05 SHORT GHOST                 2   -55.00        —       — —                 STOP_HIT
+  1712 2026-09-16 16:40 SHORT OPENING_DRIVE         2        —   -67.50  -67.50 order-joined   2  MAE_SCRATCH
+  1717 2026-09-16 16:50 LONG  CEILING_FLIP_LONG     2        —   -77.50  -77.50 order-joined   2  MAE_SCRATCH
+  1776 2026-09-16 20:45 LONG  GHOST                 2   +46.25   +43.75   -2.50 order-joined   2  STOP_HIT
+  1806 2026-09-17 17:10 SHORT INITIATIVE_SHORT      2  -102.50  -100.00   +2.50 order-joined   2  STOP_HIT
+  1916 2026-09-18 17:00 SHORT OPENING_DRIVE         1    +6.25    +7.50   +1.25 order          1  STOP_HIT
+  2017 2026-09-21 16:45 LONG  OPENING_DRIVE         1   +27.50   +18.75   -8.75 order          1  T1_HIT
+  2029 2026-09-21 18:05 LONG  REACTIVE_LONG         1   +12.50   +11.25   -1.25 order          1  T1_HIT
+  2033 2026-09-21 18:15 LONG  BULL_FLAG_LONG        1   +12.50    +6.25   -6.25 order          1  T1_HIT
+  2038 2026-09-21 18:30 SHORT CEILING_FLIP_SHORT    1        —        —       — —                 ladder_invalid  NEVER-FILLED (entry_ts NULL, T-527)
+  2041 2026-09-21 18:45 LONG  REACTIVE_LONG         1   +12.50    +5.00   -7.50 order          1  T1_HIT
+  2047 2026-09-21 19:20 LONG  INITIATIVE_LONG       1   +27.50   +28.75   +1.25 order          1  T1_HIT
+  2072 2026-09-21 21:05 LONG  GHOST                 1   +11.25    +8.75   -2.50 order          1  T1_HIT
+  2076 2026-09-21 21:50 LONG  REACTIVE_LONG         1   +16.25   +12.50   -3.75 order          1  T1_HIT
+  2106 2026-09-22 17:00 SHORT OPENING_DRIVE         1        —   -36.25  -36.25 order          1  MAE_SCRATCH
+  2140 2026-09-22 18:30 SHORT GB100                 1   +28.75   +26.25   -2.50 order          1  T1_HIT
+  2152 2026-09-22 19:10 LONG  CEILING_FLIP_LONG     1   +30.00   +23.75   -6.25 order          1  T1_HIT
+  2230 2026-09-23 19:15 LONG  REACTIVE_LONG         1   -21.25   -18.75   +2.50 order          1  STOP_HIT
+  2340 2026-09-24 20:35 SHORT DOUBLE_TOP_AA_SHORT   1   -37.50   -38.75   -1.25 order          1  STOP_HIT
+  2408 2026-09-25 19:25 LONG  DOUBLE_BOTTOM_EE_LON  1   +70.00   +72.50   +2.50 order          1  T1_HIT
+  2483 2026-09-28 16:50 LONG  OPENING_EXTREME_REJE  1        —   -61.25  -61.25 order          1  MAE_SCRATCH
+  2496 2026-09-28 17:25 LONG  VEGAS                 1   -32.50   -33.75   -1.25 order          1  STOP_HIT
+  2594 2026-09-29 18:35 LONG  CEILING_FLIP_LONG     1        —   -55.00  -55.00 order          1  MAE_SCRATCH
+  2623 2026-09-29 20:25 LONG  CEILING_FLIP_LONG     1   +53.75   +52.50   -1.25 order          1  T1_HIT
+  2752 2026-09-30 22:00 LONG  GHOST                 1   -36.25   -38.75   -2.50 order          1  STOP_HIT
+  2771 2026-10-01 16:45 SHORT OPENING_TEST_DRIVE    1  +116.25  +127.50  +11.25 order          1  T1_HIT
+  2841 2026-10-01 21:00 SHORT DOUBLE_TOP_AA_SHORT   1   +68.75   +70.00   +1.25 order          1  T1_HIT
+  2843 2026-10-01 21:10 SHORT INITIATIVE_SHORT      1   -57.50   -56.25   +1.25 order          1  STOP_HIT
+  2875 2026-10-02 16:50 SHORT DALTON_EDGE_SHORT     1   +48.75   +46.25   -2.50 order          1  T1_FILL
+  2877 2026-10-02 16:55 SHORT GB100                 1   -45.00   -45.00   +0.00 order          1  STOP_HIT
+  2895 2026-10-02 17:35 SHORT CEILING_FLIP_SHORT    1   -40.00   -45.00   -5.00 order          1  STOP_HIT
+  2913 2026-10-02 18:45 SHORT DOUBLE_TOP_AA_SHORT   1        —   -23.75  -23.75 order          1  SIERRA_FLAT
+  3038 2026-10-05 19:05 SHORT CEILING_FLIP_SHORT    1   -27.50   -27.50   +0.00 order          1  STOP_HIT
+  3046 2026-10-05 19:25 LONG  GB100                 1   -27.50   +53.75  +81.25 order          1  BRACKET_EXIT_ACTIVITY  NEVER-FILLED (entry_ts NULL, T-527)
+  3123 2026-10-06 19:10 SHORT GB100                 1   +21.25        —       — —                 T1_HIT
+  3130 2026-10-06 19:35 LONG  FAMIR                 1   -56.25        —       — —                 STOP_HIT
+  3136 2026-10-06 20:25 LONG  DALTON_EDGE_LONG      1   +28.75        —       — —                 T1_HIT
+  3140 2026-10-06 20:35 LONG  FAMIR                 1        —        —       — —                 SIERRA_FLAT
+  3272 2026-10-08 16:45 SHORT OPENING_TEST_DRIVE    1   -46.25   -43.75   +2.50 order          1  STOP_HIT
+  3281 2026-10-08 16:55 SHORT DALTON_EDGE_SHORT     1   -53.75   -55.00   -1.25 order          1  STOP_HIT
+  3289 2026-10-08 17:40 SHORT CEILING_FLIP_SHORT    1    +6.25   +11.25   +5.00 order          1  STOP_HIT
+  3314 2026-10-08 19:20 LONG  CEILING_FLIP_LONG     1   -65.00   -65.00   +0.00 order          1  STOP_HIT
+  3380 2026-10-09 16:45 SHORT OPENING_DRIVE         1   -72.50   -80.00   -7.50 order          1  STOP_HIT
+  3402 2026-10-09 18:10 SHORT CEILING_FLIP_SHORT    1        —        —       — —                 SIERRA_FLAT
+  3406 2026-10-09 18:15 LONG  DOUBLE_BOTTOM_EE_LON  1        —        —       — —                 SIERRA_FLAT
+
+Σ books -482.50 · Σ broker (matched) -2095.00 · book error -1612.50
+unmatched broker round-trips (not the system's — T-402): 55 · Σ +238.75
+   2026-09-25 16:17→16:34 SHORT x1 +2.50 (order 11334)
+   2026-09-25 16:57→17:38 SHORT x2 +3.75 (order 11337)
+   2026-09-25 17:43→17:47 SHORT x1 -26.25 (order 11342)
+   2026-09-28 20:27→22:54 SHORT x1 +91.25 (order 11357)
+   2026-09-30 14:36→20:20 LONG x2 +23.75 (order 11368)
+   2026-10-05 17:39→17:57 SHORT x1 -21.25 (order 11401)
+   2026-10-05 18:08→18:30 SHORT x1 -27.50 (order 11403)
+   2026-10-06 15:26→16:30 SHORT x1 -31.25 (order 11411)
+   2026-10-06 16:34→16:46 SHORT x1 -33.75 (order 11413)
+   2026-10-06 17:27→17:45 SHORT x1 -48.75 (order 11415)
+   2026-10-06 17:53→18:06 SHORT x1 -36.25 (order 11417)
+   2026-10-06 18:10→18:14 SHORT x1 -17.50 (order 11419)
+(dry-run — pass --write to persist pnl_sierra)

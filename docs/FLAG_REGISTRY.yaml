@@ -1603,6 +1603,12 @@ flags:
   POSITION_TRUTH_SYNC_V1:
     category: misc
     what: "[auto-stub] undocumented — see backend/v9/services/fill_poller.py:68"
+  POSITION_TRUTH_UNFILLED_CANCEL_V1:
+    category: books
+    what: "T-527 (BRIEF §3.4, fix-agent 18.10): in POSITION_TRUTH's Sierra-flat close, a PENDING trade with NO submit-ack (quality.sierra_order_id absent — the K1e signal) is closed as SIERRA_FLAT with outcome CANCELLED + quality.never_filled=True instead of outcome UNPRICED. pnl stays NULL (T-160); nothing priced or invented."
+    why: "Books 18.10: 13 live SIERRA_FLAT rows, 4 of them (#571 #955 #979 #1220) with entry_ts NULL, no DLL ENTRY fill within ±3 min, no broker round-trip — entries that never happened, booked as unpriced trades and dropped from scripts/broker_truth.py (NULL entry_ts failed `entry_ts >= since`). OFF (default) is byte-identical (tests/v9/regression/test_t527_unfilled_cancel.py). Enable = .env + RULED_FLAGS + restart outside RTH, after Michael's ruling."
+    status: built_off
+    ref: "docs/reports/T527_SIERRA_FLAT_NEVER_FILLED_2026-10-18.md · TASK_LOG T-527"
   PROBE_REJECT_MIN_PTS:
     category: param
     what: "[auto-stub] undocumented — see backend/v9/systems/location_gate.py:70"
