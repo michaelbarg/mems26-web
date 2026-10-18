@@ -37,7 +37,7 @@ for M in months:
     st = train.groupby("cell")["net"].agg(["count", "mean"])
     good = set(st[(st["count"] >= NMIN) & (st["mean"] > 0)].index); known = set(st[st["count"] >= NMIN].index)
     # universe = candidates that passed every post-tree gate (blocked only by the slot, or not at all); the gates stay.
-    fx = slot_sum(test, lambda r: r.leaf == "TAKE" and r.gate_ok)
+    fx = slot_sum(test, lambda r: (getattr(r, "fixed_leaf", r.leaf) == "TAKE") and r.gate_ok)
     wf = slot_sum(test, lambda r: r.gate_ok and ((r.cell in good) if r.cell in known else (r.leaf == "TAKE")))
     al = slot_sum(test, lambda r: r.gate_ok)
     tot["fx"] += fx[0]; tot["wf"] += wf[0]; tot["al"] += al[0]
