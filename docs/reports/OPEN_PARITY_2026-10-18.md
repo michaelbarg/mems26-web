@@ -127,3 +127,145 @@ backend/v9/gateway/trading_gateway.py
 סיירה · עץ-ההחלטות · כתיבות-DB · `fwd_harness.py` · `harness_out/` · הטלפון.
 `ruled_contracts() = 1` נקרא לדיווח בלבד. 14 הקבצים-המלוכלכים של הסשן האחר לא נוגעו —
 הועלו לאינדקס המסמכים שלי בלבד, תוספות בלבד.
+
+---
+
+## 7 · ציר-הקוד של **פריט 3** — מה מייצר את התווית, ומה באמת אומר `*( )` (ריצה 328, 18.10 23:3x, קריאה-בלבד)
+
+הצעד-הבא של ריצה 327 היה "שאלה אחת ב-`trade_context.py:565`". הוא נענה, ובדרך **נמצאה
+טעות-קריאה בהזמנה עצמה**. אפס הרנס, אפס DB, אפס עריכת-קוד — רק קריאת-קוד ב-HEAD.
+
+### 7.1 · `*(value)` אינו הדגשה ואינו חלק מהתווית — זו כוכבית-**תת-כיסוי של העץ**
+
+`backend/v9/services/decision_tree.py:160-168`, גולמי:
+```python
+        for key, child in branches.items():
+            if key == "*":
+                continue
+            if _match(str(key), value):
+                chosen, key_taken = child, str(key); break
+        if chosen is None and "*" in branches:
+            chosen, key_taken = branches["*"], "*"
+        if chosen is None:
+            return {"leaf": "SKIP", ... f"no branch for {feat}={value}"}, path
+        path.append((feat, value if key_taken != "*" else f"*({value})"))
+```
+
+⇒ `day_type=*(Variation)` פירושו: **לעץ אין ענף ספציפי ל-`Variation` בצומת הזה, והוא לקח
+את ה-wildcard `*`**. הערך בסוגריים הוא הערך **הנצפה האמיתי** — ולכן ממצא-ההתיישנות של
+פריטים 1-2 **שורד במלואו** (`Trend_Normal` ב-16:30:05 אכן היה התווית של 05.10). אבל
+הכוכבית היא עובדה על **כיסוי-העץ**, לא על דיוק-התווית, ובהזמנה היא נקראה כאילו היא חלק
+מהתווית (`hour=*(16)`, `kind=*(WITH_DRIVE)`, `edge=*(none)` — כולם מכוכבים באותה שורה).
+
+**נגזרת מעשית לפריט 3:** ההצעה "שהעץ יראה `FORMING` עד נעילת-IB" **לא תשנה דבר בצמתים
+האלה** — הם ממילא לקחו `*`. המקום היחיד שבו דיוק-התווית מזיז התנהגות הוא ענף יום-ספציפי
+(**לא** מכוכב). לכן פריט 3 צריך קודם לספור אילו צמתים בעץ 3.4.0 מכוכבים על `day_type` —
+וזו מדידה על ה-YAML, בלי הרנס.
+
+### 7.2 · נשא **שני** לתווית-אתמול, שההזמנה אינה רושמת: `self._dp_hyst`
+
+`backend/v9/gateway/trading_gateway.py:1129-1155`, גולמי:
+```python
+                from backend.v9.services.trade_context import get_live_day_type as _dp_gldt
+                _dp_dt_raw = _dp_gldt() or ""
+                if not hasattr(self, "_dp_hyst"):
+                    self._dp_hyst = {"label": None, "bars": 0}
+                _dp_is_trend = _dp_dt_raw.startswith("Trend") if _dp_dt_raw else False
+                _dp_was_trend = (self._dp_hyst["label"] or "").startswith("Trend")
+                if _dp_is_trend and not _dp_was_trend:
+                    self._dp_hyst = {"label": _dp_dt_raw, "bars": 0}; _dp_dt = _dp_dt_raw
+                elif not _dp_is_trend and _dp_was_trend:
+                    if _dp_dt_raw == self._dp_hyst.get("pending_label"):
+                        self._dp_hyst["bars"] += 1
+                    else:
+                        self._dp_hyst["pending_label"] = _dp_dt_raw; self._dp_hyst["bars"] = 1
+                    if self._dp_hyst["bars"] >= 2:
+                        self._dp_hyst = {"label": _dp_dt_raw, "bars": 0}; _dp_dt = _dp_dt_raw
+                    else:
+                        _dp_dt = self._dp_hyst["label"]  # hold Trend
+                else:
+                    self._dp_hyst["label"] = _dp_dt_raw; _dp_dt = _dp_dt_raw
+```
+
+`self._dp_hyst` הוא **מצב-מופע של הגייטוויי**, מאותחל פעם אחת (`if not hasattr`) ו**לעולם
+לא מאופס בגבול-ה-RTH** — בשונה מהמכונה, שכן מתאפסת (`16:30:06 FIX-9 RTH-boundary reset`).
+לכן: אם `_dp_hyst["label"] == "Trend_Normal"` מ-05.10 ו-`_dp_dt_raw == ""` (המכונה UNKNOWN
+אחרי האיפוס) ⇒ `_dp_is_trend=False`, `_dp_was_trend=True` ⇒ ענף `Trend→other` ⇒ `bars=1 < 2`
+⇒ **`_dp_dt = self._dp_hyst["label"]` = התווית של אתמול, מוחזקת**.
+
+**הקרי מגודר ל-2 ברים בדיוק:** `_dp_dt_raw` נשאר `""` בכל בר, ולכן בבר הבא
+`_dp_dt_raw == pending_label` ⇒ `bars=2` ⇒ שחרור. זה **בדיוק** חלון 16:30→16:40 הנצפה.
+
+**המשמעות לפריט 2 — "שורש אחד, תיקון אחד" אינו שלם:** `CLS_RESULT_SESSION_GUARD_V1`
+מגדר את `_resolve_live_cls()` בלבד, שמזין את **`_dp_ot`** (סוג-פתיחה). `_dp_dt` **אינו עובר
+דרך `_resolve_live_cls()` כלל** — הוא בא מ-`get_live_day_type()` + `_dp_hyst`. ⇒ הדגל יתקן
+את סוג-הפתיחה ו**ישאיר את תווית-היום הישנה פתוחה**. שני נשאים, לא אחד.
+
+### 7.3 · מה **לא** יוחס (Rule 1): מקור ה-`Variation` ב-16:40–17:05
+
+`trade_context.py:565-572` (docstring גולמי): *"Returns the mapped day_type string (e.g.
+"Trend_Normal", "Variation") **or None if unavailable/UNKNOWN/FORMING**. Gated by
+DAYTYPE_GATE_LIVE_V1 flag; returns None when OFF."*
+
+⇒ שני המשטחים שההזמנה מונה **אינם יכולים** לייצר `Variation` כשהמכונה UNKNOWN:
+1. `get_live_day_type()` מחזיר `None` על UNKNOWN/FORMING ⇒ `_dp_dt_raw = ""`.
+2. `_dp_hyst` **מחזיק רק תווית שמתחילה ב-"Trend"** (ענף-ההחזקה דורש `_dp_was_trend`);
+   `"Variation"` אינו כזה, ולכן הוא נופל לענף האחרון ⇒ `_dp_dt = _dp_dt_raw = ""`.
+
+⇒ קיים **מקור שלישי**, ואין לו מדידה. **אינו מיוחס.** המועמד הצר ביותר, ובדיקה זולה
+וקריאה-בלבד לביצוע הבא: `trade_context.py:592` — נקודת-הקריאה של `DAYTYPE_GATE_LIVE_V1`,
+שה-FLAG_INDEX מתאר כ-*"the LIVE in-memory promoted attribute
+(`app.state.day_type_machine.day_type`)"*. כלומר **התכונה** של המכונה עשויה להחזיק
+`Variation` בעוד **לוג-הסיווג** אומר UNKNOWN — שני משטחים על אותו אובייקט, בדיוק
+תצפית (ב) של ריצה 327 (הפער לא נסגר ב-17:05 אחרי הסיווג ב-17:00). להימדד, לא להסיק.
+
+### 7.4 · מצבי-הדגלים — מהמשטח הקנוני, אחרי שהמשטח הלא-נכון נזרק
+
+`ps eww -o command= -p 2030` החזיר `<not in proc env>` לכל חמשת המפתחות. **זו אינה ראיה
+שהם כבויים** — macOS אינו מאפשר קריאת סביבה של תהליך אחר, והבקאנד טוען `.env` בתוך
+התהליך דרך dotenv, כך ש-`os.getenv` רואה אותם בלי שיופיעו בסביבת-הקרנל. המשטח הקנוני
+(`flag_guard`, גולמי) ו-`docs/FLAG_INDEX.md`:
+
+| דגל | מצב | משטח |
+|---|---|---|
+| `DALTON_PLAYBOOK_V1` | ✓ `expected=1 actual=1` | flag_guard ⇒ בלוק `_dp_dt`/`_dp_hyst` **חי** |
+| `DECISION_TREE_V3` | ✓ `expected=1 actual=1` | flag_guard |
+| `DAYTYPE_HONEST_PRELOCK_V1` | ✓ `expected=1 actual=1` | flag_guard |
+| `DAYTYPE_GATE_LIVE_V1` | ✅ ON `1` (.env), ברירת-קוד `""`→OFF | FLAG_INDEX · `trade_context.py:592` |
+| `CLS_RESULT_SESSION_GUARD_V1` | אינו ב-flag_guard ואינו ב-FLAG_INDEX ⇒ ברירת-קוד `"0"` = כבוי | `trading_gateway.py:231` |
+
+**אפס הדלקה.** הפסיקה על `CLS_RESULT_SESSION_GUARD_V1` — ועל כך שהוא כנראה **אינו מספיק
+לבדו** (7.2) — היא של מייקל.
+
+### 7.5 · חצי-הריפליי — עדיין **NOT-DONE**, והשער שריצה 327 קבעה **אינו מתקיים**
+
+ריצה 327 קבעה בלוג-המשימות: *"לפני כל נגיעה: `ps | grep fwd_harness` ⇒ 0"*.
+נמדד ב-23:35–23:37, גולמי:
+```
+82251  00:24  PY scripts/fwd_harness.py --session 2024-05-13 --variant hist_k \
+                 --out harness_out/t466/hist_k_2024-05-13.json --quiet
+82264  00:24  PY scripts/fwd_harness.py --session 2024-05-14 --variant hist_k \
+                 --out harness_out/t466/hist_k_2024-05-14.json --quiet
+11157  03:44:36  bash chain11.sh
+51046  06:33:55  bash /Users/michael/mems26_hist/chain8.sh
+95626  00:58:51  bash harness_out/t586/hist/run_hist.sh hist_k TREE_SKIP_KINDS=REVERSAL,EDGE_FADE
+```
+⇒ **לא 0 אלא 2 עובדים חיים**, ו-`--out` שלהם הוא `harness_out/t466/` — **בדיוק** ספריית
+הקריאה/כתיבה של פריט 1. ה-PID התחלפו בתוך ~90 שנ' (81239/81480 ⇒ 82251/82264), כלומר
+סריקה פעילה שבה כל עובד חדש **טוען את `fwd_harness.py` מהדיסק בהפעלה** — הוספת שורת-INFO
+ב-`:790` הייתה משנה את הפלט של סוכן אחר על מאות סשנים, בשקט, בלי קונפליקט-git ובלי שגיאה.
+בעלות-העריכה על הקובץ טרייה ושל אותו סשן: `git log -1 -- scripts/fwd_harness.py ⇒
+3e1a9b40 2026-10-18 19:52 T-597`. בנוסף: swap 3,006M/4,096M, RAM פנוי 39M, load 7.02.
+
+⇒ **אפס claim, אפס סוכן-משנה, אפס נגיעה** ב-`fwd_harness.py` וב-`harness_out/`.
+השער של ריצה 327 נשאר בתוקף ו**לא התקיים** גם בריצה 328 (ריצה שנייה ברצף). מלכודת 38
+(קומיט = ראיה בדיעבד, תהליך = ראיה בזמן-אמת) מאוששת פעם שנייה, ממדידה עצמאית.
+
+**מה כן נמסר במקום:** ציר-הקוד של פריט 3 (7.1–7.4) — קריאה-בלבד, אפס תחרות-CPU, ועונה
+על הצעד-הבא של ריצה 327 **ומתקן טעות-קריאה בהזמנה** (ה-`*( )`).
+
+### 7.6 · אפס-נגיעה (ריצה 328)
+
+ריסטארט · GO/NO-GO · דגלים · דגלי-גודל · `.env` · פוזיציות · פקודות · `op=EXIT` ·
+קוד-פרודקשן · DLL · סיירה · עץ-ההחלטות · כתיבות-DB · `broker_truth --write` ·
+`fwd_harness.py` · `harness_out/` · הטלפון. `ruled_contracts() = 1` לדיווח בלבד.
