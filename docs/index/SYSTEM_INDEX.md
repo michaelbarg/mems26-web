@@ -1,6 +1,6 @@
 # MEMS26 · אינדקס-המערכת (נוצר אוטומטית — `scripts/system_index.py`)
 
-**נוצר:** 2026-10-09 06:11:58 · **HEAD:** `1b99adee 2026-10-09 00:49 claude_project mirror: NIGHT_2026-10-08 (night queue 0/7, live day, rulings for 08:30) + README row` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 11334 · **עץ:** 3.4.0 · **דגלים פסוקים:** 274 (ON 216 · shadow 14 · עם measured 24 · אי-התאמה 0)
+**נוצר:** 2026-10-18 09:55:42 · **HEAD:** `98b8e061 2026-10-18 09:45 T-585: backend → demo (Michael 09.10 'העברתי לדמו') — snapshot 20261018T064016Z, .env MEMS26_MODE=demo + LIVE_TRADING_V1=0 only, pid 2` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 11368 · **עץ:** 3.4.0 · **דגלים פסוקים:** 274 (ON 216 · shadow 14 · עם measured 24 · אי-התאמה 0)
 
 ## 1 · מדיד-עכשיו (פריטים פתוחים עם צעד-מדידה, לפי חומרה) — 40
 
@@ -51,60 +51,60 @@
 
 | תבנית | מערכת | החלטות | עברו-עץ+שערים | ירי-לייב | P&L לייב | live-capable | מפסק | 3 התוצאות הנפוצות |
 |---|---|---|---|---|---|---|---|---|
-| ZLR | 4 | 624 | 186 | 0 | 0.0 | False | `ZLR_SHADOW_V1` | (passed) 186 · tree:stand_down 180 · tree:location 98 |
-| CEILING_FLIP_TOUCH2 | 2 | 413 | 217 | 2 | -137.5 | False | `CEILING_FLIP_TOUCH2_V1` | (passed) 217 · tree:stand_down 50 · dalton_intent:stand_down 48 |
-| REACTIVE_SHORT | 2 | 71 | 4 | 0 | 0.0 | True | `live producer` | tree:stand_down 61 · (passed) 4 · tree:location 2 |
-| GHOST | 4 | 54 | 19 | 4 | -41.25 | True | `live producer` | (passed) 19 · tree:stand_down 11 · dalton_intent:stand_down 8 |
+| ZLR | 4 | 619 | 195 | 0 | 0.0 | False | `ZLR_SHADOW_V1` | (passed) 195 · tree:stand_down 183 · tree:location 98 |
+| CEILING_FLIP_TOUCH2 | 2 | 399 | 209 | 0 | 0.0 | False | `CEILING_FLIP_TOUCH2_V1` | (passed) 209 · tree:stand_down 54 · tree:bias 42 |
+| REACTIVE_SHORT | 2 | 72 | 4 | 0 | 0.0 | True | `live producer` | tree:stand_down 61 · (passed) 4 · dalton_intent:stand_down 2 |
+| GHOST | 4 | 49 | 17 | 2 | -30.0 | True | `live producer` | (passed) 17 · tree:stand_down 14 · tree:bias 7 |
 |  | 4 | 40 | 3 | 0 | 0.0 | True | `live producer` | dalton_intent:stand_down 18 · tree:stand_down 12 · dalton_intent:bias 9 |
-| GB100 | 4 | 38 | 8 | 4 | -25.0 | True | `live producer` | dalton_intent:stand_down 9 · (passed) 8 · tree:bias 5 |
-| INITIATIVE_LONG | 2 | 37 | 9 | 3 | 5.0 | True | `live producer` | (passed) 9 · tree:bias 8 · tree:stand_down 7 |
-| TREND_STEP | 4 | 36 | 10 | 0 | 0.0 | False | `TREND_STEP_ENTRY_V1` | tree:location 11 · (passed) 10 · tree:stand_down 4 |
-| FAMIR | 4 | 33 | 8 | 3 | -17.5 | True | `live producer` | tree:bias 12 · tree:stand_down 10 · (passed) 8 |
-| DOUBLE_BOTTOM_EE_LONG | 2 | 33 | 4 | 2 | 102.5 | True | `live producer` | tree:bias 7 · dalton_intent:stand_down 6 · tree:stand_down 5 |
+| INITIATIVE_LONG | 2 | 38 | 10 | 1 | 28.75 | True | `live producer` | (passed) 10 · tree:bias 9 · tree:stand_down 7 |
+| TREND_STEP | 4 | 36 | 11 | 0 | 0.0 | False | `TREND_STEP_ENTRY_V1` | (passed) 11 · tree:location 11 · tree:stand_down 5 |
+| GB100 | 4 | 36 | 8 | 4 | -25.0 | True | `live producer` | (passed) 8 · dalton_intent:stand_down 8 · tree:kind 5 |
+| FAMIR | 4 | 35 | 8 | 2 | -56.25 | True | `live producer` | tree:bias 12 · tree:stand_down 12 · (passed) 8 |
+| DOUBLE_BOTTOM_EE_LONG | 2 | 33 | 5 | 2 | 72.5 | True | `live producer` | tree:bias 7 · dalton_intent:stand_down 6 · (passed) 5 |
 | REACTIVE_LONG | 2 | 31 | 7 | 4 | 10.0 | True | `live producer` | (passed) 7 · tree:stand_down 7 · tree:bias 6 |
-| DOUBLE_BOTTOM_EE | 4 | 30 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 15 · variation_mid_value 12 · dalton_intent:stand_down 3 |
-| S2_DELTA_DBL_SHORT | 2 | 25 | 7 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | (passed) 7 · dalton_intent:bias 6 · tree:location 6 |
+| DOUBLE_BOTTOM_EE | 4 | 25 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 15 · variation_mid_value 10 |
 | DOUBLE_TOP_AA_SHORT | 2 | 22 | 11 | 3 | 7.5 | True | `live producer` | (passed) 11 · tree:location 4 · tree:bias 3 |
 | CONFLUENCE_RI_ZLR | 4 | 21 | 0 | 0 | 0.0 | True | `CONFLUENCE_RI_ZLR_LIVE` | tree:stand_down 20 · tree:time_cutoff 1 |
-| FAILED_RE_IB | 2 | 19 | 3 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 4 · dalton_intent:bias 3 · tree:bias 3 |
-| CEILING_FLIP_SHORT | 2 | 17 | 11 | 4 | -61.25 | True | `CEILING_FLIP_SHORT_V1` | (passed) 11 · dalton_intent:stand_down 3 · tree:location 2 |
-| INITIATIVE_SHORT | 2 | 17 | 9 | 3 | -242.5 | True | `live producer` | (passed) 9 · tree:bias 4 · tree:time_cutoff 2 |
-| CEILING_FLIP_LONG | 2 | 16 | 13 | 5 | -121.25 | True | `CEILING_FLIP_SHORT_V1` | (passed) 13 · tree:location 1 · tree:bias 1 |
+| FAILED_RE_IB | 2 | 20 | 3 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 5 · (passed) 3 · tree:location 3 |
+| S2_DELTA_DBL_SHORT | 2 | 20 | 6 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | (passed) 6 · dalton_intent:bias 6 · tree:location 6 |
+| CEILING_FLIP_LONG | 2 | 16 | 13 | 4 | -43.75 | True | `CEILING_FLIP_SHORT_V1` | (passed) 13 · tree:bias 2 · tree:location 1 |
+| INITIATIVE_SHORT | 2 | 16 | 8 | 1 | -56.25 | True | `live producer` | (passed) 8 · tree:bias 4 · tree:time_cutoff 2 |
+| CEILING_FLIP_SHORT | 2 | 16 | 11 | 5 | -61.25 | True | `CEILING_FLIP_SHORT_V1` | (passed) 11 · dalton_intent:stand_down 2 · tree:location 2 |
+| FAILED_BREAK_LONG | 2 | 12 | 2 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | tree:stand_down 5 · dalton_intent:stand_down 3 · (passed) 2 |
 | HTLB | 4 | 12 | 2 | 0 | 0.0 | True | `live producer` | tree:bias 5 · dalton_intent:stand_down 3 · (passed) 2 |
-| FAILED_BREAK_LONG | 2 | 12 | 2 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | tree:stand_down 4 · dalton_intent:stand_down 3 · (passed) 2 |
-| FAILED_BREAK_SHORT | 2 | 11 | 4 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | (passed) 4 · tree:stand_down 3 · dalton_intent:stand_down 2 |
-| VA_FADE_SHORT | 2 | 11 | 5 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 5 · tree:bias 3 · tree:location 1 |
-| VA_FADE_LONG | 2 | 10 | 5 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 5 · tree:bias 3 · tree:location 1 |
-| VEGAS | 4 | 9 | 1 | 2 | -73.75 | True | `live producer` | tree:location 2 · tree:bias 2 · dalton_intent:stand_down 2 |
-| DALTON_EDGE_LONG | 2 | 8 | 3 | 1 | 28.75 | True | `DALTON_EDGE_V1` | (passed) 3 · dalton_intent:bias 1 · dalton_intent:stand_down 1 |
-| S2_DELTA_DBL_LONG | 2 | 7 | 3 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | tree:location 3 · (passed) 3 · dalton_intent:bias 1 |
-| DALTON_EDGE_SHORT | 2 | 7 | 3 | 2 | -8.75 | True | `DALTON_EDGE_V1` | (passed) 3 · tree:stand_down 1 · tree:time_cutoff 1 |
+| VA_FADE_SHORT | 2 | 12 | 5 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 5 · tree:bias 4 · tree:kind 1 |
+| FAILED_BREAK_SHORT | 2 | 11 | 5 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | (passed) 5 · tree:stand_down 3 · tree:location 2 |
+| VA_FADE_LONG | 2 | 9 | 4 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 4 · tree:bias 3 · dalton_intent:bias 1 |
+| VEGAS | 4 | 9 | 1 | 1 | -33.75 | True | `live producer` | dalton_intent:stand_down 2 · tree:location 2 · tree:bias 2 |
+| OPENING_DRIVE | 2 | 8 | 6 | 4 | -90.0 | True | `OPENING_ENTRY_V1` | (passed) 6 · tree:kind 1 · dalton_intent:bias 1 |
+| S2_DELTA_DBL_LONG | 2 | 7 | 3 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | (passed) 3 · tree:location 3 · dalton_intent:bias 1 |
+| DALTON_EDGE_LONG | 2 | 7 | 3 | 1 | 28.75 | True | `DALTON_EDGE_V1` | (passed) 3 · dalton_intent:stand_down 1 · tree:bias 1 |
+| DALTON_EDGE_SHORT | 2 | 7 | 3 | 2 | -8.75 | True | `DALTON_EDGE_V1` | (passed) 3 · dalton_intent:bias 1 · dalton_intent:stand_down 1 |
+| OPENING_PULLBACK_CONT | 2 | 7 | 0 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | tree:kind 4 · tree:bias 2 · dalton_intent:kind 1 |
 | OPENING_EXTREME_REJECT | 2 | 7 | 4 | 1 | -61.25 | True | `OPENING_ENTRY_V1` | (passed) 4 · dalton_intent:kind 2 · tree:location 1 |
-| OPENING_DRIVE | 2 | 7 | 5 | 4 | -77.5 | True | `OPENING_ENTRY_V1` | (passed) 5 · dalton_intent:bias 1 · tree:kind 1 |
-| OPENING_PULLBACK_CONT | 2 | 6 | 0 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | tree:kind 4 · dalton_intent:kind 1 · tree:bias 1 |
-| REACTIVE | 4 | 6 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 5 · dalton_intent:stand_down 1 |
+| REACTIVE | 4 | 5 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 5 |
+| BULL_FLAG_LONG | 2 | 4 | 2 | 1 | 6.25 | True | `live producer` | tree:stand_down 2 · (passed) 2 |
 | STRATEGIC | 2 | 4 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 4 |
-| BULL_FLAG_LONG | 2 | 4 | 2 | 2 | -131.25 | True | `live producer` | tree:stand_down 2 · (passed) 2 |
 | OPENING_TEST_DRIVE | 2 | 3 | 3 | 2 | 83.75 | True | `OPENING_ENTRY_V1` | (passed) 3 |
+| TT | 4 | 2 | 0 | 0 | 0.0 | True | `live producer` | tree:location 1 · dalton_intent:bias 1 |
+| RE_ACCEPTANCE | 2 | 2 | 0 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 2 |
 |  | 2 | 2 | 0 | 0 | 0.0 | True | `live producer` | dalton_intent:stand_down 18 · tree:stand_down 12 · dalton_intent:bias 9 |
-| TT | 4 | 2 | 0 | 0 | 0.0 | True | `live producer` | dalton_intent:bias 1 · tree:location 1 |
-| RE_ACCEPTANCE | 2 | 1 | 0 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 1 |
 | OPENING_ORR | 2 | 1 | 1 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | (passed) 1 |
 
 ## 3 · שערים (blocked_by, 30 יום)
 
 | שער | n |
 |---|---|
-| `(passed)` | 572 |
-| `tree:stand_down` | 413 |
-| `dalton_intent:stand_down` | 206 |
+| `(passed)` | 573 |
+| `tree:stand_down` | 429 |
 | `tree:location` | 174 |
-| `tree:bias` | 143 |
-| `dalton_intent:bias` | 77 |
+| `dalton_intent:stand_down` | 159 |
+| `tree:bias` | 152 |
+| `dalton_intent:bias` | 67 |
 | `tree:time_cutoff` | 67 |
-| `tree:kind` | 29 |
+| `tree:kind` | 30 |
 | `dalton_intent:kind` | 14 |
-| `variation_mid_value` | 12 |
+| `variation_mid_value` | 10 |
 
 ## 4 · העץ (3.4.0)
 
@@ -573,16 +573,16 @@
 
 | טבלה | שורות | max ts (IL) |
 |---|---|---|
-| `v9_trades` | 3184 | 2026-10-08 22:56 |
-| `v9_decision_vectors` | 206601 | 2026-10-09 06:10 |
-| `v9_bars_5min_woodies` | 21960 | 2026-10-09 06:10 |
-| `v9_bars_5min` | 5180 | 2026-10-08 23:55 |
-| `v9_day_type_state` | 78 |  |
-| `v9_exit_decisions` | 17127 |  |
-| `v9_trade_management_log` | 352652 |  |
-| `v9_woodies_signals` | 3965 |  |
+| `v9_trades` | 3236 | 2026-10-09 19:20 |
+| `v9_decision_vectors` | 211907 | 2026-10-09 22:10 |
+| `v9_bars_5min_woodies` | 22203 | 2026-10-12 07:55 |
+| `v9_bars_5min` | 5306 | 2026-10-09 23:55 |
+| `v9_day_type_state` | 0 |  |
+| `v9_exit_decisions` | 17335 |  |
+| `v9_trade_management_log` | 352732 |  |
+| `v9_woodies_signals` | 3989 |  |
 | `v9_footprint_journal` | 9958 | 179088-12-30 00:00 |
-| `v9_bars_cumulative_delta` | 9216 | 2026-10-08 23:55 |
+| `v9_bars_cumulative_delta` | 9374 | 2026-10-09 23:55 |
 | `broker_truth` | None | missing |
 
 ## 7 · LaunchAgents
@@ -591,7 +591,7 @@
 |---|---|---|
 | `com.mems26.agents_bootstrap` | - | 0 |
 | `com.mems26.mobile_relay` | 1629 | 0 |
-| `com.mems26.backend` | 85469 | -15 |
+| `com.mems26.backend` | 2030 | -15 |
 | `com.mems26.update_check` | - | 0 |
 | `com.mems26.export_promoter` | 1619 | 0 |
 | `com.mems26.startup_check` | - | 0 |
@@ -600,7 +600,7 @@
 | `com.mems26.bridge` | 637 | 0 |
 | `com.mems26.activity_feed` | 1624 | 0 |
 
-## 8 · תיקטים — 420 סה״כ · 353 פתוחים · {'🔴': 105, '🟠': 166, '🟡': 29, '✅': 51, '🔵': 53, '⚠️': 3, '🔴🔴': 9, '🟢': 1, '📄': 1, '📊': 1, '⚪': 1}
+## 8 · תיקטים — 426 סה״כ · 358 פתוחים · {'🔴': 105, '🟠': 166, '🟡': 31, '✅': 51, '🔵': 56, '⚠️': 3, '🟢': 2, '🔴🔴': 9, '📄': 1, '📊': 1, '⚪': 1}
 
 | # | סטטוס | כותרת | הצעד הבא |
 |---|---|---|---|
@@ -875,6 +875,8 @@
 | T-103 | 🟠 | Candidate Ledger — פריט-1, אפס סיכון. |  |
 | T-102 | 🟠 | Task-0: לאחד 52 כלי replay/backtest/study ל-Replay Kernel אחד. |  |
 | T-89 | 🟠 | ביקורת המערכות-המתות (22.08, קריאה-בלבד) — 4 ממצאים חוסמים-אמת. | ‏(א) מייקל פוסק על (2) — או שהחיצוני חוזר ל-`1` או ששני הפנימיים ל-`0`; **לא להשאיר שלוש פסיקות סותרות**. (ב) cc: להעתיק את הפיקסצ'ר של 8 השורות מ-`backend/v9/t |
+| T-581 | 🟡 | `/api/v9/gateway/status` משרת `daily_pnl` של  | (1) להחליט את ה**תיקון-התצוגה** בלבד — או לתייג את השדה ב-`get_status` כ-`session_pnl_since_boot` ולהוסיף `daily_pnl_today` שנקרא מהספרים לפי `entry_ts::date=cu |
+| T-580 | 🟡 | פסיקות-הלילה של 09.10 נכתבו לאינבוקס ב-00:45/00:48 IL ולא הגיעו למייקל — אפס הודעות-טלפון אליו היום, ובתוכן פר | (1) **ריצת-15:3x נושאת את שורת-האינבוקס §1 בתוך הודעת-השער** (מקרה ד, ≤500 תווים, שאלה אחת בסוף: א/ב/ג) — זה חלון-הטלפון המאושר היחיד שנותר לפני הפתיחה. (2) ⛔ * |
 | T-552 | 🟡 | הודעת-טלפון יחידה הגיעה למייקל פעמיים — הכפילות ממוקמת אחרי ה-POST היחיד, לא בהרצה כפולה. | (1) **לא לשלוח הודעת-בדיקה לטלפון** כדי לשחזר — זו בדיוק ההצפה. (2) להכריע מלוגי-השרת: `list_logs` של שירות `mems26-mobile` ברנדר סביב `15:53:59-15:54:01Z` ⇒ ** |
 | T-541 | 🟡 | לוח-ההחלטות לא יוכל להראות את חיתוך-20:00 של T-538 — נקודת-התצוגה אינה מאכלסת `hour`, ולכן נופלת תמיד ל-`"*":  | (1) **המבחן המכריע קודם לתיקון** — מועמד אמיתי אחרי 20:00 IL בליגר עם `hour=">19" ⇒ SKIP`; רק הוא מוכיח שהחיתוך פועל בנתיב-הירי; (2) אם אומת ⇒ החלטה אם לאכלס `h |
 | T-511 | 🟡 | שורט ידני של מייקל (‏`InternalOrderID 11357`) פתח [[T-43]] ב-`20:27` ונעל את ירי-הלייב לשארית הסשן — והבעלות נ |  |
@@ -904,6 +906,9 @@
 | T-91 | 🟡 | רפליי E1–E3 — כל שינוי-כניסה שהוצע, נמדד (34 סשני-לייב ‎07-07→08-21‎ · 3 רמות-סליפג' · עמלות בפנים · 4 חוזים). |  |
 | T-90 | 🟡 | רפליי X1–X4 — כל שינוי-יציאה ושינוי-גודל שהוצע, נמדד (28/29 סשנים · 3 רמות-סליפג' · עמלות בפנים). |  |
 | T-87 | 🟡 | תקציב-הכניסות של Normal ראשון-בא-ראשון-זוכה — ובזבז את שני הסלוטים על שני ZLR שורט בשפל-הסשן. |  |
+| T-584 | 🔵 | יום-שישי 09.10 סחר בכסף-אמת על עץ-עבודה שאינו ב-`git` — 12 קבצים מעוקבים שונו, שלושה מהם בנתיב-הבאקנד, והריסטא | (1) **בעל-העריכות מזהה את עצמו ומקמט או מחזיר** את 12 הקבצים — `git add -p` לשלושת קבצי-הבאקנד + `FLAG_REGISTRY.yaml` בקומיט אחד עם מצביע-פסיקה, ולוח-החדשות בקו |
+| T-583 | 🔵 | דחיית-מרג'ין של הברוקר נרשמת בספרים כ-`SIERRA_FLAT/UNPRICED` ולא כ-`REJECTED` — FIX-10 לא מתאם אותה כי העסקה כ |  |
+| T-582 | 🔵 | שומר-יום-הסוג יורה `CRITICAL` כזוב בכל יום שבו רץ ריסטארט-קדם-פתיחה — שעון-ההתיישנות מודד את אזור-המת שבין הרי |  |
 | T-579 | 🔵 | היתר REACTIVE_SHORT ביום Variation 18:00–19:59 נגד-ההינט — BRIEF §2.2 #2, לבדו (fix-agent ליל 08→09.10). |  |
 | T-578 | 🔵 | קרטוע-הדיספאטץ' של ה-backend אינו מוסבר לא ע"י תחרות-מכונה ולא ע"י `open FILLED rows` — שתי ההשערות הופרכו באו | (א) **למדוד את `n` עצמו ולא את ההשהיה** — מה מפעיל `dispatch total` ומה קובע את תדירותו (`bar_router` נקרא פעם-לבר או פעם-לדחיפה?); `n=544` ב-0 שורות מול `n=303 |
 | T-577 | 🔵 | `shadow_active_count` של הגייטוויי אינו ספירת-עסקאות-צל-פתוחות — הוא append-only, ולכן אינו יכול לרדת; וסוכנים | (א) **שינוי-שם לפני שינוי-התנהגות** — `shadow_active_count` ⇒ `shadow_routed_since_boot`, ולהוסיף לידו `shadow_open_count` שנקרא **מה-DB** (`exit_ts IS NULL AND |
@@ -1220,7 +1225,11 @@
 
 ## 10 · דוחות אחרונים
 
-- `docs/reports/OPS_LOG_2026-10-08.md` (2026-10-09 05:45)
+- `docs/reports/OPS_LOG_2026-10-18.md` (2026-10-18 09:42)
+- `docs/reports/REPLAY_REVIEW_2026-10-10.md` (2026-10-10 05:30)
+- `docs/reports/DAY_REVIEW_2026-10-09.md` (2026-10-10 05:30)
+- `docs/reports/OPS_LOG_2026-10-09.md` (2026-10-09 22:03)
+- `docs/reports/OPS_LOG_2026-10-08.md` (2026-10-09 06:58)
 - `docs/reports/DOCTRINE_CELLS_2026-10-09.md` (2026-10-09 00:47)
 - `docs/reports/NIGHT_QUEUE_2026-10-09.md` (2026-10-09 00:47)
 - `docs/reports/T265_T532_RAW_5MIN_CANONICAL_FAILOVER_2026-10-09.md` (2026-10-09 00:11)
@@ -1228,20 +1237,16 @@
 - `docs/reports/REPLAY_REVIEW_2026-10-08.md` (2026-10-08 23:08)
 - `docs/reports/DAY_REVIEW_2026-10-08.md` (2026-10-08 23:08)
 - `docs/reports/SUPERVISION_LATEST.md` (2026-10-08 22:36)
-- `docs/reports/SUPERVISION_2026-10-08_2236.md` (2026-10-08 22:36)
-- `docs/reports/SUPERVISION_2026-10-08_2136.md` (2026-10-08 21:36)
-- `docs/reports/WALK_FORWARD_2026-10-05.md` (2026-10-08 21:35)
-- `docs/reports/T24_CONTEXT_VARIANT_2026-10-07.md` (2026-10-08 21:35)
 
 ## 11 · ריצות-הרנס אחרונות
 
+- `harness_out/t586` — ALL DONE t567ref Sun Oct 18 09:50:13 IDT 2026
+- `harness_out/t466` — ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026
+- `harness_out/t585` — 
 - `harness_out/t579` — === summary table (fix-agent, 00:38)
 - `harness_out/t567` — ALL DONE 00:37:28
-- `harness_out/t466` — ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026
 - `harness_out/t575` — 
 - `harness_out/t571` — 
 - `harness_out/t566` — ALL DONE Thu Oct  8 12:50:41 IDT 2026
 - `harness_out/t564` — ALL DONE t564ref2 Thu Oct  8 02:37:47 IDT 2026
 - `harness_out/t543` — 
-- `harness_out/t542` — 25 passed, 2 warnings in 16.63s
-- `harness_out/t538` — ALL DONE t538h Mon Oct  5 16:04:17 IDT 2026

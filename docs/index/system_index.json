@@ -1,11 +1,11 @@
 {
- "generated_at": "2026-10-09 06:11:58",
+ "generated_at": "2026-10-18 09:55:42",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "1b99adee 2026-10-09 00:49 claude_project mirror: NIGHT_2026-10-08 (night queue 0/7, live day, rulings for 08:30) + README row",
+   "head": "98b8e061 2026-10-18 09:45 T-585: backend → demo (Michael 09.10 'העברתי לדמו') — snapshot 20261018T064016Z, .env MEMS26_MODE=demo + LIVE_TRADING_V1=0 only, pid 2",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
-   "dirty_files": 11334,
+   "dirty_files": 11368,
    "tree_version": "3.4.0",
    "ruled_flags": 274,
    "flags_mismatch": [],
@@ -2718,37 +2718,37 @@
   {
    "pattern": "ZLR",
    "system": "4",
-   "decisions": 624,
-   "passed_tree_gates": 186,
+   "decisions": 619,
+   "passed_tree_gates": 195,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "ZLR_SHADOW_V1",
    "top": [
-    "(passed) 186",
-    "tree:stand_down 180",
+    "(passed) 195",
+    "tree:stand_down 183",
     "tree:location 98"
    ]
   },
   {
    "pattern": "CEILING_FLIP_TOUCH2",
    "system": "2",
-   "decisions": 413,
-   "passed_tree_gates": 217,
-   "live_fires": 2,
-   "live_pnl": -137.5,
+   "decisions": 399,
+   "passed_tree_gates": 209,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": false,
    "switch": "CEILING_FLIP_TOUCH2_V1",
    "top": [
-    "(passed) 217",
-    "tree:stand_down 50",
-    "dalton_intent:stand_down 48"
+    "(passed) 209",
+    "tree:stand_down 54",
+    "tree:bias 42"
    ]
   },
   {
    "pattern": "REACTIVE_SHORT",
    "system": "2",
-   "decisions": 71,
+   "decisions": 72,
    "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -2757,22 +2757,22 @@
    "top": [
     "tree:stand_down 61",
     "(passed) 4",
-    "tree:location 2"
+    "dalton_intent:stand_down 2"
    ]
   },
   {
    "pattern": "GHOST",
    "system": "4",
-   "decisions": 54,
-   "passed_tree_gates": 19,
-   "live_fires": 4,
-   "live_pnl": -41.25,
+   "decisions": 49,
+   "passed_tree_gates": 17,
+   "live_fires": 2,
+   "live_pnl": -30.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 19",
-    "tree:stand_down 11",
-    "dalton_intent:stand_down 8"
+    "(passed) 17",
+    "tree:stand_down 14",
+    "tree:bias 7"
    ]
   },
   {
@@ -2791,32 +2791,17 @@
    ]
   },
   {
-   "pattern": "GB100",
-   "system": "4",
-   "decisions": 38,
-   "passed_tree_gates": 8,
-   "live_fires": 4,
-   "live_pnl": -25.0,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "dalton_intent:stand_down 9",
-    "(passed) 8",
-    "tree:bias 5"
-   ]
-  },
-  {
    "pattern": "INITIATIVE_LONG",
    "system": "2",
-   "decisions": 37,
-   "passed_tree_gates": 9,
-   "live_fires": 3,
-   "live_pnl": 5.0,
+   "decisions": 38,
+   "passed_tree_gates": 10,
+   "live_fires": 1,
+   "live_pnl": 28.75,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 9",
-    "tree:bias 8",
+    "(passed) 10",
+    "tree:bias 9",
     "tree:stand_down 7"
    ]
   },
@@ -2824,29 +2809,44 @@
    "pattern": "TREND_STEP",
    "system": "4",
    "decisions": 36,
-   "passed_tree_gates": 10,
+   "passed_tree_gates": 11,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "TREND_STEP_ENTRY_V1",
    "top": [
+    "(passed) 11",
     "tree:location 11",
-    "(passed) 10",
-    "tree:stand_down 4"
+    "tree:stand_down 5"
+   ]
+  },
+  {
+   "pattern": "GB100",
+   "system": "4",
+   "decisions": 36,
+   "passed_tree_gates": 8,
+   "live_fires": 4,
+   "live_pnl": -25.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 8",
+    "dalton_intent:stand_down 8",
+    "tree:kind 5"
    ]
   },
   {
    "pattern": "FAMIR",
    "system": "4",
-   "decisions": 33,
+   "decisions": 35,
    "passed_tree_gates": 8,
-   "live_fires": 3,
-   "live_pnl": -17.5,
+   "live_fires": 2,
+   "live_pnl": -56.25,
    "live_capable": true,
    "switch": "live producer",
    "top": [
     "tree:bias 12",
-    "tree:stand_down 10",
+    "tree:stand_down 12",
     "(passed) 8"
    ]
   },
@@ -2854,15 +2854,15 @@
    "pattern": "DOUBLE_BOTTOM_EE_LONG",
    "system": "2",
    "decisions": 33,
-   "passed_tree_gates": 4,
+   "passed_tree_gates": 5,
    "live_fires": 2,
-   "live_pnl": 102.5,
+   "live_pnl": 72.5,
    "live_capable": true,
    "switch": "live producer",
    "top": [
     "tree:bias 7",
     "dalton_intent:stand_down 6",
-    "tree:stand_down 5"
+    "(passed) 5"
    ]
   },
   {
@@ -2883,7 +2883,7 @@
   {
    "pattern": "DOUBLE_BOTTOM_EE",
    "system": "4",
-   "decisions": 30,
+   "decisions": 25,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -2891,23 +2891,7 @@
    "switch": "live producer",
    "top": [
     "tree:stand_down 15",
-    "variation_mid_value 12",
-    "dalton_intent:stand_down 3"
-   ]
-  },
-  {
-   "pattern": "S2_DELTA_DBL_SHORT",
-   "system": "2",
-   "decisions": 25,
-   "passed_tree_gates": 7,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "S2_DELTA_DBL_V1",
-   "top": [
-    "(passed) 7",
-    "dalton_intent:bias 6",
-    "tree:location 6"
+    "variation_mid_value 10"
    ]
   },
   {
@@ -2942,46 +2926,31 @@
   {
    "pattern": "FAILED_RE_IB",
    "system": "2",
-   "decisions": 19,
+   "decisions": 20,
    "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "RE_ACCEPTANCE_V1",
    "top": [
-    "tree:stand_down 4",
-    "dalton_intent:bias 3",
-    "tree:bias 3"
+    "tree:stand_down 5",
+    "(passed) 3",
+    "tree:location 3"
    ]
   },
   {
-   "pattern": "CEILING_FLIP_SHORT",
+   "pattern": "S2_DELTA_DBL_SHORT",
    "system": "2",
-   "decisions": 17,
-   "passed_tree_gates": 11,
-   "live_fires": 4,
-   "live_pnl": -61.25,
-   "live_capable": true,
-   "switch": "CEILING_FLIP_SHORT_V1",
+   "decisions": 20,
+   "passed_tree_gates": 6,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "S2_DELTA_DBL_V1",
    "top": [
-    "(passed) 11",
-    "dalton_intent:stand_down 3",
-    "tree:location 2"
-   ]
-  },
-  {
-   "pattern": "INITIATIVE_SHORT",
-   "system": "2",
-   "decisions": 17,
-   "passed_tree_gates": 9,
-   "live_fires": 3,
-   "live_pnl": -242.5,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 9",
-    "tree:bias 4",
-    "tree:time_cutoff 2"
+    "(passed) 6",
+    "dalton_intent:bias 6",
+    "tree:location 6"
    ]
   },
   {
@@ -2989,14 +2958,59 @@
    "system": "2",
    "decisions": 16,
    "passed_tree_gates": 13,
-   "live_fires": 5,
-   "live_pnl": -121.25,
+   "live_fires": 4,
+   "live_pnl": -43.75,
    "live_capable": true,
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
     "(passed) 13",
-    "tree:location 1",
-    "tree:bias 1"
+    "tree:bias 2",
+    "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "INITIATIVE_SHORT",
+   "system": "2",
+   "decisions": 16,
+   "passed_tree_gates": 8,
+   "live_fires": 1,
+   "live_pnl": -56.25,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 8",
+    "tree:bias 4",
+    "tree:time_cutoff 2"
+   ]
+  },
+  {
+   "pattern": "CEILING_FLIP_SHORT",
+   "system": "2",
+   "decisions": 16,
+   "passed_tree_gates": 11,
+   "live_fires": 5,
+   "live_pnl": -61.25,
+   "live_capable": true,
+   "switch": "CEILING_FLIP_SHORT_V1",
+   "top": [
+    "(passed) 11",
+    "dalton_intent:stand_down 2",
+    "tree:location 2"
+   ]
+  },
+  {
+   "pattern": "FAILED_BREAK_LONG",
+   "system": "2",
+   "decisions": 12,
+   "passed_tree_gates": 2,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "failed_break.py: shadow_only by code",
+   "top": [
+    "tree:stand_down 5",
+    "dalton_intent:stand_down 3",
+    "(passed) 2"
    ]
   },
   {
@@ -3015,63 +3029,48 @@
    ]
   },
   {
-   "pattern": "FAILED_BREAK_LONG",
+   "pattern": "VA_FADE_SHORT",
    "system": "2",
    "decisions": 12,
-   "passed_tree_gates": 2,
+   "passed_tree_gates": 5,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
-   "switch": "failed_break.py: shadow_only by code",
+   "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "tree:stand_down 4",
-    "dalton_intent:stand_down 3",
-    "(passed) 2"
+    "(passed) 5",
+    "tree:bias 4",
+    "tree:kind 1"
    ]
   },
   {
    "pattern": "FAILED_BREAK_SHORT",
    "system": "2",
    "decisions": 11,
-   "passed_tree_gates": 4,
+   "passed_tree_gates": 5,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "failed_break.py: shadow_only by code",
    "top": [
-    "(passed) 4",
-    "tree:stand_down 3",
-    "dalton_intent:stand_down 2"
-   ]
-  },
-  {
-   "pattern": "VA_FADE_SHORT",
-   "system": "2",
-   "decisions": 11,
-   "passed_tree_gates": 5,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "va_fade.py: shadow_only by code",
-   "top": [
     "(passed) 5",
-    "tree:bias 3",
-    "tree:location 1"
+    "tree:stand_down 3",
+    "tree:location 2"
    ]
   },
   {
    "pattern": "VA_FADE_LONG",
    "system": "2",
-   "decisions": 10,
-   "passed_tree_gates": 5,
+   "decisions": 9,
+   "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "(passed) 5",
+    "(passed) 4",
     "tree:bias 3",
-    "tree:location 1"
+    "dalton_intent:bias 1"
    ]
   },
   {
@@ -3079,29 +3078,29 @@
    "system": "4",
    "decisions": 9,
    "passed_tree_gates": 1,
-   "live_fires": 2,
-   "live_pnl": -73.75,
+   "live_fires": 1,
+   "live_pnl": -33.75,
    "live_capable": true,
    "switch": "live producer",
    "top": [
+    "dalton_intent:stand_down 2",
     "tree:location 2",
-    "tree:bias 2",
-    "dalton_intent:stand_down 2"
+    "tree:bias 2"
    ]
   },
   {
-   "pattern": "DALTON_EDGE_LONG",
+   "pattern": "OPENING_DRIVE",
    "system": "2",
    "decisions": 8,
-   "passed_tree_gates": 3,
-   "live_fires": 1,
-   "live_pnl": 28.75,
+   "passed_tree_gates": 6,
+   "live_fires": 4,
+   "live_pnl": -90.0,
    "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "(passed) 3",
-    "dalton_intent:bias 1",
-    "dalton_intent:stand_down 1"
+    "(passed) 6",
+    "tree:kind 1",
+    "dalton_intent:bias 1"
    ]
   },
   {
@@ -3114,9 +3113,24 @@
    "live_capable": false,
    "switch": "S2_DELTA_DBL_V1",
    "top": [
-    "tree:location 3",
     "(passed) 3",
+    "tree:location 3",
     "dalton_intent:bias 1"
+   ]
+  },
+  {
+   "pattern": "DALTON_EDGE_LONG",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 3,
+   "live_fires": 1,
+   "live_pnl": 28.75,
+   "live_capable": true,
+   "switch": "DALTON_EDGE_V1",
+   "top": [
+    "(passed) 3",
+    "dalton_intent:stand_down 1",
+    "tree:bias 1"
    ]
   },
   {
@@ -3130,8 +3144,23 @@
    "switch": "DALTON_EDGE_V1",
    "top": [
     "(passed) 3",
-    "tree:stand_down 1",
-    "tree:time_cutoff 1"
+    "dalton_intent:bias 1",
+    "dalton_intent:stand_down 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_PULLBACK_CONT",
+   "system": "2",
+   "decisions": 7,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "tree:kind 4",
+    "tree:bias 2",
+    "dalton_intent:kind 1"
    ]
   },
   {
@@ -3150,47 +3179,30 @@
    ]
   },
   {
-   "pattern": "OPENING_DRIVE",
-   "system": "2",
-   "decisions": 7,
-   "passed_tree_gates": 5,
-   "live_fires": 4,
-   "live_pnl": -77.5,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "(passed) 5",
-    "dalton_intent:bias 1",
-    "tree:kind 1"
-   ]
-  },
-  {
-   "pattern": "OPENING_PULLBACK_CONT",
-   "system": "2",
-   "decisions": 6,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "tree:kind 4",
-    "dalton_intent:kind 1",
-    "tree:bias 1"
-   ]
-  },
-  {
    "pattern": "REACTIVE",
    "system": "4",
-   "decisions": 6,
+   "decisions": 5,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 5",
-    "dalton_intent:stand_down 1"
+    "tree:stand_down 5"
+   ]
+  },
+  {
+   "pattern": "BULL_FLAG_LONG",
+   "system": "2",
+   "decisions": 4,
+   "passed_tree_gates": 2,
+   "live_fires": 1,
+   "live_pnl": 6.25,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:stand_down 2",
+    "(passed) 2"
    ]
   },
   {
@@ -3207,20 +3219,6 @@
    ]
   },
   {
-   "pattern": "BULL_FLAG_LONG",
-   "system": "2",
-   "decisions": 4,
-   "passed_tree_gates": 2,
-   "live_fires": 2,
-   "live_pnl": -131.25,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "tree:stand_down 2",
-    "(passed) 2"
-   ]
-  },
-  {
    "pattern": "OPENING_TEST_DRIVE",
    "system": "2",
    "decisions": 3,
@@ -3231,6 +3229,33 @@
    "switch": "OPENING_ENTRY_V1",
    "top": [
     "(passed) 3"
+   ]
+  },
+  {
+   "pattern": "TT",
+   "system": "4",
+   "decisions": 2,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "tree:location 1",
+    "dalton_intent:bias 1"
+   ]
+  },
+  {
+   "pattern": "RE_ACCEPTANCE",
+   "system": "2",
+   "decisions": 2,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "RE_ACCEPTANCE_V1",
+   "top": [
+    "tree:stand_down 2"
    ]
   },
   {
@@ -3246,33 +3271,6 @@
     "dalton_intent:stand_down 18",
     "tree:stand_down 12",
     "dalton_intent:bias 9"
-   ]
-  },
-  {
-   "pattern": "TT",
-   "system": "4",
-   "decisions": 2,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "dalton_intent:bias 1",
-    "tree:location 1"
-   ]
-  },
-  {
-   "pattern": "RE_ACCEPTANCE",
-   "system": "2",
-   "decisions": 1,
-   "passed_tree_gates": 0,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "RE_ACCEPTANCE_V1",
-   "top": [
-    "tree:stand_down 1"
    ]
   },
   {
@@ -3292,27 +3290,27 @@
  "gates": [
   {
    "blocked_by": "(passed)",
-   "n": 572
+   "n": 573
   },
   {
    "blocked_by": "tree:stand_down",
-   "n": 413
-  },
-  {
-   "blocked_by": "dalton_intent:stand_down",
-   "n": 206
+   "n": 429
   },
   {
    "blocked_by": "tree:location",
    "n": 174
   },
   {
+   "blocked_by": "dalton_intent:stand_down",
+   "n": 159
+  },
+  {
    "blocked_by": "tree:bias",
-   "n": 143
+   "n": 152
   },
   {
    "blocked_by": "dalton_intent:bias",
-   "n": 77
+   "n": 67
   },
   {
    "blocked_by": "tree:time_cutoff",
@@ -3320,7 +3318,7 @@
   },
   {
    "blocked_by": "tree:kind",
-   "n": 29
+   "n": 30
   },
   {
    "blocked_by": "dalton_intent:kind",
@@ -3328,7 +3326,7 @@
   },
   {
    "blocked_by": "variation_mid_value",
-   "n": 12
+   "n": 10
   }
  ],
  "tree": {
@@ -4581,42 +4579,42 @@
  "db_tables": [
   {
    "table": "v9_trades",
-   "rows": 3184,
-   "max_ts_il": "2026-10-08 22:56"
+   "rows": 3236,
+   "max_ts_il": "2026-10-09 19:20"
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 206601,
-   "max_ts_il": "2026-10-09 06:10"
+   "rows": 211907,
+   "max_ts_il": "2026-10-09 22:10"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 21960,
-   "max_ts_il": "2026-10-09 06:10"
+   "rows": 22203,
+   "max_ts_il": "2026-10-12 07:55"
   },
   {
    "table": "v9_bars_5min",
-   "rows": 5180,
-   "max_ts_il": "2026-10-08 23:55"
+   "rows": 5306,
+   "max_ts_il": "2026-10-09 23:55"
   },
   {
    "table": "v9_day_type_state",
-   "rows": 78,
+   "rows": 0,
    "max_ts_il": ""
   },
   {
    "table": "v9_exit_decisions",
-   "rows": 17127,
+   "rows": 17335,
    "max_ts_il": ""
   },
   {
    "table": "v9_trade_management_log",
-   "rows": 352652,
+   "rows": 352732,
    "max_ts_il": ""
   },
   {
    "table": "v9_woodies_signals",
-   "rows": 3965,
+   "rows": 3989,
    "max_ts_il": ""
   },
   {
@@ -4626,8 +4624,8 @@
   },
   {
    "table": "v9_bars_cumulative_delta",
-   "rows": 9216,
-   "max_ts_il": "2026-10-08 23:55"
+   "rows": 9374,
+   "max_ts_il": "2026-10-09 23:55"
   },
   {
    "table": "broker_truth",
@@ -4648,7 +4646,7 @@
   },
   {
    "label": "com.mems26.backend",
-   "pid": "85469",
+   "pid": "2030",
    "rc": "-15"
   },
   {
@@ -5710,17 +5708,17 @@
   }
  ],
  "tickets": {
-  "total": 420,
-  "open": 353,
+  "total": 426,
+  "open": 358,
   "by_status": {
    "🔴": 105,
    "🟠": 166,
-   "🟡": 29,
+   "🟡": 31,
    "✅": 51,
-   "🔵": 53,
+   "🔵": 56,
    "⚠️": 3,
+   "🟢": 2,
    "🔴🔴": 9,
-   "🟢": 1,
    "📄": 1,
    "📊": 1,
    "⚪": 1
@@ -8196,6 +8194,41 @@
     "title": "היתר REACTIVE_SHORT ביום Variation 18:00–19:59 נגד-ההינט — BRIEF §2.2 #2, לבדו (fix-agent ליל 08→09.10).",
     "next": "",
     "measurable": false
+   },
+   {
+    "id": "T-580",
+    "status": "🟡",
+    "title": "פסיקות-הלילה של 09.10 נכתבו לאינבוקס ב-00:45/00:48 IL ולא הגיעו למייקל — אפס הודעות-טלפון אליו היום, ובתוכן פריט 🔴 \"דורש פסיקה לפני 16:00\" (כרית-מרג'ין 65$).",
+    "next": "(1) **ריצת-15:3x נושאת את שורת-האינבוקס §1 בתוך הודעת-השער** (מקרה ד, ≤500 תווים, שאלה אחת בסוף: א/ב/ג) — זה חלון-הטלפון המאושר היחיד שנותר לפני הפתיחה. (2) ⛔ **לא לשלוח הודעת-טלפון נפרדת על \"סוכן-מתוזמן לא רץ\"** — השאלה אצל מייקל מ-07.10 05:38 ו-[[T-556]] קוב",
+    "measurable": false
+   },
+   {
+    "id": "T-581",
+    "status": "🟡",
+    "title": "`/api/v9/gateway/status` משרת `daily_pnl` של ",
+    "next": "(1) להחליט את ה**תיקון-התצוגה** בלבד — או לתייג את השדה ב-`get_status` כ-`session_pnl_since_boot` ולהוסיף `daily_pnl_today` שנקרא מהספרים לפי `entry_ts::date=current_date`, או להריץ את ה-D5-reset גם בנתיב-הקריאה של `get_status` (לא רק בנתב-הירי) — **אפס שינוי ",
+    "measurable": false
+   },
+   {
+    "id": "T-582",
+    "status": "🔵",
+    "title": "שומר-יום-הסוג יורה `CRITICAL` כזוב בכל יום שבו רץ ריסטארט-קדם-פתיחה — שעון-ההתיישנות מודד את אזור-המת שבין הריסטארט לפתיחה.",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-583",
+    "status": "🔵",
+    "title": "דחיית-מרג'ין של הברוקר נרשמת בספרים כ-`SIERRA_FLAT/UNPRICED` ולא כ-`REJECTED` — FIX-10 לא מתאם אותה כי העסקה כבר אינה `PENDING` כשהדחייה מגיעה.",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-584",
+    "status": "🔵",
+    "title": "יום-שישי 09.10 סחר בכסף-אמת על עץ-עבודה שאינו ב-`git` — 12 קבצים מעוקבים שונו, שלושה מהם בנתיב-הבאקנד, והריסטארט טען אותם.",
+    "next": "(1) **בעל-העריכות מזהה את עצמו ומקמט או מחזיר** את 12 הקבצים — `git add -p` לשלושת קבצי-הבאקנד + `FLAG_REGISTRY.yaml` בקומיט אחד עם מצביע-פסיקה, ולוח-החדשות בקומיט נפרד כארטיפקט-מיוצר; **אין להריץ `git add -A`** (11,347 untracked ⇒ [[T-549]]). (2) **אם אין בעל",
+    "measurable": false
    }
   ]
  },
@@ -8483,8 +8516,24 @@
  ],
  "reports": [
   {
+   "file": "docs/reports/OPS_LOG_2026-10-18.md",
+   "mtime": "2026-10-18 09:42"
+  },
+  {
+   "file": "docs/reports/REPLAY_REVIEW_2026-10-10.md",
+   "mtime": "2026-10-10 05:30"
+  },
+  {
+   "file": "docs/reports/DAY_REVIEW_2026-10-09.md",
+   "mtime": "2026-10-10 05:30"
+  },
+  {
+   "file": "docs/reports/OPS_LOG_2026-10-09.md",
+   "mtime": "2026-10-09 22:03"
+  },
+  {
    "file": "docs/reports/OPS_LOG_2026-10-08.md",
-   "mtime": "2026-10-09 05:45"
+   "mtime": "2026-10-09 06:58"
   },
   {
    "file": "docs/reports/DOCTRINE_CELLS_2026-10-09.md",
@@ -8513,25 +8562,21 @@
   {
    "file": "docs/reports/SUPERVISION_LATEST.md",
    "mtime": "2026-10-08 22:36"
-  },
-  {
-   "file": "docs/reports/SUPERVISION_2026-10-08_2236.md",
-   "mtime": "2026-10-08 22:36"
-  },
-  {
-   "file": "docs/reports/SUPERVISION_2026-10-08_2136.md",
-   "mtime": "2026-10-08 21:36"
-  },
-  {
-   "file": "docs/reports/WALK_FORWARD_2026-10-05.md",
-   "mtime": "2026-10-08 21:35"
-  },
-  {
-   "file": "docs/reports/T24_CONTEXT_VARIANT_2026-10-07.md",
-   "mtime": "2026-10-08 21:35"
   }
  ],
  "harness_runs": [
+  {
+   "dir": "harness_out/t586",
+   "last": "ALL DONE t567ref Sun Oct 18 09:50:13 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t466",
+   "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t585",
+   "last": ""
+  },
   {
    "dir": "harness_out/t579",
    "last": "=== summary table (fix-agent, 00:38)"
@@ -8539,10 +8584,6 @@
   {
    "dir": "harness_out/t567",
    "last": "ALL DONE 00:37:28"
-  },
-  {
-   "dir": "harness_out/t466",
-   "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
   },
   {
    "dir": "harness_out/t575",
@@ -8563,14 +8604,6 @@
   {
    "dir": "harness_out/t543",
    "last": ""
-  },
-  {
-   "dir": "harness_out/t542",
-   "last": "25 passed, 2 warnings in 16.63s"
-  },
-  {
-   "dir": "harness_out/t538",
-   "last": "ALL DONE t538h Mon Oct  5 16:04:17 IDT 2026"
   }
  ]
 }
