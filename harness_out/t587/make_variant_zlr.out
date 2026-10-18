@@ -1,0 +1,32 @@
+wrote config/decision_tree_v3.t587_allow.yaml
+leaves live=536 variant=556
+vectors 4732 · same 4705 · changed 27 · same-decision-but-policy-drift 0
+changed outside the intended context: 0
+    ('2026-06-25', '18:39', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-06-25', '18:54', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-06-25', '18:59', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-06-25', '19:04', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:09', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:14', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:19', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:34', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:39', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-07-13', '18:44', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '18:39', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '18:54', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '19:04', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '19:29', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '19:34', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-17', '19:39', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-31', '18:19', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'mid_value', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-31', '19:19', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-31', '19:24', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-31', '19:39', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-08-31', '19:44', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-09-09', '18:04', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-09-18', '19:19', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-09-23', '18:49', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-09-23', '19:04', 'ZLR', 'SHORT', 'C', 'Normal', 19, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-10-08', '18:04', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+    ('2026-10-08', '18:34', 'ZLR', 'SHORT', 'C', 'Normal', 18, 'near_val', 'none', 'SKIP', 'TAKE', 'location', 'allow_zlr_short_normal_1819')
+VERDICT: OK - only the ZLR SHORT Normal 18-19h location-skip flips SKIP->TAKE, no policy drift

@@ -1,0 +1,6 @@
+t587s vs t567ref · 70 common sessions · Σ Δ -330.60
+holdout A (last 10, 2026-09-28..2026-10-09): Δ -26.25 · better 1 / worse 3
+holdout B (10 before, 2026-09-10..2026-09-25): Δ -67.50 · better 2 / worse 3
+train (the rest, 50 sessions): Δ -236.85
+VETO (ZLR shadow) HOLDS in both holdouts: A -26.25 · B -67.50
+worst / best sessions: [('2026-08-24', -152.5), ('2026-08-20', -117.5), ('2026-09-03', -113.75)] [('2026-07-06', 96.25), ('2026-08-31', 78.75), ('2026-07-01', 55.0)]

@@ -1,0 +1,37 @@
+vectors total 4732 · ZLR SHORT Normal 18-19h: 28
+  7  ot=OPEN_DRIVE phase=C structure=none zone=near_val bias=with edge=none kind=BREAK => SKIP (location)
+  6  ot=OPEN_AUCTION_IN phase=C structure=none zone=near_val bias=with edge=none kind=BREAK => SKIP (location)
+  5  ot=OPEN_DRIVE phase=C structure=none zone=mid_value bias=with edge=none kind=BREAK => SKIP (location)
+  5  ot=OPEN_AUCTION_IN phase=C structure=none zone=mid_value bias=none edge=none kind=BREAK => SKIP (location)
+  3  ot=OPEN_AUCTION_IN phase=C structure=none zone=near_val bias=none edge=none kind=BREAK => SKIP (location)
+  1  ot=OPEN_DRIVE phase=C structure=down zone=near_val bias=with edge=none kind=BREAK => TAKE (take_with_extension)
+  1  ot=OPEN_AUCTION_IN phase=C structure=none zone=near_val bias=against edge=none kind=BREAK => SKIP (location)
+--- by session ---
+  2026-06-25 18:39 OPEN_DRIVE/C/none zone=mid_value bias=with => SKIP id=location blocked=None dec=None
+  2026-06-25 18:54 OPEN_DRIVE/C/none zone=mid_value bias=with => SKIP id=location blocked=None dec=None
+  2026-06-25 18:59 OPEN_DRIVE/C/none zone=mid_value bias=with => SKIP id=location blocked=None dec=None
+  2026-06-25 19:04 OPEN_DRIVE/C/none zone=mid_value bias=with => SKIP id=location blocked=None dec=None
+  2026-07-13 18:09 OPEN_AUCTION_IN/C/none zone=mid_value bias=none => SKIP id=location blocked=None dec=None
+  2026-07-13 18:14 OPEN_AUCTION_IN/C/none zone=mid_value bias=none => SKIP id=location blocked=None dec=None
+  2026-07-13 18:19 OPEN_AUCTION_IN/C/none zone=mid_value bias=none => SKIP id=location blocked=None dec=None
+  2026-07-13 18:34 OPEN_AUCTION_IN/C/none zone=mid_value bias=none => SKIP id=location blocked=None dec=None
+  2026-07-13 18:39 OPEN_AUCTION_IN/C/none zone=mid_value bias=none => SKIP id=location blocked=None dec=None
+  2026-07-13 18:44 OPEN_AUCTION_IN/C/none zone=near_val bias=none => SKIP id=location blocked=None dec=None
+  2026-07-15 18:05 OPEN_DRIVE/C/down zone=near_val bias=with => TAKE id=take_with_extension blocked=None dec=None
+  2026-08-17 18:39 OPEN_AUCTION_IN/C/none zone=near_val bias=none => SKIP id=location blocked=None dec=None
+  2026-08-17 18:54 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-17 19:04 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-17 19:29 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-17 19:34 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-17 19:39 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-31 18:19 OPEN_DRIVE/C/none zone=mid_value bias=with => SKIP id=location blocked=None dec=None
+  2026-08-31 19:19 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-31 19:24 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-31 19:39 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-08-31 19:44 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-09-09 18:04 OPEN_AUCTION_IN/C/none zone=near_val bias=against => SKIP id=location blocked=None dec=None
+  2026-09-18 19:19 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-09-23 18:49 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-09-23 19:04 OPEN_DRIVE/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
+  2026-10-08 18:04 OPEN_AUCTION_IN/C/none zone=near_val bias=none => SKIP id=location blocked=None dec=None
+  2026-10-08 18:34 OPEN_AUCTION_IN/C/none zone=near_val bias=with => SKIP id=location blocked=None dec=None
