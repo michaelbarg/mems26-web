@@ -93,8 +93,15 @@ for s in sessions:
     findings = []
     # OT — the system's locked opening type vs the reference
     sys_ot = next((x.get("ot_locked") for x in reversed(j.get("s1") or []) if x.get("ot_locked")), None)
+    # reference = the system's own v2 detector WITH the prior-day references on the closed bars at the lock bar (the
+    # harness's canonical_opening; T-594 showed the lock itself runs the detector without them); my simple bar reading
+    # is kept as a second opinion only.
+    _lockbar = next((x for x in (j.get("s1") or []) if x.get("ot_locked")), None)
+    v2_ot = ((_lockbar or {}).get("canonical_opening") or "").split("/")[0] or None
     ref_ot, why = ref_opening(bars, prev)
-    if sys_ot and ref_ot != "UNKNOWN" and sys_ot != ref_ot: findings.append(("OT", f"system {sys_ot} vs bars {ref_ot} ({why})"))
+    if sys_ot and v2_ot and not v2_ot.startswith("UNKNOWN") and sys_ot != v2_ot:
+        findings.append(("OT", f"lock {sys_ot} vs detector-with-references {v2_ot} (simple bar reading: {ref_ot})"))
+    ref_ot = v2_ot or ref_ot
     # DT — published at EOD vs the reference
     pub = next((x.get("published") for x in reversed(j.get("s1") or []) if x.get("published")), None)
     ref_dt, feats = ref_daytype(bars)
