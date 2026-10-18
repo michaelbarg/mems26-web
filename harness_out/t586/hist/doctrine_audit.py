@@ -14,7 +14,7 @@ usage: doctrine_audit.py <TAG> <sessions.txt|YYYY-MM-DD ...> [--db=mems26_hist] 
 import sys, os, json, subprocess, collections, datetime as dt
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"
 args = [a for a in sys.argv[1:] if not a.startswith("--")]; opt = {a.split("=")[0][2:]: (a.split("=", 1)[1] if "=" in a else "1") for a in sys.argv[1:] if a.startswith("--")}
-TAG = args[0]; DB = opt.get("db", "mems26_hist"); DETAIL = "detail" in opt
+TAG = args[0]; DB = opt.get("db", "mems26_hist"); DETAIL = "detail" in opt; TOL = float(opt.get("tol", 1.0))   # structural tolerance in pts (trade_economics STOP_OFFSET = 4 pts)
 sessions = sum((open(a).read().split() if a.endswith(".txt") else [a] for a in args[1:]), [])
 TICK = 0.25
 def q(sql): return subprocess.run([PSQL, "-d", DB, "-Atc", sql], capture_output=True, text=True).stdout.strip().splitlines()
@@ -118,12 +118,12 @@ for s in sessions:
                    ("open_range_high", orh), ("open_range_low", orl)] + ([("prev_VAH", prev["vah"]), ("prev_VAL", prev["val"]), ("prev_POC", prev["poc"]), ("prev_high", prev["high"]), ("prev_low", prev["low"])] if prev else [])
         long = r["direction"].upper() == "LONG"; R = abs(entry - stop)
         d, name, a = nearest_anchor(stop, anchors, "below" if long else "above")
-        if d is None or d > 1.0: findings.append(("ST", f"{il} {r['classification']} {r['direction']} stop {stop} R={R:.2f}: nearest anchor {name}={a} at {d if d is not None else '∞'} pts"))
+        if d is None or d > TOL: findings.append(("ST", f"{il} {r['classification']} {r['direction']} stop {stop} R={R:.2f}: nearest anchor {name}={a} at {d if d is not None else '∞'} pts"))
         tid = str(((r.get("exec") or {}).get("live") or {}).get("trade_id")); tr = next((t for t in j.get("trades") or [] if str(t.get("trade_id")) == tid), None)
         t1x = float(tr.get("t1_target") or 0) if tr else t1          # taken: the executed target (1.5R floor applied); else the raw setup target
         if t1x and R > 0 and abs(t1x - entry) < 1.5 * R - 0.01: findings.append(("T1", f"{il} {r['classification']} t1 {t1x} = {abs(t1x-entry)/R:.2f}R (< 1.5R){'' if tr else ' [raw setup, floor applies at execution]'}"))
         d2, name2, a2 = nearest_anchor(t1x, anchors, "above" if long else "below") if t1x else (None, None, None)
-        if t1x and (d2 is None or d2 > 1.0): findings.append(("TT", f"{il} {r['classification']} t1 {t1x}: nearest structural target {name2}={a2} at {d2 if d2 is not None else '∞'} pts"))
+        if t1x and (d2 is None or d2 > TOL): findings.append(("TT", f"{il} {r['classification']} t1 {t1x}: nearest structural target {name2}={a2} at {d2 if d2 is not None else '∞'} pts"))
     cats = collections.Counter(c for c, _ in findings); census.update(cats)
     print(f"{s}: OT sys={sys_ot} ref={ref_ot} · DT sys={pub} ref={ref_dt} · findings {dict(cats)}")
     if DETAIL:
