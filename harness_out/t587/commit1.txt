@@ -1,0 +1,12 @@
+T-527 (BRIEF §3.4): SIERRA_FLAT without a price — 4 of 13 are orders that never filled; broker_truth dropped them (entry_ts NULL fails `entry_ts >= since`) — fixed + 12 tests; flag-off POSITION_TRUTH_UNFILLED_CANCEL_V1
+
+Books 18.10 (SELECT only): live CLOSED SIERRA_FLAT 13 / 1 pnl_sierra / 5 pnl_usd. #571 #955 #979 #1220 have entry_ts NULL, no quality.sierra_order_id, no DLL ENTRY fill within ±3 min and no broker round-trip: POSITION_TRUTH closed a PENDING order Sierra never held and the books call it an unpriced trade.
+
+scripts/broker_truth.py: candidate set anchored on coalesce(entry_ts, created_at) (matching too) — a never-filled row is LISTED as NEVER-FILLED with broker=None, never priced, never dropped; main() + pure functions (TRADES_SQL, anchor_ts, load_events, round_trips, load_journal, match_trades, day_totals); day_totals no longer raises KeyError on a manual-only day (--since 2026-08-25 crashed before broker.json). Dry-run --since 2026-09-01: 69 common rows byte-identical in JSON, +6 listed (955 979 1220 1337 2038 3046); #3046 (05.10 GB100) books −27.50 vs broker +53.75 now matched through created_at (was an "unmatched manual" round-trip). --write unchanged.
+
+backend/v9/services/fill_poller.py: POSITION_TRUTH_UNFILLED_CANCEL_V1 (default OFF = byte-identical close_trade(id, "SIERRA_FLAT")): a PENDING trade with no submit-ack, Sierra flat past grace → same SIERRA_FLAT close with outcome_override=CANCELLED (P8 precedent) + quality.never_filled; pnl stays NULL (T-160). FILLED / acked PENDING / position-held branch untouched (T-583's phantom-fill-then-reject case is separate).
+
+Tests: tests/v9/regression/test_t527_unfilled_cancel.py (6) + test_t527_broker_truth_candidates.py (6) + the 12 existing position-truth tests → 24 passed. flag_guard PASS (274). FLAG_REGISTRY entry (only this hunk staged — the file also carries another agent's uncommitted S2_EVIDENCE_TO_TREE_V1 entry, left alone). Report: docs/reports/T527_SIERRA_FLAT_NEVER_FILLED_2026-10-18.md. Rulings (inbox): enable the flag; one-time NULL/UNPRICED correction of the 5 pre-T-160 synthesized zeros (SQL in the report, DB-write not the fix-agent's).
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TCyP6UvauWtZzqicMhrMTQ

@@ -1,0 +1,6 @@
+fix-agent run of the night 17→18.10 (fired late, Sun 18.10 09:55 IL — the Mac was unreachable all week): handoff — TASK_LOG (T-588 row, T-527 cell, header), LIVE_CHANNEL (2 entries), MICHAEL_INBOX (section for the 08:30 agent)
+
+Calibration step §2.2 #3 (T-588): inert — ZLR_SHADOW_V1=1 routes every ZLR to shadow; un-shadowing ZLR fails (−406$ net, both holdouts < 0 — the veto holds, §2.6), the permit isolated on top ≈ +71$ on N=2 ⇒ no ruling; §2.2 closed, next §2.3. Regression §3.4 (T-527): root found (4/13 SIERRA_FLAT rows are orders that never filled; broker_truth dropped NULL entry_ts) — fixed + 12 tests, flag-off POSITION_TRUTH_UNFILLED_CANCEL_V1; two "פסיקה?" lines in the inbox (enable the flag; NULL the 5 pre-T-160 synthesized zeros). §3.1 (T-259) skipped: needs launchctl (Saturday window only). task_log_guard ✅ (563 items), flag_guard PASS 274. No phone message (BRIEF §6). Backend pid 2030 throughout; nothing live touched; harness beside cowork's t586 queue (≤2 parallel), outside RTH.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TCyP6UvauWtZzqicMhrMTQ
