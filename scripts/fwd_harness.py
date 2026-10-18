@@ -1330,6 +1330,13 @@ def _inject_due(upto):
         if tr["_done"] or tr["created_at"] > upto:
             continue
         tr["_done"] = True
+        if tr.get("entry_price") is None:
+            # T-597 (18.10): a live row that never became an order (e.g. #652 07.08 GHOST, exit_reason CMD_NEVER_SENT_P0-1)
+            # has no entry price; injecting it crashed the whole session (float(None)) and silently dropped 07.08 from
+            # every variant ("70 sessions" were 71). Such a row is not a trade — skip it and say so.
+            LOG.warning("inject: live trade %s (%s) has no entry_price (exit_reason=%s) — skipped", tr.get("id"),
+                        tr.get("pattern_id_at_entry"), tr.get("exit_reason"))
+            continue
         set_now(tr["created_at"]); tpo.refresh()
         q = tr.get("quality") or {}
         if isinstance(q, str):
