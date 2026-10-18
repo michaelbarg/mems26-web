@@ -41,6 +41,52 @@ def _norm_bar_ts(ts: Any) -> Any:
         return ts
 
 
+def _tpo_letter_by_ts_on() -> bool:
+    """T-590 (18.10): TPO letters from the bar CLOCK, not from the push count. Default OFF (ruling pending)."""
+    import os
+    return os.getenv("TPO_LETTER_BY_TS_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _session_open_et(ts_iso: Any, session_type: str):
+    """ET open of the session a bar belongs to: CASH 09:30 of the bar's ET day; GLOBEX 16:00 ET of the same
+    day when the bar is at/after 16:00, else 16:00 ET of the previous day. None when `ts_iso` is not a timestamp."""
+    try:
+        from datetime import timedelta, timezone as _tz
+        from zoneinfo import ZoneInfo
+        s = str(ts_iso or "").strip()
+        if not s:
+            return None
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=_tz.utc)
+        et = dt.astimezone(ZoneInfo("America/New_York"))
+        if str(session_type).upper() == "CASH":
+            return et, et.replace(hour=9, minute=30, second=0, microsecond=0)
+        open_et = et.replace(hour=16, minute=0, second=0, microsecond=0)
+        if et < open_et:
+            open_et -= timedelta(days=1)
+        return et, open_et
+    except Exception:
+        return None
+
+
+def _letter_idx_by_ts(ts_iso: Any, session_type: str) -> Optional[int]:
+    """T-590: 0-based TPO letter index = whole 30-minute periods since the session open (CASH: 09:30 ET → 'A',
+    10:00 → 'B', 15:30 → 'M'). The live bug it replaces: the letter advanced every 6 PUSHES of `process_bar`
+    (developing pushes arrive every ~3 s, ~95 per 5-min bar) and froze for good once `bar_buffer` hit its cap
+    of 100 (100 % 6 != 0) — so a full RTH day was either 17 letters inside the first five minutes or one letter
+    'A' all day, and v9_tpo_sessions.poc/vah/val (the tree's prior-day value area and S1's pd_*) were built from
+    that one-letter profile. None when the timestamp cannot be parsed (the caller keeps the legacy counter)."""
+    r = _session_open_et(ts_iso, session_type)
+    if r is None:
+        return None
+    et, open_et = r
+    secs = (et - open_et).total_seconds()
+    if secs < 0:
+        return 0
+    return int(secs // 1800)
+
+
 class TPOSystem(BaseV9TradingSystem):
     system_id = 5
     name = "tpo"
@@ -260,6 +306,13 @@ class TPOSystem(BaseV9TradingSystem):
             close = bar.get("close", bar.get("c", 0))
 
             if high > 0 and low > 0:
+                # T-590: with TPO_LETTER_BY_TS_V1 the letter is the bar's 30-minute period since the
+                # session open (clock-based, idempotent across developing pushes and restarts).
+                _by_ts = _tpo_letter_by_ts_on()
+                if _by_ts:
+                    _idx = _letter_idx_by_ts(ts_str, session_type)
+                    if _idx is not None:
+                        self.current_letter_idx = _idx
                 letter = LETTERS[min(self.current_letter_idx, len(LETTERS) - 1)]
                 price = low
                 while price <= high + 0.001:
@@ -271,7 +324,8 @@ class TPOSystem(BaseV9TradingSystem):
                     price += self.tick_size
 
                 # Advance letter every 6 bars (30 min / 5 min = 6)
-                if len(self.bar_buffer) % 6 == 0:
+                # (legacy counter: counts PUSHES, not bars — see _letter_idx_by_ts; kept while T-590 is off)
+                if not _by_ts and len(self.bar_buffer) % 6 == 0:
                     self.current_letter_idx += 1
 
                 # IB intentionally NOT tracked here — Sierra Study ID:6 is
@@ -661,6 +715,10 @@ class TPOSystem(BaseV9TradingSystem):
         self.current_session_type = session_type
         self.profile = {}
         self.current_letter_idx = 0
+        if _tpo_letter_by_ts_on():
+            # T-590: a (re)start inside the session starts from an EMPTY profile; rebuild it from the bars
+            # already stored for this session so poc/vah/val describe the session, not the post-boot part.
+            self._seed_profile_from_db(session_type, ts_str)
         if prev_trading_date != today:
             self.ib_high = None
             self.ib_low = None
@@ -692,6 +750,56 @@ class TPOSystem(BaseV9TradingSystem):
             "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",
             (session_id, session_type, today, ts_str),
         )
+
+    def _seed_profile_from_db(self, session_type: str, upto_ts: Any) -> int:
+        """T-590: rebuild the TPO profile from the session's stored 5-min bars with ts in [open, upto_ts).
+        Returns the number of bars applied (0 when nothing is stored, the clock is unreadable, or the read
+        fails — the profile then grows from the bars that arrive, exactly as before)."""
+        r = _session_open_et(upto_ts, session_type)
+        if r is None:
+            return 0
+        et, open_et = r
+        if et <= open_et:
+            return 0
+        try:
+            from backend.v9.db.read import read_all
+            rows = read_all(
+                "SELECT ts, high, low FROM v9_bars_5min_woodies "
+                "WHERE ts >= (:open)::timestamptz AND ts < (:upto)::timestamptz ORDER BY ts",
+                {"open": open_et.isoformat(), "upto": et.isoformat()},
+            ) or []
+        except Exception as e:
+            logger.warning("[TPO] T-590 profile seed read failed: %s", e)
+            return 0
+        n = 0
+        for row in rows:
+            d = dict(row._mapping) if hasattr(row, "_mapping") else dict(row)
+            try:
+                high, low = float(d.get("high")), float(d.get("low"))
+            except (TypeError, ValueError):
+                continue
+            if not (high > 0 and low > 0 and high >= low):
+                continue
+            b_ts = d.get("ts")
+            b_iso = b_ts.isoformat() if hasattr(b_ts, "isoformat") else _norm_bar_ts(b_ts)
+            idx = _letter_idx_by_ts(b_iso, session_type)
+            if idx is None:
+                continue
+            letter = LETTERS[min(idx, len(LETTERS) - 1)]
+            price = low
+            while price <= high + 0.001:
+                key = f"{round(price / self.tick_size) * self.tick_size:.2f}"
+                if key not in self.profile:
+                    self.profile[key] = []
+                if letter not in self.profile[key]:
+                    self.profile[key].append(letter)
+                price += self.tick_size
+            self.current_letter_idx = max(self.current_letter_idx, idx)
+            n += 1
+        if n:
+            logger.info("[TPO] T-590 profile seeded from %d stored bars (%s → %s, last letter %s)",
+                        n, open_et.isoformat(), et.isoformat(), LETTERS[min(self.current_letter_idx, 25)])
+        return n
 
     def _compute_levels(self):
         if not self.profile:
