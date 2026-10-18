@@ -21,7 +21,7 @@ run_one() {
   d="$1"
   out="harness_out/t466/${TAG}_${d}.json"
   [ -s "$out" ] && { echo "skip $d"; return 0; }
-  if in_rth; then echo "STOPPED before $d: $(TZ=Asia/Jerusalem date +%H:%M) IL — inside the harness ban"; return 3; fi
+  while in_rth; do echo "WAITING before $d: $(TZ=Asia/Jerusalem date +%H:%M) IL — inside the harness ban"; sleep 600; done
   env $ENVS SITUATION_VECTOR_LOG_V1=0 \
     python3 scripts/fwd_harness.py --session "$d" --variant "$TAG" --out "$out" --quiet \
     > "harness_out/t466/${TAG}_${d}.log" 2>&1

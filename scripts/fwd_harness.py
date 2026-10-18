@@ -360,23 +360,29 @@ except Exception:
 SESSION = args.session
 _sd = date.fromisoformat(SESSION)
 _prev_td = market_clock.get_previous_trading_day(_sd)
-_SESSION_OPEN_UTC = datetime.combine(_prev_td, dtime(18, 0), tzinfo=ET).astimezone(UTC)  # replay window start
+# T-591 (18.10): the Globex session of an RTH date starts at 18:00 ET of the previous CALENDAR day (Sunday for
+# a Monday; the holiday itself for the day after a holiday with a 13:00 ET early close). Starting at the previous
+# TRADING day was wrong on the day after such a holiday: the window began a day too early and the holiday's
+# 09:30-13:00 bars were replayed as a second RTH open inside the session (120 RTH bars: 22.06, 06.07, 08.09;
+# 20.01.26, 17.02.26, 26.05.26). `_prev_td` stays the previous-day CONTEXT (TPO summary, pd close, pd_ctx).
+_win_day = _sd - timedelta(days=1)
+_SESSION_OPEN_UTC = datetime.combine(_win_day, dtime(18, 0), tzinfo=ET).astimezone(UTC)  # replay window start
 
 BARS = _orig_read_all(
     "SELECT ts, open, high, low, close, volume, cci_14, cci_6_tcci, lsma_value, swi_value, "
     "czi_value, ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction, "
     "hfe_detected, hfe_direction, hfe_extreme_bars_ago, lsma_above_price, proj_hi, proj_lo "
     "FROM v9_bars_5min_woodies WHERE symbol='MES' AND ts >= :a AND ts < :b ORDER BY ts",
-    {"a": datetime.combine(_prev_td, dtime(18, 0), tzinfo=ET).isoformat(),
+    {"a": datetime.combine(_win_day, dtime(18, 0), tzinfo=ET).isoformat(),
      "b": datetime.combine(_sd, dtime(16, 0), tzinfo=ET).isoformat()})
 PRE = _orig_read_all(
     "SELECT ts, open, high, low, close, volume, cci_14, cci_6_tcci, lsma_value, swi_value, "
     "czi_value, ema_34, trend_state, predictor_next_cci FROM v9_bars_5min_woodies "
     "WHERE symbol='MES' AND ts < :a ORDER BY ts DESC LIMIT 60",
-    {"a": datetime.combine(_prev_td, dtime(18, 0), tzinfo=ET).isoformat()})
+    {"a": datetime.combine(_win_day, dtime(18, 0), tzinfo=ET).isoformat()})
 PRE = list(reversed(PRE))
 RTH = [b for b in BARS if dtime(9, 30) <= b["ts"].astimezone(ET).time() < dtime(16, 0)]
-LOG.info("session %s: %d bars from %s 18:00 ET, %d RTH bars", SESSION, len(BARS), _prev_td, len(RTH))
+LOG.info("session %s: %d bars from %s 18:00 ET (prev trading day %s), %d RTH bars", SESSION, len(BARS), _win_day, _prev_td, len(RTH))
 if len(RTH) < 12:
     LOG.error("fewer than 12 RTH bars — cannot run"); sys.exit(2)
 

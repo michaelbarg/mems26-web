@@ -9,8 +9,8 @@ import sys, json, glob, subprocess, io, collections, pandas as pd
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"; import os; DB = os.environ.get("CAND_DB", "mems26_hist")
 COMM = 2.60; PT = 5.0; FLOOR_R = 1.5
 out = sys.argv[1]; tags = sys.argv[2:]
-raw = subprocess.run([PSQL, "-d", DB, "-Atc", "select (ts at time zone 'Asia/Jerusalem')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), open, high, low, close "
-                      "from v9_bars_5min_woodies where symbol='MES' and (ts at time zone 'Asia/Jerusalem')::time between '16:30' and '22:55' order by ts"],
+raw = subprocess.run([PSQL, "-d", DB, "-Atc", "select (ts at time zone 'America/New_York')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), open, high, low, close "
+                      "from v9_bars_5min_woodies where symbol='MES' and (ts at time zone 'America/New_York')::time between '09:30' and '15:55' order by ts"],
                      capture_output=True, text=True).stdout
 BARS = collections.defaultdict(list)
 for line in raw.splitlines():
