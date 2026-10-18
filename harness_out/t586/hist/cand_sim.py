@@ -8,7 +8,18 @@ taken, pts, net, exit. usage: cand_sim.py <out.csv> <TAG> [<TAG> ...]   (bars fr
 import sys, json, glob, subprocess, io, collections, pandas as pd
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"; import os; DB = os.environ.get("CAND_DB", "mems26_hist")
 COMM = 2.60; PT = 5.0; FLOOR_R = 1.5
-out = sys.argv[1]; tags = sys.argv[2:]
+out = sys.argv[1]; tags = [a for a in sys.argv[2:] if not a.startswith("--")]
+# --tree=<yaml>: re-walk THAT tree on every candidate's stored vector → column fixed_leaf (the live tree's own decision,
+# needed on an all_take universe where tree_v3.leaf is TAKE for everyone). Default: config/decision_tree_v3.yaml.
+TREE_PATH = next((a.split("=", 1)[1] for a in sys.argv[2:] if a.startswith("--tree=")), "config/decision_tree_v3.yaml")
+sys.path.insert(0, "."); from backend.v9.services import decision_tree as _dt
+_TREE = _dt.load_tree(TREE_PATH)
+def fixed_leaf(vec):
+    try:
+        leaf, _ = _dt.walk(_TREE, dict(vec or {})); a = str(leaf.get("leaf") or "SKIP").upper()
+        a, leaf = _dt.kind_policy(a, leaf, (vec or {}).get("kind"), os.getenv("TREE_SKIP_KINDS")); return a, str(leaf.get("id") or "")
+    except Exception as e:
+        return "ERR", str(e)[:40]
 raw = subprocess.run([PSQL, "-d", DB, "-Atc", "select (ts at time zone 'America/New_York')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), open, high, low, close "
                       "from v9_bars_5min_woodies where symbol='MES' and (ts at time zone 'America/New_York')::time between '09:30' and '15:55' order by ts"],
                      capture_output=True, text=True).stdout
@@ -52,7 +63,7 @@ for tag in tags:
             if res is None: continue
             rows.append(dict(session=s, il=r["il"][:5], pattern=r.get("classification"), direction=r["direction"], kind=v.get("kind"),
                              opening_type=v.get("opening_type"), phase=v.get("phase"), day_type=v.get("day_type"), rel_bias=v.get("rel_bias"),
-                             zone=v.get("zone"), leaf=tv.get("leaf"), leaf_id=tv.get("id"), blocked_by=r.get("blocked_by") or "",
+                             zone=v.get("zone"), leaf=tv.get("leaf"), leaf_id=tv.get("id"), fixed_leaf=fixed_leaf(v)[0], fixed_id=fixed_leaf(v)[1], blocked_by=r.get("blocked_by") or "",
                              live_blocked_by=r.get("live_blocked_by") or "", taken=int(tid in pnl_by_tid), harness_pnl=pnl_by_tid.get(tid),
                              pts=round(res[0], 2), net=round(res[0] * PT - COMM, 2), exit=res[1], exit_il=res[2], tag=tag))
 df = pd.DataFrame(rows); df.to_csv(out, index=False)
