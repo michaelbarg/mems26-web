@@ -232,7 +232,7 @@ library:
           "*":
             split: pattern
             branches:
-              ZLR:               # T-588 (fix-agent 18.10): the permit ALONE - ZLR SHORT on a Normal day 18:00-19:59 IL where the location rule skips; measurement variant, not live
+              ZLR:               # T-589 (fix-agent 18.10): the permit ALONE - ZLR SHORT on a Normal day 18:00-19:59 IL where the location rule skips; measurement variant, not live
                 split: hour
                 branches:
                   "18|19":
@@ -242,7 +242,7 @@ library:
                       "*":
                         leaf: TAKE
                         id: allow_zlr_short_normal_1819
-                        note: "T-588 allow: ZLR SHORT on a Normal day 18:00-19:59 IL inside value (T-319b location skip lifted), default exit; calibration train +16.5$/cand n=24"
+                        note: "T-589 allow: ZLR SHORT on a Normal day 18:00-19:59 IL inside value (T-319b location skip lifted), default exit; calibration train +16.5$/cand n=24"
                   "*": *location_fallback
               "*": *location_fallback
       "*": *skip_stand_down

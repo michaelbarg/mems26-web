@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""T-588 (fix-agent 18.10, the 23:40 run fired late at 09:55 — the Mac was unreachable all week): BRIEF §2.2 #3 —
+"""T-589 (fix-agent 18.10, the 23:40 run fired late at 09:55 — the Mac was unreachable all week): BRIEF §2.2 #3 —
 the ZLR SHORT permit ALONE on a Normal day 18:00-19:59 IL (same recipe as T-564b / T-579b).
 Where the live tree 3.4.0 routes it today (harness_out/t587/zlr_vectors.out, 70-session reference t567ref):
 28 vectors, 27 of them SKIP(location) through responsive_normal -> SHORT -> zone near_val|mid_value ->
@@ -25,7 +25,7 @@ NEW = ('      SHORT:\n        split: zone\n        branches:\n'
        '          unknown: *kinds_normal\n'
        '          "*":\n'
        '            split: pattern\n            branches:\n'
-       '              ZLR:               # T-588 (fix-agent 18.10): the permit ALONE - ZLR SHORT on a Normal day 18:00-19:59 IL where the location rule skips; measurement variant, not live\n'
+       '              ZLR:               # T-589 (fix-agent 18.10): the permit ALONE - ZLR SHORT on a Normal day 18:00-19:59 IL where the location rule skips; measurement variant, not live\n'
        '                split: hour\n                branches:\n'
        '                  "18|19":\n'
        '                    split: edge\n                    branches:\n'
@@ -33,7 +33,7 @@ NEW = ('      SHORT:\n        split: zone\n        branches:\n'
        '                      "*":\n'
        '                        leaf: TAKE\n'
        '                        id: allow_zlr_short_normal_1819\n'
-       '                        note: "T-588 allow: ZLR SHORT on a Normal day 18:00-19:59 IL inside value (T-319b location skip lifted), default exit; calibration train +16.5$/cand n=24"\n'
+       '                        note: "T-589 allow: ZLR SHORT on a Normal day 18:00-19:59 IL inside value (T-319b location skip lifted), default exit; calibration train +16.5$/cand n=24"\n'
        '                  "*": *location_fallback\n'
        '              "*": *location_fallback\n'
        '      "*": *skip_stand_down\n'

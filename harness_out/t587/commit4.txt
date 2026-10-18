@@ -1,0 +1,6 @@
+fix-agent fixup: ZLR-permit item renumbered T-588 -> T-589 (second ID collision this morning: cowork took T-588 at 10:59:40 in 39f7f1c8 while this run was writing it; T-587 had been taken at 10:18)
+
+Only this run's references change: TASK_LOG row + header, the report (renamed T589_ALLOW_ZLR_SHORT_NORMAL_1819_2026-10-18.md), LIVE_CHANNEL / INBOX lines, the variant yaml's comments and the harness_out/t587 scripts; every other agent's T-588 is untouched. The harness tag stays t587*. Lesson re-recorded: four agents on one repo — an ID is claimed by a committed TASK_LOG row, not by max(T-id); grep docs/ and the last hour of `git log` before allocating. task_log_guard ✅.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01TCyP6UvauWtZzqicMhrMTQ

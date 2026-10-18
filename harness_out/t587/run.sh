@@ -1,5 +1,5 @@
 #!/bin/bash
-# T-588 (fix-agent, the 17→18.10 night run fired late, Sun 18.10 09:55 IL — the Mac was unreachable all week) —
+# T-589 (fix-agent, the 17→18.10 night run fired late, Sun 18.10 09:55 IL — the Mac was unreachable all week) —
 # BRIEF §2.2 #3: the ZLR SHORT permit ALONE (Normal day, phase C, 18:00–19:59 IL, inside value where the
 # T-319b location rule skips: SKIP → TAKE; 27 vectors on the reference, 0 outside context, 0 policy drift —
 # harness_out/t587/make_variant_zlr.out). Whole-day replay on the 70 sessions of cowork's 18.10 queue

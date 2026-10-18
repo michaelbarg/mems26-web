@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""T-588 step 2 (fix-agent 18.10) — BRIEF §2.6: a veto 'holds' when it passes TWO consecutive holdouts (the last 10
+"""T-589 step 2 (fix-agent 18.10) — BRIEF §2.6: a veto 'holds' when it passes TWO consecutive holdouts (the last 10
 sessions and the 10 before them). Here the veto is ZLR_SHADOW_V1 (ZLR → shadow): un-shadowing it (t587s) vs the
 reference — Δ per window; the veto holds if Δ(un-shadow) ≤ 0 in both. Read-only on harness_out/t466."""
 import json, glob, os, sys

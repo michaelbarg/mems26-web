@@ -1,5 +1,5 @@
 #!/bin/bash
-# T-588 step 2 (fix-agent 18.10 10:3x): t587z (the permit alone) was Δ 0.00 on all 70 sessions — 27 tree decisions
+# T-589 step 2 (fix-agent 18.10 10:3x): t587z (the permit alone) was Δ 0.00 on all 70 sessions — 27 tree decisions
 # flipped SKIP→TAKE but ZLR_SHADOW_V1=1 (Michael 07.09 "מתקנים ולא מבטלים") routes every ZLR setup to shadow, and
 # the live reference holds zero live ZLR trades ⇒ the permit is inert by construction. To give the §2.2 #3 question a
 # number anyway, the pair that isolates it:

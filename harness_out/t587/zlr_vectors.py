@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""fix-agent 18.10 (T-588): BRIEF §2.2 #3 — where does the live tree (3.4.0) route ZLR SHORT on a Normal day 18-19h?
+"""fix-agent 18.10 (T-589): BRIEF §2.2 #3 — where does the live tree (3.4.0) route ZLR SHORT on a Normal day 18-19h?
 Reads the same-night reference vectors (t567ref, 70 sessions) and groups them by the path the tree took."""
 import glob, json, os, sys, collections
 ROOT = "/Users/michael/Downloads/mems26_web_git"; os.chdir(ROOT); sys.path.insert(0, ROOT)
