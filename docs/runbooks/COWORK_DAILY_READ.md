@@ -1500,8 +1500,29 @@ rows/ET-day   ⇒ 10-06: 90 · 10-05: 90 · 10-02: 90 · 10-01: 126 · 09-30: 12
 ```bash
 grep -E "\[(ERROR|CRITICAL)\]" /tmp/backend.err.log | grep -v TS-OFFSET-GATE     # מלכודת 33
 grep "^$(date +%F).*\[WARNING\]" /tmp/backend.err.log \
-  | grep -vE "TS-OFFSET-GATE|S2-CVD insufficient|BarRouter: (dispatch|SLOW)"      # מלכודת 34
+  | grep -vE "TS-OFFSET-GATE|S2-CVD insufficient|BarRouter: (dispatch|SLOW)|_route_bar BLOCKED stale"
 ```
+
+**↻ חידוד 18.10 (cowork-dev, ריצה 321) — למונה-ה-WARNING נדרש מסנן שלישי, `_route_bar BLOCKED stale`.**
+זהו **אותו קיר-ברים** של `TS-OFFSET-GATE` בשם-מחרוזת אחר (שער-הניתוב, לא שער-הקליטה), ובלעדיו
+המונה מחזיר מספר שנראה כמחלקה חדשה:
+
+```raw
+(18.10 20:07, נמדד · D=2026-10-18)
+בלי המסנן השלישי ⇒ 5,147
+ההרכב:  2,626 × [bars/5min] _route_bar BLOCKED stale bar
+        2,501 × [bars/woodies_5min] _route_bar BLOCKED stale bar        ⇒ 5,127 = 99.6%
+          9 × [bars/footprint] T-521 skipped 30/30  ·  2 × EXIT_TRACK_ACTIVITY_V1 (מלכודת 35)
+          1 × ORDER_SUBMITTED parent_id=11464 ללא PENDING  ·  1 × watchdog disabled (תקין)
+          1 × history_loader gap-fill  ·  1 × tpo_snapshotter started
+עם המסנן השלישי ⇒ **20 שורות**, כולן מוכרות-ומתוארכות
+```
+
+⇒ אותה מחלקה כמו 33/34 ובאותו **כיוון מסוכן** (מלכודות 24/27): **אזעקה על מערכת בריאה** —
+`5,147` בשער-15:40 הוא NO-GO מדומה, ובניטור-RTH מקרה (ג) מיותר. **ומכאן גם הכלל הכללי:** המבול
+**נייד בין רמות ובין מחרוזות** (ERROR→WARNING במלכודת 34, ואת השם במלכודת זו) ⇒ לפני ציטוט
+המונה, להריץ `| sed -E 's/^[0-9: -]+\[WARNING\] //' | cut -c1-70 | sort | uniq -c | sort -rn | head`
+ולראות את ה**הרכב**; מספר בלי הרכב אינו ממצא.
 
 ⚠️ **מה שבמפורש אינו נטען:** (א) שירי-S2 נחסם או שעסקה אבדה — דורש מדידת-RTH שלא נעשתה,
 ו-06.10 נתן `290` בלבד בשעה 16 ⇒ הכיסוי **כן** מתאושש בפתיחה (זה הצעד-הבא של [[T-557]]);
