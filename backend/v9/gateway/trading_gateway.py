@@ -217,9 +217,32 @@ def _resolve_live_cls() -> Optional[dict]:
     """
     try:
         from backend.main import app as _main_app
-        return getattr(_main_app.state, "last_cls_result", None)
+        _r = getattr(_main_app.state, "last_cls_result", None)
+        # T-588 (18.10, cowork — flag CLS_RESULT_SESSION_GUARD_V1, default OFF ⇒ byte-identical): a classify_session
+        # result stamped with ANOTHER session date is yesterday's label and opening type. 06.10 16:30:05–17:05 the
+        # gateway walked the tree on ot=OPEN_AUCTION_IN / day_type Trend_Normal→Variation carried from 05.10 while
+        # the machine said UNKNOWN and the replay FORMING→OPEN_REJECTION_REVERSE ⇒ OPENING_DRIVE LONG +95.60$ refused
+        # by tree:kind. The v9_day_type_state publisher already honours the stamp (N1 RC#4); the gateway did not.
+        return _cls_session_guard(_r)
     except Exception:
         return None
+
+
+def _cls_session_guard(result: Optional[dict], today_iso: Optional[str] = None) -> Optional[dict]:
+    """Pure: with CLS_RESULT_SESSION_GUARD_V1 on, a result whose session_date is not today's ET date → None
+    (a result without a stamp passes — fail-open). Flag off ⇒ the result unchanged."""
+    if result is None or os.getenv("CLS_RESULT_SESSION_GUARD_V1", "0").strip().lower() not in ("1", "true", "yes"):
+        return result
+    try:
+        sd = result.get("session_date") if isinstance(result, dict) else None
+        if not sd:
+            return result
+        if today_iso is None:
+            from backend.v9.services.market_clock import now_et as _sg_now_et
+            today_iso = _sg_now_et().date().isoformat()
+        return None if str(sd)[:10] != str(today_iso)[:10] else result
+    except Exception:
+        return result
 
 
 import os as _os
