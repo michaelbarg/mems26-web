@@ -855,6 +855,13 @@ flags:
     why: "OFF (default — byte-identical). Finding (harness S1 timelines, doctrine_audit/day_review): the first published day-type was 'Trend_Normal' in 154/166 reconstructed and 67/70 live-era sessions — the legacy state machine's TRENDING behaviour at 30 min — demoted to Variation 10-25 min later (DAYTYPE_ACCEPTANCE_DEMOTION_V1) and replaced by the canonical label only at the lock, because main.py ran classify_session only when ib_locked. A fixed sequence independent of the market, feeding the tree's phase-B day_type. Verified 27.03.26 in the harness: 16:55 Variation (acceptance-reclass DOWN) → 17:25 Normal instead of Trend_Normal → Variation → Normal; trades unchanged that day. Whole-day replay on all sessions before any ruling."
     status: built_off
     ref: "backend/main.py (_S1_PROV_PUB) · scripts/fwd_harness.py · tests/v9/regression/test_t593_provisional_publish.py (4) · docs/reports/SYSTEM_REVIEW_2026-10-18.md §8"
+  OPENING_LOCK_PRIOR_REFS_V1:
+    category: s1
+    group: "opening type"
+    what: "T-594 (18.10, cowork): the opening lock (T-314, opening_lock.py) passes the prior-day references (machine.prev_vah/prev_val, opening_bars[0].pd_high/pd_low) to detect_opening_type — the detector's open-location axis (Dalton pp.74-88: inside prior value / inside prior range / outside the prior range). Both detector calls (initial lock and the post-negation re-read)."
+    why: "OFF (default — the detector is called exactly as before). Finding (harness S1 timelines, 235 sessions): the lock never produced OPEN_AUCTION_OUT or OPEN_TEST_DRIVE (0/235) because it called the detector without references, so _loc() was always UNKNOWN; the same detector with references (the harness's canonical_opening) reads OPEN_AUCTION_OUT in 34 of those sessions and OPEN_TEST_DRIVE in 14. The tree's OPEN_AUCTION_OUT / OPEN_TEST_DRIVE branches are therefore dead in live. Whole-day replay on all sessions before any ruling (hist_o)."
+    status: built_off
+    ref: "backend/v9/systems/day_type/opening_lock.py:_prior_refs · tests/v9/regression/test_t594_opening_lock_prior_refs.py (3) · docs/reports/SYSTEM_REVIEW_2026-10-18.md §8"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"

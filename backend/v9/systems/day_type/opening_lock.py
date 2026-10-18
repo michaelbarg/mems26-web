@@ -5,9 +5,36 @@ The day_type_machine carries the state attributes; this module is
 pure logic + side-effects on the machine object.
 """
 import logging
+import os
 from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _prior_refs(machine: Any) -> dict:
+    """T-594 (18.10, cowork): the prior-day references the detector needs for its open-location axis (Dalton pp.74-88:
+    open inside prior value / inside prior range / outside the prior range). The lock used to call the detector WITHOUT
+    them, so `_loc()` was always UNKNOWN and OPEN_AUCTION_OUT / OPEN_TEST_DRIVE could never be locked (0 of 235
+    sessions; the detector with references reads OUT in 34 of them and TEST_DRIVE in 14). Flag
+    OPENING_LOCK_PRIOR_REFS_V1, default OFF → the detector is called exactly as before."""
+    if os.environ.get("OPENING_LOCK_PRIOR_REFS_V1", "0").strip().lower() not in ("1", "true", "yes"):
+        return {}
+    refs = {}
+    try:
+        for k in ("prev_vah", "prev_val"):
+            v = getattr(machine, k, None)
+            if v is not None:
+                refs["prior_vah" if k == "prev_vah" else "prior_val"] = float(v)
+        ob = getattr(machine, "opening_bars", None) or []
+        if ob:
+            for k in ("pd_high", "pd_low"):
+                v = getattr(ob[0], k, None)
+                if v is not None:
+                    refs["pdh" if k == "pd_high" else "pdl"] = float(v)
+    except Exception as e:   # fail-open: no references = the legacy call
+        logger.warning("[S1-OPENING] T-594: prior refs unavailable (%s) — detector runs without them", e)
+        return {}
+    return refs
 
 
 def update_opening_lock(
@@ -42,7 +69,7 @@ def update_opening_lock(
             det_bars = [{"o": b["o"], "h": b["h"], "l": b["l"],
                          "c": b["c"], "v": b.get("v", 0)}
                         for b in closed[:6]]
-            result = detect_opening_type(det_bars, rth_bars[0]["o"])
+            result = detect_opening_type(det_bars, rth_bars[0]["o"], **_prior_refs(machine))
             ot_val = str(result.get("opening_type") or "UNKNOWN")
             ot_dir = result.get("direction")
             if ot_val in ("OPEN_AUCTION_IN", "OPEN_AUCTION_OUT"):
@@ -96,7 +123,7 @@ def update_opening_lock(
                     det_bars = [{"o": b["o"], "h": b["h"], "l": b["l"],
                                  "c": b["c"], "v": b.get("v", 0)}
                                 for b in neg_bars[:6]]
-                    new_result = detect_opening_type(det_bars, rth_bars[0]["o"])
+                    new_result = detect_opening_type(det_bars, rth_bars[0]["o"], **_prior_refs(machine))
                     machine._opening_locked_val = str(
                         new_result.get("opening_type") or "UNKNOWN")
                     machine._opening_locked_dir = new_result.get("direction")
