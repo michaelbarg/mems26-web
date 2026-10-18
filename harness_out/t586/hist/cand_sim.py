@@ -36,11 +36,14 @@ def sim(bars, il, direction, entry, stop, t1, floor=True):
     fill = entry if l <= entry <= h else o
     R = abs(fill - stop) or 0.25
     tgt = fill + d * (max(abs(t1 - fill) if t1 else 0.0, FLOOR_R * R) if floor else (abs(t1 - fill) if t1 else FLOOR_R * R))
+    MFE["r"] = 0.0                    # max favorable excursion in R before the stop bar (stop-before-target: the stop bar does not count)
     for i in range(idx, len(bars)):
         _, o, h, l, c = bars[i]
         if (l <= stop) if d == 1 else (h >= stop): return (d * (stop - fill), "STOP", bars[i][0])
+        MFE["r"] = max(MFE["r"], d * ((h if d == 1 else l) - fill) / R)
         if (h >= tgt) if d == 1 else (l <= tgt): return (d * (tgt - fill), "T1", bars[i][0])
     return (d * (bars[-1][4] - fill), "EOD", bars[-1][0])
+MFE = {"r": 0.0}
 rows = []
 for tag in tags:
     for f in sorted(glob.glob(f"harness_out/t466/{tag}_20*.json")):
@@ -65,7 +68,9 @@ for tag in tags:
                              opening_type=v.get("opening_type"), phase=v.get("phase"), day_type=v.get("day_type"), rel_bias=v.get("rel_bias"),
                              zone=v.get("zone"), leaf=tv.get("leaf"), leaf_id=tv.get("id"), fixed_leaf=fixed_leaf(v)[0], fixed_id=fixed_leaf(v)[1], blocked_by=r.get("blocked_by") or "",
                              live_blocked_by=r.get("live_blocked_by") or "", taken=int(tid in pnl_by_tid), harness_pnl=pnl_by_tid.get(tid),
-                             pts=round(res[0], 2), net=round(res[0] * PT - COMM, 2), exit=res[1], exit_il=res[2], tag=tag))
+                             pts=round(res[0], 2), net=round(res[0] * PT - COMM, 2), exit=res[1], exit_il=res[2], tag=tag,
+                             entry=entry, stop=stop, t1=t1, r_pts=round(abs(entry - stop), 2), system=r.get("system"), mfe_r=round(MFE["r"], 2),
+                             shadow_only=int(bool(r.get("shadow_only"))), routed_shadow=int(bool((r.get("result") or {}).get("shadow")))))
 df = pd.DataFrame(rows); df.to_csv(out, index=False)
 tk = df[df.taken == 1]
 print(f"{len(df)} candidates · taken {len(tk)} · sim-vs-harness on taken: exact {((tk.net + COMM - tk.harness_pnl).abs() < 0.01).mean()*100:.0f}% "
