@@ -1,0 +1,276 @@
+--- provenance start 2026-10-18 23:52:28 HEAD=82a5717e ---
+49c7005195d9c24e85be8ffc5832867c d48eb49e0be82fd5734fcfdffe1d5b63 cc8f5080debdc296f9bbdbd401821c19 d99d34dc8de6bb2862ff17d6721a7d79 3d3dfc9a50de4ffc74118c4e5fa17f38
+ M backend/v9/api/v9/mobile_monitor.py
+ M backend/v9/api/v9/tree_routes.py
+ M backend/v9/systems/five_min/five_min_system.py
+ M config/news_calendar.yaml
+ M scripts/fwd_harness.py
+?? backend/v9/services/trade_manager/be_after_mfe.py
+?? config/decision_tree_v3.3.4.0.yaml
+?? config/decision_tree_v3.all_take.yaml
+?? config/decision_tree_v3.t24_context.yaml
+?? config/decision_tree_v3.t543_prune.yaml
+?? scripts/daily_dalton.py
+?? scripts/replay_admits.py
+?? scripts/stage5_context_root_wf.py
+?? scripts/tree_learner.py
+?? scripts/tree_prune_variant.py
+?? scripts/walk_forward.py
+=== t598ref start 23:52:28 ===
+done 2026-06-15 t598ref rc=0
+done 2026-06-16 t598ref rc=0
+done 2026-06-22 t598ref rc=0
+done 2026-06-23 t598ref rc=0
+done 2026-06-25 t598ref rc=0
+done 2026-06-24 t598ref rc=0
+done 2026-06-29 t598ref rc=0
+done 2026-06-30 t598ref rc=0
+done 2026-07-01 t598ref rc=0
+done 2026-07-02 t598ref rc=0
+done 2026-07-06 t598ref rc=0
+done 2026-07-07 t598ref rc=0
+done 2026-07-08 t598ref rc=0
+done 2026-07-09 t598ref rc=0
+done 2026-07-13 t598ref rc=0
+done 2026-07-14 t598ref rc=0
+done 2026-07-15 t598ref rc=0
+done 2026-07-16 t598ref rc=0
+done 2026-07-17 t598ref rc=0
+done 2026-07-20 t598ref rc=0
+done 2026-07-21 t598ref rc=0
+done 2026-07-23 t598ref rc=0
+done 2026-07-27 t598ref rc=0
+done 2026-07-30 t598ref rc=0
+done 2026-07-31 t598ref rc=0
+done 2026-08-03 t598ref rc=0
+done 2026-08-05 t598ref rc=0
+done 2026-08-06 t598ref rc=0
+done 2026-08-07 t598ref rc=0
+done 2026-08-10 t598ref rc=0
+done 2026-08-11 t598ref rc=0
+done 2026-08-12 t598ref rc=0
+done 2026-08-13 t598ref rc=0
+done 2026-08-14 t598ref rc=0
+done 2026-08-17 t598ref rc=0
+done 2026-08-18 t598ref rc=0
+done 2026-08-19 t598ref rc=0
+done 2026-08-20 t598ref rc=0
+done 2026-08-21 t598ref rc=0
+done 2026-08-24 t598ref rc=0
+done 2026-08-26 t598ref rc=0
+done 2026-08-25 t598ref rc=0
+done 2026-08-27 t598ref rc=0
+done 2026-08-28 t598ref rc=0
+done 2026-08-31 t598ref rc=0
+done 2026-09-01 t598ref rc=0
+done 2026-09-02 t598ref rc=0
+done 2026-09-03 t598ref rc=0
+done 2026-09-04 t598ref rc=0
+done 2026-09-08 t598ref rc=0
+done 2026-09-09 t598ref rc=0
+done 2026-09-10 t598ref rc=0
+done 2026-09-14 t598ref rc=0
+done 2026-09-11 t598ref rc=0
+done 2026-09-18 t598ref rc=0
+done 2026-09-15 t598ref rc=0
+done 2026-09-21 t598ref rc=0
+done 2026-09-22 t598ref rc=0
+done 2026-09-23 t598ref rc=0
+done 2026-09-24 t598ref rc=0
+done 2026-09-25 t598ref rc=0
+done 2026-09-28 t598ref rc=0
+done 2026-09-29 t598ref rc=0
+done 2026-09-30 t598ref rc=0
+done 2026-10-01 t598ref rc=0
+done 2026-10-02 t598ref rc=0
+done 2026-10-06 t598ref rc=0
+done 2026-10-05 t598ref rc=0
+done 2026-10-07 t598ref rc=0
+done 2026-10-08 t598ref rc=0
+done 2026-10-09 t598ref rc=0
+ALL DONE t598ref Mon Oct 19 00:08:16 IDT 2026
+=== t598ref done 00:08:16 ===
+--- provenance mid 2026-10-19 00:08:16 HEAD=82a5717e ---
+49c7005195d9c24e85be8ffc5832867c d48eb49e0be82fd5734fcfdffe1d5b63 cc8f5080debdc296f9bbdbd401821c19 d99d34dc8de6bb2862ff17d6721a7d79 3d3dfc9a50de4ffc74118c4e5fa17f38
+ M backend/v9/api/v9/mobile_monitor.py
+ M backend/v9/api/v9/tree_routes.py
+ M backend/v9/systems/five_min/five_min_system.py
+ M config/news_calendar.yaml
+ M scripts/fwd_harness.py
+ M scripts/phone_reply.py
+?? backend/v9/services/trade_manager/be_after_mfe.py
+?? config/decision_tree_v3.3.4.0.yaml
+?? config/decision_tree_v3.all_take.yaml
+?? config/decision_tree_v3.t24_context.yaml
+?? config/decision_tree_v3.t543_prune.yaml
+?? scripts/daily_dalton.py
+?? scripts/replay_admits.py
+?? scripts/stage5_context_root_wf.py
+?? scripts/tree_learner.py
+?? scripts/tree_prune_variant.py
+?? scripts/walk_forward.py
+=== t598be start 00:08:16 ===
+done 2026-06-15 t598be rc=0
+done 2026-06-16 t598be rc=0
+done 2026-06-22 t598be rc=0
+done 2026-06-23 t598be rc=0
+done 2026-06-25 t598be rc=0
+done 2026-06-24 t598be rc=0
+done 2026-06-29 t598be rc=0
+done 2026-06-30 t598be rc=0
+done 2026-07-01 t598be rc=0
+done 2026-07-02 t598be rc=0
+done 2026-07-06 t598be rc=0
+done 2026-07-07 t598be rc=0
+done 2026-07-08 t598be rc=0
+done 2026-07-09 t598be rc=0
+done 2026-07-13 t598be rc=0
+done 2026-07-14 t598be rc=0
+done 2026-07-15 t598be rc=0
+done 2026-07-16 t598be rc=0
+done 2026-07-17 t598be rc=0
+done 2026-07-20 t598be rc=0
+done 2026-07-21 t598be rc=0
+done 2026-07-23 t598be rc=0
+done 2026-07-27 t598be rc=0
+done 2026-07-30 t598be rc=0
+done 2026-07-31 t598be rc=0
+done 2026-08-03 t598be rc=0
+done 2026-08-05 t598be rc=0
+done 2026-08-06 t598be rc=0
+done 2026-08-07 t598be rc=0
+done 2026-08-10 t598be rc=0
+done 2026-08-11 t598be rc=0
+done 2026-08-12 t598be rc=0
+done 2026-08-13 t598be rc=0
+done 2026-08-14 t598be rc=0
+done 2026-08-17 t598be rc=0
+done 2026-08-18 t598be rc=0
+done 2026-08-19 t598be rc=0
+done 2026-08-20 t598be rc=0
+done 2026-08-21 t598be rc=0
+done 2026-08-24 t598be rc=0
+done 2026-08-26 t598be rc=0
+done 2026-08-25 t598be rc=0
+done 2026-08-27 t598be rc=0
+done 2026-08-28 t598be rc=0
+done 2026-08-31 t598be rc=0
+done 2026-09-01 t598be rc=0
+done 2026-09-02 t598be rc=0
+done 2026-09-03 t598be rc=0
+done 2026-09-04 t598be rc=0
+done 2026-09-08 t598be rc=0
+done 2026-09-10 t598be rc=0
+done 2026-09-09 t598be rc=0
+done 2026-09-14 t598be rc=0
+done 2026-09-11 t598be rc=0
+done 2026-09-15 t598be rc=0
+done 2026-09-18 t598be rc=0
+done 2026-09-21 t598be rc=0
+done 2026-09-22 t598be rc=0
+done 2026-09-23 t598be rc=0
+done 2026-09-24 t598be rc=0
+done 2026-09-28 t598be rc=0
+done 2026-09-25 t598be rc=0
+done 2026-09-29 t598be rc=0
+done 2026-09-30 t598be rc=0
+done 2026-10-01 t598be rc=0
+done 2026-10-02 t598be rc=0
+done 2026-10-06 t598be rc=0
+done 2026-10-05 t598be rc=0
+done 2026-10-08 t598be rc=0
+done 2026-10-07 t598be rc=0
+done 2026-10-09 t598be rc=0
+ALL DONE t598be Mon Oct 19 00:17:54 IDT 2026
+=== t598be done 00:17:54 ===
+--- provenance end 2026-10-19 00:17:54 HEAD=d93f1f2b ---
+49c7005195d9c24e85be8ffc5832867c d48eb49e0be82fd5734fcfdffe1d5b63 cc8f5080debdc296f9bbdbd401821c19 d99d34dc8de6bb2862ff17d6721a7d79 3d3dfc9a50de4ffc74118c4e5fa17f38
+ M backend/v9/api/v9/mobile_monitor.py
+ M backend/v9/api/v9/tree_routes.py
+ M backend/v9/systems/five_min/five_min_system.py
+ M config/news_calendar.yaml
+ M scripts/fwd_harness.py
+ M scripts/phone_reply.py
+?? backend/v9/services/trade_manager/be_after_mfe.py
+?? config/decision_tree_v3.3.4.0.yaml
+?? config/decision_tree_v3.all_take.yaml
+?? config/decision_tree_v3.t24_context.yaml
+?? config/decision_tree_v3.t543_prune.yaml
+?? scripts/daily_dalton.py
+?? scripts/replay_admits.py
+?? scripts/stage5_context_root_wf.py
+?? scripts/tree_learner.py
+?? scripts/tree_prune_variant.py
+?? scripts/walk_forward.py
+--- t598be vs t598ref ---
+t598be vs t598ref: 71 sessions · t598ref Σ+2351.75$ · t598be Σ+2137.45$ · Δ -214.30$ gross, ≈-232.50$ net of +7 round-trips · better 4 / worse 8 / same 59
+by month Δ: 2026-06 +0 (8d) · 2026-07 -85 (17d) · 2026-08 +0 (20d) · 2026-09 -21 (19d) · 2026-10 -108 (7d)
+trades: added 8 (wins 4, Σ+3.75$) · removed 1 (Σ-36.25$) · the rest of Δ is changed exits/targets of the same trades
+2026-07-01 Δ  -140.00   (ref  +170.00 →   +30.00)
+2026-07-23 Δ   +55.00   (ref   -50.00 →    +5.00)
+2026-09-02 Δ   -48.75   (ref  +102.50 →   +53.75)
+2026-09-04 Δ   -70.00   (ref  +185.00 →  +115.00)
+2026-09-09 Δ   -16.25   (ref   -15.00 →   -31.25)
+2026-09-11 Δ   +91.25   (ref   -86.25 →    +5.00)
+2026-09-14 Δ   -45.00   (ref  +148.75 →  +103.75)
+2026-09-22 Δ  -129.35   (ref  +161.85 →   +32.50)
+2026-09-24 Δ   +38.75   (ref   +22.50 →   +61.25)
+2026-09-29 Δ   -54.35   (ref   -53.15 →  -107.50)
+2026-09-30 Δ  +212.50   (ref  -111.25 →  +101.25)
+2026-10-06 Δ  -108.10   (ref   +54.35 →   -53.75)
+sessions 71 · Σ Δ -214.30 gross · holdout-10 (2026-09-28..2026-10-09) Δ +50.05 · better 4 / worse 8 / same 59
+months: 2026-06 +0 · 2026-07 -85 · 2026-08 +0 · 2026-09 -21 · 2026-10 -108
+mechanism: {'checked': 0, 'signals': 0, 'tightened': 0} · tightened trades: 48
+  TIGHTENED ('2026-06-15', '16:50:03', 'OPENING_DRIVE', 'LONG', '18:30', 7604.25, 7619.25, 112.5, ['T1'])
+  TIGHTENED ('2026-06-15', '19:50:03', 'CEILING_FLIP_SHORT', 'SHORT', '21:00', 7649.0, 7638.5, 78.75, ['T1'])
+  TIGHTENED ('2026-06-30', '16:50:03', 'OPENING_DRIVE', 'LONG', '16:50', 7494.25, 7507.0, 95.6, ['T1'])
+  TIGHTENED ('2026-07-01', '19:40:03', 'CEILING_FLIP_SHORT', 'SHORT', '19:55', 7579.25, 7570.0, 69.4, ['T1'])
+  TIGHTENED ('2026-07-01', '20:45:03', 'CONFLUENCE_RI_ZLR', 'SHORT', '21:15', 7566.5, 7559.5, 0.0, ['BE', 'BE'])
+  TIGHTENED ('2026-07-06', '16:45:03', 'OPENING_TEST_DRIVE', 'LONG', '17:30', 7550.75, 7565.25, 108.75, ['T1'])
+  TIGHTENED ('2026-07-07', '16:55:03', 'OPENING_DRIVE', 'SHORT', '17:10', 7582.0, 7567.0, 112.5, ['T1'])
+  TIGHTENED ('2026-07-15', '16:45:03', 'OPENING_DRIVE', 'SHORT', '18:00', 7620.25, 7605.25, 112.5, ['T1'])
+  TIGHTENED ('2026-07-15', '18:50:03', 'CEILING_FLIP_LONG', 'LONG', '19:20', 7571.5, 7583.25, 88.15, ['T1'])
+  TIGHTENED ('2026-07-16', '16:55:03', 'OPENING_DRIVE', 'SHORT', '18:05', 7616.25, 7606.0, 76.9, ['T1'])
+  TIGHTENED ('2026-07-23', '18:15:03', 'CEILING_FLIP_LONG', 'LONG', '18:20', 7435.0, 7446.0, 0.0, ['BE'])
+  TIGHTENED ('2026-07-27', '16:45:03', 'OPENING_DRIVE', 'SHORT', '16:55', 7508.25, 7493.25, 112.5, ['T1'])
+  TIGHTENED ('2026-07-30', '16:45:03', 'OPENING_DRIVE', 'LONG', '16:50', 7402.25, 7417.25, 112.5, ['T1'])
+  TIGHTENED ('2026-08-03', '18:25:03', 'REACTIVE_LONG', 'LONG', '19:25', 7600.0, 7607.75, 58.75, ['T1'])
+  TIGHTENED ('2026-08-03', '20:30:03', 'INITIATIVE_LONG', 'LONG', '21:00', 7614.25, 7622.5, 62.5, ['T1'])
+  TIGHTENED ('2026-08-05', '16:50:03', 'OPENING_PULLBACK_CONT', 'SHORT', '17:35', 7820.5, 7805.5, 112.5, ['T1'])
+  TIGHTENED ('2026-08-11', '16:50:03', 'OPENING_DRIVE', 'SHORT', '19:25', 7789.25, 7774.25, 112.5, ['T1'])
+  TIGHTENED ('2026-08-13', '17:45:03', 'CEILING_FLIP_SHORT', 'SHORT', '17:45', 7838.75, 7830.25, 70.0, ['T1'])
+  TIGHTENED ('2026-08-13', '19:30:03', 'GHOST', 'LONG', '20:05', 7803.5, 7809.25, 52.5, ['T1'])
+  TIGHTENED ('2026-08-20', '21:05:03', 'DOUBLE_TOP_AA_SHORT', 'SHORT', '21:10', 7686.5, 7679.0, 56.25, ['T1'])
+  TIGHTENED ('2026-08-25', '16:55:03', 'OPENING_TEST_DRIVE', 'SHORT', '17:15', 7702.75, 7693.25, 71.25, ['T1'])
+  TIGHTENED ('2026-08-26', '20:00:03', 'CEILING_FLIP_LONG', 'LONG', '20:20', 7670.75, 7679.5, 65.6, ['T1'])
+  TIGHTENED ('2026-09-01', '16:50:03', 'OPENING_DRIVE', 'LONG', '17:15', 7637.0, 7649.25, 91.85, ['T1'])
+  TIGHTENED ('2026-09-01', '19:10:03', 'CEILING_FLIP_SHORT', 'SHORT', '19:15', 7674.0, 7665.75, 61.85, ['T1'])
+  TIGHTENED ('2026-09-02', '17:00:03', 'OPENING_DRIVE', 'LONG', '17:15', 7641.75, 7656.75, 112.5, ['T1'])
+  TIGHTENED ('2026-09-02', '18:40:03', 'CEILING_FLIP_SHORT', 'SHORT', '18:45', 7691.5, 7685.0, 0.0, ['BE'])
+  TIGHTENED ('2026-09-04', '16:45:03', 'OPENING_EXTREME_REJECT', 'SHORT', '17:10', 7753.5, 7743.5, 75.0, ['T1'])
+  TIGHTENED ('2026-09-04', '20:00:03', 'CEILING_FLIP_SHORT', 'SHORT', '20:00', 7735.5, 7730.5, 42.5, ['T1'])
+  TIGHTENED ('2026-09-09', '18:35:03', 'CEILING_FLIP_LONG', 'LONG', '21:55', 7628.5, 7641.25, 0.0, ['BE'])
+  TIGHTENED ('2026-09-11', '18:10:03', 'CEILING_FLIP_LONG', 'LONG', '18:25', 7653.0, 7666.5, 0.0, ['BE'])
+  TIGHTENED ('2026-09-14', '16:45:03', 'OPENING_DRIVE', 'LONG', '16:45', 7666.5, 7677.5, 82.5, ['T1'])
+  TIGHTENED ('2026-09-14', '17:30:03', 'DOUBLE_TOP_AA_SHORT', 'SHORT', '17:35', 7676.25, 7671.25, 0.0, ['BE'])
+  TIGHTENED ('2026-09-14', '20:00:03', 'CEILING_FLIP_SHORT', 'SHORT', '20:10', 7720.0, 7712.75, 0.0, ['BE'])
+  TIGHTENED ('2026-09-18', '16:45:03', 'OPENING_DRIVE', 'SHORT', '16:55', 7716.0, 7705.0, 82.5, ['T1'])
+  TIGHTENED ('2026-09-21', '16:45:03', 'OPENING_DRIVE', 'LONG', '17:00', 7756.75, 7766.25, 71.25, ['T1'])
+  TIGHTENED ('2026-09-21', '18:05:03', 'REACTIVE_LONG', 'LONG', '18:40', 7782.5, 7793.25, 70.0, ['T1'])
+  TIGHTENED ('2026-09-21', '19:20:03', 'INITIATIVE_LONG', 'LONG', '20:10', 7800.75, 7813.75, 70.0, ['T1'])
+  TIGHTENED ('2026-09-21', '21:04:58', 'GHOST', 'LONG', '21:40', 7821.75, 7830.25, 63.75, ['T1'])
+  TIGHTENED ('2026-09-22', '16:45:03', 'OPENING_EXTREME_REJECT', 'SHORT', '16:55', 7851.0, 7842.75, 0.0, ['BE'])
+  TIGHTENED ('2026-09-22', '18:30:03', 'REACTIVE_SHORT', 'SHORT', '18:30', 7834.5, 7830.25, 31.25, ['T1'])
+  TIGHTENED ('2026-09-23', '16:45:03', 'OPENING_DRIVE', 'SHORT', '16:55', 7828.0, 7814.25, 103.15, ['T1'])
+  TIGHTENED ('2026-09-23', '19:44:58', 'GB100', 'SHORT', '19:50', 7778.5, 7772.0, 48.75, ['T1'])
+  TIGHTENED ('2026-09-24', '20:35:03', 'DOUBLE_TOP_AA_SHORT', 'SHORT', '20:40', 7770.25, 7762.5, 0.0, ['BE'])
+  TIGHTENED ('2026-09-29', '20:25:03', 'CEILING_FLIP_LONG', 'LONG', '21:00', 7712.0, 7719.25, 0.0, ['BE'])
+  TIGHTENED ('2026-09-30', '17:00:03', 'OPENING_DRIVE', 'LONG', '17:50', 7752.25, 7767.25, 0.0, ['BE'])
+  TIGHTENED ('2026-09-30', '18:15:03', 'CEILING_FLIP_SHORT', 'SHORT', '20:15', 7782.5, 7769.0, 101.25, ['T1'])
+  TIGHTENED ('2026-10-06', '16:50:03', 'OPENING_DRIVE', 'LONG', '17:05', 7858.75, 7871.5, 0.0, ['BE'])
+  TIGHTENED ('2026-10-08', '17:40:03', 'CEILING_FLIP_SHORT', 'SHORT', '17:45', 7844.75, 7840.25, 33.75, ['T1'])
+--- t598ref vs t567ref (reference drift since 08.10: T-591/T-597/worktree) ---
+t598ref vs t567ref: 70 sessions · t567ref Σ+2426.75$ · t598ref Σ+2426.75$ · Δ +0.00$ gross, ≈+0.00$ net of +0 round-trips · better 0 / worse 0 / same 70
+by month Δ: 2026-06 +0 (8d) · 2026-07 +0 (17d) · 2026-08 +0 (19d) · 2026-09 +0 (19d) · 2026-10 +0 (7d)
+trades: added 0 (wins 0, Σ+0.00$) · removed 0 (Σ+0.00$) · the rest of Δ is changed exits/targets of the same trades
+=== ALL DONE 00:17:55 ===

@@ -1026,6 +1026,14 @@ _SE_STATS = {"checked": 0, "signals": 0, "tightened": 0}   # proof the mechanism
 _SLOT_RELEASE_N = int(os.getenv("SLOT_RELEASE_BARS_V1", "0") or 0)
 _SLOT_RELEASE_R = float(os.getenv("SLOT_RELEASE_MFE_R", "1.0") or 1.0)
 _SLOT_RELEASE_STATS = {"checked": 0, "released": 0}
+# BE_AFTER_MFE_R_V1 (T-598, BRIEF §2.3 variant 1 — METHOD_AUDIT 05.10 (ז): "34% of the losers were at +1R before the
+# stop"; harness measurement, default off): at the close of a bar a FILLED, pre-T1 trade survived, if the MFE since the
+# fill bar (highs for LONG / lows for SHORT, this bar included) has reached R × the initial risk (|fill − initial stop|),
+# the stop moves to the fill price (BE) — tighten only, never widen, never flatten, effective from the NEXT bar (the live
+# counterpart would be a closed-bar MODIFY_STOP in bar_level_detector — NOT wired live; today's live protective BE is
+# "after T1", which a 1-contract ladder never reaches before the exit). Unset/0 ⇒ byte-identical replay.
+_BE_MFE_R = float(os.getenv("BE_AFTER_MFE_R_V1", "0") or 0)
+_BE_MFE_STATS = {"checked": 0, "moved": 0}
 
 
 def _se_apply_tighten(tr, bar_index, ns, why):
@@ -1178,6 +1186,20 @@ def _settle_bar(b, bar_index):
         if all(l["exit"] for l in tr["legs"]):
             _close_trade(tr, il)
             continue
+        # BE_AFTER_MFE_R_V1 (T-598) — at the close of a bar the filled trade survived, stop not yet at BE: MFE since
+        # the fill ≥ R × initial risk ⇒ stop → fill price, effective from the next bar (pure rule: be_after_mfe.py).
+        if _BE_MFE_R > 0 and tr.get("filled") and not tr["be_moved"]:
+            from backend.v9.services.trade_manager.be_after_mfe import be_stop_after_mfe
+            _BE_MFE_STATS["checked"] += 1
+            _fb = tr.get("fill_bar_index", bar_index)
+            _ns = be_stop_after_mfe(d, e, tr["stop"], tr["stop_initial"],
+                                    [float(BARS[i]["high"]) for i in range(_fb, bar_index + 1)],
+                                    [float(BARS[i]["low"]) for i in range(_fb, bar_index + 1)], _BE_MFE_R)
+            if _ns is not None:
+                tr.setdefault("tightened", []).append({"il": il, "from": float(tr["stop"]), "to": round(float(_ns), 2),
+                                                       "reason": f"be_after_mfe r={_BE_MFE_R}"})
+                tr["stop"] = float(_ns); tr["be_moved"] = True
+                _BE_MFE_STATS["moved"] += 1
         # STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 — at the close of a bar the trade survived, pre-T1 only (the live
         # bar_level_detector runs on the closed bar; its MODIFY_STOP takes effect from the next bar).
         if _SE_TIGHTEN and tr.get("filled") and not tr["be_moved"]:
@@ -1463,6 +1485,7 @@ out = {
     "second_slot": {"paths": _SECOND_PATHS, "opened": _SECOND["opened"]},   # T-561 (empty list ⇒ not in play)
     "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN, room_atr=_SE_ROOM),   # T-566 (on=False ⇒ not in play)
     "slot_release": dict(_SLOT_RELEASE_STATS, bars=_SLOT_RELEASE_N, mfe_r=_SLOT_RELEASE_R),   # T-567c (bars=0 ⇒ off)
+    "be_after_mfe": dict(_BE_MFE_STATS, r=_BE_MFE_R),   # T-598 (r=0 ⇒ off)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }

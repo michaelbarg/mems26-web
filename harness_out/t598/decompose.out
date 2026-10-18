@@ -1,0 +1,31 @@
+t598be vs t598ref: 71 common sessions · train 61 (2026-06-15…2026-09-25) · holdout 10 (2026-09-28…2026-10-09)
+Δ gross: all -214.30$ · train -264.35$ · holdout +50.05$ · BE moves 48 of 1264 pre-T1 bar-checks
+months: 06 +0.00 · 07 -85.00 · 08 +0.00 · 09 -21.20 · 10 -108.10
+  BE-cost (ref target → BE)          n=  5  Δ -330.55$
+  BE-saved (ref STOP → BE)           n=  4  Δ +193.75$
+  other T1/T2→BE/BE                  n=  1  Δ -140.00$
+  chain: only in reference           n=  1  Δ +36.25$
+  BE-vs-EOD                          n=  2  Δ +22.50$
+  chain: only in variant             n=  8  Δ +3.75$
+--- per-trade differences ---
+  2026-07-01 | CONFLUENCE_RI_ZLR | SHORT | 20:45:03 | T1/T2 | BE/BE | 140.0 | 0.0 | -140.0
+  2026-07-23 | CEILING_FLIP_LONG | LONG | 18:15:03 | STOP | BE | -55.0 | 0.0 | 55.0
+  2026-09-02 | CEILING_FLIP_SHORT | SHORT | 18:40:03 | T1 | BE | 48.75 | 0.0 | -48.75
+  2026-09-04 | CONFLUENCE_RI_ZLR | SHORT | 20:45:03 | — | STOP/STOP | None | -70.0 | -70.0
+  2026-09-09 | CEILING_FLIP_LONG | LONG | 18:35:03 | EOD | BE | 16.25 | 0.0 | -16.25
+  2026-09-11 | DOUBLE_TOP_AA_SHORT | SHORT | 21:25:03 | — | T1 | None | 23.75 | 23.75
+  2026-09-11 | REACTIVE_SHORT | SHORT | 21:00:03 | — | T1 | None | 28.75 | 28.75
+  2026-09-11 | CEILING_FLIP_LONG | LONG | 18:10:03 | EOD | BE | -38.75 | 0.0 | 38.75
+  2026-09-14 | CEILING_FLIP_SHORT | SHORT | 20:00:03 | T1 | BE | 70.0 | 0.0 | -70.0
+  2026-09-14 | DOUBLE_TOP_AA_SHORT | SHORT | 17:30:03 | STOP | BE | -25.0 | 0.0 | 25.0
+  2026-09-22 | CEILING_FLIP_LONG | LONG | 17:15:03 | — | STOP | None | -36.25 | -36.25
+  2026-09-22 | DOUBLE_TOP_AA_SHORT | SHORT | 17:30:03 | — | STOP | None | -31.25 | -31.25
+  2026-09-22 | OPENING_EXTREME_REJECT | SHORT | 16:45:03 | T1 | BE | 61.85 | 0.0 | -61.85
+  2026-09-24 | DOUBLE_TOP_AA_SHORT | SHORT | 20:35:03 | STOP | BE | -38.75 | 0.0 | 38.75
+  2026-09-29 | CEILING_FLIP_LONG | LONG | 20:25:03 | T1 | BE | 54.35 | 0.0 | -54.35
+  2026-09-30 | FAMIR | LONG | 20:49:58 | STOP | — | -36.25 | None | 36.25
+  2026-09-30 | CEILING_FLIP_SHORT | SHORT | 18:15:03 | — | T1 | None | 101.25 | 101.25
+  2026-09-30 | OPENING_DRIVE | LONG | 17:00:03 | STOP | BE | -75.0 | 0.0 | 75.0
+  2026-10-06 | INITIATIVE_SHORT | SHORT | 17:30:03 | — | STOP | None | -56.25 | -56.25
+  2026-10-06 | REACTIVE_LONG | LONG | 18:05:03 | — | T1 | None | 43.75 | 43.75
+  2026-10-06 | OPENING_DRIVE | LONG | 16:50:03 | T1 | BE | 95.6 | 0.0 | -95.6
