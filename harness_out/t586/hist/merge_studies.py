@@ -13,8 +13,15 @@ for f in files:
 allb = pd.concat(frames, ignore_index=True)
 t = pd.to_datetime(allb["ts"], unit="s", utc=True).dt.tz_convert(ET)
 allb["etday"] = t.dt.date
-vol = allb.groupby(["etday", "contract"])["v"].sum().reset_index()
-front = vol.sort_values(["etday", "v"], ascending=[True, False]).drop_duplicates("etday").set_index("etday")["contract"]
+tm = t.dt.hour * 60 + t.dt.minute
+allb["rth"] = ((tm >= 570) & (tm < 960)).astype(int)
+vol = allb.groupby(["etday", "contract"]).agg(v=("v", "sum"), rth=("rth", "sum")).reset_index()
+# front contract per ET day: a MES contract with a full RTH (>= 70 bars) beats any ES file (same price, different volume
+# scale); among equals the larger volume wins. ES fills only the days MES does not cover (2022–24 files).
+vol["is_mes"] = vol["contract"].str.upper().str.startswith("MES").astype(int)
+vol["full"] = (vol["rth"] >= 70).astype(int)
+front = (vol.sort_values(["etday", "full", "is_mes", "v"], ascending=[True, False, False, False])
+            .drop_duplicates("etday").set_index("etday")["contract"])
 allb["front"] = allb["etday"].map(front)
 m = allb[allb["contract"] == allb["front"]].drop_duplicates("ts").sort_values("ts").reset_index(drop=True)
 print(f"merged {len(m):,} bars from {len(files)} contracts · {t.min()} → {t.max()} · front switches: "
