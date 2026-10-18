@@ -24,6 +24,18 @@ raw = subprocess.run([PSQL, "-d", DB, "-Atc", "select (ts at time zone 'America/
                       "from v9_bars_5min_woodies where symbol='MES' and (ts at time zone 'America/New_York')::time between '09:30' and '15:55' order by ts"],
                      capture_output=True, text=True).stdout
 BARS = collections.defaultdict(list)
+_tpo_raw = subprocess.run([PSQL, "-d", DB, "-Atc", "select (created_at at time zone 'America/New_York')::date, to_char(created_at at time zone 'Asia/Jerusalem','HH24:MI'), poc, vah, val, ib_high, ib_low "
+                           "from v9_tpo_history where poc is not null order by created_at"], capture_output=True, text=True).stdout
+TPO = collections.defaultdict(list)
+for line in _tpo_raw.splitlines():
+    d, il, poc, vah, val, ibh, ibl = line.split("|"); TPO[d].append((il, float(poc), float(vah), float(val), float(ibh) if ibh else None, float(ibl) if ibl else None))
+def tpo_asof(d, il):
+    """the TPO snapshot in force when the candidate fired (latest created_at <= fire time, same ET date)"""
+    best = None
+    for row in TPO.get(d) or []:
+        if row[0] <= il: best = row
+        else: break
+    return best
 for line in raw.splitlines():
     d, il, o, h, l, c = line.split("|"); BARS[d].append((il, float(o), float(h), float(l), float(c)))
 def mins(s): return int(s[:2]) * 60 + int(s[3:5])
@@ -34,6 +46,7 @@ def sim(bars, il, direction, entry, stop, t1, floor=True):
     d = 1 if direction == "LONG" else -1
     o, h, l = bars[idx][1], bars[idx][2], bars[idx][3]
     fill = entry if l <= entry <= h else o
+    MFE["fill"] = fill
     R = abs(fill - stop) or 0.25
     tgt = fill + d * (max(abs(t1 - fill) if t1 else 0.0, FLOOR_R * R) if floor else (abs(t1 - fill) if t1 else FLOOR_R * R))
     MFE["r"] = 0.0                    # max favorable excursion in R before the stop bar (stop-before-target: the stop bar does not count)
@@ -41,9 +54,19 @@ def sim(bars, il, direction, entry, stop, t1, floor=True):
         _, o, h, l, c = bars[i]
         if (l <= stop) if d == 1 else (h >= stop): return (d * (stop - fill), "STOP", bars[i][0])
         MFE["r"] = max(MFE["r"], d * ((h if d == 1 else l) - fill) / R)
-        if (h >= tgt) if d == 1 else (l <= tgt): return (d * (tgt - fill), "T1", bars[i][0])
+        if (h >= tgt) if d == 1 else (l <= tgt):
+            # ladder after T1 (the harness moves the stop to break-even once T1 prints): does the rest reach T2
+            # (the system's t2, else 2x the T1 distance) before price comes back to the fill?
+            t2p = MFE["t2_px"]; t2p = t2p if t2p and d * (t2p - fill) > d * (tgt - fill) else fill + 2 * d * abs(tgt - fill)
+            MFE["t2"] = 0; MFE["be"] = 0
+            for j in range(i + 1, len(bars)):
+                _, o2, h2, l2, c2 = bars[j]
+                if (l2 <= fill) if d == 1 else (h2 >= fill): MFE["be"] = 1; break
+                if (h2 >= t2p) if d == 1 else (l2 <= t2p): MFE["t2"] = 1; break
+            MFE["mfe_after_t1_pts"] = round(max(0.0, max((d * ((b[2] if d == 1 else b[3]) - fill) for b in bars[i:]), default=0.0)), 2)
+            return (d * (tgt - fill), "T1", bars[i][0])
     return (d * (bars[-1][4] - fill), "EOD", bars[-1][0])
-MFE = {"r": 0.0}
+MFE = {"r": 0.0, "t2": None, "be": None, "t2_px": None, "mfe_after_t1_pts": None}
 rows = []
 for tag in tags:
     for f in sorted(glob.glob(f"harness_out/t466/{tag}_20*.json")):
@@ -62,14 +85,22 @@ for tag in tags:
             if tid in tr_by_tid:      # taken: the gateway's final stop / T1 (arbitration, floor, structural chain) — exact
                 t = tr_by_tid[tid]; entry = float(t.get("fill_price") or t["entry"]); stop = float(t["stop_initial"])
                 t1 = float(t.get("t1_target") or 0) or None
+            MFE.update({"t2": None, "be": None, "mfe_after_t1_pts": None})
+            try: MFE["t2_px"] = float(r.get("t2")) if r.get("t2") not in (None, "", 0) else None
+            except (TypeError, ValueError): MFE["t2_px"] = None
             res = sim(bars, r["il"][:5], r["direction"].upper(), entry, stop, t1, floor=(tid not in tr_by_tid))
             if res is None: continue
+            tp = tpo_asof(s, r["il"][:5]); dsg = 1 if r["direction"].upper() == "LONG" else -1
+            fill_px = MFE.get("fill") or entry
+            va = dict(poc=tp[1] if tp else None, vah=tp[2] if tp else None, val=tp[3] if tp else None, ib_high=tp[4] if tp else None, ib_low=tp[5] if tp else None,
+                      poc_ahead=round(dsg * (tp[1] - fill_px), 2) if tp else None,
+                      poc_hit=int(MFE["r"] * abs(entry - stop) >= dsg * (tp[1] - fill_px) > 0) if tp else None)
             rows.append(dict(session=s, il=r["il"][:5], pattern=r.get("classification"), direction=r["direction"], kind=v.get("kind"),
                              opening_type=v.get("opening_type"), phase=v.get("phase"), day_type=v.get("day_type"), rel_bias=v.get("rel_bias"),
                              zone=v.get("zone"), leaf=tv.get("leaf"), leaf_id=tv.get("id"), fixed_leaf=fixed_leaf(v)[0], fixed_id=fixed_leaf(v)[1], blocked_by=r.get("blocked_by") or "",
                              live_blocked_by=r.get("live_blocked_by") or "", taken=int(tid in pnl_by_tid), harness_pnl=pnl_by_tid.get(tid),
                              pts=round(res[0], 2), net=round(res[0] * PT - COMM, 2), exit=res[1], exit_il=res[2], tag=tag,
-                             entry=entry, stop=stop, t1=t1, r_pts=round(abs(entry - stop), 2), system=r.get("system"), mfe_r=round(MFE["r"], 2),
+                             entry=entry, stop=stop, t1=t1, r_pts=round(abs(entry - stop), 2), system=r.get("system"), mfe_r=round(MFE["r"], 2), t2_hit=MFE["t2"], be_after_t1=MFE["be"], mfe_after_t1_pts=MFE["mfe_after_t1_pts"], **va,
                              shadow_only=int(bool(r.get("shadow_only"))), routed_shadow=int(bool((r.get("result") or {}).get("shadow")))))
 df = pd.DataFrame(rows); df.to_csv(out, index=False)
 tk = df[df.taken == 1]
