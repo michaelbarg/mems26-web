@@ -17,10 +17,17 @@ args = [a for a in sys.argv[1:] if not a.startswith("--")]; opt = {a.split("=")[
 DB = opt.get("db", "mems26_hist"); TICK = 0.25; PT = 5.0; COMM = 2.6; T0 = 3.0; LOCK = opt.get("lock")
 sessions = sum((open(a).read().split() for a in args), [])
 def q(sql): return subprocess.run([PSQL, "-d", DB, "-Atc", sql], capture_output=True, text=True).stdout.strip().splitlines()
-raw = q("select (ts at time zone 'America/New_York')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), open, high, low, close from v9_bars_5min_woodies "
+raw = q("select (ts at time zone 'America/New_York')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), open, high, low, close, coalesce(volume,0) from v9_bars_5min_woodies "
         "where symbol='MES' and (ts at time zone 'America/New_York')::time between '09:30' and '15:55' order by ts")
-BARS = collections.defaultdict(list)
-for line in raw: d, il, o, h, l, c = line.split("|"); BARS[d].append((il, float(o), float(h), float(l), float(c)))
+BARS = collections.defaultdict(list); VOL = {}
+for line in raw:
+    d, il, o, h, l, c, v = line.split("|"); BARS[d].append((il, float(o), float(h), float(l), float(c))); VOL[(d, il)] = float(v)
+# per-bar delta (bid/ask ticks, v9_bars_cumulative_delta): evidence for the drive read (Dalton: initiative needs the other timeframe's volume)
+DELTA = {}
+for line in q("select (ts at time zone 'America/New_York')::date, to_char(ts at time zone 'Asia/Jerusalem','HH24:MI'), delta from v9_bars_cumulative_delta "
+              "where (ts at time zone 'America/New_York')::time between '09:30' and '15:55' order by ts, case when source_version='hist' then 0 else 1 end"):
+    d, il, dl = line.split("|")
+    if dl not in ("", "None"): DELTA.setdefault((d, il), float(dl))
 def sim(bars, i, d, e, stop, t1):
     """returns (pts, exit, mfe) scoring from the bar after entry; stop checked before target on the same bar."""
     mfe = 0.0
@@ -66,14 +73,24 @@ for s in sessions:
             p15, ex15, mfe = sim(bars, i, drive, bc, stop, bc + drive * 1.5 * r)
             p3, ex3, _ = sim(bars, i, drive, bc, stop, bc + drive * T0)
             pnt, exnt, mfe = sim(bars, i, drive, bc, stop, bc + drive * 1e6)        # no target: MFE until the stop / EOD (frontier input)
-            rows.append(dict(session=s, variant=name, il=il, bar=i + 1, dir="LONG" if drive == 1 else "SHORT", R=round(r, 2), mfe=round(mfe, 2), pts_nt=round(pnt, 2), exit_nt=exnt,
+            stopb = (bl - 2 * TICK) if drive == 1 else (bh + 2 * TICK); rb = abs(bc - stopb)          # geometry B: the pullback extreme must hold
+            p15b, ex15b, _ = sim(bars, i, drive, bc, stopb, bc + drive * max(1.5 * rb, T0))
+            kk = min(k0, 6) if name != "lock" else max(1, min(k0, 12))
+            dk = [DELTA.get((s, bars[j][0])) for j in range(kk)]; vk = [VOL.get((s, bars[j][0]), 0.0) for j in range(kk)]
+            d_read = sum(x for x in dk if x is not None) if any(x is not None for x in dk) else None     # Σ delta over the bars the drive was read on
+            d_entry = DELTA.get((s, il)); d_pull = sum((DELTA.get((s, bars[j][0])) or 0.0) for j in range(kk, i + 1))  # pullback bars incl. entry
+            ev = dict(d_read=d_read, d_read_dir=(None if d_read is None else int(drive * d_read > 0)), d_entry=d_entry,
+                      d_entry_dir=(None if d_entry is None else int(drive * d_entry > 0)), d_pull=d_pull, v_read=sum(vk), v_entry=VOL.get((s, il), 0.0))
+            rows.append(dict(session=s, variant=name, il=il, bar=i + 1, dir="LONG" if drive == 1 else "SHORT", R=round(r, 2), mfe=round(mfe, 2), pts_nt=round(pnt, 2), exit_nt=exnt, **ev,
                              pts15=round(p15, 2), net15=round(p15 * PT - COMM, 2), exit15=ex15, t1hit=int(ex15 == "T1"), t0=int(ex3 == "T1"),
-                             pts3=round(p3, 2), net3=round(p3 * PT - COMM, 2), exit3=ex3))
+                             pts3=round(p3, 2), net3=round(p3 * PT - COMM, 2), exit3=ex3,
+                             RB=round(rb, 2), net15b=round(p15b * PT - COMM, 2), t1hitb=int(ex15b == "T1")))
             break
 S = pd.DataFrame(rows)
 if S.empty: print("no entries"); sys.exit(0)
 def summ(g): return pd.Series({"n": len(g), "sessions": g.session.nunique(), "R": g.R.median(), "T0(3)%": 100 * g.t0.mean(), "T1(1.5R)%": 100 * g.t1hit.mean(),
-                                "E15$": g.net15.mean(), "Σ15$": g.net15.sum(), "E3$": g.net3.mean(), "Σ3$": g.net3.sum(), "worst15$": g.net15.min()})
+                                "E15$": g.net15.mean(), "Σ15$": g.net15.sum(), "E3$": g.net3.mean(), "Σ3$": g.net3.sum(), "worst15$": g.net15.min(),
+                                "RB": g.RB.median(), "T1B%": 100 * g.t1hitb.mean(), "E15B$": g.net15b.mean(), "Σ15B$": g.net15b.sum()})
 print(f"{len(S)} R2 entries over {S.session.nunique()} sessions ({len(sessions)} sessions asked), one per session per variant")
 print("\nby variant (ref = lookahead as in thesis_entries.py; rt3/rt4/rt6 = drive read on closed bars only; lock = the system's own OPEN_DRIVE lock):")
 print(S.groupby("variant").apply(summ).round(1).to_string())
