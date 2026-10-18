@@ -1,0 +1,2 @@
+
+- [2026-10-18 09:40 IL cowork] ✅ **T-585 — הבקאנד הועבר לדמו** (snapshot `20261018T064016Z_T-577-demo-switch` · `.env` MEMS26_MODE=demo + LIVE_TRADING_V1=0 בלבד · pid 69665→2030 · `[Main] Demo mode enabled: systems [2, 4]` · gateway demo [2,4] / live [] · flag_guard rc=0 · fire_drill 🟢 GO). ביצוע החלטת מייקל 09.10 "העברתי לדמו"; חזרה ללייב רק בפסיקה כתובה + פרוטוקול T-551. post_restart_verify 🔴 רק על day_type — הפיד מת מ-09.10 22:15 (לא קשור למעבר).
