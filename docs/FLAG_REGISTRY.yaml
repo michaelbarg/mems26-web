@@ -848,6 +848,13 @@ flags:
     why: "OFF (default — byte-identical). Live finding (mems26 v9_tpo_sessions/v9_tpo_journal 21.09–09.10): the legacy counter advances the letter every 6 PUSHES of process_bar — developing pushes arrive every ~3 s (7,438 journal rows for 78 bars on 08.10) — and freezes for good once bar_buffer hits its cap of 100 (100 % 6 ≠ 0): a whole RTH day is either letters A..Q inside the first five minutes (21.09/25.09/28.09) or letter A all day (every other day), and the persisted poc/vah/val — the tree's prior-day value area (_load_previous_cash_session → prior_zone/value_migration) and S1's pd_poc/pd_vah/pd_val — come from that one-letter profile (01.10: VA 7727.75–7730.25 for a full session). Since developing pushes went live every live tree decision used a prior-day VA that is not the prior day's value area. Effect on the in-sample replay measured as harness run pvfix (mems26_hist, correct prior-day rows) vs t567ref — see docs/reports/SYSTEM_REVIEW_2026-10-18.md §4.3. Journal volume (a row per push) is a separate item. Awaiting ruling with the RC-1 package."
     status: built_off
     ref: "backend/v9/systems/tpo/tpo_system.py:_letter_idx_by_ts/_seed_profile_from_db/process_bar · tests/v9/regression/test_t590_tpo_letter_by_ts.py (8) · docs/reports/SYSTEM_REVIEW_2026-10-18.md §3"
+  S1_PROVISIONAL_PUBLISH_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "T-593 (18.10, cowork): run the canonical classifier (classify_session) from the 30-minute mark (6 closed RTH bars, running extremes as the IB stand-in) so its P0-2 provisional-from-the-open (S1_COMMITTED_PROVISIONAL_V1, Dalton pp.63-74) is what gets PUBLISHED before the IB lock; the stability bypass stays with the lock itself. main.py + fwd_harness mirror."
+    why: "OFF (default — byte-identical). Finding (harness S1 timelines, doctrine_audit/day_review): the first published day-type was 'Trend_Normal' in 154/166 reconstructed and 67/70 live-era sessions — the legacy state machine's TRENDING behaviour at 30 min — demoted to Variation 10-25 min later (DAYTYPE_ACCEPTANCE_DEMOTION_V1) and replaced by the canonical label only at the lock, because main.py ran classify_session only when ib_locked. A fixed sequence independent of the market, feeding the tree's phase-B day_type. Verified 27.03.26 in the harness: 16:55 Variation (acceptance-reclass DOWN) → 17:25 Normal instead of Trend_Normal → Variation → Normal; trades unchanged that day. Whole-day replay on all sessions before any ruling."
+    status: built_off
+    ref: "backend/main.py (_S1_PROV_PUB) · scripts/fwd_harness.py · tests/v9/regression/test_t593_provisional_publish.py (4) · docs/reports/SYSTEM_REVIEW_2026-10-18.md §8"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"

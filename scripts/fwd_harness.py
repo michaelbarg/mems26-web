@@ -843,16 +843,19 @@ def s1_on_bar(bar: dict):
             entry["canonical_opening"] = "UNKNOWN(<3 bars)"
     except Exception as e:
         entry["canonical_opening"] = f"err:{e}"
-    if _S1_NEW_CLS and dtm.ib_locked:
+    _S1_PROV_PUB = os.environ.get("S1_PROVISIONAL_PUBLISH_V1", "0").lower() in ("1", "true", "yes")   # T-593 mirror of main.py
+    if _S1_NEW_CLS and (dtm.ib_locked or (_S1_PROV_PUB and len(_cls_rth_bars) >= 6)):
         try:
             if not _cls_ctx["loaded"]:
                 _load_cls_ctx()
-            if len(_cls_rth_bars) >= 12:
+            if len(_cls_rth_bars) >= (12 if dtm.ib_locked else 6):
                 _ses_vol = sum(b.get("v", 0) for b in _cls_rth_bars)
                 _med = _cls_ctx.get("med_vol")
                 _vr = round(_ses_vol / _med, 3) if _med and _med > 0 else None
+                _ibh_in = dtm.ib_high if (dtm.ib_locked and dtm.ib_high is not None) else max(b["h"] for b in _cls_rth_bars)
+                _ibl_in = dtm.ib_low if (dtm.ib_locked and dtm.ib_low is not None) else min(b["l"] for b in _cls_rth_bars)
                 _cls_result = classify_session(
-                    bars=_cls_rth_bars, ib_high=dtm.ib_high, ib_low=dtm.ib_low, open_price=_cls_rth_bars[0]["o"],
+                    bars=_cls_rth_bars, ib_high=_ibh_in, ib_low=_ibl_in, open_price=_cls_rth_bars[0]["o"],
                     ib_width_hist=_cls_ctx.get("ib_width_hist"), profile_shape=_cls_ctx.get("profile_shape"),
                     vol_ratio=_vr, prior_vah=_cls_ctx.get("prior_vah"), prior_val=_cls_ctx.get("prior_val"),
                     pdh=_cls_ctx.get("pdh"), pdl=_cls_ctx.get("pdl"), poc_now=tpo.current_state.get("poc"),
@@ -882,7 +885,7 @@ def s1_on_bar(bar: dict):
                             bool(_cls_result.get("accepted_break"))
                         # T-313: first post-lock classification bypasses stability
                         # + reset gateway Trend→other hysteresis for IB lock handoff
-                        if not _stab_st.get("_first_lock_done"):
+                        if not _stab_st.get("_first_lock_done") and dtm.ib_locked:   # T-593: the bypass belongs to the LOCK
                             _force = True
                             _stab_st["_first_lock_done"] = True
                             if hasattr(gw, "_dp_hyst"):

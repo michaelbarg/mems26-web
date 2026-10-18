@@ -429,7 +429,14 @@ async def _startup():
                 # Flag S1_ENGINE_NEW_CLASSIFIER (default OFF). REPLACES S1_LIVE_RECLASS
                 # + ShadowReclassifier when ON. In-memory only — NO per-bar DB reads.
                 _S1_NEW_CLS = _os.environ.get("S1_ENGINE_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes")
-                if _S1_NEW_CLS and day_type_machine.ib_locked:
+                # T-593 (18.10, cowork): S1_PROVISIONAL_PUBLISH_V1 — run the canonical classifier from the
+                # 30-minute mark (6 closed RTH bars) so its P0-2 provisional-from-the-open (Dalton pp.63-74) is
+                # what gets PUBLISHED before the IB lock. Without it the first-hour label is the legacy
+                # machine's TRENDING artifact: "Trend_Normal" at 30 min in 154/166 reconstructed sessions and
+                # 67/70 live-era sessions, demoted to Variation 10-25 min later, "Normal" at the lock — a fixed
+                # sequence independent of the market, and the tree's phase-B `day_type` input. Default OFF.
+                _S1_PROV_PUB = _os.environ.get("S1_PROVISIONAL_PUBLISH_V1", "0").lower() in ("1", "true", "yes")
+                if _S1_NEW_CLS and (day_type_machine.ib_locked or (_S1_PROV_PUB and len(_cls_rth_bars) >= 6)):
                     try:
                         from backend.v9.systems.day_type.classifier_core import classify_session
                         from backend.v9.systems.day_type.state_machine import DayType as _DT
@@ -506,7 +513,7 @@ async def _startup():
                                 _logger.warning("[S1-NEW-CLS] context load failed (continuing without): %s", _ctx_err)
                                 _cls_ctx_cache["loaded"] = True  # don't retry every bar
 
-                        if len(_cls_rth_bars) >= 12:  # only after IB lock (60min / 12 bars)
+                        if len(_cls_rth_bars) >= (12 if day_type_machine.ib_locked else 6):  # after IB lock (60min / 12 bars); T-593: from 30 min when provisional publishing is on
                             # Compute session volume ratio
                             _ses_vol = sum(b.get("v", 0) for b in _cls_rth_bars)
                             _med = _cls_ctx_cache.get("med_vol")
@@ -517,10 +524,14 @@ async def _startup():
                             if _tpo_now and hasattr(_tpo_now, 'current_state'):
                                 _poc_now = _tpo_now.current_state.get("poc")
 
+                            # T-593: before the lock the running extremes stand in for the IB (the classifier's
+                            # FORMING gate returns the provisional before any IB-relative feature decides)
+                            _ibh_in = day_type_machine.ib_high if (day_type_machine.ib_locked and day_type_machine.ib_high is not None) else max(b["h"] for b in _cls_rth_bars)
+                            _ibl_in = day_type_machine.ib_low if (day_type_machine.ib_locked and day_type_machine.ib_low is not None) else min(b["l"] for b in _cls_rth_bars)
                             _cls_result = classify_session(
                                 bars=_cls_rth_bars,
-                                ib_high=day_type_machine.ib_high,
-                                ib_low=day_type_machine.ib_low,
+                                ib_high=_ibh_in,
+                                ib_low=_ibl_in,
                                 open_price=_cls_rth_bars[0]["o"],
                                 ib_width_hist=_cls_ctx_cache.get("ib_width_hist"),
                                 profile_shape=_cls_ctx_cache.get("profile_shape"),
@@ -650,7 +661,7 @@ async def _startup():
                                         # classification. Track with a flag in _stab_st.
                                         # Also resets the gateway's own Trend→other hysteresis
                                         # (_dp_hyst) so the first label isn't held there either.
-                                        if not _stab_st.get("_first_lock_done"):
+                                        if not _stab_st.get("_first_lock_done") and day_type_machine.ib_locked:   # T-593: the bypass belongs to the LOCK, not to a provisional
                                             _force = True
                                             _stab_st["_first_lock_done"] = True
                                             # Reset gateway hysteresis for the IB lock handoff
