@@ -1,12 +1,10 @@
-# פיקוח והמלצות · 2026-10-08 22:36 (ייחוס-ריפליי `t529b`)
+# פיקוח והמלצות · 2026-10-18 16:36 (ייחוס-ריפליי `t529b`)
 
-**בריאות:** feed 2.0 דק׳ · מאזין 85469 · סוכנים 10/9 · flag_guard PASS · פוזיציה 0 · מזומן 353.79 · תווית עכשיו Variation (שלב D, מבנה two_sided, הטיה SHORT) · מחיר 7810.38 · ריצודי-תווית היום: 3
-
-🔴 **אדומים:** תווית סוג-היום ריצדה 3 פעמים היום
+**בריאות:** feed 9162.0 דק׳ · מאזין 2030 · סוכנים 10/9 · flag_guard PASS · פוזיציה 0 · מזומן 1.7976931348623157e+308 · תווית עכשיו None (שלב None, מבנה None, הטיה None) · מחיר None · ריצודי-תווית היום: 0
 
 ## 1 · האם המערכת מבחינה בין ימים? — המספרים
 
-סשנים עם RTH מאז יוני: **89** · עם תווית-EOD: **80** · עם ריפליי של קונפיג-הלייב: **65**. ריפליי קונפיג-הלייב לפי תווית-EOD:
+סשנים עם RTH מאז יוני: **91** · עם תווית-EOD: **82** · עם ריפליי של קונפיג-הלייב: **65**. ריפליי קונפיג-הלייב לפי תווית-EOD:
 
 | תווית | ימים | Σ ריפליי | ימים חיוביים |
 |---|---|---|---|
@@ -18,71 +16,28 @@
 | Neutral_Center | 3 | +130.00 | 2 |
 | Neutral_Extreme | 1 | -162.50 | 0 |
 
-## 2 · ימים-אנלוגיים להיום (מאפיינים: prior_range · prior_net · on_range · on_net · gap · ib_width · ib_net · f30_net)
+## 2 · ימים-אנלוגיים להיום (מאפיינים: —)
 
-היום: prior_range=+43.75 · prior_net=+13.75 · on_range=+42.50 · on_net=-15.50 · gap=-24.00 · ib_width=+21.75 · ib_net=+16.00 · f30_net=+4.00
+היום: 
 
 | תאריך | מרחק | תווית-EOD | ריפליי | לייב | טווח-RTH | נטו-RTH | עסקאות-ריפליי |
 |---|---|---|---|---|---|---|---|
-| 2026-08-10 | 0.72 | Normal | +0.00 | -85.00 | +33.25 | +5.00 | — |
-| 2026-07-22 | 1.1 | Variation | — | -86.25 | +34.25 | +10.50 | — |
-| 2026-09-09 | 1.26 | Variation | -15.00 | -147.50 | +36.25 | -16.00 | OPENING_TEST_DRIVE L -52 · DALTON_EDGE_SHORT S +21 · CEILING_FLIP_LONG L +16 |
-| 2026-07-13 | 1.26 | Variation | -40.00 | +92.50 | +59.00 | -32.50 | CEILING_FLIP_SHORT S -52 · DALTON_EDGE_SHORT S +70 · REACTIVE_LONG L -58 |
-| 2026-06-19 | 1.3 | Trend_Normal | — | — | +14.50 | -2.00 | — |
-| 2026-08-26 | 1.31 | Variation | +65.60 | +25.00 | +34.50 | +13.25 | CEILING_FLIP_LONG L +66 |
-| 2026-08-20 | 1.32 | Variation | +148.75 | +11.25 | +60.75 | -32.50 | DALTON_EDGE_LONG L +50 · DOUBLE_TOP_AA_SHORT S +32 · CEILING_FLIP_LONG L +36 · CEILING_FLIP_LONG L -26 · DOUBLE_TOP_AA_SHORT S +56 |
-| 2026-08-27 | 1.36 | Variation | +80.00 | +122.50 | +53.00 | +25.00 | OPENING_TEST_DRIVE L -75 · GHOST L +58 · GHOST S +22 · GHOST S +22 · CEILING_FLIP_SHORT S +52 |
+| 2026-06-05 | 9.9 | Variation | — | — | +173.00 | -156.50 | — |
+| 2026-06-08 | 9.9 | ? | — | — | +73.00 | -26.75 | — |
+| 2026-06-09 | 9.9 | Variation | — | — | +306.75 | -128.50 | — |
+| 2026-06-10 | 9.9 | Normal | — | — | +191.50 | -139.75 | — |
+| 2026-06-11 | 9.9 | Variation | — | — | +156.75 | +25.25 | — |
+| 2026-06-12 | 9.9 | Variation | — | — | +95.75 | +9.75 | — |
+| 2026-06-15 | 9.9 | Trend_Normal | +191.25 | — | +50.50 | +30.75 | OPENING_DRIVE L +112 · CEILING_FLIP_SHORT S +79 |
+| 2026-06-16 | 9.9 | Variation | +68.75 | — | +53.75 | -40.00 | REACTIVE_SHORT S +31 · GB100 S +38 |
 
-**על האנלוגים:** Σ ריפליי +239.35 · 3/6 ימים חיוביים. לפי תבנית: GHOST n=3 +102$ · CEILING_FLIP_LONG n=4 +92$ · DALTON_EDGE_SHORT n=2 +91$ · DOUBLE_TOP_AA_SHORT n=2 +89$ · DALTON_EDGE_LONG n=1 +50$ · CEILING_FLIP_SHORT n=2 +0$ · REACTIVE_LONG n=1 -58$ · OPENING_TEST_DRIVE n=2 -128$
+**על האנלוגים:** Σ ריפליי +260.00 · 2/2 ימים חיוביים. לפי תבנית: OPENING_DRIVE n=1 +112$ · CEILING_FLIP_SHORT n=1 +79$ · GB100 n=1 +38$ · REACTIVE_SHORT n=1 +31$
 
-## 3 · ההחלטות של היום (88) · ירו 50 · לייב 4
+## 3 · ההחלטות של היום (0) · ירו 0 · לייב 0
 
 | שעה | תבנית | כיוון | מחיר | חסימה | העלה (n · win · $) |
 |---|---|---|---|---|---|
-| 19:40 | ZLR | LONG | 7833.0 | ✅ ירה | — |
-| 19:45 | CEILING_FLIP_TOUCH2 | LONG | 7827.25 | ✅ ירה | — |
-| 19:50 | DOUBLE_TOP_AA_SHORT | SHORT | 7811.0 | ✅ ירה | — |
-| 19:55 | FAMIR | LONG | 7812.0 | tree:bias | — |
-| 19:55 | INITIATIVE_SHORT | SHORT | 7809.5 | ✅ ירה | — |
-| 19:55 | DOUBLE_TOP_AA_SHORT | SHORT | 7809.5 | ✅ ירה | — |
-| 20:00 | FAMIR | LONG | 7809.25 | tree:bias | — |
-| 20:00 | CEILING_FLIP_TOUCH2 | LONG | 7810.0 | ✅ ירה | — |
-| 20:05 | INITIATIVE_SHORT | SHORT | 7800.0 | ✅ ירה | — |
-| 20:05 | DOUBLE_TOP_AA_SHORT | SHORT | 7800.0 | ✅ ירה | — |
-| 20:10 | FAMIR | LONG | 7803.75 | tree:bias | — |
-| 20:10 | CEILING_FLIP_TOUCH2 | LONG | 7803.25 | ✅ ירה | — |
-| 20:15 | CEILING_FLIP_TOUCH2 | LONG | 7811.0 | ✅ ירה | — |
-| 20:20 | ZLR | SHORT | 7802.25 | ✅ ירה | — |
-| 20:20 | ZLR | SHORT | 7803.0 | ✅ ירה | — |
-| 20:35 | INITIATIVE_SHORT | SHORT | 7798.0 | ✅ ירה | — |
-| 20:35 | TREND_STEP | SHORT | 7798.0 | ✅ ירה | — |
-| 20:48 | ZLR | SHORT | 7800.75 | ✅ ירה | — |
-| 20:50 | ZLR | SHORT | 7794.0 | ✅ ירה | — |
-| 20:50 | ZLR | SHORT | 7794.0 | ✅ ירה | — |
-| 21:01 | ZLR | SHORT | 7793.0 | ✅ ירה | — |
-| 21:05 | ZLR | SHORT | 7796.25 | ✅ ירה | — |
-| 21:10 | ZLR | SHORT | 7798.0 | ✅ ירה | — |
-| 21:10 | ZLR | SHORT | 7798.0 | ✅ ירה | — |
-| 21:20 | REACTIVE_LONG | LONG | 7810.5 | tree:stand_down | — |
-| 21:25 | CEILING_FLIP_TOUCH2 | LONG | 7813.0 | tree:stand_down | — |
-| 21:35 | TREND_STEP | LONG | 7806.75 | tree:stand_down | — |
-| 21:40 | ZLR | LONG | 7807.5 | tree:stand_down | — |
-| 21:40 | CEILING_FLIP_TOUCH2 | LONG | 7807.25 | tree:stand_down | — |
-| 21:40 | ZLR | LONG | 7808.0 | tree:stand_down | — |
-| 21:45 | ZLR | LONG | 7807.0 | tree:stand_down | — |
-| 21:45 | ZLR | LONG | 7807.0 | tree:stand_down | — |
-| 21:50 | CEILING_FLIP_TOUCH2 | LONG | 7809.75 | tree:stand_down | — |
-| 21:50 | ZLR | LONG | 7810.0 | tree:stand_down | — |
-| 21:50 | ZLR | LONG | 7810.25 | tree:stand_down | — |
-| 22:11 | ZLR | LONG | 7807.5 | tree:time_cutoff | — |
-| 22:20 | ZLR | LONG | 7808.75 | tree:time_cutoff | — |
-| 22:25 | DOUBLE_BOTTOM_EE_LONG | LONG | 7816.25 | tree:time_cutoff | — |
-| 22:35 | GHOST | LONG | 7810.5 | tree:time_cutoff | — |
-| 22:35 | GHOST | LONG | 7810.5 | tree:time_cutoff | — |
-
-**לייב היום:** #3272 OPENING_TEST_DRIVE SHORT @7824.75 → LOSS -43.75 · #3281 DALTON_EDGE_SHORT SHORT @7827.75 → LOSS -55.00 · #3289 CEILING_FLIP_SHORT SHORT @7840 → WIN +11.25 · #3314 CEILING_FLIP_LONG LONG @7833 → LOSS -65.00
 
 ## 4 · המלצות (מדידה — לא הדלקה)
 
-1. ימים-אנלוגיים (6 הקרובים לפי prior_range · prior_net · on_range · on_net · gap · ib_width · ib_net · f30_net): קונפיג-הלייב בריפליי Σ +239.35$ · 3/6 ימים חיוביים — תצפית, לא שער: היום עצמו יענה.
-2. תווית סוג-היום ריצדה 3 פעמים — מועמד להיסטרזיס (בר-אישור לפני החלפת-תווית), דגל-כבוי + מדידה (WORK_PLAN שבוע 2).
+1. ימים-אנלוגיים (2 הקרובים לפי ): קונפיג-הלייב בריפליי Σ +260.00$ · 2/2 ימים חיוביים — תצפית, לא שער: היום עצמו יענה.
