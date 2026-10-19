@@ -131,6 +131,11 @@ class BarLevelDetector:
                 "id": getattr(trade, "id", None),
                 "stop_is_structural": bool(((getattr(trade, "quality", None) or {}).get("metadata") or {}).get("stop_is_structural"))
                 if isinstance(getattr(trade, "quality", None), dict) else False,
+                # BE_AFTER_T1_RULE_V1 (19.10): the deliberate structure hold TradeManager stamped
+                # after T1 — diagnose_trade's stop_not_at_be must not "correct" it to BE (read-only
+                # metadata; honoured only while the flag is ON, absent => today's behaviour)
+                "be_rule_hold": bool((getattr(trade, "quality", None) or {}).get("be_rule_hold"))
+                if isinstance(getattr(trade, "quality", None), dict) else False,
             }
 
             def _exec(correction) -> bool:

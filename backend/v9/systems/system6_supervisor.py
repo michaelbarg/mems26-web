@@ -160,7 +160,12 @@ def diagnose_trade(
             # 3. BE after T1
             if t1_hit:
                 at_be = (d == "LONG" and stop >= entry) or (d == "SHORT" and stop <= entry)
-                if not at_be:
+                # BE_AFTER_T1_RULE_V1 (Michael 19.10.2026): a stop HELD at structure on purpose
+                # (TradeManager stamped quality.be_rule_hold) is the "better NOT to move" side of
+                # this very invariant — not a fault, so it must not be auto-corrected to BE.
+                # Flag OFF or no marker => the invariant is exactly what it was.
+                _held = bool(trade.get("be_rule_hold")) and _be_rule_on()
+                if not at_be and not _held:
                     issues.append(Issue("stop_not_at_be", WARN, AUTO,
                                         f"T1 hit but stop {stop} not at BE ({entry})",
                                         correction={"op": "MODIFY_STOP", "price": _be_target(d, entry)}))
@@ -343,6 +348,13 @@ def _autocorrect_enabled() -> bool:
     # target drop). Everything risky stays ALERT (naked stop, wrong-side stop,
     # width anomalies). "1" kept for the future full tier.
     return os.getenv("SYSTEM6_AUTOCORRECT", "0").lower() in ("1", "true", "yes", "protective")
+
+
+def _be_rule_on() -> bool:
+    """BE_AFTER_T1_RULE_V1 (Michael 19.10.2026, default OFF): same truthy set as
+    TradeManager._be_after_t1_rule_enabled — the supervisor honours a structure hold
+    only while the rule itself is enabled (flag off => today's stop_not_at_be)."""
+    return os.getenv("BE_AFTER_T1_RULE_V1", "0").strip().lower() in ("1", "true", "yes", "apply")
 
 
 def _structural_exempt() -> bool:

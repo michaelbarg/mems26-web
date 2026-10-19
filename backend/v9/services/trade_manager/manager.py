@@ -92,6 +92,100 @@ def _zlr_mgmt_enabled() -> bool:
     return os.environ.get("ZLR_MGMT_V1", "0").strip().lower() in ("1", "true", "yes")
 
 
+def _be_after_t1_rule_enabled() -> bool:
+    """BE_AFTER_T1_RULE_V1 (Michael 19.10.2026) — default OFF, code default (no env
+    var needed). "after T1 is realized we move the stop to the entry price — unless;
+    for that we create a mechanism for when it is better to move the stop earlier or
+    better NOT to move it — that is System 6". This is the "better NOT to move" side:
+    on a day whose accepted extension runs WITH the trade, hold the stop at the
+    structure behind the entry instead of breakeven. Unset / "0" -> every path below
+    is byte-identical to today. Read at call time (never cached)."""
+    return os.getenv("BE_AFTER_T1_RULE_V1", "0").strip().lower() in ("1", "true", "yes", "apply")
+
+
+# Day types on which an accepted extension in the trade's direction is a continuation
+# day (trend / variation) — the only ones where the BE_AFTER_T1_RULE_V1 hold applies.
+_BE_RULE_DAY_TYPES = frozenset({"trend_normal", "trend_dd", "normal_variation", "variation"})
+
+
+def _be_rule_num(v) -> Optional[float]:
+    """float(v), or None for missing / NaN / non-positive (a 0.0 level in the tpo rows
+    means "not set", never a price)."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if (f == f and f > 0) else None
+
+
+def _be_rule_norm_dir(v) -> Optional[str]:
+    """UP / LONG -> "LONG", DOWN / SHORT -> "SHORT"; anything else (None,
+    UNDETERMINED, ...) -> None. get_live_expansion() speaks UP/DOWN."""
+    return {"UP": "LONG", "LONG": "LONG", "DOWN": "SHORT", "SHORT": "SHORT"}.get(
+        str(v or "").strip().upper())
+
+
+def _be_rule_day_ok(day) -> bool:
+    return str(day or "").strip().replace(" ", "_").lower() in _BE_RULE_DAY_TYPES
+
+
+def _be_rule_pick_hold(direction, entry, original_stop, current_stop, tick, candidates):
+    """BE_AFTER_T1_RULE_V1 — PURE geometry (no IO, no mutation).
+
+    candidates: iterable of (kind, price) — structures behind the entry on the
+    trade's side (LONG: below entry, the hold stop sits ONE TICK UNDER the
+    structure; SHORT mirrors). A candidate qualifies only when
+      * it lies strictly between the ORIGINAL stop and the entry (tighter than
+        the original stop, never at/beyond entry): LONG original < price < entry,
+        SHORT entry < price < original;
+      * its hold stop (price -/+ 1 tick, kept on the tick grid on the far side)
+        is STRICTLY tighter than the original AND the current stop (never widen)
+        and still on the protective side of the entry.
+    Among the qualifiers the FARTHEST from the entry wins — the most protective
+    structure that is still tighter than the original stop.
+    Returns {"hold": True, "kind", "anchor", "stop"} or
+            {"hold": False, "reason": "no-anchor" | "not-tighter"}.
+    """
+    import math
+    d = str(direction or "").upper()
+    if d not in ("LONG", "SHORT"):
+        return {"hold": False, "reason": "no-anchor"}
+    # the "original" bound: the stop the trade was opened with; the current stop is
+    # the fallback when no original is recorded. Neither => nothing to compare to.
+    ref_orig = original_stop if original_stop is not None else current_stop
+    if ref_orig is None or entry is None:
+        return {"hold": False, "reason": "no-anchor"}
+    in_window = 0
+    best = None
+    for kind, price in candidates:
+        p = _be_rule_num(price)
+        if p is None:
+            continue
+        if d == "LONG":
+            if not (ref_orig < p < entry):
+                continue
+            in_window += 1
+            hold = round(math.floor((p - tick) / tick + 1e-9) * tick, 2)
+            bound = max(x for x in (ref_orig, current_stop) if x is not None)
+            if not (hold > bound and hold < entry):
+                continue
+            if best is None or p < best[1]:        # farthest from entry = lowest
+                best = (kind, p, hold)
+        else:
+            if not (entry < p < ref_orig):
+                continue
+            in_window += 1
+            hold = round(math.ceil((p + tick) / tick - 1e-9) * tick, 2)
+            bound = min(x for x in (ref_orig, current_stop) if x is not None)
+            if not (hold < bound and hold > entry):
+                continue
+            if best is None or p > best[1]:        # farthest from entry = highest
+                best = (kind, p, hold)
+    if best is None:
+        return {"hold": False, "reason": "not-tighter" if in_window else "no-anchor"}
+    return {"hold": True, "kind": best[0], "anchor": best[1], "stop": best[2]}
+
+
 def _position_ref_price_enabled() -> bool:
     """T-155 killswitch (cowork 30.08): default ON (preserves T-43 behavior).
     Set POSITION_REF_PRICE_V1=0 to revert to per-trade entry_price."""
@@ -977,6 +1071,119 @@ class TradeManager:
         flag-OFF return False → byte-identical to today."""
         return _zlr_mgmt_enabled() and is_zlr_trade(trade)
 
+    # ── BE_AFTER_T1_RULE_V1 (Michael 19.10.2026, default OFF) ──────────────────
+    # The "better NOT to move the stop to breakeven after T1" side of System 6.
+    # IO helpers below read only (live state / DB SELECTs); none of them mutate.
+
+    def _be_rule_live_extension(self) -> Optional[str]:
+        """The session's accepted-extension direction from System 1 in the trade's
+        vocabulary ("LONG"/"SHORT"); None when there is none or it is UNDETERMINED.
+        Same live source the gateway reads (trade_context.get_live_expansion, which
+        answers {"dir": "UP"|"DOWN"|"UNDETERMINED", "ref": ...} or None)."""
+        from backend.v9.services.trade_context import get_live_expansion
+        exp = get_live_expansion()
+        return _be_rule_norm_dir(exp.get("dir") if isinstance(exp, dict) else exp)
+
+    def _be_rule_day_type(self, trade) -> Optional[str]:
+        """The trade's day_type_at_entry (column, then quality), else the latest
+        v9_day_type_history row for today (ET)."""
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        for v in (getattr(trade, "day_type_at_entry", None),
+                  q.get("day_type_at_entry"), q.get("day_type")):
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        from backend.v9.common.trading_date import et_today
+        from backend.v9.db.read import read_one
+        row = read_one(
+            "SELECT day_type FROM v9_day_type_history WHERE date = :d "
+            "ORDER BY id DESC LIMIT 1", {"d": et_today().isoformat()})
+        v = (row or {}).get("day_type")
+        return str(v).strip() if v else None
+
+    def _be_rule_candidates(self, trade, direction: str) -> list:
+        """Structures behind the entry on the trade's side as [(kind, price)]: the
+        pattern's own metadata.structural_anchor, plus today's CASH-session IB edge and
+        developing value-area edge from v9_tpo_sessions (LONG: ib_low / val_price,
+        SHORT: ib_high / vah_price). Missing / zero levels are simply absent."""
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        meta = q.get("metadata") if isinstance(q.get("metadata"), dict) else {}
+        cands = []
+        sa = _be_rule_num(meta.get("structural_anchor"))
+        if sa is not None:
+            cands.append(("pattern", sa))
+        from backend.v9.common.trading_date import et_today
+        from backend.v9.db.read import read_one
+        row = read_one(
+            "SELECT ib_high, ib_low, vah_price, val_price FROM v9_tpo_sessions "
+            "WHERE trading_date = :d AND session_type = 'CASH' ORDER BY id DESC LIMIT 1",
+            {"d": et_today().isoformat()})
+        if row:
+            _long = direction == "LONG"
+            ib = _be_rule_num(row.get("ib_low" if _long else "ib_high"))
+            va = _be_rule_num(row.get("val_price" if _long else "vah_price"))
+            if ib is not None:
+                cands.append(("ib_low" if _long else "ib_high", ib))
+            if va is not None:
+                cands.append(("val" if _long else "vah", va))
+        return cands
+
+    def _be_rule_decide(self, trade, direction: str, entry: float, tick: float,
+                        cur_stop: Optional[float]) -> Dict[str, Any]:
+        """BE_AFTER_T1_RULE_V1 decision for the moment Smart-BE would move the stop.
+
+        Returns {"hold": bool, "reason": str, "day", "ext", + when hold: "stop",
+        "anchor", "anchor_kind"}. hold=True only when (1) the trade runs WITH the
+        session's accepted extension (System 1) on a trend / variation day, and
+        (2) a structure behind the entry is tighter than the original stop (see
+        _be_rule_pick_hold). Pure read — the caller applies it and owns fail-safe."""
+        out: Dict[str, Any] = {"hold": False, "reason": "", "day": None, "ext": None}
+        ext = self._be_rule_live_extension()
+        out["ext"] = ext
+        if ext != direction:
+            out["reason"] = "not-with-extension (live=%s)" % (ext or "none")
+            return out
+        day = self._be_rule_day_type(trade)
+        out["day"] = day
+        if not _be_rule_day_ok(day):
+            out["reason"] = "day-type (%s)" % (day or "unknown")
+            return out
+        q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        meta = q.get("metadata") if isinstance(q.get("metadata"), dict) else {}
+        original = None
+        for raw in (q.get("entry_stop"), q.get("initial_stop"), meta.get("stop_initial")):
+            original = _be_rule_num(raw)
+            if original is not None:
+                break
+        pick = _be_rule_pick_hold(direction, entry, original, cur_stop, tick,
+                                  self._be_rule_candidates(trade, direction))
+        if not pick["hold"]:
+            out["reason"] = pick["reason"]
+            return out
+        out.update(hold=True, reason="structure-hold (with-extension day)",
+                   stop=pick["stop"], anchor=pick["anchor"], anchor_kind=pick["kind"])
+        return out
+
+    def _runner_stop_floor(self, trade, direction: str, entry: float, tick: float) -> float:
+        """The floor every post-T1 runner trail (F5 swing trail, dynamic structure
+        trail, hwm trail) keeps its stop at or beyond: BE+1T for LONG / BE-1T for
+        SHORT — exactly today's value. While a BE_AFTER_T1_RULE_V1 hold is active for
+        this trade (flag ON and quality.be_rule_hold set) the floor is the HELD
+        structure stop instead, so the trails keep tightening it by structure rather
+        than snapping it to BE on the next bar. Flag OFF / no hold / any error =>
+        BE+-1T, byte-identical."""
+        be_floor = entry + tick if direction == "LONG" else entry - tick
+        try:
+            if _be_after_t1_rule_enabled():
+                q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+                hold = q.get("be_rule_hold")
+                hs = _be_rule_num(hold.get("stop")) if isinstance(hold, dict) else None
+                if hs is not None and ((direction == "LONG" and hs < be_floor)
+                                       or (direction == "SHORT" and hs > be_floor)):
+                    return hs
+        except Exception:
+            pass
+        return be_floor
+
     def _apply_smart_be_after_t1(self, trade: V9Trade) -> None:
         """Move stop to BE+1T after T1 hit · D-094 Gap 1 fix.
 
@@ -1072,6 +1279,66 @@ class TradeManager:
                     return
             except Exception:
                 pass  # fail-open: proceed with normal BE
+
+        # BE_AFTER_T1_RULE_V1 (Michael 19.10.2026, default OFF) — the "better NOT to
+        # move" side of System 6: "after T1 is realized we move the stop to the entry
+        # price — unless ...". On a trend / variation day whose accepted extension
+        # (System 1) runs WITH this trade, HOLD the stop at the structure behind the
+        # entry (pattern anchor / CASH IB edge / developing VA edge — tighter than the
+        # original stop, never beyond entry) instead of BE. Every other case falls
+        # through to the unchanged BE+1T / structure-trail logic below, plus a one-line
+        # reason. Never widens; any exception => WARNING + today's behaviour.
+        if _be_after_t1_rule_enabled():
+            _q_bh = trade.quality if isinstance(trade.quality, dict) else {}
+            if _q_bh.get("be_rule_hold"):
+                # idempotent: a duplicate T1 report must not turn the hold into BE
+                logger.info(
+                    "[TradeManager] BE_RULE hold already applied: trade %s stop stays %s "
+                    "(no BE move)", getattr(trade, "id", "?"), trade.stop)
+                return
+            try:
+                _be_rule = self._be_rule_decide(trade, direction, entry, tick, stop_before)
+            except Exception as _be_err:
+                logger.warning(
+                    "[TradeManager] BE_RULE failed for trade %s (fail-safe -> breakeven): %s",
+                    getattr(trade, "id", "?"), _be_err)
+                _be_rule = {"hold": False, "reason": "error: %s" % _be_err}
+            if _be_rule.get("hold"):
+                _hold_stop = float(_be_rule["stop"])
+                _hold_reason = "structure-hold (with-extension day)"
+                _hold_anchor = "%s %.2f" % (_be_rule.get("anchor_kind"), float(_be_rule["anchor"]))
+                trade.stop = _hold_stop
+                # marker: System 6's stop_not_at_be and the runner-trail BE floors read
+                # it, and a duplicate T1 report is a no-op (see above)
+                _q_hold = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+                _q_hold["be_rule_hold"] = {
+                    "stop": _hold_stop, "anchor": float(_be_rule["anchor"]),
+                    "kind": _be_rule.get("anchor_kind"), "day_type": _be_rule.get("day"),
+                    "ext": _be_rule.get("ext"),
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                }
+                trade.quality = _q_hold
+                _ctx_hold = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+                _ctx_hold.append({
+                    "event": "stop_move", "from": stop_before, "to": _hold_stop,
+                    "reason": _hold_reason,
+                })
+                trade.cross_context = _ctx_hold
+                self._log_management(trade.id, "SMART_BE", {
+                    "from": stop_before, "to": _hold_stop, "reason": _hold_reason,
+                    "anchor": float(_be_rule["anchor"]), "anchor_kind": _be_rule.get("anchor_kind"),
+                    "day_type": _be_rule.get("day"), "extension": _be_rule.get("ext"),
+                })
+                self._emit_modify_stop(trade, _hold_stop)
+                logger.info(
+                    "[TradeManager] BE_RULE hold-structure after T1: trade %s stop %.2f -> %.2f "
+                    "(day %s, dir %s = extension, anchor %s)",
+                    trade.id, stop_before if stop_before else 0, _hold_stop,
+                    _be_rule.get("day"), direction, _hold_anchor,
+                )
+                return
+            logger.info("[TradeManager] BE_RULE breakeven after T1: trade %s (reason: %s)",
+                        getattr(trade, "id", "?"), _be_rule.get("reason"))
 
         # STOP_STRUCTURE_TRAIL_V1 (Michael ruling 2026-07-08, flag-OFF): after T1
         # the stop goes to the nearest STRUCTURE, not mechanically to BE — "לקרב
@@ -1428,7 +1695,9 @@ class TradeManager:
         except Exception:
             entry = float(trade.entry_price)
         tick = MES_TICK_SIZE
-        be_floor = entry + tick if direction == "LONG" else entry - tick
+        # BE+1T — or, while a BE_AFTER_T1_RULE_V1 hold is active on this trade, the held
+        # structure stop (so the swing trail tightens it by structure instead of snapping it to BE)
+        be_floor = self._runner_stop_floor(trade, direction, entry, tick)
         new_stop = max(anchor, be_floor) if direction == "LONG" else min(anchor, be_floor)
         new_stop = round(new_stop, 2)
 
@@ -1520,7 +1789,7 @@ class TradeManager:
             hwm = max(float(q.get("trail_hwm", entry)), bar_high)
             q["trail_hwm"] = hwm
             trail = hwm - _k_eff(hwm) * risk
-            floor = entry + tick  # never below BE+1T
+            floor = self._runner_stop_floor(trade, "LONG", entry, tick)  # never below BE+1T (or the BE-rule hold)
             new_stop = round(max(trail, floor), 2)
             if trade.stop is not None and new_stop <= float(trade.stop):
                 trade.quality = q
@@ -1529,7 +1798,7 @@ class TradeManager:
             hwm = min(float(q.get("trail_hwm", entry)), bar_low)
             q["trail_hwm"] = hwm
             trail = hwm + _k_eff(hwm) * risk
-            floor = entry - tick
+            floor = self._runner_stop_floor(trade, "SHORT", entry, tick)
             new_stop = round(min(trail, floor), 2)
             if trade.stop is not None and new_stop >= float(trade.stop):
                 trade.quality = q
@@ -1651,7 +1920,7 @@ class TradeManager:
         # Move stop just beyond the zone (never widen)
         if direction == "LONG":
             new_stop = round(zone["anchor_extreme"] - 3 * tick, 2)  # 3T below zone low
-            floor = entry + tick  # never below BE+1T
+            floor = self._runner_stop_floor(trade, "LONG", entry, tick)  # never below BE+1T (or the BE-rule hold)
             new_stop = max(new_stop, floor)
             if trade.stop is not None and new_stop <= float(trade.stop):
                 trade.quality = q
@@ -1659,7 +1928,7 @@ class TradeManager:
                 return  # never widen
         elif direction == "SHORT":
             new_stop = round(zone["anchor_extreme"] + 3 * tick, 2)  # 3T above zone high
-            floor = entry - tick
+            floor = self._runner_stop_floor(trade, "SHORT", entry, tick)
             new_stop = min(new_stop, floor)
             if trade.stop is not None and new_stop >= float(trade.stop):
                 trade.quality = q
