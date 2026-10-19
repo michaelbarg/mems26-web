@@ -241,7 +241,7 @@ def main():
         print("no MES .scid found"); return 1
     cands = [d for d in dates if have.get(d, 0) < 78]
     if not cands:   # the cheap path for the 30-min LaunchAgent run: no DB holes → no 30-second .scid scan
-        say(f"gap_backfill {dt.datetime.now(IL):%Y-%m-%d %H:%M} IL · battery {batt} · all {len(dates)} trading days have 78 RTH bars — nothing to do")
+        print(f"gap_backfill {dt.datetime.now(IL):%Y-%m-%d %H:%M} IL · battery {batt} · all {len(dates)} trading days have 78 RTH bars — nothing to do", flush=True)
         if src == "Battery" and pct is not None and pct < 40:
             say(f"⚠️ on battery {pct}% — the 12.10 outage was 'Low Power Sleep'; plug the MacBook in")
         return 0
