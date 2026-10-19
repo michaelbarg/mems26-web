@@ -1,6 +1,6 @@
 # MEMS26 · אינדקס-המערכת (נוצר אוטומטית — `scripts/system_index.py`)
 
-**נוצר:** 2026-10-19 06:11:47 · **HEAD:** `29a3f5a8 2026-10-19 00:22 fix-agent night 18→19.10 handoff: TASK_LOG (T-598 row, T-260 next-step → result, header line), LIVE_CHANNEL (two entries), MICHAEL_INB` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 15751 · **עץ:** 3.4.0 · **דגלים פסוקים:** 274 (ON 216 · shadow 14 · עם measured 24 · אי-התאמה 0)
+**נוצר:** 2026-10-19 08:30:50 · **HEAD:** `b9c6bce1 2026-10-19 06:13 index-agent: SYSTEM_INDEX 2026-10-19` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 15751 · **עץ:** 3.4.0 · **דגלים פסוקים:** 274 (ON 216 · shadow 14 · עם measured 24 · אי-התאמה 0)
 
 ## 1 · מדיד-עכשיו (פריטים פתוחים עם צעד-מדידה, לפי חומרה) — 40
 
@@ -574,10 +574,10 @@
 | טבלה | שורות | max ts (IL) |
 |---|---|---|
 | `v9_trades` | 3236 | 2026-10-09 19:20 |
-| `v9_decision_vectors` | 211970 | 2026-10-19 06:10 |
-| `v9_bars_5min_woodies` | 22315 | 2026-10-19 06:10 |
+| `v9_decision_vectors` | 211998 | 2026-10-19 08:30 |
+| `v9_bars_5min_woodies` | 22343 | 2026-10-19 08:30 |
 | `v9_bars_5min` | 5306 | 2026-10-09 23:55 |
-| `v9_day_type_state` | 2 |  |
+| `v9_day_type_state` | 3 |  |
 | `v9_exit_decisions` | 17335 |  |
 | `v9_trade_management_log` | 352732 |  |
 | `v9_woodies_signals` | 3989 |  |

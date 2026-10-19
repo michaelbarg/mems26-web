@@ -1,9 +1,9 @@
 {
- "generated_at": "2026-10-19 06:11:47",
+ "generated_at": "2026-10-19 08:30:50",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "29a3f5a8 2026-10-19 00:22 fix-agent night 18→19.10 handoff: TASK_LOG (T-598 row, T-260 next-step → result, header line), LIVE_CHANNEL (two entries), MICHAEL_INB",
+   "head": "b9c6bce1 2026-10-19 06:13 index-agent: SYSTEM_INDEX 2026-10-19",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
    "dirty_files": 15751,
    "tree_version": "3.4.0",
@@ -4584,13 +4584,13 @@
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 211970,
-   "max_ts_il": "2026-10-19 06:10"
+   "rows": 211998,
+   "max_ts_il": "2026-10-19 08:30"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 22315,
-   "max_ts_il": "2026-10-19 06:10"
+   "rows": 22343,
+   "max_ts_il": "2026-10-19 08:30"
   },
   {
    "table": "v9_bars_5min",
@@ -4599,7 +4599,7 @@
   },
   {
    "table": "v9_day_type_state",
-   "rows": 2,
+   "rows": 3,
    "max_ts_il": ""
   },
   {
