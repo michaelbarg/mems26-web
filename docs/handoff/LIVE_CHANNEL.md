@@ -1,3 +1,68 @@
+🟠 **[cowork-dev · ריצה 348 · 19.10 20:04→20:07 IL · חובה-1 + חובה-3 ניטור-RTH · פריט חדש אחד ([[T-604]]) · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
+
+**חובת-הזמן קודם כל השאר.** `date ⇒ 2026-10-19 20:04:38 IDT (Mon)` ⇒ `16:30 ≤ 20:04 < 23:00` ⇒ **חובה-3 (ניטור-RTH)**. `20:04 > 16:10` ⇒ **אסור ריסטארט**. **ובעלות-הריסטארט הוכרעה לפני הכל:** ב-LIVE_CHANNEL יש רשומות-cowork-dev מהיום על שער/ריסטארט (ריצות 340–347 + הודעת-`cowork` 19:53) ⇒ **cowork-האינטראקטיבי הוא הבעלים** ⇒ אפס GO/NO-GO ואפס ריסטארט מצדי (T-369), שורת-מדידה אחת בלבד — זו.
+
+**חובה-1 · אפס ממתינות בשני מקורות ⇒ שתיקה מוחלטת בטלפון.**
+```raw
+GET /chat?key=…                 ⇒ http=200 · bytes=17635 · items=30 · t<1s
+PHONE_THREAD.jsonl tail         ⇒ האחרונה cowork-dev 2026-10-19T12:49:04Z (שער 19.10) — זהה לאחרונה ב-/chat
+Counter(sender)                 ⇒ {'cowork-dev':20, 'cowork':4, 'supervisor':4, 'מייקל':1, 'cc':1}
+שורת-המייקל היחידה              ⇒ 2026-10-07T10:50:03Z (פריט 5 מתוך 30; 25 הודעות-סוכן אחריה, כולל תשובה עניינית 10:50:03Z + 11:11:10Z)
+תיוג עסקה # חדש                 ⇒ 0
+```
+הפרדיקט הורץ **אגנוסטי-לאיות** ולא בפרדיקט-לטיני ([[T-596]]/מלכודת 37 — איות-השולח הוא `"מייקל"` בעברית, ופרדיקט `sender=='michael'` היה מחזיר 0 שקרי). ⇒ אפס (א)/(ב)/(ג)/(ד) ⇒ **אפס `phone_reply.py`**.
+
+🟢 **חובה-3 · שלושת הפוסקים ירוקים. צילום-אחד ב-`20:04:38`–`20:06:48` כדי שהמספרים יהיו עקביים זה עם זה.**
+```raw
+feed    select max(ts), now()-max(ts), count(*) filter (ts::date=current_date) from v9_bars_5min_woodies
+         ⇒ 2026-10-19 20:05:00+03 | age 00:01:48 | 230 ברים היום      (פוסק-DB ולא mtime — [[T-430]])
+         live_price ⇒ {"price":7742.75,"bid":7742.5,"ask":7742.75,"age_ms":994}  ⇒ לא bid=ask=0 של השבוע שעבר
+backend curl /api/v9/health ⇒ 200 · {"status":"ok","version":"v9.0.0"} · t=0.0015s
+        lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 76068 *:8000 (LISTEN)      (מלכודת 30 — לא lsof -ti)
+        ps -o lstart ⇒ Mon Oct 19 19:52:25 2026 · etime 13:10 · %cpu 20.5
+TM      sierra_state.json mtime age 0.3s ⇒ is_sim 1 · position_qty 0 · working_orders 0
+                     · daily_pnl 0.0 · daily_total_qty_filled 0 · last_price 7742.25
+ספרים   היום: shadow|CLOSED 43 (pnl_usd −31.43) + shadow|FILLED 19 · mode<>shadow = 0 · count(sierra_bracket_id) = 0 · count(pnl_sierra) = 0
+גודל    set -a; . ./.env; set +a; ruled_contracts() ⇒ 1          (= פסיקת 18.09 12:05; [[T-489]] — בלי .env טעון מחזיר None)
+דגלים   flag_guard ⇒ rc=0 · PASS — all 274 ruled flags match
+צל      close_stale_shadow.py (dry-run) ⇒ no stale shadow trades — nothing to do
+        state not in (CLOSED,CANCELLED) ⇒ 19 שורות, כולן מהיום (אפס מחלקת-16.09)
+```
+**ובעלות-הפוזיציה לפי `order_id` לפני כל אזעקה:** `count(sierra_bracket_id) = 0` מכל 62 שורות-היום, ו-`position_qty 0`/`working_orders 0` ב-TM ⇒ אין פוזיציה לייחס ואין על מה להתריע.
+
+🔑 **הממצא — ‏[[T-604]], והוא על הפסיקה של לפני 15 דקות ולא נגדה: הקידום נכנס לתוקף, ובכל זאת אותם שורטים ממשיכים להיחסם.** הודעת-`cowork` 19:53 כאן מתארת את הכוונה (*"ההטיה החיה = LSMA (פיגור 30 דק׳) אמרה LONG בעוד השוק ירד"*) ומסיימת *"עכשיו T-37 UNDETERMINED — אין וטו-כיווני"*. **15 הדקות שאחרי זה נמדדו, וה"אין וטו" לא תורגם לשינוי:**
+```raw
+הקידום חי      flag_guard ⇒ ✓ S1_DAY_DIRECTION_V1: expected=apply actual=apply   (PASS 274/274)
+               awk '$0>="2026-10-19 19:52:28"' backend.err.log | grep -c "LSMA fallback"   ⇒ 0
+               …                                | grep -c "S1DayDir] SHADOW"               ⇒ 0
+               (לפני הריסטארט זו הייתה החתימה הקבועה 18:35:03→19:04:57:
+                 [S1DayDir] SHADOW accepted_break=UP | s1_state=with_extension(UP)→UP | agree=True (live returns legacy None → LSMA fallback))
+מה לא זז      GET /api/v9/gateway/decisions?limit=2000 ⇒ 4 החלטות מאז הריסטארט:
+                 17:00:03Z SHORT INITIATIVE_SHORT  ⇒ blocked tree:bias
+                 16:52:34Z SHORT ZLR               ⇒ blocked tree:bias
+                 16:52:31Z SHORT ZLR               ⇒ blocked tree:bias
+                 16:52:30Z SHORT DOUBLE_TOP_AA     ⇒ blocked cold_start_guard   (אפקט-ריסטארט צפוי)
+               reason = "against the session's directional hint [hour=*(20)/opening_type=OPEN_REJECTION_REVERSE/
+                         phase=C/day_type=Variation/rel_bias=against/edge=*(none)]"
+               20:00:03 [Gateway] BLOCKED system=2 pattern=INITIATIVE_SHORT dir=SHORT entry=7743.75
+                         blocked_by=tree:bias ot=OPEN_REJECTION_REVERSE hint=LONG bias=LONG
+והשוק          select ts::time, close … ⇒ 19:00 7753.5 · 19:30 7750.5 · 20:00 7743.25 · 20:05 7741.75   (−11.75 נק')
+               [System0] SHADOW DIR: context.day_bias=DOWN
+ליגר-היום      fired 0 · blocked 56 · shadow_only 6 · by_gate: tree:location 28 · tree:bias 21 ·
+               entry_not_confirmed 3 · tree:stand_down 2 · cold_start_guard 1 · entry_location_quality 1
+```
+⇒ **`tree:bias` קורא את `hint`, ו-`hint=LONG` עדיין מיוצר** — הפסיקה הסירה את הוטו של S1, אבל ל-`hint` יש בעלים אחר. 🚫 **מי מייצר אותו לא נקרא מהקוד ⇒ אינו מיוחס (כלל 1)**; במפורש **אין** טענה שזה LSMA — השורה `live returns legacy None → LSMA fallback` אינה קיימת אחרי הריסטארט ולכן אינה ראיה למצב הנוכחי. **המועמד הצר לבדיקה (טרום-פתיחה):** `hint` נגזר מ-`opening_type` (ORR ⇒ היפוך-הדרייב) — וזה **[[T-530]] כלשונו**, שם כבר נמדד שהקונבנציה הייתה הפוכה לשוק פעמיים ב-02.10.
+
+🔬 **ממצא-משנה באותה מדידה, ושני משטחי-S1 חולקים עליו:** מסלול-ה-`apply` מדפיס `250×` ב-15 הדקות `[S1DayDir] T-37 UNDETERMINED: S1 has no direction yet (early session / no IB break)` — **ב-20:06, 3.5 שעות אחרי פתיחת-RTH** — בעוד הצל, 47 דקות קודם על אותו יום, דיווח `accepted_break=UP | s1_state=with_extension(UP)`. **מועמד-הסבר שלא אומת:** הריסטארט אפס את מצב-ה-IB בתהליך, ו-S1 אינו מהודרט ב-boot — באותו לוג-עלייה `FiveMin` **כן** מהודרט (`Hydrated current_day_type=Variation from v9_day_type_state` + `Hydrated 60 bars from DB`) ואצל S1 אין מקבילה בלוג ⇒ אם כך, **כל ריסטארט שאחרי ה-IB מעוור את `S1DayDir` לשארית הסשן**, ועכשיו כשהדגל ב-`apply` זה כבר לא שקוף. שכנים אפשריים ולא-מיוחסים: [[T-582]] · [[T-595]] · [[T-593]].
+
+🟢 **למה זה לא מקרה (ג) בטלפון, במפורש:** אפס סיכון-מסחר (`MEMS26_MODE=demo` · `live_enabled_systems []` · 62/62 שורות `shadow` · `sierra_bracket_id` NULL · TM `Sim1 · position_qty 0`), אין פסיקה שממתינה לי, והתיקון הוא **מדידה ולא דגל** (דוקטרינת-הלמידה: ריפליי קודם). מייקל ליד המחשב ברגע זה (קומיט `7249d493` ב-19:54) ו-cowork-האינטראקטיבי מחזיק את החוט — הודעה שנייה על אותו נושא היא הצפה. ⇒ **הכל ל-LIVE_CHANNEL, אפס לטלפון.**
+
+📌 **מרג'ין ([[T-34]], דיווח-בלבד): לא מדיד היום, ולא "0".** `acct_available_funds = 1.7976931348623157e+308` (DBL_MAX), והלוג אומר זאת מפורשות: `[MarginSizing] acct_available_funds is a sentinel (1.8e+308) — account data unusable, size left unchanged` ⇒ **אין מספר להשוות ל-$1,595**, ואני לא ממציא ערך חסר (כלל 1). וממילא החשבון `Sim1` והמצב `demo` ⇒ אינו חוסם מסחר ⇒ אפס מקרה (ג).
+
+**הצעד הבא (רשום ב-[[T-604]]):** הערב בחובה-4 — לספור בליגר כמה מחסימות-`tree:bias` של היום היו שורטים ביום שסגר למטה (`hint` מול `close`-יום) ולהוציא את המספר לדוח; ואז, בחלון טרום-פתיחה בלבד, לקרוא מי מייצר `hint` ולבדוק הידרציה-ב-boot ל-S1.
+
+---
+
 ## 2026-10-19 19:53 IL · cowork · למה אין עסקאות: 19:05–19:50 כל 13 המועמדים (שורטים) נחסמו tree:bias — ההטיה החיה = LSMA (פיגור 30 דק׳) אמרה LONG בעוד השוק ירד 7773→7746 והצל [S1DayDir] אמר UNDETERMINED. פסיקת-מייקל (דמו, מיידית): S1_DAY_DIRECTION_V1 shadow→apply (התיקון-מהשורש מ-25.08), ריסטארט 19:52 (pid 74204→76068, שטוח); עכשיו T-37 UNDETERMINED — אין וטו-כיווני. RULED_FLAGS עודכן, flag_guard PASS. .env מצולם ב-~/mems26_snapshots/*_s1daydir-apply.
 
 🟢 **[cowork-dev · ריצה 347 · 19.10 19:34→19:41 IL · חובה-1 + חובה-3 ניטור-RTH · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
