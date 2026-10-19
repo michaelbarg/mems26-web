@@ -230,6 +230,16 @@ async def _startup():
         _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
         _prev_bar_ts = {"value": None}  # dedup guard: skip re-processing same bar (4B fix)
+        # T-595 (19.10, Michael: "fix all the gaps"): DAYTYPE_MACHINE_CLOSED_BARS_V1 (default OFF). The dedup above hands the
+        # machine only the FIRST push of each 5-min bar (o=h=l=c, ~1% volume); with the flag the machine judges the CLOSED bar
+        # (the previous ts's last push). Import is fail-safe: no module -> the legacy first-push feed, flag or not.
+        try:
+            from backend.v9.systems.day_type import closed_bar_feed as _t595
+            _t595_feed = _t595.ClosedBarFeed()
+        except Exception as _t595_err:
+            _t595 = None
+            _t595_feed = None
+            _logger.warning("[DayType] T-595 closed-bar feed unavailable (%s) — machine keeps the first-push feed", _t595_err)
 
         # D-S1DYN: Shadow reclassifier (IB-relative dynamic chain)
         import os as _flag_os
@@ -258,6 +268,8 @@ async def _startup():
             # (every file-poll mtime change). Skip if bar ts unchanged.
             bar_ts = bar.get("ts")
             if bar_ts is not None and bar_ts == _prev_bar_ts["value"]:
+                if _t595 is not None and _t595.enabled():
+                    _t595_feed.note_push(bar)  # T-595: remember the newest push of the bar being built (never raises)
                 # S1_BAR_REFRESH_V1: update developing bar in classifier buffer
                 # (like S2 five_min_system.py:1774 — replace, don't skip)
                 import os as _br_os
@@ -343,7 +355,15 @@ async def _startup():
                     tpo_ib_low=ib_l,
                     logger=_logger,
                 )
-                state = day_type_machine.process_bar(bar_input)
+                # T-595 DAYTYPE_MACHINE_CLOSED_BARS_V1 (default OFF = the `else` branch, the line this replaced): the machine
+                # judges the CLOSED bar (the previous ts's last push), not the flat first push. `_dem_in` is the bar the
+                # machine judged on this push (None = nothing closed yet); the acceptance demotion below reads it.
+                _t595_on = _t595 is not None and _t595.enabled()
+                if _t595_on:
+                    state, _dem_in = _t595.run_machine(day_type_machine, _t595_feed, bar, bar_input)
+                else:
+                    state = day_type_machine.process_bar(bar_input)
+                    _dem_in = bar_input
 
                 # #68 part-b: accumulate RTH bars for the new classifier (in-memory, no DB)
                 if _is_rth_bar:
@@ -780,11 +800,11 @@ async def _startup():
                         if _cur_str.startswith("Trend"):
                             _ib_h = getattr(day_type_machine, "ib_high", None)
                             _ib_l = getattr(day_type_machine, "ib_low", None)
-                            if _ib_h is not None and _ib_l is not None:
+                            if _ib_h is not None and _ib_l is not None and _dem_in is not None:
                                 _ib_w = float(_ib_h) - float(_ib_l)
                                 _dem_tol = min(max(0.25 * _ib_w, 1.0), 4.0) if _ib_w > 0 else 2.0
-                                _bar_h = bar_input.high
-                                _bar_l = bar_input.low
+                                _bar_h = _dem_in.high  # T-595: the bar the machine judged (OFF: bar_input, as before)
+                                _bar_l = _dem_in.low
                                 _inside = (_bar_h < float(_ib_h) - _dem_tol and
                                            _bar_l > float(_ib_l) + _dem_tol)
                                 if not hasattr(app.state, "_dem_inside_count"):
@@ -876,7 +896,7 @@ async def _startup():
                 try:
                     classification = day_type_machine.to_classification()
                     if classification is not None:
-                        _day_type_consumer.consume({
+                        _hist_event = {
                             "timestamp": classification.timestamp.isoformat(),
                             "day_type": classification.day_type.value,
                             "probability": classification.probability,
@@ -894,7 +914,15 @@ async def _startup():
                             # V1-legacy `status` column reflects PENDING vs LOCKED
                             # instead of being hardcoded to LOCKED.
                             "lock_state": str(state.lock_state),
-                        })
+                        }
+                        # DAYTYPE_HISTORY_LIVE_LOCK_V1 (default OFF = the event goes through as built above): the row
+                        # records the T-314 live lock (type, time, token), not the machine's own A2 reading.
+                        try:
+                            from backend.v9.systems.day_type.history_live_lock import apply_live_lock as _hist_live_lock
+                            _hist_event = _hist_live_lock(_hist_event, day_type_machine)
+                        except Exception as _hll_err:
+                            _logger.warning("[DayType] live-lock history bridge unavailable (%s) — row written as before", _hll_err)
+                        _day_type_consumer.consume(_hist_event)
                 except Exception as consumer_err:
                     # P31 §C: was logger.debug — silent failures hid a schema-drift
                     # IntegrityError (status/confidence NOT NULL) for weeks.

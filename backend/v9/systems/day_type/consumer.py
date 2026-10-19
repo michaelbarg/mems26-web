@@ -118,6 +118,10 @@ class DayTypeConsumer:
                 existing.active_zohar_rules = classification_event.get(
                     "active_zohar_rules", []
                 )
+                # DAYTYPE_HISTORY_LIVE_LOCK_V1: the live T-314 lock time. Written only when the event carries it
+                # (the key is absent with the flag OFF or before the lock), so the legacy UPSERT is untouched.
+                if classification_event.get("locked_at") is not None:
+                    existing.locked_at = self._parse_datetime(classification_event["locked_at"])
                 existing.updated_at = datetime.now(timezone.utc)
             else:
                 # INSERT new row
@@ -142,6 +146,8 @@ class DayTypeConsumer:
                         "active_zohar_rules", []
                     ),
                 )
+                if classification_event.get("locked_at") is not None:   # DAYTYPE_HISTORY_LIVE_LOCK_V1
+                    row.locked_at = self._parse_datetime(classification_event["locked_at"])
                 session.add(row)
 
             session.commit()
