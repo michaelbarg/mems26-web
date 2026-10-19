@@ -1,3 +1,84 @@
+🟢 **[cowork-dev · ריצה 347 · 19.10 19:34→19:41 IL · חובה-1 + חובה-3 ניטור-RTH · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
+
+**חובת-הזמן, קודם כל השאר.** `date ⇒ 2026-10-19 19:34:42 IDT (Mon)` ⇒ `16:30 ≤ 19:34 < 23:00` ⇒ **חובה-3 (ניטור-RTH)**. `19:34 > 16:10` ⇒ **אסור ריסטארט**, ואין שער — ריצה 340 ביצעה אותו והודעת-השער היחידה נמסרה (`PHONE_THREAD ⇒ cowork-dev 2026-10-19T12:49:04Z`) ⇒ GO/NO-GO שני היה הצפת-[[T-369]]. `19:34 ∉ 23:00-23:30` ⇒ **חובה-4 מחוץ לתחום**: פריטי-הערב ו-[[T-602]]/[[T-603]] נשארים בבעלות ריצת-23:00, כמו שקבעו 344/345/346.
+
+**חובה-1 · אפס ממתינות בשני מקורות ⇒ שתיקה מוחלטת בטלפון.**
+```raw
+GET /chat?key=…  ⇒ HTTP 200 · bytes=17635 · items=30 · t<1s
+PHONE_THREAD.jsonl ⇒ האחרונה cowork-dev 2026-10-19T12:49:04Z (הודעת-השער של 340) — זהה לאחרונה ב-/chat
+שורת-המייקל האחרונה ⇒ 2026-10-07T10:50:03Z, ואחריה cc-ack 10:50:03Z + cowork-dev ענייני 11:11:10Z
+michael_in_window = 1  ·  תיוג עסקה # חדש = 0
+```
+⇒ שני המקורות מסכימים, ולא הסתמכתי על הקובץ המקומי לבדו ⇒ אפס (א)/(ב)/(ג)/(ד) ⇒ **אפס `phone_reply.py`**. הרישום הזה הוא השורה הזאת, לא הודעה.
+
+🔑 **הממצא המרכזי — והוא בכיוון ההפוך ממה שהשורות נראות: הריסטארט של 19:18 אינו חריגה ואינו שלי, וה"קידום שלא נתפס" אינו באג.** `ps -o lstart` של המאזין החזיר `Mon Oct 19 19:18:19` ⇒ הבקאנד **כן** עלה היום אחרי 12:00, וזה בדיוק מה שמלכודת-בעלות-הריסטארט נועדה למנוע ממני לקרוא לו ממצא: רשומת-`cowork` שבראש הקובץ (19:2x, פסיקת-מייקל "זה לא אמיתי זה דמו ומיידית לבצע") מוסרת `pid 2030→74204` **לאותה דקה**, ו-`HEAD 60cb9eef` מ-`19:20` הוא קומיט-הקידום עצמו ⇒ **בעלות מוכחת ⇒ אפס אזעקה, אפס נגיעה, אפס GO/NO-GO שני.**
+
+ואז השורות עצמן נראו כמו כשל-קידום: `CEILING_FLIP_TOUCH2_V1` ו-`TREND_STEP_ENTRY_V1` הועלו `shadow→1` בדמו ב-19:18, **שתי התבניות ירו אחרי הקידום, ושתי השורות נרשמו `mode=shadow`** — חתימה מושלמת של "הדגל לא נתפס". **הפוסק הוא פיד-ההחלטות ולא `v9_trades.mode`:**
+```raw
+select id,mode,firing_system,pattern_id_at_entry,state,entry_ts from v9_trades where entry_ts >= current_date+time '19:18'
+  3466 | shadow | 4 | TREND_STEP          | FILLED | 19:18:25
+  3470 | shadow | 2 | CEILING_FLIP_TOUCH2 | FILLED | 19:20:05
+  (ועוד 5: ZLR ×4 · REACTIVE_SHORT)            ⇒ כולן shadow, with_bracket = 0
+
+GET /api/v9/gateway/decisions?limit=2000 ⇒ 7 החלטות מ-16:18Z, וכולן אותו חוסם:
+  blocked_by = tree:bias · outcome = blocked
+  reason = "against the session's directional hint
+            [hour=*(19)/opening_type=OPEN_REJECTION_REVERSE/phase=C/day_type=Variation/rel_bias=against/edge=*(none)]"
+
+python3 scripts/flag_guard.py ⇒ rc=0 · FLAG-GUARD: PASS — all 274 ruled flags match
+  ✓ CEILING_FLIP_TOUCH2_V1: expected=1 actual=1
+  ✓ TREND_STEP_ENTRY_V1:    expected=1 actual=1
+  ✓ VA_FADE_V1:             expected=shadow actual=shadow
+```
+⇒ **הדגל חי; מה שחוסם הוא העץ**, וירי שהעץ חסם נרשם `shadow` **בתכנון** ⇒ 🚫 **אפס באג, אפס פריט חדש, ואין ל-`cowork` מה לרדוף.** (‏`ps eww` **אינו** פוסק לכך על macOS — SIP מסתיר env של תהליך אחר, והוא החזיר ריק; נרשם כדי שהריצה הבאה לא תנסה אותו כמדידה.)
+
+📈 **תצפית לדוח-הערב — ובמפורש לא ממצא ולא פסיקה.** כל 7 הירי שאחרי הקידום היו `SHORT` וכולם נחסמו כ"נגד ההטיה", בעוד המחיר ירד `7755 ⇒ 7746.5` ב-12 הדקות האלה (`live_price 7749.75` ב-19:36). 🚫 אני **לא** טוען שההטיה שגתה: חלון של 20 דק', ולפי דוקטרינת-הלמידה התשובה להוראה כזאת היא **מספר-ריפליי, לא דגל**. מועבר ל-`day_review` של 23:00.
+
+🟢 **חובה-3 · שלושת הפוסקים — וכולם ירוקים. צילום-אחד ב-19:36:55-19:37:18 כדי שהמספרים יהיו עקביים זה עם זה.**
+```raw
+feed    select max(ts), now()-max(ts), count(*) filter (ts::date=current_date) from v9_bars_5min_woodies
+         ⇒ 2026-10-19 19:35:00+03 | age 00:01:55 | 224 ברים היום     (פוסק-DB ולא mtime — [[T-430]])
+         live_price ⇒ bid 7749.75 / ask 7750.00 · age_ms 734 · source=cache ⇒ לא bid=ask=0 של השבוע שעבר
+         v9_bars_5min הלגסי ⇒ max(ts) 19:35:00+03 · age 1.0 דק'  ⇒ שני הזרמים נקלטים
+backend curl /api/v9/health ⇒ 200 · {"status":"ok","version":"v9.0.0"} · t=0.0029s (3 דגימות 2.3/225/1.3ms)
+        lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 74204 *:8000 (LISTEN)      (מלכודת 30 — לא lsof -ti)
+TM      sierra_state.json mtime age 0.8s ⇒ Sim1 · is_sim 1 · position_qty 0 · working_orders 0
+                     · daily_pnl 0.0 · acct_daily_pl 0.0 · daily_total_qty_filled 0 · last_price 7750.25
+ספרים   היום: shadow|CLOSED 38 (pnl_usd −10.18) + shadow|FILLED 15 · mode<>shadow = 0 · count(pnl_sierra) = 0
+gateway live_enabled_systems [] · demo_enabled_systems [2,4] · live_slot None · demo_slot None · trades_today 0
+```
+**ובעלות-הפוזיציה הוכרעה לפי `order_id` לפני כל אזעקה:** `count(sierra_bracket_id) = 0` מכל 53 שורות-היום ו-`position_qty 0`/`working_orders 0` ב-TM ⇒ **אין `order_id` באף צד** ⇒ אפס פוזיציה-יתומה, אפס אזעקה, אפס נגיעה. `mode<>shadow = 0` ⇒ **אפס עסקת-לייב ⇒ אפס מקרה (ב)**; אפס חריגה שדורשת פסיקה ⇒ **אפס מקרה (ג)**. `MEMS26_MODE=demo` + `LIVE_TRADING_V1=0` + `is_sim 1` ⇒ **אפס כסף אמת**.
+
+📊 **ליגר-היום (מונה-הגייטוויי, לא ספירה-ידנית):** `fired 0 · blocked 47 · shadow_only 6` · `by_gate: tree:location 28 · tree:bias 13 · entry_not_confirmed 3 · tree:stand_down 2 · entry_location_quality 1` · חלון `16:30→19:30 IL` · `buffer_len 53` ⇒ **מתחת לתקרת-ה-200** ⇒ מלכודת 3.2 אינה נושכת הפעם, והספירה קבילה.
+
+🪤 **ציר-הצל — אפס מחלקת-16.09:** 15 שורות `FILLED` פתוחות, **כולן מהיום**:
+```raw
+select (entry_ts::date=current_date), mode, count(*) from v9_trades where state not in ('CLOSED','CANCELLED')
+  ⇒ t | shadow | 15        (אפס שורות מימים קודמים)
+python3 scripts/close_stale_shadow.py (dry-run) ⇒ no stale shadow trades — nothing to do
+```
+⇒ אין את 26-השורות שהרימו ב-16.09 את הבקאנד ל-80%. תוך-RTH ⇒ **dry-run בלבד**; `--apply` הוא כלי-טרום-פתיחה.
+
+🪤 **ציר-ה-`%cpu` — הדגימה הראשונה נגעה בדיוק בסף של 345, ולכן דגמתי במקום להכריז:**
+```raw
+19:39:44 ⇒ 50.0   ·   19:39:56 ⇒ 5.5   ·   19:40:08 ⇒ 24.9   ·   19:40:20 ⇒ 13.5     (%mem 0.7 בכולן)
+```
+⇒ מתנדנד עם עיבוד-הברים על תהליך בן 21 דקות, **לא מטפס מונוטונית** ⇒ 🚫 לא-מיוחס, הסף לא נחרג. ⚠️ ולציין: זה **תהליך חדש** (74204) ⇒ סדרת-ה-2030 של 345/346 **אינה ממשיכה לתוכו**, וההשוואה מתחילה מכאן.
+
+🪤 **ציר-הבריאות — זרם-הדחיות נותר חתוך:** `ERROR|CRITICAL 17:00→19:41 ⇒ 0`; האחרונה היום `2026-10-19 16:29:59 [ERROR] [backend.v9.api.v9.bars] TS-OFFSET-GATE REJECTED batch` ⇒ **3 שעות ו-11 דקות אפס** מאז שהפיד נקלט בפתיחה. (‏`backend.err.log` — לא `backend.log`.)
+
+**שערים (דיווח-בלבד, תוך-RTH):** `fire_drill` ו-`machine_health` שייכים לחלון-השער ו**לא הורצו** ⇒ נרשמים כ**לא-נמדדו**, לא כ"לא-השתנו" (כלל 1). `ruled_contracts()` נקרא **עם `.env` טעון** ([[T-489]]) ⇒ **`1`** = פסיקת 18.09, **אפס נגיעה בדגלי-גודל** ([[T-225]]). `flag_guard` PASS 274/274 עם אזהרת-הבעלות הידועה `FOOTPRINT_DISABLED plist=true .env=0 live=true` ([[T-435]] שלב 3 / [[T-563]] — פסיקת-מייקל ממתינה, לא נגעתי). `task_log_guard` ⇒ `rc=0 · 579 items · last committed 0.1 days ago`. [[T-34]] מרג'ין אינו חל: דמו, `position_qty 0`, אפס כסף בסיכון.
+
+📦 **הפריט הפתוח החד — נותר פתוח ואומת שוב:** `ls -1 ~/SierraChart_Data/v9_archive | tail ⇒ … 2026-10-06 · 2026-10-07 · 2026-10-08 · 2026-10-09` ואין אחריה ⇒ **עשרה ימים בלי תוצר-EOD**, ו**המבחן הוא ריצת-23:00 הערב**: אם לא תיווצר `2026-10-19/`, זה פריט-חוסם לדוח-הערב ולא תקלה חד-פעמית.
+
+🧹 **עץ-העבודה — נרשם כדי שלא ייראה כדריפט בריצה הבאה:** `git status --short` מראה קבצים מעוקבים ששונו ולא נדחפו, בהם `backend/v9/api/v9/mobile_monitor.py` · `tree_routes.py` · `five_min_system.py` · `config/news_calendar.yaml` · `docs/FLAG_REGISTRY.yaml`. זו עבודת-`cowork` החיה על אותה מכונה — **לא נגעתי ולא קימטתי אותם**; הקומיט שלי מכיל **`docs/handoff/LIVE_CHANNEL.md` בלבד**. (מחלקת-[[T-584]]; הבעלות של `cowork`, לא שלי להכריע.)
+
+**הצעד-הבא לריצה 348:** (1) **אם 348 היא ריצת-23:00 (חובה-4)** — הסדר שקבעו 344/345/346 עומד: `broker_truth.py --since 2026-09-01 --write` → `day_review.py` → `review_report.py` → `gen_tree_board.py` → `gen_phone_pages.py --days 14` → שורת-הלקח ב-`LESSONS_TIMELINE.json` → commit+push + אימות `curl … /doc/days/2026-10-19.html ⇒ 200`, ועם `awareness_score.py --day 2026-10-19`. ובידיעה שנמדדה כאן: `mode<>shadow = 0` ו-`count(pnl_sierra) = 0` מ-**53** שורות-היום ⇒ **`broker_truth` לא יאמת כלום, וזה צפוי ולא ממצא**. (2) **אם 348 עדיין תוך-RTH** — שלושת הפוסקים שוב; ושאלת-הקידום **סגורה במדידה** (‏`tree:bias`, לא הדגל) ⇒ אין לפתוח אותה מחדש. הדבר ששווה לעקוב אחריו הוא השורה הראשונה שתירה **עם** ההטיה (`rel_bias=with`) — זו הראשונה שיכולה לנתב בדמו כחוק. (3) **הארכיון** — המבחן הוא ריצת-23:00 עצמה. (4) [[T-602]]/[[T-603]] + פריטי-הערב — לחלון-טרום-הפתיחה/23:00, לא תוך-RTH.
+
+— `cowork-dev` · נמדד 19.10 19:41 IDT · pid 74204 · HEAD 60cb9eef
+
+---
+
 ## 2026-10-19 19:2x IL · cowork · פסיקת-מייקל "זה לא אמיתי זה דמו ומיידית לבצע" — CEILING_FLIP_TOUCH2_V1 ו-TREND_STEP_ENTRY_V1 הועלו shadow→1 בדמו (LIVE_TRADING_V1=0, Sim1); ריסטארט בקאנד 19:18 (pid 2030→74204, שטוח, 0 פקודות); VA_FADE נשאר shadow (קוד כופה shadow_only); RULED_FLAGS עודכן, flag_guard PASS; .env מצולם ב-~/mems26_snapshots/20261019T161818Z_demo-promote. הסוכן המקומי cowork-dev (Claude Code) נהרג לפי הוראת מייקל.
 
 🟢 **[cowork-dev · ריצה 346 · 19.10 18:34→18:40 IL · חובה-1 + חובה-3 ניטור-RTH · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
