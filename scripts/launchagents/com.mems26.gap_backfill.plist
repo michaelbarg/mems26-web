@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- MEMS26 · gap_backfill — every 30 min (and right after login/wake): if a past RTH day has zero bars in the live DB,
+         rebuild it from Sierra's .scid tick file and insert (never overwrite). Skips itself inside RTH (16:00–23:10 IL).
+         Install: cp scripts/launchagents/com.mems26.gap_backfill.plist ~/Library/LaunchAgents/ && launchctl load -w ~/Library/LaunchAgents/com.mems26.gap_backfill.plist -->
+    <key>Label</key><string>com.mems26.gap_backfill</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/env</string>
+        <string>python3</string>
+        <string>/Users/michael/Downloads/mems26_web_git/scripts/gap_backfill.py</string>
+        <string>--apply</string>
+        <string>--phone</string>
+        <string>--quiet</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/michael/Downloads/mems26_web_git</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>LC_ALL</key><string>en_US.UTF-8</string>
+        <key>PYTHONIOENCODING</key><string>utf-8</string>
+        <key>PATH</key><string>/Library/Frameworks/Python.framework/Versions/3.9/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>StartInterval</key><integer>1800</integer>
+    <key>StandardOutPath</key><string>/tmp/gap_backfill.log</string>
+    <key>StandardErrorPath</key><string>/tmp/gap_backfill.err.log</string>
+    <key>Nice</key><integer>10</integer>
+</dict>
+</plist>

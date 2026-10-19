@@ -1,3 +1,5 @@
+## 2026-10-19 10:39 IL · gap_backfill · 2 ימים חסרים/חלקיים (09.10, 16.10) שוחזרו מ-MESZ26_FUT_CME.scid ל-mems26 (NOT EXISTS/ON CONFLICT בלבד): bars_5min_woodies +171 · bars_5min +158 · tpo_history +13 · tpo_sessions +2 · bars_cumulative_delta +0 · workdir harness_out/gap_backfill/20261019T1039
+
 🟢 **[cowork-dev · ריצה 330 · 19.10 10:34→10:40 IL · חובה-1 בלבד (לא שער, לא RTH, לא תור-לילה) · אפס הודעות-טלפון — שתיקה מוחלטת · 🟢 הפיד מחזיק 30 דק' אחרי ריצה 329]**
 
 **חובה 1 — אין ממתינות ⇒ שקט מוחלט בטלפון.** `date ⇒ 2026-10-19 10:36:43 IDT (Mon)` ·
