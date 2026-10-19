@@ -1,3 +1,102 @@
+🟢 **[cowork-dev · ריצה 337 · 19.10 14:04→14:12 IL · חובה-1 בלבד (לא שער, לא RTH, לא תור-לילה) · אפס הודעות-טלפון — שתיקה מוחלטת · 🟢 הפיד חי, אומת בציטוט-שזז · ➕ אישוש-גודל ממקור שני: `contracts_cfg` מהתהליך החי = 1]**
+
+**חובת-הזמן קודם לכל.** `date ⇒ 2026-10-19 14:05:59 IDT (Mon)` ⇒ `14:05 < 15:30` ⇒
+**חובה-2 (שער/ריסטארט) מחוץ לתחום** · `14:05 < 16:30` ⇒ חובה-3 מחוץ לתחום ·
+`14:05 ∉ 23:00-23:30` ⇒ חובה-4 מחוץ לתחום. נשארת **חובה-1 בלבד**.
+⛔ אפס ריסטארט · אפס דגל · אפס נגיעה בפוזיציות · אפס GO/NO-GO.
+בעלות-הריסטארט ([[T-585]]) לא זזה — נמדד ב-`lsof` מלא ולא ב-`lsof -ti|head` ([[מלכודת 30]]):
+`lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python pid 2030 *:8000 (LISTEN)` ·
+`ps -o lstart ⇒ Sun Oct 18 09:40:38 2026` · `etime 01-04:25:21` — **לא עלה היום אחרי 12:00**,
+רציף מ-331→337.
+
+**חובה 1 — אין ממתינות ⇒ שקט מוחלט בטלפון.** נמדד מחדש בעצמי ולא בהסתמכות על 336.
+`git pull ⇒ Already up to date` · HEAD `b48288b2` (זז מ-`ee30050a` = קומיט-ה-LOG של 336) ·
+`rev-parse @{u} ⇒ origin/stabilize/mems26-local-truth-2026-05-16` ([[מלכודת 28]]: לא `origin/main`) ·
+`rev-list --left-right --count HEAD...@{u} ⇒ 0 0`.
+הפוסק הועתק כלשונו מ-[[מלכודת 37]] ולא נגזר-מחדש — `MICHAEL = ('michael','מייקל','michael barg')`,
+`.strip().lower() in MICHAEL` — והפוסק המעשי הוא **`items[n+1:]`**, לא `items[-1]`.
+
+```raw
+launchctl print …mobile_relay ⇒ state = running · pid = 1629     ← [[מלכודת 12]]: הדוור חי ⇒ הקובץ אינו ריק-משקר
+14:05 ∈ RELAY_WINDOW_IL=10:00-23:30                              ← [[מלכודת 32]]: ה-snapshot תקף, [] אינו שקט-שקרי
+launchctl list | grep mems26  ⇒ 6 עם PID (backend 2030 · frontend 621 · bridge 637 ·
+                                 export_promoter 1619 · activity_feed 1624 · mobile_relay 1629)
+                              ⇒ 5 מתוזמנים-בלבד עם `-` (agents_bootstrap · eod_handoff ·
+                                 gap_backfill · startup_check · update_check) = מצבם התקין (§3.12)
+GET /instruction/pending?key=… ⇒ http=200 · {"items":[]}          ← peek, מצב-Render עצמו
+GET /cmd/pending?key=…         ⇒ http=200 · {"cmd":null}
+GET /chat?key=…                ⇒ http=200 · bytes=17642 · items=30 · החדש 2026-10-18T19:40:05Z supervisor
+Counter(sender)                ⇒ cowork-dev 20 · cowork 4 · supervisor 4 · מייקל 1 · cc 1
+michael-idx                    ⇒ [6]  ts 2026-10-07T10:50:03Z id bcad029a
+items[7:]                      ⇒ [7] cc "✓ התקבל · מצב-חי…" (אישור-קבלה אוטומטי, אינו מענה)
+                                  [8] cowork-dev 2026-10-07T11:11:10Z "בוצע מאז השיח עם קורסור…" ← המענה העניינית
+                                  count after = 23
+PHONE_THREAD.jsonl             ⇒ 763 שורות · 133 שורות-מייקל · האחרונה idx 739 = אותו ts
+```
+
+⇒ **אפס ממתינות ⇒ אפס `phone_reply.py`.** ארבעה פוסקים עצמאיים מסכימים (תיבת-Render ·
+תור-הפקודות · תצוגת-הצ'אט · הקובץ על הדיסק), ושני תנאי-התקפוּת של השלילה נבדקו לפני
+ההסקה ולא אחריה. הרישום כאן ולא בטלפון — דוח-ניטור תקופתי אינו אחד מארבעת המקרים.
+אין עסקת-לייב לדווח ⇒ אין מקרה (ב); אין חריגה שדורשת פסיקה ⇒ אין מקרה (ג);
+`14:0x ∉ 15:40` ⇒ אין מקרה (ד).
+
+**🟢 [[T-430]] — הפיד חי, אומת בציטוט-שזז ולא ב-`mtime`/`age_ms` ([[מלכודת T-532]]).**
+
+```raw
+v9_bars_5min_woodies ⇒ last_ts 2026-10-19 14:05:00+03 · 158 ברים · now() 14:06:54  (בר בן 2 דק')
+v9_decision_vectors  ⇒ 158 · last 2026-10-19 14:05:00+03   ⇒ 1:1 מול הברים
+live_price  A 14:06:54 ⇒ price 7740.62 · bid 7740.50 / ask 7740.75 · age_ms 362
+   (+14 שנ') B 14:07:08 ⇒ price 7740.25 · bid 7740.00 / ask 7740.50 · age_ms 381
+⇒ price **וגם** bid **וגם** ask זזו בין שתי דגימות ≥10 שנ' ⇒ זרימה אמיתית, לא קובץ-טרי
+GET /api/v9/health ⇒ http=200 · {"status":"ok","version":"v9.0.0"}
+```
+
+**אפס עסקאות ⇒ נדרשה הוכחת-חיוּת לפני המסקנה ([[מלכודת 3.4]]), והיא ניתנה למעלה.**
+השאילתה אינה מסננת `mode` כלל ([[מלכודת 3.11]]: `mode='LIVE'` באותיות גדולות מחזיר אפס בשקט):
+
+```raw
+v9_trades (entry_ts AT TIME ZONE 'America/New_York')::date = היום-ET ⇒ 0 שורות (כל מצב)
+v9_trades state NOT IN ('CLOSED','CANCELLED')                       ⇒ 0 שורות ([[מלכודת 14]]: לפי state, לא exit_ts)
+```
+
+⇒ אפס-עסקאות **צפוי ואינו ממצא**: `14:07 IDT = 07:07 ET`, כלומר 2:23 לפני פתיחת-RTH.
+
+**➕ שערי-המשמעת — נמדדו מחדש בעצמי ([[מלכודת 12 §4]]), והגודל אושש ממקור שני.**
+
+```raw
+ruled_contracts()                        ⇒ 1   (set -a; . ./.env; set +a — [[T-489]])
+GET /api/v9/mobile/data → contracts_cfg  ⇒ 1   ← התהליך החי, המקור הקצר-והבטוח של §3.9
+⇒ שני מקורות עצמאיים, אותו רגע, אותה תשובה ⇒ תואם פסיקת 18.09 12:05 "חוזה 1".
+   (336 הריץ את הראשון בלבד; האישוש מהתהליך החי הוא התוספת של הריצה הזאת)
+flag_guard      ⇒ FLAG-GUARD: PASS — all 274 ruled flags match.  (exit=0)
+task_log_guard  ⇒ ✅ 574 items · last committed 0.6 days ago · "current, structured, and the only one"
+GET /api/v9/account/state ⇒ position_qty 0 · working_orders 0 · daily_pnl 0.0 · last_price 7739.75
+                             trade_account "Sim1" · is_sim 1 · order_placement_armed 1
+```
+
+⚠ `FOOTPRINT_DISABLED: plist=true .env=0 live=true` — **REPORT-only** לפי הכלי עצמו
+([[T-435]] שלב 3 / [[T-563]]) ו**כבר בתוך** הפסיקה הממתינה מ-`18.10 07:11` ⇒ לא נפתח
+כפריט, לא נשלח לטלפון, לא מוצג כרגרסיה (זהה ל-334/335/336).
+[[T-34]] `acct_available_funds = null` על Sim1 ⇒ מדווח כ-`null`, לא מחושב ולא "עבר" (כלל-1).
+אינו חוסם מסחר ⇒ אין מקרה (ג) בטלפון.
+
+**מסירה לשער 15:30:** הפיד חי וזורם ⇒ שלב D של `fire_drill` אמור לעבור על woodies ·
+הגודל פסוק ומאושש-כפול ב-1 · `flag_guard` PASS · פוזיציה 0 ⇒ ריסטארט-קדם-פתיחה כשר
+מצד-המצב. **בעלות-הריסטארט טרם נלקחה** — `pid 2030` מ-18.10 ⇒ ריצת-15:30 היא הבעלים,
+אלא אם `mems26-preopen-restart-19.10` כבר הרימה. הממצא של 336 (ברי 12-16.10 = בקפיל,
+לא קליטה-חיה) ו**הזוג הקפוא** `v9_bars_5min` + `v9_bars_cumulative_delta` כבר נמסרו
+לשער ב-333/336 — **לא נפתחים כאן מחדש ולא נשלחים לטלפון.**
+
+**לא נגעתי:** דגלים · דגלי-גודל/`RISK_*` · `.env` · ריסטארט · פוזיציות/פקודות ·
+`op=EXIT`/FLATTEN · DLL · עץ · קוד-ייצור · הרנס · `~/SierraChart_Data` · DB-writes ·
+הודעת-טלפון · GO/NO-GO. כל הקריאות היו read-only (peek בלבד על Render — אפס
+`POST /instruction/status`, אפס `/cmd/ack`). קימטתי **אך-ורק `LIVE_CHANNEL.md`** by-path
+([[T-584]]: `git status --porcelain` מחזיק 15,7xx רשומות ובהן קוד-ייצור) — אפס `git add -A` ·
+אפס `commit -a` · אפס stash · אפס checkout. אפס פריט חדש ואפס שינוי-סטטוס ⇒ הרישום כאן
+ולא ב-`TASK_LOG`. כל הפקודות רצו דרך Desktop Commander על ה-Mac, אפס מהסנדבוקס (§0).
+
+---
+
 🟢 **[cowork-dev · ריצה 336 · 19.10 13:34→13:47 IL · חובה-1 בלבד (לא שער, לא RTH, לא תור-לילה) · אפס הודעות-טלפון — שתיקה מוחלטת · 🟢 הפיד חי, אומת בציטוט-שזז · 🔎 ממצא-חדש: ברי 12-16.10 הם בקפיל שנכתב היום, לא קליטה-חיה]**
 
 **חובת-הזמן קודם לכל.** `date ⇒ 2026-10-19 13:34:42 IDT (Mon)` ⇒ `13:34 < 15:30` ⇒
