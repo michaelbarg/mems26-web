@@ -1117,14 +1117,29 @@ class TradeManager:
             "SELECT ib_high, ib_low, vah_price, val_price FROM v9_tpo_sessions "
             "WHERE trading_date = :d AND session_type = 'CASH' ORDER BY id DESC LIMIT 1",
             {"d": et_today().isoformat()})
+        _long = direction == "LONG"
+        # VA edge: Sierra's own TPO study (tpo.json) first — the source the gateway
+        # treats as correct (trading_gateway ELQ block: "VAH/VAL from tpo.json, not
+        # v9_tpo_sessions"); the developing VA in v9_tpo_sessions was frozen at one
+        # letter on most days until TPO_LETTER_BY_TS_V1 (T-590). The DB row stays
+        # the fallback when the export is missing, stale or not va_ok.
+        va = None
+        try:
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            _tpo = _load_sierra_tpo() or {}
+            if _tpo and not _tpo.get("stale") and not _tpo.get("error") \
+                    and _tpo.get("session_va_ok", True):
+                va = _be_rule_num(_tpo.get("val" if _long else "vah"))
+        except Exception:
+            va = None
         if row:
-            _long = direction == "LONG"
             ib = _be_rule_num(row.get("ib_low" if _long else "ib_high"))
-            va = _be_rule_num(row.get("val_price" if _long else "vah_price"))
+            if va is None:
+                va = _be_rule_num(row.get("val_price" if _long else "vah_price"))
             if ib is not None:
                 cands.append(("ib_low" if _long else "ib_high", ib))
-            if va is not None:
-                cands.append(("val" if _long else "vah", va))
+        if va is not None:
+            cands.append(("val" if _long else "vah", va))
         return cands
 
     def _be_rule_decide(self, trade, direction: str, entry: float, tick: float,

@@ -55,7 +55,12 @@ class World:
         self.tpo_error = None
         self.hist = None                               # v9_day_type_history row for today
         self.hist_error = None
+        self.sierra_tpo = None                         # tpo_routes._load_sierra_tpo() (tpo.json)
         self.calls = []                                # every outside read, in order
+
+    def load_sierra_tpo(self, *a, **k):
+        self.calls.append("load_sierra_tpo")
+        return self.sierra_tpo
 
     def live_expansion(self):
         self.calls.append("get_live_expansion")
@@ -100,6 +105,8 @@ def world(monkeypatch):
     monkeypatch.setattr(tc, "get_live_expansion", w.live_expansion)
     monkeypatch.setattr(dbread, "read_one", w.read_one)
     monkeypatch.setattr(td, "et_today", lambda: TODAY)
+    import backend.v9.api.v9.tpo_routes as tpo_routes      # never the live tpo.json
+    monkeypatch.setattr(tpo_routes, "_load_sierra_tpo", w.load_sierra_tpo)
     return w
 
 
@@ -903,3 +910,48 @@ class TestTrailsHonourTheHold:
         assert t.stop == c["floor"]
         t, tm = run(True)                                # flag ON + hold -> the zone stop
         assert t.stop == new_stop and tm._emits == [(4242, new_stop)]
+
+
+# ══════════════════════ 20.10 — the VA edge comes from Sierra's tpo.json first
+class TestValueAreaSource:
+    """The gateway treats tpo.json as the correct VAH/VAL source (ELQ block); the
+    developing VA in v9_tpo_sessions was frozen at one letter on most days (T-590).
+    tpo.json wins when fresh and va_ok; the DB row is the fallback."""
+
+    def test_tpo_json_va_wins_over_db_va(self, monkeypatch, world):
+        _on(monkeypatch)
+        _arm(world, "LONG", tpo=_tpo(val_price=7745.0))        # DB VA beyond the original stop
+        world.sierra_tpo = {"val": 7760.0, "vah": 7790.0, "session_va_ok": True, "stale": False}
+        t = _trade("LONG")
+        _run(t)
+        assert t.stop == 7759.75 and t.quality["be_rule_hold"]["kind"] == "val"
+
+    @pytest.mark.parametrize("sierra", [
+        pytest.param({"val": 7766.0, "session_va_ok": True, "stale": True}, id="stale-export"),
+        pytest.param({"val": 7766.0, "session_va_ok": False, "stale": False}, id="va-not-ok"),
+        pytest.param({"val": 7766.0, "session_va_ok": True, "stale": False, "error": "x"},
+                     id="export-error"),
+        pytest.param(None, id="export-missing"),
+    ])
+    def test_untrusted_export_falls_back_to_the_db_row(self, monkeypatch, world, sierra):
+        _on(monkeypatch)
+        _arm(world, "LONG", tpo=_tpo(val_price=7760.0))
+        world.sierra_tpo = sierra
+        t = _trade("LONG")
+        _run(t)
+        assert t.stop == 7759.75, "DB VA 7760 - 1 tick, never the untrusted 7766"
+
+    def test_short_reads_vah_from_tpo_json(self, monkeypatch, world):
+        _on(monkeypatch)
+        _arm(world, "SHORT", tpo=_tpo())                         # DB row without levels
+        world.sierra_tpo = {"val": 7740.0, "vah": 7780.0, "session_va_ok": True, "stale": False}
+        t = _trade("SHORT")
+        _run(t)
+        assert t.stop == 7780.25 and t.quality["be_rule_hold"]["kind"] == "vah"
+
+    def test_flag_off_never_reads_the_export(self, monkeypatch, world):
+        _arm(world, "LONG")
+        world.sierra_tpo = {"val": 7760.0, "session_va_ok": True, "stale": False}
+        t = _trade("LONG")
+        _run(t)
+        assert t.stop == BE_LONG and "load_sierra_tpo" not in world.calls
