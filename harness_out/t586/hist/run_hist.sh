@@ -14,7 +14,7 @@ run_one() {
   [ -s "$out" ] && { echo "skip $d"; return 0; }
   while in_rth; do echo "WAITING before $d ($(TZ=Asia/Jerusalem date +%H:%M) IL)"; sleep 600; done
   env $REF $ENVS DATABASE_URL=postgresql://localhost/mems26_hist SITUATION_VECTOR_LOG_V1=0 \
-    python3 scripts/fwd_harness.py --session "$d" --variant "$TAG" --out "$out" --quiet > "harness_out/t466/${TAG}_${d}.log" 2>&1
+    python3 scripts/fwd_harness.py --env /Users/michael/mems26_snapshots/20261019T161818Z_demo-promote/.env --session "$d" --variant "$TAG" --out "$out" --quiet > "harness_out/t466/${TAG}_${d}.log" 2>&1
   echo "done $d $TAG rc=$?"
 }
 export -f run_one
