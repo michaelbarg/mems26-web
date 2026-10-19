@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -49,19 +50,67 @@ def _assert_not_a_test_writing_live(out: Path) -> None:
     the second lock, at the single choke point every command passes through, so
     that a hard-coded path or a conftest that gets edited later cannot quietly
     re-arm the wire. Pytest sets PYTEST_CURRENT_TEST for every test it runs.
+
+    2026-10-20 (T-609): the PYTEST_CURRENT_TEST lock was not enough. On 19.10 at
+    23:27:59 IL `cmd_000404.json` — PLACE LONG 3 around the live price, stop -20,
+    targets +5/+10/+15 — was written into the LIVE queue by a process that was
+    NOT the backend (proof: the backend's own first command after its 23:01
+    restart was #404, the FLATTEN of 20.10 00:34). Sierra filled it in Sim1 and
+    the backend raised ORPHAN FILL. A script, a harness, a mutation driver, a
+    REPL or a test's background thread never sets PYTEST_CURRENT_TEST, so the
+    rule is now default-deny — see `live_wire_writer_status()`.
     """
-    if not os.getenv("PYTEST_CURRENT_TEST"):
+    if not _is_live_dir(out):
         return
+    allowed, why = live_wire_writer_status()
+    if allowed:
+        return
+    logger.critical("[SierraCmd] T-609 REFUSED live-wire write (%s): %s", why, out)
+    raise RuntimeError(
+        f"REFUSING to write a trade command to the LIVE signals dir ({out}) — {why}. "
+        "The Sierra DLL executes this file. Only the backend process "
+        "(uvicorn backend.main:app) may write it; a deliberate drill must be run "
+        "with MEMS26_ALLOW_LIVE_COMMAND=1; tests must point MEMS26_SIGNALS_DIR at a "
+        "tmp_path."
+    )
+
+
+def _is_live_dir(out: Path) -> bool:
+    """True when `out` sits in the folder the Sierra DLL polls."""
     try:
-        same = out.resolve().parent == LIVE_SIGNALS_DIR.resolve()
+        return out.resolve().parent == LIVE_SIGNALS_DIR.resolve()
     except OSError:
-        same = str(out.parent) == str(LIVE_SIGNALS_DIR)
-    if same:
-        raise RuntimeError(
-            f"REFUSING to write a trade command to the LIVE signals dir ({out}) "
-            "from a test process. The Sierra DLL executes this file. Point "
-            "MEMS26_SIGNALS_DIR at a tmp_path."
-        )
+        return str(out.parent) == str(LIVE_SIGNALS_DIR)
+
+
+def live_wire_writer_status() -> "tuple[bool, str]":
+    """(allowed, why) — may THIS process put a command on the live wire?
+
+    T-609 (2026-10-20), default-deny, in this order:
+      1. a running test (PYTEST_CURRENT_TEST) — never;
+      2. the backend process (argv carries `backend.main:app`, i.e.
+         `python -m uvicorn backend.main:app …` — LaunchAgent, start_all.sh and
+         the Windows starter all launch it that way) — allowed;
+      3. any process with pytest loaded (collection, fixtures, background
+         threads between tests) — never;
+      4. LIVE_WIRE_WRITER_GUARD_V1=0 — the escape hatch, allowed;
+      5. MEMS26_ALLOW_LIVE_COMMAND=1 — a deliberate, per-invocation drill
+         (sim_drill_5_contracts.py & co.), allowed;
+      6. everything else (scripts, harnesses, REPLs, agents) — refused.
+    The backend logs the verdict once at boot ("[SierraCmd] T-609 live-wire
+    writer: …"), so a refused backend is visible before the first entry.
+    """
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return False, "test process (PYTEST_CURRENT_TEST)"
+    if any(str(a).strip().endswith("backend.main:app") for a in sys.argv):
+        return True, "backend process (uvicorn backend.main:app)"
+    if "pytest" in sys.modules or "_pytest" in sys.modules:
+        return False, "pytest is loaded in this process"
+    if os.getenv("LIVE_WIRE_WRITER_GUARD_V1", "1").strip().lower() in ("0", "false", "no", "off"):
+        return True, "guard disabled (LIVE_WIRE_WRITER_GUARD_V1=0)"
+    if os.getenv("MEMS26_ALLOW_LIVE_COMMAND", "").strip() == "1":
+        return True, "explicit opt-in (MEMS26_ALLOW_LIVE_COMMAND=1)"
+    return False, "not the backend process (argv: %s)" % " ".join(map(str, sys.argv))[:160]
 
 
 _cmd_seq = 0

@@ -1452,6 +1452,17 @@ async def _startup():
             trading_gateway.enable_demo(2)   # S2 FiveMin patterns
             trading_gateway.enable_demo(4)   # S4 Woodies CCI
             _logger.info("[Main] Demo mode enabled: systems [2, 4]")
+        # T-609 (2026-10-20): the live wire is default-deny for every process but
+        # this one. Say so once at boot, loudly if this process were refused —
+        # a refused backend would otherwise discover it on its first entry.
+        try:
+            from backend.v9.services.sierra_command import live_wire_writer_status as _lw_status
+            _lw_ok, _lw_why = _lw_status()
+            (_logger.warning if _lw_ok else _logger.critical)(
+                "[SierraCmd] T-609 live-wire writer: %s — %s",
+                "ALLOWED" if _lw_ok else "REFUSED", _lw_why)
+        except Exception as _lw_err:
+            _logger.warning("[SierraCmd] T-609 live-wire writer status unavailable: %s", _lw_err)
         # P4 warm-start: restore demo_slot from open demo trade in DB
         trading_gateway.hydrate_demo_slot()
 

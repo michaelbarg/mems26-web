@@ -10,7 +10,22 @@ directory. It also sets a sentinel env var (MEMS26_TEST_MODE=1) that any
 code path can check to avoid touching production state.
 """
 import os
+import tempfile
+
 import pytest
+
+# T-609 (2026-10-20): this directory is NOT under tests/, so tests/conftest.py —
+# which moves MEMS26_SIGNALS_DIR off the live wire at import — never ran for a
+# `pytest backend/v9/tests/...` invocation. With `.env` sourced (it sets
+# MEMS26_SIGNALS_DIR=~/SierraChart_Data/v9_export) every command writer in these
+# tests pointed at the folder the Sierra DLL polls; only the PYTEST_CURRENT_TEST
+# lock in sierra_command stood between a test and a real order. Same floor as
+# tests/conftest.py, at module level because writers resolve paths at import.
+# Only when unset or live: a mixed run keeps tests/conftest.py's tmp dir.
+_LIVE_SIGNALS = os.path.realpath(os.path.expanduser("~/SierraChart_Data/v9_export"))
+_cur_signals = os.environ.get("MEMS26_SIGNALS_DIR", "")
+if not _cur_signals or os.path.realpath(os.path.expanduser(_cur_signals)) == _LIVE_SIGNALS:
+    os.environ["MEMS26_SIGNALS_DIR"] = tempfile.mkdtemp(prefix="mems26_v9tests_signals_")
 
 
 @pytest.fixture(autouse=True)
