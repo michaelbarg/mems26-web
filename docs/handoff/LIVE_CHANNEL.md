@@ -1,3 +1,106 @@
+🟢 **[cowork-dev · ריצה 343 · 19.10 17:04→17:1x IL · חובה-1 + חובה-3 ניטור-RTH · [[T-601]] נסגר-ותוקן ✅ · [[T-602]] נפתח · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
+
+**חובת-הזמן, קודם כל השאר.** `date ⇒ 2026-10-19 17:04:41 IDT (Mon)` ⇒ `16:30 ≤ 17:04 < 23:00` ⇒ **חובה-3 (ניטור-RTH)**; `17:04 > 16:10` ⇒ **אסור ריסטארט**, ואין שער — ריצה 340 ביצעה אותו והודעת-השער היחידה נמסרה (`PHONE_THREAD ⇒ cowork-dev 2026-10-19T12:49:04Z`) ⇒ GO/NO-GO שני היה הצפת-[[T-369]].
+
+**חובה-1 · אפס ממתינות בארבעה פוסקים ⇒ שתיקה מוחלטת בטלפון.**
+```raw
+GET /instruction/pending?key=…  ⇒ HTTP 200 · {"items":[]}
+GET /cmd/pending?key=…          ⇒ HTTP 200 · {"cmd":null}
+GET /chat?key=…                 ⇒ HTTP 200 · items=30     ← לא [] ⇒ חלון-התצוגה פתוח (מלכודת 32)
+PHONE_THREAD.jsonl              ⇒ 764 שורות · האחרונה cowork-dev 2026-10-19T12:49:04Z (הודעת-השער של 340)
+```
+הפרדיקט המנורמל (מלכודת 37 — `sender` עברי): `Counter(sender) על כל 764 ⇒ cowork 402 · מייקל 133 · cc 116 · cowork-dev 105 · supervisor 6`; **שורת-המייקל האחרונה היא `2026-10-07T10:50:03Z`** ואחריה 24 שורות-סוכן (`cc` באותה שנייה, `cowork-dev 11:11:10Z` מענה-ענייני) ⇒ **נענתה**. אפס שורת-מייקל חדשה, אפס `תיוג עסקה #` חדש ⇒ אפס (א)/(ב)/(ג)/(ד) ⇒ **אפס `phone_reply.py`**. הרישום הזה הוא השורה הזאת, לא הודעה.
+
+✅ **[[T-601]] נסגר — ולא כי תוקן, אלא כי הטענה שלו הופרכה: לא היו שורות פגומות.** ריצה 342 מצאה "שתי שורות-החלטה פגומות, `ts`/`entry`/`blocked_by`/`outcome` כולם `null`". **הפוסק שהפריך זאת הוא הדפסת-`schema`, והיא בדיוק מה שמלכודת 21 מורה לעשות:**
+```raw
+Counter(schema) של gateway_decisions.jsonl ⇒ {'(no schema key)': 13, 'candidate_ledger.v1': 7}
+
+שורת-"פגומה" במלואה, כפי שהיא בקובץ:
+{'schema':'candidate_ledger.v1', 'event_id':'8907f2e4…', 'candidate_id':'1406e0d0…', 'event_type':'DETECTED',
+ 'observed_at':'2026-10-19T13:40:12+00:00', 'signal_bar_ts':'2026-10-19T13:40:00+00:00',
+ 'system':4, 'pattern':'GHOST', 'family':'REVERSAL', 'direction':'SHORT', 'policy_id':'s4_live',
+ 'source':{'pid':2030,'machine_tag':'MacBarg.local','code_commit':'a3c66d1c…','mode':'demo'},
+ 'prices':{'entry':7739.0,'stop':7874.75}}
+והשנייה: event_type='EMIT_DECISION' · decision={'stage':'EMIT_DECISION','verdict':'ALLOW','blocked_by':None,'reason':None}
+```
+⇒ **אף שדה לא היה `null` — השדות פשוט אינם בסכמה הזאת:** הזמן הוא `observed_at`/`signal_bar_ts` ולא `ts` · המחיר `prices.entry` ולא `entry` · השער `decision.blocked_by` מקונן ולא עליון. **וגם פער-הספירה אינו פגם:** `jsonl 20 שורות` מול `buffer_len 11` — והפער הוא **בדיוק** שורות-הליגר (`13 החלטות + 7 ליגר = 20`; הקובץ גדל ל-20 בתוך הריצה מ-16, וה-buffer מ-11 ל-13) ⇒ **הקובץ נושא שני זרמים, ה-endpoint מחזיק אחד, והפער יגדל עם כל `DETECTED`.**
+
+🔧 **ומה שחשוב מהסגירה: התיקון שהפריט הציע היה הרסני.** T-601 כתב *"שורה בלי `ts` אינה החלטה — או לא לכתוב אותה, או לדלג עליה בקוראים"*. דילוג כזה היה **מוחק את חצי מודעות-המערכת** — `DETECTED`/`EMIT_DECISION` הם הציר שמודד "מה ראינו" מול "מה ירינו", ושני צירי-ציון-המודעות שיצאו `NOT-MEASURABLE` ב-16.10 הם בדיוק אלה. ⇒ **הלקח נכתב כמלכודת-קריאה ולא כתיקון-קוד:** קורא של `gateway_decisions.jsonl` מפצל לפי `schema` **לפני** שהוא נוגע בשדה; `r.get('ts') is None` הוא מבחן-סכמה, לא מבחן-תקינות. **אפס שינוי-קוד · אפס דגל.**
+
+🟠 **[[T-602]] נפתח — ובזה הפרסור-לפי-סכמה החזיר ממצא אמיתי שהפוסק השגוי הסתיר: סטופ-הייחוס של GHOST הוא רמה בת-5-ימים.** אותן רשומות-ליגר, עכשיו נקראות בשדות הנכונים:
+```raw
+prices של כל רשומות candidate_ledger.v1 של היום:
+  DETECTED  GHOST  SHORT  entry=7739.0   stop=7874.75  dist=135.75   ← מחוץ לטווח-היום
+  DETECTED  GHOST  SHORT  entry=7738.75  stop=7874.75  dist=136.00   ← מחוץ לטווח-היום
+  DETECTED  ZLR    LONG   entry=7744.0   stop=7733.25  dist=10.75    ← מהסשן
+  DETECTED  FAMIR  LONG   entry=7736.0   stop=7723.50  dist=12.50    ← מהסשן
+
+טווח-היום:  select min(low), max(high) … where ts::date=current_date  ⇒ 7677.5 / 7768.5
+            ⇒ 7874.75 הוא 106.25 נק' מעל גבוה-היום (125 נק' מעל גבוה-ה-RTH 7749.75)
+מאיפה הרמה: select … where high between 7874 and 7875.5  ⇒ 2026-10-14 15:15 | 15:10 | 15:05
+ובספרים, לאותם מועמדים בדיוק (entry זהה לטיק):
+  #3422 GHOST SHORT entry 7739.00  stop 7753.75  (14.75 נק')
+  #3425 GHOST SHORT entry 7744.00  stop 7753.75  ( 9.75 נק')
+  #3426 GHOST SHORT entry 7738.75  stop 7753.75  (15.00 נק')
+  ו-7753.75 הוא גבוה בר-10:45 של היום (השורה היחידה בטווח 7753–7754.5) ⇒ רמה מבנית מהסשן
+```
+⇒ **שני משטחים על אותו מועמד, פער 121.0 נק' על הסטופ** — ושלוש התבניות באותו קובץ ובאותן דקות מתחלקות נקי: ZLR ו-FAMIR מהסשן, GHOST לבדו בן-5-ימים. 🚫 **המנגנון אינו מיוחס (כלל 1):** לא נקרא מסלול-חישוב-הסטופ של GHOST ⇒ אין טענה אם זו רמה-מבנית שאינה מתרעננת, סנטינל, או ייחוס-אתמול קפוא; ו-13 שורות פיד-ההחלטות **אינן נושאות שדה-`stop` כלל** (`keys ⇒ blocked_by · confluence_tag · direction · entry · event_type · live_block_reason · live_blocked_by · mfe_track · outcome · pattern · reason · system · trade_id · tree_v3 · ts`) ⇒ אין משטח שלישי להכריע. 🟢 **אפס סיכון-מסחר:** שלושתן נחסמו `tree:location`, `fired=0`, הכל `mode=shadow`, הברוקר על אפס. 🔴 **אבל זה פער-נכונות:** הקובץ הוא קלט `day_review.py`/`review_report.py`/`context_radar.py`, וסטופ 135.75 נק' במצרף-R שעובר `min`/`max`/`sum` הוא מחלקת כלל-3 — **×9 מול הספרים, בדוח של 23:00 הערב.** **שכן אפשרי ולא-מיוחס:** [[T-590]] (ערך-האתמול הקפוא ב-`v9_tpo_sessions`) נוגע באותו אזור-ייחוס, ו-`zone=*(near_val)/*(mid_value)` נגזר ממנו — לא נבדק אם זה אותו שורש.
+
+🟢 **ניטור חובה-3 — שלושת הפוסקים, וכולם ירוקים.**
+```raw
+feed    select max(ts), now()-max(ts), count(*) filter (where ts::date=current_date) from v9_bars_5min_woodies
+         ⇒ 2026-10-19 17:05:00+03 | age 2m37s | 194 ברים היום   (פוסק-DB ולא mtime — T-430)
+backend curl /health ⇒ 200 · {"status":"ok","version":"v9.0.0"}
+        lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ PID 2030 · ps -o lstart ⇒ Sun Oct 18 09:40:38 · etime 01-07:25 · %cpu 10.8 · rss 112MB
+        [boot] logging OK level=INFO pid=2030 commit=a3c66d1c  ⇒ שכבת-INFO טעונה (ד0 עובר ⇒ ספירות-הלוג קבילות)
+TM      sierra_state ⇒ is_sim 1 · Sim1 · position_qty 0 · working_orders 0 · daily_total_qty_filled 0 · daily_pnl 0.0 · last_price 7733.5
+        mtime של v9_export ⇒ 17:07 (מאשר, לא מוכיח — מלכודת 22; הפוסק הוא max(ts) למעלה)
+```
+**ובעלות-הפוזיציה הוכרעה לפני אזעקה:** 11 עסקאות-היום כולן `mode=shadow` עם `sierra_bracket_id NULL` ⇒ **אין `order_id` באף צד** ⇒ אפס פוזיציה-יתומה, אפס אזעקה, אפס נגיעה.
+```raw
+#3420 S2 CEILING_FLIP_TOUCH2   LONG   7741.25  CLOSED T1_HIT    +13.75
+#3421 S2 CEILING_FLIP_TOUCH2   LONG   7742.75  CLOSED STOP_HIT  −23.75
+#3422 S4 GHOST                 SHORT  7739.00  CLOSED T1_HIT     +8.60
+#3423 S2 FAILED_BREAK_SHORT    SHORT  7741.25  CLOSED T1_HIT    +50.00
+#3424 S2 CEILING_FLIP_TOUCH2   LONG   7741.25  CLOSED STOP_HIT  −25.00
+#3425 S4 GHOST                 SHORT  7744.00  CLOSED T1_HIT     +8.60
+#3426 S4 GHOST                 SHORT  7738.75  CLOSED T1_HIT     +8.60
+#3427 S2 OPENING_PULLBACK_CONT SHORT  7738.25  FILLED
+#3428 S2 CEILING_FLIP_TOUCH2   LONG   7738.25  CLOSED STOP_HIT  −10.00
+#3429 S2 OPENING_DRIVE         SHORT  7737.25  FILLED
+#3430 S2 CEILING_FLIP_TOUCH2   LONG   7735.00  CLOSED STOP_HIT  −20.00
+⇒ 9 סגורות (5 WIN / 4 LOSS, Σ +10.80$ נייר) · 2 ממולאות · shadow_ledger היום 22 · decision_vectors היום 1,360
+```
+⇒ **אפס עסקת-לייב** (`fired=0` · `MEMS26_MODE=demo`) ⇒ **אפס מקרה (ב)**; אפס חריגה שדורשת פסיקה ⇒ **אפס מקרה (ג)**. **שקט מוחלט בטלפון, כפי שההזמנה מורה לריצת-ניטור תקינה.**
+
+✅ **ושתי השאלות שריצה 342 השאירה לי בשמן — שתיהן נענו, והתשובה השנייה היא הכי מרגיעה היום.** **(1) `opening_type` יצא מ-UNKNOWN**, ושורות-ה-`reason` מתעדות את המעבר לשנייה:
+```raw
+13:40:12Z  GHOST SHORT 7739.00  → tree:location  [hour=*(16)/opening_type=*(UNKNOWN)/phase=A/day_type=Normal/zone=*(near_val)]
+13:43:31Z  GHOST SHORT 7744.00  → tree:location  [hour=*(16)/opening_type=OPEN_AUCTION_IN/phase=A/day_type=Normal/zone=*(mid_value)]
+13:45:04Z  GHOST SHORT 7738.75  → tree:location  [hour=*(16)/opening_type=OPEN_REJECTION_REVERSE/phase=B/day_type=Normal/zone=*(near_val)]
+v9_day_type_state ⇒ #13256 13:40:12 UNKNOWN · NA   · conf 0    · ib_width UNKNOWN · stage A3
+                    #13257 14:00:02 Normal  · OPEN_AUCTION_IN · conf 0.35 · ib_width EXTREME · behavior DEVELOPING · lock PENDING · stage A3
+```
+**(2) ו-`fired` נשאר 0 מסיבה דוקטרינרית, לא מגייט-תקוע:** `reason = "responsive day: LONG only near/below VAL, SHORT only near/above VAH (T-319b)"` ו-`tree_v3.leaf = SKIP` ⇒ שורט בתוך-הערך (`near_val`/`mid_value`) נחסם **לפי הכלל**, ולא בגלל `opening_type=UNKNOWN` כפי שההשערה של 342 הציעה — התווית התקדמה, והחסימה נשארה כי המיקום לא השתנה. ⇒ `by_gate {tree:location 7 · tree:bias 2 · tree:stand_down 2}`.
+
+🪤 **ומדידה רביעית שאינה פריט — היא מאשרת את ריצה 342 מזווית שנייה, ונפתרה מעצמה בפתיחה:** `ERROR היום ⇒ 19,743 · CRITICAL ⇒ 0`, וכולן מחלקה אחת.
+```raw
+ERROR לפי שעה:  00→15 ⇒ ~1,190 לשעה (1332·1186·1188·1181·1192·1194·1195·1191·1187·1186·1181·1189·1191·1187·1186·1188)
+                16 ⇒ 589   ·   17 ⇒ 0
+האחרונה:       2026-10-19 16:29:59 [ERROR] [backend.v9.api.v9.bars] TS-OFFSET-GATE REJECTED batch … live-but-mislabeled TS
+ERROR שאינו TS-OFFSET-GATE היום ⇒ אפס מחלקות
+WARNING ב-17:xx ⇒ bar_router dispatch 56-61ms (×18) · bars/footprint T-521 skipped 30/30 (×8) · fill_poller EXIT_TRACK_ACTIVITY_V1 (×2)   ⇒ שגרה מוכרת ([[T-521]], מלכודת 35)
+```
+⇒ זרם-הדחיות של הגלובקס **נעלם בשנייה שבה RTH נפתח** — אותה מדידה שריצה 342 עשתה, עכשיו עם פילוח-השעות שמראה שזה לא נדם בהדרגה אלא נחתך. 🚫 מנגנון התיוג-השגוי **אינו מיוחס**.
+
+**שערים (דיווח-בלבד, בתוך-RTH):** `ruled_contracts()` · `flag_guard` · `fire_drill` שייכים לחלון-השער ולא הורצו מחדש תוך-RTH ⇒ **נרשמים כלא-נמדדו, לא כ"לא-השתנו"** (כלל 1). [[T-34]] מרג'ין: החשבון `Sim1` ושדות-החשבון בלתי-קריאים (מלכודת 36) ⇒ **אפס השוואה ל-$1,595, אפס מקרה (ג)**. גודל-החוזה לא נגזר מדגל בריצה הזאת ולא נגענו בו.
+
+**אפס נגיעה:** ריסטארט · דגל · `.env` · דגלי-גודל · `RISK_*` · פוזיציות · פקודות · op=EXIT/FLATTEN · קוד-ייצור · DLL · סיירה · עץ · כתיבת-DB · הרנס · `--apply` · `phone_reply.py`. **שורת-STATUS_BOARD אחת** (T-601 נסגר ⇒ `task_log_guard` דורש אותה).
+
+**הצעד-הבא לריצה 344:** (1) **הפוסק של T-602, והוא זול:** לכל רשומת-`candidate_ledger.v1` חדשה — `prices.stop` בתוך `[min(low),max(high)]` של היום? ולפי תבנית; אם ZLR/FAMIR נשארים בטווח ו-GHOST יוצא, החשד מצטמצם למסלול-GHOST ולא לכותב. (2) ‏`fired` עדיין 0 — לבדוק אם `lock_state` עובר מ-`PENDING` בנעילת-ה-IB (17:30 IL) ואם `zone` יוצא מ-`near_val`, כי אלה שני הצירים ש-T-319b חוסם עליהם. (3) **הערב ב-23:00 (חובה-4), בסדר הזה:** לספור את רשומות-ה-stop-מחוץ-לטווח **לפני** `day_review.py`, לבדוק אם הוא מצרף את `prices.stop` בכלל, ורק אז `broker_truth.py` → `day_review.py` → `review_report.py` → `gen_tree_board.py` → `gen_phone_pages.py` → `LESSONS_TIMELINE.json`. וגם: ב-`~/SierraChart_Data/v9_archive` אין תיקיית-יום אחרי `2026-10-09` ⇒ **ארכיון-ה-EOD לא הפיק תוצר 9 ימים**, והמבחן הוא הערב.
+
+---
+
 🟢 **[cowork-dev · ריצה 342 · 19.10 16:34→16:45 IL · חובה-1 + חובה-3 ניטור-RTH · [[T-600]] נסגר ✅ · [[T-601]] נפתח · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה]**
 
 **חובת-הזמן, קודם כל השאר.** `date ⇒ 2026-10-19 16:34:43 IDT (Mon)` ⇒ `16:30 ≤ 16:34 < 23:00` ⇒ **חובה-3 (ניטור-RTH)**; ובמקביל `16:34 > 16:10` ⇒ **אסור ריסטארט**, ואין שער — ריצה 340 ביצעה אותו והודעת-השער היחידה נמסרה (`PHONE_THREAD ⇒ cowork-dev 2026-10-19T12:49:04Z`) ⇒ GO/NO-GO שני היה הצפת-[[T-369]].
