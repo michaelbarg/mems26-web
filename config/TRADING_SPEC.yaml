@@ -15,9 +15,9 @@ rules:
     enforced: "compute_stop_v2 (atr_stop.py BAND_MIN_ATR_MULT) + validate_fire"
     verified: "fire_drill שלב B · s6_eod: שיפוט-סטופ ×ATR · test_a7_stop_floor_alignment"
   STOP-2:
-    rule: "אחרי T1 הסטופ עולה ל-BE+טיק ונשלח לסיירה בפועל (לא רק DB); עתיד: טרייל-למבנה (STOP-STRUCT)"
-    source: "מייקל 06-xx (smart-BE) + 07-07 (records≠reality) + 07-08 (מבנה — בתור)"
-    enforced: "_apply_smart_be_after_t1 + _emit_modify_stop (אזהרה רועשת בכשל)"
+    rule: "אחרי T1 הסטופ עולה ל-BE+טיק ונשלח לסיירה בפועל (לא רק DB) — אלא אם (מערכת 6, BE_AFTER_T1_RULE_V1): העסקה עם ההרחבה של S1 ביום Trend/Variation ויש מבנה (עוגן-התבנית / קצה-IB / קצה-VA) בין הסטופ המקורי לכניסה ⇒ הסטופ מוחזק טיק מעבר למבנה (quality.be_rule_hold) — זו אינה חריגה; עתיד: טרייל-למבנה (STOP-STRUCT)"
+    source: "מייקל 06-xx (smart-BE) + 07-07 (records≠reality) + 07-08 (מבנה — בתור) + 19.10 ('אחרי מימוש t1 נזיז את המחיר למחיר הכניסה אלא אם — מנגנון מתי עדיף להזיז לפני או עדיף לא להזיז = מערכת 6')"
+    enforced: "_apply_smart_be_after_t1 + _be_rule_decide + _emit_modify_stop (אזהרה רועשת בכשל); System 6 stop_not_at_be מכבד be_rule_hold"
     verified: "דריל 07-09: T1 fill→MODIFY_STOP_OK אוטומטי (error=2) + ידני (error=3) — הוכח; structure-trail תוקן (h/l) ופעיל"
   STOP-3:
     rule: "המערכת לעולם לא מייצרת ירי שהוולידטור שלה יהרוג (אין סטופ-נולד-מת)"
