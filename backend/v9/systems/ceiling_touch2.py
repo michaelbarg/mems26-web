@@ -172,6 +172,18 @@ CEILING_TOUCH2 = "CEILING_TOUCH2_REJECT"
 FLOOR_TOUCH2 = "FLOOR_TOUCH2_REJECT"
 
 
+def touch2_edge_tol_cap_k() -> float:
+    """T-617: TOUCH2_EDGE_TOL_MAX_ATR as a float k ≥ 0 (unset / blank / bad / ≤0 ⇒ 0 = no cap)."""
+    raw = os.getenv("TOUCH2_EDGE_TOL_MAX_ATR", "").strip()
+    if not raw:
+        return 0.0
+    try:
+        k = float(raw)
+    except ValueError:
+        return 0.0
+    return k if k > 0 else 0.0
+
+
 def detect_touch2(
     bars: Sequence[Dict[str, Any]],
     levels: Optional[Dict[str, Any]],
@@ -224,6 +236,14 @@ def detect_touch2(
     _edge_tol_atr = conf.get("edge_tol_atr", 0.15) * atr_f
     _edge_tol_ib = 0.15 * _edge_w if _edge_w and _edge_w > 0 else 0
     edge_tol = max(_edge_tol_atr, _edge_tol_ib)
+    # T-617 (Michael 20.10, #3574/#3582): on a wide IB the 0.15×IB term balloons — 20.10's IB was
+    # 75.75 pt ⇒ edge_tol 11.4 pt, so double bottoms 8–9.5 pt ABOVE the VAL (situation
+    # zone=mid_value, the dead middle of the afternoon balance) passed as "touches at the VAL"
+    # and fired LONG twice (−165$, −90$; two more were cancelled). Optional cap in ATR units:
+    # TOUCH2_EDGE_TOL_MAX_ATR=k ⇒ edge_tol ≤ max(edge_tol_atr×ATR, k×ATR). Unset/0 ⇒ byte-identical.
+    _cap_k = touch2_edge_tol_cap_k()
+    if _cap_k > 0:
+        edge_tol = min(edge_tol, max(_edge_tol_atr, _cap_k * atr_f))
     fired = already_fired or set()
 
     last_bar = bars[-1]

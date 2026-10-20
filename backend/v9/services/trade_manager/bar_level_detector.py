@@ -22,6 +22,28 @@ from backend.v9.services.trade_manager.state_machine import TradeState
 logger = logging.getLogger(__name__)
 
 
+def t617_t0_hit(trade_id, read) -> bool:
+    """T-617 (Michael 20.10, #3582): True when this trade's T0 leg filled.
+
+    T-368 S6_STUCK_TO_BE_V1 (Michael 16.09, ON) moves a stuck trade's stop to BE only when
+    t0_hit is True — but the System 6 call site never passed it, so the ruled action could
+    never fire (#3582: stuck_trade ALERT 21:35 with T0 banked at 20:17, no BE move, stopped
+    −90$ at 21:42). There is no t0_hit column; the only record of the fill is the
+    management-log row T0_HIT written by TradeManager. `read(sql, params)` → rows.
+    Fail-safe: any error / no id ⇒ False (= the behaviour before the fix).
+    """
+    if not trade_id:
+        return False
+    try:
+        rows = read(
+            "SELECT 1 AS x FROM v9_trade_management_log "
+            "WHERE trade_id = :tid AND action = 'T0_HIT' LIMIT 1",
+            {"tid": int(trade_id)})
+        return bool(rows)
+    except Exception:
+        return False
+
+
 class BarLevelDetector:
     """Per-bar hit detection for active trades.
 
@@ -252,6 +274,14 @@ class BarLevelDetector:
             except Exception:
                 pass
 
+            # T-617: t0_hit for T-368 (stuck + T0 filled ⇒ BE) — see t617_t0_hit
+            _s6_t0_hit = False
+            try:
+                if not _s6_t1_hit:
+                    _s6_t0_hit = t617_t0_hit(getattr(trade, "id", None), _s6_read)
+            except Exception:
+                _s6_t0_hit = False
+
             # inv-11: runner_reversal — ≥2 consecutive adverse closes after T1
             try:
                 if _s6_t1_hit:
@@ -322,6 +352,7 @@ class BarLevelDetector:
                 progress_pts=_s6_progress,
                 runner_reversal=_s6_runner_rev,
                 cvd_reversal=_s6_cvd_rev,
+                t0_hit=_s6_t0_hit,
             )
         except Exception as _s6_err:  # never let supervision break trade management
             logger.warning("[BarLevelDetector] System6 scan error (fail-safe skip): %s", _s6_err)
