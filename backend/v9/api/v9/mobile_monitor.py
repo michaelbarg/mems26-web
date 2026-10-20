@@ -1087,7 +1087,7 @@ async function load(){
    const _MH={demo:'דמו',live:'לייב'};
    const _ttm=document.getElementById('ttmeta'); if(_ttm) _ttm.textContent=(TS.date||'')+((TS.modes&&TS.modes.length)?' · '+TS.modes.map(function(x){return _MH[x]||x;}).join('/'):'');
    let _h = TT.length
-     ? '<span style="font-size:16px;font-weight:800">'+_m(TS.usd)+'</span> · '+TS.n+' עסקאות ('+(TS.wins||0)+'W/'+(TS.losses||0)+'L'+(TS.open?' · '+TS.open+' פתוחות':'')+(TS.unpriced?' · '+TS.unpriced+' לא-מתומחרות':'')+')'
+     ? '<span style="font-size:16px;font-weight:800">'+_m(TS.usd)+'</span> · '+TS.n+' עסקאות · <span class="num">'+(TS.wins||0)+'W/'+(TS.losses||0)+'L</span>'+(TS.open?' · '+TS.open+' פתוחות':'')+(TS.unpriced?' · '+TS.unpriced+' לא-מתומחרות':'')
      : '<span class="dim">אין עסקאות היום עדיין</span>';
    if(TS.sierra_daily!=null) _h+='<div class="dim">לפי סיירה ('+(TS.account||'')+') היום: '+_m(TS.sierra_daily)+'</div>';
    if(TS.day_page && location.hostname.indexOf('onrender.com')>=0) _h+='<div style="margin-top:4px"><a href="/doc/days/'+TS.date+'.html'+(location.search||'')+'" style="color:#79c0ff">📄 עמוד-היום המלא (נרות + הסבר)</a></div>';
@@ -1096,8 +1096,8 @@ async function load(){
      const side = t.direction==='LONG'?'<span class="green">לונג</span>':'<span class="red">שורט</span>';
      const legs = ['t1','t2','t3'].filter(function(k){return t[k];}).map(function(k){return k.toUpperCase();}).join('+');
      const px = t.exit_price!=null ? (t.entry_price+' → '+t.exit_price) : (t.state==='CLOSED' ? (t.entry_price+' → ?') : (t.entry_price+' · פתוחה'));
-     return '<div style="border-top:1px solid #2a3140;padding-top:5px;margin-top:5px"><div class="row"><span>'+(t.t_in||'')+(t.t_out?'–'+t.t_out:'')+' · '+side+' '+(t.contracts||'?')+' ח׳ · '+(t.pattern||('S'+t.sys))+'</span><span>'+(t.state==='CLOSED'?_m(t.usd):'<span style="color:#58a6ff">פתוחה</span>')+'</span></div>'
-      + '<div class="dim">#'+t.id+' '+(_MH[t.mode]||t.mode)+' · <span class="num">'+px+'</span> · '+(t.exit_reason||t.state||'')+(legs?' · '+legs:'')+(t.r!=null?' · '+t.r+'R':'')+(t.basis==='books'?' · לפי הספרים':'')+'</div></div>';
+     return '<div style="border-top:1px solid #2a3140;padding-top:5px;margin-top:5px"><div class="row" style="gap:8px"><span><span class="num">'+(t.t_in||'')+(t.t_out?'–'+t.t_out:'')+'</span> · '+side+' '+(t.contracts||'?')+' ח׳ · '+(t.pattern||('S'+t.sys))+'</span><span style="white-space:nowrap">'+(t.state==='CLOSED'?_m(t.usd):'<span style="color:#58a6ff">פתוחה</span>')+'</span></div>'
+      + '<div class="dim">#'+t.id+' '+(_MH[t.mode]||t.mode)+' · <span class="num">'+px+'</span> · '+(t.exit_reason||t.state||'')+(legs?' · '+legs:'')+(t.r!=null?' · <span class="num">'+t.r+'R</span>':'')+(t.basis==='books'?' · לפי הספרים':'')+'</div></div>';
    }).join('');
   }catch(e){ const _x=document.getElementById('ttsum'); if(_x) _x.innerHTML='<span class="dim">סיכום לא-זמין</span>'; }
   // S6 activity panel
