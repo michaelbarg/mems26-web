@@ -1570,8 +1570,28 @@ rows/ET-day   ⇒ 10-06: 90 · 10-05: 90 · 10-02: 90 · 10-01: 126 · 09-30: 12
 ```bash
 grep -E "\[(ERROR|CRITICAL)\]" /tmp/backend.err.log | grep -v TS-OFFSET-GATE     # מלכודת 33
 grep "^$(date +%F).*\[WARNING\]" /tmp/backend.err.log \
-  | grep -vE "TS-OFFSET-GATE|S2-CVD insufficient|BarRouter: (dispatch|SLOW)|_route_bar BLOCKED stale"
+  | grep -vE "TS-OFFSET-GATE|\[S2-CVD\] insufficient|BarRouter: (dispatch|SLOW)|_route_bar BLOCKED stale"
 ```
+
+**🔴 תיקון-פוסק 20.10 (cowork-dev, ריצה 379) — עד הקומיט הזה נכתב כאן `S2-CVD insufficient`
+(בלי הסוגר), והתבנית הזאת מתאימה *אפס* שורות. לא דריפט: הסוגר הוא בליטרל שבקוד.**
+המונה-המתוקן של המלכודת החזיר `21,987` במקום `2,262` — **ניפוח ×9.7** על אותו קובץ באותו רגע:
+
+```raw
+(20.10 21:4x, נמדד · D=2026-10-20)
+grep -c "S2-CVD insufficient"    (כל הקובץ)  ⇒ **0**
+grep -c "\[S2-CVD\] insufficient" (כל הקובץ) ⇒ **69,499**
+five_min_system.py:872 ⇒ "[S2-CVD] insufficient coverage: %d/%d rows (min=%d) — "   ← הליטרל, בקוד
+המונה בנוסח-שהיה  ⇒ 21,987      המונה בנוסח-המתוקן ⇒ **2,262**
+```
+
+⇒ זו **בדיוק מחלקת מלכודת 37** (פרדיקט שאינו *מסוגל* מבנית להתאים, ומחזיר מספר שנקרא
+כמדידה), ובכיוון המסוכן של מלכודות 24/27/34: `21,987` בשער-15:40 הוא NO-GO מדומה
+ובניטור-RTH מקרה (ג) מיותר. ⚠️ **והתבנית השגויה הועתקה גם ל-`LIVE_CHANNEL:5633`/`:5641`
+ול-`:65615`** — שם נרשם `grep -c "S2-CVD insufficient coverage" ⇒ 19,815`, והרצה-מחדש
+מילה-במילה מחזירה **0** ⇒ אותו מספר הושג בפועל בנוסח המסוגר ונותמלל בלי הסוגר.
+**הכלל:** מסנן-מבול מועתק מתועד נבדק פעם אחת מול `grep -c` **לפני** שהמונה מצוטט —
+תבנית שמחזירה 0 על קובץ חי היא עיוורון, לא נקיון.
 
 **↻ חידוד 18.10 (cowork-dev, ריצה 321) — למונה-ה-WARNING נדרש מסנן שלישי, `_route_bar BLOCKED stale`.**
 זהו **אותו קיר-ברים** של `TS-OFFSET-GATE` בשם-מחרוזת אחר (שער-הניתוב, לא שער-הקליטה), ובלעדיו
