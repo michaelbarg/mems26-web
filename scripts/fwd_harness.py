@@ -661,6 +661,7 @@ def _route_setup_capture(setup, system_id):
         "direction": setup.get("direction"), "entry": setup.get("entry_price"),
         "stop": setup.get("stop"), "t1": setup.get("t1"), "t2": setup.get("t2"), "t3": setup.get("t3"),
         "shadow_only": bool((setup.get("metadata") or {}).get("shadow_only")),
+        "structural_anchor": (setup.get("metadata") or {}).get("structural_anchor"),   # T-615 BE rule candidate
         "dp_ot_seen": None, "dp_intent": None, "exec": {},
     }
     RECORDS.append(rec)
@@ -739,6 +740,18 @@ _cls_prev_neutral = {"value": None}
 _stab_on = os.environ.get("DAYTYPE_RECLASS_STABILITY_V1", "0").lower() in ("1", "true", "yes")
 _S1_NEW_CLS = os.environ.get("S1_ENGINE_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes")
 S1_LOG = []
+# T-615 (20.10, DAYMAP base-20.10): harness mirror of T-595 DAYTYPE_MACHINE_CLOSED_BARS_V1 (main.py:271-272, 361-366,
+# 803-807). With the flag ON the machine judges the CLOSED bar (the previous ts's last push), handed over when the next
+# ts arrives — the SAME ClosedBarFeed/run_machine objects main.py uses; repeat pushes go to note_push. The acceptance
+# demotion reads the judged bar (`_dem_in`; None = nothing closed on this push → the counter is not touched, as live).
+# Flag OFF (or the module missing) ⇒ the machine is fed exactly as before — byte-identical replay.
+try:
+    from backend.v9.systems.day_type import closed_bar_feed as _T595
+    _T595_FEED = _T595.ClosedBarFeed()
+except Exception as _t595_err:  # pragma: no cover — the module ships with the repo
+    _T595, _T595_FEED = None, None
+    LOG.warning("T-595 closed-bar feed unavailable in the harness (%s) — first-push feed", _t595_err)
+_T595_STATS = {"on": False, "judged": 0, "idle": 0, "notes": 0}
 
 
 def _machine_opening():
@@ -790,6 +803,9 @@ def _load_cls_ctx():
 def s1_on_bar(bar: dict):
     bar_ts = bar.get("ts")
     if bar_ts is not None and bar_ts == _prev_bar_ts["value"]:
+        if _T595 is not None and _T595.enabled():
+            _T595_FEED.note_push(bar)          # T-615 mirror of main.py:271-272 (never raises)
+            _T595_STATS["notes"] += 1
         if os.environ.get("S1_BAR_REFRESH_V1", "0").lower() in ("1", "true", "yes") and _cls_rth_bars:
             _cls_rth_bars[-1] = {"o": float(bar["open"]), "h": float(bar["high"]), "l": float(bar["low"]),
                                  "c": float(bar["close"]), "v": float(bar.get("volume") or 0),
@@ -810,7 +826,13 @@ def s1_on_bar(bar: dict):
                   ib_high=ib_h, ib_low=ib_l)
     maybe_seed_ib_from_tpo(machine=dtm, session_min=_session_min, tpo_ib_locked=tpo.ib_locked,
                            tpo_ib_high=ib_h, tpo_ib_low=ib_l, logger=LOG)
-    state = dtm.process_bar(bi)
+    if _T595 is not None and _T595.enabled():      # T-615 mirror of main.py:361-366
+        state, _dem_in = _T595.run_machine(dtm, _T595_FEED, bar, bi)
+        _T595_STATS["on"] = True
+        _T595_STATS["judged" if _dem_in is not None else "idle"] += 1
+    else:
+        state = dtm.process_bar(bi)
+        _dem_in = bi
     if _is_rth:
         _cls_rth_bars.append({"o": bi.open, "h": bi.high, "l": bi.low, "c": bi.close, "v": bi.volume,
                               "cum": bar.get("cumulative_delta")})
@@ -932,10 +954,10 @@ def s1_on_bar(bar: dict):
             _cur_str = _cur_dt.value if hasattr(_cur_dt, "value") else str(_cur_dt or "")
             if _cur_str.startswith("Trend"):
                 _ib_h2, _ib_l2 = getattr(dtm, "ib_high", None), getattr(dtm, "ib_low", None)
-                if _ib_h2 is not None and _ib_l2 is not None:
+                if _ib_h2 is not None and _ib_l2 is not None and _dem_in is not None:   # T-615: main.py:803
                     _ib_w = float(_ib_h2) - float(_ib_l2)
                     _tol = min(max(0.25 * _ib_w, 1.0), 4.0) if _ib_w > 0 else 2.0
-                    _inside = (bi.high < float(_ib_h2) - _tol and bi.low > float(_ib_l2) + _tol)
+                    _inside = (_dem_in.high < float(_ib_h2) - _tol and _dem_in.low > float(_ib_l2) + _tol)
                     if not hasattr(APP.state, "_dem_inside_count"):
                         APP.state._dem_inside_count = 0
                     APP.state._dem_inside_count = APP.state._dem_inside_count + 1 if _inside else 0
@@ -1000,6 +1022,13 @@ def _open_trade(rec, cmd, bar_index):
           "fired_il": rec["il"], "entry_bar_index": bar_index, "filled": False, "fill_price": None,
           "legs": legs, "be_moved": False, "ambiguous_bars": 0,
           "pnl_usd": None, "outcome": None, "exit_il": None}
+    # T-615: what TradeManager._be_rule_decide reads off the trade — day_type_at_entry (live: the label the gateway
+    # stamped at the fire = trade_context.get_live_day_type) and the pattern's metadata.structural_anchor.
+    try:
+        tr["day_type_at_entry"] = _tc_mod.get_live_day_type()
+    except Exception:
+        tr["day_type_at_entry"] = None
+    tr["structural_anchor"] = rec.get("structural_anchor")
     OPEN_TRADES.append(tr)
     rec["harness_trade"] = tr["trade_id"]
 
@@ -1034,6 +1063,63 @@ _SLOT_RELEASE_STATS = {"checked": 0, "released": 0}
 # "after T1", which a 1-contract ladder never reaches before the exit). Unset/0 ⇒ byte-identical replay.
 _BE_MFE_R = float(os.getenv("BE_AFTER_MFE_R_V1", "0") or 0)
 _BE_MFE_STATS = {"checked": 0, "moved": 0}
+# T-615 (20.10, DAYMAP base-20.10): harness mirror of BE_AFTER_T1_RULE_V1 (Michael 19.10 — System 6 "unless"). At the
+# T1 fill the live TradeManager asks _be_rule_decide whether to hold the stop at the structure behind the entry instead
+# of breakeven. Same decision, same pure geometry (_be_rule_pick_hold), the replayed inputs: the accepted-extension
+# direction from trade_context.get_live_expansion() (S1_DAY_DIRECTION_V1 resolves the harness's fake backend.main, where
+# the replayed classifier writes last_cls_result), the trade's day_type_at_entry, the pattern's structural_anchor, the
+# IB edge and the VA edge as observable at that instant (fake_load_sierra_tpo: first-12-bar IB, v9_tpo_history VA —
+# the live code reads tpo.json first and v9_tpo_sessions as fallback). Flag OFF ⇒ "after T1 → BE" exactly as before.
+_BE_RULE_STATS = {"checked": 0, "held": 0, "be": 0, "reasons": {}}
+
+
+def _be_rule_hold(tr):
+    """BE_AFTER_T1_RULE_V1 decision at the T1 fill → the hold pick ({"hold": True, "stop", ...}) or None (→ BE)."""
+    from backend.v9.services.trade_manager import manager as _tm
+    if not _tm._be_after_t1_rule_enabled():
+        return None
+    _BE_RULE_STATS["checked"] += 1
+    out = None
+    try:
+        d = tr["direction"]
+        exp = _tc_mod.get_live_expansion()
+        ext = _tm._be_rule_norm_dir(exp.get("dir") if isinstance(exp, dict) else exp)
+        day = tr.get("day_type_at_entry")
+        if ext != d:
+            out = {"hold": False, "reason": "not-with-extension (live=%s)" % (ext or "none")}
+        elif not _tm._be_rule_day_ok(day):
+            out = {"hold": False, "reason": "day-type (%s)" % (day or "unknown")}
+        else:
+            _long = d == "LONG"
+            snap = fake_load_sierra_tpo()
+            cands = []
+            sa = _tm._be_rule_num(tr.get("structural_anchor"))
+            if sa is not None:
+                cands.append(("pattern", sa))
+            if snap.get("ib_found"):
+                ib = _tm._be_rule_num(snap.get("ib_low" if _long else "ib_high"))
+                if ib is not None:
+                    cands.append(("ib_low" if _long else "ib_high", ib))
+            if snap.get("session_va_ok"):
+                va = _tm._be_rule_num(snap.get("val" if _long else "vah"))
+                if va is not None:
+                    cands.append(("val" if _long else "vah", va))
+            entry = tr["fill_price"] if tr.get("fill_price") is not None else tr["entry"]
+            pick = _tm._be_rule_pick_hold(d, entry, tr.get("stop_initial"), tr.get("stop"), 0.25, cands)
+            out = dict(pick)
+            if pick.get("hold"):
+                out["reason"] = "structure-hold (with-extension day)"
+        out.update(ext=ext, day=day)
+    except Exception as exc:
+        out = {"hold": False, "reason": "error: %s" % exc}
+    tr["be_rule"] = out
+    key = (out.get("reason") or "?").split(" (")[0]
+    _BE_RULE_STATS["reasons"][key] = _BE_RULE_STATS["reasons"].get(key, 0) + 1
+    if out.get("hold"):
+        _BE_RULE_STATS["held"] += 1
+        return out
+    _BE_RULE_STATS["be"] += 1
+    return None
 
 
 def _se_apply_tighten(tr, bar_index, ns, why):
@@ -1173,7 +1259,8 @@ def _settle_bar(b, bar_index):
                 tr["ambiguous_bars"] += 1
                 leg.update(exit="STOP(ambiguous)", exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif stop_hit:
-                leg.update(exit=("TURN_BE" if leg.get("turn_tgt") else "STOP" if not tr["be_moved"] else "BE"),
+                leg.update(exit=("TURN_BE" if leg.get("turn_tgt") else "STOP" if not tr["be_moved"]
+                                 else "HOLD_STOP" if tr.get("be_hold") else "BE"),
                            exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif tgt_hit:
                 leg.update(exit=("TURN_R" if leg.get("turn_tgt") else f"T{leg['leg']}"), exit_price=tgt,
@@ -1181,8 +1268,14 @@ def _settle_bar(b, bar_index):
                 if leg["leg"] == tr.get("t1_leg", 1):
                     t1_filled = True
         # protective BE after T1 fills (ruling 07-14 "אחרי-T1→BE"; System6 protective AUTO = MODIFY_STOP→BE)
+        # T-615: BE_AFTER_T1_RULE_V1 ON ⇒ the live "unless" — hold the stop at the structure behind the entry when the
+        # trade runs WITH the accepted extension on a trend / variation day (see _be_rule_hold); else BE as before.
         if t1_filled and not tr["be_moved"]:
-            tr["stop"] = e; tr["be_moved"] = True
+            _hold = _be_rule_hold(tr)
+            if _hold:
+                tr["stop"] = float(_hold["stop"]); tr["be_moved"] = True; tr["be_hold"] = True
+            else:
+                tr["stop"] = e; tr["be_moved"] = True
         if all(l["exit"] for l in tr["legs"]):
             _close_trade(tr, il)
             continue
@@ -1419,6 +1512,9 @@ for i, b in enumerate(BARS):
             fms.buffer_size = 0
             # Clear _cls_rth_bars but keep it → will be rehydrated
             _cls_rth_bars.clear()
+            # T-615: a cold restart starts a fresh ClosedBarFeed (main.py builds one per process)
+            if _T595_FEED is not None:
+                _T595_FEED.reset()
             # Clear antiflap
             try:
                 _tc_mod._ANTIFLAP_STATE["stable"] = None
@@ -1477,7 +1573,11 @@ out = {
         "OPENING_ENTRY_V1", "OPENING_FIRE_V1", "OPENING_DIR_FUSION_V1", "OPENING_FIRST_TRADE_STRICT_V1",
         "ZLR_SHADOW_V1", "T3_REQUIRED_V1", "OPENING_LADDER_V1", "RISK_BUDGET_SIZING_V1", "RISK_MIN_CONTRACTS",
         "FIXED_CONTRACTS_5", "S1_ENGINE_NEW_CLASSIFIER", "S1_BAR_REFRESH_V1", "DELTA_FEATURES_V1",
-        "COLD_START_GUARD_V1", "OPENING_ANCHOR_ET_V1", "MEMS26_CLOCK_MODE")},
+        "COLD_START_GUARD_V1", "OPENING_ANCHOR_ET_V1", "MEMS26_CLOCK_MODE",
+        # T-615: the 19–20.10 demo rulings that define base-20.10
+        "CLS_RESULT_SESSION_GUARD_V1", "TPO_LETTER_BY_TS_V1", "OPENING_LOCK_PRIOR_REFS_V1", "S1_PROVISIONAL_PUBLISH_V1",
+        "DAYTYPE_MACHINE_CLOSED_BARS_V1", "DAYTYPE_HISTORY_LIVE_LOCK_V1", "BE_AFTER_T1_RULE_V1", "LADDER_221_V1",
+        "S1_DAY_DIRECTION_V1")},
     "bars": {"total": len(BARS), "rth": len(RTH), "first_ts": BARS[0]["ts"].isoformat(), "last_ts": BARS[-1]["ts"].isoformat()},
     "pd_ctx": {k: PD_CTX.get(k) for k in ("pd_high", "pd_low", "pd_close", "pd_context_status")},
     "prev_tpo": {k: PREV_TPO.get(k) for k in ("found", "poc", "vah", "val")},
@@ -1486,6 +1586,8 @@ out = {
     "se_tighten": dict(_SE_STATS, on=_SE_TIGHTEN, room_atr=_SE_ROOM),   # T-566 (on=False ⇒ not in play)
     "slot_release": dict(_SLOT_RELEASE_STATS, bars=_SLOT_RELEASE_N, mfe_r=_SLOT_RELEASE_R),   # T-567c (bars=0 ⇒ off)
     "be_after_mfe": dict(_BE_MFE_STATS, r=_BE_MFE_R),   # T-598 (r=0 ⇒ off)
+    "t595": dict(_T595_STATS),                          # T-615 (on=False ⇒ first-push feed, as before)
+    "be_rule": dict(_BE_RULE_STATS),                    # T-615 (checked=0 ⇒ flag off or no T1 fill)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
