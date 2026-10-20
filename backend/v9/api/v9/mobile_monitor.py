@@ -141,6 +141,86 @@ def _build_narrator_he(out: dict) -> str:
     return "\n".join(lines)
 
 
+_DAY_PAGES = Path(__file__).resolve().parents[4] / "render_mobile_relay" / "static" / "docs" / "days"
+
+
+def _trades_today(sierra: dict) -> "tuple[list, dict]":
+    """20.10 (מייקל: "תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות").
+
+    Every demo/live trade whose entry is today (IL date), oldest first, for the phone's
+    daily-summary card. $ per trade: Sierra's price when the trade was reconciled
+    (pnl_sierra), else the books (pnl_usd, basis "books"); a close nobody priced stays
+    unpriced (basis "unpriced") and is left out of the Σ — never synthesized (Rule 1).
+    The account's own day number from Sierra (sierra_state.daily_pnl) rides along so the
+    phone shows the broker's figure next to ours. Shadow rows are excluded."""
+    from backend.v9.db.read import read_all
+    rows = read_all("""
+        SELECT id, mode, state, direction, firing_system AS sys,
+               COALESCE(pattern_id_at_entry, quality->>'classification') AS pattern,
+               to_char(entry_ts AT TIME ZONE 'Asia/Jerusalem', 'HH24:MI') AS t_in,
+               to_char(exit_ts AT TIME ZONE 'Asia/Jerusalem', 'HH24:MI') AS t_out,
+               entry_price, exit_price, exit_reason, outcome, pnl_usd, pnl_sierra, pnl_r,
+               day_type_at_entry AS day_type, quality->>'contracts' AS contracts,
+               (t1_hit_ts IS NOT NULL) AS t1, (t2_hit_ts IS NOT NULL) AS t2,
+               (t3_hit_ts IS NOT NULL) AS t3
+        FROM v9_trades
+        WHERE mode IN ('demo', 'live')
+          AND (entry_ts AT TIME ZONE 'Asia/Jerusalem')::date =
+              (now() AT TIME ZONE 'Asia/Jerusalem')::date
+        ORDER BY entry_ts ASC, id ASC
+        LIMIT 40""", {}) or []
+    out = []
+    usd_sum, wins, losses, flat, unpriced, open_n = 0.0, 0, 0, 0, 0, 0
+    for r in rows:
+        r = dict(r)
+        if r.get("pnl_sierra") is not None:
+            usd, basis = float(r["pnl_sierra"]), "sierra"
+        elif r.get("pnl_usd") is not None and r.get("state") == "CLOSED":
+            usd, basis = float(r["pnl_usd"]), "books"
+        else:
+            usd, basis = None, ("open" if r.get("state") != "CLOSED" else "unpriced")
+        if r.get("state") != "CLOSED":
+            open_n += 1
+        elif usd is None:
+            unpriced += 1
+        else:
+            usd_sum += usd
+            wins += usd > 0
+            losses += usd < 0
+            flat += usd == 0
+        try:
+            n_c = int(r.get("contracts")) if r.get("contracts") not in (None, "") else None
+        except (TypeError, ValueError):
+            n_c = None
+        out.append({
+            "id": r["id"], "mode": r.get("mode"), "state": r.get("state"),
+            "direction": r.get("direction"), "sys": r.get("sys"), "pattern": r.get("pattern"),
+            "t_in": r.get("t_in"), "t_out": r.get("t_out"),
+            "entry_price": r.get("entry_price"), "exit_price": r.get("exit_price"),
+            "exit_reason": r.get("exit_reason"), "outcome": r.get("outcome"),
+            "r": round(float(r["pnl_r"]), 2) if r.get("pnl_r") is not None else None,
+            "day_type": r.get("day_type"), "contracts": n_c,
+            "t1": bool(r.get("t1")), "t2": bool(r.get("t2")), "t3": bool(r.get("t3")),
+            "usd": round(usd, 2) if usd is not None else None, "basis": basis,
+        })
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _zi
+    today = _dt.now(_zi("Asia/Jerusalem")).date().isoformat()
+    try:
+        sierra_daily = float(sierra.get("daily_pnl")) if sierra.get("daily_pnl") is not None else None
+    except (TypeError, ValueError):
+        sierra_daily = None
+    summary = {
+        "date": today, "n": len(out), "closed": len(out) - open_n, "open": open_n,
+        "wins": int(wins), "losses": int(losses), "flat": int(flat), "unpriced": unpriced,
+        "usd": round(usd_sum, 2),
+        "modes": sorted({t["mode"] for t in out if t.get("mode")}),
+        "sierra_daily": sierra_daily, "account": sierra.get("trade_account"),
+        "day_page": (_DAY_PAGES / ("%s.html" % today)).exists(),
+    }
+    return out, summary
+
+
 @router.get("/data")
 async def mobile_data(request: Request):
     if not _key_ok(request):
@@ -344,6 +424,12 @@ async def mobile_data(request: Request):
         out["today"] = dict(day[0]) if day else {}
     except Exception as e:
         out["db_err"] = str(e)[:80]
+    # 20.10 (מייקל: "תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות") — the day's
+    # trades for the phone, one row each (demo + live, IL date, oldest first).
+    try:
+        out["trades_today"], out["trades_today_sum"] = _trades_today(out.get("sierra") or {})
+    except Exception as _tt_err:
+        out["trades_today"], out["trades_today_sum"] = [], {"error": str(_tt_err)[:80]}
     # 2026-08-19: S6 activity — last 10 management events (BE moves, trails,
     # target drops, invariant-driven corrections) for the pocket panel.
     try:
@@ -805,6 +891,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
 <div class="card"><div class="row"><span class="dim">יומי (סגורות)</span><span class="dim" id="daymeta"></span></div>
 <div class="big" id="daypnl">—</div><div class="dim">עצירה ב-−$<span id="cap"></span></div></div>
+<div class="card" style="border:1px solid #8957e5"><div class="row"><span class="dim">📒 סיכום יומי — העסקאות של היום</span><span id="ttmeta" class="dim"></span></div>
+<div id="ttsum" style="font-size:13px;line-height:1.6">—</div>
+<div id="ttlist" style="font-size:12.5px;line-height:1.55"></div></div>
 <div class="card"><div class="row"><span class="dim">חשבון</span><span id="acctmeta" class="dim"></span></div>
 <div class="row"><span class="dim">שווי חשבון</span><span id="acct_val" style="font-weight:800;font-size:18px">—</span></div>
 <div class="row"><span class="dim">רווח/הפסד יומי</span><span id="acct_day">—</span></div>
@@ -991,6 +1080,26 @@ async function load(){
     (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
+  // 20.10 (מייקל: "תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות") — כל עסקת דמו/לייב של היום
+  try{
+   const TT=d.trades_today||[], TS=d.trades_today_sum||{};
+   const _m=function(v){ return v==null? '<span class="dim">לא-מתומחר</span>' : '<span class="num '+(v>=0?'green':'red')+'">'+(v>=0?'+':'')+Number(v).toFixed(2)+'$</span>'; };
+   const _MH={demo:'דמו',live:'לייב'};
+   const _ttm=document.getElementById('ttmeta'); if(_ttm) _ttm.textContent=(TS.date||'')+((TS.modes&&TS.modes.length)?' · '+TS.modes.map(function(x){return _MH[x]||x;}).join('/'):'');
+   let _h = TT.length
+     ? '<span style="font-size:16px;font-weight:800">'+_m(TS.usd)+'</span> · '+TS.n+' עסקאות ('+(TS.wins||0)+'W/'+(TS.losses||0)+'L'+(TS.open?' · '+TS.open+' פתוחות':'')+(TS.unpriced?' · '+TS.unpriced+' לא-מתומחרות':'')+')'
+     : '<span class="dim">אין עסקאות היום עדיין</span>';
+   if(TS.sierra_daily!=null) _h+='<div class="dim">לפי סיירה ('+(TS.account||'')+') היום: '+_m(TS.sierra_daily)+'</div>';
+   if(TS.day_page && location.hostname.indexOf('onrender.com')>=0) _h+='<div style="margin-top:4px"><a href="/doc/days/'+TS.date+'.html'+(location.search||'')+'" style="color:#79c0ff">📄 עמוד-היום המלא (נרות + הסבר)</a></div>';
+   const _ts=document.getElementById('ttsum'); if(_ts) _ts.innerHTML=_h;
+   const _tl=document.getElementById('ttlist'); if(_tl) _tl.innerHTML = TT.slice().reverse().map(function(t){
+     const side = t.direction==='LONG'?'<span class="green">לונג</span>':'<span class="red">שורט</span>';
+     const legs = ['t1','t2','t3'].filter(function(k){return t[k];}).map(function(k){return k.toUpperCase();}).join('+');
+     const px = t.exit_price!=null ? (t.entry_price+' → '+t.exit_price) : (t.state==='CLOSED' ? (t.entry_price+' → ?') : (t.entry_price+' · פתוחה'));
+     return '<div style="border-top:1px solid #2a3140;padding-top:5px;margin-top:5px"><div class="row"><span>'+(t.t_in||'')+(t.t_out?'–'+t.t_out:'')+' · '+side+' '+(t.contracts||'?')+' ח׳ · '+(t.pattern||('S'+t.sys))+'</span><span>'+(t.state==='CLOSED'?_m(t.usd):'<span style="color:#58a6ff">פתוחה</span>')+'</span></div>'
+      + '<div class="dim">#'+t.id+' '+(_MH[t.mode]||t.mode)+' · <span class="num">'+px+'</span> · '+(t.exit_reason||t.state||'')+(legs?' · '+legs:'')+(t.r!=null?' · '+t.r+'R':'')+(t.basis==='books'?' · לפי הספרים':'')+'</div></div>';
+   }).join('');
+  }catch(e){ const _x=document.getElementById('ttsum'); if(_x) _x.innerHTML='<span class="dim">סיכום לא-זמין</span>'; }
   // S6 activity panel
   const S6_HE = {SMART_BE:'סטופ→BE',DROP_TARGET:'יעד הוסר',TARGET_REALISM:'יעד תוקן',TRAIL:'טרייל',STRUCT_TRAIL:'טרייל-מבני',STOP_MOVE:'סטופ הוזז',STOP_AFTER_T2:'סטופ-T2'};
   const s6 = d.s6_activity||[];

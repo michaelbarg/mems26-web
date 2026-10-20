@@ -8,7 +8,9 @@ Read-only on the databases. Writes three files only:
   docs/journal/FIX_LEDGER.md                      — the living list of recommended fixes (upsert by key; status column is
                                                     edited by hand: proposed → measuring → ruled → live → closed)
   render_mobile_relay/static/docs/journal.html    — the phone page (last entries + the open fixes)
-and prints a last line `PHONE: …` (≤ 480 chars) for the scheduled agent to send with scripts/phone_reply.py.
+and prints a last line `PHONE: …` (≤ 500 chars) — the ONE daily trades summary the scheduled agent sends (Michael 20.10:
+"תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות"; AGENT_BRIEF §6's single day-summary slot, so the 14.09 phone rule
+still holds: no other periodic message). The measurement detail stays in the journal page (journal.html), not the phone.
 
 Per session it records: live trades at BROKER price (pnl_sierra; books only when the broker price is missing, flagged),
 Σ of the session / last 10 sessions / since 07.07; the opening — what S1 locked (backend log + decision vectors) vs the
@@ -168,6 +170,26 @@ def trades(day_from, day_to):
              f"and (coalesce(entry_ts,created_at) at time zone 'Asia/Jerusalem')::date between '{day_from}' and '{day_to}' order by 2")
 
 
+def demo_trades(day):
+    """20.10: every demo trade of the session (all states) — $ = Sierra when reconciled, else books; unpriced stays None."""
+    return q("select id, to_char(coalesce(entry_ts,created_at) at time zone 'Asia/Jerusalem','HH24:MI'), firing_system, direction, "
+             "coalesce(pattern_id_at_entry, quality->>'pattern_name', quality->>'classification', '?'), coalesce(quality->>'contracts','?'), "
+             "coalesce(exit_reason, state), coalesce(pnl_sierra::text, pnl_usd::text, ''), (pnl_sierra is not null), state from v9_trades "
+             f"where mode='demo' and (coalesce(entry_ts,created_at) at time zone 'Asia/Jerusalem')::date = '{day}' order by 2, 1")
+
+
+def sierra_day():
+    """(account, daily_pnl) from sierra_state.json when it was written today, else (None, None)."""
+    try:
+        p = os.path.expanduser('~/SierraChart_Data/v9_export/sierra_state.json')
+        st = json.load(open(p))
+        if dt.datetime.fromtimestamp(os.path.getmtime(p), IL).date().isoformat() != D:
+            return None, None
+        return st.get('trade_account'), (float(st['daily_pnl']) if st.get('daily_pnl') is not None else None)
+    except Exception:
+        return None, None
+
+
 def decisions():
     tot = q(f"select count(*), count(*) filter (where blocked_by is null) from v9_decision_vectors where kind='DECISION' and (ts at time zone 'Asia/Jerusalem')::date='{D}'")
     blk = q(f"select blocked_by, count(*) from v9_decision_vectors where kind='DECISION' and (ts at time zone 'Asia/Jerusalem')::date='{D}' and blocked_by is not null group by 1 order by 2 desc limit 6")
@@ -246,6 +268,11 @@ def main():
     tr_10 = trades(d10_from, D); tr_all = trades("2026-07-01", D)
     s_day = sum(float(t[8]) for t in tr_day); s_10 = sum(float(t[8]) for t in tr_10); s_all = sum(float(t[8]) for t in tr_all)
     unver_day = sum(1 for t in tr_day if t[9] != "t")
+    dm = demo_trades(D)
+    dm_px = [float(t[7]) for t in dm if t[7] not in (None, '') and t[9] == 'CLOSED']
+    dm_sum = sum(dm_px); dm_w = sum(1 for v in dm_px if v > 0); dm_l = sum(1 for v in dm_px if v < 0)
+    dm_unpriced = sum(1 for t in dm if t[9] == 'CLOSED' and t[7] in (None, '')); dm_open = sum(1 for t in dm if t[9] != 'CLOSED')
+    s_acct, s_daily = sierra_day()
     (n_dec, n_pass), blocks = decisions()
     hl = health()
     # per-pattern over the last 10 sessions
@@ -286,6 +313,14 @@ def main():
         L.append("\n| שעה | מערכת | תבנית | כיוון | סוג-יום בכניסה | חוזים | יציאה | $ | ברוקר |\n|---|---|---|---|---|---|---|---|---|")
         for t in tr_day:
             L.append(f"| {t[1][11:]} | S{t[2]} | {t[4]} | {t[3]} | {t[5]} | {t[6]} | {t[7]} | {float(t[8]):+.2f} | {'✓' if t[9]=='t' else '✗ ספרים'} |")
+    if dm:
+        L.append(f"**דמו היום:** {len(dm)} עסקאות · {dm_w}W/{dm_l}L · Σ **{dm_sum:+.2f}$** (ספרים; Sierra כשתומחר)"
+                 + (f" · {dm_unpriced} לא-מתומחרות" if dm_unpriced else "") + (f" · {dm_open} פתוחות" if dm_open else "")
+                 + (f" · לפי סיירה ({s_acct}) {s_daily:+.2f}$" if s_daily is not None else ""))
+        L.append("\n| שעה | מערכת | תבנית | כיוון | חוזים | יציאה | $ | מקור |\n|---|---|---|---|---|---|---|---|")
+        for t in dm:
+            L.append(f"| {t[1]} | S{t[2]} | {t[4]} | {t[3]} | {t[5]} | {t[6]} | {(format(float(t[7]), '+.2f') if t[7] not in (None, '') else '—')} | "
+                     + ("✓ סיירה" if t[8] == 't' else ("ספרים" if t[7] not in (None, '') else "לא-מתומחר")) + " |")
     L.append(f"\n**פתיחה:** מערכת **{sys_ot}**" + (f" (נעילה {lock['t']} {lock['how']}, dir {lock['dir']}, {negs} ביטולים)" if lock else " (אין שורת-נעילה בלוג; לפי " + ("וקטורים" if vec else "EOD") + ")")
              + f" · ברים **{ref_ot}** — {ref_note}; פתיחה {o} {where}" + (f" (אתמול H/L {prev['high']}/{prev['low']}, VAH/VAL/POC {prev['vah']}/{prev['val']}/{prev['poc']})" if prev else "")
              + f"; 30 דק׳ H/L {h6}/{l6}, נטו {c6 - o:+.2f} · {'✓ תואם' if sys_ot == ref_ot else '✗ לא תואם'}")
@@ -302,8 +337,20 @@ def main():
         L.append("— אין המלצה אוטומטית היום.")
     L.append("\n**שיקול-דעת (הסוכן/מייקל):** _—_\n")
     entry = "\n".join(L) + "\n"
-    phone = (f"יומן {D}: לייב {len(tr_day)} עסקאות Σ {s_day:+.0f}$ (10 סשנים {s_10:+.0f}$) · פתיחה מערכת {sys_ot} / ברים {ref_ot} {'✓' if sys_ot == ref_ot else '✗'} · "
-             f"סוג-יום EOD {sys_dt_eod} / ברים {ref_dt} · החלטות {n_dec}, עברו {n_pass} · המלצות: " + ("; ".join(k for k, _, _ in recs) or "אין"))[:480]
+    _base = (os.getenv('RENDER_MOBILE_URL') or 'https://mems26-mobile.onrender.com').rstrip('/')
+    _head = (f"סיכום יומי {D}: " + (f"דמו {len(dm)} עסקאות {dm_w}W/{dm_l}L Σ {dm_sum:+.2f}$" if dm else "דמו 0 עסקאות")
+             + (f" ({dm_unpriced} לא-מתומחרות)" if dm_unpriced else "")
+             + (f" · סיירה {s_acct} {s_daily:+.2f}$" if s_daily is not None else "")
+             + f" · לייב {len(tr_day)} Σ {s_day:+.2f}$")
+    _rows = [f"{t[1]} {'לונג' if t[3] == 'LONG' else 'שורט'} {t[4]} {t[5]}ח׳ " + (f"{float(t[7]):+.0f}$" if t[7] not in (None, '') else "?")
+             for t in dm] + [f"{t[1][11:]} לייב {t[4]} {float(t[8]):+.0f}$" for t in tr_day]
+    _tail = f" · עמוד-היום: {_base}/doc/days/{D}.html"
+    phone = _head
+    for _r in _rows:
+        if len(phone) + len(_r) + 3 + len(_tail) > 500:
+            phone += " …"; break
+        phone += (" — " if phone == _head else "; ") + _r
+    phone = (phone + _tail)[:500]
     if DRY:
         print(entry); print("PHONE:", phone); return 0
     os.makedirs(f"{REPO}/docs/journal", exist_ok=True)

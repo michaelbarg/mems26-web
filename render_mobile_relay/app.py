@@ -643,6 +643,9 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="dim">עסקאות פעילות</div><div id="active">—</div></div>
 <div class="card"><div class="row"><span class="dim">יומי (סגורות)</span><span class="dim" id="daymeta"></span></div>
 <div class="big num" id="daypnl">—</div><div class="dim">תקרת-הפסד לעצירת-יום: <span class="num" id="cap">—</span></div></div>
+<div class="card" style="border:1px solid #8957e5"><div class="row"><span class="dim">📒 סיכום יומי — העסקאות של היום</span><span id="ttmeta" class="dim"></span></div>
+<div id="ttsum" style="font-size:13px;line-height:1.6">—</div>
+<div id="ttlist" style="font-size:12.5px;line-height:1.55"></div></div>
 <div class="card"><div class="row"><span class="dim">גרף הסשן</span><span class="dim" id="chmeta"></span></div>
 <div id="chart" style="margin-top:6px"></div>
 <div class="dim" style="font-size:10.5px;margin-top:4px">מחיר <span style="color:#58a6ff">━</span> · רווח-סגורות <span style="color:#3fb950">━</span> · נצבר במק — מתאפס רק בהפעלת-הממסר</div></div>
@@ -959,6 +962,26 @@ async function load(){
     (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
    document.getElementById('drmeta').textContent = dr.date||'';
   } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
+  // 20.10 (מייקל: "תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות") — כל עסקת דמו/לייב של היום
+  try{
+   const TT=d.trades_today||[], TS=d.trades_today_sum||{};
+   const _m=function(v){ return v==null? '<span class="dim">לא-מתומחר</span>' : '<span class="num '+(v>=0?'green':'red')+'">'+(v>=0?'+':'')+Number(v).toFixed(2)+'$</span>'; };
+   const _MH={demo:'דמו',live:'לייב'};
+   const _ttm=document.getElementById('ttmeta'); if(_ttm) _ttm.textContent=(TS.date||'')+((TS.modes&&TS.modes.length)?' · '+TS.modes.map(function(x){return _MH[x]||x;}).join('/'):'');
+   let _h = TT.length
+     ? '<span style="font-size:16px;font-weight:800">'+_m(TS.usd)+'</span> · '+TS.n+' עסקאות ('+(TS.wins||0)+'W/'+(TS.losses||0)+'L'+(TS.open?' · '+TS.open+' פתוחות':'')+(TS.unpriced?' · '+TS.unpriced+' לא-מתומחרות':'')+')'
+     : '<span class="dim">אין עסקאות היום עדיין</span>';
+   if(TS.sierra_daily!=null) _h+='<div class="dim">לפי סיירה ('+(TS.account||'')+') היום: '+_m(TS.sierra_daily)+'</div>';
+   if(TS.day_page && location.hostname.indexOf('onrender.com')>=0) _h+='<div style="margin-top:4px"><a href="/doc/days/'+TS.date+'.html'+(location.search||'')+'" style="color:#79c0ff">📄 עמוד-היום המלא (נרות + הסבר)</a></div>';
+   const _ts=document.getElementById('ttsum'); if(_ts) _ts.innerHTML=_h;
+   const _tl=document.getElementById('ttlist'); if(_tl) _tl.innerHTML = TT.slice().reverse().map(function(t){
+     const side = t.direction==='LONG'?'<span class="green">לונג</span>':'<span class="red">שורט</span>';
+     const legs = ['t1','t2','t3'].filter(function(k){return t[k];}).map(function(k){return k.toUpperCase();}).join('+');
+     const px = t.exit_price!=null ? (t.entry_price+' → '+t.exit_price) : (t.state==='CLOSED' ? (t.entry_price+' → ?') : (t.entry_price+' · פתוחה'));
+     return '<div style="border-top:1px solid #2a3140;padding-top:5px;margin-top:5px"><div class="row"><span>'+(t.t_in||'')+(t.t_out?'–'+t.t_out:'')+' · '+side+' '+(t.contracts||'?')+' ח׳ · '+(t.pattern||('S'+t.sys))+'</span><span>'+(t.state==='CLOSED'?_m(t.usd):'<span style="color:#58a6ff">פתוחה</span>')+'</span></div>'
+      + '<div class="dim">#'+t.id+' '+(_MH[t.mode]||t.mode)+' · <span class="num">'+px+'</span> · '+(t.exit_reason||t.state||'')+(legs?' · '+legs:'')+(t.r!=null?' · '+t.r+'R':'')+(t.basis==='books'?' · לפי הספרים':'')+'</div></div>';
+   }).join('');
+  }catch(e){ const _x=document.getElementById('ttsum'); if(_x) _x.innerHTML='<span class="dim">סיכום לא-זמין</span>'; }
   // S6 activity panel
   const S6_HE = {SMART_BE:'סטופ→BE',DROP_TARGET:'יעד הוסר',TARGET_REALISM:'יעד תוקן',TRAIL:'טרייל',STRUCT_TRAIL:'טרייל-מבני',STOP_MOVE:'סטופ הוזז',STOP_AFTER_T2:'סטופ-T2'};
   const s6 = d.s6_activity||[];
