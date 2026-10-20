@@ -2043,3 +2043,57 @@ git status --porcelain | grep -v '^??'             # ומי הם, בשמות
 ואם הניסוח בערוץ אינו חד ("16 שינויים + untracked"), הריצה הבאה מחויבת לפרק
 בעצמה ולא להסיק מהפרש-המספרים. זהה במחלקה למלכודת 11 (שורות מול בייטים)
 ולמלכודת 33 (ERROR מסונן מול לא-מסונן).
+
+
+---
+
+### מלכודת 41 · המרת-ה-ET של §2 נכונה ל-`v9_bars_5min_woodies` ושוגה ב-**+7 שעות** על `v9_day_type_state` — כי שם העמודה `timestamp without time zone` (20.10, ריצה 369)
+
+**המדידה שהולידה את הכלל** — אותה שורה, שלוש קריאות:
+```raw
+SELECT id, ts AS raw_naive,
+       (ts AT TIME ZONE 'America/New_York')                  AS wrong_direct,
+       (ts AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York') AS correct_et
+FROM v9_day_type_state ORDER BY id DESC LIMIT 1;
+  ⇒ 13295 | 2026-10-20 13:35:03 | 2026-10-20 **20:35:03**+03 | 2026-10-20 **09:35:03**
+```
+```raw
+SELECT table_name, column_name, data_type FROM information_schema.columns WHERE column_name='ts';
+  ⇒ v9_bars_5min_woodies  | ts | **timestamp with time zone**      ← §2 נכון עליה
+  ⇒ v9_day_type_state     | ts | **timestamp without time zone**   ← §2 שוגה עליה ב-+7ש
+```
+העמודה נאיבית-**UTC**. `AT TIME ZONE 'America/New_York'` על עמודה נאיבית אינו
+"המר ל-ET" אלא **"פרש את המספר הזה כשעון-ניו-יורק"** ⇒ 13:35 נקרא כ-13:35 ET,
+מוחזר כ-17:35Z, ומוצג בסשן-ירושלים כ-20:35. השגיאה היא `+7` (EDT) ולא `+3`.
+
+**למה זו מלכודת ולא טריוויה:** היא הופכת את המסקנה על מנוע-סוג-היום **לַהֶפֶך**
+שלה, בשני כיוונים בבת-אחת:
+```raw
+תחת הפרדיקט השוגה (‏ET=+7):   שורות 00:00-03:05 UTC נופלות על 10-20 כ-"07:00-10:05 ET"
+                              ⇒ נקרא: "היום מסווג Variation / OPEN_REJECTION_REVERSE / LOCKED_LOW_CONF"
+תחת הפרדיקט הנכון:            אותן שורות הן **19.10 בערב ET** (גלובקס), ומצב **היום** הוא
+                              A1/A2 · UNKNOWN · NA · PENDING  ⇒ ההפך הגמור
+```
+כלומר הפרדיקט השוגה קורא את תווית-**אתמול** כתווית-היום ומדווח "המנגנון מסווג",
+בעוד המצב האמיתי הוא `UNKNOWN` ו-`tree:stand_down` על כל מועמד. זו בדיוק המחלקה
+של `CURRENT_DATE` השקרי (§3.3) — רק שכאן הקלקול אינו בתאריך אלא ב**סוג-העמודה**,
+והפרדיקט שמייצר אותו הוא **המתכון הרשמי של §2** שהועתק מטבלה לטבלה.
+
+**בן-משפחה שלישי, ושלושתם בלתי-מובחנים בלי `information_schema`:**
+`מלכודת 19` = עמודה נאיבית + סשן-ירושלים ⇒ **גיל** מנופח ב-`+180` דק' ·
+`§מ-34ב` = **שתי** המרות רצופות על `timestamptz` ⇒ יום-ET מנופח ·
+`מלכודת 41` = המרה **אחת** על נאיבית ⇒ יום-ET מוזז ב-`+7`ש.
+
+**הפוסק הקביל — קודם סוג-העמודה, אחר-כך ההמרה:**
+```bash
+PSQL=/Applications/Postgres.app/Contents/Versions/18/bin/psql; DB=postgresql://localhost/mems26
+# (1) תמיד: מה הסוג?
+$PSQL $DB -At -c "SELECT data_type FROM information_schema.columns
+  WHERE table_name='<טבלה>' AND column_name='ts';"
+# (2a) timestamptz        ⇒ המרה אחת:   ts AT TIME ZONE 'America/New_York'
+# (2b) timestamp (נאיבי)  ⇒ שתיים:      ts AT TIME ZONE 'UTC' AT TIME ZONE 'America/New_York'
+```
+**הכלל הכללי:** מתכון-שאילתה ב-§2 כרוך לטבלה שעליה אומת, לא לשדה בשם `ts`.
+לפני כל `AT TIME ZONE` על טבלה שלא נמדדה בריצה הזאת — לקרוא את `data_type`.
+ובמיוחד: `v9_day_type_state` נכתבת **על שינוי-תווית ולא על כל בר**, ולכן גם
+הפער-בין-שורות אינו מדד-חיוּת (ראו ההסבר של `DAYTYPE_WATCHDOG` עצמו).
