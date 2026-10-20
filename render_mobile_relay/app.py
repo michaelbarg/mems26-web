@@ -973,6 +973,7 @@ async function load(){
      : '<span class="dim">אין עסקאות היום עדיין</span>';
    if(TS.sierra_daily!=null) _h+='<div class="dim">לפי סיירה ('+(TS.account||'')+') היום: '+_m(TS.sierra_daily)+'</div>';
    if(TS.day_page && location.hostname.indexOf('onrender.com')>=0) _h+='<div style="margin-top:4px"><a href="/doc/days/'+TS.date+'.html'+(location.search||'')+'" style="color:#79c0ff">📄 עמוד-היום המלא (נרות + הסבר)</a></div>';
+   if(location.hostname.indexOf('onrender.com')>=0) _h+='<div style="margin-top:4px"><a href="/doc/daymap/index.html'+(location.search||'')+'" style="color:#79c0ff">🗺️ פירוק-יום — כל הימים</a> · <a href="https://claude.ai/artifact/JXVqYyDSJXwTBT1pquk3mW" target="_blank" rel="noopener" style="color:#d2a8ff">🃏 החלקת עסקאות</a></div>';
    const _ts=document.getElementById('ttsum'); if(_ts) _ts.innerHTML=_h;
    const _tl=document.getElementById('ttlist'); if(_tl) _tl.innerHTML = TT.slice().reverse().map(function(t){
      const side = t.direction==='LONG'?'<span class="green">לונג</span>':'<span class="red">שורט</span>';

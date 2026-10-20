@@ -1,0 +1,73 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>פירוק-יום · כל הימים</title><style>
+:root{color-scheme:light dark;--bg:#f6f8fa;--card:#ffffff;--card2:#f0f3f6;--line:#d0d7de;--fg:#1f2328;--dim:#59636e;--acc:#0969da;--up:#1a7f37;--dn:#cf222e;--am:#9a6700;
+--ft:#0969da;--fv:#bf8700;--fn:#1a7f37;--fu:#8250df;--fx:#6e7781;--fq:#d0d7de;--hdr:#ffffffee}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0e14;--card:#161b22;--card2:#0d1117;--line:#30363d;--fg:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--up:#3fb950;--dn:#f85149;--am:#d29922;
+--ft:#388bfd;--fv:#d29922;--fn:#3fb950;--fu:#a371f7;--fx:#8b949e;--fq:#30363d;--hdr:#0d1117ee}}
+*{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;padding:0 0 40px}
+a{color:var(--acc);text-decoration:none}
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;background:var(--hdr);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top))}
+.hdr .t{flex:1;min-width:0;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:12px;color:var(--dim);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:10px;font-size:18px;min-width:40px;height:38px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
+.ib.dis{opacity:.35;pointer-events:none}
+.wrap{padding:10px 12px 8px;max-width:760px;margin:0 auto}
+h2{font-size:15px;margin:18px 0 8px;display:flex;align-items:center;gap:8px}
+h2 .dim{font-weight:400}
+.dim{color:var(--dim);font-size:13px}
+.num{direction:ltr;unicode-bidi:embed;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px}
+.chip b{font-weight:700}
+.vsw{display:flex;gap:6px;margin:10px 0}.vsw button{flex:1;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:9px 4px;font-size:15px}
+.vsw button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:var(--card2);margin:2px 0 2px 4px;white-space:nowrap}
+.pill.ok{border-color:var(--up);color:var(--up)}.pill.bad{border-color:var(--dn);color:var(--dn)}.pill.warn{border-color:var(--am);color:var(--am)}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+.notes{margin:0;padding:0 18px 0 0}.notes li{margin:4px 0;font-size:14px}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.kv.two{grid-template-columns:repeat(2,1fr)}
+.kv div{background:var(--card2);border-radius:8px;padding:5px 7px;min-width:0}
+.kv .l{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kv .v{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0}
+.ph{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 5px;min-width:0;cursor:pointer;text-align:center}
+.ph.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.ph .p{font-weight:800;font-size:15px}.ph .m{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .f{font-size:12px;font-weight:600}
+.phd{display:none}.phd.on{display:block}
+.bar{position:relative;height:22px;border-radius:6px;overflow:hidden;background:var(--card2);border:1px solid var(--line);direction:ltr}
+.bar span{position:absolute;top:0;bottom:0}
+.bar i{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--fg);opacity:.85}
+.ft{background:var(--ft)}.fv{background:var(--fv)}.fn{background:var(--fn)}.fu{background:var(--fu)}.fx{background:var(--fx)}.fq{background:var(--fq)}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:4px;vertical-align:middle}
+.axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);direction:ltr;margin-top:2px}
+table.plain{border-collapse:collapse;width:100%;font-size:13px}
+table.plain th,table.plain td{padding:6px 5px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+table.plain th{color:var(--dim);font-weight:600}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tr{border-right:5px solid var(--dim)}.tr.win{border-right-color:var(--up)}.tr.loss{border-right-color:var(--dn)}.tr.be{border-right-color:var(--am)}
+.row{display:flex;align-items:center;gap:8px;cursor:pointer}.row .g{flex:1;min-width:0}
+.row .hl{font-weight:600;overflow-wrap:break-word}
+.chev{color:var(--dim);font-size:18px;transition:transform .15s}.card.open .chev{transform:rotate(-90deg)}
+.body{display:none;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.card.open .body{display:block}
+.tl{position:relative;padding-right:18px;margin:6px 0}.tl:before{content:"";position:absolute;right:6px;top:2px;bottom:2px;width:2px;background:var(--line)}
+.tl .ev{position:relative;margin:0 0 8px;font-size:14px}.tl .ev:before{content:"";position:absolute;right:-16px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--acc)}
+.wi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}
+.wi div{background:var(--card2);border-radius:8px;padding:6px;text-align:center}.wi .best{outline:2px solid var(--up)}
+.wi .l{font-size:11px;color:var(--dim)}.wi .v{font-size:15px;font-weight:700}
+.empty{color:var(--dim);text-align:center;padding:14px 0;font-size:14px}
+.sec{margin-top:6px}
+</style></head><body><div class="hdr"><a class="ib" href="../index.html" title="בית">🏠</a><div class="t">פירוק-יום · כל הימים<div class="sub">בסיס-20.10 · 6 ימים · ל = לייב/דמו · ר = ריפליי</div></div></div><div class="wrap"><div class="card dim">לייב/דמו: פתיחה 75% (3/4) · סוג-יום 75% (3/4) · זמן-לתווית חציון 115 דק׳ | ריפליי: פתיחה 33% (1/3) · סוג-יום 67% (2/3) · זמן-לתווית חציון 45 דק׳ · עודכן 2026-10-20 18:19</div><div class="card scroll"><table class="plain"><tr><th>תאריך</th><th></th><th>אמת (פתיחה · יום)</th><th>מערכת</th><th>✓</th><th>ירי</th><th>נק׳ / $</th></tr><tr><td class='num'><a href='2026-10-20.html'>10-20</a> <span class='pill warn'>חלקי</span></td><td>ל</td><td>Rejection-Reverse · ללא-מגמה</td><td>Rejection-Reverse · וריאציה</td><td><span class="pill ok">✓</span><span class="pill">?</span></td><td>3</td><td><span class="num pos">+7.3</span> <span class="num pos">+56$</span></td></tr><tr><td class='num'><a href='2026-10-19.html'>10-19</a></td><td>ל</td><td>Rejection-Reverse · וריאציה</td><td>Rejection-Reverse · וריאציה</td><td><span class="pill ok">✓</span><span class="pill ok">✓</span></td><td>4</td><td><span class="num neg">-16.5</span> <span class="num neg">-82$</span></td></tr><tr><td class='num'><a href='2026-10-16.html'>10-16</a></td><td>—</td><td>Drive · וריאציה</td><td>—</td><td></td><td>—</td><td>—</td></tr><tr><td class='num'><a href='2026-10-09.html'>10-09</a></td><td>ל+ר</td><td>Rejection-Reverse · וריאציה</td><td>Rejection-Reverse · וריאציה</td><td><span class="pill ok">✓</span><span class="pill ok">✓</span></td><td>3</td><td><span class="num neg">-16.0</span> <span class="num neg">-80$</span></td></tr><tr><td class='num'><a href='2026-10-08.html'>10-08</a></td><td>ל+ר</td><td>Rejection-Reverse · וריאציה</td><td>Rejection-Reverse · וריאציה</td><td><span class="pill ok">✓</span><span class="pill ok">✓</span></td><td>4</td><td><span class="num neg">-30.5</span> <span class="num neg">-152$</span></td></tr><tr><td class='num'><a href='2026-09-30.html'>09-30</a></td><td>ל+ר</td><td>Rejection-Reverse · מגמה</td><td>Auction-In · ניטרלי-מרכז</td><td><span class="pill bad">✗</span><span class="pill bad">✗</span></td><td>1</td><td><span class="num neg">-7.8</span> <span class="num neg">-39$</span></td></tr></table></div><div class="dim">אמת = תווית של מייקל כשקיימת, אחרת הייחוס החוקי. ✓ ראשון = פתיחה, שני = סוג-יום (משפחה).</div></div><script>
+var Q=location.search||'';
+function withKey(h){if(!h||/^https?:|^#|^mailto:/.test(h)||h.indexOf('key=')>=0||!Q)return h;var i=h.indexOf('#');var b=i>=0?h.slice(0,i):h,hs=i>=0?h.slice(i):'';return b+(b.indexOf('?')>=0?'&':'?')+Q.slice(1)+hs;}
+document.querySelectorAll('a[href]').forEach(function(a){a.setAttribute('href',withKey(a.getAttribute('href')));});
+function tog(el){el.classList.toggle('open');}
+function view(v){document.querySelectorAll('[data-view]').forEach(function(e){e.style.display=(e.getAttribute('data-view')===v)?'':'none';});
+ document.querySelectorAll('.vsw button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});
+ try{localStorage.setItem('daymap_view',v);}catch(e){}}
+function ph(v,p){document.querySelectorAll('[data-view="'+v+'"] .ph').forEach(function(e){e.classList.toggle('on',e.getAttribute('data-p')===p);});
+ document.querySelectorAll('[data-view="'+v+'"] .phd').forEach(function(e){e.classList.toggle('on',e.getAttribute('data-p')===p);});}
+(function(){var bs=document.querySelectorAll('.vsw button');if(!bs.length)return;var v=null;try{v=localStorage.getItem('daymap_view');}catch(e){}
+ if(!v||!document.querySelector('[data-view="'+v+'"]'))v=bs[0].getAttribute('data-v');view(v);})();
+</script></body></html>
