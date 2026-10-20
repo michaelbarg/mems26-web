@@ -85,6 +85,62 @@ def t616_anchor_stop_is_structural(setup: dict, direction) -> Optional[tuple]:
     return None
 
 
+def t618_front_run_ticks() -> int:
+    """T-618: T1_FRONT_RUN_TICKS as an int ≥ 0 (unset / blank / bad / ≤ 0 ⇒ 0 = off)."""
+    raw = os.getenv("T1_FRONT_RUN_TICKS", "").strip()
+    if not raw:
+        return 0
+    try:
+        n = int(float(raw))
+    except ValueError:
+        return 0
+    return n if n > 0 else 0
+
+
+def t618_front_run_t1(setup: dict) -> Optional[tuple]:
+    """T-618 (Michael 20.10, #3582) — place T1 IN FRONT of the level, not on it. MUTATES setup on success.
+
+    #3582 LONG 7754.5: T1 7768.5 was exactly the 18:15/18:55/19:00 triple top; the high came to 7768.25 —
+    one tick short — and the trade then gave back +13.75 pt to its stop (−90$). With T1_FRONT_RUN_TICKS=n
+    the T1 moves n ticks toward the entry (LONG −, SHORT +). Never to/behind the entry; when
+    T1_REALISM_FLOOR_R_V1 (r) is set, never below r×R (R = |entry − stop|) — it front-runs fewer ticks
+    instead. Returns (old_t1, new_t1), or None when off / not applicable (setup untouched)."""
+    n = t618_front_run_ticks()
+    if n <= 0:
+        return None
+    try:
+        d = str(setup.get("direction") or "").upper()
+        e, t1 = setup.get("entry_price"), setup.get("t1")
+        if d not in ("LONG", "SHORT") or e is None or t1 is None:
+            return None
+        e, t1 = float(e), float(t1)
+        sign = 1.0 if d == "LONG" else -1.0
+        dist = (t1 - e) * sign
+        if not dist > 0:
+            return None
+        md = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+        stop = setup.get("stop") if setup.get("stop") is not None else md.get("stop_initial")
+        min_dist = 0.25  # at least one tick beyond the entry
+        try:
+            r = float(os.getenv("T1_REALISM_FLOOR_R_V1", "0") or 0)
+        except ValueError:
+            r = 0.0
+        if r > 0 and stop is not None and abs(e - float(stop)) > 0:
+            min_dist = max(min_dist, r * abs(e - float(stop)))
+        k = n
+        while k > 0 and dist - k * 0.25 < min_dist - 1e-9:
+            k -= 1
+        if k <= 0:
+            return None
+        new = round(t1 - sign * k * 0.25, 2)
+        if isinstance(setup.get("metadata"), dict):
+            setup["metadata"]["t1_pre_front_run"] = t1
+        setup["t1"] = new
+        return (t1, new)
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
 def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
     """Resolve pattern_id_at_entry: prefer the firing setup's classification.
 
@@ -5428,6 +5484,17 @@ class TradingGateway:
                 "pattern": (setup.get("classification") or (setup.get("metadata") or {}).get("pattern")),
                 "entry": setup.get("entry_price"),
             })
+
+        # T-618 (Michael 20.10, #3582): T1 in FRONT of the level — after every gate, before any execution
+        # (shadow/demo/live and the harness all read setup["t1"] from here). Unset ⇒ byte-identical.
+        try:
+            _t618 = t618_front_run_t1(setup)
+            if _t618 is not None:
+                result["t1"] = setup["t1"]
+                logger.warning("[Gateway] T-618 T1 FRONT-RUN: %s %s t1 %.2f → %.2f (in front of the level)",
+                               direction, setup.get("classification", ""), _t618[0], _t618[1])
+        except Exception as _t618_err:  # never let target cosmetics break a fire
+            logger.warning("[Gateway] T-618 front-run skipped (%s)", _t618_err)
 
         # SHADOW: always log when past hard gates, unlimited slots
         shadow_trade = self._execute_shadow(setup, system_id, cross_context)

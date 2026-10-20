@@ -2172,3 +2172,9 @@ flags:
     why: "Michael 20.10: 'for each losing trade — what was wrong, the entry location, System 6, the first contract'. Built OFF; measured overnight vs base-20.10 (tag t617t2); the acceptance rule decides."
     status: built_off
     ref: "T-617 · backend/v9/systems/ceiling_touch2.py (touch2_edge_tol_cap_k) · tests/v9/regression/test_t617_touch2_cap_and_s6_t0.py"
+  T1_FRONT_RUN_TICKS:
+    category: targets
+    what: "T-618 (20.10): after every gate and before any execution (shadow/demo/live and the harness read setup.t1 from there), T1 moves n ticks toward the entry (LONG −, SHORT +) so it sits IN FRONT of the level instead of on it. Never to/behind the entry; with T1_REALISM_FLOOR_R_V1 = r it never goes below r×R (front-runs fewer ticks instead). The original is kept in metadata.t1_pre_front_run; log '[Gateway] T-618 T1 FRONT-RUN'. 20.10 #3582: T1 7768.5 = the 18:15/18:55/19:00 triple top, the high reached 7768.25, then the trade gave back +13.75 pt to its stop (−90$). Unset/0 = byte-identical."
+    why: "Michael 20.10 23:4x 'האם אפשר לבצע את התיקון עכשיו?' — ON in demo with n=2 the same night; measured overnight vs base-20.10 (tags t618fr, t618all); a FAIL of the acceptance rule turns it off before 16:30."
+    status: enabled
+    ref: "T-618 · backend/v9/gateway/trading_gateway.py (t618_front_run_t1) · tests/v9/regression/test_t618_t1_front_run.py"
