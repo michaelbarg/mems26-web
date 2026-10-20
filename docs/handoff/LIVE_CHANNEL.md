@@ -1,3 +1,75 @@
+🟠 **[cowork-dev · ריצה 364 · 20.10 14:04→14:1x IL · **חובה-1 בלבד** · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה בדגלים/פוזיציות/קוד-מסחר · **פריט חדש אחד ([[T-611]]) — ולבעל ריצת-15:3x יש בו מספר שמשנה את השער**]**
+
+**חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון.** הדוור הוכח חי *לפני* שהוסקה שתיקה ([[T-260]]):
+```raw
+date                            ⇒ 2026-10-20 14:04:47 IDT (Tue) ⇒ לא 15:30-16:10 · לא RTH · לא 23:0x ⇒ חובה-1 בלבד
+git pull --ff-only              ⇒ "Already up to date."   ·   rev-list --left-right HEAD...@{u} ⇒ 0  0  (כלל 4 של [[T-610]])
+launchctl com.mems26.mobile_relay ⇒ state = running · pid = 1629
+GET /chat?key=…                 ⇒ http=200 · items=30 · bytes=12783 · last = 2026-10-19T20:24:13Z / cowork
+   פרדיקט אגנוסטי-לאיות על כל 30 הפריטים ([[T-596]]) ⇒ non-agent = 1:
+   מייקל 2026-10-07T10:50:03Z "תבקש מקלוד שיבדוק מה הולך…" — נענתה עניינית 07.10 ⇒ אפס ממתינה
+GET /instruction/pending        ⇒ {"items": []}      GET /cmd/pending ⇒ {"cmd": null}      GET /marks/pending ⇒ {"items": []}
+PHONE_THREAD.jsonl 766 שורות · אחרון 2026-10-19T20:24:13Z (ללא שינוי מ-356→363) · תיוגים 2 == TRADE_TAGS 2
+עסקאות 48h ⇒ shadow/CLOSED 109 · demo/CLOSED 4 · live 0 · אחרונה 19.10 22:55:03 ⇒ אפס עסקה חדשה ⇒ אפס (ב)
+```
+⇒ אפס (א) · אפס (ב) · אפס (ג) · אפס (ד) ⇒ **אפס `phone_reply.py`** (השוואה: ריצות 362/363 זהות).
+
+🟠 **[[T-611]] — הגודל הפסוק של היום הוא 5 ולא 1, והמספר שבפרומפט-המשימה הוא הפסיקה המוחלפת.** נמדד קריאה-בלבד:
+```raw
+set -a; . ./.env; set +a; ruled_contracts() ⇒ 5        ← לא 1
+.env:274 FIXED_CONTRACTS_1=0   ·   .env:357 FIXED_CONTRACTS_5=1   ·   .env mtime 2026-10-20 00:49:29
+RULED_FLAGS.yaml:316  FIXED_CONTRACTS_5: {expected:'1', ruled_by:"מייקל", date:"2026-10-19",
+      note:'פסיקת-מייקל 19.10 22:2x — 5 חוזים **בדמו** (LIVE_TRADING_V1=0, Sim1)…'}
+RULED_FLAGS.yaml:45   FIXED_CONTRACTS_1: {expected:"0", ruled_by:"מייקל", date:"2026-10-19",
+      note:'פסיקת-מייקל 19.10 22:2x ("למה העסקה היא על חוזה אחד, הגדרתי על 5, לתקן מיידית")…'}
+FLAG-GUARD: PASS — all 281 ruled flags match   (exit 0)   ⇒ .env ≡ RULED_FLAGS ⇒ **אפס סחיפה**
+```
+⇒ זו **אינה** רגרסיה ואינה דגל שנדלק בלי פסיקה: הפסיקה החדשה (19.10 22:2x) מחליפה את פסיקת 18.09 12:05, ו-CLAUDE.md §"Rulings are one-time and standing" אומר שהיא עומדת עד שמייקל יבטל בכתב. **הסחיפה היא בפרומפט**, שעדיין כותב "הפסיקה מ-18.09 12:05: 1 חוזה … אל תניח 2, 5 או 3".
+
+⚠️ **ולבעל ריצת-15:3x זה המספר שמשנה את השער, ולכן הוא כאן ולא רק ב-TASK_LOG:**
+- שלב **"אימות `ruled_contracts()` == הפסיקה"** — הערך-הצפוי להיום הוא **5**, ו-`5` הוא **PASS ולא NO-GO**.
+- ⛔ **אפס נגיעה ב-`FIXED_CONTRACTS_*`.** להעמיד `FIXED_CONTRACTS_1=1` כדי "לתקן" את הפער = נגיעה בדגלי-גודל נגד הפסיקה הטרייה של מייקל — **בדיוק מחלקת [[T-225]]**, שהפרומפט עצמו מייחס לנוסח הישן הזה.
+- הגודל נקרא מ-`RULED_FLAGS.yaml` + `flag_guard` ומ-`ruled_contracts()` עם `.env` טעון ([[T-489]]) — **לא ממספר קבוע בפרומפט ולא מהזיכרון** (runbook §1 שורה 4).
+
+🟢 **ואפס כסף-אמת בסיכון — חמשת תנאי-הדמו שהפסיקה התנתה בהם מתקיימים, נמדדו ולא הונחו:**
+```raw
+.env:14 MEMS26_MODE=demo   ·   .env:279 LIVE_TRADING_V1=0
+GET /api/v9/gateway/status ⇒ live_enabled_systems [] · demo_enabled_systems [2,4] · live_slot None · demo_slot None
+                              trades_today 0 · daily_pnl 0.0 · shadow_active_count 0 · chop_state RESPECTING
+sierra_state (גיל 0.9s)    ⇒ position_qty 0 · working_orders 0 · is_sim 1 · trade_account Sim1 · last_price 7718.75
+v9_trades 48h              ⇒ live 0
+```
+🚫 **ומה שבמפורש אינו נטען (כלל 1):** (א) שהסולם ל-5 נכון — הערת-הפסיקה עצמה אומרת שמייקל ביקש 2-2-1 בעוד המקודד ל-5 הוא `(1,2,1,1)` בבקאנד (`contract_size.LADDER`) וגם ב-DLL (`lq[]`), והפער **פתוח בתוך הפסיקה** ולא נמדד כאן; (ב) שהתהליך החי עונה 5 — `trades_today 0`, ו-ריצה 354 כבר רשמה שזה **היסק** ממסלול-הטעינה, והמבחן המפריך הוא `cross_context.contracts` של עסקת-הדמו הראשונה.
+
+🟢 **ניטור — הפיד נמדד בהתקדמות ולא בטריות-קובץ** ([[T-430]]):
+```raw
+feed    ⇒ max(ts) v9_bars_5min_woodies = 2026-10-20 14:05:00+03 · age 1.5 min · 12 ברים ב-60 הדק'
+          הוכחת-התקדמות: 13:35 (ריצה 363) → 14:05 = +6 ברים ב-30 דק' ⇒ קצב-5-דק' מלא, הפיד זורם
+backend ⇒ pid 89555 (אותו תהליך מ-354) · lstart Mon Oct 19 23:01:00 · etime 15:05 · /health 200 ב-2.9ms · RSS 105MB
+לוג     ⇒ /tmp/backend.err.log 743,611→743,643 ב-20s = 96 שורות/דק' (363 מדדה 84) · Traceback|ERROR ב-2,000 האחרונות = 0
+שערים   ⇒ flag_guard PASS 281/281 rc=0 · task_log_guard ✅ 585 items / 0.2 ימים · close_stale_shadow dry ⇒ "nothing to do" ⇒ אפס --apply
+          הדיווח היחיד של flag_guard הוא `FOOTPRINT_DISABLED: plist=true ≠ .env=0` ⇒ ה-plist גובר, בעלות פסיקת-מייקל ([[T-435]] צעד 3 / [[T-563]]) — **לא נגעתי**
+```
+
+📌 **ובעלות-הריסטארט של היום עדיין פנויה לריצת-15:3x — שני פוסקים, כדי שלא תורם פעמיים ([[T-369]]):**
+```raw
+ps -o lstart -p $(lsof -nP -iTCP:8000 -sTCP:LISTEN) ⇒ Mon Oct 19 23:01:00 2026 ⇒ **לא עלה היום אחרי 12:00**
+LIVE_CHANNEL                                        ⇒ אפס רשומת-cowork-dev מהיום על ריסטארט/שער (356/362/363 = חובה-1 בלבד)
+list_scheduled_tasks ⇒ 10 רשומות · enabled=true רק `mems26-preopen-gate` (cron 0,30 10-23 * * 0-5)
+                        **אין** `mems26-preopen-restart-2010` ⇒ אפס מתזמן מתחרה ל-15:45
+                        (הרפאים נשאר: `mems26-t517-night` חד-פעמית · fireAt 29.09 · עוד enabled — [[T-580]] סעיף 3, בידי מייקל)
+```
+
+⚠️ **WARN-בלבד לבעלים של ריצת-15:3x — לחץ-הזיכרון השתפר קלות ולא יצא מהאזור** (`machine_health.py`, לא לטלפון):
+```raw
+mem unused 283M (<400M · 363 מדדה 31M) · swap used 3,168M מתוך 4,096M (363: 3,182M) · load 2.97/2.73/2.79 (8 cores)
+הצרכנים אינם מסחר: cowork-vm 2,323M · claude-app 2,110M · chrome 930M · claude-agents 321M
+מחסנית-המסחר כולה: backend 105M · bridge 17M · sierra 158M · postgres 706M · relay 24M
+```
+⇒ **לא נגעתי בכלום.** אם הריסטארט-קדם-פתיחה ייתקע או יאט — החשוד הראשון הוא ה-swap הזה ולא הקוד.
+
+---
+
 🟢 **[cowork-dev · ריצה 363 · 20.10 13:34→13:38 IL · **חובה-1 בלבד** · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה בדגלים/פוזיציות/קוד-מסחר]**
 
 **חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון.** הדוור הוכח חי *לפני* שהוסקה שתיקה ([[T-260]]):
