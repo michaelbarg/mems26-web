@@ -1,3 +1,76 @@
+🟠 **[cowork-dev · ריצה 365 · 20.10 14:34→14:4x IL · **חובה-1 בלבד** · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה בדגלים/פוזיציות/קוד-מסחר · **ממצא אחד שמבטל שורה של ריצה 364: בעלות-הריסטארט של היום נלקחה**]**
+
+**חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון.** הדוור הוכח חי *לפני* שהוסקה שתיקה ([[T-260]]):
+```raw
+date                              ⇒ 2026-10-20 14:36:02 IDT (Tue) ⇒ לא 15:30-16:10 · לא RTH · לא 23:0x ⇒ חובה-1 בלבד
+git pull --ff-only                ⇒ "Already up to date."   ·   HEAD 7114cecb4
+launchctl com.mems26.mobile_relay ⇒ state = running · pid = 1629   (ו-14:36 בתוך RELAY_WINDOW_IL=10:00-23:30 ⇒ /chat אינו חלון-סגור, מלכודת 32)
+GET /chat?key=…                   ⇒ http=200 · items=30 · bytes=17733 · senders {cowork-dev 19 · supervisor 4 · cowork 5 · מייקל 1 · cc 1}
+   פרדיקט אגנוסטי-לאיות ([[T-596]]) על כל 30 הפריטים ⇒ non-agent = 1 (idx 3):
+   מייקל 2026-10-07T10:50:03Z "תבקש מקלוד שיבדוק מה הולך ומה בוצע ומה תוקן…" — ואחריה 26 פריטי-סוכן;
+   הענייני (ולא אישור-הקבלה של cc באותה שנייה) הוא cowork-dev 07.10 11:11:10 "בוצע מאז השיח עם קורסור: …" ⇒ נענתה ⇒ אפס ממתינה
+GET /instruction/pending          ⇒ {"items":[]}        GET /cmd/pending ⇒ {"cmd":null}
+PHONE_THREAD.jsonl                ⇒ 766 שורות · 0 בלתי-מפוענחות · 133 שורות-מייקל (ללא שינוי מ-319/364) · אחרונת-מייקל idx 739 מ-07.10 · 26 שורות אחריה
+עסקאות 48h                        ⇒ demo/CLOSED 4 · shadow/CLOSED 109 · live 0 · אחרונה 19.10 22:55:03 ⇒ אפס עסקה חדשה ⇒ אפס (ב)
+```
+⇒ אפס (א) · אפס (ב) · אפס (ג) · אפס (ד) ⇒ **אפס `phone_reply.py`, שתיקה מוחלטת.**
+
+🔴 **הממצא — בעלות-הריסטארט של היום נלקחה ב-14:27, וזה היפוך של השורה שריצה 364 כתבה 30 דק' קודם ([[T-369]]):**
+```raw
+ps -o pid,lstart,etime -p $(lsof -nP -iTCP:8000 -sTCP:LISTEN -t) ⇒ 89931 · Tue Oct 20 14:27:26 2026 · etime 09:48
+                                                                 ⇒ **עלה היום אחרי 12:00**  (364 מדדה pid 89555 · Mon Oct 19 23:01:00)
+ראש LIVE_CHANNEL ⇒ 🟢 "[cowork · 20.10 14:27 IL · ריסטארט-בקאנד לפני הפתיחה — בוצע (pid 89555 → 89931),
+                        אין צורך בריסטארט נוסף לפני 16:30]"  ·  "ruled_contracts=5. flag_guard PASS 281."
+list_scheduled_tasks ⇒ enabled=true רק `mems26-preopen-gate` (cron 0,30 10-23 * * 0-5) · **אין** `mems26-preopen-restart-2010` ⇒ אפס מתזמן מתחרה
+```
+⇒ **שני הפוסקים של כלל-הבעלות מתקיימים** (המאזין עלה היום אחרי 12:00, **וגם** יש רשומת-cowork מהיום על ריסטארט-קדם-פתיחה), ולכן **לריצת-15:3x של היום:**
+- ⛔ **אל תרים ריסטארט** — בוצע ב-14:27 ע״י cowork-האינטראקטיבי, והוא גם כתב במפורש "אין צורך בריסטארט נוסף לפני 16:30".
+- ⛔ **אל תשלח GO/NO-GO לטלפון** — הודעת-שער שנייה היא בדיוק הצפת [[T-369]]; מייקל יקבל אפס הודעות-שער היום, וזה הנכון כשלא היה שער-סוכן.
+- ✅ **מה שכן נשאר בסמכותה:** `fire_drill` · `flag_guard` · אימות `ruled_contracts()` — **כמדידה** — ו**שורת-מדידה אחת** כאן. לא יותר.
+
+📌 **ותת-ממצא שמחזיק את "אין צורך בריסטארט" במקום להניח אותו — הפער בין HEAD לתהליך-הרץ נמדד ואינו קוד-מסחר:**
+```raw
+boot של התהליך הרץ ⇒ 2026-10-20 14:27:28 [INFO] [mems26.boot] [boot] logging OK level=INFO pid=89931 commit=74b74365 stream=stderr
+HEAD כרגע          ⇒ 7114cecb4  ⇒ קומיט אחד קדימה ("phone daily trades card: RTL polish")
+git diff --stat 74b74365..HEAD ⇒ backend/v9/api/v9/mobile_monitor.py | 6 +++--- · render_mobile_relay/app.py | 6 +++--- · docs/handoff/LIVE_CHANNEL.md | 6 ++++
+git diff 74b74365..HEAD -- backend/v9/api/v9/mobile_monitor.py ⇒ שני hunks, שניהם **בתוך מחרוזת ה-JS המוטבעת של עמוד-הטלפון**:
+      class="num" סביב W/L · סביב R · סביב טווח-השעות   ·   style="white-space:nowrap" על עמודת-ה-$   ·   gap:8px על השורה
+```
+⇒ קובץ-הבאקנד היחיד בפער הוא **נתיב-תצוגה של כרטיס-העסקאות בטלפון** — אפס לוגיקת-מסחר, אפס שער, אפס גודל ⇒ "אין צורך בריסטארט לפני 16:30" **מחזיק למסחר**, ומה שחסר לתהליך-הרץ הוא ליטוש-RTL בעמוד בלבד. נמדד בדיף, לא הונח מכותרת-הקומיט.
+
+🟢 **[[T-611]] אומת שוב, קריאה-בלבד — הערך-הצפוי לשער היום הוא 5 ו-5 הוא PASS:**
+```raw
+set -a; . ./.env; set +a; python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())" ⇒ 5
+FLAG-GUARD: PASS — all 281 ruled flags match   (exit 0)   ⇒ .env ≡ RULED_FLAGS ⇒ אפס סחיפת-דגל
+```
+⛔ אפס נגיעה ב-`FIXED_CONTRACTS_*` ([[T-225]]). **והשלכה אחת על צעד (4) של T-611:** מכיוון שריצת-15:3x לא תשלח הודעת-שער (למעלה), "המספר יגיע לטלפון בתוך הודעת-השער האחת" **לא יקרה היום** — המספר נשאר ב-LIVE_CHANNEL וב-TASK_LOG, ואין בכך חוסר; תיקון-הנוסח בפרומפט (צעד 3) נשאר הדבר היחיד שסוגר את הפריט, והוא בידי מייקל.
+
+🟢 **ניטור — הפיד נמדד בהתקדמות ולא בטריות-קובץ ([[T-430]]):**
+```raw
+feed    ⇒ max(ts) v9_bars_5min_woodies = 2026-10-20 14:35:00+03 · age 2.2 דק' · 12 ברים ב-60 הדק'
+          הוכחת-התקדמות: 14:05 (ריצה 364) → 14:35 = +6 ברים ב-30 דק' ⇒ קצב-5-דק' מלא, הפיד זורם (ולא "קובץ טרי")
+backend ⇒ pid 89931 · lstart Tue Oct 20 14:27:26 · etime 09:48 · /health 200 ב-2.9ms · RSS 102MB
+לוג     ⇒ שער-ד0 עובר: boot logging OK · pid=89931 == התהליך הרץ ⇒ שכבת-INFO נטענה, אפס-שורות הוא ממצא ולא עיוורון
+          /tmp/backend.err.log 746,452 → 746,478 ב-20s = 78 שורות/דק' · Traceback|[ERROR] ב-2,000 האחרונות = 0
+מסחר    ⇒ gateway/status: live_enabled_systems [] · demo_enabled_systems [2,4] · live_slot None · demo_slot None · trades_today 0 · daily_pnl 0.0 · chop_state RESPECTING
+          sierra_state (גיל 0.6s): is_sim 1 · trade_account Sim1 · position_qty 0 · working_orders 0 · last_price 7719.00
+שערים   ⇒ flag_guard PASS 281/281 rc=0 · task_log_guard ✅ 586 items / 0.0 ימים · close_stale_shadow dry ⇒ "no stale shadow trades — nothing to do" ⇒ אפס `--apply`
+          הדיווח היחיד של flag_guard: `FOOTPRINT_DISABLED: plist=true ≠ .env=0` ⇒ ה-plist גובר, בעלות פסיקת-מייקל ([[T-435]] צעד 3 / [[T-563]]) — **לא נגעתי**
+```
+🚫 **ומה שבמפורש אינו נטען (כלל 1):** `sierra_state.daily_pnl = -53.75` **אינו P&L של המערכת** — `trades_today 0`, `live_enabled_systems []`, והחשבון משותף עם המסחר הידני (§3.5 ברנבוק) ⇒ לא יוחס, לא דווח, ולא נכנס לשום סיכום.
+
+⚠️ **WARN-בלבד (`machine_health.py`, ל-LIVE_CHANNEL ולא לטלפון) — לחץ-הזיכרון הידרדר מאז 364 ולא יצא מהאזור:**
+```raw
+unused RAM 53M (<400M · 364 מדדה 283M · 363 מדדה 31M) · swap used 3,203M (364: 3,168M) · load 2.97/2.73/2.79 (8 cores)
+הצרכנים אינם מסחר: claude-app 2,693M · cowork-vm 2,322M · chrome 878M · claude-agents 419M · spotlight 248M
+מחסנית-המסחר כולה: backend 100M · bridge 16M · sierra 149M · postgres 662M · relay 22M
+```
+⇒ **לא נגעתי בכלום.** אם משהו ייתקע או יאט לקראת 16:30 — החשוד הראשון הוא ה-swap הזה ולא הקוד.
+
+**אפס שינוי-קוד · אפס דגל · אפס `.env` · אפס ריסטארט · אפס נגיעה בפוזיציות/פקודות · אפס הודעת-טלפון · קריאה-בלבד.**
+
+---
+
 🟢 **[cowork · 20.10 14:27 IL · ריסטארט-בקאנד לפני הפתיחה — בוצע (pid 89555 → 89931), אין צורך בריסטארט נוסף לפני 16:30]**
 - **נטען בריסטארט (דמו בלבד, Sim1):** T-609 (שורת-boot `[SierraCmd] T-609 live-wire writer: ALLOWED — backend process`), `BE_AFTER_T1_RULE_V1=1` (מערכת 6 — הצד של "מתי לא להזיז סטופ ל-BE אחרי T1"; ה-VA מ-tpo.json), `DAYTYPE_MACHINE_CLOSED_BARS_V1=1` + `DAYTYPE_HISTORY_LIVE_LOCK_V1=1` (T-595), וכרטיס "סיכום יומי — העסקאות של היום" באפליקציה (`/mobile/data` → `trades_today` + `trades_today_sum`). ruled_contracts=5. flag_guard PASS 281.
 - **בקשת מייקל 20.10 ("תוסיף לאפליקציה של אייפון סיכום יומי של העסקאות"):** כרטיס חי בעמוד הראשי (Render + עמוד-הבקאנד), עם כל עסקת דמו/לייב של היום ו-Σ. בנוסף, הודעת-סיכום **אחת** בסוף היום (משימת 23:20, לפי AGENT_BRIEF §6) ועמוד-היום (gen_phone_pages) ממשימת-היומן ולא מ-cowork-dev.
