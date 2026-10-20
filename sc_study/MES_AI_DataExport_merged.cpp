@@ -2075,8 +2075,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 (sc.GetTradeAccountData(acctd, sc.SelectedTradeAccount) != 0) ? 1 : 0;
 
             char sbuf[3072];
+            // T-610 (2026-10-20): "cap_lq":1 = this build honours the per-group
+            // quantities lq1..lq4 on PLACE (2/2/1 at five, Michael 19.10). The
+            // backend sends them ONLY while a FRESH state file says so — a DLL
+            // that would silently fall back to its own table never advertises it.
             int sl = snprintf(sbuf, sizeof(sbuf),
-                "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
+                "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,\"cap_lq\":1,"
                 "\"send_orders_to_trade_service\":%d,"
                 "\"position_qty\":%.0f,\"avg_price\":%.2f,"
                 "\"open_pnl\":%.2f,\"daily_pnl\":%.2f,"
@@ -2909,6 +2913,50 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             // groups without leaving a contract unprotected, so clamp
                             // the ORDER itself rather than the protection.
                             if (contracts > 6) contracts = 6;
+
+                            // ── T-610 LADDER_221_V1 (Michael 2026-10-19) ────────────
+                            // "נעבוד עם 5 חוזים לפי 2 2 1 כאילו זה 3 חוזים"
+                            // The backend may send the per-group quantities itself:
+                            // "lq1".."lq4". They replace the table above ONLY when all
+                            // four are present, each is a plain integer 0..6, lq1 >= 1,
+                            // no group follows an empty one, and they sum EXACTLY to the
+                            // (clamped) contracts — the same "every contract is
+                            // protected" rule the table obeys. Anything else keeps the
+                            // table, so an old-style command is byte-identical. The
+                            // backend sends lq* only after it read "cap_lq":1 from
+                            // sierra_state.json, which only this build writes.
+                            int lq_cmd = 0;
+                            {
+                                const char* lq_keys[4] = {"\"lq1\"", "\"lq2\"", "\"lq3\"", "\"lq4\""};
+                                int cq[4] = {0, 0, 0, 0};
+                                int cq_sum = 0;
+                                bool cq_ok = true;
+                                for (int qi = 0; qi < 4; qi++)
+                                {
+                                    size_t qp = cmd_content.find(lq_keys[qi]);
+                                    if (qp == std::string::npos) { cq_ok = false; break; }
+                                    qp = cmd_content.find(':', qp);
+                                    if (qp == std::string::npos) { cq_ok = false; break; }
+                                    qp++;
+                                    while (qp < cmd_content.size() &&
+                                           (cmd_content[qp] == ' ' || cmd_content[qp] == '\t' ||
+                                            cmd_content[qp] == '\r' || cmd_content[qp] == '\n'))
+                                        qp++;
+                                    // null / string / negative / missing value → not ours
+                                    if (qp >= cmd_content.size() ||
+                                        cmd_content[qp] < '0' || cmd_content[qp] > '9')
+                                    { cq_ok = false; break; }
+                                    cq[qi] = atoi(cmd_content.c_str() + qp);
+                                    if (cq[qi] < 0 || cq[qi] > 6) { cq_ok = false; break; }
+                                    if (qi > 0 && cq[qi] > 0 && cq[qi - 1] == 0) { cq_ok = false; break; }
+                                    cq_sum += cq[qi];
+                                }
+                                if (cq_ok && cq[0] >= 1 && cq_sum == contracts)
+                                {
+                                    lq[0] = cq[0]; lq[1] = cq[1]; lq[2] = cq[2]; lq[3] = cq[3];
+                                    lq_cmd = 1;
+                                }
+                            }
                             int lq_sum = lq[0] + lq[1] + lq[2] + lq[3];
 
                             s_SCNewOrder o;
@@ -3011,7 +3059,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         "\"c2_target_id\":%lld,\"c2_stop_id\":%lld,"
                                         "\"c3_target_id\":%lld,\"c3_stop_id\":%lld,"
                                         "\"c4_target_id\":%lld,\"c4_stop_id\":%lld,"
-                                        "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\"}\n",
+                                        "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\","
+                                        "\"lq\":\"%d/%d/%d/%d\",\"lq_cmd\":%d}\n",
                                         (long long)time(nullptr),
                                         (long long)o.InternalOrderID,
                                         (long long)o.Target1InternalOrderID,
@@ -3022,7 +3071,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         (long long)o.Stop3InternalOrderID,
                                         (long long)o.Target4InternalOrderID,
                                         (long long)o.Stop4InternalOrderID,
-                                        entry_price, contracts, is_buy ? "LONG" : "SHORT");
+                                        entry_price, contracts, is_buy ? "LONG" : "SHORT",
+                                        // T-610: the per-group quantities the broker was
+                                        // ACTUALLY bracketed with (lq_cmd=1: the backend's
+                                        // lq1..lq4, 0: the table) — the books check this.
+                                        lq[0], lq[1], lq[2], lq[3], lq_cmd);
                                     if (fl > 0 && fl < (int)sizeof(fb))
                                     {
                                         std::ofstream ff(fills_path, std::ios::app);

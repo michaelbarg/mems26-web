@@ -162,6 +162,63 @@ class FillPoller:
         self._order_map[sierra_order_id] = trade_id
         logger.info("[FillPoller] registered order %d → trade %d", sierra_order_id, trade_id)
 
+    def _trade_for_parent(self, order_id) -> Optional[int]:
+        """T-610: the ACTIVE demo/live trade whose recorded parent order id
+        (quality.sierra_order_id) is exactly `order_id` — else None. No guess."""
+        if order_id is None or self._tm is None:
+            return None
+        try:
+            oid = int(order_id)
+            active = self._tm.get_active_trades() or []
+        except Exception:
+            return None
+        for t in active:
+            if getattr(t, "mode", "shadow") not in ("demo", "live", "SIM"):
+                continue
+            q = t.quality if isinstance(getattr(t, "quality", None), dict) else {}
+            try:
+                if int(q.get("sierra_order_id") or 0) == oid:
+                    return t.id
+            except (TypeError, ValueError):
+                continue
+        return None
+
+    def _check_ladder_echo(self, trade_id, fill: Dict[str, Any]) -> None:
+        """T-610: the cap_lq DLL echoes on its ENTRY line the per-group
+        quantities the broker was ACTUALLY bracketed with ("lq":"2/2/1/0",
+        "lq_cmd":1|0). A trade that recorded its ladder (LADDER_221_V1 on) must
+        match it, or the books manage a position that does not exist in that
+        shape — say so at once. No echo (pre-T-610 DLL) or no record (flag off,
+        history) → nothing to compare. Never raises; never changes a booking."""
+        try:
+            lq = fill.get("lq")
+            if not lq or self._tm is None:
+                return
+            broker = [int(x) for x in str(lq).split("/")]
+            _get = getattr(self._tm, "_get_trade", None)
+            t = _get(trade_id) if callable(_get) else None
+            q = getattr(t, "quality", None) if t is not None else None
+            if not isinstance(q, dict) or q.get("ladder_groups") is None:
+                return
+            books = [int(x) for x in q.get("ladder_groups")]
+        except Exception:
+            return
+        if books == broker:
+            logger.info("[FillPoller] T-610 ladder confirmed by the broker: trade %s %s "
+                        "(lq_cmd=%s)", trade_id, lq, fill.get("lq_cmd"))
+            return
+        _bk = "/".join(str(x) for x in books)
+        logger.critical(
+            "[FillPoller] T-610 LADDER SHAPE MISMATCH trade %s: books %s vs broker %s "
+            "(lq_cmd=%s) — the bracket in Sierra is not the one the books manage",
+            trade_id, _bk, lq, fill.get("lq_cmd"))
+        try:
+            from backend.v9.services.phone_alert import push as _lad_push
+            _lad_push("ladder_mismatch_%s" % trade_id, "🔴 MEMS26: סולם שונה בסיירה",
+                      "#%s ספרים %s מול סיירה %s" % (trade_id, _bk, lq), priority=1)
+        except Exception:
+            pass
+
     async def run(self) -> None:
         """Main polling loop — run as an asyncio task."""
         self._running = True
@@ -1473,6 +1530,22 @@ class FillPoller:
 
         # Find the trade_id from the order map
         trade_id = self._order_map.get(order_id)
+        if trade_id is None and kind == "ENTRY_FILL":
+            # T-610 (ships with the T-436d DLL in the same Remote Build): an
+            # ENTRY_FILL is a PRICE correction for an entry whose ENTRY line has
+            # already mapped its parent id — it opens nothing. Unmapped means the
+            # backend restarted in between, or the parent is not ours. The I-58
+            # "most recent active trade" guess below would rewrite ANOTHER
+            # trade's entry_price, and the orphan branch would cry "untracked
+            # position" over a line that has no position. Exact match or drop.
+            trade_id = self._trade_for_parent(order_id)
+            if trade_id is None:
+                logger.warning(
+                    "[FillPoller] T-436d ENTRY_FILL for parent order %s @ %s — no "
+                    "active trade carries that sierra_order_id; ignored (price-only "
+                    "event, no position, no orphan)", order_id, price)
+                return
+            self._order_map[int(order_id)] = trade_id
         if trade_id is None:
             # Fallback (I-58 hardened): Sierra fills can ONLY belong to demo/live
             # trades — never attribute them to a SHADOW twin. Pick the most recent
@@ -1586,6 +1659,8 @@ class FillPoller:
                         self._order_map[int(order_id)] = trade_id
                     logger.info("[FillPoller] mapped %d per-contract order ids → trade %s",
                                 sum(1 for v in sierra_ids.values() if v is not None), trade_id)
+                    # T-610: books vs broker bracket shape (no-op without an echo).
+                    self._check_ladder_echo(trade_id, fill)
 
             elif kind == "ENTRY_FILL":
                 # T-436d (2026-09-23): the REAL entry fill price. The ENTRY event

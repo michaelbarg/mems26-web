@@ -399,8 +399,15 @@ def write_trade_command(
     account: Optional[str] = None,
     mode: Optional[str] = None,
     context: Optional[Dict[str, Any]] = None,
+    ladder_qty: Optional[tuple] = None,
 ) -> Dict[str, Any]:
-    """Write a PLACE (entry bracket) Sierra command."""
+    """Write a PLACE (entry bracket) Sierra command.
+
+    ladder_qty (T-610): per-OCO-group quantities (g1, g2, g3, g4) for a DLL
+    that reports cap_lq=1 — sent as "lq1".."lq4" right after "contracts", which
+    they must sum to. None (every caller but the 2/2/1 plan) → the payload is
+    byte-identical to before and the DLL brackets with its own table.
+    """
     action = action.upper()
     payload = {
         "op": "PLACE",
@@ -416,6 +423,14 @@ def write_trade_command(
         "context": context or {},
         "ts_submitted": time.time(),
     }
+    if ladder_qty is not None:
+        _ordered: Dict[str, Any] = {}
+        for _k, _v in payload.items():
+            _ordered[_k] = _v
+            if _k == "contracts":
+                for _i, _q in enumerate(tuple(ladder_qty)[:4]):
+                    _ordered["lq%d" % (_i + 1)] = int(_q)
+        payload = _ordered
     return _write_command(payload)
 
 
@@ -1048,6 +1063,38 @@ def command_from_setup(
     except Exception as _lad_err:
         logger.warning("[SierraCmd] T-335 ladder check failed (fail-open): %s", _lad_err)
 
+    # ── T-610 · LADDER_221_V1 (Michael 19.10.2026, default OFF) ──
+    # "נעבוד עם 5 חוזים לפי 2 2 1 כאילו זה 3 חוזים" — five contracts as
+    # T1×2 · T2×2 · T3×1, no T0. The plan is the TRADE's (decided once in
+    # accept_setup — contract_size.plan_for_place); this function never decides
+    # it independently. lq plan ⇒ the per-group quantities go on the wire
+    # (lq1..lq4), the three groups target T1/T2/T3 exactly as the producer set
+    # them, and none of the T0 / 4th-leg reshaping below applies: no T0 shift,
+    # no ZLR T1/T1/T2 remap, no runner-leg rewrite (RUNNER_BY_DAYTYPE_V1,
+    # RUNNER_TRAIL_V2, C4_RULING6_V1) — the ruling IS the realization ladder.
+    # Any other plan ⇒ every block below runs exactly as before.
+    try:
+        from backend.v9.services.contract_size import (
+            format_plan as _fmt_plan, plan_for_place as _plan_for_place)
+        _plan = _plan_for_place(setup, trade_id, _contracts)
+    except Exception as _plan_err:     # a sizing-shape bug must never cost a fire
+        logger.warning("[SierraCmd] T-610 ladder plan errored (today's ladder kept): %s",
+                       _plan_err)
+        _plan, _fmt_plan = {"lq_cmd": False, "reason": "plan error"}, None
+    _lq_cmd = bool(_plan.get("lq_cmd"))
+    _lq = tuple(_plan["groups"]) if _lq_cmd else None
+    if _lq_cmd:
+        logger.warning(
+            "[SierraCmd] LADDER_221 %dc → %s T1/T2/T3 (no T0) — DLL cap_lq=1 · trade %s "
+            "(plan: %s)", _contracts, _fmt_plan(_plan), trade_id, _plan.get("source"))
+    elif _contracts == 5:
+        # WARNING while the flag is on (the ruling is NOT executing — say why);
+        # INFO while it is off (today's ladder by design).
+        _flag_221 = os.getenv("LADDER_221_V1", "0").strip().lower() in ("1", "true", "yes")
+        (logger.warning if _flag_221 else logger.info)(
+            "[SierraCmd] LADDER 5c fallback %s (%s) · trade %s",
+            _fmt_plan(_plan) if _fmt_plan else "1/2/1/1", _plan.get("reason"), trade_id)
+
     # ZLR_MGMT_V1 (Michael 2026-07-14 — ZLR / System-4 ONLY, default OFF): allocate
     # 2 contracts to T1 and 1 to T2, no T3 runner. Each DLL OCO group is a single
     # lot with its OWN target, so 2×T1 + 1×T2 is expressed as the per-contract
@@ -1055,7 +1102,7 @@ def command_from_setup(
     # flag is OFF or the setup is not ZLR this block is skipped → byte-identical
     # 1/1/1 ladder for every other pattern. (Assumes the 3-contract allocation that
     # is the current ruling; with <3 contracts C3 is simply absent DLL-side.)
-    if _zlr_mgmt_enabled() and _is_zlr_setup(setup):
+    if not _lq_cmd and _zlr_mgmt_enabled() and _is_zlr_setup(setup):
         _c2_target = _c1_target       # second contract also exits at T1
         _c3_target = setup.get("t2")  # the lone runner exits at T2 (no T3 runner)
 
@@ -1071,7 +1118,7 @@ def command_from_setup(
         _t0_pts = float(os.getenv("T0_TARGET_PTS", "0") or 0)
     except (TypeError, ValueError):
         _t0_pts = 0.0
-    if _contracts >= 4 and _t0_pts > 0 and setup.get("entry_price"):
+    if not _lq_cmd and _contracts >= 4 and _t0_pts > 0 and setup.get("entry_price"):
         _e = float(setup["entry_price"])
         _t0 = _e + _t0_pts if direction == "LONG" else _e - _t0_pts
         _t0 = round(round(_t0 / 0.25) * 0.25, 2)
@@ -1128,7 +1175,7 @@ def command_from_setup(
     # Variation/Normal/Neutral_Extreme: c4 = struct_c3 (from spacing_levels), fallback t3.
     # Unknown/None/conf<0.25: no change (Rule 1: no decision → no change).
     if (os.getenv("RUNNER_BY_DAYTYPE_V1", "0").strip().lower() in ("1", "true", "yes")
-            and _contracts >= 4 and not _is_zlr_setup(setup)):
+            and _contracts >= 4 and not _is_zlr_setup(setup) and not _lq_cmd):
         try:
             from backend.v9.services.trade_context import get_live_day_type as _rbd_gldt
             _rbd_dt = _rbd_gldt()
@@ -1171,7 +1218,8 @@ def command_from_setup(
     # from every trail — a stop-only ZLR runner would have no exit but EOD flatten).
     if (os.getenv("RUNNER_TRAIL_V2", "0").strip().lower() in ("1", "true", "yes")
             and not _is_zlr_setup(setup)
-            and not setup.get("runner_by_daytype")):
+            and not setup.get("runner_by_daytype")
+            and not _lq_cmd):
         try:
             _min_c = int(os.getenv("RUNNER_TRAIL_V2_MIN_CONTRACTS", "3"))
         except (TypeError, ValueError):
@@ -1189,6 +1237,9 @@ def command_from_setup(
                 "STOP-ONLY (no fixed target) — exit is the structural swing trail",
                 trade_id, _runner_leg)
 
+    # T-610: lq1..lq4 ride on the PLACE only for the 2/2/1 plan; otherwise the
+    # call (and the payload) is exactly what it was.
+    _lq_kw = {"ladder_qty": _lq} if _lq is not None else {}
     return write_trade_command(
         action=action,
         trade_id=trade_id,
@@ -1208,5 +1259,6 @@ def command_from_setup(
             "t4": _c4_target,  # 4th 1-lot OCO (Michael 07-15); None → 3-pair behavior
             "metadata": setup.get("metadata", {}),
         },
+        **_lq_kw,
     )
 

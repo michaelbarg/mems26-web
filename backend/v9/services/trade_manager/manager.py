@@ -732,7 +732,33 @@ class TradeManager:
         # sierra_command.py:351 — 4+ contracts with T0_TARGET_PTS set.
         import os as _t0_os
         _t0p = float(_t0_os.getenv("T0_TARGET_PTS", "0") or 0)
-        if _n_contracts >= 4 and _t0p > 0:
+        # T-610 · LADDER_221_V1 (Michael 19.10.2026, default OFF): the bracket
+        # shape is decided HERE, once, and recorded on the row — groups, T0 or
+        # not, and why — so the PLACE (command_from_setup reads it back through
+        # setup["ladder_plan"] / contract_size.remember_plan), the books, the
+        # panel, the phone and the reconciler all describe the same position.
+        # 2/2/1 (T1×2 · T2×2 · T3×1, no T0) only when the flag is on, the size is
+        # five and the loaded DLL advertises cap_lq=1; otherwise today's plan.
+        # Flag OFF → the elif below, byte-identical (no new keys at all).
+        from backend.v9.services.contract_size import (
+            ladder_221_enabled as _l221_on, ladder_plan as _ladder_plan_fn)
+        try:
+            _ladder_plan = _ladder_plan_fn(_n_contracts) if _l221_on() else None
+        except Exception as _lp_err:          # never cost a fire on a shape bug
+            logger.warning("[TradeManager] T-610 ladder plan errored — today's "
+                           "ladder kept: %s", _lp_err)
+            _ladder_plan = None
+        if _ladder_plan is not None:
+            quality["ladder_groups"] = list(_ladder_plan["groups"])
+            quality["has_t0"] = bool(_ladder_plan["has_t0"])
+            quality["ladder_reason"] = _ladder_plan["reason"]
+            if _ladder_plan["has_t0"]:
+                quality["t0_target_pts"] = _t0p
+            try:
+                setup["ladder_plan"] = dict(_ladder_plan)
+            except TypeError:
+                pass
+        elif _n_contracts >= 4 and _t0p > 0:
             quality["t0_target_pts"] = _t0p
             quality["has_t0"] = True
         # TARGET_MIN_SPACING_V1 (Michael 2026-08-21): the would-be ladder the
@@ -797,6 +823,12 @@ class TradeManager:
 
         self._db.add(trade)
         self._db.flush()  # get the id
+
+        if _ladder_plan is not None:
+            # T-610: the gateway hands command_from_setup a COPY of the setup —
+            # the decision travels by trade id, never re-made at PLACE time.
+            from backend.v9.services.contract_size import remember_plan
+            remember_plan(trade.id, _ladder_plan)
 
         self._machines[trade.id] = TradeStateMachine(TradeState.PENDING)
 
@@ -879,6 +911,12 @@ class TradeManager:
         machine = self._get_machine(trade)
         hit_ts = fill_ts or _market_now_utc()
         n_contracts = trade_contract_count(trade)
+        # T-610: which leg is the LAST one follows the trade's own ladder. A
+        # 2/2/1 five-lot has three legs (T1·T2·T3, no T0 — "כאילו זה 3
+        # חוזים"), so its T3 closes it exactly as a 3-contract trade's does.
+        # No recorded ladder (all history, flag off) → n_contracts, as before.
+        from backend.v9.services.contract_size import ladder_leg_count
+        n_legs = ladder_leg_count(trade, n_contracts)
 
         # T17 (Michael ruling 2026-07-20): 4-contract T0 remap.
         # The DLL always reports fills as T1/T2/T3/T4 (slot order). With
@@ -974,7 +1012,7 @@ class TradeManager:
             self._log_management(trade_id, "T1_HIT", {"ts": hit_ts.isoformat()})
             self._apply_smart_be_after_t1(trade)
             self._calculate_pnl(trade)
-            if n_contracts == 1:
+            if n_legs == 1:
                 self._close_on_final_target(trade, machine, "T1_HIT", hit_ts)
 
         elif target == "T2":
@@ -983,7 +1021,7 @@ class TradeManager:
             trade.t2_hit_ts = hit_ts
             self._log_management(trade_id, "T2_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
-            if n_contracts <= 2 and trade.t1_hit_ts is not None:
+            if n_legs <= 2 and trade.t1_hit_ts is not None:
                 self._close_on_final_target(trade, machine, "T2_HIT", hit_ts)
             # else: T2 before T1 (unusual) → stay PARTIAL until T1 fills
 
@@ -994,7 +1032,7 @@ class TradeManager:
             # Close ONLY if all contracts are out (T1+T2 already filled)
             # For 4-contract trades, T3 is not the last — T4 is.
             all_out = (trade.t1_hit_ts is not None and trade.t2_hit_ts is not None)
-            if all_out and n_contracts <= 3:
+            if all_out and n_legs <= 3:
                 self._close_on_final_target(trade, machine, "T3_HIT", hit_ts)
             # else: T3 filled before T2 (unusual) or 4-contract trade → stay PARTIAL
 
@@ -2639,9 +2677,10 @@ class TradeManager:
             # No quantity from Sierra → use the ladder weight of this leg's
             # group (the same table the DLL brackets with), never a blind 1:
             # at six the T1 and T2 groups hold TWO contracts each.
-            from backend.v9.services.contract_size import ladder_for
+            # T-610: THIS trade's ladder (a 2/2/1 five-lot's T2 group is two).
+            from backend.v9.services.contract_size import ladder_for_trade
             g = self._ladder_group_for(trade, kind)
-            w = ladder_for(trade_contract_count(trade))
+            w = ladder_for_trade(trade, trade_contract_count(trade))
             n = (w[g] if g is not None and g < len(w) else 0) or 1
         if column is None:
             # The COLUMN this leg's target persists into — that is what
@@ -2737,8 +2776,10 @@ class TradeManager:
         # pre-T-06 behavior is preserved exactly. Any size above the protected
         # ladder spills onto the last group — the same place
         # `target_index_for_contract` sends it.
-        from backend.v9.services.contract_size import ladder_for
-        weights = list(ladder_for(n_contracts))
+        # T-610: the weights are THIS trade's recorded ladder when it has one
+        # (2/2/1 at five: t1 ×2 · t2 ×2 · t3 ×1, no T0 group); otherwise today's.
+        from backend.v9.services.contract_size import ladder_for_trade
+        weights = list(ladder_for_trade(trade, n_contracts))
         _spill = n_contracts - sum(weights)
         if _spill > 0:
             weights[-1] += _spill

@@ -257,6 +257,9 @@ async def mobile_data(request: Request):
                    COALESCE((quality->>'t0')::float, NULL) AS t0,
                    quality->'exit_fills' AS exit_fills,
                    COALESCE((quality->>'contracts')::int, 0) AS contracts,
+                   quality->'ladder_groups' AS ladder_groups,
+                   quality->>'has_t0' AS has_t0,
+                   quality->>'t0_target_pts' AS t0_target_pts,
                    quality->>'pattern' AS pattern, state, mode,
                    pattern_id_at_entry,
                    firing_system,
@@ -288,7 +291,8 @@ async def mobile_data(request: Request):
                 from backend.v9.services.contract_size import open_contracts
                 _open_n, _ = open_contracts(
                     r.get("contracts") or 1, r.get("exit_fills"),
-                    [r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")])
+                    [r.get("t1_hit"), r.get("t2_hit"), r.get("t3_hit")],
+                    quality=r)   # T-610: the row's recorded ladder, if any
                 r["upnl_contracts"] = _open_n
                 r["upnl_usd"] = round(
                     sign * (mid - float(r["entry_price"])) * 5 * _open_n, 1)
@@ -310,8 +314,12 @@ async def mobile_data(request: Request):
             # contract really exits at T0. Built from the same ladder the DLL
             # brackets with, so the phone, the desktop and the broker agree.
             from backend.v9.services.contract_size import (
-                leg_hits, leg_prices, target_index_for_contract)
+                contract_ladder_of, leg_hits, leg_prices, target_index_for_contract)
             _n = max(r.get("contracts") or 0, 1)
+            # T-610: the row's own recorded ladder (2/2/1 at five: C1,C2→T1 ·
+            # C3,C4→T2 · C5→T3, no T0 leg); (None, 0) for every row without
+            # one → exactly today's mapping.
+            _lad_groups, _lad_off = contract_ladder_of(r, _n)
             _lvl = [r.get("t0"), r.get("t1"), r.get("t2"), r.get("t3")]
             # T-257 ROOT-FIX (2026-09-04): `_lvl_hit[0]` was the literal
             # `False`, so the T0 contract — which the ladder banks FIRST and
@@ -328,7 +336,8 @@ async def mobile_data(request: Request):
             _lvl_fill = leg_prices(r.get("exit_fills"))
             _contract_specs = []
             for _i in range(_n):
-                _leg = target_index_for_contract(_i, _n)
+                _leg = min(target_index_for_contract(_i, _n, groups=_lad_groups)
+                           + _lad_off, 3)
                 # a banked leg is worth what Sierra PAID, not what we aimed at
                 _px = _lvl_fill[_leg] if _lvl_fill[_leg] else _lvl[_leg]
                 _contract_specs.append(

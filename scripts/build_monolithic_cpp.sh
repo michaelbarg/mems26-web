@@ -35,7 +35,9 @@ echo "Source: $SRCDIR"
 # mtime is metadata; content is truth. If the monolith contains a marker that the
 # modular sources do not, it holds hand-edits and must never be regenerated,
 # whatever the timestamps say.
-MONOLITH_ONLY_MARKERS=("lq_sum" "OCOGroup4Quantity" "AccountBalance")
+# T-610 (2026-10-20): "cap_lq" — the per-group-quantity PLACE (lq1..lq4, 2/2/1 at
+# five) and its sierra_state.json capability flag; both live only in the monolith.
+MONOLITH_ONLY_MARKERS=("lq_sum" "OCOGroup4Quantity" "AccountBalance" "cap_lq")
 if [ -f "$OUTFILE" ]; then
     for _m in "${MONOLITH_ONLY_MARKERS[@]}"; do
         if grep -qF "$_m" "$OUTFILE" 2>/dev/null; then

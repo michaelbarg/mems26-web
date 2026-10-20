@@ -29,8 +29,15 @@ there, or contracts enter with no stop — see `MAX_PROTECTED_CONTRACTS`.
 """
 from __future__ import annotations
 
+import json
+import logging
 import os
+import re
+import time
+from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger("contract_size")
 
 # Ladder shape ruled by Michael 2026-08-16:
 #   "t0 - חוזה אחד · t1 - 2 חוזים · t2 - 2 חוזים · t3 - חוזה 1"
@@ -94,14 +101,18 @@ def ladder_for(contracts: int) -> tuple:
     return LADDER[n]
 
 
-def target_index_for_contract(i: int, contracts: int) -> int:
+def target_index_for_contract(i: int, contracts: int, groups=None) -> int:
     """Which target (0=T0, 1=T1, 2=T2, 3=T3) contract `i` (0-based) exits on.
 
     At six the ruling puts two contracts on T1 and two on T2, so the naive
     "contract i takes target i" mapping under-books a winner. This spells the
     mapping out once so the P&L, the panel and the DLL cannot drift apart.
+
+    The return value is the OCO GROUP index (0-based). `groups` (T-610) is the
+    trade's own recorded ladder — `contract_ladder_of()` hands it out together
+    with the group→leg offset; None = today's `ladder_for(contracts)`.
     """
-    groups = ladder_for(contracts)
+    groups = tuple(groups) if groups is not None else ladder_for(contracts)
     seen = 0
     for g_idx, qty in enumerate(groups):
         seen += qty
@@ -213,13 +224,18 @@ def leg_prices(exit_fills=None) -> list:
 
 
 def open_contracts(contracts: int, exit_fills=None,
-                   hit_flags=None) -> "tuple[int, str]":
+                   hit_flags=None, quality=None) -> "tuple[int, str]":
     """`(contracts still in the market, basis)` for one trade.
 
     basis is `"exit_fills"` (exact — Sierra's own per-leg quantities),
     `"ladder_hits"` (estimate — column flags weighted by the ruled ladder
     instead of the old flat -1, still blind to T0), or `"assumed_open"`.
     Never raises; never returns more than `contracts` or less than 0.
+
+    `quality` (T-610): the trade's quality dict (or the trade). When it carries
+    a recorded ladder (`ladder_groups`) the column flags are weighted by THAT
+    ladder's legs — a 2/2/1 five-lot's T2 closes two contracts, not one.
+    Without it (every historical row) the estimate is exactly today's.
     """
     try:
         total = max(0, int(contracts or 0))
@@ -231,7 +247,363 @@ def open_contracts(contracts: int, exit_fills=None,
     flags = list(hit_flags or [])
     if not any(flags):
         return total, "assumed_open"
+    legs = leg_quantities(quality, total) if quality is not None else None
+    if legs is not None:
+        out = sum(legs[i + 1] for i, v in enumerate(flags[:3]) if v)
+        return max(0, total - out), "ladder_hits"
     groups = ladder_for(total)
     # t1_hit..t3_hit map to ladder legs 1..3; leg 0 (T0) has no column.
     out = sum(groups[i + 1] for i, v in enumerate(flags[:3]) if v)
     return max(0, total - out), "ladder_hits"
+
+
+# ------------------------------------------------------------ T-610 · 2/2/1
+#
+# LADDER_221_V1 (Michael 2026-10-19): "נעבוד עם 5 חוזים לפי 2 2 1 כאילו זה 3
+# חוזים רק שבמימוש נתייחס בשלב הזה ככה" — five contracts split 2/2/1 over
+# T1/T2/T3, NO T0 scalp. Until now five always executed as LADDER[5] =
+# T0×1 · T1×2 · T2×1 · T3×1, so what he asked for and what the broker held
+# differed.
+#
+# The shape is a contract between TWO programs: this module (what the books
+# believe) and the DLL's lq[] table (what the broker is told to protect). A
+# 2/2/1 bracket needs a DLL that takes per-group quantities from the command
+# ("lq1".."lq4"); only the T-610 build does, and it says so in its 1 s
+# heartbeat (sierra_state.json "cap_lq":1). So the 2/2/1 plan is chosen ONLY
+# when the flag is on, the size is five AND a fresh state file reports the
+# capability. In every other case the plan is exactly today's: sending lq* to
+# a DLL that ignores them would book 2/2/1 against a broker bracketed
+# 1/2/1/1 — the very disagreement this exists to end.
+#
+# Decided ONCE per trade (TradeManager.accept_setup), recorded on the row
+# (quality.ladder_groups / has_t0 / ladder_reason) and handed to the PLACE
+# writer (setup["ladder_plan"] / remember_plan) — the command never re-decides
+# on its own. Every consumer reads the TRADE's ladder (ladder_for_trade,
+# contract_ladder_of, ladder_leg_count, leg_quantities); a row without
+# `ladder_groups` (all history, and every trade while the flag is off)
+# computes exactly as before.
+
+LADDER_221 = (2, 2, 1, 0)
+LADDER_221_CONTRACTS = 5
+#: A capability nobody vouched for in the last two minutes is not one (Rule 1).
+DLL_CAP_MAX_AGE_S = 120.0
+
+
+def ladder_221_enabled() -> bool:
+    """LADDER_221_V1 — read at call time, default OFF (byte-identical)."""
+    return _on("LADDER_221_V1")
+
+
+def _t0_target_pts() -> float:
+    try:
+        return float(os.getenv("T0_TARGET_PTS", "0") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def sierra_state_path() -> Path:
+    """The DLL's 1 s heartbeat file: <V9_EXPORT_DIR or ~/SierraChart_Data/v9_export>/sierra_state.json."""
+    raw = (os.getenv("V9_EXPORT_DIR") or "").strip()
+    base = Path(os.path.expanduser(raw or "~/SierraChart_Data/v9_export"))
+    if base.suffix.lower() == ".json":      # a script that points it at a file
+        base = base.parent
+    return base / "sierra_state.json"
+
+
+#: (path) -> ((mtime_ns, size), caps) — the DLL rewrites the file every second,
+#: so a hit only ever saves re-parsing the very same bytes.
+_CAP_CACHE: dict = {}
+
+
+def _read_state(p: Path):
+    """Parse sierra_state.json (tolerating Sierra's bare inf) — None when unreadable."""
+    for attempt in (0, 1):
+        try:
+            raw = p.read_text(encoding="utf-8", errors="replace").strip()
+            if raw:
+                data = json.loads(re.sub(r':\s*-?inf\b', ':null', raw))
+                if isinstance(data, dict):
+                    return data
+        except (OSError, ValueError):
+            pass
+        if attempt == 0:
+            time.sleep(0.05)   # the DLL truncates+rewrites in place: one retry
+    return None
+
+
+def dll_capabilities(state_path=None, *, now=None,
+                     max_age_s: float = DLL_CAP_MAX_AGE_S) -> dict:
+    """What the LOADED DLL says it can do — from its own heartbeat file.
+
+    Returns {"cap_lq": 0|1, "ok": bool, "why": str, "age_s": float|None}.
+    Missing, unreadable or stale (> max_age_s) → cap_lq 0. Never raises.
+    """
+    p = Path(state_path) if state_path is not None else sierra_state_path()
+    try:
+        st = p.stat()
+    except OSError:
+        return {"cap_lq": 0, "ok": False, "why": "sierra_state.json missing (%s)" % p,
+                "age_s": None}
+    _now = time.time() if now is None else float(now)
+    age = _now - st.st_mtime
+    if age > max_age_s:
+        return {"cap_lq": 0, "ok": False,
+                "why": "sierra_state.json stale (%.0fs > %.0fs)" % (age, max_age_s),
+                "age_s": round(age, 1)}
+    key = str(p)
+    stamp = (st.st_mtime_ns, st.st_size)
+    hit = _CAP_CACHE.get(key)
+    if hit is not None and hit[0] == stamp:
+        out = dict(hit[1])
+        out["age_s"] = round(age, 1)
+        return out
+    data = _read_state(p)
+    if data is None:
+        # not cached: the next call must look again
+        return {"cap_lq": 0, "ok": False, "why": "sierra_state.json unreadable",
+                "age_s": round(age, 1)}
+    try:
+        cap = int(data.get("cap_lq") or 0)
+    except (TypeError, ValueError):
+        cap = 0
+    caps = {"cap_lq": 1 if cap == 1 else 0, "ok": True,
+            "why": ("cap_lq=1" if cap == 1 else
+                    "the loaded DLL does not report cap_lq (pre-T-610 build — "
+                    "Remote Build pending)")}
+    _CAP_CACHE[key] = (stamp, caps)
+    while len(_CAP_CACHE) > 16:
+        _CAP_CACHE.pop(next(iter(_CAP_CACHE)))
+    out = dict(caps)
+    out["age_s"] = round(age, 1)
+    return out
+
+
+def _clamped(contracts) -> int:
+    try:
+        return max(1, min(int(contracts), MAX_PROTECTED_CONTRACTS))
+    except (TypeError, ValueError):
+        return 1
+
+
+def legacy_plan(contracts, reason: str) -> dict:
+    """Today's plan for `contracts` — LADDER[n], T0 at >= 4 when T0_TARGET_PTS > 0
+    (the condition accept_setup has always used), no lq* on the wire."""
+    n = _clamped(contracts)
+    return {"groups": tuple(LADDER[n]),
+            "has_t0": bool(n >= 4 and _t0_target_pts() > 0),
+            "lq_cmd": False, "reason": reason}
+
+
+def ladder_plan(contracts, *, dll_caps=None) -> dict:
+    """THE decision: how a trade of `contracts` is bracketed.
+
+    {"groups": (g1, g2, g3, g4), "has_t0": bool, "lq_cmd": bool, "reason": str}
+
+    lq_cmd=True only for: LADDER_221_V1 on AND contracts == 5 AND the loaded
+    DLL reports cap_lq == 1 (`dll_caps`, else read from sierra_state.json) →
+    groups (2, 2, 1, 0), has_t0 False: T1×2 · T2×2 · T3×1, no T0, no 4th leg.
+    Anything else → `legacy_plan` (exactly today), with the reason.
+    """
+    if not ladder_221_enabled():
+        return legacy_plan(contracts, "LADDER_221_V1 off")
+    try:
+        n_raw = int(contracts)
+    except (TypeError, ValueError):
+        n_raw = None
+    if n_raw != LADDER_221_CONTRACTS:
+        return legacy_plan(contracts, "contracts=%s (2/2/1 is ruled for %d only)"
+                           % (contracts, LADDER_221_CONTRACTS))
+    caps = dll_caps if dll_caps is not None else dll_capabilities()
+    try:
+        cap = int((caps or {}).get("cap_lq") or 0)
+    except (TypeError, ValueError, AttributeError):
+        cap = 0
+    if cap != 1:
+        why = (caps or {}).get("why") if isinstance(caps, dict) else None
+        return legacy_plan(contracts, "DLL cap_lq missing — %s"
+                           % (why or "no capability reported"))
+    return {"groups": LADDER_221, "has_t0": False, "lq_cmd": True,
+            "reason": "LADDER_221_V1 · DLL cap_lq=1"}
+
+
+def plan_fits(plan, contracts) -> bool:
+    """A plan can bracket `contracts` iff its groups are 4 non-negative ints,
+    the first >= 1, no group after an empty one, summing to the clamped size —
+    the same validation the DLL applies to lq1..lq4."""
+    if not isinstance(plan, dict):
+        return False
+    try:
+        g = tuple(int(x) for x in plan.get("groups"))
+    except (TypeError, ValueError):
+        return False
+    if len(g) != 4 or g[0] < 1 or any(x < 0 for x in g):
+        return False
+    if any(g[i] > 0 and g[i - 1] == 0 for i in range(1, 4)):
+        return False
+    return sum(g) == _clamped(contracts)
+
+
+def format_plan(plan) -> str:
+    """'2/2/1' (lq plan) · '1/2/1/1+T0' (today's five)."""
+    try:
+        g = [int(x) for x in plan.get("groups")]
+    except (TypeError, ValueError, AttributeError):
+        return "?"
+    if plan.get("lq_cmd"):
+        g = [x for x in g if x > 0]
+    return "/".join(str(x) for x in g) + ("+T0" if plan.get("has_t0") else "")
+
+
+#: trade_id (str) -> plan, written by accept_setup the moment the row exists.
+#: The gateway hands command_from_setup a COPY of the setup, so the decision
+#: travels by trade id. In-memory: a restart between accept and PLACE (which
+#: run back-to-back in one call) is not a case that exists.
+_PLANS: dict = {}
+_PLANS_CAP = 256
+
+
+def remember_plan(trade_id, plan) -> None:
+    if trade_id is None or not isinstance(plan, dict):
+        return
+    _PLANS[str(trade_id)] = dict(plan)
+    while len(_PLANS) > _PLANS_CAP:
+        _PLANS.pop(next(iter(_PLANS)))
+
+
+def recorded_plan(trade_id) -> Optional[dict]:
+    p = _PLANS.get(str(trade_id)) if trade_id is not None else None
+    return dict(p) if p is not None else None
+
+
+def plan_for_place(setup, trade_id, contracts) -> dict:
+    """The plan a PLACE carries — the trade's own, decided at accept_setup.
+
+    Order: setup["ladder_plan"] (same dict passed through) → the plan
+    remembered for `trade_id` (the gateway passes a copy) → decide now (drills
+    and scripts that PLACE with no trade row). A recorded plan that cannot
+    bracket `contracts` (the size moved between accept and PLACE) is not sent:
+    the PLACE goes out with today's ladder and the reason says why.
+    Adds "source": setup | recorded | decided | mismatch.
+    """
+    cands = []
+    if isinstance(setup, dict) and isinstance(setup.get("ladder_plan"), dict):
+        cands.append(("setup", setup["ladder_plan"]))
+    _rec = recorded_plan(trade_id)
+    if _rec is not None:
+        cands.append(("recorded", _rec))
+    for src, cand in cands:
+        if plan_fits(cand, contracts):
+            out = dict(cand)
+            out["groups"] = tuple(int(x) for x in cand.get("groups"))
+            out["source"] = src
+            return out
+        out = legacy_plan(contracts, "recorded plan %s does not fit contracts=%s"
+                          % (format_plan(cand), contracts))
+        out["source"] = "mismatch"
+        return out
+    out = ladder_plan(contracts)
+    out["source"] = "decided"
+    return out
+
+
+# --- the trade's own ladder, for every consumer --------------------------
+
+def _quality_of(obj) -> dict:
+    """A quality dict from a trade, a quality dict, or a DB row dict that
+    selected ladder_groups/has_t0/t0_target_pts by those names."""
+    if isinstance(obj, dict):
+        return obj
+    q = getattr(obj, "quality", None) if obj is not None else None
+    return q if isinstance(q, dict) else {}
+
+
+def _truthy(v) -> bool:
+    """has_t0 arrives as a bool (ORM) or as 'true'/'false' text (->> in SQL)."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v != 0
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "yes", "t")
+    return False
+
+
+def trade_has_t0(trade_or_quality) -> bool:
+    """The rule manager.py has always used (`t0_target_pts or has_t0`),
+    tolerant of SQL text values."""
+    q = _quality_of(trade_or_quality)
+    try:
+        pts = float(q.get("t0_target_pts") or 0)
+    except (TypeError, ValueError):
+        pts = 0.0
+    return pts > 0 or _truthy(q.get("has_t0"))
+
+
+def recorded_ladder(trade_or_quality, contracts=None) -> Optional[tuple]:
+    """The trade's recorded `ladder_groups`, validated — else None.
+
+    None for every row written without LADDER_221_V1 (all history), and for a
+    record that does not bracket `contracts` (callers then use today's
+    `ladder_for`, so a damaged record can never invent a shape)."""
+    raw = _quality_of(trade_or_quality).get("ladder_groups")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return None
+    if not isinstance(raw, (list, tuple)) or len(raw) != 4:
+        return None
+    try:
+        groups = tuple(int(x) for x in raw)
+    except (TypeError, ValueError):
+        return None
+    if groups[0] < 1 or any(g < 0 for g in groups):
+        return None
+    if contracts is not None and sum(groups) != _clamped(contracts):
+        return None
+    return groups
+
+
+def ladder_for_trade(trade_or_quality, contracts) -> tuple:
+    """Per-OCO-group quantities THIS trade was bracketed with: its recorded
+    ladder when present and consistent, else today's `ladder_for(contracts)`."""
+    rec = recorded_ladder(trade_or_quality, contracts)
+    return rec if rec is not None else ladder_for(contracts)
+
+
+def contract_ladder_of(trade_or_quality, contracts) -> "tuple[Optional[tuple], int]":
+    """(groups, leg_offset) for mapping contract i → LEG (0=T0 .. 3=T3):
+
+        leg = min(target_index_for_contract(i, n, groups=groups) + leg_offset, 3)
+
+    A recorded ladder WITHOUT a T0 starts at T1, so group 0 is leg 1 (2/2/1:
+    C1,C2→T1 · C3,C4→T2 · C5→T3). No record → (None, 0) = exactly today's map.
+    """
+    rec = recorded_ladder(trade_or_quality, contracts)
+    if rec is None:
+        return None, 0
+    return rec, (0 if trade_has_t0(trade_or_quality) else 1)
+
+
+def ladder_leg_count(trade_or_quality, contracts) -> int:
+    """How many legs (non-empty groups) the trade's recorded ladder has — the
+    2/2/1 five-lot has three ("כאילו זה 3 חוזים"), so its T3 is the last leg.
+    No record → `contracts`, the number the close logic has always compared."""
+    rec = recorded_ladder(trade_or_quality, contracts)
+    if rec is None:
+        try:
+            return int(contracts)
+        except (TypeError, ValueError):
+            return 0
+    return sum(1 for g in rec if g > 0)
+
+
+def leg_quantities(trade_or_quality, contracts) -> Optional[list]:
+    """Contracts per LEG [T0, T1, T2, T3] from the recorded ladder, else None
+    (callers keep today's estimate)."""
+    rec = recorded_ladder(trade_or_quality, contracts)
+    if rec is None:
+        return None
+    if trade_has_t0(trade_or_quality):
+        return list(rec)
+    return [0] + list(rec[:3])

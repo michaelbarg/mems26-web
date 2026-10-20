@@ -948,10 +948,13 @@ def reconcile_position(tm, *, fill_poller=None, gateway=None) -> Tuple[bool, str
             from backend.v9.services.contract_size import open_contracts
             _q = getattr(t, "quality", None)
             _q = _q if isinstance(_q, dict) else {}
+            # T-610: `quality=_q` — a recorded ladder (2/2/1 at five) weights the
+            # column-flag estimate by ITS legs; rows without one: as before.
             n, _basis = open_contracts(
                 trade_contract_count(t), _q.get("exit_fills"),
                 [getattr(t, k, None) is not None
-                 for k in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts")])
+                 for k in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts")],
+                quality=_q)
             if direction == "LONG":
                 tm_qty += n
             elif direction == "SHORT":

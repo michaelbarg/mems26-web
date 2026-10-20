@@ -430,9 +430,13 @@ def get_active_trade(db: Session = Depends(get_db)):
     # (contract_size.target_index_for_contract), so the screen and the broker
     # cannot describe the position differently.
     from backend.v9.services.trade_manager.manager import trade_contract_count
-    from backend.v9.services.contract_size import target_index_for_contract
+    from backend.v9.services.contract_size import (
+        contract_ladder_of, target_index_for_contract)
     n_contracts = trade_contract_count(trade)
     _q = trade.quality if isinstance(trade.quality, dict) else {}
+    # T-610: the trade's OWN recorded ladder (2/2/1 at five: C1,C2→T1 · C3,C4→T2
+    # · C5→T3, no T0 row). (None, 0) for every row without one → today's map.
+    _lad_groups, _lad_off = contract_ladder_of(_q, n_contracts)
     _t0 = _q.get("t0")
     try:
         _t0 = float(_t0) if _t0 is not None else None
@@ -444,7 +448,8 @@ def get_active_trade(db: Session = Depends(get_db)):
     _hits = [None, trade.t1_hit_ts, trade.t2_hit_ts, trade.t3_hit_ts]
     contracts = []
     for _i in range(max(0, int(n_contracts))):
-        _leg = target_index_for_contract(_i, n_contracts)
+        _leg = min(target_index_for_contract(_i, n_contracts, groups=_lad_groups)
+                   + _lad_off, 3)
         contracts.append(_contract(
             "C%d" % (_i + 1), _targets[_leg], _hits[_leg],
             smart_be=(trade.t1_hit_ts is not None and _hits[_leg] is None)))
