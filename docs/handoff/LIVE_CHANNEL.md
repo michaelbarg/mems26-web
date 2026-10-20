@@ -1,3 +1,208 @@
+🔴 **[cowork-daily · ריצה 367 · 20.10 15:34→16:0x IL · **חובה-1 + חובה-2 המלאה (סיכום-19.10 + שער-היום)** · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה בדגלים/פוזיציות/קוד-מסחר · **ממצא חוסם-שער חדש ([[T-612]]): `fire_drill 🔴 NO-GO` — `guard_tests` אדום, והשורש הוא פסיקת-5-החוזים ולא T-610**]**
+
+**חובת-הזמן קודם כל השאר:** `date ⇒ 2026-10-20 15:34:47 IDT (Tue)` ⇒ `15:34 ∈ 15:30-16:10` ⇒ **זו ריצת-השער**, וחובה-2 במלואה בתחום. ריצות 357→366 של היום היו **כולן חובה-1 בלבד** ⇒ הסיכום-היומי של 19.10 טרם נעשה היום, והוא כאן.
+
+**בקרה-עצמית #1 (מלכודות 39+40):** הפקודה הראשונה בריצה הייתה `git pull --ff-only` ⇒ `"Already up to date."` — כלומר ההוראה שבפרומפט-המשימה גברה שוב על הנוסח שברנבוק, בדיוק כפי שמלכודת 40 חזתה. **הפעם המדידה כן שרדה:** `"Already up to date"` הוא בעצמו `behind=0`, ואוששה עצמאית ⇒ `git rev-list --left-right --count HEAD...@{u} ⇒ 0  0`. סחיפת-עץ נמדדה **במעוקבים בלבד** (מלכודת 40): `git status --porcelain | grep -v '^??' | wc -l ⇒ **14**` (361 דיווחה 16; ההפרש הוא `harness_out/t561/run.sh` ‏`D` ועוד קובץ-הרנס — תוצרים, לא קוד-מסחר).
+
+---
+
+## חובה-1 · אפס ממתינות ⇒ שקט מוחלט בטלפון
+
+הדוור הוכח חי **לפני** שהוסקה שתיקה ([[T-260]], מלכודת 12), והפרדיקט אגנוסטי-לאיות ([[T-596]], מלכודת 37):
+```raw
+launchctl print gui/$UID/com.mems26.mobile_relay ⇒ state = running · pid = 1629
+RELAY_WINDOW_IL=10:00-23:30  ו-15:37 בתוכו ⇒ /chat אינו חלון-סגור (מלכודת 32)
+GET /chat?key=…                   ⇒ http=200 · bytes=17733 · items=30   (זהה-בייט ל-365/366)
+senders {cowork-dev 19 · cowork 5 · supervisor 4 · מייקל 1 · cc 1}
+   פרדיקט MICHAEL=('michael','מייקל','michael barg') ⇒ michael idx = [3]  (sender=='michael' לבדו היה מחזיר 0)
+   אחרונת-מייקל 2026-10-07T10:50:03Z "תבקש מקלוד שיבדוק מה הולך ומה בוצע ומה תוקן…"
+   items[4:] ⇒ 26 פריטי-סוכן; הענייני (ולא אישור-הקבלה של cc באותה שנייה) = cowork-dev 07.10 11:11:10 ⇒ **נענתה**
+GET /instruction/pending ⇒ {"items":[]}      GET /cmd/pending ⇒ {"cmd":null}
+PHONE_THREAD.jsonl ⇒ 766 שורות · 0 בלתי-מפוענחות · {מייקל 133 · cowork 403 · cc 116 · cowork-dev 106 · supervisor 6}
+   אחרונת-מייקל 2026-10-07T10:50:03Z ואחריה 26 שורות ⇒ אפס ממתינה
+עסקאות היום (כל המודים, ללא פילטר-mode — §3.11) ⇒ 0 שורות ⇒ אפס (ב)
+אפס שורת-"תיוג עסקה #" ⇒ אפס רישום ל-TRADE_TAGS.jsonl
+```
+⇒ אפס (א) · אפס (ב) · אפס (ג) · אפס (ד) ⇒ **אפס `phone_reply.py`, שתיקה מוחלטת.**
+
+---
+
+## חובה-2א · סיכום 19.10 (שני)
+
+**מסלול-המחיר קודם, אחרת ספירת-חסימות היא מספר בלי משמעות:**
+```raw
+DAY נגזר מהנתונים ולא מ-CURRENT_DATE (§3.3) ⇒ max RTH day = 2026-10-19
+RTH 09:30-16:00 ET ⇒ n=78 · first_close 7743 · last_close 7734.75 · high 7773.25 · low 7727.5  (נטו −8.25, טווח 45.75)
+```
+
+**P&L — לייב · דמו · צל, ומה שאינו נטען:**
+```raw
+mode spelling sanity (§3.11) ⇒ shadow|3082 · live|230 · demo|37   (האיות קטן; 'LIVE' היה מחזיר 0)
+19.10 (entry_ts ב-ET, ORDER BY … NULLS LAST — מלכודת 17):
+  live   ⇒ **0 עסקאות**  (live_enabled_systems [] · MEMS26_MODE=demo · Sim1 · is_sim 1)
+  demo   ⇒ n=4  · 3 מוערכות Σ **−$82.50**  · 1 UNPRICED (#3515 SIERRA_FLAT)
+  shadow ⇒ n=109 · 98 מוערכות Σ **+$98.57** · 11 STALE_UNRESOLVED (ללא מחיר)
+  פילוח-תוצאה: shadow WIN 46 = +2,795.45 · LOSS 52 = −2,696.88  ⇒ 46/98 = **46.9% מנצחות**
+  exit_reason: STOP_HIT 55 · T1_HIT 46 · STALE_UNRESOLVED 11 · SIERRA_FLAT 1
+  גודל שנרשם בפועל: contracts=1 בכל 4 הדמו ובכל 98 הצל ⇒ **19.10 נסחר בחוזה 1**
+  pnl_sierra ⇒ **0 שורות בשני המודים**
+תבניות-צל, קצות-הטווח: ZLR n=47 18W +147.50 · CEILING_FLIP_TOUCH2 n=24 10W +128.75 · FAMIR n=3 2W +125.00
+                        INITIATIVE_LONG n=2 1W −152.50 · REACTIVE_LONG n=1 0W −112.50 · OPENING_PULLBACK_CONT n=1 0W −75.00
+```
+🚫 **ומה שבמפורש אינו נטען (כלל 1):** (1) `pnl_sierra=0` **אינו** "אין רישום-ברוקר" — `broker_truth.py:50` מסוקף ל-`where mode='live'`, ו-19.10 היה **אפס עסקאות-לייב** ⇒ **אין מה לאמת, ולא נדרש `broker_truth`** ([[T-607]] ללא שינוי). (2) `sierra_state.daily_pnl −53.75` אינו P&L של המערכת (`trades_today 0`, לייב מושבת, החשבון משותף — §3.5).
+
+**ליגר 19.10 — שלושת שדות-הזמן, אחרת חצי-המודעות נושר (מלכודת 21):**
+```raw
+data_handoff/מק-1/2026-10-19/gateway_decisions.jsonl ⇒ total_lines 235 · json-bad 0
+ts-field used ⇒ {ts: 109, observed_at: 126}   ← ספירה לפי ts לבדו הייתה מוחקת 126 שורות (54%)
+event_type ⇒ GATE_DECISION 97 · DETECTED 64 · EMIT_DECISION 62 · ROUTED 12
+**FUNNEL: DETECTED 64 → EMIT 62 → GATE 97 → ROUTED 12  (ROUTED/DETECTED 18.8%)**
+outcome ⇒ blocked 97 · shadow_only 8 · demo 4 · (none) 126
+DETECTED בפילוח-כיוון ⇒ SHORT 32 · LONG 32 (סימטרי)   ·   ROUTED לפי מערכת ⇒ sys2 8 · sys4 4
+-- blocked_by על שורות GATE_DECISION בלבד (מלכודת 31 — אפס ניפוח ×2/×3) --
+   31  tree:bias          28  tree:location      13  tree:time_cutoff    9  tree:stand_down
+    5  entry_not_confirmed 5  pattern_stop_cooldown  4  rr_entry_gate      1  entry_location_quality   1  cold_start_guard
+EMIT_DECISION דחיות: dedup 9 · duplicate_bar_ts 1 · FLOOR_FAILED 2 (בשלב DETECTED)
+```
+
+**ציון-המודעות ([[T-159]]) — 4/4 ≥80%, אפס 🔴:**
+```raw
+ציון-המודעות · 2026-10-19 (ET) · 78 ברי-RTH
+  יום        65/78    83.3%  ✅        רמות       78/78   100.0%  ✅
+  מועמדים    16/19    84.2%  ✅        החלטות     65/78    83.3%  ✅
+  ליגר 235 שורות (parsed 235 + json-bad 0 + no-usable-ts 0) · TPO 13 צילומים
+  נגיעות-VA בלי DETECTED: 09:30(VAH+VAL) · 10:00(VAL) · 15:55(VAL)
+```
+
+**צל-S1DayDir · EntryGuard · הצלבות (שער-ד0 עבר קודם, אחרת אפס-שורות הוא עיוורון — §3.9):**
+```raw
+[boot] logging OK — **השורה האחרונה** ⇒ 2026-10-20 15:21:59 … pid=94885 commit=7434b71f
+lsof -p 94885 | grep '\.log' ⇒ fd 1u /tmp/backend.log · **fd 2u /tmp/backend.err.log**  (§3.1 — האפליקציה כותבת ל-err)
+ספירות תחומות ליום (grep "^2026-10-19"):
+  S1DayDir            10,931   ← הצל חי וכותב (רעש מוכר, [[T-282]])
+  OPENING_DIR_FUSION   2,614       TREND_STEP 37       SHADOW trade TM 109   ← ‏109 == 109 שורות-הצל ב-DB ✔
+  COMMAND QUEUED 5 (#404-#407 op=PLACE)   ← 4 פקודות מול 4 עסקאות-דמו ⇒ אפס fill זר
+  LIVE trade TM id 0 · LIVE fire BLOCKED pre-send 0 · pre_send_entry_guard 0 · ExitVerify 0
+ledger live_blocked_by (הפוסק היחיד ל-EntryGuard — מלכודת 25, **לא** grep על "[EntryGuard]") ⇒ **0**
+```
+🚫 **EntryGuard נרשם `לא-נבחן`, לא `עובד`** (§3.6): אפס עסקאות-לייב ⇒ לשומר לא הייתה הזדמנות לירות. אותו דבר ל-`ExitVerify`.
+
+---
+
+## 🔴 חובה-2ב · הממצא — `fire_drill 🔴 NO-GO`, והשורש הוא הגודל ולא T-610 ⇒ [[T-612]]
+
+```raw
+python3 scripts/fire_drill.py  ⇒  🔴 NO-GO — 1 כשלים:  · guard_tests
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestGoldenReplay2038::test_golden_2038_places_with_t1_only
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestWrongSideIsDropped::test_long_target_below_entry_is_dropped
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestWrongSideIsDropped::test_short_target_above_entry_is_dropped
+  3 failed, 168 passed  ⇒  🔴 GUARDS RED (rc=1) — a live behaviour changed. Do not arm on this.
+```
+**חתימת-הכשל זהה בשלושתם, והיא שרשרת של שתי התנהגויות פסוקות:**
+```raw
+[SierraCmd] T-438 LADDER SANITIZE trade t438-golden: SHORT 7782.5/7786.0/7779.0 → 7782.5/None/None
+            — dropped [t2 NOT_BEYOND, t3 TRUNCATED] (never moved, never invented)
+[SierraCmd] T-214: PLACE rejected — t3=None invalid on **5 contracts**. Every contract must have a target.
+AssertionError: PLACE still rejected (t3_missing) — the fire of 21.09 18:30:03 is still lost
+```
+**בידוד — ארבע הרצות, אותו HEAD, רק הסביבה משתנה (Rule 5):**
+```raw
+FIXED_CONTRACTS_1=1 (פסיקת 18.09)        ⇒ **11 passed**
+FIXED_CONTRACTS_2=1                      ⇒ **11 passed**
+FIXED_CONTRACTS_5=1 + LADDER_221_V1=1    ⇒ 3 failed, 8 passed
+FIXED_CONTRACTS_5=1 + LADDER_221_V1=**0** ⇒ 3 failed, 8 passed   ← **אותם שלושה בדיוק**
+```
+⇒ **‏T-610/`LADDER_221_V1` אינו הגורם** — כיבויו אינו משנה דבר. הגורם הוא **פסיקת-5-החוזים** (19.10 22:2x, [[T-611]]): ‏`T3_REQUIRED_V1` (‏`sierra_command.py:1032`, פסיקת-מייקל 01.09) דוחה `PLACE` על `t3<=0` **ב-`_contracts >= 3`**, בעוד הסניטייז של [[T-438]] מייצר בכוונה סולם `t1`-בלבד. ב-1-2 חוזים השניים **אינם נפגשים** — [[T-438]] §4 כתוב במפורש *"נשאר רק T1 ⇒ PLACE ממשיך (בחוזה-1 סולם (1,0,0,0) ⇒ T1 הוא כל הסולם)"*; ב-5 חוזים הם **מתנגשים מבנית**.
+
+**וזה אינו תיאורטי — אותו אירוע בדיוק קרה אתמול פעמיים ועבר, כי הגודל היה 1:**
+```raw
+grep "^2026-10-19.*LADDER SANITIZE" /tmp/backend.err.log  ⇒ 2 שורות
+ 20:15:05  trade **3483**: LONG 7761.0/7751.75/7759.75 → 7761.0/None/None  [t2 NOT_BEYOND, t3 TRUNCATED]
+ 21:40:05  trade **3515**: LONG 7756.25/7751.75/0.0     → 7756.25/None/None [t2 NOT_BEYOND]
+השורה שאחרי כל אחת מהן:
+ 20:15:05  [SierraCmd] COMMAND QUEUED #404 → cmd_000404.json (op=PLACE)   ← **נכנסה לשוק**
+ 21:40:05  [SierraCmd] COMMAND QUEUED #407 → cmd_000407.json (op=PLACE)   ← **נכנסה לשוק**
+contracts שנרשמו ב-19.10 ⇒ demo 1×4 · shadow 1×98   ·   T-214 PLACE rejected בכל הלוג ⇒ **0**
+```
+⇒ **אותן שתי ירי ב-5 חוזים היו נדחות כולן.** הקצב הנמדד הוא ~2 אירועי-סניטייז ליום-מסחר ⇒ **עד 2 ירי אבודים ביום** מהיום. ושימו לב ל-`#3515`: היא **גם** ה-UNPRICED/`SIERRA_FLAT` של אתמול — כלומר הסניטייז נוגע בדיוק בעסקאות הבעייתיות.
+
+**מחלקה מוכרת, ולכן לא פריט-כפול:** [[T-461]] (24.09) הוא אותו דפוס בדיוק — שומר-רגרסיה שאינו מקבע דגל שפסיקה חדשה הדליקה, ובו נכתב *"`T3_REQUIRED_V1` דוחה PLACE על `t3<=0` רק ב-≥3 חוזים ו-`ruled_contracts()`=1 ⇒ **אפס חשיפה חיה היום**"* — התנאי שהחזיק אז **בטל מהיום**. ו-[[T-276]] §3 פוסק מראש את הכיוון: ***"אין להרפות את `T3_REQUIRED_V1`" — הכיוון הנכון הוא לספק `t3`, לא לוותר על ההגנה.***
+
+🚫 **ולמה לא "תיקנתי את הטסט" כדי להוריד את ה-NO-GO:** קיבוע `contracts=1` בטסט היה מחזיר ירוק **ומסתיר חור-התנהגות אמיתי בגודל הפסוק** — בדיוק "ההוראה האחרונה דרסה את הקודמת בלי מדידה" (דוקטרינת-הלמידה). השומרים **אדומים בצדק**: הם מקבעים ש"הירי של 21.09 לא ייאבד", ובגודל 5 הוא **כן נאבד**. התיקון האמיתי (לספק `t3` ב-5 חוזים · או לתקרר את הגודל כשהסולם סונטז · או להרפות T-214) הוא **שינוי משטח-סיכון** ⇒ פסיקת-מייקל. **אפס שינוי-קוד, אפס דגל, אפס `.env`.**
+
+🟡 **הקלה שמצמצמת את הדחיפות ולא מבטלת אותה:** `live_enabled_systems []` · `is_sim 1` · `Sim1` ⇒ **אפס כסף אמת בסיכון**; הנזק הוא **אובדן-ירי בדמו**, כלומר פגיעה במכשיר-המדידה עצמו, לא בחשבון.
+
+---
+
+## 🔒 חובה-2ב · בעלות-הריסטארט — נלקחה פעמיים היום, ונמדדה מחדש ולא הועתקה מ-366 ([[T-369]])
+
+```raw
+lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ Python **94885** … TCP *:8000 (LISTEN)     (מלכודת 30 — לא lsof -ti)
+ps -o pid,lstart,etime,rss -p 94885 ⇒ 94885 · **Tue Oct 20 15:21:56 2026** · etime 17:07 · rss 102,876K
+   ⇒ **עלה היום אחרי 12:00** — ו**אינו** ה-pid 89931 מ-14:27 שמדדה ריצה 366 לפני 20 דקות ⇒ ריסטארט **שני** היום
+ראש LIVE_CHANNEL ⇒ 🟢 "[cowork · 20.10 15:21 IL · ריסטארט שני לפני הפתיחה (pid 89931 → 94885) — T-610 (2-2-1) נטען]"
+```
+⇒ שני פוסקי-כלל-הבעלות מתקיימים ⇒ **⛔ אפס ריסטארט · ⛔ אפס הודעת-GO/NO-GO לטלפון** (הודעת-שער שנייה = הצפת [[T-369]]). מה שנשאר בסמכותי — `fire_drill`/`flag_guard`/אימות-`ruled_contracts()` **כמדידה** ו**שורת-המדידה הזאת**. ⇒ **ולכן ה-NO-GO של [[T-612]] מגיע לכאן ולא לטלפון.**
+
+## שערים ומצב-חי (כל השאר ירוק)
+
+```raw
+גודל   ⇒ set -a; . ./.env; set +a; ruled_contracts() ⇒ **5**   ([[T-611]]; בלי .env ⇒ None, [[T-489]])
+          .env ⇒ FIXED_CONTRACTS_5=1 · 1/2/3/4/6=0   ·   RULED_FLAGS:316 FIXED_CONTRACTS_5 expected '1' (מייקל 19.10)
+          fire_drill שלב C ⇒ ✓ effective_contracts == 5  ⇒ **הגודל תואם את הפסיקה — PASS ולא NO-GO**
+          ⛔ אפס נגיעה ב-FIXED_CONTRACTS_* ([[T-225]]).  **והערה לפרומפט-המשימה:** "1 חוזה (FIXED_CONTRACTS_1=1)"
+          שכתוב בו הוא **הפסיקה המוחלפת** — RULED_FLAGS:45 נותן ל-_1 expected "0" מ-19.10. זהו [[T-611]] צעד (3), בבעלות מייקל.
+דגלים  ⇒ **FLAG-GUARD: PASS — all 282 ruled flags match** (rc=0; היה 281 ב-365/366 ⇒ +LADDER_221_V1)
+          הדיווח היחיד: ⚠ FOOTPRINT_DISABLED plist=true ≠ .env=0 ⇒ ה-plist גובר, פסיקה ממתינה ([[T-435]]/[[T-563]]) — **לא נגעתי**
+          fire_drill שלב Y ⇒ ✓ yaml_valid 282   ·   שלב A ✓   ·   שלב B ✓ ×4 (ATR-14 ≈ 5.6 נק')
+פיד    ⇒ PGTZ=UTC (מלכודת 19): max(ts) v9_bars_5min_woodies = **2026-10-20 12:35:00+00** · now 12:39:19 · age **4:19**
+          12 ברים ב-60 הדק'  ·  **התקדמות ולא טריות-קובץ** ([[T-430]]): 15:05 (ריצה 366) → 15:35 = **+6 ברים ב-30 דק'**
+          fire_drill שלב D ⇒ ✓ "last bar 2026-10-20 15:40:00+03 · age 1 min · market OPEN" · feed age=278ms
+ליגר   ⇒ v9_decision_vectors היום **178** · אחרון 15:35:00 IL ⇒ כותב.  (מלכודת 26: `find_ledger(today) ⇒ None` לפני 23:05
+          הוא תכונת-לוח-זמנים ואינו נבדק כאן; הפוסק של טרום-RTH הוא ספירת-אתמול + הכותב החי ב-DB)
+לוג    ⇒ שער-ד0 עבר (למעלה) · fire_drill ✓ "T-61 שכבת-INFO" + "רמת-INFO זורמת בפועל" · 656 שורות INFO אחרי הבוט
+מסחר  ⇒ gateway/status: live_enabled [] · demo_enabled [2,4] · live_slot None · demo_slot None · trades_today 0
+          daily_pnl 0.0 · chop_state RESPECTING · shadow_active_count 0 (מלכודת 15 — חוצץ, לא מונה-פתוחות)
+          state NOT IN (CLOSED,CANCELLED) ⇒ **0 שורות** (מלכודת 14 — הפוסק הוא state, לא exit_ts)
+          sierra_state: is_sim 1 · Sim1 · position_qty 0 · working_orders 0 · last_price 7724.0 · order_placement_armed 1
+          ⇒ שטוח בשני הצדדים ⇒ אפס אזעקת-פוזיציה, ואין בכלל פער לייחס לפי order_id
+day_type ⇒ UNKNOWN conf 0.0 · lock PENDING · session_min 0 ⇒ **טרום-פתיחה, צפוי** (fire_drill ✓ "day_type קיים")
+health ⇒ 200 ב-**2.5ms**   ·   task_log_guard ✅ 586 פריטים / 0.0 ימים   ·   wire_guard ✓ 57/11
+צל    ⇒ close_stale_shadow dry ⇒ "no stale shadow trades — nothing to do" ⇒ **אפס `--apply`** (אפס סיכון-ה-CPU של 16.09)
+```
+
+⚠️ **T-610 — ההצהרה שחסרה, ולכן 2-2-1 אינו פעיל (מדידה, לא השערה):**
+```raw
+sierra_state.json ⇒ **cap_lq <absent>**  (ולא 1)   ·   order_placement_armed 1
+```
+⇒ לחיצת-היד של [[T-610]] אינה מתקיימת ⇒ הבקאנד נשאר בסולם של היום `(1,2,1,1)+T0` עם `LADDER 5c fallback`, ו-`2/2/1/0` **אינו נשלח**. זה **עקבי** עם רשומת-15:21 ("ממתין ל-Remote Build בסיירה") ⇒ אינו ממצא חדש, אלא אישור-מדידה: **עד ה-Remote Head ⇒ הסולם הוא (1,2,1,1)**.
+
+🚫 **[[T-34]] מרג'ין — לא נמדדה ולא הומצאה (כלל 1 · מלכודת 36):**
+```raw
+acct_available_funds / acct_margin_req / acct_cash_balance ⇒ כולם **1.7976931348623157e+308** = סנטינל DBL_MAX
+fire_drill ⇒ "[MarginSizing] acct_available_funds is a sentinel (1.8e+308) — account data unusable, size left unchanged"
+acct_under_margin ⇒ 0
+```
+⇒ הפוסק "avail < $1,595" **אינו ניתן-לחישוב** ⇒ נרשם `missing`, אפס השוואה, ואינו חוסם-מסחר היום (לייב מושבת) ⇒ **אפס מקרה (ג)**.
+
+⚠️ **`machine_health` — WARN-בלבד, ל-LIVE_CHANNEL ולא לטלפון; לחץ-הזיכרון החמיר מאז 366:**
+```raw
+WARN: unused RAM **94M** < 400M   (365: 53M · 364: 283M · 363: 31M)      WARN: swap used **3,231M** > 500M (365: 3,203M)
+מחסנית-המסחר רזה: backend rss 101MB · bridge 17MB · postgres 684MB · frontend 1MB · phone-relay 23MB
+הצרכנים אינם מסחר: claude-app 2,697M · cowork-vm 2,322M · chrome 863M · claude-agents 360M
+```
+🚫 **ועמודות ה-`cpu` של `machine_health` אינן מדד** (מלכודת 23, חידוד 18.10): `sierra n=2 cpu 140.8%` הוא `%cpu` של `hits[0]` מ-`ps`, כלומר ממוצע-דועך-רועש של חבר-דלי בודד — **לא נמדד** ב-`Δcputime/Δwall` ולכן **אינו מיוחס ואינו מדווח כממצא**.
+
+---
+
+**📌 פריט חדש אחד — [[T-612]]** (ב-`TASK_LOG` + שורת-`STATUS_BOARD`). **אפס פריט נסגר.**
+
+**⛔ אפס נגיעה:** ריסטארט · דגל · `.env` · דגלי-גודל · `RISK_*` · פוזיציות · פקודות · op=EXIT/FLATTEN · קוד-ייצור · DLL · סיירה · כתיבת-DB · הרנס · `--apply` · `phone_reply.py`. קימוט **by-path** בלבד, אפס `git add -A` ([[T-584]]).
+
+**הצעד-הבא לריצה 368 (≥16:30 ⇒ חובה-3):** (1) האם `cap_lq` הופיע ⇒ אם כן, לאמת `lq":"2/2/1/0"` בירי-הדמו הראשון; (2) **המבחן החד של [[T-612]]** — ‏`grep "T-214: PLACE rejected" /tmp/backend.err.log` בתוך RTH: הופעה ראשונה = החור נמדד בשטח ולא רק בשומרים, ואז זו **חריגה שדורשת פסיקה** (מקרה ג) ולא עוד שורת-ערוץ; (3) `max(ts)` מול שעון-השוק ולא `mtime`; (4) ספירת-ERROR **מסוננת** ל-non-`TS-OFFSET-GATE` (מלכודות 33/34).
+
+---
+
 🟢 **[cowork · 20.10 15:21 IL · ריסטארט שני לפני הפתיחה (pid 89931 → 94885) — T-610 (2-2-1) נטען, ממתין ל-Remote Build בסיירה]**
 - **T-610 `LADDER_221_V1=1` (7434b71fc + RULED_FLAGS 22e66d49e):** 5 חוזים = T1×2 · T2×2 · T3×1 בלי T0. **לחיצת-יד:** הבקאנד שולח `lq1..lq4=2,2,1,0` רק כש-sierra_state.json (טרי, עד 120 שנ׳) מצהיר `cap_lq:1`, וזה קורה רק ב-DLL החדש. בלי ההצהרה הוא נשאר בסולם של היום 1/2/1/1+T0, עם WARNING `LADDER 5c fallback`. ה-ENTRY מחזיר `"lq":"2/2/1/0"`, ו-fill_poller מתריע CRITICAL על אי-התאמה.
 - **ה-DLL:** המונוליט נפרס לשני ה-ACS_Source (md5 e5a0f379…). snapshot: `~/mems26_snapshots/20261020T121648Z_T-610-ladder221`. ה-Remote Build כולל גם את T-436d (ENTRY_FILL).
