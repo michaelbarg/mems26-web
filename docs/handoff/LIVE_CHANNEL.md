@@ -1,3 +1,48 @@
+🟢 **[cowork-dev · ריצה 356 · 20.10 10:05→10:16 IL · **חובה-1 בלבד** · ⛔ אפס הודעת-טלפון · ⛔ אפס ריסטארט · ⛔ אפס נגיעה בדגלים/פוזיציות/קוד]**
+
+**חובת-הזמן קודם כל השאר:** `date ⇒ Tue Oct 20 10:04:49 IDT 2026` ⇒ לא 15:30-16:10 · לא RTH · לא 23:00-23:30 ⇒ **חובה-1 בלבד** (מענה-טלפון + ניטור). שער-היום, בדיקת-הגודל והריסטארט-קדם-פתיחה שייכים לריצת-15:3x ואינם נגעים כאן.
+
+**חובה-1 · אפס ממתינות — והרלה הוכח חי *לפני* שהוסקה שתיקה** ([[T-260]] / מלכודת 12):
+```raw
+GET /chat?key=…                 ⇒ http=200 · items=30 · אחרון: cowork 2026-10-19T20:24:13Z (היומן)
+שורת-מייקל אחרונה בפיד           ⇒ 2026-10-07T10:50:03Z · נענתה cowork-dev 2026-10-07T11:11:10Z
+GET /instruction/pending?key=…  ⇒ http=200 · {"items":[]}
+GET /cmd/pending?key=…          ⇒ http=200 · {"cmd":null}
+PHONE_THREAD.jsonl              ⇒ 766 שורות (ללא שינוי מריצה 355) · senders: cowork 403 · מייקל 133 · cc 116 · cowork-dev 106
+grep -c "תיוג עסקה #" = 2       ==  wc -l TRADE_TAGS.jsonl = 2        ⇒ אפס תיוג חדש
+```
+⇒ אפס (א) ואפס (ג) ⇒ **אפס `phone_reply.py`**. שקט מוחלט בטלפון, והרישום כאן בשורה אחת כפי שהכלל מורה.
+
+🟢 **ניטור (חובה-3 בשאריתה — טרום-פתיחה, גלובקס חי):**
+```raw
+feed    ⇒ max(ts) v9_bars_5min_woodies = 2026-10-20 07:05:00 UTC · now 07:08:24 UTC · **age 3 min** ⇒ הפיד חי
+backend ⇒ pid 89555 · lstart Mon Oct 19 23:01:00 · etime 11:08 · /health 200 5.0ms · /api/v9/health 200 3.3ms
+cpu     ⇒ `ps %cpu 66.8` הוא ממוצע-חיים (לילה של chain9b) ולא מצב — דגימה חיה: 12.0% → 9.9% · RSS 106MB ⇒ תקין
+err-log ⇒ backend.err.log 10:08:50 — BarRouter dispatch 94.1ms woodies_5min + [S1DayDir] UNDETERMINED ⇒ עובד, לא שקט
+עסקאות  ⇒ 48 שעות: demo/CLOSED 4 · shadow/CLOSED 109 · **live 0** · פתוחות 0 ⇒ אפס מקרה (ב)
+צל-תקוע ⇒ `close_stale_shadow.py` dry-run ⇒ "no stale shadow trades — nothing to do" ⇒ 20 שורות ה-FILLED של אמש כבר נסגרו
+```
+⚠️ **ובמפורש לא נטען:** שהפיד "יחזיק עד הפתיחה" — גיל-בר 3 דק' ב-10:08 הוא מדידה לרגעה בלבד, ו-[[T-430]] קובע שהשער ב-15:3x מודד שוב מאפס.
+
+🟠 **הממצא היחיד — [[T-610]]: `git stash` יתום מ-01.09 17:37 שמעולם לא הוחזר, 3 קבצי `readiness.html`.**
+```raw
+git stash list            ⇒ stash@{0}: On stabilize/mems26-local-truth-2026-05-16: cowork-autorun-1737
+git log -1 stash@{0}      ⇒ 2026-09-01 17:37:03 +0300   (7 שבועות)
+git stash show --shortstat ⇒ 3 files changed, 108 insertions(+), 99 deletions(-)
+   docs/plans/MONDAY_READINESS.html · frontend/v9/public/readiness.html · render_mobile_relay/static/readiness.html
+```
+**אפס פעולה — לא `pop` ולא `drop`:** עץ-העבודה התקדם מאז (ה-`MONDAY_READINESS.html` החי שונה מ-HEAD, שני האחרים == HEAD) ⇒ `pop` היה מתנגש, ו-`drop` היה מוחק עבודה שאינה שלי. מחלקת [[T-584]] (עבודה מחוץ ל-git), **אפס סיכון-מסחר** (תצוגת-readiness בלבד).
+
+🧾 **ובקרת-נכונות על עצמי, כי היא נוגעת בעץ שסוחר:** ה-`git pull --rebase` הראשון שלי (10:04) נפל על `cannot pull with rebase: You have unstaged changes`, ולכן הרצתי `stash push -u` → `pull` → `stash pop`. **הקריאה שלי נגמרה ב-timeout באמצע הרצף** ולא ראיתי את סופו בזמן-אמת. נמדד אחרי, ולא הונח:
+```raw
+.git/refs/stash mtime ⇒ 10:06:22   ·   reflog stash ⇒ רק cowork-autorun-1737  ⇒ ה-stash שלי נצרך ונמחק ⇒ ה-pop הושלם
+git diff --shortstat  ⇒ 16 files changed, 719 insertions(+), 539 deletions(-)   (ריצה 355 מדדה 19 / 773+ / 544− לפני קומיטי-cc של הלילה)
+HEAD == @{u} == ebfa3d45   ·   git rev-list --left-right --count HEAD...@{u} ⇒ 0  0
+```
+⇒ **עץ-העבודה שלם, אפס אובדן.** ⚠️ ונרשם ולא מושתק: `stash` אוטומטי על עץ-עבודה של סוכן אחר הוא בדיוק מחלקת [[T-180]], ו-`HEAD == @{u}` כבר היה נכון לפני שנגעתי — כלומר ה-`pull` כולו היה מיותר. **הכלל לריצות-הניטור מכאן:** למדוד `HEAD == @{u}` **לפני** שנוגעים ב-`stash`, ואם 0/0 — לא למשוך כלל.
+
+---
+
 🟢 **[cowork · סשן "תקן את כל הפערים" · 20.10 00:50 IL · דמו בלבד, Sim1]**
 - **תקרית 19.10 23:27:59 — פוזיציה יתומה LONG 3 @7736.75 ב-Sim1** (cmd_000404: סטופ 7716.75, יעדים 7741.75/7746.75/7751.75 — הצורה של scripts/place_test_demo_order.py סביב המחיר החי). **לא הבאקאנד כתב אותה:** הפקודה הראשונה של הבאקאנד מאז ה-restart של 23:01 היא #404 של 00:34 (FLATTEN), כלומר את 404 של 23:27 כתב תהליך פייתון אחר שה-MEMS26_SIGNALS_DIR שלו הצביע על התיקייה החיה. הכותב המדויק לא זוהה: היסטוריית Desktop Commander בחלון לא מראה סקריפט-הזמנה, ובשני הסוכנים שלי לא נמצא דבר שבונה סוגר כזה. **00:34 — FLATTEN דרך /api/v9/mobile/flatten (הבאקאנד):** qty 0 · working 0 · is_sim=1.
 - **תיקון-שורש T-609 (בקומיט נפרד):** `sierra_command` = default-deny לחוט החי. מותר רק לתהליך הבאקאנד (`uvicorn backend.main:app`), או לתרגיל מפורש עם `MEMS26_ALLOW_LIVE_COMMAND=1`. תהליך עם pytest טעון — לעולם לא. בנוסף `backend/v9/tests/conftest.py` מסיט את MEMS26_SIGNALS_DIR (קודם רק tests/ הוסט), ושורת-boot `[SierraCmd] T-609 live-wire writer: ALLOWED/REFUSED`.
