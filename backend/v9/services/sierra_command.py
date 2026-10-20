@@ -777,6 +777,31 @@ def _effective_contracts_raw(setup: Dict[str, Any]) -> int:
                 _n = int(_raw_n)  # floor, never round up
                 if _risk_pts > _hard_max_pts:
                     _n = 0
+                # T-616 SCALE_IN_MIN_EXEMPT_V1 (default OFF ⇒ byte-identical). RISK_MIN_CONTRACTS (3) is the floor of
+                # a NEW entry's T1/T2/T3 ladder (Michael 09.09: "n<3 ⇒ no entry"); a SCALE_IN add is +1/+2 by its
+                # own ruling (13.08) with the parent already at BE, so the floor rejected every add whose risk was
+                # > 15pt. 20.10 17:05: #3544's +2 add (risk 18.4 → n=2) was refused and left a 0-contract row
+                # (#3550, UNPRICED/SIERRA_FLAT). With the flag: the add ships min(requested, budget n) ≥ 1.
+                _rb_md = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+                _rb_is_add = (str(setup.get("classification") or "").upper() == "SCALE_IN"
+                              or bool(_rb_md.get("scale_in_parent")))
+                if (_rb_is_add and _fc3_os.environ.get("SCALE_IN_MIN_EXEMPT_V1", "0").strip().lower()
+                        in ("1", "true", "yes")):
+                    try:
+                        _rb_req = int(setup.get("contracts") or 0)
+                    except (TypeError, ValueError):
+                        _rb_req = 0
+                    _rb_add = min(_n, _rb_req) if _rb_req > 0 else _n
+                    if _rb_add >= 1:
+                        logger.info(
+                            "[SierraCmd] T-616 SCALE_IN add: risk=%.1f pts → budget n=%d, requested +%d → +%d "
+                            "(RISK_MIN_CONTRACTS is the floor of a new entry, not of an add)",
+                            _risk_pts, _n, _rb_req, _rb_add)
+                        return _rb_add
+                    logger.warning(
+                        "[SierraCmd] RISK_BUDGET REJECT (SCALE_IN add): risk=%.1f pts → n=%d — the add does not fit "
+                        "the budget", _risk_pts, _n)
+                    return 0
                 if _n < _min_c:
                     logger.warning(
                         "[SierraCmd] RISK_BUDGET REJECT: risk=%.1f pts → "

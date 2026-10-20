@@ -163,11 +163,23 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
                 _or_max = max(OR_NARROW_MAX_PTS, 0.25 * _daily_atr)
     except Exception:
         pass
+    # T-616 OPENING_DRIVE_STRICT_V1 (default OFF ⇒ byte-identical; Dalton, Mind Over Markets — an Open-Drive
+    # auctions one way from the opening and never trades back to it). When a bar after bar 1 has already traded
+    # beyond the open on the OTHER side (by more than one tick), the open was TESTED first: that is an
+    # Open-Test-Drive, not an Open-Drive, and it falls through to the TEST_DRIVE rule below (its own trigger,
+    # stop beyond the test extreme). 20.10 16:40: open 7726.75, bar 2 high 7731.00 (+4.25), bar 3 close 7713.00
+    # < OR low 7718.50 → fired as DRIVE SHORT (#3540, −225$) while the canonical detector said OPEN_TEST_DRIVE.
+    _drive_strict = _os_or.getenv("OPENING_DRIVE_STRICT_V1", "0").strip().lower() in ("1", "true", "yes")
+    _tested_up = _tested_dn = False
+    if _drive_strict:
+        _after1 = session_bars[1:]
+        _tested_up = any((_f(b, "h", "high") or open_price) > open_price + 0.25 for b in _after1)
+        _tested_dn = any((_f(b, "l", "low") or open_price) < open_price - 0.25 for b in _after1)
     if or_width <= _or_max:
-        if close > or_high and not drove_dn_before:
+        if close > or_high and not drove_dn_before and not _tested_dn:
             return {"type": "DRIVE", "direction": "LONG", "entry": close,
                     "or_width": or_width}
-        if close < or_low and not drove_up_before:
+        if close < or_low and not drove_up_before and not _tested_up:
             return {"type": "DRIVE", "direction": "SHORT", "entry": close,
                     "or_width": or_width}
 

@@ -62,6 +62,29 @@ def _sierra_route_account() -> str:
 _STEP_NATIVE_STOP_SOURCES = ("TREND_STEP_LEG",)
 
 
+def t616_anchor_stop_is_structural(setup: dict, direction) -> Optional[tuple]:
+    """T-616 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1 — PURE (no IO, no mutation).
+
+    (stop, anchor) when the setup names its own metadata.structural_anchor AND its stop sits at/beyond it on the
+    protective side (SHORT: stop ≥ anchor · LONG: stop ≤ anchor) — the producer placed a STRUCTURAL stop, which
+    Michael's 09.09 ruling says is never compressed (the size is derived from it). None otherwise (no anchor, no
+    stop, a stop inside the structure, unknown direction, unparseable numbers)."""
+    try:
+        md = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+        anchor, stop = md.get("structural_anchor"), setup.get("stop")
+        if anchor is None or stop is None:
+            return None
+        anchor, stop = float(anchor), float(stop)
+        if not (anchor > 0 and stop > 0):
+            return None
+        d = str(direction or "").upper()
+        if (d == "SHORT" and stop >= anchor) or (d == "LONG" and stop <= anchor):
+            return (stop, anchor)
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return None
+
+
 def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
     """Resolve pattern_id_at_entry: prefer the firing setup's classification.
 
@@ -4177,6 +4200,22 @@ class TradingGateway:
         # Size (n) is derived from the structural stop. n<3 → no entry.
         # Ruling: Michael 09.09 10:20 "הסטופ = העוגן המבני, הגודל נגזר".
         _stop_is_structural = bool((setup.get("metadata") or {}).get("stop_is_structural"))
+        # T-616 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1 (default OFF ⇒ byte-identical). Michael 09.09 10:20: the stop is
+        # the structural anchor and the size is derived from it — "never compressed". A producer that names its own
+        # metadata.structural_anchor and places its stop at/beyond it (the protective side) carries a STRUCTURAL stop
+        # even when it does not set stop_is_structural, so StopResolver / STOP_FLOOR_IB / STEP_SCALED_LADDER may not
+        # replace it and the risk budget decides (n<3 ⇒ "entry too far from structure"). 20.10 #3558
+        # DOUBLE_TOP_AA_SHORT: stop 7795.50 beyond the anchor 7791.75 (the double top) → STEP_SCALED_LADDER cut it
+        # to 7767.75 (10.8pt, inside the structure) and the trade shipped 4 contracts; stopped in 2 min, −215$.
+        if (not _stop_is_structural
+                and os.getenv("STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1", "0").strip().lower() in ("1", "true", "yes")):
+            _saa = t616_anchor_stop_is_structural(setup, direction)
+            if _saa is not None:
+                _stop_is_structural = True
+                logger.warning(
+                    "[Gateway] T-616 STRUCTURAL ANCHOR AUTHORITY: %s %s stop=%.2f at/beyond anchor %.2f — "
+                    "the producer's structural stop stands, size is derived from it",
+                    setup.get("classification"), str(direction).upper(), _saa[0], _saa[1])
         if _stop_is_structural:
             setup["stop_source"] = "structural"
             logger.info(
