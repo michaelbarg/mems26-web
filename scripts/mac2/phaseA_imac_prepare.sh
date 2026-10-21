@@ -16,7 +16,7 @@
 # Usage:  bash scripts/mac2/phaseA_imac_prepare.sh [all|check|pydeps|node|npm|db|env|plists|sierra|services|verify]
 # Logs:   ~/mems26_migration_2026-10-21/logs/phaseA_<ts>.log
 # ============================================================================
-set -u
+set -u -o pipefail   # pipefail: a check piped through tee must not inherit tee's exit 0 (COWORK_DAILY_READ trap)
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 MIG="${MIG:-$HOME/mems26_migration_2026-10-21}"
 REPO="$HOME/Downloads/mems26_web_git"
@@ -62,8 +62,8 @@ step_pydeps(){
   say pydeps "python packages = exact MacBook freeze ($(wc -l < "$MIG/pip_freeze_macbook.txt" | tr -d ' ') pins) into framework python 3.9"
   run "$PY" -m pip install -q -r "$MIG/pip_freeze_macbook.txt" || warn "pip reported errors — see log; checking the imports that matter:"
   if "$PY" - <<'EOF' 2>&1 | tee -a "$LOG"
-import importlib, sys
-mods = ["fastapi","uvicorn","sqlalchemy","psycopg2","pydantic","yaml","pandas","numpy","httpx","websockets","redis","dotenv"]
+import importlib.util, sys
+mods =["fastapi","uvicorn","sqlalchemy","psycopg2","pydantic","yaml","pandas","numpy","httpx","websockets","redis","dotenv"]
 missing = [m for m in mods if importlib.util.find_spec(m) is None]
 print("  imports:", "ALL OK" if not missing else "MISSING " + ", ".join(missing))
 sys.exit(1 if missing else 0)

@@ -16,7 +16,7 @@
 # Usage:  bash scripts/mac2/phaseB_cutover_macbook.sh [all|preflight|snapshot|stop|dump|ship|handoff]
 #   env:  FORCE=1 (skip the ≥23:00 clock check)  SKIP_SIERRA_WAIT=1 (don't wait for Sierra to close)
 # ============================================================================
-set -u
+set -u -o pipefail   # pipefail: a check piped through tee must not inherit tee's exit 0
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 MIG="${MIG:-$HOME/mems26_migration_2026-10-21}"
 REPO="$HOME/Downloads/mems26_web_git"
