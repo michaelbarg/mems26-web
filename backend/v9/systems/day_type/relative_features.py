@@ -310,7 +310,11 @@ def compute_relative_features(
             # (backend/v9/services/ib_acceptance.py — the same definition as the gateway's direction hint, fix 1).
             # 20.10: IB high 7786.00; the 17:30 wick to 7791.50 and four more bars with HIGHS ≥ 7786.50 counted as
             # the up side ⇒ "Variation" from 17:45, yet no bar closed above 7786 all day ⇒ sides 0 ⇒ Normal.
-            if os.getenv("DAYTYPE_SIDES_ACCEPTED_V1", "0").strip().lower() in ("1", "true", "yes"):
+            # Mode "single" (T-622, 21.10 — the 78-session measurement): acceptance is required only when ONE side broke;
+            # when BOTH sides broke mechanically the day stays two-sided (Michael 10.07 FIX-14: "נייטרלי = יום מבולגן
+            # עם פריצה משני הצדדים") — mode "1" turned 5 such Neutral days into Variation (−914$ on the replay).
+            _t621_mode = os.getenv("DAYTYPE_SIDES_ACCEPTED_V1", "0").strip().lower()
+            if _t621_mode in ("1", "true", "yes", "single") and not (_t621_mode == "single" and _mech_up and _mech_dn):
                 from backend.v9.services import ib_acceptance as _t621
                 f.sides = _t621.sides(_t621.acceptance(bars, ib_hi=ib_ref_h, ib_lo=ib_ref_l, ib_bars=ib_bars))
 

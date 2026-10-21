@@ -171,6 +171,23 @@ def test_fix2_2010_sides_mechanical_counts_the_wick_accepted_does_not():
     assert (f_old.rib, f_old.session_high) == (f_new.rib, f_new.session_high)   # nothing else moves
 
 
+def test_fix2_single_mode_keeps_two_sided_days_neutral():
+    # IB 90–100; a wick up to 105 (rejected) AND an accepted break down (two closes ≤ 89.5)
+    bars = _synthetic([99.0, 99.0, 89.0, 88.5])
+    bars[12]["h"] = 105.0
+    bars[13]["h"] = 104.0
+    with _env(DAYTYPE_SIDES_MECHANICAL_V1="1", IB_BREAK_ANY_EXPANSION_V1="1"):
+        old = compute_relative_features(bars, 100.0, 90.0)
+    with _env(DAYTYPE_SIDES_MECHANICAL_V1="1", IB_BREAK_ANY_EXPANSION_V1="1", DAYTYPE_SIDES_ACCEPTED_V1="1"):
+        all_acc = compute_relative_features(bars, 100.0, 90.0)
+    with _env(DAYTYPE_SIDES_MECHANICAL_V1="1", IB_BREAK_ANY_EXPANSION_V1="1", DAYTYPE_SIDES_ACCEPTED_V1="single"):
+        single = compute_relative_features(bars, 100.0, 90.0)
+        single_2010 = compute_relative_features(_bars(), IBH, IBL)
+    assert old.sides == 2 and all_acc.sides == 1     # mode 1 drops the rejected side ⇒ "Variation"
+    assert single.sides == 2                          # mode single: both sides broke ⇒ Neutral stays Neutral
+    assert single_2010.sides == 0                     # 20.10: one rejected wick ⇒ Normal (the fix)
+
+
 def test_fix2_off_is_byte_identical_and_accepted_days_still_count():
     bars = _synthetic([101.0, 101.5, 102.0])
     with _env(DAYTYPE_SIDES_MECHANICAL_V1="1", IB_BREAK_ANY_EXPANSION_V1="1"):

@@ -1785,6 +1785,56 @@ class TradeManager:
             trade.id, cur, new_stop, anchor, rev, be_floor, direction)
         return True
 
+    def apply_normal_day_runner(self, trade: V9Trade) -> bool:
+        """T-622 NORMAL_DAY_RUNNER_OTHER_SIDE_V1 (Michael 21.10; default OFF ⇒ returns False at once): on a Normal day
+        the runner ends at the other side (Michael's 11.09 Normal-day doctrine — "to the POC, or as long as it
+        continues, to the other side"). Once the IB is complete and the live label is Normal, a runner (T1 filled)
+        whose last CLOSED bar reached the other side of the IB gets its stop tightened to one tick inside
+        min(close, IB edge) (backend/v9/services/normal_day_runner.py). Tighten only; MODIFY_STOP is the lever
+        (op=EXIT is broken). Returns True when the stop moved."""
+        from backend.v9.services import normal_day_runner as _ndr
+        if not _ndr.enabled():
+            return False
+        if trade.entry_price is None or getattr(trade, "t1_hit_ts", None) is None:
+            return False
+        direction = (trade.direction or "").upper()
+        if direction not in ("LONG", "SHORT"):
+            return False
+        try:
+            from backend.v9.services.trade_context import get_live_day_type, get_closed_rth_bars_today
+            day_type = get_live_day_type() or ""
+            if day_type.strip() != "Normal":
+                return False
+            bars = get_closed_rth_bars_today() or []
+        except Exception as e:
+            logger.warning("[TradeManager] T-622 Normal-day runner: context unavailable (%s) — no change", e)
+            return False
+        ib = _ndr.ib_of(bars)
+        if ib is None or not bars:
+            return False
+        last = bars[-1]
+        cur = float(trade.stop) if trade.stop is not None else None
+        new_stop = _ndr.runner_stop(direction, day_type, ib[0], ib[1], last.get("h"), last.get("l"), last.get("c"), cur)
+        if new_stop is None:
+            return False
+        trade.stop = new_stop
+        audit_entry = {
+            "event": "stop_move", "from": cur, "to": new_stop,
+            "reason": f"T-622 Normal day: the runner reached the other side (IB {ib[1]:.2f}–{ib[0]:.2f})",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "NORMAL_DAY_RUNNER", {
+            "from": cur, "to": new_stop, "ib_high": ib[0], "ib_low": ib[1],
+            "bar_high": last.get("h"), "bar_low": last.get("l"), "bar_close": last.get("c"),
+        })
+        self._emit_modify_stop(trade, new_stop)
+        logger.warning(
+            "[TradeManager] T-622 NORMAL_DAY_RUNNER: trade %s %s stop %s -> %.2f (IB %.2f–%.2f, bar h=%s l=%s c=%s)",
+            trade.id, direction, cur, new_stop, ib[1], ib[0], last.get("h"), last.get("l"), last.get("c"))
+        return True
+
     def apply_trail_after_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> None:
         """Trailing stop after T1 hit (RUNNER_TRAIL_V1).
 

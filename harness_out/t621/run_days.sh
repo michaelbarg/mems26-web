@@ -28,6 +28,20 @@ envs_of() {
     fx245) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
     fxall) echo "$ALL" ;;
     fxalln) echo "${ALL/IB_EXT_ACCEPTED_HINT_V1=1/IB_EXT_ACCEPTED_HINT_V1=none}" ;;
+    # T-622 — the Normal-day package (Michael 21.10: fixes that follow the Normal day)
+    ndr) echo "NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    eft) echo "EDGE_FADE_TARGETS_V1=1" ;;
+    nday) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    nday5) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    nday4) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1" ;;
+    # without EDGE_FADE_TARGETS_V1: on 20.10 its POC/VAL/IB ladder was clamped to max-R, sanitized to T1 only and the
+    # 5-contract PLACE rejected (T-214) — the T-354 execution path is broken, so the package is measured without it
+    n2r) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    n25r) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    # fix 2 mode "single": acceptance only when ONE side broke (a two-sided day stays Neutral — Michael 10.07)
+    fx2s) echo "DAYTYPE_SIDES_ACCEPTED_V1=single" ;;
+    n2rs) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    n25s) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
   esac
 }
 export -f envs_of

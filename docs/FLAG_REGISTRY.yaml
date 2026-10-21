@@ -2202,7 +2202,7 @@ flags:
   DAYTYPE_SIDES_ACCEPTED_V1:
     category: s1
     group: day_type
-    what: "T-621 fix 2 (21.10): inside the DAYTYPE_SIDES_MECHANICAL_V1 counting, a side counts only when the IB extension was ACCEPTED (IB_EXT_ACCEPT_CLOSES consecutive closes ≥ noise beyond the edge, ever this session — the rule of fix 1) instead of 2 bars whose HIGH/LOW reached 0.5 pt beyond. 20.10: the 17:30–17:55 highs ≥ 7786.50 made it 'Variation' from 17:45 though no bar closed above 7786 ⇒ sides 0 ⇒ Normal, and the Normal-day location rule refuses the mid-value TOUCH2/REACTIVE longs that lost. Amends the 10.07 FIX-14 / 20.07 IB_BREAK_ANY_EXPANSION counting (Michael 21.10 'מאשר את 2'). Unset/0 = byte-identical."
+    what: "T-621 fix 2 (21.10): inside the DAYTYPE_SIDES_MECHANICAL_V1 counting, a side counts only when the IB extension was ACCEPTED (IB_EXT_ACCEPT_CLOSES consecutive closes ≥ noise beyond the edge, ever this session — the rule of fix 1) instead of 2 bars whose HIGH/LOW reached 0.5 pt beyond. 20.10: the 17:30–17:55 highs ≥ 7786.50 made it 'Variation' from 17:45 though no bar closed above 7786 ⇒ sides 0 ⇒ Normal, and the Normal-day location rule refuses the mid-value TOUCH2/REACTIVE longs that lost. Amends the 10.07 FIX-14 / 20.07 IB_BREAK_ANY_EXPANSION counting (Michael 21.10 'מאשר את 2'). Mode 'single' (T-622): acceptance only when ONE side broke — a day that broke both sides mechanically stays Neutral (10.07 'פריצה משני הצדדים'); mode '1' turned 5 Neutral days into Variation on the 78-session replay (−914$). Unset/0 = byte-identical."
     why: "Michael 21.10 — the 20.10 plan (stage 2, root R2: a rejected wick made the day Variation). Built OFF; demo unchanged until his stage-4 decision."
     status: built_off
     ref: "T-621 · backend/v9/systems/day_type/relative_features.py · backend/v9/services/ib_acceptance.py (sides) · tests/v9/regression/test_t621_root_fixes_2010.py"
@@ -2227,3 +2227,10 @@ flags:
     why: "20.10: the wick was 4.5 pt above the pair, ATR ≈ 7.8."
     status: built_off
     ref: "T-621 · backend/v9/systems/ceiling_touch2.py (struct_stop_max_atr)"
+  NORMAL_DAY_RUNNER_OTHER_SIDE_V1:
+    category: management
+    group: normal day
+    what: "T-622 (21.10): on a Normal day the runner ends at the OTHER SIDE (Michael's 11.09 Normal-day doctrine — 'to the POC, or as long as it continues, to the other side'). Once the IB is complete (12 closed RTH bars) and the live label is Normal, a runner (T1 filled) whose last CLOSED bar reached the other side of the IB (LONG high ≥ IB high · SHORT low ≤ IB low) gets its stop tightened to one tick inside min(close, IB edge) — closed back inside ⇒ one tick under the close (out on the next tick); closed beyond ⇒ one tick inside the edge (an accepted breakout makes the day not-Normal and the runner keeps its trail). Tighten only; MODIFY_STOP (op=EXIT is broken). Live: TradeManager.apply_normal_day_runner from bar_level_detector after the runner trail; harness mirror _ndr_apply. 20.10: the 16:50 ORR LONG runner (T1 17:00, T2 17:15) held the one slot to 18:10; under the rule it is out at 7779.00 in the 17:35 bar, and the 17:50 TOUCH2 SHORT at the other side takes the slot. Unset/0 = byte-identical."
+    why: "Michael 21.10 'אם מדובר ביום נורמלי … צריך לבצע תיקונים שיהיו בהתאם ליום נורמלי'. Built OFF; measured on the faithful replay (harness_out/t621/days, tags ndr / n2r / n25r / n25s). Demo unchanged until his decision."
+    status: built_off
+    ref: "T-622 · backend/v9/services/normal_day_runner.py · backend/v9/services/trade_manager/manager.py (apply_normal_day_runner) · bar_level_detector.py · scripts/fwd_harness.py (_ndr_apply) · tests/v9/regression/test_t622_normal_day_runner.py"

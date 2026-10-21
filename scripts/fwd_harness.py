@@ -1268,6 +1268,39 @@ def _f5_trail(tr, d, e, b):
         LOG.warning("T-620 F5 mirror failed (stop unchanged): %s", _fe)
 
 
+# T-622 NORMAL_DAY_RUNNER_OTHER_SIDE_V1 — mirror of TradeManager.apply_normal_day_runner on the harness trade: at the
+# close of a bar, a runner (its T1 leg exited at the target) on a Normal day whose bar reached the other side of the
+# IB gets its stop tightened to one tick inside min(close, IB edge) — effective from the next bar, like the live
+# MODIFY_STOP. Same pure rule (backend/v9/services/normal_day_runner.py), the replayed day-type label.
+_NDR_ON = os.environ.get("NORMAL_DAY_RUNNER_OTHER_SIDE_V1", "0").strip().lower() in ("1", "true", "yes")
+_NDR_STATS = {"on": _NDR_ON, "checked": 0, "moved": 0}
+
+
+def _t1_leg_done(tr):
+    t1l = next((l for l in tr["legs"] if l["leg"] == tr.get("t1_leg", 1)), None)
+    return bool(tr.get("filled") and t1l and str(t1l.get("exit") or "").startswith("T"))
+
+
+def _ndr_apply(tr, d, b, hi, lo, cl):
+    try:
+        from backend.v9.services import normal_day_runner as _ndr
+        today = [{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"])} for x in RTH if x["ts"] <= b["ts"]]
+        ib = _ndr.ib_of(today)
+        if ib is None:
+            return
+        _NDR_STATS["checked"] += 1
+        new = _ndr.runner_stop(d, _tc_mod.get_live_day_type(), ib[0], ib[1], hi, lo, cl, float(tr["stop"]))
+        if new is None:
+            return
+        tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": float(tr["stop"]),
+                                               "to": new, "reason": "T-622 Normal day: the runner reached the other side "
+                                                                    "(IB %.2f–%.2f)" % (ib[1], ib[0])})
+        tr["stop"] = new
+        _NDR_STATS["moved"] += 1
+    except Exception as _ne:
+        LOG.warning("T-622 Normal-day runner mirror failed (stop unchanged): %s", _ne)
+
+
 def _settle_bar(b, bar_index):
     """Walk one CLOSED bar through every open trade (conservative: stop before target on the same bar)."""
     hi, lo, op, cl = float(b["high"]), float(b["low"]), float(b["open"]), float(b["close"])
@@ -1353,6 +1386,8 @@ def _settle_bar(b, bar_index):
         # — so the slot stayed occupied and every later candidate died on live_slot_occupied (#3558, the TOUCH2s).
         if tr["be_moved"] and _F5_MIRROR:
             _f5_trail(tr, d, e, b)
+        if _NDR_ON and _t1_leg_done(tr):
+            _ndr_apply(tr, d, b, hi, lo, cl)
         # BE_AFTER_MFE_R_V1 (T-598) — at the close of a bar the filled trade survived, stop not yet at BE: MFE since
         # the fill ≥ R × initial risk ⇒ stop → fill price, effective from the next bar (pure rule: be_after_mfe.py).
         if _BE_MFE_R > 0 and tr.get("filled") and not tr["be_moved"]:
@@ -1704,6 +1739,7 @@ out = {
     "be_rule": dict(_BE_RULE_STATS),                    # T-615 (checked=0 ⇒ flag off or no T1 fill)
     "f5_trail": dict(_F5_STATS),                        # T-620 (on=False ⇒ RUNNER_TRAIL_V2 off or HARNESS_F5_TRAIL_MIRROR=0)
     "flip_runner": dict(_FLIP_STATS),                   # T-621 fix 4 (asked=0 ⇒ FLIP_RUNNER_ON_OPPOSITE_TAKE_V1 off)
+    "normal_day_runner": dict(_NDR_STATS),              # T-622 (on=False ⇒ NORMAL_DAY_RUNNER_OTHER_SIDE_V1 off)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }

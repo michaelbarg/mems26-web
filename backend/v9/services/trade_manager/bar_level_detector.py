@@ -1135,6 +1135,14 @@ class BarLevelDetector:
                             self._tm.apply_trail_after_t1(trade, bar_high, bar_low)
                         except Exception as _trail_err:
                             logger.warning("[BarLevelDetector] trail error (fail-safe skip): %s", _trail_err)
+                    # T-622 NORMAL_DAY_RUNNER_OTHER_SIDE_V1 (default OFF): on a Normal day the runner ends at the
+                    # other side of the IB — tighten-only MODIFY_STOP after the trail (manager.apply_normal_day_runner)
+                    if _trail_os.getenv("NORMAL_DAY_RUNNER_OTHER_SIDE_V1", "0").strip().lower() in ("1", "true", "yes"):
+                        try:
+                            self._tm.apply_normal_day_runner(trade)
+                        except Exception as _ndr_err:
+                            logger.warning("[BarLevelDetector] T-622 Normal-day runner error (fail-safe skip): %s",
+                                           _ndr_err)
 
                 stop = trade.stop  # refresh after potential trail update
 

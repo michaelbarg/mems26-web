@@ -22,6 +22,12 @@ envs_of() {
     fx245) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
     fxall) echo "$ALL" ;;
     fxalln) echo "${ALL/IB_EXT_ACCEPTED_HINT_V1=1/IB_EXT_ACCEPTED_HINT_V1=none}" ;;
+    # T-622 — the Normal-day package (Michael 21.10: fixes that follow the Normal day)
+    ndr) echo "NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    eft) echo "EDGE_FADE_TARGETS_V1=1" ;;
+    nday) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    nday5) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    nday4) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 EDGE_FADE_TARGETS_V1=1 NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1" ;;
   esac
 }
 run() {
@@ -31,6 +37,6 @@ run() {
   echo "done $tag rc=$? $(TZ=Asia/Jerusalem date +%H:%M:%S) pnl=$(python3 -c "import json;print(json.load(open('$out'))['daily_pnl_harness'])" 2>/dev/null)"
 }
 TAGS=("$@"); [ ${#TAGS[@]} -eq 0 ] && TAGS=(base fx1 fx1n fx2 fx3 fx4 fx5 fx24 fx245 fxall fxalln)
-for t in "${TAGS[@]}"; do run "$t" & while [ "$(jobs -r | wc -l)" -ge 3 ]; do sleep 2; done; done
+for t in "${TAGS[@]}"; do run "$t" & while [ "$(jobs -r | wc -l)" -ge 2 ]; do sleep 2; done; done   # ≤2 parallel (AGENT_BRIEF)
 wait
 echo "ALL DONE $(TZ=Asia/Jerusalem date +%H:%M:%S)"
