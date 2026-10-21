@@ -89,7 +89,8 @@ def t621_double_top_family(setup: dict) -> bool:
     """T-621 fix 5 DOUBLE_TOP_STRUCT_STOP_V1 — PURE except the flag read. True when the flag is on and the setup is a
     double-top / double-bottom producer (classification DOUBLE_TOP… / DOUBLE_BOTTOM…): the T-616 structural-anchor
     authority then applies to it alone (the producer's stop beyond the structure stands; the size budget decides)."""
-    if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() not in ("1", "true", "yes"):
+    # T-622c: "dt" = this part only (the TOUCH2 structure stop off); "touch2" switches this part off
+    if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() not in ("1", "true", "yes", "dt"):
         return False
     try:
         return str((setup or {}).get("classification") or "").upper().startswith(("DOUBLE_TOP", "DOUBLE_BOTTOM"))

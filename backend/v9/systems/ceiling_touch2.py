@@ -194,6 +194,13 @@ def struct_stop_max_atr() -> float:
     return k if k > 0 else 1.0
 
 
+def struct_stop_mode() -> str:
+    """T-622c: TOUCH2_STRUCT_STOP_MODE — "window" (default, T-621 as built: any higher top of the detector's window
+    within reach) | "probe" (only a higher top BEYOND the IB edge — a failed extension, the 20.10 case)."""
+    m = os.getenv("TOUCH2_STRUCT_STOP_MODE", "window").strip().lower()
+    return m if m in ("window", "probe") else "window"
+
+
 def structure_extreme(
     bars: Sequence[Dict[str, Any]],
     st: Optional[Dict[str, Any]],
@@ -201,6 +208,8 @@ def structure_extreme(
     atr: Optional[float],
     cfg: Optional[Dict[str, Any]] = None,
     max_atr: Optional[float] = None,
+    ib_edge: Optional[float] = None,
+    mode: Optional[str] = None,
 ) -> Optional[float]:
     """T-621 fix 5 (DOUBLE_TOP_STRUCT_STOP_V1, Michael 21.10 — the 20.10 plan): the HIGHER top of the structure.
 
@@ -232,12 +241,24 @@ def structure_extreme(
     lo = max(0, i1 - int(conf.get("max_bars_between", 12)))
     k = struct_stop_max_atr() if max_atr is None else float(max_atr)
     reach = k * float(atr)
+    # T-622c mode "probe": the higher top must lie BEYOND the IB edge (a failed extension — Dalton's failed auction;
+    # 20.10: 7791.50 over the IB high 7786.00). On the 78-session replay the "window" rule moved ~930 TOUCH2 stops, half
+    # of them by ≤ 2 pt — noise that shifted the R-based ladders (fix 5 alone −194$; 06 −845, 07 −1,001).
+    m = struct_stop_mode() if mode is None else str(mode).strip().lower()
+    try:
+        edge = float(ib_edge) if ib_edge is not None else None
+    except (TypeError, ValueError):
+        edge = None
     d = str(direction or "").upper()
     if d == "SHORT":
         pair, sx = max(p1, p2), max(highs[lo:i2 + 1])
+        if m == "probe" and (edge is None or not edge > 0 or sx <= edge):
+            return None
         return sx if (sx > pair and sx - pair <= reach) else None
     if d == "LONG":
         pair, sx = min(p1, p2), min(lows[lo:i2 + 1])
+        if m == "probe" and (edge is None or not edge > 0 or sx >= edge):
+            return None
         return sx if (sx < pair and pair - sx <= reach) else None
     return None
 

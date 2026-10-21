@@ -2216,7 +2216,7 @@ flags:
   DOUBLE_TOP_STRUCT_STOP_V1:
     category: stops
     group: double top
-    what: "T-621 fix 5 (21.10): (a) CEILING_FLIP_TOUCH2 — the stop goes beyond the structure's higher top/lower bottom (the detector's own window, ≤ TOUCH2_STRUCT_STOP_MAX_ATR × ATR beyond the pair) instead of the pair (ceiling_touch2.structure_extreme); (b) DOUBLE_TOP… / DOUBLE_BOTTOM… — the producer's stop beyond its structural_anchor stands (the T-616 authority for this family only), and a stop INSIDE the anchor is moved out to it; the size budget then decides (n<3 ⇒ no entry). 20.10: TOUCH2 SHORT 17:50 stop 7787.25 → 7791.75 (beyond the 17:30 wick 7791.50; 17:55 traded 7790.50); #3558 DOUBLE_TOP_AA 18:15 stop 7795.50 cut by STEP_SCALED_LADDER to 7767.50 (−215$) and 18:35 stop 7783.25 inside the 7791.75 anchor ⇒ both refused. Unset/0 = byte-identical."
+    what: "T-621 fix 5 (21.10): (a) CEILING_FLIP_TOUCH2 — the stop goes beyond the structure's higher top/lower bottom (the detector's own window, ≤ TOUCH2_STRUCT_STOP_MAX_ATR × ATR beyond the pair) instead of the pair (ceiling_touch2.structure_extreme); (b) DOUBLE_TOP… / DOUBLE_BOTTOM… — the producer's stop beyond its structural_anchor stands (the T-616 authority for this family only), and a stop INSIDE the anchor is moved out to it; the size budget then decides (n<3 ⇒ no entry). 20.10: TOUCH2 SHORT 17:50 stop 7787.25 → 7791.75 (beyond the 17:30 wick 7791.50; 17:55 traded 7790.50); #3558 DOUBLE_TOP_AA 18:15 stop 7795.50 cut by STEP_SCALED_LADDER to 7767.50 (−215$) and 18:35 stop 7783.25 inside the 7791.75 anchor ⇒ both refused. T-622c modes: '1' = both parts · 'touch2' = (a) only · 'dt' = (b) only; TOUCH2_STRUCT_STOP_MODE=probe limits (a) to a higher top BEYOND the IB edge (a failed extension). Unset/0 = byte-identical."
     why: "Michael 21.10 — the 20.10 plan (stage 2, root R5: the late double top / the stop inside the top). Built OFF; demo unchanged until his stage-4 decision."
     status: built_off
     ref: "T-621 · backend/v9/systems/ceiling_touch2.py (structure_extreme) · backend/v9/systems/five_min/five_min_system.py (TOUCH2 producer) · backend/v9/gateway/trading_gateway.py (t621_double_top_family / t621_struct_stop) · tests/v9/regression/test_t621_root_fixes_2010.py"
@@ -2241,3 +2241,10 @@ flags:
     why: "Michael 21.10 — fixes that follow the Normal day (his 11.09 doctrine: the reversal at VAH/VAL to the POC, then the other side). EDGE_FADE_TARGETS_V1 was built 14.09 from that ruling and never measured; its execution path was broken. Built OFF; measured as tags eftx / n25se (harness_out/t621/days)."
     status: built_off
     ref: "T-622b · backend/v9/gateway/trading_gateway.py (t622_edge_fade_stop, t622_edge_fade_chain_final) · scripts/fwd_harness.py · tests/v9/regression/test_t622_normal_day_runner.py"
+  TOUCH2_STRUCT_STOP_MODE:
+    category: param
+    group: double top
+    what: "T-622c: which higher top may carry the CEILING_FLIP_TOUCH2 stop under DOUBLE_TOP_STRUCT_STOP_V1 (1/touch2). 'window' (default, T-621 as built) = any higher top of the detector's window within TOUCH2_STRUCT_STOP_MAX_ATR × ATR of the pair · 'probe' = only a higher top BEYOND the IB edge (IB high for a SHORT, IB low for a LONG) — a failed extension, the 20.10 case (7791.50 over 7786.00). On the 78-session replay 'window' moved ~930 TOUCH2 stops, about half by ≤ 2 pt, shifting the R-based ladders (fix 5 alone −194$)."
+    why: "The 78-session measurement of fix 5 (21.10): keep the 20.10 correction (+621.25 with the package), drop the noise."
+    status: built_off
+    ref: "T-622c · backend/v9/systems/ceiling_touch2.py (struct_stop_mode, structure_extreme ib_edge/mode) · five_min_system.py TOUCH2 producer · tests/v9/regression/test_t621_root_fixes_2010.py"

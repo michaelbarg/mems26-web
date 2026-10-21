@@ -33,7 +33,7 @@ _B2010 = [
 ]
 IBH, IBL = 7786.0, 7710.25
 FLAGS = ("IB_EXT_ACCEPTED_HINT_V1", "DAYTYPE_SIDES_ACCEPTED_V1", "FLIP_RUNNER_ON_OPPOSITE_TAKE_V1",
-         "DOUBLE_TOP_STRUCT_STOP_V1", "IB_EXT_ACCEPT_CLOSES", "IB_EXT_ACCEPT_NOISE_PTS", "TOUCH2_STRUCT_STOP_MAX_ATR",
+         "DOUBLE_TOP_STRUCT_STOP_V1", "IB_EXT_ACCEPT_CLOSES", "IB_EXT_ACCEPT_NOISE_PTS", "TOUCH2_STRUCT_STOP_MAX_ATR", "TOUCH2_STRUCT_STOP_MODE",
          "DAYTYPE_SIDES_MECHANICAL_V1", "IB_BREAK_ANY_EXPANSION_V1", "DAYTYPE_SIDES_NOISE_PTS", "DAYTYPE_MECH_HOLD_BARS")
 
 
@@ -281,6 +281,39 @@ def test_fix5_2010_touch2_short_stop_goes_beyond_the_wick():
         assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8) == 7791.5
         assert structure_extreme(_bars("17:45"), st, "SHORT", 4.0) is None       # 4.5 pt > 1 × ATR 4.0
         assert structure_extreme(_bars("17:45"), st, "SHORT", 4.0, max_atr=1.5) == 7791.5
+
+
+def test_fix5_probe_mode_only_beyond_the_ib_edge():
+    from backend.v9.systems.ceiling_touch2 import struct_stop_mode
+    with _env():
+        st = detect_touch2(_bars("17:45"), LV_1750, atr=7.8, ib_width=IBH - IBL)
+        assert struct_stop_mode() == "window"
+        # 20.10: the higher top 7791.50 is beyond the IB high 7786.00 — a failed extension ⇒ the stop moves
+        assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8, ib_edge=IBH, mode="probe") == 7791.5
+        # the same higher top but INSIDE the IB (edge above it) ⇒ no move in probe mode, a move in window mode
+        assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8, ib_edge=7795.0, mode="probe") is None
+        assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8, ib_edge=7795.0, mode="window") == 7791.5
+        assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8, ib_edge=None, mode="probe") is None
+    with _env(TOUCH2_STRUCT_STOP_MODE="probe"):
+        assert struct_stop_mode() == "probe"
+        assert structure_extreme(_bars("17:45"), st, "SHORT", 7.8, ib_edge=7795.0) is None
+    with _env(TOUCH2_STRUCT_STOP_MODE="bogus"):
+        assert struct_stop_mode() == "window"
+    stl = {"p1_index": 1, "p2_index": 3, "p1": 5.0, "p2": 5.25}
+    lows = [{"h": 9.0, "l": 4.0, "c": 7.0}, {"h": 9.0, "l": 5.0, "c": 7.0},
+            {"h": 9.0, "l": 6.0, "c": 7.0}, {"h": 9.0, "l": 5.25, "c": 7.0}]
+    assert structure_extreme(lows, stl, "LONG", 2.0, ib_edge=4.5, mode="probe") == 4.0     # 4.0 below the IB low
+    assert structure_extreme(lows, stl, "LONG", 2.0, ib_edge=3.5, mode="probe") is None
+
+
+def test_fix5_split_modes():
+    from backend.v9.gateway.trading_gateway import t621_double_top_family
+    s = {"classification": "DOUBLE_TOP_AA_SHORT"}
+    for val, want in (("1", True), ("dt", True), ("touch2", False), ("0", False)):
+        with _env(DOUBLE_TOP_STRUCT_STOP_V1=val):
+            assert t621_double_top_family(s) is want, val
+    src = open("backend/v9/systems/five_min/five_min_system.py", encoding="utf-8").read()
+    assert 'in ("1", "true", "yes", "touch2")' in src and 'ib_edge=(_cf_levels or {}).get("ib_high"' in src
 
 
 def test_fix5_no_higher_top_and_long_mirror():

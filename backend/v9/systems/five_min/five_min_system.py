@@ -2064,10 +2064,14 @@ class FiveMinSystem(BaseV9TradingSystem):
                         # window, ≤ TOUCH2_STRUCT_STOP_MAX_ATR × ATR above the pair) carries the stop — 20.10 17:50
                         # SHORT 7781: pair 7787.00 ⇒ stop 7787.25 inside the 17:30 wick 7791.50 (stopped 17:50/17:55,
                         # before the 18:10 flush); beyond 7791.50 it holds. ceiling_touch2.structure_extreme.
-                        if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() in ("1", "true", "yes"):
+                        # T-622c: "touch2" = this part only (the DOUBLE_TOP/BOTTOM authority off); the IB edge feeds
+                        # TOUCH2_STRUCT_STOP_MODE=probe (only a failed extension beyond the IB moves the stop)
+                        if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() in ("1", "true", "yes", "touch2"):
                             try:
                                 from backend.v9.systems.ceiling_touch2 import structure_extreme as _t2_sx
-                                _t2_hx = _t2_sx(_cf_bars, _t2_st, _t2_dir, _t2_atr)
+                                _t2_hx = _t2_sx(_cf_bars, _t2_st, _t2_dir, _t2_atr,
+                                                ib_edge=(_cf_levels or {}).get("ib_high" if _t2_dir == "SHORT"
+                                                                               else "ib_low"))
                                 if _t2_hx is not None:
                                     logger.warning(
                                         "[CeilingFlipTouch2] T-621 structure stop: %s pair %.2f → the structure's "

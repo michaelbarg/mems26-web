@@ -44,6 +44,10 @@ envs_of() {
     n25s) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
     # T-622b: EDGE_FADE_TARGETS_V1 repaired (the chain is final — no R-clamp; stop beyond the probed extreme)
     eftx) echo "EDGE_FADE_TARGETS_V1=1 EDGE_FADE_STOP_MODE=extreme" ;;
+    # T-622c: fix 5 strict / split on top of the strong package (fix 2 single + the Normal-day runner)
+    n2r5p) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1 TOUCH2_STRUCT_STOP_MODE=probe" ;;
+    n2r5t) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=touch2 TOUCH2_STRUCT_STOP_MODE=probe" ;;
+    n2r5d) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=dt" ;;
     n25se) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1 EDGE_FADE_TARGETS_V1=1 EDGE_FADE_STOP_MODE=extreme" ;;
   esac
 }
