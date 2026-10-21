@@ -2157,13 +2157,13 @@ flags:
     group: opening
     what: "T-616 (20.10): opening_entry DRIVE also requires that no bar after the first traded beyond the open (by more than a tick) on the side opposite the drive — a tested open is a Test-Drive (Dalton), not a Drive. 20.10 #3540: bar 2 high 7731 > open 7726.75, yet DRIVE SHORT at 7713.75 fired and lost −225$; the canonical detector itself said TEST_DRIVE. Unset/0 = byte-identical."
     why: "Michael 20.10: 'does Dalton's doctrine and what I defined approve such trades — mainly the losers'. Built OFF; measured overnight vs base-20.10 (harness_out/base2010, tag t616drv); turned on in demo only if the acceptance rule passes (holdout ≥ 0, net > 0, every month ≥ 0)."
-    status: built_off
+    status: enabled
     ref: "T-616 5b3e26974 · backend/v9/systems/opening_entry.py · tests/v9/regression/test_t616_doctrine_gaps.py"
   STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1:
     category: stops
     what: "T-616 (20.10): the gateway treats a setup whose stop sits at/beyond its own metadata.structural_anchor (protective side) as structural (stop_is_structural=True), so STEP_SCALED_LADDER / StopResolver cannot compress it and RISK_BUDGET sizes from the real structural risk (n<3 ⇒ reject — the 09.09 ruling 'the stop is the structural anchor, the size is derived'). 20.10 #3558: anchor 7791.75, STEP_SCALED_LADDER moved 7795.50 → 7767.75, −215$; with the authority the risk is 38.5 ⇒ n=0 ⇒ no trade (the CEILING_FLIP_SHORT of the same second, structural 35-pt stop, was rejected exactly so). Unset/0 = byte-identical."
     why: "As OPENING_DRIVE_STRICT_V1 — measured overnight (tag t616saa); the acceptance rule decides."
-    status: built_off
+    status: enabled
     ref: "T-616 5b3e26974 · backend/v9/gateway/trading_gateway.py (t616_anchor_stop_is_structural) · tests/v9/regression/test_t616_doctrine_gaps.py"
   SCALE_IN_MIN_EXEMPT_V1:
     category: sizing
@@ -2176,13 +2176,13 @@ flags:
     group: ceiling flip
     what: "T-617 (20.10): optional cap k (ATR units) on CEILING_FLIP_TOUCH2's edge tolerance max(0.15×ATR, 0.15×IB width): edge_tol ≤ max(0.15×ATR, k×ATR). On 20.10 the IB was 75.75 pt ⇒ 11.4 pt, so double bottoms 8–9.5 pt above the VAL (zone=mid_value, the middle of the afternoon balance) fired LONG four times (#3574 −165$, #3582 −90$, #3572/#3580 cancelled). k=0.5 leaves a normal IB (up to ~25 pt) unchanged. Unset/0 = byte-identical."
     why: "Michael 20.10: 'for each losing trade — what was wrong, the entry location, System 6, the first contract'. Built OFF; measured overnight vs base-20.10 (tag t617t2); the acceptance rule decides."
-    status: built_off
+    status: enabled
     ref: "T-617 · backend/v9/systems/ceiling_touch2.py (touch2_edge_tol_cap_k) · tests/v9/regression/test_t617_touch2_cap_and_s6_t0.py"
   T1_FRONT_RUN_TICKS:
     category: targets
     what: "T-618 (20.10): after every gate and before any execution (shadow/demo/live and the harness read setup.t1 from there), T1 moves n ticks toward the entry (LONG −, SHORT +) so it sits IN FRONT of the level instead of on it. Never to/behind the entry; with T1_REALISM_FLOOR_R_V1 = r it never goes below r×R (front-runs fewer ticks instead). The original is kept in metadata.t1_pre_front_run; log '[Gateway] T-618 T1 FRONT-RUN'. 20.10 #3582: T1 7768.5 = the 18:15/18:55/19:00 triple top, the high reached 7768.25, then the trade gave back +13.75 pt to its stop (−90$). Unset/0 = byte-identical."
     why: "Michael 20.10 23:4x 'האם אפשר לבצע את התיקון עכשיו?' — ON in demo with n=2 the same night; measured overnight vs base-20.10 (tags t618fr, t618all); turned off 21.10 04:42 (0cb02c37d, config/RULED_FLAGS.yaml)."
-    status: built_off
+    status: enabled
     ref: "T-618 · backend/v9/gateway/trading_gateway.py (t618_front_run_t1) · tests/v9/regression/test_t618_t1_front_run.py"
   IB_EXT_ACCEPTED_HINT_V1:
     category: cascade_gate
@@ -2210,7 +2210,7 @@ flags:
     group: day_type
     what: "T-621 fix 2 (21.10): inside the DAYTYPE_SIDES_MECHANICAL_V1 counting, a side counts only when the IB extension was ACCEPTED (IB_EXT_ACCEPT_CLOSES consecutive closes ≥ noise beyond the edge, ever this session — the rule of fix 1) instead of 2 bars whose HIGH/LOW reached 0.5 pt beyond. 20.10: the 17:30–17:55 highs ≥ 7786.50 made it 'Variation' from 17:45 though no bar closed above 7786 ⇒ sides 0 ⇒ Normal, and the Normal-day location rule refuses the mid-value TOUCH2/REACTIVE longs that lost. Amends the 10.07 FIX-14 / 20.07 IB_BREAK_ANY_EXPANSION counting (Michael 21.10 'מאשר את 2'). Mode 'single' (T-622): acceptance only when ONE side broke — a day that broke both sides mechanically stays Neutral (10.07 'פריצה משני הצדדים'); mode '1' turned 5 Neutral days into Variation on the 78-session replay (−914$). Unset/0 = byte-identical."
     why: "Michael 21.10 — the 20.10 plan (stage 2, root R2: a rejected wick made the day Variation). Built OFF; demo unchanged until his stage-4 decision."
-    status: built_off
+    status: enabled
     ref: "T-621 · backend/v9/systems/day_type/relative_features.py · backend/v9/services/ib_acceptance.py (sides) · tests/v9/regression/test_t621_root_fixes_2010.py"
   FLIP_RUNNER_ON_OPPOSITE_TAKE_V1:
     category: execution
@@ -2238,7 +2238,7 @@ flags:
     group: normal day
     what: "T-622 (21.10): on a Normal day the runner ends at the OTHER SIDE (Michael's 11.09 Normal-day doctrine — 'to the POC, or as long as it continues, to the other side'). Once the IB is complete (12 closed RTH bars) and the live label is Normal, a runner (T1 filled) whose last CLOSED bar reached the other side of the IB (LONG high ≥ IB high · SHORT low ≤ IB low) gets its stop tightened to one tick inside min(close, IB edge) — closed back inside ⇒ one tick under the close (out on the next tick); closed beyond ⇒ one tick inside the edge (an accepted breakout makes the day not-Normal and the runner keeps its trail). Tighten only; MODIFY_STOP (op=EXIT is broken). Live: TradeManager.apply_normal_day_runner from bar_level_detector after the runner trail; harness mirror _ndr_apply. 20.10: the 16:50 ORR LONG runner (T1 17:00, T2 17:15) held the one slot to 18:10; under the rule it is out at 7779.00 in the 17:35 bar, and the 17:50 TOUCH2 SHORT at the other side takes the slot. Unset/0 = byte-identical."
     why: "Michael 21.10 'אם מדובר ביום נורמלי … צריך לבצע תיקונים שיהיו בהתאם ליום נורמלי'. Built OFF; measured on the faithful replay (harness_out/t621/days, tags ndr / n2r / n25r / n25s). Demo unchanged until his decision."
-    status: built_off
+    status: enabled
     ref: "T-622 · backend/v9/services/normal_day_runner.py · backend/v9/services/trade_manager/manager.py (apply_normal_day_runner) · bar_level_detector.py · scripts/fwd_harness.py (_ndr_apply) · tests/v9/regression/test_t622_normal_day_runner.py"
   EDGE_FADE_STOP_MODE:
     category: stops

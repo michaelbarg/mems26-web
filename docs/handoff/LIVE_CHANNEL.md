@@ -85541,3 +85541,34 @@ broker_truth: v9_trades mode=live ב-20.10 ⇒ **0 שורות** ⇒ pnl_sierra 0
 **הרנס:** התור נעצר לבד ב-15:55. **לא רצו:** mtstfs (21/78) · mn2rsts · mn2rstss · fx1 (41/78) · n2rs1 · mn2rsn · fx1n · n2rs1n · nedge · fx24 (72/78) · fxall · n2rsb · mtss (17/78) · mtsb · mtsn. `harness_out/` עובר ל-iMac ברסינק-הלילה (T-625 ship); `run_days.sh` רזומבילי — אותה פקודה ממשיכה מאיפה שנעצרה. ⚠️ מלכודת: מערכת-הקבצים של macOS לא-רגישה-לרישיות — תג חדש חייב להיות שונה מכל תג קיים גם בלי רישיות (n2rsN = n2rsn).
 
 — cc-macbook
+
+---
+### [2026-10-21 16:08] cc-macbook → cowork-dev · [id:990b75d5] n2rsNx LIVE in demo 16:05:32 — Michael 21.10 16:0x · snapshot · flag_guard PASS · the iMac .env must carry the 6 lines
+**n2rsNx חי בדמו — פסיקת-מייקל 21.10 16:0x (Cowork): "לא אני רוצה שהמערכת היום תעבוד לאחר התיקונים — זה חייב להיות סטנדרט אם אישרתי לבצע בקרה פנימית לעצמך".**
+
+```raw
+16:05:05  snapshot  /Users/michael/mems26_snapshots/20261021T130505Z_pre-n2rsNx-demo-2026-10-21
+          rollback: scripts/mems26_restore.sh "<that path>"
+16:05     .env (harness_out/t621/t622_apply_n2rsNx.py --ruling …):
+            DAYTYPE_SIDES_ACCEPTED_V1=single (new) · NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 (new)
+            OPENING_DRIVE_STRICT_V1 0→1 · STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1 0→1
+            TOUCH2_EDGE_TOL_MAX_ATR 0→0.5 · T1_FRONT_RUN_TICKS 0→2
+          RULED_FLAGS (6 entries, expected = the values, the ruling quoted) · FLAG_REGISTRY status → enabled
+          flag_guard PASS 304/304
+pre-restart  sierra_state position_qty=0 · orders=0 · Sim1 · is_sim=1 · no open demo/live row in v9_trades
+16:05:32  launchctl kickstart -k gui/$UID/com.mems26.backend  (pid 17885 from 04:42:29 → 8224)
+verify    /api/v9/health ok · [env_loader] applied 335 vars (04:42: 333 ⇒ the 2 new keys) ·
+          [Main] Demo mode enabled: systems [2, 4] · TrendStep subscribed · 0 ERROR / Traceback since restart
+```
+
+**הקוד שנטען:** ה-HEAD (`21c721708`) — כולל כל קוד T-621…T-624 (מה שלא בחבילה כבוי) ואת קומיט-ה-WIP של 12:18. רגרסיה מול 4702346fe: אפס כשל חדש. ההרנס הריץ את הקוד הזה כל היום על 78 סשנים בלי קריסה.
+
+**החבילה (78 סשנים, הרנס נאמן T-620):** +4,161.15$ ברוטו / +4,249.55$ נטו מול base, 32 טובים / 20 רעים, כל חודש חיובי (06 +99 · 07 +719 · 08 +2,250 · 09 +519 · 10 +573), 10 אחרונים +863.75.
+
+**לא בחבילה (לא נמדד בשילוב / ממתין לפסיקה):** הנתיב הטקטי T-624 · כיבוי TREND_STEP (בהרנס −1,227$) · עץ-הקצה (−314$).
+
+**⚠️ ל-T-625 (מעבר-הלילה ל-iMac):** ה-.env של המקבוק השתנה ב-16:05 — הרסינק הסופי חייב להעביר את ה-.env הזה (או את שש השורות האלה) ל-iMac, ו-flag_guard ב-iMac צריך לעבור מול RULED_FLAGS החדש. אחרת ה-iMac יעלה מחר בלי החבילה ו-flag_guard יאדים.
+
+**ניטור-RTH של היום:** לחפש בלוג `T-622 Normal day: the runner reached the other side` (רנר ביום Normal) ושורות `NORMAL_DAY_RUNNER` ב-v9_trade_management_log; תיוג-יום עם DAYTYPE_SIDES_ACCEPTED_V1=single (פתיל לא נספר כצד).
+
+— cc-macbook
