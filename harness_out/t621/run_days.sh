@@ -42,6 +42,9 @@ envs_of() {
     fx2s) echo "DAYTYPE_SIDES_ACCEPTED_V1=single" ;;
     n2rs) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
     n25s) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    # T-622b: EDGE_FADE_TARGETS_V1 repaired (the chain is final — no R-clamp; stop beyond the probed extreme)
+    eftx) echo "EDGE_FADE_TARGETS_V1=1 EDGE_FADE_STOP_MODE=extreme" ;;
+    n25se) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1 EDGE_FADE_TARGETS_V1=1 EDGE_FADE_STOP_MODE=extreme" ;;
   esac
 }
 export -f envs_of

@@ -2234,3 +2234,10 @@ flags:
     why: "Michael 21.10 'אם מדובר ביום נורמלי … צריך לבצע תיקונים שיהיו בהתאם ליום נורמלי'. Built OFF; measured on the faithful replay (harness_out/t621/days, tags ndr / n2r / n25r / n25s). Demo unchanged until his decision."
     status: built_off
     ref: "T-622 · backend/v9/services/normal_day_runner.py · backend/v9/services/trade_manager/manager.py (apply_normal_day_runner) · bar_level_detector.py · scripts/fwd_harness.py (_ndr_apply) · tests/v9/regression/test_t622_normal_day_runner.py"
+  EDGE_FADE_STOP_MODE:
+    category: stops
+    group: normal day
+    what: "T-622b (21.10): the stop EDGE_FADE_TARGETS_V1 gives a location-approved Normal/Neutral fade that names no structural anchor. 'edge' (default, T-354 as built) = the value/IB edge ± 1 tick; 'extreme' = when the price already traded past that edge on the fade side (a failed probe), one tick beyond the session extreme — the size budget then decides (Michael 09.09). 20.10 17:35 DALTON_EDGE_SHORT 7779.25: edge stop 7786.25 inside the 17:30 probe to 7791.50 (17:40/17:45 traded 7787.00) ⇒ 7791.75. Same commit: the edge-fade chain (POC → opposite VA → opposite IB) is exempt from the execution-time R-clamp in _execute_demo/_execute_live and the harness (t622_edge_fade_chain_final) — on 20.10 the clamp cut T2 inside T1, the ladder sanitizer kept T1 only and the 5-contract PLACE was rejected (T-214). Both only act when EDGE_FADE_TARGETS_V1=1 (off) ⇒ byte-identical."
+    why: "Michael 21.10 — fixes that follow the Normal day (his 11.09 doctrine: the reversal at VAH/VAL to the POC, then the other side). EDGE_FADE_TARGETS_V1 was built 14.09 from that ruling and never measured; its execution path was broken. Built OFF; measured as tags eftx / n25se (harness_out/t621/days)."
+    status: built_off
+    ref: "T-622b · backend/v9/gateway/trading_gateway.py (t622_edge_fade_stop, t622_edge_fade_chain_final) · scripts/fwd_harness.py · tests/v9/regression/test_t622_normal_day_runner.py"

@@ -120,6 +120,39 @@ def t621_struct_stop(setup: dict, direction) -> Optional[tuple]:
     return None
 
 
+def t622_edge_fade_chain_final(setup: dict) -> bool:
+    """T-622b — EDGE_FADE_TARGETS_V1's chain (Michael 11.09: T1 = POC · T2 = the opposite VA edge · T3 = the opposite IB
+    edge) is FINAL by T-354's own contract, so the execution-time R-clamp (_clamp_targets_to_max_r, T2 ≤ 3R · T3 ≤ 5R)
+    must not cut it. 20.10 17:35 DALTON_EDGE_SHORT: T2 VAL 7719.75 → clamped to 7758.25 (inside T1 = POC 7748.25) ⇒
+    the ladder sanitizer kept T1 only ⇒ the 5-contract PLACE was rejected (T-214). PURE: only setups the edge-fade
+    block marked (metadata.edge_fade_targets — set only when EDGE_FADE_TARGETS_V1=1) are exempt."""
+    md = (setup or {}).get("metadata") if isinstance((setup or {}).get("metadata"), dict) else {}
+    return bool(md.get("edge_fade_targets"))
+
+
+def t622_edge_fade_stop(direction, edge_stop: float, edge: float, session_high, session_low,
+                        mode: Optional[str]) -> float:
+    """T-622b EDGE_FADE_STOP_MODE — PURE. "edge" (default, T-354 as built): the value/IB edge ± 1 tick. "extreme": when
+    the price already traded past that edge on the fade side (a failed probe), the stop goes one tick beyond the session
+    extreme instead — 20.10: the IB-high edge stop 7786.25 sat inside the 17:30 probe to 7791.50 (17:40/17:45 traded
+    7787.00) ⇒ 7791.75. The size budget then decides on the true risk (Michael 09.09: the stop is the structure, the
+    size is derived)."""
+    if str(mode or "edge").strip().lower() != "extreme":
+        return edge_stop
+    try:
+        sh = float(session_high or 0)
+        sl = float(session_low or 0)
+        e = float(edge)
+    except (TypeError, ValueError):
+        return edge_stop
+    d = str(direction or "").upper()
+    if d == "SHORT" and sh > e:
+        return round(sh + 0.25, 2)
+    if d == "LONG" and 0 < sl < e:
+        return round(sl - 0.25, 2)
+    return edge_stop
+
+
 def t618_front_run_ticks() -> int:
     """T-618: T1_FRONT_RUN_TICKS as an int ≥ 0 (unset / blank / bad / ≤ 0 ⇒ 0 = off)."""
     raw = os.getenv("T1_FRONT_RUN_TICKS", "").strip()
@@ -4200,6 +4233,13 @@ class TradingGateway:
                                 _ef_tol = _ef_tol(_ef_ibw)
                                 _ef_edge = _ef_val if _ef_entry >= _ef_val - _ef_tol else min(_ef_val, _ef_ibl)
                                 _ef_stop = round(_ef_edge - 0.25, 2)
+                            # T-622b EDGE_FADE_STOP_MODE (default "edge" ⇒ unchanged): "extreme" ⇒ beyond the session
+                            # extreme on the fade side when the price already probed past the edge
+                            _ef_stop = t622_edge_fade_stop(
+                                _ef_dir, _ef_stop, _ef_edge,
+                                _ef_tpo.get("session_high") or _ef_tpo.get("rth_high"),
+                                _ef_tpo.get("session_low") or _ef_tpo.get("rth_low"),
+                                os.getenv("EDGE_FADE_STOP_MODE", "edge"))
                         if _ef_dir == "SHORT":
                             _ef_opp_val = _ef_val
                             _ef_opp_ib = _ef_ibl
@@ -6477,7 +6517,8 @@ class TradingGateway:
             _d = (setup.get("direction") or "LONG").upper()
             _e = setup.get("entry_price") or 0.0
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
-            t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
+            if not t622_edge_fade_chain_final(setup):   # T-622b: the edge-fade chain is final (T-354)
+                t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
             t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
             # TARGET_MIN_SPACING_V1 (default OFF; "shadow" = observe-only)
             t1, t2, t3 = self._target_spacing_shadow(
@@ -6638,7 +6679,8 @@ class TradingGateway:
             _d = (setup.get("direction") or "LONG").upper()
             _e = setup.get("entry_price") or 0.0
             _s = setup.get("stop") or setup.get("metadata", {}).get("stop_initial") or 0.0
-            t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
+            if not t622_edge_fade_chain_final(setup):   # T-622b: the edge-fade chain is final (T-354)
+                t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
             t1, t2, t3 = self._target_degeneracy_guard(t1, t2, t3)
             # TARGET_MIN_SPACING_V1 (default OFF; "shadow" = observe-only)
             t1, t2, t3 = self._target_spacing_shadow(

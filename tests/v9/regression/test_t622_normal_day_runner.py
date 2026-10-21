@@ -105,6 +105,34 @@ def test_manager_before_t1_or_not_normal_or_ib_forming():
         assert _run_manager(_fake_trade(), "Normal", _bars()[:10])[0] is False
 
 
+def test_t622b_edge_fade_chain_final_marks_only_edge_fade_setups():
+    from backend.v9.gateway.trading_gateway import t622_edge_fade_chain_final
+    assert t622_edge_fade_chain_final({"metadata": {"edge_fade_targets": True}}) is True
+    for s in ({}, {"metadata": {}}, {"metadata": None}, None, {"metadata": {"edge_fade_targets": False}}):
+        assert t622_edge_fade_chain_final(s) is False
+
+
+def test_t622b_execution_paths_skip_the_clamp_only_for_the_edge_fade_chain():
+    src = open("backend/v9/gateway/trading_gateway.py", encoding="utf-8").read()
+    guard = "if not t622_edge_fade_chain_final(setup):   # T-622b: the edge-fade chain is final (T-354)\n" \
+            "                t1, t2, t3 = self._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)"
+    assert src.count(guard) == 2                                  # _execute_demo and _execute_live
+    assert src.count("t1, t2, t3 = self._clamp_targets_to_max_r(") == 2
+    hsrc = open("scripts/fwd_harness.py", encoding="utf-8").read()
+    assert "if not _gw_mod.t622_edge_fade_chain_final(setup):" in hsrc
+
+
+def test_t622b_edge_fade_stop_modes_on_2010():
+    from backend.v9.gateway.trading_gateway import t622_edge_fade_stop
+    # 17:35 DALTON_EDGE_SHORT 7779.25: the edge = max(VAH 7771.75, IB high 7786.00) ⇒ 7786.25; the probe went 7791.50
+    assert t622_edge_fade_stop("SHORT", 7786.25, 7786.0, 7791.5, 7710.25, None) == 7786.25         # default: as built
+    assert t622_edge_fade_stop("SHORT", 7786.25, 7786.0, 7791.5, 7710.25, "edge") == 7786.25
+    assert t622_edge_fade_stop("SHORT", 7786.25, 7786.0, 7791.5, 7710.25, "extreme") == 7791.75
+    assert t622_edge_fade_stop("SHORT", 7786.25, 7786.0, 7786.0, 7710.25, "extreme") == 7786.25    # no probe beyond
+    assert t622_edge_fade_stop("LONG", 7719.5, 7719.75, 7791.5, 7710.25, "extreme") == 7710.0      # below VAL
+    assert t622_edge_fade_stop("LONG", 7719.5, 7719.75, 7791.5, None, "extreme") == 7719.5
+
+
 def test_wiring_is_flag_gated_after_the_trail():
     src = open("backend/v9/services/trade_manager/bar_level_detector.py", encoding="utf-8").read()
     i = src.index('getenv("NORMAL_DAY_RUNNER_OTHER_SIDE_V1", "0")')

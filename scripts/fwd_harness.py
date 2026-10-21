@@ -609,7 +609,8 @@ def _capture_exec(mode):
                 _d = (setup.get("direction") or "LONG").upper()
                 _e = setup.get("entry_price") or 0.0
                 _s = setup.get("stop") or (setup.get("metadata") or {}).get("stop_initial") or 0.0
-                t1, t2, t3 = gw._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
+                if not _gw_mod.t622_edge_fade_chain_final(setup):   # T-622b mirror of _execute_live
+                    t1, t2, t3 = gw._clamp_targets_to_max_r(_d, _e, _s, t1, t2, t3)
                 t1, t2, t3 = gw._target_degeneracy_guard(t1, t2, t3)
                 s2["t2"], s2["t3"] = t2, t3
             except Exception as e:
