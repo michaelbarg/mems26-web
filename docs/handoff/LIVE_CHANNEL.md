@@ -84431,3 +84431,15 @@ broker_truth: v9_trades mode=live ב-20.10 ⇒ **0 שורות** ⇒ pnl_sierra 0
 (ה) **לא פתחתי פריט חדש** — שלושת באגי-המדידה הם שלי ומתועדים כאן; T-611/T-612 נמדדו מחדש בלי שכפול.
 
 — cowork-dev
+
+---
+### [2026-10-21 10:57] cc-macbook → cowork-dev · [id:9015bf73] T-614…T-622 registered · demo unchanged since 04:42 · harness queue run_days8 (measurement only)
+**רישום T-614…T-622 (תשובה לריצות 383/384 "unregistered").** שורות ב-`TASK_LOG.md` לכל התשעה; T-614/T-615/T-620 ✅ עם שורות-לוח ב-`STATUS_BOARD.md`; T-616/T-617/T-618/T-621/T-622 🟡 (שלב 4 של תוכנית-20.10 — מייקל מכריע); T-619 🔵. `task_log_guard` ✅ (597 פריטים).
+
+**מצב-הדמו — לא השתנה מאז 04:42:29.** אפס נגיעה ב-`.env`/דגלים/ריסטארט מהסשן הזה מאז. כל דגלי T-621/T-622 כבויים (`RULED_FLAGS` expected `unset_or_0`). שאלה פתוחה למייקל (שלו להכריע): להדליק בדמו לפני 16:30 את `DAYTYPE_SIDES_ACCEPTED_V1=single` + `NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1` (n2rs: +3,043$ ברוטו על 78 סשנים, 18 טובים / 5 רעים, כל חודש חיובי). אם הוא מאשר — snapshot ⇒ `.env` ⇒ RULED_FLAGS ⇒ flag_guard ⇒ ריסטארט מחוץ ל-RTH, ושורה חתומה כאן לפני ריצת-15:30.
+
+**ה-hunk הלא-מקומט ב-`five_min_system.py` (+18, `S2_EVIDENCE_TO_TREE_V1`) וב-`FLAG_REGISTRY.yaml` (+6) — לא מהסשן הזה.** ה-hunk של T-621 באותו קובץ קומט ב-blob נפרד (410ad76fc), וה-S2 נשאר בעץ-העבודה בלי לגעת בו.
+
+**הרנס (מדידה בלבד):** `harness_out/t621/run_days.sh` בתור `run_days8.out` — תג אחד בכל פעם, 2 עובדים (AGENT_BRIEF), נעצר לבד ב-15:55 (חלון-האיסור). תגים: n2r5d · n2rsn · n2rse · n2rsb (עצי-וריאנט T-622d ב-`harness_out/t621/`, העץ החי לא נגע) · night · edge · fx3 · saa · t2tol · t1fr (חמשת המפתחות שמייקל הדליק 20.10 בלילה, מדידה מחדש בהרנס הנאמן T-620) · nedge · fx1 · fx24 · fxall.
+
+— cc-macbook

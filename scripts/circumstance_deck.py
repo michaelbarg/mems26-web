@@ -51,11 +51,18 @@ def load_samples():
             if not t or not t.get("filled") or t.get("pnl_usd") is None:
                 continue
             vec = tv.get("vec") or {}
+            # the REAL T1: leg t1_leg (2 when the T0 leg is on — the harness's t1_target is leg 1, i.e. T0 there)
+            e = t.get("fill_price") or t.get("entry")
+            legs = t.get("legs") or []
+            k = int(t.get("t1_leg") or 1)
+            t1px = legs[k - 1].get("target") if len(legs) >= k and legs[k - 1].get("target") else t.get("t1_target")
+            sgn = 1 if (r.get("direction") or "").upper() == "LONG" else -1
+            t1pts = round(sgn * (float(t1px) - float(e)), 2) if (t1px and e) else None
             out.append(dict(day=day, il=r.get("il"), cls=r.get("classification"), dir=(r.get("direction") or "").upper(),
-                            entry=t.get("fill_price") or t.get("entry"), leaf=tv.get("id") or tv.get("path"),
+                            entry=e, leaf=tv.get("id") or tv.get("path"),
                             path=tv.get("path"), vec=vec, pnl=float(t["pnl_usd"]), t1=bool(t.get("t1_before_stop")),
-                            mfe=t.get("mfe_pts"), mae=t.get("mae_pts"), t1pts=t.get("t1_pts"), outcome=t.get("outcome"),
-                            stop=t.get("stop_initial"), t1px=t.get("t1_target"), exit_il=t.get("exit_il"),
+                            mfe=None, mae=None, t1pts=t1pts, outcome=t.get("outcome"),
+                            stop=t.get("stop_initial"), t1px=t1px, exit_il=t.get("exit_il"),
                             n=t.get("contracts")))
     return out, sorted(sessions)
 
