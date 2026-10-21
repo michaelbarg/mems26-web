@@ -1,5 +1,34 @@
 # יומן-מסחר חי — MEMS26 (נוצר אוטומטית בסוף כל יום ע״י `scripts/eod_journal.py`; מחיר-ברוקר; הכללים: `docs/journal/FIX_LEDGER.md`)
 
+## 2026-10-21 (Wed) — נכתב 2026-10-21 23:21 IL
+
+**לייב היום:** 0 עסקאות · Σ **+0.00$** (מחיר-ברוקר) · 10 סשנים אחרונים Σ -232.50$ (7) · מאז 07.07 Σ -927.50$ (194)
+**דמו היום:** 8 עסקאות · 2W/4L · Σ **-376.25$** (ספרים; Sierra כשתומחר) · 2 לא-מתומחרות · לפי סיירה (Sim1) -368.75$
+
+| שעה | מערכת | תבנית | כיוון | חוזים | יציאה | $ | מקור |
+|---|---|---|---|---|---|---|---|
+| 16:50 | S2 | OPENING_EXTREME_REJECT | LONG | 3 | STOP_HIT | -225.00 | ספרים |
+| 17:20 | S2 | CEILING_FLIP_TOUCH2 | LONG | 5 | t3_missing | — | לא-מתומחר |
+| 17:25 | S2 | CEILING_FLIP_TOUCH2 | LONG | 5 | t3_missing | — | לא-מתומחר |
+| 17:55 | S2 | CEILING_FLIP_TOUCH2 | SHORT | 5 | STOP_HIT | -118.75 | ספרים |
+| 18:45 | S2 | CEILING_FLIP_TOUCH2 | SHORT | 5 | STOP_HIT | -75.00 | ספרים |
+| 19:20 | S2 | CEILING_FLIP_TOUCH2 | SHORT | 5 | STOP_HIT | +97.50 | ספרים |
+| 19:45 | S2 | CEILING_FLIP_TOUCH2 | SHORT | 5 | STOP_HIT | -160.00 | ספרים |
+| 20:25 | S2 | CEILING_FLIP_TOUCH2 | SHORT | 5 | STOP_HIT | +105.00 | ספרים |
+
+**פתיחה:** מערכת **OPEN_AUCTION_IN** (נעילה 17:30 at IB lock, dir NEUTRAL, 0 ביטולים) · ברים **OPEN_REJECTION_REVERSE** — דרייב ואז חזרה דרך הפתיחה; פתיחה 7779.25 בתוך-טווח (אתמול H/L 7791.5/7710.25, VAH/VAL/POC 7774.5/7746.25/7757.75); 30 דק׳ H/L 7780.75/7764.5, נטו -5.50 · ✗ לא תואם
+**סוג-יום:** מערכת 17:30 Normal · 18:30 Normal · 21:00 Variation · אחרון Variation · EOD Variation · 2 ריצודים (101 וקטורים) · ברים **Normal_Variation** (IB 7780.75/7751.0 · טווח 7751.0–7811.75 · rib 2.04 · סגירה 7802.0 pos 0.84 · הרחבה ↑כן ↓לא) · סגירה−פתיחה +22.75
+**החלטות:** 101 (עברו את העץ 60) · חסימות: tree:stand_down 13 · tree:location 12 · tree:time_cutoff 9 · tree:bias 5 · tree:kind 2
+**בריאות:** backend pid — · feed 26 דק׳ · סוכנים 0 · AC 100% · gap_backfill: gap_backfill 2026-10-21 22:43 IL · battery AC 100% · all 15 trading days have 78 RTH bars 
+
+**10 סשנים אחרונים לפי תבנית (מחיר-ברוקר):** CEILING_FLIP_SHORT n=2 +11$ · DOUBLE_BOTTOM_EE_LONG n=1 +0$ · OPENING_TEST_DRIVE n=1 -44$ · DALTON_EDGE_SHORT n=1 -55$ · CEILING_FLIP_LONG n=1 -65$ · OPENING_DRIVE n=1 -80$
+
+**המלצות (כללים אוטומטיים — מדידה לפני הדלקה):**
+1. `S1-opening-lock` — S1 נעל סוג-פתיחה שונה מקריאת-הברים — שורש T-594 (נעילה בלי רפרנסים-קודמים) / T-595 (מכונה על בר שטוח); המדידה: hist_o / hist_p / hist_po. *ראיה:* 2026-10-21: מערכת OPEN_AUCTION_IN (17:30 at IB lock) · ברים OPEN_REJECTION_REVERSE (דרייב ואז חזרה דרך הפתיחה; 30 דק׳ נטו -5.50, בתוך-טווח)
+
+**שיקול-דעת (הסוכן):** לפי דלתון (ברים) היום נפתח בתוך טווח אתמול (7779.25), דחה מטה וחזר דרך הפתיחה (OPEN_REJECTION_REVERSE, 30 דק׳ נטו -5.50) ואז התפתח ל-Normal_Variation עם הרחבה ↑ בלבד וסגירה ב-pos 0.84 (+22.75 מהפתיחה). המערכת נעלה OPEN_AUCTION_IN/NEUTRAL ב-17:30 (✗ לא תואם לברים), תייגה Normal עד 18:30 ו-Variation רק מ-21:00 (2 ריצודים), ובדמו S2 ירה 8 עסקאות (2W/4L, Σ -376.25$, 2 לא-מתומחרות): לונג OPENING_EXTREME_REJECT ב-16:50 (-225$) ו-5 שורטים CEILING_FLIP_TOUCH2 נגד ההרחבה כלפי מעלה (2W/3L, Σ -151.25$); לייב 0. התיקון הכי שווה-כסף: `S1-opening-lock` (T-594/T-595) — נעילת-פתיחה בלי רפרנסים-קודמים / על בר שטוח היא מה שהשאיר את S2 בלי ההקשר של יום-הרחבה-למעלה. לאמת, לא להדליק: ב-474 סשני hist_o/hist_p — שיעור ההתאמה נעילה↔ברים, ו-P&L של שורטי CEILING_FLIP_TOUCH2 בימי Normal_Variation עם הרחבה ↑ בלבד (מועמד ל-SKIP).
+**מדידה לילית:** chain9b `HISTPR_DONE` / `CHAIN9B_DONE` · hist_o 474 · hist_p 474 (סשנים שנמדדו ל-T-594 / T-593)
+
 ## 2026-10-19 (Mon) — נכתב 2026-10-19 23:21 IL
 
 **לייב היום:** 0 עסקאות · Σ **+0.00$** (מחיר-ברוקר) · 10 סשנים אחרונים Σ -238.75$ (11) · מאז 07.07 Σ -927.50$ (194)
