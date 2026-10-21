@@ -30,6 +30,23 @@
 6. **חבילת-המעבר → iMac**: `~/mems26_migration_2026-10-21/` (dump, env copies, 11 plists, `pip_freeze_macbook.txt`, `sierra/` = Sierra4/Accounts4/KeyboardShortcuts4.config + 13 chartbooks + SymbolSettings + ACS_Source cpp (20.10) + DLL, `SHA256SUMS*.txt`).
 7. **pip install** של ה-freeze לתוך framework-python-3.9 של ה-iMac — הורץ ברקע.
 
+## ✅ Phase A — בוצע 21.10 12:40–13:05 IL (תוצאות מדודות)
+
+| צעד | תוצאה |
+|---|---|
+| `check` | ✓ repo HEAD `15adace6c` · dump 1.2 GB · 54 checksums OK · Postgres 18.4 · Python 3.9.7 |
+| `pydeps` | ✓ 105 פינים מותקנים ב-framework-3.9 · `imports: ALL OK` |
+| `node` | ✗ **חסר** — פעולת-admin של מייקל/Claude-iMac (pkg רשמי 24.10.0) |
+| `db` | ✓ `pg_restore -j4` rc=0 · **0 שגיאות** · 298s · 7.45 GB · 55 טבלאות · footprint **5,531,689** / tick_reversal **2,681,775** — זהים למקבוק עד השורה · ה-DB הישן → `mems26_imac_old_aug2026` (נמחק ב-Phase B) |
+| `env` | ✓ `.env` זהה למקבוק (48,893 bytes) · `LIVE_TRADING_ARMED=0` (שורה 390) · `MACHINE_TAG=מק-1` · `RENDER_MOBILE_URL=mems26-mobile` · `MEMS26_MODE=demo` |
+| `plists` | ✓ 11 plists ב-`~/Library/LaunchAgents` (לא נטענו) |
+| `sierra` | ✓ גיבוי → `$MIG/sierra_imac_backup_20261021T124906` · configs + 13 chartbooks + SymbolSettings + ACS_Source (shasum `014481f15d83` == monolith) + DLL הועתקו · ייצוא-ישן הוזז |
+| `services` | ✓ backend עלה (`health ok`, PID 22985, 0.0.0.0:8000) — **אחרי** שהסוכן הראשון נדחה ב-TCC על `~/Downloads` (Operation not permitted) ואושר; הפרונט מחכה ל-Node |
+| `verify` | `flag_guard` PASS (אזהרת-plist≠.env על `FOOTPRINT_DISABLED` — קיימת גם במקבוק, T-435/T-563) · `mems26_verify`: backend ✓ · DLL==monolith ✓ · feed fresh (Sierra2 מייצאת) · 9 סוכנים "drift" = **מתוכנן** עד החיתוך |
+| extras | harness_out (24,140 קבצים) · `~/mems26_hist` · `~/mems26_snapshots` · `~/SierraChart_Data/v9_archive` (2.2 GB) ← rsync ל-iMac |
+
+**מלכודת שנתפסה ב-Phase A — TCC על `~/Downloads`:** ב-iMac, סוכן-launchd שניסה לגשת ל-`~/Downloads/mems26_web_git` נדחה (`getcwd: Operation not permitted`, `.env: Operation not permitted`) כי `~/Downloads` מוגן ב-macOS; אחרי אישור ההרשאה (דיאלוג/Full Disk Access) הגישה עובדת (נבדק עם סוכן-בדיקה: bash/python/symlink ✓). אם ב-Phase B סוכן נופל עם `Operation not permitted` ⇒ System Settings ▸ Privacy & Security ▸ Full Disk Access ▸ להוסיף `/bin/bash`, `Python.app` של framework-3.9, `/usr/local/bin/node`.
+
 ## Phase A — הכנת ה-iMac (היום, בטוח בזמן שהמקבוק סוחר)
 
 סקריפט: **`scripts/mac2/phaseA_imac_prepare.sh`** (רץ **על ה-iMac**; אידמפוטנטי; צעד-צעד או `all`).
@@ -92,6 +109,9 @@
 - **`.env` של המקבוק מגיע עם `LIVE_TRADING_ARMED=1`** — שני הסקריפטים כופים 0 לפני כל העלאת-שירות; רק מייקל מעלה ל-1.
 - **ייצוא ישן של אוג׳ ב-`~/SierraChart_Data/v9_export` של ה-iMac** — הוזז הצידה ב-Phase A כדי שלא ייקרא כפיד.
 - Rollback: במקבוק `for p in ~/Library/LaunchAgents/_retired_mems26_<date>/*.plist; do launchctl bootstrap gui/$UID "$p"; done` + פתיחת Sierra שם; ב-iMac `mems26_restore.sh` על ה-snapshot.
+
+## רישום
+TASK_LOG `T-625` (🟠 Phase A ✓ · Phase B הלילה) · STATUS_BOARD · LIVE_CHANNEL — קומיט `bf52ffb83`. פרויקט: `claude/MAC2_TAKEOVER_2026-10-21.md`.
 
 ## קבצים
 `scripts/mac2/phaseA_imac_prepare.sh` · `scripts/mac2/phaseB_cutover_macbook.sh` · `scripts/mac2/phaseB_imac_golive.sh` · חבילה: `~/mems26_migration_2026-10-21/` (בשתי המכונות) ·
