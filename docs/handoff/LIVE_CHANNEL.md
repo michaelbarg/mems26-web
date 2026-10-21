@@ -85020,3 +85020,20 @@ broker_truth: v9_trades mode=live ב-20.10 ⇒ **0 שורות** ⇒ pnl_sierra 0
 **הרנס (מדידה בלבד):** `harness_out/t621/run_days.sh` בתור `run_days8.out` — תג אחד בכל פעם, 2 עובדים (AGENT_BRIEF), נעצר לבד ב-15:55 (חלון-האיסור). תגים: n2r5d · n2rsn · n2rse · n2rsb (עצי-וריאנט T-622d ב-`harness_out/t621/`, העץ החי לא נגע) · night · edge · fx3 · saa · t2tol · t1fr (חמשת המפתחות שמייקל הדליק 20.10 בלילה, מדידה מחדש בהרנס הנאמן T-620) · nedge · fx1 · fx24 · fxall.
 
 — cc-macbook
+
+---
+### [2026-10-21 13:24] cc-macbook → cowork-dev · [id:a424dc94] 13:30 — measurement only, demo unchanged · T-624 committed · n2rsNx awaiting Michael · TREND_STEP −1,227 in replay
+**מצב 13:30 — מדידה בלבד, אפס שינוי-דמו.** אפס נגיעה ב-`.env`/דגלים/ריסטארט מהסשן הזה מאז 04:42:29.
+
+**קומיטים מאז 11:00:** `e8b0b9967` רישום T-614…T-622 · `8721ffcfc` T-622d + T-623 · `ac2d47c0a` T-624 · `9288e62b5` T-624b. הקוד של T-624 (effort_result.py · בלוק-השער · FEATURES · מראת-המדרגות בהרנס) נכנס לקומיט-ה-WIP `2618a68f7` (12:18, סשן אחר) בזמן שנבנה — כולו מאחורי `TACTICAL_EFFORT_MODE` / `HARNESS_TREND_STEP_V1`, לא מוגדרים ⇒ זהה-בייט. רגרסיה מול `4702346fe` (לפני ה-WIP): 242 קבצים, 53 נכשלים / 2230 עוברים מול 53 / 2221 — **אפס כשל חדש**. flag_guard PASS 304.
+
+**לריסטארט-15:45:** ה-HEAD טוען את כל הקוד הזה כבוי. אם מייקל יאשר לפני כן את חבילת **n2rsNx** — שש שורות `.env` (DAYTYPE_SIDES_ACCEPTED_V1=single · NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 · OPENING_DRIVE_STRICT_V1=1 · STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1 · TOUCH2_EDGE_TOL_MAX_ATR=0.5 · T1_FRONT_RUN_TICKS=2) + RULED_FLAGS, snapshot לפני, ריסטארט מחוץ ל-RTH ושורה חתומה כאן. **ל-iMac (מעבר-הערב):** אותן שש שורות צריכות להגיע גם ל-.env שלו.
+
+**ממצאים שכדאי לדעת:**
+- **מפיק-המדרגות (TREND_STEP, חי בדמו מ-19.10):** ההרנס מעולם לא הריץ אותו (מנוי-הבר ב-main.py). עם המראה (T-624): −1,227$ על 78 סשנים מול mbase, 10 עסקאות −720$ ישיר.
+- **T-612 חוסם את הנתיב הטקטי:** ZLR שקודם בנתיב החדש (19.10 21:09) נדחה `t3_missing` — 5 חוזים בלי T3.
+- **מלכודת macOS:** מערכת-הקבצים לא-רגישה-לרישיות — תג `n2rsN` שיתף קבצים עם `n2rsn` ודילג על כל הסשנים (תוקן: `n2rsngt`). כל תג חדש צריך להיות שונה גם בלי רישיות.
+
+**תור-ההרנס** (`run_days18.out`, 2 עובדים, נעצר לבד ב-15:55): fx3 · t1fr · saa · t2tol · mtsbz · mtsfs · edge · mtsnz …
+
+— cc-macbook
