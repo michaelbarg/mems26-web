@@ -85,6 +85,41 @@ def t616_anchor_stop_is_structural(setup: dict, direction) -> Optional[tuple]:
     return None
 
 
+def t621_double_top_family(setup: dict) -> bool:
+    """T-621 fix 5 DOUBLE_TOP_STRUCT_STOP_V1 — PURE except the flag read. True when the flag is on and the setup is a
+    double-top / double-bottom producer (classification DOUBLE_TOP… / DOUBLE_BOTTOM…): the T-616 structural-anchor
+    authority then applies to it alone (the producer's stop beyond the structure stands; the size budget decides)."""
+    if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() not in ("1", "true", "yes"):
+        return False
+    try:
+        return str((setup or {}).get("classification") or "").upper().startswith(("DOUBLE_TOP", "DOUBLE_BOTTOM"))
+    except AttributeError:
+        return False
+
+
+def t621_struct_stop(setup: dict, direction) -> Optional[tuple]:
+    """T-621 fix 5 — PURE. (stop, anchor, moved) for a setup that names metadata.structural_anchor: a stop at/beyond
+    the anchor on the protective side stands (moved=False); a stop INSIDE the structure is moved out to the anchor
+    (moved=True — the anchor of the double-top producers is already the higher top ± 1 tick). None when there is no
+    anchor / stop, the direction is unknown, or the numbers do not parse."""
+    try:
+        md = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+        anchor, stop = md.get("structural_anchor"), setup.get("stop")
+        if anchor is None or stop is None:
+            return None
+        anchor, stop = float(anchor), float(stop)
+        if not (anchor > 0 and stop > 0):
+            return None
+        d = str(direction or "").upper()
+        if d == "SHORT":
+            return (stop, anchor, False) if stop >= anchor else (anchor, anchor, True)
+        if d == "LONG":
+            return (stop, anchor, False) if stop <= anchor else (anchor, anchor, True)
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return None
+
+
 def t618_front_run_ticks() -> int:
     """T-618: T1_FRONT_RUN_TICKS as an int ≥ 0 (unset / blank / bad / ≤ 0 ⇒ 0 = off)."""
     raw = os.getenv("T1_FRONT_RUN_TICKS", "").strip()
@@ -1381,7 +1416,27 @@ class TradingGateway:
                         _dp_ibl = float(_dp_tpo.get("ib_low") or 0)
                         _dp_sh = float(_dp_tpo.get("session_high") or _dp_tpo.get("rth_high") or 0)
                         _dp_sl = float(_dp_tpo.get("session_low") or _dp_tpo.get("rth_low") or 0)
-                        if _dp_ibh > 0 and _dp_ibl > 0:
+                        # T-621 fix 1 IB_EXT_ACCEPTED_HINT_V1 (Michael 21.10, the 20.10 plan; default OFF ⇒ the
+                        # ext>0 rule below, byte-identical): the direction comes from an ACCEPTED extension only —
+                        # N consecutive closed bars CLOSED beyond the IB edge — and is released by the same rule
+                        # (N closes back inside). 20.10: a 5.5-pt wick (17:30, 7791.50 over IB high 7786.00, closed
+                        # back inside; no close above 7786 all day) set LONG from 17:35 to the close, and ib_return
+                        # (need 7.6 pt) never saw an extension to release. "1" ⇒ no accepted side = no extension
+                        # (Layer 1 stands, as before) · "none" ⇒ no accepted side after the IB = no direction.
+                        _t621_mode = os.getenv("IB_EXT_ACCEPTED_HINT_V1", "0").strip().lower()
+                        if _dp_ibh > 0 and _dp_ibl > 0 and _t621_mode in ("1", "true", "yes", "none"):
+                            from backend.v9.services import ib_acceptance as _t621
+                            from backend.v9.services.trade_context import (
+                                get_closed_rth_bars_today as _t621_bars)
+                            _t621_acc = _t621.acceptance(_t621_bars() or [], ib_hi=_dp_ibh, ib_lo=_dp_ibl)
+                            _t621_l1 = _dp_dir_hint
+                            _dp_dir_hint = _t621.layer2_hint(_t621_mode, _t621_l1, _t621_acc)
+                            result["ib_ext_accepted"] = {
+                                "mode": _t621_mode, "state": _t621_acc.get("state"), "hint": _dp_dir_hint,
+                                "layer1": _t621_l1, "ext_up": _t621_acc.get("ext_up"),
+                                "ext_dn": _t621_acc.get("ext_dn"), "up_run": _t621_acc.get("up_run"),
+                                "dn_run": _t621_acc.get("dn_run")}
+                        elif _dp_ibh > 0 and _dp_ibl > 0:
                             _dp_ext_up = max(0, _dp_sh - _dp_ibh)
                             _dp_ext_dn = max(0, _dp_ibl - _dp_sl)
                             if _dp_ext_up > _dp_ext_dn and _dp_ext_up > 0:
@@ -1389,8 +1444,8 @@ class TradingGateway:
                             elif _dp_ext_dn > _dp_ext_up and _dp_ext_dn > 0:
                                 _dp_dir_hint = "SHORT"  # override
                             # else: no extension → keep Layer 1
-                except Exception:
-                    pass
+                except Exception as _dp_l2_err:
+                    logger.info("[Gateway] Layer 2 (5b) IB-extension hint failed (Layer 1 kept): %s", _dp_l2_err)
                 # ── T-466 STRUCTURE_BEFORE_LABEL_V1 (24.09, default OFF — replay decides):
                 # the day-type LABEL lags the structure by 2-3 bars and flip-flops (24.09:
                 # six flips; 18:05 TREND_STEP SHORT @7737 refused under "Normal" while the IB
@@ -4263,7 +4318,29 @@ class TradingGateway:
         # replace it and the risk budget decides (n<3 ⇒ "entry too far from structure"). 20.10 #3558
         # DOUBLE_TOP_AA_SHORT: stop 7795.50 beyond the anchor 7791.75 (the double top) → STEP_SCALED_LADDER cut it
         # to 7767.75 (10.8pt, inside the structure) and the trade shipped 4 contracts; stopped in 2 min, −215$.
-        if (not _stop_is_structural
+        # T-621 fix 5 DOUBLE_TOP_STRUCT_STOP_V1 (Michael 21.10, the 20.10 plan; default OFF): the same authority for the
+        # double-top / double-bottom family ONLY (the T-616 flag applies it to every producer — measured −575$ on the old
+        # replay): their stop is beyond the structure's extreme, and when that is too far the size budget refuses the
+        # entry (n<3) instead of the ladder moving the stop inside the structure.
+        # 20.10 18:35 shows the second half: DOUBLE_TOP_AA_SHORT 7758.00 anchored at 7791.75 (the higher top 7791.50)
+        # arrived with its stop 7783.25 INSIDE that anchor (the producer's ATR cap) — under the fix the stop moves out
+        # to the anchor, and the size budget decides on the true risk.
+        _t621_dt = None
+        if not _stop_is_structural and t621_double_top_family(setup):
+            _t621_dt = t621_struct_stop(setup, direction)
+            if _t621_dt is not None:
+                if _t621_dt[2]:
+                    _t621_old = setup.get("stop")
+                    setup["stop"] = _t621_dt[0]
+                    _md621 = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else None
+                    if _md621 is not None and _md621.get("stop_initial") is not None:
+                        _md621["stop_initial"] = _t621_dt[0]
+                    logger.warning(
+                        "[Gateway] T-621 DOUBLE_TOP STRUCT STOP: %s %s stop %.2f was inside the structure — moved to "
+                        "its extreme %.2f; size is derived from it", setup.get("classification"),
+                        str(direction).upper(), float(_t621_old), _t621_dt[0])
+                _stop_is_structural = True
+        if (not _stop_is_structural and _t621_dt is None
                 and os.getenv("STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1", "0").strip().lower() in ("1", "true", "yes")):
             _saa = t616_anchor_stop_is_structural(setup, direction)
             if _saa is not None:
@@ -5653,6 +5730,8 @@ class TradingGateway:
                         _ab = getattr(self, "_last_live_abort", None)
                         result["live_blocked_by"] = (_ab or ("live_abort", None))[0]
                         result["live_block_reason"] = (_ab or (None, "aborted without reason"))[1]
+                elif self.live_slot is not None and self._t621_flip_runner(setup, system_id, cross_context, result):
+                    pass  # T-621 fix 4: the runner was closed and this candidate was routed (result filled there)
                 elif self.live_slot is not None:
                     logger.info("[Gateway] LIVE slot occupied, skipping system %d setup", system_id)
                     result["live_blocked_by"] = "live_slot_occupied"
@@ -5661,6 +5740,65 @@ class TradingGateway:
                     result["live_blocked_by"] = "strict_risk"
 
         return result
+
+    # ── T-621 fix 4 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1 (Michael 21.10 "מאשר את 2 ו 4"; default OFF ⇒ the hook returns
+    # False at once ⇒ byte-identical). The rule is backend/v9/services/flip_runner.py. Live: log only ("would flip") —
+    # the order path is not built; scripts/fwd_harness.py replaces the two seams below to measure the flip.
+    def _t621_slot_is_runner(self, slot) -> bool:
+        """Live: the slot's TM trade has logged T1_HIT (its stop is at breakeven or beyond). Fail-safe False."""
+        try:
+            from backend.v9.db.read import read_all as _fr_read
+            rows = _fr_read(
+                "SELECT 1 AS x FROM v9_trade_management_log WHERE trade_id = :tid AND action = 'T1_HIT' LIMIT 1",
+                {"tid": int((slot or {}).get("trade_id"))})
+            return bool(rows)
+        except Exception:
+            return False
+
+    def _t621_exit_runner(self, slot, setup) -> bool:
+        """Close the runner at the market. Live: NOT wired — logs the flip it would make and returns False, so the slot
+        stays occupied exactly as before. The harness closes its simulated trade here."""
+        logger.warning(
+            "[Gateway] T-621 FLIP (log only — the live order path is not built): would close runner %s %s and take "
+            "%s %s @%s", (slot or {}).get("trade_id"), (slot or {}).get("direction"), setup.get("classification"),
+            setup.get("direction"), setup.get("entry_price"))
+        return False
+
+    def _t621_flip_runner(self, setup, system_id, cross_context, result) -> bool:
+        """True when the slot's runner was closed and THIS candidate was routed into the freed slot."""
+        try:
+            from backend.v9.services import flip_runner as _fr
+            if not _fr.enabled():
+                return False
+            slot = self.live_slot or {}
+            tv = result.get("tree_v3") if isinstance(result.get("tree_v3"), dict) else {}
+            ok, why = _fr.decide(slot.get("direction"), self._t621_slot_is_runner(slot), setup.get("direction"),
+                                 tv.get("leaf"), tv.get("mode"))
+            result["flip_runner"] = {"ok": ok, "why": why, "open": slot.get("trade_id")}
+            if not ok:
+                return False
+            if not passes_strict_checks(setup, "live", self):
+                result["flip_runner"]["why"] = "candidate refused by the strict risk checks"
+                return False
+            if not self._t621_exit_runner(slot, setup) or self.live_slot is not None:
+                return False
+            self._last_live_abort = None
+            live_trade = self._execute_live(setup, system_id, cross_context)
+            if live_trade is not None:
+                self.live_slot = live_trade
+                result["live"] = live_trade["trade_id"]
+            else:
+                _ab = getattr(self, "_last_live_abort", None)
+                result["live_blocked_by"] = (_ab or ("live_abort", None))[0]
+                result["live_block_reason"] = (_ab or (None, "aborted without reason"))[1]
+            result["flip_runner"]["flipped"] = True
+            logger.warning("[Gateway] T-621 FLIP: runner %s %s closed → %s %s @%s routed (%s)",
+                           slot.get("trade_id"), slot.get("direction"), setup.get("classification"),
+                           setup.get("direction"), setup.get("entry_price"), result.get("live"))
+            return True
+        except Exception as _fr_err:
+            logger.warning("[Gateway] T-621 flip check failed (slot kept): %s", _fr_err)
+            return False
 
     async def on_bar_close(self, event=None) -> None:
         """D-094: Flush buffered candidates at bar close — select winner by R:R.

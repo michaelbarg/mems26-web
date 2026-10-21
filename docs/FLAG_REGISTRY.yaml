@@ -2163,7 +2163,7 @@ flags:
     category: sizing
     what: "T-616 (20.10): RISK_MIN_CONTRACTS (3) applies to new entries only; a scale-in add (classification SCALE_IN or metadata.scale_in_parent) ships min(n, requested) when that is ≥ 1, else 0. 20.10 #3550: the +2c add to #3544 got contracts=0 ⇒ a phantom UNPRICED row. Unset/0 = byte-identical."
     why: "Plumbing fix; the harness does not model scale-ins, so there is no replay number — enabling is Michael's yes/no (it adds exposure, inside the 225$ risk budget)."
-    status: built_off
+    status: enabled
     ref: "T-616 5b3e26974 · backend/v9/services/sierra_command.py · tests/v9/regression/test_t616_doctrine_gaps.py"
   TOUCH2_EDGE_TOL_MAX_ATR:
     category: s2
@@ -2175,6 +2175,55 @@ flags:
   T1_FRONT_RUN_TICKS:
     category: targets
     what: "T-618 (20.10): after every gate and before any execution (shadow/demo/live and the harness read setup.t1 from there), T1 moves n ticks toward the entry (LONG −, SHORT +) so it sits IN FRONT of the level instead of on it. Never to/behind the entry; with T1_REALISM_FLOOR_R_V1 = r it never goes below r×R (front-runs fewer ticks instead). The original is kept in metadata.t1_pre_front_run; log '[Gateway] T-618 T1 FRONT-RUN'. 20.10 #3582: T1 7768.5 = the 18:15/18:55/19:00 triple top, the high reached 7768.25, then the trade gave back +13.75 pt to its stop (−90$). Unset/0 = byte-identical."
-    why: "Michael 20.10 23:4x 'האם אפשר לבצע את התיקון עכשיו?' — ON in demo with n=2 the same night; measured overnight vs base-20.10 (tags t618fr, t618all); a FAIL of the acceptance rule turns it off before 16:30."
-    status: enabled
+    why: "Michael 20.10 23:4x 'האם אפשר לבצע את התיקון עכשיו?' — ON in demo with n=2 the same night; measured overnight vs base-20.10 (tags t618fr, t618all); turned off 21.10 04:42 (0cb02c37d, config/RULED_FLAGS.yaml)."
+    status: built_off
     ref: "T-618 · backend/v9/gateway/trading_gateway.py (t618_front_run_t1) · tests/v9/regression/test_t618_t1_front_run.py"
+  IB_EXT_ACCEPTED_HINT_V1:
+    category: cascade_gate
+    group: direction
+    what: "T-621 fix 1 (21.10): the gateway's Layer 2 (5b) direction hint after the IB comes from an ACCEPTED extension only — IB_EXT_ACCEPT_CLOSES (2) consecutive closed bars CLOSED ≥ IB_EXT_ACCEPT_NOISE_PTS (0.5) beyond the IB edge — and is released by the same rule (2 closes back inside). '1' ⇒ no live accepted side = no extension (Layer 1 stands, the old no-extension path) · 'none' ⇒ no direction after the IB. Logged per candidate as result.ib_ext_accepted. 20.10: a 5.5-pt wick (17:30, 7791.50 over IB high 7786.00, no close above 7786 all day) set LONG from 17:35 to the close; ib_return (need 7.6 pt) never saw an extension to release. Unset/0 = the ext>0 rule, byte-identical."
+    why: "Michael 21.10 — the 20.10 plan (stage 2, root R1: the trend was read from a wick). Built OFF; demo unchanged until his stage-4 decision. Measured on the faithful harness: harness_out/t621."
+    status: built_off
+    ref: "T-621 · backend/v9/services/ib_acceptance.py (acceptance / layer2_hint) · backend/v9/gateway/trading_gateway.py Layer 2 (5b) · tests/v9/regression/test_t621_root_fixes_2010.py"
+  IB_EXT_ACCEPT_CLOSES:
+    category: param
+    group: direction
+    what: "T-621: N for the accepted-extension rule (fixes 1 and 2) — consecutive closed 5-min bars beyond the IB edge to accept it, and back inside to release it. Default 2."
+    why: "Michael 21.10 plan: 'acceptance = 2 closes beyond the IB'. Only read when IB_EXT_ACCEPTED_HINT_V1 or DAYTYPE_SIDES_ACCEPTED_V1 is on."
+    status: built_off
+    ref: "T-621 · backend/v9/services/ib_acceptance.py (accept_closes)"
+  IB_EXT_ACCEPT_NOISE_PTS:
+    category: param
+    group: direction
+    what: "T-621: how far beyond the IB edge a close must be to count (fixes 1 and 2). Default 0.5 pt — the IB_BREAK_ANY_EXPANSION noise floor."
+    why: "Same definition as the day-type side counting it replaces under DAYTYPE_SIDES_ACCEPTED_V1."
+    status: built_off
+    ref: "T-621 · backend/v9/services/ib_acceptance.py (accept_noise)"
+  DAYTYPE_SIDES_ACCEPTED_V1:
+    category: s1
+    group: day_type
+    what: "T-621 fix 2 (21.10): inside the DAYTYPE_SIDES_MECHANICAL_V1 counting, a side counts only when the IB extension was ACCEPTED (IB_EXT_ACCEPT_CLOSES consecutive closes ≥ noise beyond the edge, ever this session — the rule of fix 1) instead of 2 bars whose HIGH/LOW reached 0.5 pt beyond. 20.10: the 17:30–17:55 highs ≥ 7786.50 made it 'Variation' from 17:45 though no bar closed above 7786 ⇒ sides 0 ⇒ Normal, and the Normal-day location rule refuses the mid-value TOUCH2/REACTIVE longs that lost. Amends the 10.07 FIX-14 / 20.07 IB_BREAK_ANY_EXPANSION counting (Michael 21.10 'מאשר את 2'). Unset/0 = byte-identical."
+    why: "Michael 21.10 — the 20.10 plan (stage 2, root R2: a rejected wick made the day Variation). Built OFF; demo unchanged until his stage-4 decision."
+    status: built_off
+    ref: "T-621 · backend/v9/systems/day_type/relative_features.py · backend/v9/services/ib_acceptance.py (sides) · tests/v9/regression/test_t621_root_fixes_2010.py"
+  FLIP_RUNNER_ON_OPPOSITE_TAKE_V1:
+    category: execution
+    group: slot
+    what: "T-621 fix 4 (21.10): when the one live slot holds a RUNNER (its T1 filled — T1_HIT logged) and a candidate in the OPPOSITE direction is a tree TAKE that passed every gate, the runner is closed at the market and the candidate takes the slot (backend/v9/services/flip_runner.py). A trade before its T1 is never flipped. LIVE: log only — '[Gateway] T-621 FLIP (log only …) would close runner …'; the order path (close the Sierra position, then the opposite entry — the F1 pre-send guard refuses an entry while the account holds a position) is NOT built. The harness (scripts/fwd_harness.py) executes the flip on its simulated trades for the measurement. 20.10: ORR LONG runner (T1 17:00, T2 17:15) held the slot while DALTON_EDGE_SHORT 17:35 7779.25 and CEILING_FLIP_TOUCH2 SHORT 17:50 7781.00 (tree TAKE) were refused live_slot_occupied. Unset/0 = byte-identical."
+    why: "Michael 21.10 'מאשר את 2 ו 4' — the 20.10 plan (stage 2, root R4: the single slot). Built OFF; the live order path is built only if Michael rules the fix on after the measurement."
+    status: built_off
+    ref: "T-621 · backend/v9/services/flip_runner.py · backend/v9/gateway/trading_gateway.py (_t621_flip_runner) · scripts/fwd_harness.py (_h_exit_runner) · tests/v9/regression/test_t621_root_fixes_2010.py"
+  DOUBLE_TOP_STRUCT_STOP_V1:
+    category: stops
+    group: double top
+    what: "T-621 fix 5 (21.10): (a) CEILING_FLIP_TOUCH2 — the stop goes beyond the structure's higher top/lower bottom (the detector's own window, ≤ TOUCH2_STRUCT_STOP_MAX_ATR × ATR beyond the pair) instead of the pair (ceiling_touch2.structure_extreme); (b) DOUBLE_TOP… / DOUBLE_BOTTOM… — the producer's stop beyond its structural_anchor stands (the T-616 authority for this family only), and a stop INSIDE the anchor is moved out to it; the size budget then decides (n<3 ⇒ no entry). 20.10: TOUCH2 SHORT 17:50 stop 7787.25 → 7791.75 (beyond the 17:30 wick 7791.50; 17:55 traded 7790.50); #3558 DOUBLE_TOP_AA 18:15 stop 7795.50 cut by STEP_SCALED_LADDER to 7767.50 (−215$) and 18:35 stop 7783.25 inside the 7791.75 anchor ⇒ both refused. Unset/0 = byte-identical."
+    why: "Michael 21.10 — the 20.10 plan (stage 2, root R5: the late double top / the stop inside the top). Built OFF; demo unchanged until his stage-4 decision."
+    status: built_off
+    ref: "T-621 · backend/v9/systems/ceiling_touch2.py (structure_extreme) · backend/v9/systems/five_min/five_min_system.py (TOUCH2 producer) · backend/v9/gateway/trading_gateway.py (t621_double_top_family / t621_struct_stop) · tests/v9/regression/test_t621_root_fixes_2010.py"
+  TOUCH2_STRUCT_STOP_MAX_ATR:
+    category: param
+    group: double top
+    what: "T-621 fix 5: how far (ATR units) beyond the TOUCH2 pair a higher top of the same window may be and still carry the stop. Default 1.0. Only read when DOUBLE_TOP_STRUCT_STOP_V1 is on."
+    why: "20.10: the wick was 4.5 pt above the pair, ATR ≈ 7.8."
+    status: built_off
+    ref: "T-621 · backend/v9/systems/ceiling_touch2.py (struct_stop_max_atr)"

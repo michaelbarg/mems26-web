@@ -1,0 +1,36 @@
+#!/bin/bash
+# T-621 stage 3 (Michael 21.10 plan) — 20.10 replayed with each root fix alone, then together, on the faithful harness
+# (T-620). Base = the 20.10 demo .env snapshot. Outside the harness ban only (16:00–23:05 IL weekdays).
+# Usage: run_2010.sh [tag ...]   (no tags ⇒ every variant)
+cd /Users/michael/Downloads/mems26_web_git || exit 1
+ENVF=/Users/michael/mems26_snapshots/20261020T153114Z_base-20.10/.env
+OUT=harness_out/t621
+D=${D:-2026-10-20}
+hm=$(TZ=Asia/Jerusalem date +%H%M); dow=$(TZ=Asia/Jerusalem date +%u)
+if [ "$dow" -le 5 ] && [ "$hm" -ge 1600 ] && [ "$hm" -lt 2305 ]; then echo "REFUSED: inside the harness ban"; exit 2; fi
+ALL="IB_EXT_ACCEPTED_HINT_V1=1 DAYTYPE_SIDES_ACCEPTED_V1=1 OPENING_DRIVE_STRICT_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1"
+envs_of() {
+  case "$1" in
+    base) echo "X_T621=0" ;;
+    fx1) echo "IB_EXT_ACCEPTED_HINT_V1=1" ;;
+    fx1n) echo "IB_EXT_ACCEPTED_HINT_V1=none" ;;
+    fx2) echo "DAYTYPE_SIDES_ACCEPTED_V1=1" ;;
+    fx3) echo "OPENING_DRIVE_STRICT_V1=1" ;;
+    fx4) echo "FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1" ;;
+    fx5) echo "DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    fx24) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1" ;;
+    fx245) echo "DAYTYPE_SIDES_ACCEPTED_V1=1 FLIP_RUNNER_ON_OPPOSITE_TAKE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1" ;;
+    fxall) echo "$ALL" ;;
+    fxalln) echo "${ALL/IB_EXT_ACCEPTED_HINT_V1=1/IB_EXT_ACCEPTED_HINT_V1=none}" ;;
+  esac
+}
+run() {
+  tag="$1"; out="$OUT/${tag}_${D}.json"
+  env $(envs_of "$tag") SITUATION_VECTOR_LOG_V1=0 nice -n 10 python3 scripts/fwd_harness.py --env "$ENVF" --session "$D" \
+    --variant "$tag" --out "$out" --quiet > "$OUT/${tag}_${D}.log" 2>&1
+  echo "done $tag rc=$? $(TZ=Asia/Jerusalem date +%H:%M:%S) pnl=$(python3 -c "import json;print(json.load(open('$out'))['daily_pnl_harness'])" 2>/dev/null)"
+}
+TAGS=("$@"); [ ${#TAGS[@]} -eq 0 ] && TAGS=(base fx1 fx1n fx2 fx3 fx4 fx5 fx24 fx245 fxall fxalln)
+for t in "${TAGS[@]}"; do run "$t" & while [ "$(jobs -r | wc -l)" -ge 3 ]; do sleep 2; done; done
+wait
+echo "ALL DONE $(TZ=Asia/Jerusalem date +%H:%M:%S)"

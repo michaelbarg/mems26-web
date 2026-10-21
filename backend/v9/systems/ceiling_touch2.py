@@ -184,6 +184,64 @@ def touch2_edge_tol_cap_k() -> float:
     return k if k > 0 else 0.0
 
 
+def struct_stop_max_atr() -> float:
+    """T-621 fix 5: TOUCH2_STRUCT_STOP_MAX_ATR as a float k > 0 (unset / blank / bad / ≤ 0 ⇒ 1.0)."""
+    raw = os.getenv("TOUCH2_STRUCT_STOP_MAX_ATR", "").strip()
+    try:
+        k = float(raw) if raw else 1.0
+    except ValueError:
+        return 1.0
+    return k if k > 0 else 1.0
+
+
+def structure_extreme(
+    bars: Sequence[Dict[str, Any]],
+    st: Optional[Dict[str, Any]],
+    direction: str,
+    atr: Optional[float],
+    cfg: Optional[Dict[str, Any]] = None,
+    max_atr: Optional[float] = None,
+) -> Optional[float]:
+    """T-621 fix 5 (DOUBLE_TOP_STRUCT_STOP_V1, Michael 21.10 — the 20.10 plan): the HIGHER top of the structure.
+
+    The pair (P1, P2) is the double top; the structure it belongs to is the detector's own window — the bars from
+    `max_bars_between` before touch-1 up to touch-2. When that window holds a higher high than the pair (SHORT; a
+    lower low for LONG) within `max_atr` × ATR of it (TOUCH2_STRUCT_STOP_MAX_ATR, default 1.0), that extreme is the
+    structure's top and the stop belongs beyond it: the thesis "the extension failed" is negated only above the
+    extension's own extreme. Returns that extreme, or None (no higher top in reach ⇒ the pair stop stands).
+
+    20.10 17:50 CEILING_FLIP_TOUCH2 SHORT 7781.00: P1 17:40 7787.00 · P2 17:45 7787.00 ⇒ stop 7787.25 — inside the
+    17:30 wick to 7791.50 (the failed extension over IB high 7786.00), 4.5 pt above the pair (ATR ≈ 7.8). 17:50 traded
+    7787.50 and 17:55 7790.50 — stopped — before the 18:10 flush to 7746.75. Beyond 7791.50 the stop survives."""
+    try:
+        if not st or atr is None or float(atr) <= 0:
+            return None
+        i1, i2 = int(st["p1_index"]), int(st["p2_index"])
+        p1, p2 = float(st["p1"]), float(st["p2"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    parsed = _ohlc(bars)
+    if parsed is None:
+        return None
+    highs, lows, _closes = parsed
+    if not (0 <= i1 <= i2 < len(highs)):
+        return None
+    conf = dict(DEFAULTS)
+    if cfg:
+        conf.update(cfg)
+    lo = max(0, i1 - int(conf.get("max_bars_between", 12)))
+    k = struct_stop_max_atr() if max_atr is None else float(max_atr)
+    reach = k * float(atr)
+    d = str(direction or "").upper()
+    if d == "SHORT":
+        pair, sx = max(p1, p2), max(highs[lo:i2 + 1])
+        return sx if (sx > pair and sx - pair <= reach) else None
+    if d == "LONG":
+        pair, sx = min(p1, p2), min(lows[lo:i2 + 1])
+        return sx if (sx < pair and pair - sx <= reach) else None
+    return None
+
+
 def detect_touch2(
     bars: Sequence[Dict[str, Any]],
     levels: Optional[Dict[str, Any]],

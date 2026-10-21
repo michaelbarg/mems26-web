@@ -304,6 +304,15 @@ def compute_relative_features(
             _mech_up = _mech_up_range and _up_bars >= _mech_min_bars
             _mech_dn = _mech_dn_range and _dn_bars >= _mech_min_bars
             f.sides = int(_mech_up) + int(_mech_dn)
+            # T-621 fix 2 DAYTYPE_SIDES_ACCEPTED_V1 (Michael 21.10 "מאשר את 2", amends the 10.07 FIX-14 / 20.07
+            # IB_BREAK_ANY_EXPANSION counting for the measurement; default OFF ⇒ byte-identical). A side counts only
+            # when the extension was ACCEPTED: N consecutive closed bars after the IB CLOSED ≥ noise beyond the edge
+            # (backend/v9/services/ib_acceptance.py — the same definition as the gateway's direction hint, fix 1).
+            # 20.10: IB high 7786.00; the 17:30 wick to 7791.50 and four more bars with HIGHS ≥ 7786.50 counted as
+            # the up side ⇒ "Variation" from 17:45, yet no bar closed above 7786 all day ⇒ sides 0 ⇒ Normal.
+            if os.getenv("DAYTYPE_SIDES_ACCEPTED_V1", "0").strip().lower() in ("1", "true", "yes"):
+                from backend.v9.services import ib_acceptance as _t621
+                f.sides = _t621.sides(_t621.acceptance(bars, ib_hi=ib_ref_h, ib_lo=ib_ref_l, ib_bars=ib_bars))
 
     period_lows: List[float] = []
     period_highs: List[float] = []

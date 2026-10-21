@@ -2059,6 +2059,23 @@ class FiveMinSystem(BaseV9TradingSystem):
                         _t2_entry = _t2_st["confirm_close"]
                         _t2_extreme = max(_t2_st["p1"], _t2_st["p2"]) if _t2_dir == "SHORT" \
                             else min(_t2_st["p1"], _t2_st["p2"])
+                        # T-621 fix 5 DOUBLE_TOP_STRUCT_STOP_V1 (Michael 21.10, the 20.10 plan; default OFF ⇒ the
+                        # pair stop, byte-identical): a higher top of the same structure within reach (the detector's
+                        # window, ≤ TOUCH2_STRUCT_STOP_MAX_ATR × ATR above the pair) carries the stop — 20.10 17:50
+                        # SHORT 7781: pair 7787.00 ⇒ stop 7787.25 inside the 17:30 wick 7791.50 (stopped 17:50/17:55,
+                        # before the 18:10 flush); beyond 7791.50 it holds. ceiling_touch2.structure_extreme.
+                        if os.getenv("DOUBLE_TOP_STRUCT_STOP_V1", "0").strip().lower() in ("1", "true", "yes"):
+                            try:
+                                from backend.v9.systems.ceiling_touch2 import structure_extreme as _t2_sx
+                                _t2_hx = _t2_sx(_cf_bars, _t2_st, _t2_dir, _t2_atr)
+                                if _t2_hx is not None:
+                                    logger.warning(
+                                        "[CeilingFlipTouch2] T-621 structure stop: %s pair %.2f → the structure's "
+                                        "extreme %.2f", _t2_dir, _t2_extreme, _t2_hx)
+                                    _t2_extreme = float(_t2_hx)
+                            except Exception as _t2_sx_err:
+                                logger.warning("[CeilingFlipTouch2] T-621 structure stop failed (pair kept): %s",
+                                               _t2_sx_err)
                         _t2_tick = 0.25
                         _t2_stop = round(_t2_extreme + _t2_tick, 2) if _t2_dir == "SHORT" \
                             else round(_t2_extreme - _t2_tick, 2)

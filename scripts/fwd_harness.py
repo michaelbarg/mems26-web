@@ -704,6 +704,9 @@ def _route_setup_capture(setup, system_id):
     rec["blocked_by"] = res.get("blocked_by")
     rec["reason"] = res.get("reason")
     rec["live_blocked_by"] = res.get("live_blocked_by")
+    for _k in ("flip_runner", "ib_ext_accepted"):       # T-621 fixes 4 / 1 — what the gateway decided, per candidate
+        if isinstance(res.get(_k), dict):
+            rec[_k] = dict(res[_k])
     rec["result"] = {k: (v if isinstance(v, (str, int, float, type(None))) else str(v)[:80])
                      for k, v in res.items() if k in ("shadow", "demo", "live", "blocked_by", "live_blocked_by")}
     rec["dp_ot_seen"] = _DP_TRACE.get("ot")
@@ -1444,6 +1447,46 @@ def _close_trade(tr, il, eod=False, eod_price=None):
         pass
 
 
+# T-621 fix 4 (FLIP_RUNNER_ON_OPPOSITE_TAKE_V1): the gateway's two flip seams, on the harness's OWN simulated trades
+# (the live seams read v9_trade_management_log and do not send the exit). A runner = filled and its T1 leg exited at
+# its target (the live T1_HIT). The exit is at the candidate's entry price — the market at the fire — on every open leg
+# (exit=FLIP).
+_FLIP_STATS = {"asked": 0, "flipped": 0}
+
+
+def _h_slot_is_runner(slot):
+    """The live seam's T1_HIT: the trade is filled and its T1 leg (leg 2 under the T0 ladder) exited at its target."""
+    _FLIP_STATS["asked"] += 1
+    tid = str((slot or {}).get("trade_id"))
+    tr = next((t for t in OPEN_TRADES if str(t["trade_id"]) == tid), None)
+    if not (tr and tr.get("filled")):
+        return False
+    t1l = next((l for l in tr["legs"] if l["leg"] == tr.get("t1_leg", 1)), None)
+    return bool(t1l and str(t1l.get("exit") or "").startswith("T"))
+
+
+def _h_exit_runner(slot, setup):
+    tid = str((slot or {}).get("trade_id"))
+    tr = next((t for t in OPEN_TRADES if str(t["trade_id"]) == tid), None)
+    if tr is None or setup.get("entry_price") is None:
+        return False
+    px = float(setup["entry_price"])
+    il = _NOW["utc"].astimezone(IL).strftime("%H:%M")
+    e = tr["fill_price"] if tr["fill_price"] is not None else tr["entry"]
+    sgn = 1 if tr["direction"] == "LONG" else -1
+    for leg in tr["legs"]:
+        if not leg["exit"]:
+            leg.update(exit="FLIP", exit_price=px, pts=sgn * (px - e), bar_il=il)
+    tr["flipped_by"] = setup.get("classification")
+    _FLIP_STATS["flipped"] += 1
+    _close_trade(tr, il)          # frees gw.live_slot, books the day stats — the live on_trade_close
+    return True
+
+
+gw._t621_slot_is_runner = _h_slot_is_runner
+gw._t621_exit_runner = _h_exit_runner
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # 9. drive the session
 # ──────────────────────────────────────────────────────────────────────────
@@ -1660,6 +1703,7 @@ out = {
     "t595": dict(_T595_STATS),                          # T-615 (on=False ⇒ first-push feed, as before)
     "be_rule": dict(_BE_RULE_STATS),                    # T-615 (checked=0 ⇒ flag off or no T1 fill)
     "f5_trail": dict(_F5_STATS),                        # T-620 (on=False ⇒ RUNNER_TRAIL_V2 off or HARNESS_F5_TRAIL_MIRROR=0)
+    "flip_runner": dict(_FLIP_STATS),                   # T-621 fix 4 (asked=0 ⇒ FLIP_RUNNER_ON_OPPOSITE_TAKE_V1 off)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
