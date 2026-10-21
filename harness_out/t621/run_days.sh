@@ -8,6 +8,12 @@ ENVF=/Users/michael/mems26_snapshots/20261020T153114Z_base-20.10/.env
 OUT=harness_out/t621/days
 mkdir -p "$OUT"
 export ENVF OUT
+# T-622d tree VARIANTS (measurement only — config/decision_tree_v3.yaml untouched): built by
+# /Users/michael/mems26_t622_tree_variant.py; T616_EDGE = the T-616 edge tree Michael ruled ON 20.10 night
+T622_NEDGE=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t622_normal_edge.yaml
+T622_BOTH=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t622_edge_both.yaml
+T616_EDGE=/Users/michael/Downloads/mems26_web_git/config/decision_tree_v3.t616_edge.yaml
+export T622_NEDGE T622_BOTH T616_EDGE
 in_ban() {
   local dow hm; dow=$(TZ=Asia/Jerusalem date +%u); hm=$(TZ=Asia/Jerusalem date +%H%M)
   [ "$dow" -le 5 ] && [ "$hm" -ge 1555 ] && [ "$hm" -lt 2305 ]
@@ -49,6 +55,23 @@ envs_of() {
     n2r5t) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=touch2 TOUCH2_STRUCT_STOP_MODE=probe" ;;
     n2r5d) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=dt" ;;
     n25se) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DOUBLE_TOP_STRUCT_STOP_V1=1 EDGE_FADE_TARGETS_V1=1 EDGE_FADE_STOP_MODE=extreme" ;;
+    # T-622d: the Normal-day edge rule (Michael 11.09 "לא נכון להיכנס באזור ה-POC") — on the Normal responsive row
+    # T-529's failed-extension exemption is gone (20.10 18:15 DT −215$ at mid_value); T-616 edge = the same principle
+    # on the T-329 path (Michael ruled it ON 20.10 night); "both" = the two together
+    nedge) echo "DECISION_TREE_V3_PATH=$T622_NEDGE" ;;
+    n2rsn) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DECISION_TREE_V3_PATH=$T622_NEDGE" ;;
+    edge) echo "DECISION_TREE_V3_PATH=$T616_EDGE" ;;
+    n2rse) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DECISION_TREE_V3_PATH=$T616_EDGE" ;;
+    n2rsb) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 DECISION_TREE_V3_PATH=$T622_BOTH" ;;
+    # the five keys Michael ruled ON 20.10 night (T-616/T-617/T-618; off since 21.10 04:42 by the night acceptance
+    # rule — mine, not his) re-measured on the faithful harness (T-620): each alone + the whole night set
+    saa) echo "STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1" ;;
+    t2tol) echo "TOUCH2_EDGE_TOL_MAX_ATR=0.5" ;;
+    t1fr) echo "T1_FRONT_RUN_TICKS=2" ;;
+    night) echo "OPENING_DRIVE_STRICT_V1=1 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1 DECISION_TREE_V3_PATH=$T616_EDGE TOUCH2_EDGE_TOL_MAX_ATR=0.5 T1_FRONT_RUN_TICKS=2" ;;
+    # T-623: "m" + any tag = the same envs on the harness with the monotonic-clock fix (confluence join on the fake
+    # clock, ATR caches cleared per bar) — compare m-tags only with m-tags (mbase is their base)
+    m?*) echo "HARNESS_MONO_FIX_V1=1 $(envs_of "${1#m}")" ;;
   esac
 }
 export -f envs_of

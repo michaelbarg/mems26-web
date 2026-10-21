@@ -315,6 +315,29 @@ _n_patched = install_clock()
 market_clock.set_clock_mode("REPLAY")
 LOG.info("clock installed: %d module bindings rebound", _n_patched)
 
+# T-623 (HARNESS_MONO_FIX_V1, default OFF ⇒ byte-identical): three live mechanisms run on time.monotonic (real
+# seconds), which install_clock() does not touch — and a replay passes a whole session in ~15 s of real time:
+#  (a) the CONFLUENCE_RI_ZLR join (S2 × S4 routes ≤ 5 s apart, registry TTL 1 bar): in a replay the pushes of
+#      different bars are milliseconds apart, so whether two routes join depends on machine load, not on the
+#      market (04.09 20:45 −70$: present in 8 of 16 runs, absent in 8, no variant cause);
+#  (b) the 30-s ATR caches of target_spacing and mae_scratch keep the session's first ATR for most of the day.
+# ON: the confluence registry runs on the fake clock (one push ⇒ Δ 0 s, as live), and both ATR caches are cleared
+# at every bar close (live recomputes within 30 s of the close).
+_MONO_FIX = os.getenv("HARNESS_MONO_FIX_V1", "0").strip().lower() in ("1", "true", "yes")
+_MONO_STATS = {"atr_cache_clears": 0}
+if _MONO_FIX:
+    import backend.v9.systems.confluence.confluence_ri_zlr as _crz_mod  # noqa: E402
+    _crz_mod.reset_registry(now_fn=_fake_time)
+    LOG.info("T-623 monotonic fix ON: confluence registry on the fake clock; ATR caches cleared per bar")
+
+
+def _t623_clear_atr_caches():
+    for _m in ("backend.v9.systems.target_spacing", "backend.v9.systems.mae_scratch"):
+        _mod = sys.modules.get(_m)
+        if _mod is not None and hasattr(_mod, "_atr_cache"):
+            _mod._atr_cache = (0.0, 0.0)
+            _MONO_STATS["atr_cache_clears"] += 1
+
 # ──────────────────────────────────────────────────────────────────────────
 # 5. side-effect patches
 # ──────────────────────────────────────────────────────────────────────────
@@ -1304,6 +1327,8 @@ def _ndr_apply(tr, d, b, hi, lo, cl):
 
 def _settle_bar(b, bar_index):
     """Walk one CLOSED bar through every open trade (conservative: stop before target on the same bar)."""
+    if _MONO_FIX:
+        _t623_clear_atr_caches()
     hi, lo, op, cl = float(b["high"]), float(b["low"]), float(b["open"]), float(b["close"])
     il = b["ts"].astimezone(IL).strftime("%H:%M")
     for tr in list(OPEN_TRADES):
@@ -1744,6 +1769,8 @@ out = {
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
+if _MONO_FIX:   # T-623 — only when ON, so an OFF run's JSON keeps its exact shape
+    out["mono_fix"] = dict(_MONO_STATS, on=True)
 os.makedirs(os.path.dirname(args.out), exist_ok=True)
 with open(args.out, "w") as f:
     json.dump(out, f, default=str, indent=1)

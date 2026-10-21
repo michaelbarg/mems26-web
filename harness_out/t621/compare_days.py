@@ -9,7 +9,7 @@ import os
 import sys
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "days")
-BASE = "base"
+BASE = os.getenv("CMP_REF", "base")   # CMP_REF=n2rs ⇒ each tag vs the n2rs package instead of the base
 TAGS = sys.argv[1:] or ["fx1", "fx2", "fx3", "fx4", "fx5", "fx24", "fxall"]
 RT = 2.60
 
