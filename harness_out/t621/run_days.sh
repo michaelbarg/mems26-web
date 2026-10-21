@@ -78,8 +78,12 @@ envs_of() {
     n2rs1) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 IB_EXT_ACCEPTED_HINT_V1=1" ;;
     # the night set (+1,960$ vs base, last10 +981) on top of the Normal-day package (+3,043$, last10 +16) — and
     # without its edge tree (n2rs + the T-616 edge tree alone was −1,259$ vs n2rs)
-    n2rsN) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 $(envs_of night)" ;;
+    # ⚠️ macOS is case-INSENSITIVE: a tag that differs from another only by case shares its files (n2rsN = n2rsn) —
+    # the full night set on top of n2rs is therefore n2rsngt
+    n2rsngt) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 $(envs_of night)" ;;
     n2rsNx) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 OPENING_DRIVE_STRICT_V1=1 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1 TOUCH2_EDGE_TOL_MAX_ATR=0.5 T1_FRONT_RUN_TICKS=2" ;;
+    # n2rsNx without T1_FRONT_RUN_TICKS (alone: +76$, better 4 / worse 14)
+    n2rs3k) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 OPENING_DRIVE_STRICT_V1=1 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1 TOUCH2_EDGE_TOL_MAX_ATR=0.5" ;;
     n2rs1n) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 IB_EXT_ACCEPTED_HINT_V1=none" ;;
     # T-624 the tactical path after a FAILED IB extension (Michael 21.10 "אני רוצה לתקן נתיב") — always with the H15
     # TREND_STEP mirror (the "steps"; the live main.py subscriber the harness never ran); run them as m-tags, vs mts
@@ -89,6 +93,7 @@ envs_of() {
     tsn) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=none DECISION_TREE_V3_PATH=$T624_TAC" ;;
     tsbz) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=bar DECISION_TREE_V3_PATH=$T624_TACZ" ;;
     tssz) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=step DECISION_TREE_V3_PATH=$T624_TACZ" ;;
+    tsnz) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=none DECISION_TREE_V3_PATH=$T624_TACZ" ;;
     # T-624b the steps filter — EVERY TREND_STEP needs effort and result (mts vs mbase: the steps as live since 19.10
     # are −1,227$ on 78 sessions, 10 trades −720$ direct)
     tsfs) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=step TACTICAL_EFFORT_SCOPE=steps DECISION_TREE_V3_PATH=$T624_STEPS" ;;
