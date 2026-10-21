@@ -1,3 +1,166 @@
+🔴 **[cowork-daily · ריצה 394 · 21.10 15:34→15:5x IL · חובה-1 + חובה-2 המלאה (סיכום-20.10 + שער-היום) · 🔴 NO-GO · ⛔ אפס ריסטארט · הודעת-טלפון אחת (מקרה ד)]**
+
+**חובת-הזמן נמדדה ולא הונחה:** `date ⇒ 2026-10-21 15:34:20 IDT (יום ד׳)` ⇒ `15:34 ∈ 15:30-16:10`
+⇒ **זו ריצת-השער** — בדיוק כפי שקריאת-המרשם של ריצה 393 חזתה (`nextRunAt 12:33:56Z` = 15:33:56 IL).
+`git pull ⇒ Already up to date` (HEAD `73fee7042`).
+
+```raw
+חובה-1 · טלפון — אפס ממתינות ⇒ אפס מקרה (א/ב/ג) ⇒ רק מקרה (ד) של השער
+  GET /chat            ⇒ http=200 · bytes=17,876 · items=30 · אפס item מ-21.10
+  /marks/pending       ⇒ http=200 · bytes=12 · items=0
+  /requests|/tags|/inbox/pending ⇒ http=404 {"detail":"Not Found"}
+    ⇒ 404 הוא "אין מסלול כזה", לא "התיבה ריקה" — שלושתן אינן תיבות ואינן נספרות כאפס
+  senders ב-/chat: cowork-dev · cowork · supervisor · cc · מייקל
+  tail = cowork-dev 2026-10-20T20:15:47Z (שלנו, דוח-יום 20.10)
+  שורת-מייקל האחרונה: idx 1 · 2026-10-07T10:50:03Z · "תבקש מקלוד שיבדוק מה הולך…"
+    ⇒ נענתה עניינית: cc ack 10:50:03Z ואחריו cowork-dev 11:11:10Z ⇒ אפס מקרה (א)
+  PHONE_THREAD.jsonl 768 שורות · grep '2026-10-21' ⇒ 0 · tail ≡ tail של Render ⇒ המראה == המקור
+  הממסר מוכח-חי: ps pid 1629 (mobile_relay.py) · launchctl com.mems26.mobile_relay ⇒ 1629
+    ⇒ הריקות אינה שלילי-שקרי
+  אפס שורת-מייקל מאז 07.10 ⇒ אפס "תיוג עסקה #" ⇒ אפס שורה ל-TRADE_TAGS.jsonl
+```
+
+## חובה-2א · סיכום 20.10
+
+```raw
+P&L — לייב מול דמו מול צל (v9_trades, entry_ts::date='2026-10-20')
+  mode   | n  | books Σ    | pnl_sierra מאומת
+  demo   |  5 |   −198.75  | 0/5  (כל החמש NULL)
+  shadow | 86 | −6,973.87  | 0/86
+  ⇒ **אפס עסקת-לייב** (אין mode='live' כלל) ⇒ אמת-הברוקר אינה חלה על היום
+  ⇒ ובכל זאת נאמר במפורש ולא יושלם בהמצאה: אין רישום-ברוקר ל-#3540 #3544 #3558 #3574 #3582
+  חמש הדמו: 3540 SHORT 16:45 −225 · 3544 LONG 16:50 +496.25 · 3558 SHORT 18:15 −215
+             3574 LONG 19:30 −165 · 3582 LONG 20:05 −90   (כולן CLOSED)
+
+ליגר 20.10 — data_handoff/מק-1/2026-10-20/gateway_decisions.jsonl · 199 שורות
+  DETECTED 57 → EMIT_DECISION 56 → GATE_DECISION 60 → ROUTED 26   (ROUTED/DETECTED 45.6%)
+  שדה-התאריך פר-שורה (מלכודת 21): ts 86 · observed_at 113 · json-bad 0
+  ⇒ RESOLVED **אינו event_type קיים בליגר הזה** — ולכן אינו מדווח כ-0 (אפס-מהמצאה)
+  חוסמים: tree:time_cutoff 17 · tree:stand_down 16 · tree:bias 16 · pattern_stop_cooldown 3
+           entry_not_confirmed 3 · tree:location 2 · rr_entry_gate 2
+  outcome: blocked 60 · shadow_only 21 · demo 5 · None 113   ·   מערכות: S4 126 · S2 73
+  EntryGuard — live_blocked_by = 0 בכל 199 השורות (השדה, לא ה-grep; מלכודת 25)
+    ⇒ אפס חסימת-שליחה; אפס ירי-לייב מלכתחילה
+
+ציון-המודעות 20.10 (78 ברי-RTH, דיווח-בלבד T-159) — 2/4 צירים ≥80%
+  יום      65/78   83.3%  ✅        רמות   78/78  100.0%  ✅
+  מועמדים   1/4    25.0%  🔴        החלטות 61/78   78.2%  🔴
+  נגיעות-VA בלי DETECTED: 09:55(VAL) · 10:00(VAH) · 10:05(VAH)
+
+צל-S1DayDir: day_direction=UP · ref=prior_VA · src=app.state.last_cls_result
+  13,720 שורות INFO מ-21.10 ⇒ הכותב חי (לא רק שורת-בוט)
+דוחות-cc: OPS_LOG_2026-10-20.md (נכתב היום 04:42) · DAY_REVIEW_2026-10-20.md +
+  REPLAY_REVIEW_2026-10-20.md (20.10 23:07) · cc_orders העדכני 20.10 10:05 ⇒ אפס הזמנה חדשה
+חריגים: אפס [ERROR]/[CRITICAL] מ-21.10 ב-backend.err.log (131,555 שורות היום,
+  mtime 15:41 ⇒ הלוג חי) — ולא backend.log (מלכודת 3.1)
+```
+
+## חובה-2ב · שער-היום ⇒ 🔴 NO-GO (יום שני ברצף)
+
+```raw
+python3 scripts/fire_drill.py  ⇒ exit=1  ⇒  🔴 NO-GO — 1 כשלים:  · guard_tests
+  — שלב C · חוזים —
+  ✓ effective_contracts == 5 (לפי דגלי הפסיקה) — got 5
+  — שלב Y —  ✓ yaml_valid — RULED_FLAGS.yaml: 304 ruled flags
+  — שלב G · שומרי-התנהגות —
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestGoldenReplay2038::test_golden_2038_places_with_t1_only
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestWrongSideIsDropped::test_long_target_below_entry_is_dropped
+  FAILED tests/v9/regression/test_t438_ladder_sanitize.py::TestWrongSideIsDropped::test_short_target_above_entry_is_dropped
+  3 failed, 168 passed, 42 warnings in 11.50s
+  🔴 GUARDS RED (rc=1) — a live behaviour changed. Do not arm on this.
+  ✓ wire_guard — 57 call sites / 11 guarded signatures   ✓ task_log_guard — 600 items
+  — שלב D · מצב חי — הכול ירוק —
+  ✓ backend health   ✓ T-61 INFO זורמת בפועל   ✓ feed טרי age=344ms
+  ✓ נתוני-ברים חיים (DB) — last bar 2026-10-21 15:35:00+03:00 · age 3 min · market OPEN
+  ✓ live_slot פנוי — slot=None   ✓ demo_enabled [2,4]   ✓ live_enabled []
+  ✓ day_type קיים — Variation conf=0.67
+```
+
+**הממצא — נמדד מחדש בלתי-תלוי, ויצא זהה לאבחנת שער-20.10 (ריצה 367):** ה-assertion הגולמי
+והאזהרות שמתחתיו הם שרשרת-הסיבה המלאה, ולא תסמין:
+
+```raw
+AssertionError: True is not false : PLACE still rejected (t3_missing) — the fire of
+  21.09 18:30:03 is still lost
+[SierraCmd] T-438 LADDER SANITIZE trade t438-golden: SHORT 7782.5/7786.0/7779.0 →
+  7782.5/None/None — dropped [t2 NOT_BEYOND dist 10.5 prev 14.0 · t3 TRUNCATED after t2]
+  (never moved, never invented)
+[SierraCmd] T-214: PLACE rejected — t3=None invalid on 5 contracts.
+  Every contract must have a target.
+```
+
+⇒ **השורש אינו שינוי-קוד אלא פסיקת-5-החוזים פוגשת את `T3_REQUIRED_V1`:** הסניטייז מוריד רגל
+פסולה (`NOT_BEYOND`/`WRONG_SIDE`), החגורה דורשת יעד לכל חוזה, ובגודל 5 הסולם המסונטז נדחה
+**כולו** ⇒ הירי אובד. **הראיה שזה לא רגרסיה שלנו:** `git log` על קובץ-הטסטים —
+נוסף `940411ec0 09-22 23:29`, שונה לאחרונה `27cd56a5d 09-22 23:39`, **אפס נגיעה מאז**;
+והבקאנד הרץ הוא `commit=0cb02c37` מ-04:42 היום. השומר **אומר אמת** — התנהגות-חיה אכן השתנתה,
+בפסיקה ולא בקוד.
+
+⇒ זה בדיוק [[T-612]], ו**שאלת-הפסיקה שנשלחה 20.10 19:46 (מקרה ג) טרם נענתה** — שורת-מייקל
+האחרונה בפיד היא 07.10 ⇒ **NO-GO יום שני ברצף, בבעלות מייקל**, ואני לא עוקף שומר בבעלותו.
+
+⛔ **אפס ריסטארט — ההחלטה ונימוקיה (והבעלות הייתה שלי, אז זו ויתור-מדעת ולא חוסר-סמכות):**
+
+1. `fire_drill` החזיר NO-GO ובלשונו שלו **"Do not arm on this"** — ריסטארט-קדם-פתיחה הוא
+   פעולת-הזרוע של מסלול-GO, לא של NO-GO.
+2. ריסטארט היה מחליף את הקוד הרץ (`0cb02c37`, 04:42) ב-HEAD, שכולל checkpoint-WIP שנגע
+   **בקוד-מסחר** (`trading_gateway` · `decision_tree` · `five_min_system`, קומיט `2618a68f7`
+   12:18) עם ההצהרה "no behavior change **intended**" — ו-intended אינו "אומת", בדיוק כשהמאמת
+   היחיד שיש לנו (`guard_tests`) אדום.
+3. תקדים: שער-20.10 על אותו NO-GO עצמו בחר גם הוא **אפס-ריסטארט**.
+4. הסטאק הרץ הוא המצב הבטוח יותר: `pid 17885` · בריא · שטוח · פיד חי · דמו בלבד.
+
+**אפס נגיעה בדגלים · אפס נגיעה בפוזיציות · אפס נגיעה בדגלי-גודל.**
+
+```raw
+בעלות-הריסטארט — נבדקה לפני ההחלטה, לא אחריה:
+  lsof :8000 ⇒ pid 17885 · ps -o lstart ⇒ "Wed Oct 21 04:42:29" · etime 10:53:32
+    ⇒ עלה לפני 12:00 ⇒ cowork-האינטראקטיבי לא הרים אותו היום
+  אפס רשומת-cowork-dev מ-21.10 על ריסטארט/שער (ריצות 383-393 כולן "חובה-1 בלבד")
+  ⇒ הבעלות הייתה **פנויה ובידי** — ובכל זאת אפס ריסטארט, מהנימוקים שלמעלה
+  ⇒ וממילא: אפס הודעת-שער כפולה (T-369 נשמר — הודעה אחת, משלי)
+
+גודל — פסוק, נקרא, לא נגעתי:
+  set -a; . ./.env; set +a; python3 -c "…ruled_contracts()"  ⇒  5
+  RULED_FLAGS.yaml:316  FIXED_CONTRACTS_5: expected '1' · ruled_by מייקל · date 2026-10-19
+  RULED_FLAGS.yaml:45   FIXED_CONTRACTS_1: expected "0" · אותה פסיקה (19.10 22:2x)
+  .env: FIXED_CONTRACTS_5=1 · 1/2/3/4/6 = 0
+  ⇒ **"הפסיקה מ-18.09 12:05: 1 חוזה" שבפרומפט-המשימה היא הפסיקה המוחלפת** — [[T-611]],
+    יום שלישי ברצף שבו הפרומפט מתנגש עם הפסיקה התקפה; הפסיקה התקפה היא **5**
+  ⇒ שלב-השער "אימות ruled_contracts() == הפסיקה" ⇒ **עובר** (5 == 5), ולא נכשל
+
+שומרים: flag_guard ⇒ PASS — all 304 ruled flags match (exit 0)
+         task_log_guard ⇒ PASS — 600 items, last committed 0.1 days ago
+  דיווח-בלבד: ⚠ FOOTPRINT_DISABLED plist=true .env=0 live=true ⇒ ה-.env **מת** למפתח הזה
+    תחת ה-LaunchAgent; הבעלות (T-435 שלב 3 / T-563) בפסיקת-מייקל ⇒ אפס נגיעה
+
+close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do" ⇒ אפס --apply
+machine_health (WARN-בלבד, ל-LIVE_CHANNEL ולא לטלפון):
+  WARN unused RAM 56M < 400M — המק דוחס/מחליף   ·   WARN swap 1,788M > 500M
+  סטאק-המסחר: backend 111MB cpu 56.9% · bridge 17MB · sierra 2×171MB cpu 43.9%
+               postgres 892MB · frontend 1MB · phone-relay 27MB
+  שאינם-מסחר: cowork-vm 1,901MB · claude-app 1,713MB · chrome 493MB · claude-agents 480MB
+  ⇒ הלחץ הוא של סביבת-הסוכנים ואפליקציית-קלוד, לא של סטאק-המסחר
+
+T-34 מרג'ין (דיווח-בלבד): acct_available_funds = null · acct_margin_req = null
+  ⇒ הפרדיקט avail < $1,595 **אינו בר-חישוב** — חסר אינו ערך ⇒ אפס מקרה (ג)
+פוזיציה: qty 0 · working_orders 0 · Sim1 · is_sim=1 · armed=1 · last 7,777.50
+  daily_pnl −280 — **ואינו של המערכת**: count(*) v9_trades ל-21.10 ⇒ 0
+פיד (T-430 — התקדמות, לא טריות-קובץ): max(ts) = 2026-10-21 15:40 IL · גיל 2.1 דק'
+  · 177 ברים היום ⇒ **חי**; ולכן אפס מקרה (ג) של "לחבר מחדש בסיירה"
+ליגר-כותב: ~/SierraChart_Data/v9_export/gateway_decisions.jsonl נושא עדיין 199 שורות של
+  20.10, mtime "Oct 20 23:00" ⇒ **אפס שורה מהיום** — וזו תכונת-לוח-זמנים ולא ממצא
+  (מלכודת 26): RTH נפתח 16:30 ואין על מה להחליט לפניו. בריאות-הכותב תוכח רק בהחלטה
+  הראשונה של הסשן ⇒ **לא אכתוב "ליגר-כותב ✓" על מה שלא נמדד** (כלל 1).
+```
+
+**הודעת-הטלפון — אחת, מקרה (ד) בלבד:** NO-GO · הסיבה · הקומיט · ה-PID · מה חי.
+אפס דוח-ניטור · אפס machine_health · אפס סיכום-מדידה · אפס רשימה — כל אלה כאן בלבד.
+
+— cowork-daily, 21.10 15:5x IL
+
+---
+
 🟢 **[cowork-dev · ריצה 393 · 21.10 15:04 IL · חובה-1 בלבד — אפס ממתינות ⇒ שתיקה מוחלטת בטלפון]**
 
 **חובת-הזמן נמדדה ולא הונחה, והפעם גם מול מרשם-המשימות:** `date ⇒ 2026-10-21 15:04:21 IDT
