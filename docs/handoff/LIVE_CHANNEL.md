@@ -1,3 +1,108 @@
+🟢 **[cowork-daily · ריצה 397 · 21.10 17:04→17:12 IL · חובה-1 + חובה-3 (ניטור-RTH) · ⛔ אפס ריסטארט · ⛔ אפס הודעת-טלפון]**
+
+**חובת-הזמן נמדדה ולא הונחה:** `date ⇒ 2026-10-21 17:04:18 IDT (יום ד׳)` ⇒ `17:04 ∉ 15:30-16:10`
+ו-`17:04 ∈ 16:30-23:00` ⇒ **חובה-3** (ניטור-RTH קצר). **שני איסורי-ריסטארט חלים במקביל, שניהם נשמרו:**
+(1) `17:04 > 16:10`; (2) בעלות-הריסטארט — המאזין 8224 עלה `16:05:32` היום ⇒ cowork-האינטראקטיבי הוא
+הבעלים (T-369). `git pull ⇒ Already up to date` (HEAD `14bac772c`).
+
+```raw
+חובה-1 · טלפון — אפס ממתינות ⇒ שקט מוחלט
+  GET /chat ⇒ http=200 · items=30 · senders: cowork-dev 20 · supervisor 4 · cowork 4 · מייקל 1 · cc 1
+  הפרדיקט של מלכודת 37 (ליטרל עברי ולא 'michael'): שורת-מייקל היחידה 2026-10-07T10:50:03Z
+    — נענתה עניינית (אומת בריצות 395/396: cc ack + cowork-dev 11:11:10) ⇒ אינה ממתינה
+  item יחיד מ-21.10 = הודעת-השער שלי מ-15:50 (cowork-dev, NO-GO) ⇒ אפס הודעת-מייקל חדשה
+  PHONE_THREAD.jsonl tail ≡ tail של Render ⇒ המראה == המקור
+  אפס "תיוג עסקה #" ⇒ אפס שורה ל-TRADE_TAGS.jsonl
+  ⇒ אפס מקרה (א/ב/ג/ד) ⇒ אפס שליחה. T-612 ממתין לפסיקה מ-20.10 19:46 ונשאל שוב ב-15:50 —
+    שאלה שנשאלה אינה נשאלת שוב (כלל-הפסיקה-החד-פעמית), ואינה מקרה (ג) חדש.
+```
+
+## חובה-3 · ניטור-RTH — ארבעת הצירים ירוקים
+
+```raw
+1) בר ≤10 דק' — כן.
+   max(ts) v9_bars_5min_woodies = 2026-10-21 17:05:00+03 · נדגם 17:05:36 ⇒ גיל < 1 דק'
+   /api/v9/live_price ⇒ {"price":7758.0,"bid":7758.0,"ask":7758.25,"age_ms":343,"source":"cache"}
+   ⇒ פיד חי לפי ההגדרה של T-430 (התקדמות-בר ב-DB + bid/ask≠0), לא טריות-קובץ-יצוא
+
+2) בקאנד בריא — כן.
+   /api/v9/health ⇒ http=200 t=0.003028s · {"status":"ok","version":"v9.0.0"}
+   מאזין (LISTEN בלבד): pid 8224 · lstart "Wed Oct 21 16:05:32 2026" · etime 01:00:16 · cpu 26.2% · rss 125MB
+   לוג-האפליקציה /tmp/backend.err.log חי (mtime 17:06), שכבת-INFO זורמת
+   ERROR/CRITICAL בחלון-זמן (מלכודת 27 — חלון-זמן ולא חלון-שורות) 16:00→17:09 ⇒ **1**, והוא זה
+     שריצה 396 כבר שרשרה עד השורש: 2026-10-21 16:30:01 [CRITICAL] daytype_watchdog ESCALATION-3
+     ⇒ אפס אדום חדש מ-16:40
+   ⚠ WARN חוזר-על-כל-בר (נרשם למדידה, לא אדום): BarRouter SLOW handler BarLevelDetector.on_bar
+     473.2-589.2ms · dispatch total 474-666ms · בשני הנתיבים (5min + woodies_5min)
+
+3) פוזיציה מול TM — תואמת.
+   /api/v9/account/state (השדות מקוננים תחת sierra_state — מלכודת 43ב):
+     ok=true · stale=false · age_s=0.6 · position_qty=0 · working_orders=0 · is_sim=1
+     trade_account=Sim1 · symbol=MESZ26_FUT_CME · daily_pnl=-217.5 · daily_total_qty_filled=6.0
+   לפני אזעקה — בדיקת-בעלות (T-613 הוא הסימפטום שנבדק, לא הונח):
+     grep "SYS-3 RECONCILER: DIVERGENCE" בחלון 16:00→17:09 ⇒ **0**
+     שורות state='PENDING' מ-21.10 ⇒ **0**  ⇒ אפס אי-התאמה ספרים↔ברוקר
+   daily_pnl -217.5 של סיירה **אינו בר-שיוך** לספרים: לעסקת-הדמו היחידה (#3637)
+     sierra_bracket_id=NULL ו-pnl_sierra=NULL ⇒ שיוך לא מומצא (Rule 1 — חסר אינו ערך)
+
+4) עסקת-לייב חדשה/סגורה — **אין.**
+   select count(*) from v9_trades where entry_ts>=current_date and mode='live' ⇒ **0**
+   ⇒ אפס מקרה (ב) ⇒ שקט בטלפון. הפעילות היום (19 שורות): demo 1 CLOSED ·
+     shadow 8 CLOSED / 5 FILLED / 5 PARTIAL
+```
+
+## גודל — נמדד, לא הונח (T-489), ואפס נגיעה בדגלים
+
+```raw
+set -a; . ./.env; set +a; python3 -c "from backend.v9.services.contract_size import ruled_contracts; print(ruled_contracts())"
+⇒ 5
+.env: FIXED_CONTRACTS_1=0  ·  config/RULED_FLAGS.yaml:45 — FIXED_CONTRACTS_1 expected "0",
+  ruled_by מייקל, date 2026-10-19: "למה העסקה היא על חוזה אחד, הגדרתי על 5, לתקן מיידית" /
+  "נעבוד עם 5 חוזים לפי 2-2-1" ⇒ הגודל הפסוק עבר ל-FIXED_CONTRACTS_5
+⚠ **הנוסח בגוף המשימה-המתוזמנת התיישן** ("הפסיקה מ-18.09 12:05: 1 חוזה, FIXED_CONTRACTS_1=1").
+  פסיקת-19.10 גוברת, ו-ruled_contracts()=5 תואם אותה. לא שיניתי דגל ולא "תיקנתי" חזרה ל-1 —
+  זה בדיוק מה שהוליד את T-225. מי שקורא את המשימה-המתוזמנת: המקור הוא ruled_contracts()+RULED_FLAGS.
+בפועל בשדה — quality->>'contracts' ל-21.10:
+  shadow 5c ⇒ 6 עסקאות Σ +320.00 · shadow 3c ⇒ 11 עסקאות Σ -891.25 ·
+  demo 3c ⇒ 1 עסקה -225.00 · 0c ⇒ 1 עסקה (#3645)
+  3 במקום 5 עקבי עם חיתוך-תקרה (SIZE_CAP_CUT_V1, פסוק 09.07) — **לא נבדק עד השורש בריצה הזאת**
+```
+
+## ממצא לרישום (צל, לא אדום) — צורת-הלידה של T-613 הופיעה בצל
+
+```raw
+#3645 · shadow · S4 · SHORT · FILLED 2026-10-21 17:05:04 · entry 7766.25 · stop 7784.25
+  t1=7761.795 · t2=7739.25 · **t3=NULL** · quality->>'contracts' = **0**
+אותה צורת-לידה כמו T-613 (ילד נולד עם contracts=0), אך **בצל ולא בדמו** ⇒ אין רגל-ברוקר
+  ⇒ אפס PLACE לברוקר ⇒ אפס SYS-3 ⇒ אפס אי-התאמה. זה למה הציר-3 נשאר ירוק.
+grep -ciE "t3_missing|sanitiz" בחלון 16:00→17:09 ⇒ **0** ⇒ **אין בידי ראיה שהשומר ירה**,
+  ולכן לא נטען שירה (ולא נטען שלא — הנוסח בלוג טרם אומת).
+הצעד-הבא המוצע ל-T-613: לאמת את מילות-הלוג של שומר-הסולם לפני שנספר "סניטייז" מהלוג בכלל.
+```
+
+## שומרים ובריאות
+
+```raw
+python3 scripts/flag_guard.py ⇒ exit=0 · 305 ✓
+  ⚠ היחיד: FOOTPRINT_DISABLED plist=true מול .env=0 ⇒ ".env is DEAD for this key under the
+    LaunchAgent" — **דיווח-בלבד**, הבעלות (T-435 שלב 3 / T-563) היא פסיקת-מייקל
+python3 scripts/task_log_guard.py ⇒ ✅ 600 פריטים · עודכן לפני 0.0 ימים
+python3 scripts/close_stale_shadow.py (dry-run) ⇒ "no stale shadow trades — nothing to do"
+  (אפס שורה פתוחה מלפני היום ⇒ אין את תקרית 16.09 של 26 שורות-צל)
+python3 scripts/machine_health.py (WARN-בלבד):
+  מחסנית-המסחר תקינה — backend 24.2%/125MB · bridge 2.8%/17MB · sierra 101.3%/189MB · postgres 752MB
+  WARN: unused RAM 116M < 400M (הMac מכווץ/מחליף) · WARN: swap 2,090M > 500M
+  הלא-מסחריים: cowork-vm 1,902MB · claude-app 1,609MB · claude-agents 505MB ⇒ הלחץ הוא שלי, לא של המסחר
+```
+
+**הקשר-לילה (לא פסיקה שלי, נרשם כי נוגע לבעלות חובה-4):** ריצה 395 רשמה שהודעת-הקומיט של
+`2618a68f7` מצטטת פסיקת-מייקל מ-21.10 — "iMac takes over trading; MacBook retires at tonight's
+cutover".
+
+— cowork-dev (ריצה 397, אוטומטית), 2026-10-21 17:12 IL
+
+---
+
 🟡 **[cowork-daily · ריצה 396 · 21.10 16:34→16:40 IL · חובה-1 + חובה-3 (ניטור-RTH) · ⛔ אפס ריסטארט · ⛔ אפס הודעת-טלפון]**
 
 **חובת-הזמן נמדדה ולא הונחה:** `date ⇒ 2026-10-21 16:34:18 IDT (יום ד׳)` ⇒ `16:34 ∉ 15:30-16:10`
