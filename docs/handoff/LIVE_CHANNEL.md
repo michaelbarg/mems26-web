@@ -1,3 +1,12 @@
+🟢 **[cowork · אינטראקטיבי · 21.10 22:5x→23:2x IL · T-625 Phase B — החיתוך ל-iMac בוצע (מייקל 22:3x "עכשיו הכל", 22:5x "תתחיל")]**
+
+**B-1 מקבוק (22:57–23:05, FORCE=1 כי מייקל אמר עכשיו; `phaseB_cutover_macbook.sh` צעד-צעד, preflight רץ קריאה-בלבד ב-22:32 — ירוק חוץ מ"סיירה פתוחה ב-iMac"):** snapshot `20261021T195653Z_cutover-to-imac-2026-10-21` · מייקל סגר סיירה במקבוק 22:59 (0 תהליכים, ייצוא עצר) · 11 סוכנים bootout ונגנזו ל-`~/Library/LaunchAgents/_retired_mems26_2026-10-21/` · פורטים פנויים · pg_dump מלא 97 שנ׳ 1.2G 54 קבצים + ROWCOUNTS של 53 טבלאות · rsync repo (2,559 קבצים), mems26_snapshots (52), v9_archive (16), חבילת-המעבר · `B1_RC=0`.
+**B-2 iMac (23:06–23:12, דרך SSH, `phaseB_imac_golive.sh` snapshot→db→env→services→verify; preflight לא הורץ כי סיירה-2 רצה שם — הבדיקות שלו נעשו ידנית: checksums OK, 53 ROWCOUNTS, המקבוק לא עונה ב-:8000):** bootout ל-backend של Phase A · `pg_restore -j4 rc=0 errors=0 331s` · אימות ספירות-שורות מול המקבוק · החלפה אטומית (`mems26`→`mems26_phaseA_20261021`, `mems26_new`→`mems26`) · DROP `mems26_imac_old_aug2026` · .env של המקבוק (כולל T612_LADDER_COLLAPSE_V1=1, SWING_TRAIL_SIDE_GUARD_V1=1) עם `LIVE_TRADING_ARMED=0` נכפה, `MACHINE_TAG=מק-1`, `MEMS26_MODE=demo` · 11/11 סוכנים טעונים · backend health ok, status.mode=demo · `B2_RC=0`.
+**תיקון בדרך:** `mobile_relay` ב-iMac נפל על `SSL: CERTIFICATE_VERIFY_FAILED` — לפייתון-framework 3.9 של ה-iMac חסר `etc/openssl/cert.pem` (Install Certificates.command מעולם לא רץ); נוצר symlink ל-`certifi/cacert.pem` (23:13), kickstart ⇒ הרלה רצה, `/healthz` 200, אפס שגיאות אחריו.
+**פתוח:** (1) **סיירה ב-iMac — מייקל:** "Y_SierraChart2" (= ~/SierraChart2, התקנה אחרת, מייצאת 5min בלבד, בלי sierra_state) עדיין פתוחה 23:25; צריך לסגור ולפתוח "SierraChart_64 (Y_SierraChart)" (= ~/SierraChart שהוכן בבוקר) → חשבון → AAMichael_lap25 → Remote Build → הסטאדי → Simulation Mode; אחר כך mems26_verify + fire_drill, ואז חימוש (מייקל בלבד). (2) frontend exit 126 — אין `/usr/local/bin/node` (node 24 pkg, אדמין). (3) משימת יומן-הסוף-יום (23:20) רצה הערב במקבוק (c21dc8395) — ממחר להצביע על ה-iMac. (4) מחר: סשן Cowork מה-Claude שעל ה-iMac. Rollback במקבוק: bootstrap ל-plists הגנוזים + סיירה שם.
+
+---
+
 🟠 **[cowork-dev · ריצה 409 · תוספת 23:20 · ממצא-אחרי-המסירה: הדוור של הטלפון מת עם החיתוך — נמדד, ולא חסם את הודעת-הלילה]**
 
 ההודעה האחת של הלילה **נמסרה ואומתה פעמיים**: בשליחה `ok render=verified reply=200 ntfy=200 len=245`,
