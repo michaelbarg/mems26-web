@@ -912,7 +912,7 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="radar" style="font-size:12.5px;line-height:1.8">—</div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
-<div class="card" style="border:1px solid #2ea043"><div class="row"><span class="dim">🌳 עץ-ההחלטות — איפה הוא עכשיו ומה הוא מתכנן</span><span id="tmeta" class="dim"></span></div>
+<div class="card" style="border:1px solid #2ea043"><div class="row"><span class="dim">המוח — חמש השאלות והמשפחה שדולקת</span><span id="tmeta" class="dim"></span></div>
 <div id="tree" style="font-size:12.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
 <div id="gate" style="font-size:12px;line-height:1.6">—</div></div>
@@ -981,7 +981,25 @@ async function load(){
     const LC={TAKE:'#3fb950',SHADOW:'#58a6ff',SKIP:'#6e7681'}; const LM={TAKE:'✓',SHADOW:'◐',SKIP:'×'};
     const chips=(dir)=>Object.keys(KH).map(k=>{const L=(T.plan&&T.plan[dir]&&T.plan[dir][k])||{leaf:'SKIP'}; const on=L.leaf!=='SKIP';
       return '<span style="display:inline-block;margin:1px 2px;padding:1px 6px;border-radius:6px;font-size:11px;border:1px solid '+(on?LC[L.leaf]:'#30363d')+';color:'+(on?'#e6edf3':'#6e7681')+';background:'+(on?LC[L.leaf]+'33':'transparent')+'">'+LM[L.leaf]+' '+KH[k]+'</span>';}).join('');
-    let h='<div style="font-weight:700;color:#e6edf3">'+(T.where_he||'')+'</div>';
+    var B=(function(c,planHe){
+      if(T.brain&&T.brain.family){var f=T.brain.family,qs=T.brain.questions||[];
+        return '<div style="font-weight:700;margin-bottom:4px">המוח · '+f.title+'</div><div>דולק: '+f.on+'</div>'+(f.off?'<div class="dim">כבוי: '+f.off+'</div>':'')+qs.map(function(q){return '<div><span class="dim">'+q.q+'</span> · '+q.a+'</div>';}).join('');}
+      if(!c) return '';
+      var hour=parseInt(String(c.il||'0').slice(0,2),10), st=c.structure||'', fam;
+      if(hour>=20) fam={t:'אחרי 20:00',on:'בלי כניסה חדשה',off:'כל כניסה'};
+      else if(c.phase==='A'||c.phase==='B'||st==='forming') fam={t:'פתיחה',on:'דהיית קצה · היפוך-דחייה · דרייב עם הכיוון',off:'ZLR · שלב D'};
+      else if(st==='up'||st==='down') fam={t:'יציאה מה-IB',on:'שבירה ועם-הדרייב בכיוון היציאה',off:'שלב D עם-ההרחבה'};
+      else if(st==='none') fam={t:'בתוך ה-IB',on:'דהיית הרחבה כושלת',off:'עם-ההרחבה · ZLR עם-ההטיה'};
+      else if(st==='two_sided') fam={t:'שני צדדים',on:'דהיית הרחבה כושלת, ספר דק',off:'שבירה לשני הכיוונים'};
+      else fam={t:'עוד לא נעול',on:'מחכים למבנה',off:''};
+      var OT={OPEN_DRIVE:'דרייב',OPEN_REJECTION_REVERSE:'דחייה-היפוך',OPEN_AUCTION_IN:'אוקציה בטווח',OPEN_AUCTION_OUT:'אוקציה מחוץ',UNKNOWN:'טרם סווגה'};
+      var ZN={above_value:'מעל הערך',near_vah:'על ה-VAH',mid_value:'בתוך הערך',near_val:'על ה-VAL',below_value:'מתחת לערך',unknown:'אין ערך עדיין'};
+      var hint=c.hint==='LONG'?'לונג':c.hint==='SHORT'?'שורט':'בלי הטיה';
+      var who=planHe?(c.hint==='LONG'||c.hint==='SHORT'?planHe[c.hint]:('לונג: '+planHe.LONG+' · שורט: '+planHe.SHORT)):'?';
+      var rows=[['מה השוק מנסה',(OT[c.opening_type]||c.opening_type||'?')+' · שלב '+(c.phase||'?')+' · '+hint],['כמה טוב הוא מצליח','נפח ודלתא עדיין לא מחוברים לווקטור'],['איפה ביחס לערך',ZN[c.zone]||c.zone||'?'],['מי שולט',who],['איפה התזה נשברת','הסטופ על העוגן של הסטאפ']];
+      return '<div style="font-weight:700;margin-bottom:4px">המוח · '+fam.t+'</div><div>דולק: '+fam.on+'</div><div class="dim">כבוי: '+fam.off+'</div>'+rows.map(function(r){return '<div><span class="dim">'+r[0]+'</span> · '+r[1]+'</div>';}).join('');
+    })(T.context, T.plan_he);
+    let h=B+'<div style="font-weight:700;color:#e6edf3;margin-top:6px">'+(T.where_he||'')+'</div>';
     h+='<div style="margin-top:4px"><span style="color:#3fb950;font-weight:700">לונג</span> '+chips('LONG')+'</div><div><span style="color:#f85149;font-weight:700">שורט</span> '+chips('SHORT')+'</div>';
     if(T.plan_he) h+='<div class="dim" style="font-size:11.5px;margin-top:3px">לונג: '+T.plan_he.LONG+' · שורט: '+T.plan_he.SHORT+'</div>';
     const R=T.recent||[]; if(R.length){ h+='<div style="margin-top:6px;border-top:1px solid #2a3140;padding-top:5px" class="dim">ההליכות האחרונות בעץ</div>';

@@ -280,7 +280,7 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
         _anchor = float(_anchor) if _anchor is not None else None
     except (TypeError, ValueError):
         _anchor = None
-    return {
+    _gw = {
         "firing_system": 2,
         "direction": t1_setup.direction,
         "classification": t1_setup.pattern_name,
@@ -300,6 +300,22 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
             "structural_anchor": _anchor,
         },
     }
+    # T-543 stage 4 (CC_ORDER_2026-10-05_DAILY_DALTON §3, relayed by Michael): the F17b evidence S2
+    # already computes (`_s2_evidence` → info["evidence"], REACTIVE/INITIATIVE) reaches the decision-
+    # tree vector as metadata `vol_trig` / `delta_with` — the two keys `decision_tree.features_of_setup`
+    # reads for its `volume` / `delta` features (until now never filled ⇒ always normal/none).
+    # Flag OFF (default) ⇒ no key is added ⇒ this dict, and the vector built from it, is byte-identical
+    # to before. Only real booleans are copied (None = "unknown" stays absent ⇒ same as OFF). The live
+    # tree has no split on volume/delta, so even ON nothing routes differently until a measured split
+    # is ruled; the measurement (volume vs the leg) is a separate report before question 2 may block.
+    import os as _os
+    if _os.environ.get("S2_EVIDENCE_TO_TREE_V1", "").strip().lower() in ("1", "true", "yes"):
+        _ev = info.get("evidence") if isinstance(info, dict) else None
+        if isinstance(_ev, dict):
+            for _k in ("vol_trig", "delta_with"):
+                if isinstance(_ev.get(_k), bool):
+                    _gw["metadata"][_k] = _ev[_k]
+    return _gw
 
 
 class FiveMinMode:

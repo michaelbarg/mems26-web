@@ -1,0 +1,5 @@
+version: "3.4.0-all_take"   # T-586 (18.10) measurement-only: every candidate is TAKE at the tree, the post-tree gates decide — the candidate universe for the walk-forward cell study (wf_cells.py). Never live.
+root:
+  leaf: TAKE
+  id: all_take
+  note: "measurement universe — every routed candidate reaches the gates"

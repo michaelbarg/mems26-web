@@ -4,269 +4,293 @@
 # (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
 # (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-10-02 21:15 ET
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-10-20 21:42 ET
 events:
-  - date: 2026-10-05
-    time_et: "09:20"
-    name: "NY Fed Bill Purchases 4 to 12 months"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "09:45"
-    name: "S&P Global Composite PMI Final"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "09:45"
-    name: "S&P Global Services PMI Final"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "10:00"
-    name: "ISM Services Business Activity"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "10:00"
-    name: "ISM Services Employment"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "10:00"
-    name: "ISM Services New Orders"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "10:00"
-    name: "ISM Services PMI"
-    severity: red
-  - date: 2026-10-05
-    time_et: "10:00"
-    name: "ISM Services Prices"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "11:30"
-    name: "3-Month Bill Auction"
-    severity: yellow
-  - date: 2026-10-05
-    time_et: "11:30"
-    name: "6-Month Bill Auction"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "06:00"
-    name: "LMI Logistics Managers Index"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "08:15"
-    name: "ADP Employment Change Weekly"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "08:30"
-    name: "Balance of Trade"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "08:30"
-    name: "Exports"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "08:30"
-    name: "Imports"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "08:55"
-    name: "Redbook YoY"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "09:05"
-    name: "Fed Williams Speech"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "10:00"
-    name: "RCM/TIPP Economic Optimism Index"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "10:45"
-    name: "Fed Bowman Speech"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "11:30"
-    name: "6-Week Bill Auction"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "13:00"
-    name: "3-Year Note Auction"
-    severity: yellow
-  - date: 2026-10-06
-    time_et: "16:30"
-    name: "API Crude Oil Stock Change"
-    severity: orange
-  - date: 2026-10-06
-    time_et: "19:00"
-    name: "Fed Logan Speech"
-    severity: orange
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "07:00"
     name: "MBA 30-Year Mortgage Rate"
     severity: orange
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "07:00"
     name: "MBA Mortgage Applications"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "07:00"
     name: "MBA Mortgage Market Index"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "07:00"
     name: "MBA Mortgage Refinance Index"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "07:00"
     name: "MBA Purchase Index"
     severity: yellow
-  - date: 2026-10-07
-    time_et: "09:00"
-    name: "Used Car Prices MoM"
-    severity: yellow
-  - date: 2026-10-07
-    time_et: "09:00"
-    name: "Used Car Prices YoY"
-    severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Crude Oil Imports Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Crude Oil Stocks Change"
     severity: orange
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Cushing Crude Oil Stocks Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Distillate Fuel Production Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Distillate Stocks Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Gasoline Production Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Gasoline Stocks Change"
     severity: orange
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Heating Oil Stocks Change"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "10:30"
     name: "EIA Refinery Crude Runs Change"
     severity: yellow
-  - date: 2026-10-07
-    time_et: "11:00"
-    name: "Consumer Inflation Expectations"
-    severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "11:30"
     name: "17-Week Bill Auction"
     severity: yellow
-  - date: 2026-10-07
+  - date: 2026-10-21
     time_et: "13:00"
-    name: "10-Year Note Auction"
+    name: "20-Year Bond Auction"
     severity: yellow
-  - date: 2026-10-07
-    time_et: "14:00"
-    name: "FOMC Minutes"
-    severity: red
-  - date: 2026-10-07
-    time_et: "15:00"
-    name: "Consumer Credit Change"
-    severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "08:30"
     name: "Continuing Jobless Claims"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "08:30"
     name: "Initial Jobless Claims"
     severity: orange
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "08:30"
     name: "Jobless Claims 4-week Average"
     severity: yellow
-  - date: 2026-10-08
-    time_et: "09:20"
-    name: "NY Fed Bill Purchases 1 to 4 months"
-    severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "10:00"
-    name: "Wholesale Inventories MoM"
+    name: "CB Leading Index MoM"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "10:30"
     name: "EIA Natural Gas Stocks Change"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
+    time_et: "11:00"
+    name: "Kansas Fed Composite Index"
+    severity: yellow
+  - date: 2026-10-22
+    time_et: "11:00"
+    name: "Kansas Fed Manufacturing Index"
+    severity: yellow
+  - date: 2026-10-22
     time_et: "11:30"
     name: "4-Week Bill Auction"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "11:30"
     name: "8-Week Bill Auction"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "12:00"
     name: "15-Year Mortgage Rate"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "12:00"
     name: "30-Year Mortgage Rate"
     severity: yellow
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "13:00"
-    name: "30-Year Bond Auction"
+    name: "5-Year TIPS Auction"
     severity: yellow
-  - date: 2026-10-08
-    time_et: "13:40"
-    name: "Fed Musalem Speech"
-    severity: orange
-  - date: 2026-10-08
+  - date: 2026-10-22
     time_et: "16:30"
     name: "Fed Balance Sheet"
     severity: yellow
-  - date: 2026-10-09
-    time_et: "10:00"
-    name: "Michigan 5 Year Inflation Expectations Prel"
+  - date: 2026-10-22
+    time_et: "16:30"
+    name: "Reserve Balances with Fed Banks"
     severity: yellow
-  - date: 2026-10-09
+  - date: 2026-10-23
+    time_et: "09:45"
+    name: "S&P Global Composite PMI Flash"
+    severity: orange
+  - date: 2026-10-23
+    time_et: "09:45"
+    name: "S&P Global Manufacturing PMI Flash"
+    severity: orange
+  - date: 2026-10-23
+    time_et: "09:45"
+    name: "S&P Global Services PMI Flash"
+    severity: orange
+  - date: 2026-10-23
     time_et: "10:00"
-    name: "Michigan Consumer Expectations Prel"
+    name: "Michigan 5 Year Inflation Expectations Final"
     severity: yellow
-  - date: 2026-10-09
+  - date: 2026-10-23
     time_et: "10:00"
-    name: "Michigan Consumer Sentiment Prel"
-    severity: red
-  - date: 2026-10-09
+    name: "Michigan Consumer Expectations Final"
+    severity: yellow
+  - date: 2026-10-23
     time_et: "10:00"
-    name: "Michigan Current Conditions Prel"
-    severity: yellow
-  - date: 2026-10-09
+    name: "Michigan Consumer Sentiment Final"
+    severity: orange
+  - date: 2026-10-23
     time_et: "10:00"
-    name: "Michigan Inflation Expectations Prel"
+    name: "Michigan Current Conditions Final"
     severity: yellow
-  - date: 2026-10-09
-    time_et: "12:00"
-    name: "WASDE Report"
+  - date: 2026-10-23
+    time_et: "10:00"
+    name: "Michigan Inflation Expectations Final"
     severity: yellow
-  - date: 2026-10-09
+  - date: 2026-10-23
     time_et: "13:00"
     name: "Baker Hughes Oil Rig Count"
     severity: yellow
-  - date: 2026-10-09
+  - date: 2026-10-23
     time_et: "13:00"
     name: "Baker Hughes Total Rigs Count"
     severity: yellow
-  - date: 2026-10-09
-    time_et: "16:00"
-    name: "Fed Collins Speech"
+  - date: 2026-10-26
+    time_et: "08:30"
+    name: "Chicago Fed National Activity Index"
+    severity: orange
+  - date: 2026-10-26
+    time_et: "10:30"
+    name: "Dallas Fed Manufacturing Index"
+    severity: orange
+  - date: 2026-10-26
+    time_et: "11:30"
+    name: "3-Month Bill Auction"
+    severity: yellow
+  - date: 2026-10-26
+    time_et: "11:30"
+    name: "6-Month Bill Auction"
+    severity: yellow
+  - date: 2026-10-26
+    time_et: "13:00"
+    name: "2-Year Note Auction"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "08:00"
+    name: "Building Permits Final"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "08:00"
+    name: "Building Permits MoM Final"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "08:15"
+    name: "ADP Employment Change Weekly"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "08:30"
+    name: "Durable Goods Orders Ex Transp MoM"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "08:30"
+    name: "Durable Goods Orders MoM"
+    severity: red
+  - date: 2026-10-27
+    time_et: "08:30"
+    name: "Durable Goods Orders ex Defense MoM"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "08:30"
+    name: "Non Defense Goods Orders Ex Air"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "08:55"
+    name: "Redbook YoY"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "09:00"
+    name: "House Price Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "09:00"
+    name: "House Price Index MoM"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "09:00"
+    name: "House Price Index YoY"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "09:00"
+    name: "S&P/Case-Shiller Home Price MoM"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "09:00"
+    name: "S&P/Case-Shiller Home Price YoY"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "CB Consumer Confidence"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "New Home Sales"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "New Home Sales MoM"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "Richmond Fed Manufacturing Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "Richmond Fed Manufacturing Shipments Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "10:00"
+    name: "Richmond Fed Services Revenues Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "10:30"
+    name: "Dallas Fed Services Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "10:30"
+    name: "Dallas Fed Services Revenues Index"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "11:00"
+    name: "Atlanta Fed GDPNow"
+    severity: orange
+  - date: 2026-10-27
+    time_et: "11:30"
+    name: "52-Week Bill Auction"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "11:30"
+    name: "6-Week Bill Auction"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "13:00"
+    name: "5-Year Note Auction"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "13:00"
+    name: "Money Supply"
+    severity: yellow
+  - date: 2026-10-27
+    time_et: "16:30"
+    name: "API Crude Oil Stock Change"
     severity: orange

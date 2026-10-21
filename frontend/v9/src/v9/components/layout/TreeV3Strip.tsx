@@ -12,14 +12,68 @@ const KIND_HEB: Record<string, string> = {
 
 interface Leaf { leaf: 'TAKE' | 'SHADOW' | 'SKIP'; id: string | null; note?: string | null; path?: string }
 interface Recent { il: string; pattern: string; direction: string; entry: number | null; leaf: string; id: string | null; path: string; outcome: string; blocked_by: string | null; legacy?: string | null }
+interface BrainQ { q: string; a: string }
+interface Brain {
+  family: { id: string; title: string; on: string; off: string };
+  questions: BrainQ[];
+}
+interface TreeContext {
+  phase: string; opening_type: string; day_type: string; hint: string | null;
+  zone: string; price: number | null; structure?: string; il?: string;
+}
 interface TreeState {
   mode: 'off' | 'shadow' | 'on';
   where_he?: string;
   plan?: { LONG: Record<string, Leaf>; SHORT: Record<string, Leaf> };
   plan_he?: { LONG: string; SHORT: string };
   recent?: Recent[];
-  context?: { phase: string; opening_type: string; day_type: string; hint: string | null; zone: string; price: number | null };
+  context?: TreeContext;
+  brain?: Brain;
   error?: string;
+}
+
+const OT_HE: Record<string, string> = {
+  OPEN_DRIVE: 'דרייב', OPEN_REJECTION_REVERSE: 'דחייה-היפוך', OPEN_AUCTION_IN: 'אוקציה בטווח',
+  OPEN_AUCTION_OUT: 'אוקציה מחוץ', UNKNOWN: 'טרם סווגה',
+};
+const ZN_HE: Record<string, string> = {
+  above_value: 'מעל הערך', near_vah: 'על ה-VAH', mid_value: 'בתוך הערך', near_val: 'על ה-VAL',
+  below_value: 'מתחת לערך', unknown: 'אין ערך עדיין',
+};
+const ST_HE: Record<string, string> = {
+  forming: 'IB מתגבש', none: 'בלי הרחבה', up: 'הרחבה למעלה', down: 'הרחבה למטה', two_sided: 'הרחבה לשני הצדדים',
+};
+
+function brainFrom(c?: TreeContext, planHe?: { LONG: string; SHORT: string }, server?: Brain): Brain | null {
+  if (server?.family && server.questions?.length) return server;
+  if (!c) return null;
+  const hour = parseInt(String(c.il || '0').slice(0, 2), 10);
+  const st = c.structure || '';
+  const family = hour >= 20
+    ? { id: 'late', title: 'אחרי 20:00', on: 'בלי כניסה חדשה', off: 'כל כניסה' }
+    : (c.phase === 'A' || c.phase === 'B' || st === 'forming')
+      ? { id: 'opening', title: 'פתיחה', on: 'דהיית קצה · היפוך-דחייה · דרייב עם הכיוון', off: 'ZLR · שלב D' }
+      : (st === 'up' || st === 'down')
+        ? { id: 'extension', title: 'יציאה מה-IB', on: 'שבירה ועם-הדרייב בכיוון היציאה', off: 'שלב D עם-ההרחבה' }
+        : st === 'none'
+          ? { id: 'inside', title: 'בתוך ה-IB', on: 'דהיית הרחבה כושלת', off: 'עם-ההרחבה · ZLR עם-ההטיה' }
+          : st === 'two_sided'
+            ? { id: 'two_sided', title: 'שני צדדים', on: 'דהיית הרחבה כושלת, ספר דק', off: 'שבירה לשני הכיוונים' }
+            : { id: 'open', title: 'עוד לא נעול', on: 'מחכים למבנה', off: '' };
+  const hint = c.hint === 'LONG' ? 'לונג' : c.hint === 'SHORT' ? 'שורט' : 'בלי הטיה';
+  const who = planHe
+    ? (c.hint === 'LONG' || c.hint === 'SHORT' ? planHe[c.hint] : `לונג: ${planHe.LONG} · שורט: ${planHe.SHORT}`)
+    : (ST_HE[st] || st || '?');
+  return {
+    family,
+    questions: [
+      { q: 'מה השוק מנסה', a: `${OT_HE[c.opening_type] || c.opening_type || '?'} · שלב ${c.phase || '?'} · ${hint}` },
+      { q: 'כמה טוב הוא מצליח', a: 'נפח ודלתא עדיין לא מחוברים לווקטור' },
+      { q: 'איפה ביחס לערך', a: ZN_HE[c.zone] || c.zone || '?' },
+      { q: 'מי שולט', a: who },
+      { q: 'איפה התזה נשברת', a: 'הסטופ על העוגן של הסטאפ, כשיש מועמד' },
+    ],
+  };
 }
 
 const LEAF_COLOR: Record<string, string> = { TAKE: '#16a34a', SHADOW: '#3b82f6', SKIP: '#7f1d1d' };
@@ -55,6 +109,7 @@ export function TreeV3Strip() {
     return () => clearInterval(id);
   }, []);
 
+  const brain = brainFrom(st?.context, st?.plan_he, st?.brain);
   const modeColor = st?.mode === 'on' ? '#16a34a' : st?.mode === 'shadow' ? '#3b82f6' : '#525252';
   const modeLabel = !st ? 'העץ — מתחבר…' : st.mode === 'on' ? 'העץ מחליט' : st.mode === 'shadow' ? 'העץ בצל' : 'העץ כבוי';
   const recent = (st?.recent || []).slice(0, open ? 12 : 3);
@@ -67,7 +122,7 @@ export function TreeV3Strip() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setOpen(o => !o)} style={{
           cursor: 'pointer', fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 3, background: modeColor, color: '#fff', whiteSpace: 'nowrap',
-        }}>🌳 {modeLabel} {open ? '▴' : '▾'}</span>
+        }}>המוח {modeLabel} {open ? '▴' : '▾'}</span>
         <span dir="rtl" style={{ fontSize: 10, color: '#e5e7eb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'right' }}>
           {st?.error ? `שגיאה: ${st.error}` : (st?.where_he || 'טוען…')}
         </span>
@@ -81,6 +136,14 @@ export function TreeV3Strip() {
           </div>
         )}
       </div>
+      {brain && (
+        <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 1, fontSize: 10, color: '#d1d5db' }}>
+          <div><b>משפחה: {brain.family.title}</b> · דולק: {brain.family.on}{brain.family.off ? ` · כבוי: ${brain.family.off}` : ''}</div>
+          {brain.questions.map(q => (
+            <div key={q.q}><span style={{ color: '#6b7280' }}>{q.q}</span> · {q.a}</div>
+          ))}
+        </div>
+      )}
       {(open || recent.length > 0) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {open && st?.plan_he && (

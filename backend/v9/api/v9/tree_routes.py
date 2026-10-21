@@ -151,6 +151,53 @@ def _context(request) -> Dict[str, Any]:
     }
 
 
+def brain_of(ctx: Dict[str, Any], plan_he: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """Display-only reading of the five Dalton questions and which branch family this moment belongs to.
+
+    Same rule as docs/handoff/cc_orders/CC_ORDER_2026-10-05_DAILY_DALTON.md §1.
+    It does not decide a trade. The tree walk above it still does.
+    """
+    phase = str(ctx.get("phase") or "")
+    structure = str(ctx.get("structure") or "")
+    il = str(ctx.get("il") or "00:00")
+    try:
+        hour = int(il.split(":")[0])
+    except ValueError:
+        hour = 0
+    if hour >= 20:
+        family = {"id": "late", "title": "אחרי 20:00", "on": "בלי כניסה חדשה", "off": "כל כניסה"}
+    elif phase in ("A", "B") or structure == "forming":
+        family = {"id": "opening", "title": "פתיחה", "on": "דהיית קצה · היפוך-דחייה · דרייב עם הכיוון", "off": "ZLR · שלב D"}
+    elif structure in ("up", "down"):
+        family = {"id": "extension", "title": "יציאה מה-IB", "on": "שבירה ועם-הדרייב בכיוון היציאה", "off": "שלב D עם-ההרחבה"}
+    elif structure == "none":
+        family = {"id": "inside", "title": "בתוך ה-IB", "on": "דהיית הרחבה כושלת", "off": "עם-ההרחבה · ZLR עם-ההטיה"}
+    elif structure == "two_sided":
+        family = {"id": "two_sided", "title": "שני צדדים", "on": "דהיית הרחבה כושלת, ספר דק", "off": "שבירה לשני הכיוונים"}
+    else:
+        family = {"id": "open", "title": "עוד לא נעול", "on": "מחכים למבנה", "off": ""}
+    ot = OT_HEB.get(str(ctx.get("opening_type") or ""), str(ctx.get("opening_type") or "טרם סווגה"))
+    hint = ctx.get("hint")
+    hint_he = "לונג" if hint == "LONG" else "שורט" if hint == "SHORT" else "בלי הטיה"
+    zone = ZONE_HEB.get(str(ctx.get("zone") or ""), str(ctx.get("zone") or "אין ערך עדיין"))
+    who = STRUCT_HEB.get(structure, structure or "?")
+    if isinstance(plan_he, dict):
+        if hint in ("LONG", "SHORT") and plan_he.get(hint):
+            who = plan_he[hint]
+        elif plan_he.get("LONG"):
+            who = "לונג: %s · שורט: %s" % (plan_he.get("LONG"), plan_he.get("SHORT"))
+    return {
+        "family": family,
+        "questions": [
+            {"q": "מה השוק מנסה", "a": "%s · שלב %s · %s" % (ot, phase or "?", hint_he)},
+            {"q": "כמה טוב הוא מצליח", "a": "נפח ודלתא עדיין לא מחוברים לווקטור"},
+            {"q": "איפה ביחס לערך", "a": zone},
+            {"q": "מי שולט", "a": who},
+            {"q": "איפה התזה נשברת", "a": "הסטופ על העוגן של הסטאפ, כשיש מועמד"},
+        ],
+    }
+
+
 def _mode() -> str:
     v = (os.getenv("DECISION_TREE_V3", "0") or "0").strip().lower()
     return "on" if v in ("1", "true", "yes") else "shadow" if v == "shadow" else "off"
@@ -200,6 +247,7 @@ def build_state(app, *, recent_n: int = 20) -> Dict[str, Any]:
             s += (" · " if s else "") + "צל: " + " · ".join(shadow)
         return s
     out["plan_he"] = {"LONG": _sent("LONG"), "SHORT": _sent("SHORT")}
+    out["brain"] = brain_of(ctx, out["plan_he"])
     c = ctx
     out["where_he"] = (f"{OT_HEB.get(c['opening_type'], c['opening_type'])} · שלב {c['phase']} · {DT_HEB.get(c['day_type'], c['day_type'])}"
                        + (f" · {STRUCT_HEB.get(c['structure'], c['structure'])}" if c["phase"] in ("C", "D") else "")

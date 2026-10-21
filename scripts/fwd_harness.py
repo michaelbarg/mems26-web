@@ -331,6 +331,39 @@ if _MONO_FIX:
     LOG.info("T-623 monotonic fix ON: confluence registry on the fake clock; ATR caches cleared per bar")
 
 
+# T-624 (HARNESS_TREND_STEP_V1, default OFF ⇒ byte-identical): the H15 TREND_STEP producer ("מדרגות") runs in live from
+# backend/main.py's 5-min bar subscriber (_trend_step_on_bar) — a path the harness never ran, so no replay had a single
+# TREND_STEP route (19.10: four live TREND_STEP shorts 19:15–20:15, none in the replay). ON: the same call once per
+# closed bar (at the bar's first push), the same step_id dedup and shadow rule, routed through the gateway as system 4.
+_TS_MIRROR = os.getenv("HARNESS_TREND_STEP_V1", "0").strip().lower() in ("1", "true", "yes")
+_TS_STATE = {"bar": None, "steps": set()}
+_TS_STATS = {"evaluated": 0, "candidates": 0, "routed": 0}
+
+
+def _t624_trend_step(bar_ts):
+    _TS_STATE["bar"] = bar_ts
+    try:
+        from backend.v9.systems.trend_step import detector as _tsd
+        if not _tsd.enabled():
+            return
+        _TS_STATS["evaluated"] += 1
+        setup = _tsd.build_setup()
+        if not setup:
+            return
+        _TS_STATS["candidates"] += 1
+        sid = (setup.get("metadata") or {}).get("step_id")
+        if sid and sid in _TS_STATE["steps"]:
+            return
+        if sid:
+            _TS_STATE["steps"].add(sid)
+        if _tsd.shadow_only():
+            setup.setdefault("metadata", {})["shadow_only"] = True
+        gw.route_setup(setup, 4)
+        _TS_STATS["routed"] += 1
+    except Exception as e:   # the live subscriber is non-fatal too
+        LOG.warning("T-624 trend-step mirror errored (no candidate): %s", e)
+
+
 def _t623_clear_atr_caches():
     for _m in ("backend.v9.systems.target_spacing", "backend.v9.systems.mae_scratch"):
         _mod = sys.modules.get(_m)
@@ -1594,6 +1627,8 @@ def _push(w, when):
     loop.run_until_complete(ws.process_bar(ev_w))
     ev5 = BarEvent(bar_type="5min", bar_id=f"5_{w['ts']}", ts=w["ts"], payload=p5, session="RTH")
     loop.run_until_complete(fms.process_bar(ev5))
+    if _TS_MIRROR and p5.get("ts") != _TS_STATE["bar"]:   # T-624: once per closed bar, as the live subscriber
+        _t624_trend_step(p5.get("ts"))
     s1_on_bar(p5)
     # open harness trades for every live command produced during this push
     for rec in RECORDS[n_before:]:
@@ -1771,6 +1806,8 @@ out = {
 }
 if _MONO_FIX:   # T-623 — only when ON, so an OFF run's JSON keeps its exact shape
     out["mono_fix"] = dict(_MONO_STATS, on=True)
+if _TS_MIRROR:   # T-624 — only when ON
+    out["trend_step_mirror"] = dict(_TS_STATS, on=True)
 os.makedirs(os.path.dirname(args.out), exist_ok=True)
 with open(args.out, "w") as f:
     json.dump(out, f, default=str, indent=1)

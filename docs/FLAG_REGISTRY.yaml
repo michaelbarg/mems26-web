@@ -283,6 +283,12 @@ flags:
     why: "Census over 164 REACTIVE/INITIATIVE entries (June→, fixed 2-leg model): REACTIVE LONG with trigger_ok N=11 win 64% +$41.7 vs without N=28 win 11% −$70.6; INITIATIVE SHORT with trigger_ok N=9 win 78% +$52.8 vs without N=30 win 10% −$32.0. NOT enabled — the replay decides, then Michael rules (order CC_NOW_2026-09-17_FIXES §F17b: 'לא להדליק')."
     status: shadow
     ref: "docs/handoff/cc_orders/CC_NOW_2026-09-17_FIXES.md §F17b · docs/spec_authority/SETUP_GRAMMAR_2026-09-17.md"
+  S2_EVIDENCE_TO_TREE_V1:
+    category: s2
+    what: "T-543 stage 4 — copy the F17b evidence S2 already computes (info['evidence'].vol_trig / .delta_with, REACTIVE/INITIATIVE) into the gateway setup's metadata, where decision_tree.features_of_setup reads it as the vector's volume (high/normal) and delta (with/none). Only real booleans are copied. build_s2_gateway_setup (five_min_system.py)."
+    why: "CC_ORDER_2026-10-05_DAILY_DALTON §1: question 2 of the router ('how well is the market doing it?' = volume/delta/test) is empty in every vector because the evidence never reached setup.metadata. OFF (default) is byte-identical (tests/v9/regression/test_s2_evidence_to_tree.py; mutant 'always copy' → 7 red). The live tree has no split on volume/delta, so even ON routes nothing differently; enabling waits for the volume-vs-leg measurement report and a ruling."
+    status: built_off
+    ref: "docs/handoff/cc_orders/CC_ORDER_2026-10-05_DAILY_DALTON.md §3 stage 4 · TASK_LOG T-543"
   S2_ATR_RELATIVE:
     category: s2
     what: "Scale S2 thresholds to ATR (relative) instead of fixed points."

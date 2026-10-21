@@ -1756,6 +1756,27 @@ class TradingGateway:
                                     result["ibr_released"] = _t3_rel_hit
                         except Exception as _t3_ie:
                             logger.info("[Gateway] TREE_V3 IB-return state unavailable: %s", _t3_ie)
+                        # T-624 (TACTICAL_EFFORT_MODE bar|step|none; unset ⇒ inert, no query): the effort/result reading
+                        # of the candidate's signal bar(s) as the tree feature `effort` — computed only for a candidate
+                        # that goes WITH the return of a FAILED IB extension (ibr_rel with_failed), the circumstance of
+                        # the tactical path (Michael 21.10 on 19.10: "אני רוצה לתקן נתיב"). It changes a decision only
+                        # where the tree file splits on it (the live tree does not).
+                        try:
+                            from backend.v9.services import effort_result as _t624
+                            _t624_mode = _t624.mode()
+                            if _t624_mode and _t3_vec.get("ibr_rel") == "with_failed":
+                                from backend.v9.db.read import read_all as _t624_read
+                                _t624_bars = _t624_read(
+                                    "SELECT open, high, low, close, volume FROM v9_bars_5min_woodies WHERE symbol='MES' "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::date = "
+                                    "(now() AT TIME ZONE 'America/New_York')::date "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                    "AND ts + interval '5 minutes' <= now() ORDER BY ts", {})
+                                _t624_er = _t624.label(_t624_bars, setup.get("direction"), _t624_mode)
+                                _t3_vec["effort"] = _t624_er.get("label", "unknown")
+                                result["effort_result"] = _t624_er
+                        except Exception as _t624_e:
+                            logger.info("[Gateway] T-624 effort/result unavailable: %s", _t624_e)
                         _tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)
                         _t3_path_s = "/".join(f"{f}={v}" for f, v in _t3_path)
                         _t3_action = str(_tree_leaf.get("leaf") or "SKIP").upper()
