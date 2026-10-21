@@ -13,7 +13,9 @@ export ENVF OUT
 T622_NEDGE=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t622_normal_edge.yaml
 T622_BOTH=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t622_edge_both.yaml
 T616_EDGE=/Users/michael/Downloads/mems26_web_git/config/decision_tree_v3.t616_edge.yaml
-export T622_NEDGE T622_BOTH T616_EDGE
+T624_TAC=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t624_tactical.yaml
+T624_TACZ=/Users/michael/Downloads/mems26_web_git/harness_out/t621/decision_tree_v3.t624_tactical_zlr.yaml
+export T622_NEDGE T622_BOTH T616_EDGE T624_TAC T624_TACZ
 in_ban() {
   local dow hm; dow=$(TZ=Asia/Jerusalem date +%u); hm=$(TZ=Asia/Jerusalem date +%H%M)
   [ "$dow" -le 5 ] && [ "$hm" -ge 1555 ] && [ "$hm" -lt 2305 ]
@@ -69,6 +71,20 @@ envs_of() {
     t2tol) echo "TOUCH2_EDGE_TOL_MAX_ATR=0.5" ;;
     t1fr) echo "T1_FRONT_RUN_TICKS=2" ;;
     night) echo "OPENING_DRIVE_STRICT_V1=1 STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1=1 DECISION_TREE_V3_PATH=$T616_EDGE TOUCH2_EDGE_TOL_MAX_ATR=0.5 T1_FRONT_RUN_TICKS=2" ;;
+    # fix 1 on top of the Normal-day package — 19.10: the up-extension was accepted 18:30 and failed 19:05 (back in the
+    # IB), and ~30 shorts 19:05–20:45 were refused by tree:bias (the hint stayed LONG); 20.10's R1 is the same root
+    n2rs1) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 IB_EXT_ACCEPTED_HINT_V1=1" ;;
+    n2rs1n) echo "DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 IB_EXT_ACCEPTED_HINT_V1=none" ;;
+    # T-624 the tactical path after a FAILED IB extension (Michael 21.10 "אני רוצה לתקן נתיב") — always with the H15
+    # TREND_STEP mirror (the "steps"; the live main.py subscriber the harness never ran); run them as m-tags, vs mts
+    ts) echo "HARNESS_TREND_STEP_V1=1" ;;
+    tsb) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=bar DECISION_TREE_V3_PATH=$T624_TAC" ;;
+    tss) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=step DECISION_TREE_V3_PATH=$T624_TAC" ;;
+    tsn) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=none DECISION_TREE_V3_PATH=$T624_TAC" ;;
+    tsbz) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=bar DECISION_TREE_V3_PATH=$T624_TACZ" ;;
+    tssz) echo "HARNESS_TREND_STEP_V1=1 TACTICAL_EFFORT_MODE=step DECISION_TREE_V3_PATH=$T624_TACZ" ;;
+    n2rsts) echo "HARNESS_TREND_STEP_V1=1 DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1" ;;
+    n2rstss) echo "HARNESS_TREND_STEP_V1=1 DAYTYPE_SIDES_ACCEPTED_V1=single NORMAL_DAY_RUNNER_OTHER_SIDE_V1=1 TACTICAL_EFFORT_MODE=step DECISION_TREE_V3_PATH=$T624_TAC" ;;
     # T-623: "m" + any tag = the same envs on the harness with the monotonic-clock fix (confluence join on the fake
     # clock, ATR caches cleared per bar) — compare m-tags only with m-tags (mbase is their base)
     m?*) echo "HARNESS_MONO_FIX_V1=1 $(envs_of "${1#m}")" ;;

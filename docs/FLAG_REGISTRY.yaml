@@ -2254,3 +2254,38 @@ flags:
     why: "The 78-session measurement of fix 5 (21.10): keep the 20.10 correction (+621.25 with the package), drop the noise."
     status: built_off
     ref: "T-622c · backend/v9/systems/ceiling_touch2.py (struct_stop_mode, structure_extreme ib_edge/mode) · five_min_system.py TOUCH2 producer · tests/v9/regression/test_t621_root_fixes_2010.py"
+  TACTICAL_EFFORT_MODE:
+    category: gate
+    group: tactical path
+    what: "bar · step · none — the tree feature `effort` for a candidate that goes WITH the return of a FAILED IB extension (ibr_rel with_failed): 'bar' = the signal bar shows effort (volume ≥ TACTICAL_EFFORT_K_VOL × the mean of the TACTICAL_EFFORT_N_AVG bars before it) and result (body in the trade direction ≥ TACTICAL_RESULT_K_BODY × ATR14); 'step' = an impulse with effort and result among the last TACTICAL_STEP_LOOKBACK closed bars and a quiet pullback after it (every bar's effort < 1); 'none' = no filter. Unset ⇒ no query, no feature ⇒ byte-identical. It changes a decision only where the tree file splits on `effort` (the live tree does not; the T-624 variant trees do)."
+    why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
+    status: built_off
+    ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
+  TACTICAL_EFFORT_K_VOL:
+    category: param
+    group: tactical path
+    what: "T-624: effort threshold (signal-bar volume / mean volume of the bars before it), default 1.2. Read only when TACTICAL_EFFORT_MODE is set."
+    why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
+    status: built_off
+    ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
+  TACTICAL_RESULT_K_BODY:
+    category: param
+    group: tactical path
+    what: "T-624: result threshold (body in the trade direction / ATR14), default 0.5. Read only when TACTICAL_EFFORT_MODE is set."
+    why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
+    status: built_off
+    ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
+  TACTICAL_STEP_LOOKBACK:
+    category: param
+    group: tactical path
+    what: "T-624: mode 'step' — how many closed bars back the impulse may be, default 3."
+    why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
+    status: built_off
+    ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
+  TACTICAL_EFFORT_N_AVG:
+    category: param
+    group: tactical path
+    what: "T-624: how many closed RTH bars the effort mean averages, default 20."
+    why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
+    status: built_off
+    ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
