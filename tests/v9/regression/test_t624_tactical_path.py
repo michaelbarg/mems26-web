@@ -147,13 +147,42 @@ class TacticalTreeVariantTest(unittest.TestCase):
         self.assertIsNone(self._walk(p, dict(self.BASE, effort="weak"))[2])
 
 
+class StepsFilterTest(unittest.TestCase):
+    """T-624b: TACTICAL_EFFORT_SCOPE=steps + decision_tree_v3.t624_steps.yaml — every TREND_STEP needs effort/result."""
+
+    def test_scope(self):
+        with mock.patch.dict(os.environ, {"TACTICAL_EFFORT_SCOPE": "steps"}):
+            self.assertTrue(er.in_scope("TREND_STEP"))
+            self.assertFalse(er.in_scope("ZLR"))
+        with mock.patch.dict(os.environ, {"TACTICAL_EFFORT_SCOPE": "all"}):
+            self.assertTrue(er.in_scope("ZLR"))
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TACTICAL_EFFORT_SCOPE", None)
+            self.assertFalse(er.in_scope("TREND_STEP"))
+
+    def test_steps_variant(self):
+        p = REPO / "harness_out" / "t621" / "decision_tree_v3.t624_steps.yaml"
+        if not p.exists():
+            self.skipTest("variant tree not built")
+        t = dt.load_tree(str(p))
+        v = {"opening_type": "OPEN_REJECTION_REVERSE", "phase": "C", "day_type": "Variation", "structure": "up",
+             "pattern": "TREND_STEP", "kind": "PULLBACK", "direction": "SHORT", "rel_bias": "with", "zone": "mid_value",
+             "edge": "none", "hour": 19, "system": 4}
+        self.assertEqual(dt.walk(t, dict(v, effort="strong"))[0]["leaf"], "TAKE")
+        self.assertEqual(dt.walk(t, dict(v, effort="weak"))[0].get("id"), "step_no_effort")
+        self.assertEqual(dt.walk(t, v)[0].get("id"), "step_no_effort")                     # no feature ⇒ refused
+        self.assertEqual(dt.walk(t, dict(v, pattern="ZLR"))[0]["leaf"], "TAKE")            # other patterns untouched
+        self.assertEqual(dt.walk(t, dict(v, hour=22, effort="strong"))[0].get("id"), "time_cutoff")
+
+
 class GatewayWiringTest(unittest.TestCase):
 
     def test_feature_is_flag_gated_and_only_after_a_failed_extension(self):
         src = (REPO / "backend" / "v9" / "gateway" / "trading_gateway.py").read_text(encoding="utf-8")
         i = src.index("T-624 (TACTICAL_EFFORT_MODE")
         block = src[i:i + 2200]
-        self.assertIn('_t624_mode and _t3_vec.get("ibr_rel") == "with_failed"', block)
+        self.assertIn('_t624_mode and (_t3_vec.get("ibr_rel") == "with_failed"', block)
+        self.assertIn('_t624.in_scope(_t3_vec.get("pattern"))', block)
         self.assertIn('_t3_vec["effort"]', block)
         self.assertLess(i, src.index("_tree_leaf, _t3_path = _dt3.walk(_dt3.load_tree(), _t3_vec)"))
         self.assertIn("effort", dt.FEATURES)

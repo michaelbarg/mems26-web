@@ -1764,7 +1764,8 @@ class TradingGateway:
                         try:
                             from backend.v9.services import effort_result as _t624
                             _t624_mode = _t624.mode()
-                            if _t624_mode and _t3_vec.get("ibr_rel") == "with_failed":
+                            if _t624_mode and (_t3_vec.get("ibr_rel") == "with_failed"
+                                               or _t624.in_scope(_t3_vec.get("pattern"))):   # T-624b scope
                                 from backend.v9.db.read import read_all as _t624_read
                                 _t624_bars = _t624_read(
                                     "SELECT open, high, low, close, volume FROM v9_bars_5min_woodies WHERE symbol='MES' "

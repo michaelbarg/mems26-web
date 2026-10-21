@@ -2289,3 +2289,10 @@ flags:
     why: "Michael 21.10 on 19.10: 'המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה — אני רוצה לתקן נתיב'. 19.10: the up-extension failed at 19:05 and every System 4 short 19:05–20:45 died on tree:bias. Built OFF; measured on the replay (harness_out/t621/days, tags mts / mtsb / mtss / mtsn / mtsbz / mtssz)."
     status: built_off
     ref: "T-624 · backend/v9/services/effort_result.py · backend/v9/gateway/trading_gateway.py (the T-624 block before the tree walk) · harness_out/t621/decision_tree_v3.t624_tactical*.yaml (t624_tree_variant.py) · scripts/fwd_harness.py (HARNESS_TREND_STEP_V1) · tests/v9/regression/test_t624_tactical_path.py"
+  TACTICAL_EFFORT_SCOPE:
+    category: param
+    group: tactical path
+    what: "T-624b: beyond the failed-extension candidates (always, when TACTICAL_EFFORT_MODE is set), which candidates also get the tree feature `effort` — 'steps' = every TREND_STEP (the steps filter; decision_tree_v3.t624_steps.yaml refuses a step without effort and result: leaf step_no_effort) · 'all' = every candidate · unset/'failed' = none."
+    why: "Michael 21.10: 'מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה'. The H15 TREND_STEP producer is live in demo since 19.10 (Michael 19.10 19:1x); with its replay mirror (T-624) it is −1,227$ on 78 sessions (mts vs mbase; 10 trades −720$ direct). Built OFF; measured as mtsfs / mtsfb / mtstfs."
+    status: built_off
+    ref: "T-624b · backend/v9/services/effort_result.py (in_scope) · trading_gateway.py T-624 block · harness_out/t621/t624_tree_variant.py · tests/v9/regression/test_t624_tactical_path.py"

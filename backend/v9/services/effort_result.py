@@ -51,6 +51,18 @@ def mode() -> str:
     return m if m in ("bar", "step", "none") else ""
 
 
+def in_scope(pattern: Optional[str]) -> bool:
+    """TACTICAL_EFFORT_SCOPE (T-624b): beyond the failed-extension candidates (always, when the mode is set), which
+    candidates also get the feature — 'steps' = every TREND_STEP (the steps filter) · 'all' = every candidate ·
+    unset / 'failed' = none."""
+    sc = (os.getenv("TACTICAL_EFFORT_SCOPE", "") or "").strip().lower()
+    if sc == "all":
+        return True
+    if sc == "steps":
+        return str(pattern or "").upper() == "TREND_STEP"
+    return False
+
+
 def atr14(bars: Sequence[Dict[str, Any]], i: int, n: int = 14) -> Optional[float]:
     trs = []
     for j in range(max(1, i - n + 1), i + 1):

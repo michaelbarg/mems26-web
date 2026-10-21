@@ -83,11 +83,33 @@ D_DEF_NEW = '''  # T-624 VARIANT: phase D — after a failed extension, the tact
 '''
 VER_OLD = 'version: "3.4.0"'
 
-for name, promote in (("t624_tactical", ""), ("t624_tactical_zlr", "zlr")):
+# T-624b — the steps filter: EVERY TREND_STEP candidate needs effort and result on its bar(s) (the gateway computes
+# the feature for it when TACTICAL_EFFORT_SCOPE=steps); without them the step is refused before the doctrine tree.
+ROOT_OLD = '''    "*": *root_full
+'''
+ROOT_NEW = '''    "*":
+      split: pattern
+      branches:
+        TREND_STEP:
+          split: effort
+          branches:
+            strong: *root_full
+            "*":
+              leaf: SKIP
+              id: step_no_effort
+              note: "T-624b: a step (TREND_STEP) without effort and result on its bar(s) (Michael 21.10)"
+        "*": *root_full
+'''
+
+for name, promote, tactical, steps in (("t624_tactical", "", True, False), ("t624_tactical_zlr", "zlr", True, False),
+                                       ("t624_steps", "", False, True), ("t624_tactical_steps", "", True, True)):
     s = open(SRC, encoding="utf-8").read()
-    for old, new in ((A_OLD, A_NEW), (D_OLD, D_NEW), (D_DEF_OLD, D_DEF_NEW)):
+    for old, new in (((A_OLD, A_NEW), (D_OLD, D_NEW), (D_DEF_OLD, D_DEF_NEW)) if tactical else ()):
         assert s.count(old) == 1, f"block not found exactly once: {old[:60]!r}"
         s = s.replace(old, new)
+    if steps:
+        assert s.rstrip("\n").endswith(ROOT_OLD.rstrip("\n")) and s.count(ROOT_OLD) == 1, "root '*' branch not last"
+        s = s.replace(ROOT_OLD, ROOT_NEW)
     if promote:
         s = s.replace("    id: tactical_failed_ext__PROMOTE__\n",
                       "    id: tactical_failed_ext\n    promote: [ZLR]   # shadow by ZLR_SHADOW_V1 (Michael 07.09) — routed in THIS circumstance only\n")
