@@ -133,12 +133,22 @@ def confirmed_pivots(bars: Sequence[Dict], rev: float) -> List[Dict]:
 
 
 def last_confirmed_swing(bars: Sequence[Dict], direction: str,
-                         rev: float) -> Optional[Dict]:
+                         rev: float, last_close: Optional[float] = None) -> Optional[Dict]:
     """The last CONFIRMED swing low (LONG) / swing high (SHORT).
 
     LONG trails behind the low the current up-leg started from; SHORT behind the
     high. Honest None when the session has not yet printed one — the caller then
     holds its existing stop rather than inventing a level (Rule 1).
+
+    `last_close` (T-627, 21.10 — SWING_TRAIL_SIDE_GUARD_V1): when given, a pivot
+    the market has since traded THROUGH is not "the structure that must hold" —
+    a confirmed swing high BELOW the last close is behind a SHORT, not in front
+    of it. 21.10 #3687 19:28 / #3702 20:32: the last confirmed high was the IB
+    high 7780.75 (16:45) while the shorts sat at 7789-7804 inside an
+    unconfirmed up-leg; the trail wrote stop 7781.00 UNDER the market and the
+    runner was filled at market within seconds. With `last_close` such a pivot
+    is skipped (older ones too: anything behind the price is not protective),
+    so the answer is None = HOLD. Without it: byte-identical.
     """
     d = (direction or "").upper()
     if d not in ("LONG", "SHORT"):
@@ -146,13 +156,24 @@ def last_confirmed_swing(bars: Sequence[Dict], direction: str,
     want = "L" if d == "LONG" else "H"
     piv = confirmed_pivots(bars, rev)
     for p in reversed(piv):
-        if p["kind"] == want:
-            return p
+        if p["kind"] != want:
+            continue
+        if last_close is not None:
+            try:
+                lc = float(last_close)
+            except (TypeError, ValueError):
+                lc = None
+            if lc is not None:
+                px = float(p["price"])
+                if (d == "LONG" and px >= lc) or (d == "SHORT" and px <= lc):
+                    return None  # the latest confirmed swing is behind the price: nothing to trail to
+        return p
     return None
 
 
 def swing_trail_stop(bars: Sequence[Dict], direction: str, *,
-                     rev: float, offset_ticks: int = 1) -> Optional[float]:
+                     rev: float, offset_ticks: int = 1,
+                     last_close: Optional[float] = None) -> Optional[float]:
     """Structural trail level = last confirmed swing extreme -/+ `offset_ticks`.
 
     LONG  -> swing_low  - offset (stop sits UNDER the structure that must hold)
@@ -160,8 +181,9 @@ def swing_trail_stop(bars: Sequence[Dict], direction: str, *,
 
     Pure geometry. The never-widen rule and the BE+1T floor are policy and live
     in the manager — deliberately not here, so this stays testable on bars alone.
+    `last_close`: see last_confirmed_swing (a pivot behind the price → None).
     """
-    sw = last_confirmed_swing(bars, direction, rev)
+    sw = last_confirmed_swing(bars, direction, rev, last_close=last_close)
     if sw is None:
         return None
     off = max(0, int(offset_ticks)) * TICK

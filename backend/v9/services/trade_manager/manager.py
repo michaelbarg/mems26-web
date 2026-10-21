@@ -1734,10 +1734,27 @@ class TradeManager:
                 return None
             rev = float(_fb)
 
-        anchor = swing_trail_stop(today, direction, rev=rev, offset_ticks=offset_ticks)
+        # T-627 SWING_TRAIL_SIDE_GUARD_V1 (21.10, default OFF ⇒ byte-identical): the last
+        # confirmed swing must be on the PROTECTIVE side of the market. 21.10 #3687 19:28:11 and
+        # #3702 20:32:22 (both SHORT, runner after T1): the last confirmed swing high was the IB
+        # high 7780.75 from 16:45 while the price sat at 7789-7804 in an unconfirmed up-leg; the
+        # trail wrote stop 7781.00 UNDER the market, Sierra filled the runner at market within
+        # 4 seconds (7789.00 / 7803.50). A stop behind the price is a market exit, not a trail.
+        _side_guard = os.environ.get("SWING_TRAIL_SIDE_GUARD_V1", "0").lower() in ("1", "true", "yes")
+        _last_close = None
+        if _side_guard:
+            try:   # woodies row shape or {h,l,c} — same fallback as swing_trail._hl
+                _lb = today[-1]
+                _last_close = float(_lb.get("c", _lb.get("close")))
+            except Exception:
+                _last_close = None
+        anchor = swing_trail_stop(today, direction, rev=rev, offset_ticks=offset_ticks,
+                                  last_close=_last_close)
         if anchor is None:
             logger.info("[TradeManager] F5 swing-trail trade=%s: no confirmed swing yet "
-                        "(rev=%.2f) — HOLD, stop unchanged", trade.id, rev)
+                        "(rev=%.2f%s) — HOLD, stop unchanged", trade.id, rev,
+                        " on the protective side of close %.2f" % _last_close
+                        if _last_close is not None else "")
             return None
 
         # T-43a fix #2 (cowork 29.08): the 28.08 incident was SWING_TRAIL writing
@@ -1763,6 +1780,17 @@ class TradeManager:
                     "not tighten stop %.2f (%s) — HOLD (never widen)",
                     trade.id, anchor, rev, cur, direction)
                 return False
+        # T-627 belt (same flag): whatever the floor/anchor arithmetic produced, a stop on the
+        # wrong side of the last close is never written — that is a market exit wearing a
+        # trail's name. HOLD and say so.
+        if _side_guard and _last_close is not None and (
+                (direction == "LONG" and new_stop >= _last_close)
+                or (direction == "SHORT" and new_stop <= _last_close)):
+            logger.warning(
+                "[TradeManager] F5 swing-trail trade=%s: refusing stop %.2f on the wrong side of "
+                "close %.2f (%s; swing=%.2f floor=%.2f) — HOLD (T-627)",
+                trade.id, new_stop, _last_close, direction, anchor, be_floor)
+            return False
 
         trade.stop = new_stop
         audit_entry = {
