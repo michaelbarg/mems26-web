@@ -2310,3 +2310,31 @@ flags:
     why: "21.10 demo #3687 19:28:11 and #3702 20:32:22 (both SHORT after T1): the last confirmed swing high of the session was the IB high 7780.75 (16:45) while the price sat at 7789 / 7803 inside an unconfirmed up-leg; SWING_TRAIL wrote stop 7781.00 UNDER the market and Sierra filled the runner at market within 4 s — booked as STOP_HIT wins (+97.50 / +105.00), so the defect hid as profit. Shadow twins #3675 / #3711 got phantom fills AT 7781.00 (+498.20$ fake shadow profit; the shadow fill path is a separate follow-up). Found independently by cowork-dev (runs 404-405) and by cowork (interactive, 21:2x); Michael 21.10 21:1x: 'ושמערכת 6 תדע להעביר סטופ'; ruled ON 22:3x: 'עכשיו הכל' — live in demo from the next restart (the iMac cutover, 21.10 night)."
     status: enabled
     ref: "T-627 · backend/v9/services/trade_manager/swing_trail.py (last_close) · backend/v9/services/trade_manager/manager.py apply_swing_trail (T-627 guard + belt) · tests/v9/regression/test_t627_swing_trail_side_guard.py (6 tests)"
+  OPENING_HALF_RANGE_GATE_V1:
+    category: cascade_gate
+    group: opening
+    what: "T-628 (21.10 night): on an OPEN_AUCTION opening (opening_type OPEN_AUCTION_*) in phase A/B, an OPENING_* candidate may not chase — a LONG is allowed only in the lower half of the running opening range (today's CLOSED RTH bars so far: max high / min low), a SHORT only in the upper half; otherwise blocked_by=opening_half_range (reason names the range and mid). Measurable stand-in for the step->test opening template (docs/reports/OPENING_GAPS_2026-10-21.md). Unset/0 = byte-identical."
+    why: "21.10 16:50 #3637 OPENING_EXTREME_REJECT LONG 7778.50 on an OPEN_AUCTION_IN day: the tested low was 7764.50 (16:40), the confirm bar ran 14 pt, the entry sat 2 pt under the range high with a 15-pt stop; stopped in 15 min, −225$. Michael 21.10 21:1x: the system must identify the step and wait for the test; 22:3x 'עכשיו הכל'. Built OFF; measured on the 78 sessions (harness_out/t628)."
+    status: built_off
+    ref: "T-628 · backend/v9/gateway/trading_gateway.py (T-628 opening half-range block before ELQ) · harness_out/t628/run_days.sh"
+  EDGE_FAILED_EXT_LIVE_V1:
+    category: tree_feature
+    group: edge
+    what: "T-628 (21.10 night): the tree feature edge=failed_extension (T-329/T-529: a confirmed double at the extension extreme) is denied while the extension on that side is LIVE-ACCEPTED per ib_acceptance (N closed bars beyond the IB edge, not released back inside) — a double at the extreme of an accepted extension is a pause, not a failed extension; edge becomes 'none' and the row that needed it does not fire. Logged '[Gateway] T-628 edge denied'. Unset/0 = byte-identical."
+    why: "21.10 #3670 18:45 / #3687 19:20 / #3696 19:45 / #3702 20:25: four CEILING_FLIP_TOUCH2 shorts at 7793–7808 took the edge while the up-extension had 4+ closes above IB high 7780.75 (state=up) — the T-295 counter-extension class (−715$/19 trades historically); net −32.50$ today only by luck. Built OFF; measured on the 78 sessions (harness_out/t628)."
+    status: built_off
+    ref: "T-628 · backend/v9/gateway/trading_gateway.py (edge block, _t628_live_acceptance) · backend/v9/services/ib_acceptance.py"
+  ELQ_WITH_EXT_SKIP_V1:
+    category: cascade_gate
+    group: location
+    what: "T-628 (21.10 night): entry_location_quality is skipped for a candidate that goes WITH a LIVE-ACCEPTED IB extension (ib_acceptance up_live for LONG / dn_live for SHORT) — 'beyond_value' is a rotation-day test; a with-extension entry is beyond value by definition, exactly like the opening-drive branch, VAR_CONT and the take_with_extension leaf. result.elq_skipped='with_live_extension'. Unset/0 = byte-identical."
+    why: "21.10 18:45–20:55: 16 with-extension LONG candidates (ZLR x12, TREND_STEP x4) passed the tree and were blocked by beyond_value ex=0.54>0.25 during a 25-pt accepted up-extension (7781→7810); the only trades taken were four counter-extension shorts. Built OFF; measured on the 78 sessions (harness_out/t628)."
+    status: built_off
+    ref: "T-628 · backend/v9/gateway/trading_gateway.py (ELQ block, _elq_skip_ext) · backend/v9/services/ib_acceptance.py"
+  STRUCT_TARGETS_WITH_EXT_EXEMPT_V1:
+    category: targets
+    group: structural
+    what: "T-628 (21.10 night): the A1 'all structural targets on the wrong side' verdict is skipped for a candidate that goes WITH a LIVE-ACCEPTED IB extension (ib_acceptance up_live / dn_live) — the producer's own ladder stands and the structural result is dropped, exactly the shape of TREND_STEP_STRUCT_EXEMPT_V1. result.struct_ext_exempt records the structural levels that sat behind the entry. Unset/0 = byte-identical."
+    why: "21.10 18:23–21:55 (replay with ELQ_WITH_EXT_SKIP_V1): 14 with-extension LONGs (ZLR, GHOST, INITIATIVE, REACTIVE, DALTON_EDGE) were blocked by structural_targets_wrong_side because the value levels (POC/VAL/IB) necessarily sit behind an entry inside a 30-pt accepted up-extension. Built OFF; measured with ELQ_WITH_EXT_SKIP_V1 as one package (tag nxbv, harness_out/t628)."
+    status: built_off
+    ref: "T-628 · backend/v9/gateway/trading_gateway.py (_t628_struct_ext_exempt, A1 branch) · backend/v9/services/ib_acceptance.py"

@@ -242,6 +242,43 @@ def _elq_phase_b_exempt(t3v) -> bool:
         return False
 
 
+def _t628_live_acceptance(ibh, ibl) -> dict:
+    """T-628 (21.10 night, measurement flags): the IB-extension ACCEPTANCE state from today's CLOSED RTH bars
+    (backend.v9.services.ib_acceptance — N closes beyond the edge accept, N closes back inside release). {} when the
+    IB is not known yet or anything fails (every caller treats {} as "no live extension" = byte-identical)."""
+    try:
+        hi, lo = float(ibh or 0), float(ibl or 0)
+        if not (hi > lo > 0):
+            return {}
+        from backend.v9.services import ib_acceptance as _ia
+        from backend.v9.services.trade_context import get_closed_rth_bars_today as _bars
+        return _ia.acceptance(_bars() or [], ib_hi=hi, ib_lo=lo) or {}
+    except Exception:
+        return {}
+
+
+def _t628_with_live_ext(acc, direction) -> bool:
+    """True when `direction` goes WITH an extension that is live-accepted right now."""
+    d = str(direction or "").upper()
+    a = acc or {}
+    if d == "LONG":
+        return bool(a.get("up_live"))
+    if d == "SHORT":
+        return bool(a.get("dn_live"))
+    return False
+
+
+def _t628_struct_ext_exempt(direction, ibh, ibl) -> bool:
+    """T-628 STRUCT_TARGETS_WITH_EXT_EXEMPT_V1: True when the flag is on and `direction` goes WITH a live-accepted
+    IB extension (the A1 wrong-side verdict then keeps the producer's own ladder instead of blocking)."""
+    try:
+        if os.getenv("STRUCT_TARGETS_WITH_EXT_EXEMPT_V1", "0").strip().lower() not in ("1", "true", "yes"):
+            return False
+        return _t628_with_live_ext(_t628_live_acceptance(ibh, ibl), direction)
+    except Exception:
+        return False
+
+
 def _opening_gate_exempt(setup, gate_name: str) -> bool:
     """Opening-trade gate exemptions (Michael enabled OPENING_PLAYBOOK_V1 2026-07-29).
 
@@ -1654,6 +1691,25 @@ class TradingGateway:
                                 if ((_t3_dir == "LONG" and _t3_sl < _t3_ibl and abs(_t3_anc - _t3_sl) <= _t3_ftol)
                                         or (_t3_dir == "SHORT" and _t3_sh > _t3_ibh and abs(_t3_anc - _t3_sh) <= _t3_ftol)):
                                     _t3_edge = "failed_extension"
+                                    # T-628 EDGE_FAILED_EXT_LIVE_V1 (21.10 night, default OFF ⇒ byte-identical): a
+                                    # confirmed double at the extreme of an extension that is STILL ACCEPTED (N closed
+                                    # bars beyond the IB edge, not released back inside) is a PAUSE, not a failed
+                                    # extension. 21.10 #3670 18:45 / #3687 19:20 / #3696 19:45 / #3702 20:25: four
+                                    # CEILING_FLIP_TOUCH2 shorts at 7793–7808 took the T-329 edge while the up-extension
+                                    # had 4+ closes above IB high 7780.75 (ib_acceptance state=up) — the T-295 class
+                                    # (counter-extension). The edge stays only when the far side is not live-accepted.
+                                    if os.getenv("EDGE_FAILED_EXT_LIVE_V1", "0").strip().lower() in ("1", "true", "yes"):
+                                        _t628_acc = _t628_live_acceptance(_t3_ibh, _t3_ibl)
+                                        _t628_far = (_t628_acc.get("up_live") if _t3_dir == "SHORT"
+                                                     else _t628_acc.get("dn_live"))
+                                        if _t628_far:
+                                            _t3_edge = "none"
+                                            logger.warning(
+                                                "[Gateway] T-628 edge denied: %s %s — the %s extension is still "
+                                                "accepted (state=%s run=%s): a pause, not a failed extension",
+                                                _t3_cls, _t3_dir, "up" if _t3_dir == "SHORT" else "down",
+                                                _t628_acc.get("state"),
+                                                _t628_acc.get("up_run") if _t3_dir == "SHORT" else _t628_acc.get("dn_run"))
                         except (TypeError, ValueError):
                             pass
                         # rel_bias — vs the session hint; the rejection-reverse rows (phase A/B)
@@ -3077,6 +3133,37 @@ class TradingGateway:
             except Exception as _dp_err:
                 logger.warning("[Gateway] day-type position gate errored (fail-open): %s", _dp_err)
 
+        # ── T-628 OPENING_HALF_RANGE_GATE_V1 (21.10 night, default OFF ⇒ byte-identical): on an OPEN_AUCTION
+        # opening (inside/outside value) in phase A/B an OPENING_* entry may not CHASE — a LONG only in the lower
+        # half of the running opening range (today's CLOSED RTH bars so far), a SHORT only in the upper half.
+        # 21.10 16:50 #3637 OPENING_EXTREME_REJECT LONG 7778.50: the tested low was 7764.50 (16:40), the confirm
+        # bar ran 14 pt, the entry sat 2 pt under the range high 7780.75 with a 15-pt stop; −225$. The step→test
+        # template (docs/reports/OPENING_GAPS_2026-10-21.md) replaces this; this is the measurable guard for now.
+        try:
+            if (os.getenv("OPENING_HALF_RANGE_GATE_V1", "0").strip().lower() in ("1", "true", "yes")
+                    and str(setup.get("classification") or "").upper().startswith("OPENING_")
+                    and str(_dp_ot or "").upper().startswith("OPEN_AUCTION")
+                    and (_dp_phase_now in ("A", "B"))):
+                from backend.v9.services.trade_context import get_closed_rth_bars_today as _t628_ob
+                _ob = [b for b in (_t628_ob() or []) if b]
+                _oh = [float(x) for x in (b.get("h", b.get("high")) for b in _ob) if x is not None]
+                _ol = [float(x) for x in (b.get("l", b.get("low")) for b in _ob) if x is not None]
+                _oe = float(setup.get("entry_price") or 0)
+                if _oh and _ol and _oe > 0:
+                    _orh, _orl = max(_oh), min(_ol)
+                    _omid = (_orh + _orl) / 2.0
+                    if (direction == "LONG" and _oe > _omid) or (direction == "SHORT" and _oe < _omid):
+                        result["blocked_by"] = "opening_half_range"
+                        result["reason"] = (
+                            "T-628 opening half-range: %s %s entry %.2f is in the %s half of the opening range "
+                            "%.2f–%.2f (mid %.2f) on %s phase %s — no chase; the entry belongs at the test"
+                            % (setup.get("classification"), direction, _oe,
+                               "upper" if direction == "LONG" else "lower", _orl, _orh, _omid, _dp_ot, _dp_phase_now))
+                        logger.warning("[Gateway] BLOCKED by opening_half_range: %s", result["reason"])
+                        return result
+        except Exception as _t628_err:
+            logger.info("[Gateway] T-628 opening half-range gate errored (fail-open): %s", _t628_err)
+
         # --- ENTRY_LOCATION_QUALITY_V1 (Michael 28.08 18:50, T-200a)
         # Relative position quality gate: chaser / expensive stop / beyond value.
         # All thresholds relative. Flag OFF = byte-identical. Shadow = log only.
@@ -3152,6 +3239,24 @@ class TradingGateway:
             logger.warning("[Gateway] T-457 ELQ skipped for confirmed opening drive %s %s "
                            "(OPENING_DRIVE_BRANCH_V1)", setup.get("classification"), direction)
             result["elq_skipped"] = "opening_drive_branch"
+        # T-628 ELQ_WITH_EXT_SKIP_V1 (21.10 night, default OFF ⇒ byte-identical): "beyond_value" is a rotation-day
+        # test. When the IB extension in the candidate's direction is LIVE-ACCEPTED (ib_acceptance: N closed bars
+        # beyond the edge, not released), a with-extension entry is beyond value by definition — the same principle
+        # as the drive branch, VAR_CONT and the take_with_extension leaf above. 21.10 18:45–20:55: 16 with-extension
+        # LONGs (ZLR ×12, TREND_STEP ×4 …) passed the tree and died here (beyond_value ex=0.54 > 0.25) during a
+        # 25-pt accepted up-extension; the four counter-extension shorts were the only trades taken.
+        try:
+            _elq_skip_ext = (
+                os.getenv("ELQ_WITH_EXT_SKIP_V1", "0").strip().lower() in ("1", "true", "yes")
+                and _elq_mode in ("1", "true", "shadow") and not _elq_skip_drive and not _elq_skip_tree
+                and _t628_with_live_ext(_t628_live_acceptance(_dp_ibh, _dp_ibl), direction))
+        except Exception:
+            _elq_skip_ext = False
+        if _elq_skip_ext:
+            logger.warning("[Gateway] T-628 ELQ skipped: %s %s WITH the live-accepted IB extension "
+                           "(ELQ_WITH_EXT_SKIP_V1)", setup.get("classification"), direction)
+            result["elq_skipped"] = "with_live_extension"
+            _elq_skip_drive = True
         if (_elq_mode in ("1", "true", "shadow") and not _elq_skip_d and not _elq_skip_drive
                 and not _elq_skip_tree):
             try:
@@ -4765,6 +4870,26 @@ class TradingGateway:
                             # would invert the ladder: the 1R/2R fallbacks sit
                             # INSIDE the kept structural t1). Drop the structural
                             # result and let the leg model stand.
+                            _st = None
+                        elif _t628_struct_ext_exempt(direction, locals().get("_dp_ibh"), locals().get("_dp_ibl")):
+                            # T-628 STRUCT_TARGETS_WITH_EXT_EXEMPT_V1 (21.10 night, default OFF ⇒ byte-identical):
+                            # A1's premise ("structure offers no objective in the trade direction") does not hold for
+                            # an entry WITH a LIVE-ACCEPTED IB extension — the objective is the extension itself, and
+                            # the value levels (POC/VAL/IB) necessarily sit behind a with-extension entry. 21.10
+                            # 18:23–21:55: 14 with-extension LONGs (ZLR, GHOST, INITIATIVE, REACTIVE, DALTON_EDGE)
+                            # blocked here during a 30-pt accepted up-extension. Same shape as the stair exemption
+                            # above: the producer's own ladder stands, the structural result is dropped.
+                            logger.warning(
+                                "[Gateway] T-628 STRUCT_TARGETS_WITH_EXT_EXEMPT: A1 wrong-side SKIPPED for %s %s "
+                                "entry=%s WITH the live-accepted extension — producer ladder kept (stop=%s t1=%s "
+                                "t2=%s t3=%s); structure offered c1=%s c2=%s c3=%s behind the entry (day_type=%s)",
+                                setup.get("classification"), direction, setup.get("entry_price"),
+                                setup.get("stop"), setup.get("t1"), setup.get("t2"), setup.get("t3"),
+                                _st.get("t1_price"), _st.get("t2_price"), _st.get("t3_price"), _st.get("day_type"))
+                            result["struct_ext_exempt"] = {
+                                "entry": setup.get("entry_price"), "direction": direction,
+                                "day_type": _st.get("day_type"), "structural_c1": _st.get("t1_price"),
+                                "structural_c2": _st.get("t2_price"), "structural_c3": _st.get("t3_price")}
                             _st = None
                         else:
                             result["blocked_by"] = "structural_targets_wrong_side"
