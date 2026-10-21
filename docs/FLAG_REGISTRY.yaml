@@ -2296,3 +2296,10 @@ flags:
     why: "Michael 21.10: 'מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וגודל תוצאה'. The H15 TREND_STEP producer is live in demo since 19.10 (Michael 19.10 19:1x); with its replay mirror (T-624) it is −1,227$ on 78 sessions (mts vs mbase; 10 trades −720$ direct). Built OFF; measured as mtsfs / mtsfb / mtstfs."
     status: built_off
     ref: "T-624b · backend/v9/services/effort_result.py (in_scope) · trading_gateway.py T-624 block · harness_out/t621/t624_tree_variant.py · tests/v9/regression/test_t624_tactical_path.py"
+  T612_LADDER_COLLAPSE_V1:
+    category: targets
+    group: ladder
+    what: "T-612 (21.10): in sierra_command, after T-438 LADDER SANITIZE and before the T-214 t3 belt — when the belt would reject (>=3 contracts, no valid t3) the contracts whose rung was dropped/absent exit at the LAST VALID rung: t2 <- t1 when t2 is missing, t3 <- t2 (or t1). Never moved, never invented (Rule 1), no naked contract (T-214 kept). An absent t2 with a valid t3 (RUNNER_TRAIL_V2 shape) is untouched. T-335 (sierra_command) and the T-227 detector (trade_manager) accept two legs on the same price (a shared target is not an inversion). metadata.ladder_collapse records before/after; log '[SierraCmd] T-612 LADDER COLLAPSE'. Unset/0 = byte-identical (the sanitised-to-T1 ladder is still rejected whole)."
+    why: "Michael 21.10 17:4x 'ברצוני שתתקן את זה מיידי'. The 5-contract ruling (19.10) made T-438 and T-214 collide: 20.10 x2, 21.10 #3648 17:20 / #3651 17:25 (CEILING_FLIP_TOUCH2 LONG at the IB low 7751, the doctrine entry) were created and cancelled with no order (t3_missing); fire_drill NO-GO two days running on exactly this (test_t438 x3)."
+    status: enabled
+    ref: "T-612 · backend/v9/services/sierra_command.py (_t612_collapse_enabled, T-612 block, T-335 non-strict) · backend/v9/services/trade_manager/manager.py (_check_target_ladder_sane non-strict) · tests/v9/regression/test_t438_ladder_sanitize.py (TestT612Collapse)"

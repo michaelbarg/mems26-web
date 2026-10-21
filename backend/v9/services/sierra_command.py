@@ -920,6 +920,20 @@ def _ladder_sanitize_enabled() -> bool:
             not in ("0", "off", "false", "no")
 
 
+def _t612_collapse_enabled() -> bool:
+    """T612_LADDER_COLLAPSE_V1 (T-612, Michael 21.10.2026 17:4x "ברצוני שתתקן את
+    זה מיידי") — default OFF ⇒ byte-identical (a sanitised-to-T1 ladder on >=3
+    contracts is still rejected whole by the T-214 belt, as since 22.09)."""
+    return os.getenv("T612_LADDER_COLLAPSE_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _t612_valid_rung(x) -> bool:
+    try:
+        return float(x) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 def _zlr_mgmt_enabled() -> bool:
     """ZLR_MGMT_V1 (Michael 2026-07-14) — default OFF, no env var needed for the
     code default. When unset the ZLR bracket/allocation is byte-identical to every
@@ -1051,6 +1065,39 @@ def command_from_setup(
             logger.warning("[SierraCmd] T-438 sanitize errored "
                            "(ladder untouched): %s", _san_err)
 
+    # ── T-612 · T612_LADDER_COLLAPSE_V1 (Michael 21.10.2026 17:4x "ברצוני שתתקן
+    #    את זה מיידי", default OFF ⇒ byte-identical) ──
+    # The 5-contract ruling (FIXED_CONTRACTS_5 + LADDER_221) made two rulings
+    # collide: T-438 drops an illegal rung, T-214 refuses a contract without a
+    # target — so a ladder sanitised down to T1 was REJECTED WHOLE (t3_missing):
+    # 20.10 ×2, 21.10 #3648 17:20 / #3651 17:25 (CEILING_FLIP_TOUCH2 LONG at the
+    # IB low 7751 — the doctrine entry). Four doctrine fires lost in two days.
+    # Resolution that keeps both rulings AND Rule 1 (never move, never invent):
+    # the contracts whose rung was dropped/absent exit at the LAST VALID rung —
+    # t2 ← t1 when t2 is missing, t3 ← t2 (or t1) when t3 is missing. Only when
+    # the T-214 belt below would otherwise reject (>=3 contracts, no valid t3);
+    # an absent t2 with a valid t3 (RUNNER_TRAIL_V2 shape) is untouched.
+    if (_t612_collapse_enabled() and _contracts >= 3
+            and os.getenv("T3_REQUIRED_V1", "0").lower() in ("1", "true", "yes")
+            and not _t612_valid_rung(_c3_target) and _t612_valid_rung(_c1_target)):
+        _t612_before = (_c1_target, _c2_target, _c3_target)
+        if not _t612_valid_rung(_c2_target):
+            _c2_target = _c1_target
+        _c3_target = _c2_target
+        logger.warning(
+            "[SierraCmd] T-612 LADDER COLLAPSE trade %s: %s %s/%s/%s → %s/%s/%s on %d contracts — "
+            "contracts without a valid rung exit at the last valid one (never moved, never invented)",
+            trade_id, direction, _t612_before[0], _t612_before[1], _t612_before[2],
+            _c1_target, _c2_target, _c3_target, _contracts)
+        try:
+            _m612 = setup.get("metadata")
+            if isinstance(_m612, dict):
+                _m612["ladder_collapse"] = {"before": list(_t612_before),
+                                            "after": [_c1_target, _c2_target, _c3_target],
+                                            "contracts": _contracts}
+        except Exception:
+            pass
+
     # T-214: t3 belt — a setup without a valid t3 must not PLACE.
     # 9/27 recent live trades had t3=NULL/0. The DLL sends these contracts
     # without a target → unprotected runner. Michael ruling 01.09.
@@ -1074,10 +1121,14 @@ def command_from_setup(
         _lad_dir = direction
         _lad = [float(x) for x in [_c1_target, _c2_target, _c3_target] if x is not None and float(x) > 0]
         if len(_lad) >= 2:
+            # Non-strict on purpose (T-612, 21.10): two groups on the SAME price are
+            # one target shared, not an inversion — the T-612 collapse (t2=t3=t1)
+            # and ZLR_MGMT's [T1, T1, T2] both ship that shape; only a rung that
+            # sits BEHIND the previous one is inverted/unreachable.
             if _lad_dir == "LONG":
-                _lad_valid = all(_lad[i] < _lad[i + 1] for i in range(len(_lad) - 1))
+                _lad_valid = all(_lad[i] <= _lad[i + 1] for i in range(len(_lad) - 1))
             else:  # SHORT
-                _lad_valid = all(_lad[i] > _lad[i + 1] for i in range(len(_lad) - 1))
+                _lad_valid = all(_lad[i] >= _lad[i + 1] for i in range(len(_lad) - 1))
             if not _lad_valid:
                 logger.error(
                     "[SierraCmd] T-335 LADDER INVALID: %s targets %s are not monotonic "

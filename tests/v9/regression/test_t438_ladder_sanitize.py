@@ -75,6 +75,18 @@ class _EnvPinned(unittest.TestCase):
         "C4_RULING6_V1": "0",
         "TARGET_MIN_SPACING_V1": "shadow",
         "SITUATION_VECTOR_LOG_V1": "0",
+        # T-612 (21.10): the size is part of the environment these ladders were
+        # ruled in. The T-438 world is the 1-contract ruling (Michael 18.09) —
+        # under FIXED_CONTRACTS_5 (19.10) the same ladder is a different case,
+        # pinned by TestT612Collapse below. `_effective_contracts_raw` reads the
+        # env, not the setup, so an unpinned size silently measured .env.
+        "FIXED_CONTRACTS_1": "1",
+        "FIXED_CONTRACTS_2": "0",
+        "FIXED_CONTRACTS_3": "0",
+        "FIXED_CONTRACTS_4": "0",
+        "FIXED_CONTRACTS_5": "0",
+        "FIXED_CONTRACTS_6": "0",
+        "T612_LADDER_COLLAPSE_V1": "0",
     }
 
     def setUp(self):
@@ -273,6 +285,76 @@ class TestNoUnprotectedContract(_EnvPinned):
             cmd.get("rejected"),
             "3 contracts with t2/t3 dropped would leave two contracts without "
             "a target — T3_REQUIRED_V1 must still reject")
+        self.assertEqual(cmd.get("reason"), "t3_missing")
+
+
+class TestT612Collapse(_EnvPinned):
+    """T-612 (Michael 21.10 17:4x "ברצוני שתתקן את זה מיידי"): the 5-contract
+    ruling (19.10) made T-438 (drop the illegal rung) and T-214 (every contract
+    must have a target) collide — the #2038 ladder, sanitised to T1 alone, was
+    REJECTED WHOLE (t3_missing) on 5 contracts: 20.10 ×2, 21.10 #3648 / #3651
+    (CEILING_FLIP_TOUCH2 LONG at the IB low — the doctrine entry). With
+    T612_LADDER_COLLAPSE_V1 the contracts whose rung was dropped exit at the
+    LAST VALID rung: never moved, never invented, no naked contract.
+    """
+
+    def setUp(self):
+        super().setUp()
+        for k in ("FIXED_CONTRACTS_1", "FIXED_CONTRACTS_2", "FIXED_CONTRACTS_3",
+                  "FIXED_CONTRACTS_4", "FIXED_CONTRACTS_6"):
+            os.environ[k] = "0"
+        os.environ["FIXED_CONTRACTS_5"] = "1"
+        os.environ["T612_LADDER_COLLAPSE_V1"] = "1"
+
+    def test_fixture_really_has_five_contracts(self):
+        from backend.v9.services.sierra_command import effective_contracts
+        self.assertEqual(effective_contracts(_setup(contracts=5)), 5,
+                         "the fixture did not get 5 contracts — nothing measured")
+
+    def test_golden_2038_on_five_contracts_collapses_onto_t1(self):
+        from backend.v9.services.sierra_command import command_from_setup
+        s = _setup(contracts=5)
+        cmd = command_from_setup(s, trade_id="t612-golden-5c",
+                                 account="SIM", mode="demo")
+        self.assertFalse(
+            cmd.get("rejected"),
+            "PLACE rejected (%s) — the 21.10 17:20 fire is still lost"
+            % cmd.get("reason"))
+        self.assertEqual(cmd.get("op"), "PLACE")
+        self.assertEqual(cmd.get("target_price"), T1, "T1 untouched")
+        ctx = cmd.get("context") or {}
+        self.assertEqual(ctx.get("t2"), T1,
+                         "the dropped t2 leg exits at the last valid rung (T1)")
+        self.assertEqual(ctx.get("t3"), T1,
+                         "the dropped t3 leg exits at the last valid rung (T1)")
+        self.assertEqual((s.get("metadata") or {}).get("ladder_collapse", {}).get("contracts"), 5)
+
+    def test_valid_t2_missing_t3_collapses_t3_onto_t2(self):
+        from backend.v9.services.sierra_command import command_from_setup
+        cmd = command_from_setup(_setup(contracts=5, t2=STRUCT_T2, t3=None),
+                                 trade_id="t612-no-t3", account="SIM", mode="demo")
+        self.assertFalse(cmd.get("rejected"), cmd.get("reason"))
+        ctx = cmd.get("context") or {}
+        self.assertEqual(cmd.get("target_price"), T1)
+        self.assertEqual(ctx.get("t2"), STRUCT_T2)
+        self.assertEqual(ctx.get("t3"), STRUCT_T2, "t3 ← t2, never invented")
+
+    def test_absent_t2_with_valid_t3_is_untouched(self):
+        from backend.v9.services.sierra_command import command_from_setup
+        cmd = command_from_setup(_setup(contracts=5, t2=None, t3=STRUCT_T3),
+                                 trade_id="t612-gap", account="SIM", mode="demo")
+        self.assertFalse(cmd.get("rejected"), cmd.get("reason"))
+        ctx = cmd.get("context") or {}
+        self.assertIn(ctx.get("t2"), (None, 0, 0.0))
+        self.assertEqual(ctx.get("t3"), STRUCT_T3,
+                         "a valid t3 means T-214 never fires — no collapse")
+
+    def test_flag_off_is_byte_identical_still_rejected(self):
+        os.environ["T612_LADDER_COLLAPSE_V1"] = "0"
+        from backend.v9.services.sierra_command import command_from_setup
+        cmd = command_from_setup(_setup(contracts=5), trade_id="t612-off",
+                                 account="SIM", mode="demo")
+        self.assertTrue(cmd.get("rejected"))
         self.assertEqual(cmd.get("reason"), "t3_missing")
 
 

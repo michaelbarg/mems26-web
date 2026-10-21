@@ -2646,7 +2646,10 @@ class TradeManager:
             ascending = str(getattr(trade, "direction", "")).upper() == "LONG"
             bad = []
             for (fa, a), (fb, b) in zip(seq, seq[1:]):
-                if (a >= b) if ascending else (a <= b):
+                # Non-strict (T-612, 21.10): two legs on the SAME price are one
+                # shared target (the T-612 ladder collapse t2=t3=t1, ZLR_MGMT's
+                # [T1, T1, T2]) — only a leg BEHIND the previous one is a fiction.
+                if (a > b) if ascending else (a < b):
                     bad.append(f"{fa}={a} !{'<' if ascending else '>'} {fb}={b}")
             if not bad:
                 return True
