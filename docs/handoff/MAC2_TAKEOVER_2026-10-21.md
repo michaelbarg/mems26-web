@@ -50,7 +50,9 @@
 
 הפעלה מהמקבוק: `ssh michael@192.168.1.14 'bash ~/Downloads/mems26_web_git/scripts/mac2/phaseA_imac_prepare.sh all'`.
 
-## Phase B — החיתוך (הלילה ≥ 23:05 IL, מייקל נוכח ליד ה-iMac)
+## Phase B — החיתוך (הלילה ≥ 23:35 IL, מייקל נוכח ליד ה-iMac)
+
+> למה 23:35 ולא 23:05: המשימה המתוזמנת "יומן-מסחר בסוף היום" רצה 23:20 IL על המקבוק (git pull → eod_journal.py → commit+push → הודעת-טלפון) — נותנים לה לסיים את יומן-היום-של-המקבוק, ואז חותכים; הרסינק הסופי מעביר גם אותו. (הריצה של 20.10 נכשלה על USAGE_LIMIT — לא קשור למעבר.) אחרי המעבר המשימה הזאת צריכה להגיע ל-iMac: היא משתמשת ב-Desktop Commander דרך ה-Claude desktop — לוודא ש-Desktop Commander מוגדר ב-Claude desktop של ה-iMac; הנתיב בפרומפט (`/Users/michael/Downloads/mems26_web_git`) זהה ולכן תקף.
 
 **עיקרון-על: בדיוק מכונה-אחת-חיה. קודם מורידים את המקבוק, רק אז מעלים את ה-iMac. Sierra של ה-iMac נפתחת רק אחרי ש-Sierra של המקבוק נסגרה.**
 

@@ -43,7 +43,8 @@ sierra_running(){ pgrep -f "SierraChart_64|Y_SierraChart" >/dev/null 2>&1; }
 step_preflight(){
   say preflight "clock · flat · git · iMac"
   local hm; hm=$(date +%k%M | tr -d ' ')   # %k = hour without leading zero → plain decimal
-  if [ "${FORCE:-0}" != 1 ] && [ "$hm" -lt 2300 ] && [ "$hm" -gt 600 ]; then die "it is $(date +%H:%M) IL — the cutover is after the 23:00 close (FORCE=1 to override, only on Michael's word)"; fi
+  # ≥ 23:35: the 23:00 close has passed AND the 23:20 EOD-journal scheduled task (git pull/commit/push on this repo) has finished
+  if [ "${FORCE:-0}" != 1 ] && [ "$hm" -lt 2335 ] && [ "$hm" -gt 600 ]; then die "it is $(date +%H:%M) IL — the cutover starts at 23:35 (after the close and after the 23:20 EOD-journal task); FORCE=1 only on Michael's word"; fi
   ok "clock $(date '+%F %H:%M %Z')"
   local st="$HOME/SierraChart_Data/v9_export/sierra_state.json"
   if [ -f "$st" ]; then
