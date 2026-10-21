@@ -112,6 +112,10 @@ step_ship(){
   say ship "final rsync: repo (incl. harness_out, excl. node_modules/.next/__pycache__) → iMac"
   rsync -a --delete --stats --exclude 'node_modules/' --exclude '.next/' --exclude '__pycache__/' --exclude '*.pyc' --exclude 'Claude outputs/' --exclude 'frontend/v9/test-results/' -e "ssh -o BatchMode=yes" "$REPO/" "michael@$IMAC:$REPO/" > "$MIG/logs/rsync_repo_cutover.log" 2>&1 || die "repo rsync failed — $MIG/logs/rsync_repo_cutover.log"
   ok "repo: $(grep -E 'Number of files transferred' "$MIG/logs/rsync_repo_cutover.log")"
+  say ship "out-of-repo data the scripts read → iMac (delta over the Phase-A pass): ~/mems26_hist · ~/mems26_snapshots · ~/SierraChart_Data/v9_archive"
+  for d in mems26_hist mems26_snapshots SierraChart_Data/v9_archive; do
+    rsync -a --stats -e "ssh -o BatchMode=yes" "$HOME/$d/" "michael@$IMAC:$HOME/$d/" > "$MIG/logs/rsync_cutover_$(basename "$d").log" 2>&1 && ok "$d: $(grep -E 'Number of files transferred' "$MIG/logs/rsync_cutover_$(basename "$d").log")" || warn "$d rsync failed — see log (non-blocking)"
+  done
   say ship "migration dir (cutover dump + checksums) → iMac"
   rsync -a --stats -e "ssh -o BatchMode=yes" "$MIG/" "michael@$IMAC:$MIG/" > "$MIG/logs/rsync_mig_cutover.log" 2>&1 || die "mig rsync failed"
   ok "mig: $(grep -E 'Number of files transferred' "$MIG/logs/rsync_mig_cutover.log")"
