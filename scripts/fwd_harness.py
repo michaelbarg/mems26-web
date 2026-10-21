@@ -621,6 +621,14 @@ def _capture_exec(mode):
             except Exception as e:
                 cmd = {"rejected": True, "reason": "exception", "detail": repr(e)}
         RECORDS[-1]["exec"][mode] = {"trade_id": tid, "command": cmd}
+        # T-620 (21.10, replay fidelity): a REJECTED live PLACE opens nothing — live returns None from _execute_live/
+        # _execute_demo ("K1e: None = zero-size skip, slot stays free"; the t3_missing / n=0 belts cancel the row).
+        # The harness used to hand back a PENDING trade, so the gateway held the slot for a trade that never existed:
+        # 20.10 18:15:03 CEILING_FLIP_SHORT (risk 35 ⇒ n=0) then blocked DOUBLE_TOP_AA (#3558 live) and every later
+        # candidate on live_slot_occupied. HARNESS_REJECTED_HOLDS_SLOT=1 restores the old behaviour.
+        if (mode == "live" and isinstance(cmd, dict) and cmd.get("rejected")
+                and os.environ.get("HARNESS_REJECTED_HOLDS_SLOT", "0") != "1"):
+            return None
         return {"trade_id": tid, "mode": mode, "direction": setup.get("direction"),
                 "entry_price": setup.get("entry_price"), "state": "PENDING"}
     return _f
@@ -1201,6 +1209,62 @@ def _turn_before(bar_index):
     return _dt([{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"])} for x in rth])
 
 
+_F5_MIRROR = (os.environ.get("RUNNER_TRAIL_V2", "0").lower() in ("1", "true", "yes")
+              and os.environ.get("HARNESS_F5_TRAIL_MIRROR", "1").strip().lower() not in ("0", "false", "no"))
+_F5_STATS = {"on": _F5_MIRROR, "evaluated": 0, "moved": 0, "no_swing": 0}
+_F5_PREV = {"bars": None, "loaded": False}
+
+
+def _f5_prev_rth():
+    """The previous trading day's RTH bars ({h,l,c}) — the live _swing_bars_today() 'prev' (ATR → rev)."""
+    if not _F5_PREV["loaded"]:
+        _F5_PREV["loaded"] = True
+        try:
+            rows = _orig_read_all(
+                "SELECT high, low, close FROM v9_bars_5min_woodies WHERE symbol='MES' "
+                "AND (ts AT TIME ZONE 'America/New_York')::date = :pd "
+                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' ORDER BY ts", {"pd": _prev_td.isoformat()})
+            _F5_PREV["bars"] = [{"h": float(r["high"]), "l": float(r["low"]), "c": float(r["close"])} for r in rows
+                                if r.get("high") is not None and r.get("low") is not None and r.get("close") is not None]
+        except Exception as _pe:
+            LOG.warning("T-620 F5 mirror: previous-session bars unavailable (%s)", _pe)
+            _F5_PREV["bars"] = None
+    return _F5_PREV["bars"]
+
+
+def _f5_trail(tr, d, e, b):
+    """Mirror of TradeManager.apply_structural_swing_trail (manager.py) on the harness trade dict."""
+    try:
+        if os.environ.get("ZLR_MGMT_V1", "0").lower() in ("1", "true", "yes") and \
+                str(tr.get("classification") or "").upper().startswith("ZLR"):
+            return  # ZLR_MGMT_V1: the ZLR stop is fixed (structural → BE at T1)
+        from backend.v9.services.trade_manager.swing_trail import swing_rev_threshold, swing_trail_stop
+        today = [{"h": float(x["high"]), "l": float(x["low"]), "c": float(x["close"])} for x in RTH if x["ts"] <= b["ts"]]
+        if len(today) < 3:
+            return
+        rev = swing_rev_threshold(_f5_prev_rth())
+        if rev is None:
+            return
+        _F5_STATS["evaluated"] += 1
+        anchor = swing_trail_stop(today, d, rev=rev, offset_ticks=1)
+        if anchor is None:
+            _F5_STATS["no_swing"] += 1
+            return
+        sgn = 1 if d == "LONG" else -1
+        floor = float(tr["stop"]) if tr.get("be_hold") else e + sgn * 0.25
+        new = max(anchor, floor) if d == "LONG" else min(anchor, floor)
+        new = round(new, 2)
+        cur = float(tr["stop"])
+        if (new > cur) if d == "LONG" else (new < cur):
+            tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": cur,
+                                                   "to": new, "reason": "F5 swing trail (rev=%.2f)" % rev})
+            tr["stop"] = new
+            _F5_STATS["moved"] += 1
+    except Exception as _fe:
+        LOG.warning("T-620 F5 mirror failed (stop unchanged): %s", _fe)
+
+
 def _settle_bar(b, bar_index):
     """Walk one CLOSED bar through every open trade (conservative: stop before target on the same bar)."""
     hi, lo, op, cl = float(b["high"]), float(b["low"]), float(b["open"]), float(b["close"])
@@ -1279,6 +1343,13 @@ def _settle_bar(b, bar_index):
         if all(l["exit"] for l in tr["legs"]):
             _close_trade(tr, il)
             continue
+        # T-620 (21.10, replay fidelity): the live F5 RUNNER_TRAIL_V2 swing trail — after T1, at the close of every
+        # bar the runner's stop follows the last CONFIRMED swing (closed RTH bars, rev from the previous session's
+        # ATR), floored at BE+1T (or the BE-rule hold), never widening; effective from the next bar. Without it the
+        # replay kept 20.10's ORR runner to the close (+30 pt at EOD) — live trailed it to 7776 and was out at 18:10
+        # — so the slot stayed occupied and every later candidate died on live_slot_occupied (#3558, the TOUCH2s).
+        if tr["be_moved"] and _F5_MIRROR:
+            _f5_trail(tr, d, e, b)
         # BE_AFTER_MFE_R_V1 (T-598) — at the close of a bar the filled trade survived, stop not yet at BE: MFE since
         # the fill ≥ R × initial risk ⇒ stop → fill price, effective from the next bar (pure rule: be_after_mfe.py).
         if _BE_MFE_R > 0 and tr.get("filled") and not tr["be_moved"]:
@@ -1588,6 +1659,7 @@ out = {
     "be_after_mfe": dict(_BE_MFE_STATS, r=_BE_MFE_R),   # T-598 (r=0 ⇒ off)
     "t595": dict(_T595_STATS),                          # T-615 (on=False ⇒ first-push feed, as before)
     "be_rule": dict(_BE_RULE_STATS),                    # T-615 (checked=0 ⇒ flag off or no T1 fill)
+    "f5_trail": dict(_F5_STATS),                        # T-620 (on=False ⇒ RUNNER_TRAIL_V2 off or HARNESS_F5_TRAIL_MIRROR=0)
     "trades": TRADES, "gateway_decisions": list(gw.decisions),
     "daily_pnl_harness": round(gw._daily_pnl, 2),
 }
