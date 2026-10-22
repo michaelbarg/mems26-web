@@ -1,3 +1,9 @@
+🟢 **[cowork · אינטראקטיבי · 22.10 07:1x→07:2x IL · ה-iMac חמוש לדמו (הוראת-מייקל "תבצע ותסדר הכל") · ריסטארט backend אחד 07:14:53 · אפס הודעת-טלפון]**
+
+Input 22 = Yes (מייקל; ייצוא armed=1) · `.env LIVE_TRADING_ARMED=1` + kickstart ⇒ backend pid 17624 health ok, demo/Sim1 · node 24.10.0 דרך nvm, plist-הפרונט ב-iMac מריץ npm מ-PATH (nvm-24 ראשון), `npm install --no-package-lock`, frontend :3000 = 200 · `mems26_verify ⇒ OK · 1 warn` (FLAG_INDEX drift — רוענן בקומיט זה) · ברי-5min של היום מתחילים 13:30 ⇒ fire_drill מלא ב-15:30. המקבוק = פיתוח (0 סוכנים, 0 סיירה). T-628 נמדד הלילה — אפס דגל חדש; T-629 steps.py נבנה (ראה 00:5x).
+
+---
+
 🟡 **[cowork · אינטראקטיבי · 21.10 23:4x→22.10 00:5x IL · T-628 נמדד (אפס דגל חדש) · T-629 נבנה · אפס ריסטארט · אפס הודעת-טלפון]**
 
 ארבעת תיקוני-הלילה (OPENING_HALF_RANGE_GATE_V1 · EDGE_FAILED_EXT_LIVE_V1 · ELQ_WITH_EXT_SKIP_V1 + STRUCT_TARGETS_WITH_EXT_EXEMPT_V1) נבנו כבויים ונמדדו על 79 סשנים מול החבילה החיה (`harness_out/t628`, ייחוס mnx +3,051.6$): **שער-הפתיחה +674$ (7 ימים, 04.09 −634 ⇒ לא מוכח) · השאר −874 / −665 / −1,261** ⇒ **שום דגל לא נכנס ל-iMac היום.** הריפליי של 21.10 עם החבילה החיה: +35.6$ מול −376$ בדמו — ההפרש כולו הוא T-627 (ראנרים), שכבר חי ב-.env של ה-iMac יחד עם T-612. גלאי-המדרגה (steps.py, 7 טסטים) נבנה — הבסיס לתבנית-הפתיחה. **ל-iMac לפני 16:00 (מייקל):** סיירה מחוברת · Input 22 = Yes (הייצוא הראה 0) · Simulation Mode · ARMED=1 + kickstart · node 24. דוח-בוקר: `docs/reports/MORNING_2026-10-22.md`.
