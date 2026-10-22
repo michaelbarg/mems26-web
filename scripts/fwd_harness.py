@@ -1339,6 +1339,45 @@ def _f5_trail(tr, d, e, b):
 # MODIFY_STOP. Same pure rule (backend/v9/services/normal_day_runner.py), the replayed day-type label.
 _NDR_ON = os.environ.get("NORMAL_DAY_RUNNER_OTHER_SIDE_V1", "0").strip().lower() in ("1", "true", "yes")
 _NDR_STATS = {"on": _NDR_ON, "checked": 0, "moved": 0}
+# T-635 D1 BE_BEFORE_T1_V1 (22.10) — mirror of TradeManager.apply_be_before_t1 on the harness trade: pre-T1, at the
+# close of a bar the filled trade survived, the trade's hwm and the 2-bar step are tracked on the dict and the PURE
+# be_before_t1_decision (manager.py) decides the tighten — effective from the next bar, like the live MODIFY_STOP.
+# Stops after the T1 leg filled (live: t1_hit_ts). Off (default) ⇒ byte-identical replay.
+_BB_ON = os.environ.get("BE_BEFORE_T1_V1", "0").strip().lower() in ("1", "true", "yes")
+def _bb_param(name, default):
+    try:
+        return float(os.environ.get(name, "") or default)
+    except (TypeError, ValueError):
+        return default
+_BB_ARM_R, _BB_ARM_ATR, _BB_TRAIL_R = _bb_param("BE_BEFORE_T1_ARM_R", 1.0), _bb_param("BE_BEFORE_T1_ARM_ATR", 0.6), _bb_param("BE_BEFORE_T1_TRAIL_R", 1.5)
+_BB_STATS = {"on": _BB_ON, "checked": 0, "moved": 0, "arm_r": _BB_ARM_R, "arm_atr": _BB_ARM_ATR, "trail_r": _BB_TRAIL_R}
+
+
+def _bb_apply(tr, d, e, il, hi, lo, bar_index):
+    from backend.v9.services.trade_manager.manager import be_before_t1_decision
+    _BB_STATS["checked"] += 1
+    hwm = max(float(tr.get("bb_hwm", e)), hi) if d == "LONG" else min(float(tr.get("bb_hwm", e)), lo)
+    pl, ph = tr.get("bb_prev_low"), tr.get("bb_prev_high")
+    sl = min(lo, float(pl)) if pl is not None else lo
+    sh = max(hi, float(ph)) if ph is not None else hi
+    tr["bb_hwm"] = hwm; tr["bb_prev_low"] = lo; tr["bb_prev_high"] = hi
+    # the causal ATR at the fill: mean range of the 14 closed bars before the fill bar (the live hook reads the
+    # situation's atr_causal; the harness has the same bars)
+    atr = None
+    try:
+        fb = int(tr.get("fill_bar_index", bar_index))
+        rng = [float(BARS[i]["high"]) - float(BARS[i]["low"]) for i in range(max(0, fb - 14), fb)]
+        atr = (sum(rng) / len(rng)) if len(rng) >= 3 else None
+    except Exception:
+        atr = None
+    dec = be_before_t1_decision(d, e, float(tr["stop_initial"]), float(tr["stop"]), hwm, sl, sh, 0.25, atr,
+                                arm_r=_BB_ARM_R, arm_atr=_BB_ARM_ATR, trail_r=_BB_TRAIL_R)
+    if dec is None:
+        return
+    tr.setdefault("tightened", []).append({"il": il, "from": float(tr["stop"]), "to": float(dec[0]),
+                                           "reason": "be_before_t1: " + dec[1]})
+    tr["stop"] = float(dec[0]); tr["bb_moved"] = True
+    _BB_STATS["moved"] += 1
 
 
 def _t1_leg_done(tr):
@@ -1426,7 +1465,7 @@ def _settle_bar(b, bar_index):
                 tr["ambiguous_bars"] += 1
                 leg.update(exit="STOP(ambiguous)", exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif stop_hit:
-                leg.update(exit=("TURN_BE" if leg.get("turn_tgt") else "STOP" if not tr["be_moved"]
+                leg.update(exit=("TURN_BE" if leg.get("turn_tgt") else ("BE_PRE_T1" if tr.get("bb_moved") else "STOP") if not tr["be_moved"]
                                  else "HOLD_STOP" if tr.get("be_hold") else "BE"),
                            exit_price=stop, pts=sgn * (stop - e), bar_il=il)
             elif tgt_hit:
@@ -1443,6 +1482,11 @@ def _settle_bar(b, bar_index):
                 tr["stop"] = float(_hold["stop"]); tr["be_moved"] = True; tr["be_hold"] = True
             else:
                 tr["stop"] = e; tr["be_moved"] = True
+            # T-635 D1: a pre-T1 BE/step stop is never widened back by the post-T1 BE (live: tighten-only MODIFY_STOP)
+            if tr.get("bb_moved"):
+                _pre = max(t_ for t_ in (x.get("to") for x in tr.get("tightened", []) if str(x.get("reason", "")).startswith("be_before_t1")) if t_ is not None) if d == "LONG" else \
+                       min(t_ for t_ in (x.get("to") for x in tr.get("tightened", []) if str(x.get("reason", "")).startswith("be_before_t1")) if t_ is not None)
+                tr["stop"] = max(float(tr["stop"]), float(_pre)) if d == "LONG" else min(float(tr["stop"]), float(_pre))
         if all(l["exit"] for l in tr["legs"]):
             _close_trade(tr, il)
             continue
@@ -1469,6 +1513,14 @@ def _settle_bar(b, bar_index):
                                                        "reason": f"be_after_mfe r={_BE_MFE_R}"})
                 tr["stop"] = float(_ns); tr["be_moved"] = True
                 _BE_MFE_STATS["moved"] += 1
+        # T-635 D1 BE_BEFORE_T1_V1 — pre-T1 (the T1 leg not yet exited at its target), at the close of a bar the filled
+        # trade survived: hwm / 2-bar step bookkeeping + the pure decision; the tighten is effective from the next bar.
+        if (_BB_ON and tr.get("filled") and not _t1_leg_done(tr)
+                and bar_index > int(tr.get("fill_bar_index", bar_index))):   # live skips the fill bar itself
+            try:
+                _bb_apply(tr, d, e, il, hi, lo, bar_index)
+            except Exception as _bb_e:
+                print("be_before_t1 mirror failed:", _bb_e)
         # STRUCTURE_EXIT_TIGHTEN_PRE_T1_V1 — at the close of a bar the trade survived, pre-T1 only (the live
         # bar_level_detector runs on the closed bar; its MODIFY_STOP takes effect from the next bar).
         if _SE_TIGHTEN and tr.get("filled") and not tr["be_moved"]:
@@ -1814,6 +1866,8 @@ out = {
 }
 if _MONO_FIX:   # T-623 — only when ON, so an OFF run's JSON keeps its exact shape
     out["mono_fix"] = dict(_MONO_STATS, on=True)
+if _BB_ON:      # T-635 D1 — only when ON (same convention)
+    out["be_before_t1"] = dict(_BB_STATS)
 if _TS_MIRROR:   # T-624 — only when ON
     out["trend_step_mirror"] = dict(_TS_STATS, on=True)
 os.makedirs(os.path.dirname(args.out), exist_ok=True)
