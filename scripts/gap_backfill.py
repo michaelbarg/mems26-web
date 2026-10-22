@@ -29,7 +29,7 @@ REPO = "/Users/michael/Downloads/mems26_web_git"
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"
 DB = "mems26"
 HIST = f"{REPO}/harness_out/t586/hist"
-# T-630 (22.10): after the cutover the live Sierra on the iMac is the SierraChart2 install (~/SierraChart2/Data);
+# T-632 (22.10): after the cutover the live Sierra on the iMac is the SierraChart2 install (~/SierraChart2/Data);
 # the MacBook's was ~/SierraChart/Data, so the fixed path made every 30-min run exit 1 ("no MES .scid found").
 # Scan every Sierra install (or SIERRA_SCID_DIRS, colon-separated) and take the MES file with the newest record.
 SCID_DIRS = [p for p in os.environ.get("SIERRA_SCID_DIRS", "").split(":") if p] or sorted(glob.glob("/Users/michael/SierraChart*/Data"))
@@ -227,7 +227,7 @@ COMMIT;""")
 
 
 def report_error(msg):
-    """T-630: surface a failing run once per distinct error per IL day (LIVE_CHANNEL; no phone — the 14.09 phone rule)."""
+    """T-632: surface a failing run once per distinct error per IL day (LIVE_CHANNEL; no phone — the 14.09 phone rule)."""
     key = f"{dt.datetime.now(IL):%Y-%m-%d}|{msg}"
     try:
         if os.path.exists(ERR_STATE) and open(ERR_STATE, encoding="utf-8").read().strip() == key:
