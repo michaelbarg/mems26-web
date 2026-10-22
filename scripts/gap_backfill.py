@@ -29,7 +29,11 @@ REPO = "/Users/michael/Downloads/mems26_web_git"
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"
 DB = "mems26"
 HIST = f"{REPO}/harness_out/t586/hist"
-SCID_DIR = "/Users/michael/SierraChart/Data"
+# T-630 (22.10): after the cutover the live Sierra on the iMac is the SierraChart2 install (~/SierraChart2/Data);
+# the MacBook's was ~/SierraChart/Data, so the fixed path made every 30-min run exit 1 ("no MES .scid found").
+# Scan every Sierra install (or SIERRA_SCID_DIRS, colon-separated) and take the MES file with the newest record.
+SCID_DIRS = [p for p in os.environ.get("SIERRA_SCID_DIRS", "").split(":") if p] or sorted(glob.glob("/Users/michael/SierraChart*/Data"))
+ERR_STATE = "/tmp/gap_backfill.lasterr"
 ET, IL = ZoneInfo("America/New_York"), ZoneInfo("Asia/Jerusalem")
 EPOCH = dt.datetime(1899, 12, 30)
 opt = {a.split("=")[0][2:]: (a.split("=", 1)[1] if "=" in a else "1") for a in sys.argv[1:] if a.startswith("--")}
@@ -78,7 +82,7 @@ def cash_sessions():
 
 def front_scid():
     best = None
-    for f in glob.glob(f"{SCID_DIR}/MES*_FUT_CME.scid"):
+    for f in [g for d in SCID_DIRS for g in glob.glob(f"{d}/MES*_FUT_CME.scid")]:
         sz = os.path.getsize(f)
         if sz < 96:
             continue
@@ -222,6 +226,18 @@ COMMIT;""")
     return wd, {k: int((v[-1] if v else "INSERT 0 0").split()[-1]) for k, v in inserted.items()}
 
 
+def report_error(msg):
+    """T-630: surface a failing run once per distinct error per IL day (LIVE_CHANNEL; no phone — the 14.09 phone rule)."""
+    key = f"{dt.datetime.now(IL):%Y-%m-%d}|{msg}"
+    try:
+        if os.path.exists(ERR_STATE) and open(ERR_STATE, encoding="utf-8").read().strip() == key:
+            return
+        open(ERR_STATE, "w", encoding="utf-8").write(key)
+        note(f"⚠️ gap_backfill נכשל: {msg} — ההשלמה האוטומטית מסיירה לא רצה עד שזה מתוקן")
+    except Exception as e:  # reporting must never break the run
+        print(f"report_error failed: {e}")
+
+
 def note(line):
     p = f"{REPO}/docs/handoff/LIVE_CHANNEL.md"
     try:
@@ -238,7 +254,8 @@ def main():
     have = rth_counts(); cash = cash_sessions()
     scid = front_scid()
     if not scid:
-        print("no MES .scid found"); return 1
+        msg = f"no MES .scid found in {SCID_DIRS}"
+        print(msg); report_error(msg); return 1
     cands = [d for d in dates if have.get(d, 0) < 78]
     if not cands:   # the cheap path for the 30-min LaunchAgent run: no DB holes → no 30-second .scid scan
         print(f"gap_backfill {dt.datetime.now(IL):%Y-%m-%d %H:%M} IL · battery {batt} · all {len(dates)} trading days have 78 RTH bars — nothing to do", flush=True)
