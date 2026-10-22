@@ -3139,30 +3139,32 @@ class TradingGateway:
         # 21.10 16:50 #3637 OPENING_EXTREME_REJECT LONG 7778.50: the tested low was 7764.50 (16:40), the confirm
         # bar ran 14 pt, the entry sat 2 pt under the range high 7780.75 with a 15-pt stop; −225$. The step→test
         # template (docs/reports/OPENING_GAPS_2026-10-21.md) replaces this; this is the measurable guard for now.
+        # T-636 (22.10, Michael "למה שוב הפסדנו כסף בפתיחה… סוג הפתיחה צריך לבדוק"): mode "all" — the same half-range
+        # rule on EVERY canonical opening type (not only OPEN_AUCTION), with OPENING_ORR exempt (the reversal bar
+        # through the open IS the template's test; 20.10 #3544 +496 is an ORR at the range top), plus the agreement
+        # check: an OPENING_DRIVE / OPENING_TEST_DRIVE trigger while the canonical detector reads an auction or a
+        # rejection-reverse is a contradiction — the producer saw a drive the opening engine does not. Checked on
+        # the past: 22.10 #3749 TEST_DRIVE SHORT 7727.50 (canonical OPEN_AUCTION_IN, lower half of 7720.25–7740.75;
+        # the "drive" close was ONE tick through the open) −221 · 21.10 #3637 −225 · 20.10 #3540 −225 (lower half
+        # of 7711.25–7731) · 19.10 16:50 DRIVE SHORT (canonical OPEN_REJECTION_REVERSE, lower half) −210 — all four
+        # blocked; #3544 (ORR) kept.
+        # Pure verdict: backend/v9/systems/opening_half_range.py (mode "0" ⇒ None, never consulted; "1" ⇒ T-628 as measured;
+        # "all" ⇒ T-636). Bars are fetched only when the mode is on and the setup is an OPENING_* in phase A/B.
         try:
-            if (os.getenv("OPENING_HALF_RANGE_GATE_V1", "0").strip().lower() in ("1", "true", "yes")
+            _t636_mode = os.getenv("OPENING_HALF_RANGE_GATE_V1", "0").strip().lower()
+            if (_t636_mode in ("1", "true", "yes", "all")
                     and str(setup.get("classification") or "").upper().startswith("OPENING_")
-                    and str(_dp_ot or "").upper().startswith("OPEN_AUCTION")
                     and (_dp_phase_now in ("A", "B"))):
+                from backend.v9.systems.opening_half_range import opening_half_range_verdict as _t636_verdict
                 from backend.v9.services.trade_context import get_closed_rth_bars_today as _t628_ob
-                _ob = [b for b in (_t628_ob() or []) if b]
-                _oh = [float(x) for x in (b.get("h", b.get("high")) for b in _ob) if x is not None]
-                _ol = [float(x) for x in (b.get("l", b.get("low")) for b in _ob) if x is not None]
-                _oe = float(setup.get("entry_price") or 0)
-                if _oh and _ol and _oe > 0:
-                    _orh, _orl = max(_oh), min(_ol)
-                    _omid = (_orh + _orl) / 2.0
-                    if (direction == "LONG" and _oe > _omid) or (direction == "SHORT" and _oe < _omid):
-                        result["blocked_by"] = "opening_half_range"
-                        result["reason"] = (
-                            "T-628 opening half-range: %s %s entry %.2f is in the %s half of the opening range "
-                            "%.2f–%.2f (mid %.2f) on %s phase %s — no chase; the entry belongs at the test"
-                            % (setup.get("classification"), direction, _oe,
-                               "upper" if direction == "LONG" else "lower", _orl, _orh, _omid, _dp_ot, _dp_phase_now))
-                        logger.warning("[Gateway] BLOCKED by opening_half_range: %s", result["reason"])
-                        return result
+                _t636_v = _t636_verdict(setup.get("classification"), direction, float(setup.get("entry_price") or 0),
+                                        _dp_ot, _dp_phase_now, [b for b in (_t628_ob() or []) if b], _t636_mode)
+                if _t636_v is not None:
+                    result["blocked_by"], result["reason"] = _t636_v
+                    logger.warning("[Gateway] BLOCKED by %s: %s", _t636_v[0], _t636_v[1])
+                    return result
         except Exception as _t628_err:
-            logger.info("[Gateway] T-628 opening half-range gate errored (fail-open): %s", _t628_err)
+            logger.info("[Gateway] T-628/T-636 opening half-range gate errored (fail-open): %s", _t628_err)
 
         # ── T-635 D2 MID_VALUE_EDGE_TEST_V1 (22.10, default OFF ⇒ byte-identical): an entry INSIDE the value
         # area (more than 0.5 ATR from both VAH and VAL) is admitted only as the test of an edge — one of the
