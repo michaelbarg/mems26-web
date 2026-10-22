@@ -3208,6 +3208,31 @@ class TradingGateway:
         except Exception as _mv_err:
             logger.info("[Gateway] T-635 D2 mid-value edge test errored (fail-open): %s", _mv_err)
 
+        # ── T-635 D3-gate WAIT_FOR_TEST_V1 (22.10, default OFF ⇒ byte-identical): no entry 0–1 closed bars after
+        # an impulse (≥1.5 ATR close-to-close within ≤3 bars, or one bar ranging ≥1.5 ATR) — the step template
+        # (impulse → pause → test, backend/v9/systems/steps.py) says the first entry after a push is the TEST.
+        # 20–21.10: #3558 on the climax bar (−215), #3660 / #3670 / #3696 faded into a fresh push (−353.75);
+        # the winners #3687 / #3702 entered after 6 flat bars / a slow grind and are untouched. OPENING_* producers
+        # are not judged here (phase A/B ATR is a fallback; the opening template / half-range gate own them).
+        # Pure geometry: backend/v9/systems/wait_for_test.py. Fail-open on any error / < 15 closed bars.
+        try:
+            if (os.getenv("WAIT_FOR_TEST_V1", "0").strip().lower() in ("1", "true", "yes")
+                    and not str(setup.get("classification") or "").upper().startswith("OPENING_")):
+                from backend.v9.systems.wait_for_test import push_without_pause as _wt_push
+                from backend.v9.systems.mid_value_edge_test import bars_atr as _wt_atr
+                from backend.v9.services.trade_context import get_closed_rth_bars_today as _wt_bars_fn
+                _wt_bars = [b for b in (_wt_bars_fn() or []) if b]
+                if len(_wt_bars) >= 15:
+                    _wt_v = _wt_push(_wt_bars, _wt_atr(_wt_bars))
+                    if _wt_v.get("blocked"):
+                        result["blocked_by"] = "wait_for_test"
+                        result["reason"] = ("T-635 D3 wait-for-test: %s %s entry %s — %s"
+                                            % (setup.get("classification"), direction, setup.get("entry_price"), _wt_v.get("why")))
+                        logger.warning("[Gateway] BLOCKED by wait_for_test: %s", result["reason"])
+                        return result
+        except Exception as _wt_err:
+            logger.info("[Gateway] T-635 D3 wait-for-test gate errored (fail-open): %s", _wt_err)
+
         # --- ENTRY_LOCATION_QUALITY_V1 (Michael 28.08 18:50, T-200a)
         # Relative position quality gate: chaser / expensive stop / beyond value.
         # All thresholds relative. Flag OFF = byte-identical. Shadow = log only.
