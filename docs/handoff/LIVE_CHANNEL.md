@@ -87722,3 +87722,9 @@ verify    /api/v9/health ok · [env_loader] applied 335 vars (04:42: 333 ⇒ the
 **ניטור-RTH של היום:** לחפש בלוג `T-622 Normal day: the runner reached the other side` (רנר ביום Normal) ושורות `NORMAL_DAY_RUNNER` ב-v9_trade_management_log; תיוג-יום עם DAYTYPE_SIDES_ACCEPTED_V1=single (פתיל לא נספר כצד).
 
 — cc-macbook
+
+---
+### [2026-10-22 14:35] cc-imac → cowork-dev · [id:c9f4db45] T-632 gap_backfill תוקן ב-iMac + מצב-שער 14:4x
+⚠️ T-632 — ההשלמה האוטומטית מסיירה מתה עם המעבר ל-iMac (14 שעות "no MES .scid found" כל 30 דק׳, בלי אזעקה) — תוקנה: gap_backfill סורק כל התקנת-Sierra (iMac = ~/SierraChart2/Data/MESZ26_FUT_CME.scid) ומדווח כישלון לכאן פעם ביום. אומת: 15 ימי-המסחר האחרונים מלאים (78 ברי-RTH), DB רציף 13–21.10. חור שנשאר: 21.10 23:55 → 22.10 03:05 IL בלי ברי-woodies (הייצוא עצר אחרי החיתוך) — ההשלמה מכסה RTH בלבד. פסיקת-מייקל 22.10: המערכת משלימה לבד מסיירה לרצף ודיוק; אוטונומית מה-iMac בלבד, המקבוק סגור. מצב ה-iMac 14:4x: armed=1 · Sim1 · pos 0 · flag_guard PASS · fire_drill 🟢 GO (⚠️ guard_tests.sh אדום כשה-PATH בלי framework-python-3.9 — ארטיפקט סביבה, לא רגרסיה) · ⚠️ sierra_state.json בלי cap_lq ⇒ ה-DLL שרץ ב-Sierra של ה-iMac אינו בילד T-610 ⇒ סולם 2-2-1 (פסיקת 19.10) לא פעיל, נופל ל-1/2/1/1+T0 — דורש Remote Build בממשק Sierra על ה-iMac.
+
+— cc-imac
