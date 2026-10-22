@@ -3164,6 +3164,50 @@ class TradingGateway:
         except Exception as _t628_err:
             logger.info("[Gateway] T-628 opening half-range gate errored (fail-open): %s", _t628_err)
 
+        # ── T-635 D2 MID_VALUE_EDGE_TEST_V1 (22.10, default OFF ⇒ byte-identical): an entry INSIDE the value
+        # area (more than 0.5 ATR from both VAH and VAL) is admitted only as the test of an edge — one of the
+        # last 2 closed bars touched the edge (today's VAL/IB-low or yesterday's VAL/VAH/low for a LONG; the
+        # mirror for a SHORT) and the entry is ≤ 0.5 ATR from it. 19–20.10: #3501 bought 9.5 pt above the
+        # tested VAL on the POC, #3508 11 pt, #3515 6.5 pt, #3574 8.75 pt above the tested prior VAH, #3582
+        # on the POC with no test — all six lost (−337.5$); no winner entered inside value. Opening producers
+        # are not judged here (the step→test template, D3, owns them). Pure geometry:
+        # backend/v9/systems/mid_value_edge_test.py. Fail-open on any error / missing data.
+        try:
+            if (os.getenv("MID_VALUE_EDGE_TEST_V1", "0").strip().lower() in ("1", "true", "yes")
+                    and not str(setup.get("classification") or "").upper().startswith("OPENING_")):
+                from backend.v9.systems.mid_value_edge_test import (
+                    mid_value_edge_test as _mv_test, is_mid_value as _mv_is_mid, bars_atr as _mv_atr)
+                from backend.v9.services.trade_context import get_closed_rth_bars_today as _mv_bars_fn
+                _mv_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _mv_entry = float(setup.get("entry_price") or 0)
+                _mv_bars = [b for b in (_mv_bars_fn() or []) if b]
+                _mv_a = _mv_atr(_mv_bars)
+                if _mv_entry > 0 and _mv_a and _mv_is_mid(_mv_entry, _mv_tpo.get("vah"), _mv_tpo.get("val"),
+                                                           _mv_tpo.get("poc"), _mv_a):
+                    _mv_prev = {}
+                    try:
+                        from backend.v9.api.v9.tpo_routes import _load_sierra_tpo as _mv_load_tpo
+                        _mv_prev = ((_mv_load_tpo() or {}).get("previous_session") or {})
+                    except Exception as _mv_pe:
+                        logger.info("[Gateway] T-635 D2: previous_session unreadable (%s) — today's edges only", _mv_pe)
+                    _mv_levels = {"val": _mv_tpo.get("val"), "vah": _mv_tpo.get("vah"),
+                                  "ib_low": _mv_tpo.get("ib_low"), "ib_high": _mv_tpo.get("ib_high"),
+                                  "prev_val": _mv_prev.get("val"), "prev_vah": _mv_prev.get("vah"),
+                                  "prev_low": _mv_prev.get("low") or _mv_prev.get("range_low"),
+                                  "prev_high": _mv_prev.get("high") or _mv_prev.get("range_high")}
+                    _mv_v = _mv_test(direction, _mv_entry, _mv_bars, _mv_levels, _mv_a)
+                    if not _mv_v.get("ok", True):
+                        result["blocked_by"] = "mid_value_no_edge_test"
+                        result["reason"] = ("T-635 D2 mid-value edge test: %s %s entry %.2f inside value (vah %s val %s poc %s, "
+                                            "ATR %.2f) — %s" % (setup.get("classification"), direction, _mv_entry,
+                                                                _mv_tpo.get("vah"), _mv_tpo.get("val"), _mv_tpo.get("poc"),
+                                                                _mv_a, _mv_v.get("why")))
+                        logger.warning("[Gateway] BLOCKED by mid_value_no_edge_test: %s", result["reason"])
+                        return result
+                    logger.info("[Gateway] T-635 D2 mid-value entry admitted: %s", _mv_v.get("why"))
+        except Exception as _mv_err:
+            logger.info("[Gateway] T-635 D2 mid-value edge test errored (fail-open): %s", _mv_err)
+
         # --- ENTRY_LOCATION_QUALITY_V1 (Michael 28.08 18:50, T-200a)
         # Relative position quality gate: chaser / expensive stop / beyond value.
         # All thresholds relative. Flag OFF = byte-identical. Shadow = log only.
