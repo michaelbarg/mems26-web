@@ -1,0 +1,287 @@
+<title>מסלול העץ 19–21.10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: one column, day tabs on top, each day = summary strip → P&L rows → decision timeline → tree viewer */
+:root {
+  --bg: #F6F7F4; --bg2: #FFFFFF; --fg: #1B2430; --fg2: #5B6470; --line: #D9DDD6;
+  --accent: #2B4C7E; --take: #2E7D5B; --skip: #B3443C; --shadow: #7A7F88; --path: #C98A1B; --path-bg: #FBF1DC;
+  --pos: #2E7D5B; --neg: #B3443C; --chip: #EEF1EC;
+  --display: "Frank Ruhl Libre", "Times New Roman", serif; --body: "Heebo", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121820; --bg2: #1A222C; --fg: #E6EAEE; --fg2: #A3ACB8; --line: #2E3843;
+  --accent: #8FB3E6; --take: #5CC094; --skip: #E07B73; --shadow: #9AA3AE; --path: #E3B35A; --path-bg: #3A2F14;
+  --pos: #5CC094; --neg: #E07B73; --chip: #232D38; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121820; --bg2: #1A222C; --fg: #E6EAEE; --fg2: #A3ACB8; --line: #2E3843;
+  --accent: #8FB3E6; --take: #5CC094; --skip: #E07B73; --shadow: #9AA3AE; --path: #E3B35A; --path-bg: #3A2F14;
+  --pos: #5CC094; --neg: #E07B73; --chip: #232D38; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; direction: rtl; }
+header.top { padding-block: 28px 12px; border-bottom: 1px solid var(--line); }
+h1 { font-family: var(--display); font-weight: 700; font-size: 2rem; margin: 0 0 6px; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 1.45rem; margin: 36px 0 10px; text-wrap: balance; }
+h3 { font-size: 1.05rem; margin: 22px 0 8px; font-weight: 700; }
+.sub { color: var(--fg2); max-width: 70ch; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--fg2); font-size: .9rem; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; }
+.tab { border: 1px solid var(--line); background: var(--bg2); color: var(--fg); padding: 8px 14px; border-radius: 8px; cursor: pointer; font: inherit; font-weight: 500; }
+.tab[aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tab:focus-visible, button:focus-visible { outline: 2px solid var(--path); outline-offset: 2px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.kv { background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.kv .k { font-size: .78rem; color: var(--fg2); letter-spacing: .04em; text-transform: uppercase; }
+.kv .v { font-family: var(--mono); font-size: 1.05rem; font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.timeline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { display: inline-block; background: var(--chip); border-radius: 999px; padding: 2px 9px; font-size: .82rem; white-space: nowrap; }
+.chip.mono { font-family: var(--mono); direction: ltr; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg2); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: right; }
+th { font-weight: 700; color: var(--fg2); font-size: .8rem; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; direction: ltr; text-align: right; white-space: nowrap; }
+tr.take td { background: color-mix(in srgb, var(--take) 7%, transparent); }
+tr.demo td:first-child { box-shadow: inset 3px 0 0 var(--path); }
+tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .78rem; font-weight: 700; color: #fff; white-space: nowrap; }
+.pill.TAKE { background: var(--take); } .pill.SKIP { background: var(--skip); } .pill.SHADOW { background: var(--shadow); } .pill.gate { background: var(--fg2); }
+.path { display: flex; flex-wrap: wrap; gap: 3px; direction: ltr; }
+.path span { font-family: var(--mono); font-size: .74rem; background: var(--chip); border-radius: 4px; padding: 1px 5px; }
+.path span.star { opacity: .7; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; align-items: center; }
+.filters button, .tree-controls button { font: inherit; font-size: .85rem; border: 1px solid var(--line); background: var(--bg2); color: var(--fg); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.filters button[aria-pressed="true"], .tree-controls button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.note { color: var(--fg2); font-size: .9rem; max-width: 80ch; }
+/* tree */
+.tree { font-family: var(--mono); font-size: .8rem; direction: ltr; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; }
+.tree ul { list-style: none; margin: 0; padding-left: 18px; border-left: 1px dashed var(--line); }
+.tree > ul { padding-left: 0; border-left: 0; }
+.tree li { margin: 2px 0; }
+.node { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.q { color: var(--accent); font-weight: 500; }
+.br { color: var(--fg2); }
+.tree details > summary { cursor: pointer; list-style: none; }
+.tree details > summary::before { content: "▸ "; color: var(--fg2); }
+.tree details[open] > summary::before { content: "▾ "; }
+.onpath > summary, .onpath.leafrow { background: var(--path-bg); border-radius: 4px; }
+.cnt { background: var(--path); color: #fff; border-radius: 999px; padding: 0 7px; font-size: .72rem; }
+.meas { color: var(--fg2); }
+.chart { width: 100%; height: auto; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; }
+.chart text { font-family: var(--mono); font-size: 11px; fill: var(--fg2); }
+.chart .up { stroke: var(--pos); fill: var(--pos); } .chart .dn { stroke: var(--neg); fill: var(--neg); }
+.chart .lvl { stroke: var(--fg2); stroke-dasharray: 3 3; opacity: .6; }
+.chart .mk { stroke: var(--fg); stroke-width: 1.2; }
+.chart .mkL { fill: var(--take); } .chart .mkS { fill: var(--skip); }
+footer { margin-top: 40px; color: var(--fg2); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 12px; }
+@media (max-width: 640px) { h1 { font-size: 1.5rem; } table { font-size: .82rem; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<div class="wrap">
+<header class="top">
+  <h1>מסלול העץ — 19, 20, 21 באוקטובר</h1>
+  <p class="sub" id="subtitle">כל החלטה של העץ (3.4.0) ביום המסחר, השורה שנפגעה, מה חסם, מה בוצע בדמו, ושורות הרווח וההפסד בסוף היום — מול אותו יום בריצה "אחרי התיקון".</p>
+  <div class="legend">
+    <span><span class="pill TAKE">TAKE</span> העץ אישר</span>
+    <span><span class="pill SKIP">SKIP</span> העץ חסם (tree:…)</span>
+    <span><span class="pill SHADOW">SHADOW</span> צל בלבד</span>
+    <span><span class="pill gate">שער</span> נחסם אחרי העץ (ELQ / סיכון / סלוט…)</span>
+    <span style="border-right:3px solid var(--path);padding-right:6px">שורה בדמו = בוצע בפועל</span>
+  </div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+</header>
+<main id="main"></main>
+<footer id="foot"></footer>
+</div>
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const fmt = (x, d = 2) => (x === null || x === undefined || x === '') ? '—' : (typeof x === 'number' ? x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : x);
+  const usd = x => x === null || x === undefined ? '—' : (x >= 0 ? '+' : '') + fmt(x, 2) + '$';
+  const cls = x => x > 0 ? 'pos' : (x < 0 ? 'neg' : '');
+  const he = { LONG: 'לונג', SHORT: 'שורט' };
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- tabs ----------
+  const days = D.days;
+  const tabs = document.getElementById('tabs');
+  const main = document.getElementById('main');
+  days.forEach((day, i) => {
+    const b = document.createElement('button'); b.className = 'tab'; b.setAttribute('role', 'tab'); b.textContent = day.label;
+    b.dataset.token = day.token; b.addEventListener('click', () => select(day.token)); tabs.appendChild(b);
+  });
+  function select(token) {
+    [...tabs.children].forEach(b => b.setAttribute('aria-selected', b.dataset.token === token ? 'true' : 'false'));
+    const day = days.find(d => d.token === token) || days[days.length - 1];
+    render(day);
+  }
+  const start = (location.hash || '').replace('#', '');
+  select(days.some(d => d.token === start) ? start : days[days.length - 1].token);
+
+  // ---------- rendering ----------
+  function render(day) {
+    main.innerHTML = '';
+    const sec = document.createElement('section');
+    sec.innerHTML = `<h2>${esc(day.title)}</h2><p class="note">${esc(day.story || '')}</p>`;
+    // summary strip
+    const s = day.summary || {};
+    const strip = document.createElement('div'); strip.className = 'strip';
+    const items = [
+      ['פתיחה', fmt(s.open)], ['IB (שעה ראשונה)', s.ib_low ? fmt(s.ib_low) + ' – ' + fmt(s.ib_high) : '—'],
+      ['שיא / שפל / סגירה', s.high ? fmt(s.high) + ' / ' + fmt(s.low) + ' / ' + fmt(s.close) : '—'],
+      ['ערך-אתמול VAL / POC / VAH', s.pv ? fmt(s.pv.val) + ' / ' + fmt(s.pv.poc) + ' / ' + fmt(s.pv.vah) : '—'],
+      ['ערך-היום בסוף היום VAL / POC / VAH', s.tv ? fmt(s.tv.val) + ' / ' + fmt(s.tv.poc) + ' / ' + fmt(s.tv.vah) : '—'],
+      ['סוג-פתיחה (נעילה חיה)', s.opening_live || '—'], ['סוג-פתיחה (קריאת-ברים)', s.opening_bars || '—'],
+      ['דמו בפועל', usd(s.demo_pnl), cls(s.demo_pnl)],
+    ];
+    (day.harness || []).forEach(h => items.push([h.label, usd(h.daily_pnl), cls(h.daily_pnl)]));
+    items.forEach(([k, v, c]) => { const d = document.createElement('div'); d.className = 'kv'; d.innerHTML = `<div class="k">${esc(k)}</div><div class="v ${c || ''}">${esc(v)}</div>`; strip.appendChild(d); });
+    sec.appendChild(strip);
+    // day-type timeline
+    if (day.day_type && day.day_type.length) {
+      const h3 = document.createElement('h3'); h3.textContent = 'תווית סוג-היום לאורך היום (S1)'; sec.appendChild(h3);
+      const tl = document.createElement('div'); tl.className = 'timeline';
+      day.day_type.forEach(e => { const c = document.createElement('span'); c.className = 'chip'; c.innerHTML = `<b>${esc(e.t)}</b> ${esc(e.label)}`; tl.appendChild(c); });
+      sec.appendChild(tl);
+    }
+    // chart
+    if (day.bars && day.bars.length) { const h3 = document.createElement('h3'); h3.textContent = 'המחיר, הכניסות והיציאות'; sec.appendChild(h3); sec.appendChild(chart(day)); }
+    // P&L rows
+    const h3b = document.createElement('h3'); h3b.textContent = 'שורות הרווח וההפסד בסוף היום'; sec.appendChild(h3b);
+    sec.appendChild(tradesTable('דמו בפועל (חשבון ' + (s.account || 'Sim1') + ')', day.trades_demo || [], s.demo_pnl, true));
+    (day.harness || []).forEach(h => sec.appendChild(tradesTable(h.label + ' — ' + h.desc, h.trades || [], h.daily_pnl, false)));
+    // decisions
+    const h3c = document.createElement('h3'); h3c.textContent = 'מסלול העץ — כל החלטה ביום'; sec.appendChild(h3c);
+    const note = document.createElement('p'); note.className = 'note'; note.textContent = 'המסלול הוא השאלות שהעץ שאל לפי הסדר (שעה → סוג-פתיחה → שלב → סוג-יום → מבנה → תבנית/סוג → כיוון/הטיה/אזור/קצה). "*" = ענף ברירת-המחדל; בסוגריים הערך בפועל. עמודת "דמו" — מה קרה לאותו מועמד בחשבון הדמו באותו רגע.'; sec.appendChild(note);
+    sec.appendChild(decisionsTable(day));
+    // tree
+    const h3d = document.createElement('h3'); h3d.textContent = 'העץ עצמו (3.4.0) — השורות שנפגעו היום מודגשות'; sec.appendChild(h3d);
+    sec.appendChild(treeView(day));
+    main.appendChild(sec);
+    document.getElementById('foot').innerHTML = esc(D.footer || '');
+  }
+
+  function tradesTable(title, rows, total, demo) {
+    const box = document.createElement('div');
+    box.innerHTML = `<h3 style="margin-top:14px">${esc(title)}</h3>`;
+    const w = document.createElement('div'); w.className = 'tablewrap';
+    const t = document.createElement('table');
+    t.innerHTML = `<thead><tr><th>שעה</th><th>תבנית</th><th>כיוון</th><th>כניסה</th><th>סטופ</th><th>חוזים</th><th>T1</th><th>יציאות (רגל: יעד @ מחיר, נק׳)</th><th>יציאה</th><th>$</th><th>הערה</th></tr></thead>`;
+    const tb = document.createElement('tbody');
+    rows.forEach(r => {
+      const tr = document.createElement('tr'); tr.className = demo ? 'demo' : '';
+      const legs = (r.legs || []).map(l => `${l.leg}: ${esc(l.exit)} @ ${fmt(l.exit_price)} (${l.pts >= 0 ? '+' : ''}${fmt(l.pts)})`).join('<br>');
+      tr.innerHTML = `<td class="n">${esc(r.t)}</td><td>${esc(r.cls)}</td><td>${he[r.dir] || esc(r.dir)}</td><td class="n">${fmt(r.entry)}</td><td class="n">${fmt(r.stop)}</td><td class="n">${esc(r.contracts ?? '—')}</td><td class="n">${fmt(r.t1)}</td><td class="n" style="white-space:normal">${legs || esc(r.exit_desc || '')}</td><td class="n">${esc(r.exit_t || '')}</td><td class="n ${cls(r.pnl)}">${usd(r.pnl)}</td><td>${esc(r.note || '')}</td>`;
+      tb.appendChild(tr);
+    });
+    const tot = document.createElement('tr'); tot.className = 'total';
+    tot.innerHTML = `<td colspan="9">סה"כ ${rows.length} עסקאות</td><td class="n ${cls(total)}">${usd(total)}</td><td></td>`;
+    tb.appendChild(tot); t.appendChild(tb); w.appendChild(t); box.appendChild(w);
+    return box;
+  }
+
+  function pathChips(path) {
+    if (!path) return '';
+    return '<div class="path">' + path.split('/').map(seg => {
+      const star = seg.includes('=*'); return `<span class="${star ? 'star' : ''}">${esc(seg)}</span>`;
+    }).join('') + '</div>';
+  }
+
+  function decisionsTable(day) {
+    const box = document.createElement('div');
+    const f = document.createElement('div'); f.className = 'filters';
+    f.innerHTML = `<span class="note">הצג:</span><button data-f="all" aria-pressed="true">הכל</button><button data-f="take" aria-pressed="false">TAKE בלבד</button><button data-f="fired" aria-pressed="false">מה שבוצע</button><button data-f="blocked" aria-pressed="false">נחסם בעץ</button>`;
+    box.appendChild(f);
+    const w = document.createElement('div'); w.className = 'tablewrap';
+    const t = document.createElement('table');
+    t.innerHTML = `<thead><tr><th>שעה</th><th>מע׳</th><th>תבנית</th><th>כיוון</th><th>כניסה</th><th>מסלול בעץ</th><th>עלה</th><th>אחרי העץ</th><th>דמו</th><th>תוצאה</th></tr></thead>`;
+    const tb = document.createElement('tbody');
+    const rows = day.decisions || [];
+    function draw(filter) {
+      tb.innerHTML = '';
+      rows.filter(r => filter === 'all' || (filter === 'take' && r.leaf === 'TAKE') || (filter === 'fired' && (r.demo_trade || r.trade_id)) || (filter === 'blocked' && r.leaf === 'SKIP')).forEach(r => {
+        const tr = document.createElement('tr'); tr.className = (r.leaf === 'TAKE' ? 'take ' : '') + (r.demo_trade ? 'demo' : '');
+        const gate = r.leaf === 'TAKE' ? (r.blocked ? `<span class="pill gate">${esc(r.blocked)}</span>` : (r.trade_id ? 'בוצע' : esc(r.outcome || ''))) : '';
+        const demo = r.demo ? esc(r.demo) : '';
+        const res = r.pnl !== undefined && r.pnl !== null ? `<span class="${cls(r.pnl)}">${usd(r.pnl)}</span>` : (r.demo_pnl !== undefined && r.demo_pnl !== null ? `<span class="${cls(r.demo_pnl)}">דמו ${usd(r.demo_pnl)}</span>` : '');
+        tr.innerHTML = `<td class="n">${esc(r.t)}</td><td class="n">${esc(r.sys ?? '')}</td><td>${esc(r.pattern)}</td><td>${he[r.dir] || esc(r.dir)}</td><td class="n">${fmt(r.entry)}</td><td>${pathChips(r.path)}</td><td><span class="pill ${esc(r.leaf)}">${esc(r.leaf)}</span> <span class="chip mono">${esc(r.id || '')}</span>${r.reason_short ? `<div class="note" style="font-size:.78rem">${esc(r.reason_short)}</div>` : ''}</td><td>${gate}</td><td>${demo}</td><td class="n">${res}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+    draw('all');
+    f.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { f.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); draw(b.dataset.f); }));
+    t.appendChild(tb); w.appendChild(t); box.appendChild(w);
+    return box;
+  }
+
+  // ---------- tree ----------
+  function treeView(day) {
+    const box = document.createElement('div');
+    const ctl = document.createElement('div'); ctl.className = 'tree-controls filters';
+    ctl.innerHTML = `<button data-m="paths" aria-pressed="true">רק המסלולים של היום</button><button data-m="all" aria-pressed="false">העץ המלא</button><span class="note" id="treeinfo"></span>`;
+    box.appendChild(ctl);
+    const holder = document.createElement('div'); holder.className = 'tree'; box.appendChild(holder);
+    const counts = new Map(); // nodeKey -> count of decisions through it
+    const leafHits = new Map();
+    (day.decisions || []).forEach(r => {
+      if (!r.path) return;
+      let node = D.tree.tree, key = '';
+      const segs = r.path.split('/');
+      for (const seg of segs) {
+        if (!node || node.leaf) break;
+        const m = seg.match(/^([^=]+)=([^(]+)(\((.*)\))?$/); if (!m) break;
+        const feat = m[1], br = m[2];
+        if (node.q !== feat) break;
+        const bkey = node.b && (br in node.b ? br : Object.keys(node.b).find(k => k.split('|').includes(br)) || (node.b['*'] !== undefined ? '*' : null));
+        if (bkey === null || bkey === undefined) break;
+        key += '/' + feat + '=' + bkey; counts.set(key, (counts.get(key) || 0) + 1);
+        node = node.b[bkey];
+      }
+      if (node && node.leaf) leafHits.set(key, (leafHits.get(key) || 0) + 1);
+    });
+    let leaves = 0, nodes = 0;
+    function build(node, key, pathsOnly) {
+      const ul = document.createElement('ul');
+      if (!node) return ul;
+      if (node.leaf) { leaves++; const li = document.createElement('li'); li.className = 'leafrow' + (counts.get(key) ? ' onpath' : ''); li.innerHTML = `<span class="pill ${esc(node.leaf)}">${esc(node.leaf)}</span> <span class="q">${esc(node.id || '')}</span> ${node.n ? `<span class="meas">n=${node.n} ${node.usd !== undefined && node.usd !== null ? usd(node.usd) : ''}</span>` : ''} ${counts.get(key) ? `<span class="cnt">${counts.get(key)}</span>` : ''}`; ul.appendChild(li); return ul; }
+      nodes++;
+      Object.entries(node.b || {}).forEach(([bk, child]) => {
+        const k = key + '/' + node.q + '=' + bk; const c = counts.get(k) || 0;
+        if (pathsOnly && !c) return;
+        const li = document.createElement('li');
+        const det = document.createElement('details'); det.className = c ? 'onpath' : ''; det.open = !!c;
+        const sum = document.createElement('summary'); sum.innerHTML = `<span class="node"><span class="q">${esc(node.q)}</span><span class="br">= ${esc(bk)}</span>${c ? `<span class="cnt">${c}</span>` : ''}${child && child.leaf ? ` <span class="pill ${esc(child.leaf)}">${esc(child.leaf)}</span> <span class="q">${esc(child.id || '')}</span>${child.n ? ` <span class="meas">n=${child.n} ${usd(child.usd)}</span>` : ''}` : ''}</span>`;
+        det.appendChild(sum);
+        if (child && !child.leaf) det.appendChild(build(child, k, pathsOnly)); else if (child && child.leaf) leaves++;
+        li.appendChild(det); ul.appendChild(li);
+      });
+      return ul;
+    }
+    function draw(mode) { holder.innerHTML = ''; leaves = 0; nodes = 0; const root = D.tree.tree; const top = document.createElement('div'); top.className = 'node'; top.innerHTML = `<span class="q">root: ${esc(root.q)}</span>`; holder.appendChild(top); holder.appendChild(build(root, '', mode === 'paths')); document.getElementById('treeinfo').textContent = mode === 'paths' ? `${counts.size} צמתים על מסלולי היום · ${leafHits.size} עלים` : `${nodes} צמתים · ${leaves} עלים`; }
+    draw('paths');
+    ctl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { ctl.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); draw(b.dataset.m); }));
+    return box;
+  }
+
+  // ---------- chart ----------
+  function chart(day) {
+    const bars = day.bars; const W = 1100, H = 360, padL = 56, padR = 12, padT = 12, padB = 28;
+    const lo = Math.min(...bars.map(b => b.l)) - 2, hi = Math.max(...bars.map(b => b.h)) + 2;
+    const x = i => padL + (i + .5) * (W - padL - padR) / bars.length, y = p => padT + (hi - p) * (H - padT - padB) / (hi - lo);
+    const bw = Math.max(2, (W - padL - padR) / bars.length * 0.6);
+    let g = '';
+    const step = Math.max(1, Math.round((hi - lo) / 8 / 5) * 5) || 5;
+    for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) g += `<line x1="${padL}" x2="${W - padR}" y1="${y(p)}" y2="${y(p)}" stroke="var(--line)"/><text x="${padL - 6}" y="${y(p) + 4}" text-anchor="end">${p}</text>`;
+    bars.forEach((b, i) => { if (i % 6 === 0) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${b.t}</text>`; const up = b.c >= b.o; g += `<line class="${up ? 'up' : 'dn'}" x1="${x(i)}" x2="${x(i)}" y1="${y(b.h)}" y2="${y(b.l)}" stroke-width="1"/><rect class="${up ? 'up' : 'dn'}" x="${x(i) - bw / 2}" y="${y(Math.max(b.o, b.c))}" width="${bw}" height="${Math.max(1, Math.abs(y(b.o) - y(b.c)))}"/>`; });
+    const s = day.summary || {};
+    [['IBH', s.ib_high], ['IBL', s.ib_low], ['VAH', s.pv && s.pv.vah], ['VAL', s.pv && s.pv.val], ['POC', s.pv && s.pv.poc]].forEach(([n, p]) => { if (p && p > lo && p < hi) g += `<line class="lvl" x1="${padL}" x2="${W - padR}" y1="${y(p)}" y2="${y(p)}"/><text x="${W - padR - 2}" y="${y(p) - 3}" text-anchor="end">${n} ${p}</text>`; });
+    (day.trades_demo || []).forEach(r => { const i = bars.findIndex(b => b.t >= (r.t || '').slice(0, 5)); if (i < 0) return; const long = r.dir === 'LONG'; g += `<polygon class="mk ${long ? 'mkL' : 'mkS'}" points="${x(i)},${y(r.entry) + (long ? 9 : -9)} ${x(i) - 5},${y(r.entry) + (long ? 1 : -1)} ${x(i) + 5},${y(r.entry) + (long ? 1 : -1)}"><title>${esc(r.t)} ${esc(r.cls)} ${esc(r.dir)} @ ${r.entry} → ${usd(r.pnl)}</title></polygon>`; if (r.exit_t) { const j = bars.findIndex(b => b.t >= r.exit_t.slice(0, 5)); if (j >= 0 && r.exit) g += `<circle cx="${x(j)}" cy="${y(r.exit)}" r="3.5" class="mk" fill="var(--bg2)"><title>יציאה ${esc(r.exit_t)} @ ${r.exit}</title></circle>`; } });
+    const wrap = document.createElement('div'); wrap.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="נרות 5 דקות עם כניסות ויציאות">${g}</svg><p class="note">משולש = כניסה בדמו (ירוק לונג, אדום שורט; ריחוף לפרטים), עיגול = יציאה. קווים מקווקווים: IB של היום וערך-אתמול.</p>`;
+    return wrap;
+  }
+})();
+</script>
