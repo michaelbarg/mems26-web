@@ -1087,6 +1087,17 @@ class BarLevelDetector:
                     except Exception as _tr_err:
                         logger.warning("[BarLevelDetector] target-realism error (fail-safe skip): %s", _tr_err)
 
+                # T-635 D1 · BE_BEFORE_T1_V1 (22.10.2026, default OFF ⇒ byte-identical): before T1,
+                # once the open trade shows ≥ max(1R, 0.6×ATR14) move the stop to entry±tick, from
+                # 1.5R trail it to the 2-bar step (manager.apply_be_before_t1 — tighten-only,
+                # MODIFY_STOP only). #3582 20.10: 2.6R open → full stop; #3515 19.10: 1.85R → flatten.
+                if (trade.t1_hit_ts is None and trade.state != "CLOSED"
+                        and _trail_os.getenv("BE_BEFORE_T1_V1", "0").strip().lower() in ("1", "true", "yes")):
+                    try:
+                        self._tm.apply_be_before_t1(trade, bar_high, bar_low)
+                    except Exception as _bb_err:
+                        logger.warning("[BarLevelDetector] BE_BEFORE_T1 error (fail-safe skip): %s", _bb_err)
+
                 # Trail runner stop (before stop-check so trailed stop is used)
                 if trade.t1_hit_ts is not None and trade.state != "CLOSED":
                     # F5 · RUNNER_TRAIL_V2 (Michael 2026-08-20, ORACLE §5 R-A):

@@ -108,6 +108,72 @@ def _be_after_t1_rule_enabled() -> bool:
 _BE_RULE_DAY_TYPES = frozenset({"trend_normal", "trend_dd", "normal_variation", "variation"})
 
 
+# ── BE_BEFORE_T1_V1 (T-635 D1, 22.10.2026, default OFF ⇒ byte-identical) ─────────────
+# The "when it is better to move the stop EARLIER" side of Michael's 19.10 System-6 ruling
+# ("after T1 the stop goes to the entry — unless a mechanism says when it is better earlier
+# or not at all"). Per trade (22.10 zoom-in): #3582 20.10 ran 2.6R open on 4 contracts and
+# returned to the full stop (−90$); #3515 19.10 ran 1.85R and was flattened at 22:50 with
+# nothing; shadow #3484 1.8R → full stop. S6_STUCK_TO_BE_V1 needs a filled T0, which the
+# 2-2-1 ladder removes, so before T1 nothing protects an open winner today.
+#   arm  : favorable excursion ≥ max(arm_r × R, arm_atr × ATR14) ⇒ stop → entry ± 1 tick (all legs)
+#   step : favorable excursion ≥ trail_r × R ⇒ stop → the 2-bar low/high (the pause) ± 1 tick
+# Tighten-only · MODIFY_STOP only (never FLATTEN / op=EXIT) · ZLR trades untouched (ZLR_MGMT_V1:
+# "אפס תזוזה לפני T1") · after T1 the existing SMART_BE / BE_AFTER_T1_RULE_V1 own the stop.
+def _be_before_t1_enabled() -> bool:
+    return os.getenv("BE_BEFORE_T1_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _be_before_t1_param(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, "") or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def be_before_t1_decision(direction: str, entry: float, initial_stop: float, current_stop: Optional[float],
+                          hwm: float, step_low: float, step_high: float, tick: float, atr: Optional[float] = None,
+                          *, arm_r: float = 1.0, arm_atr: float = 0.6, trail_r: float = 1.5):
+    """PURE (no IO, no mutation). Returns (new_stop, reason) or None.
+
+    direction LONG/SHORT · entry · initial_stop (the risk denominator) · current_stop · hwm = the
+    trade's best price so far (incl. this bar) · step_low/step_high = low/high of the last two
+    closed bars (the pause) · tick · atr (causal ATR14 at entry, optional).
+    None ⇒ no move: not armed yet, or the candidate would not tighten the current stop."""
+    try:
+        d = (direction or "").upper()
+        entry = float(entry); initial_stop = float(initial_stop); hwm = float(hwm); tick = float(tick)
+    except (TypeError, ValueError):
+        return None
+    if d not in ("LONG", "SHORT") or tick <= 0:
+        return None
+    risk = abs(entry - initial_stop)
+    if risk <= 0:
+        return None
+    fav = (hwm - entry) if d == "LONG" else (entry - hwm)
+    arm = max(arm_r * risk, (arm_atr * float(atr)) if atr else 0.0)
+    if fav < arm:
+        return None
+    cand = entry + tick if d == "LONG" else entry - tick
+    reason = "BE_BEFORE_T1 fav=%.2f (%.2fR) >= arm=%.2f" % (fav, fav / risk, arm)
+    if fav >= trail_r * risk:
+        try:
+            step = (float(step_low) - tick) if d == "LONG" else (float(step_high) + tick)
+        except (TypeError, ValueError):
+            step = None
+        if step is not None and ((d == "LONG" and step > cand) or (d == "SHORT" and step < cand)):
+            cand = step
+            reason = "STEP_TRAIL_BEFORE_T1 fav=%.2f (%.2fR) >= %.1fR step=%.2f" % (fav, fav / risk, trail_r, step)
+    cand = round(round(cand / tick) * tick, 2)
+    if current_stop is not None:
+        try:
+            cs = float(current_stop)
+            if (d == "LONG" and cand <= cs) or (d == "SHORT" and cand >= cs):
+                return None  # never widen, never re-send the same stop
+        except (TypeError, ValueError):
+            pass
+    return cand, reason
+
+
 def _be_rule_num(v) -> Optional[float]:
     """float(v), or None for missing / NaN / non-positive (a 0.0 level in the tpo rows
     means "not set", never a price)."""
@@ -1960,6 +2026,74 @@ class TradeManager:
             "[TradeManager] TRAIL: trade %s stop %.2f -> %.2f (hwm=%.2f k=%.1f risk=%.1f)",
             trade.id, stop_before or 0, new_stop, hwm, k, risk,
         )
+
+    def apply_be_before_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> bool:
+        """BE_BEFORE_T1_V1 (T-635 D1, 22.10.2026, default OFF ⇒ never called / no-op).
+
+        Per closed 5-min bar, BEFORE T1 is filled: track the trade's favorable excursion
+        (quality["bb_hwm"]) and the last two bars (quality["bb_prev_low"/"bb_prev_high"]);
+        once armed (≥ max(1R, 0.6×ATR14)) move the stop to entry ± 1 tick, and from 1.5R
+        trail it to the 2-bar low/high ± 1 tick. Tighten-only; MODIFY_STOP only; never
+        FLATTEN / op=EXIT; ZLR trades untouched (_zlr_stop_locked). Returns True when a
+        stop move was emitted. Pure geometry in `be_before_t1_decision`."""
+        if not _be_before_t1_enabled():
+            return False
+        if trade.entry_price is None or trade.state == "CLOSED":
+            return False
+        if getattr(trade, "t1_hit_ts", None) is not None:
+            return False  # after T1 the existing SMART_BE / BE rule / trails own the stop
+        if self._zlr_stop_locked(trade):
+            return False
+        from backend.v9.systems.five_min.constants import MES_TICK_SIZE
+        tick = MES_TICK_SIZE
+        direction = (trade.direction or "").upper()
+        if direction not in ("LONG", "SHORT"):
+            return False
+        entry = float(trade.entry_price)
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+        # the risk denominator is the ORIGINAL stop — record it before the first move (as SMART_BE does)
+        initial = self._initial_stop(trade)
+        if initial is None:
+            return False
+        if "initial_stop" not in q and trade.stop is not None:
+            q["initial_stop"] = float(trade.stop)
+        try:
+            bh = float(bar_high); bl = float(bar_low)
+        except (TypeError, ValueError):
+            trade.quality = q
+            return False
+        hwm = max(float(q.get("bb_hwm", entry)), bh) if direction == "LONG" else min(float(q.get("bb_hwm", entry)), bl)
+        prev_low = q.get("bb_prev_low"); prev_high = q.get("bb_prev_high")
+        step_low = min(bl, float(prev_low)) if prev_low is not None else bl
+        step_high = max(bh, float(prev_high)) if prev_high is not None else bh
+        q["bb_hwm"] = hwm; q["bb_prev_low"] = bl; q["bb_prev_high"] = bh
+        trade.quality = q
+        atr = None
+        try:
+            atr = ((q.get("metadata") or {}).get("situation") or {}).get("atr_causal")
+            atr = float(atr) if atr else None
+        except (TypeError, ValueError, AttributeError):
+            atr = None
+        current = float(trade.stop) if trade.stop is not None else None
+        dec = be_before_t1_decision(direction, entry, float(initial), current, hwm, step_low, step_high, tick, atr,
+                                    arm_r=_be_before_t1_param("BE_BEFORE_T1_ARM_R", 1.0),
+                                    arm_atr=_be_before_t1_param("BE_BEFORE_T1_ARM_ATR", 0.6),
+                                    trail_r=_be_before_t1_param("BE_BEFORE_T1_TRAIL_R", 1.5))
+        if dec is None:
+            return False
+        new_stop, reason = dec
+        stop_before = current
+        trade.stop = new_stop
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append({"event": "stop_move", "from": stop_before, "to": new_stop, "reason": reason})
+        trade.cross_context = ctx
+        self._log_management(trade.id, "BE_BEFORE_T1", {
+            "from": stop_before, "to": new_stop, "hwm": hwm, "risk": round(abs(entry - float(initial)), 2),
+            "atr": atr, "reason": reason})
+        self._emit_modify_stop(trade, new_stop)
+        logger.info("[TradeManager] BE_BEFORE_T1: trade %s stop %s -> %.2f (%s)",
+                    trade.id, stop_before, new_stop, reason)
+        return True
 
     def apply_dynamic_struct_trail(self, trade, bar_high: float, bar_low: float,
                                     bar_close: float) -> None:
