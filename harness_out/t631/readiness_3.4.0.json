@@ -1,0 +1,3976 @@
+{
+ "tree": "config/decision_tree_v3.3.4.0.yaml",
+ "version": "3.4.0",
+ "cells": {
+  "OPEN_DRIVE|A|FORMING": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Normal_Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Normal": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Neutral_Center": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Neutral_Extreme": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Nontrend": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|A|Nonconviction": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|FORMING": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Normal_Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Normal": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Neutral_Center": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Neutral_Extreme": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Nontrend": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|B|Nonconviction": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_DRIVE|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_DRIVE|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_TEST_DRIVE|A|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_TEST_DRIVE|A|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_TEST_DRIVE|A|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|A|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|B|FORMING": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Normal_Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Normal": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Neutral_Center": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Neutral_Extreme": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Nontrend": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|B|Nonconviction": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "WITH_DRIVE|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_TEST_DRIVE|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_TEST_DRIVE|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_REJECTION_REVERSE|A|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_REJECTION_REVERSE|A|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_REJECTION_REVERSE|A|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|A|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|B|FORMING": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Normal_Variation": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Normal": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Neutral_Center": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Neutral_Extreme": {
+   "take": 12,
+   "skip": 9,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 997.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Nontrend": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|B|Nonconviction": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "REVERSAL|PULLBACK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 332.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_REJECTION_REVERSE|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_REJECTION_REVERSE|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_IN|A|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_IN|A|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_IN|A|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|A|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|B|FORMING": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Trend_Normal": {
+   "take": 4,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 33,
+   "measured_usd": 373.05,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Trend_DD": {
+   "take": 4,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 33,
+   "measured_usd": 373.05,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Variation": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Normal_Variation": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Normal": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Nontrend": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|B|Nonconviction": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_IN|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_IN|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_OUT|A|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_OUT|A|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "OPEN_AUCTION_OUT|A|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|A|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|B|FORMING": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Trend_Normal": {
+   "take": 4,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 33,
+   "measured_usd": 373.05,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Trend_DD": {
+   "take": 4,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 33,
+   "measured_usd": 373.05,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Variation": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Normal_Variation": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Normal": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 50,
+   "measured_usd": 543.6,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Nontrend": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|B|Nonconviction": {
+   "take": 3,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE",
+    "REVERSAL"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind"
+   ],
+   "measured_n": 25,
+   "measured_usd": 271.8,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "OPEN_AUCTION_OUT|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "OPEN_AUCTION_OUT|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|A|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|A|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|A|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|A|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Trend_Normal": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Trend_DD": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Normal_Variation": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Normal": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|B|Neutral_Center": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|B|Neutral_Extreme": {
+   "take": 0,
+   "skip": 7,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "skip_only"
+  },
+  "UNKNOWN|B|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|B|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|C|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|C|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Normal_Variation": {
+   "take": 5,
+   "skip": 3,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN"
+   ],
+   "take_patterns": [
+    "*",
+    "VAR_CONT"
+   ],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Normal": {
+   "take": 20,
+   "skip": 12,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "BREAK|VALUE_RETURN",
+    "EDGE_FADE",
+    "EDGE_FADE|VALUE_RETURN"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 58,
+   "measured_usd": 2678.75,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Neutral_Center": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Neutral_Extreme": {
+   "take": 8,
+   "skip": 5,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "EDGE_FADE"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "kind",
+    "location",
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 1132.5,
+   "status": "ready"
+  },
+  "UNKNOWN|C|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|C|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|D|FORMING": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|D|Trend_Normal": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Trend_DD": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Normal_Variation": {
+   "take": 1,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Normal": {
+   "take": 1,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 19,
+   "measured_usd": 160.0,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Neutral_Center": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|D|Neutral_Extreme": {
+   "take": 4,
+   "skip": 2,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [
+    "*",
+    "PULLBACK|BREAK"
+   ],
+   "take_patterns": [],
+   "skip_ids": [
+    "bias",
+    "kind"
+   ],
+   "measured_n": 0,
+   "measured_usd": 498.75,
+   "status": "ready"
+  },
+  "UNKNOWN|D|Nontrend": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  },
+  "UNKNOWN|D|Nonconviction": {
+   "take": 0,
+   "skip": 1,
+   "shadow": 0,
+   "none": 0,
+   "take_kinds": [],
+   "take_patterns": [],
+   "skip_ids": [
+    "stand_down"
+   ],
+   "measured_n": 0,
+   "measured_usd": 0,
+   "status": "stand_down"
+  }
+ }
+}

@@ -108,6 +108,12 @@ envs_of() {
     nxbv) echo "$(envs_of n2rsNx) ELQ_WITH_EXT_SKIP_V1=1 STRUCT_TARGETS_WITH_EXT_EXEMPT_V1=1" ;;
     nxof) echo "$(envs_of n2rsNx) OPENING_HALF_RANGE_GATE_V1=1 EDGE_FAILED_EXT_LIVE_V1=1" ;;
     nxall) echo "$(envs_of n2rsNx) OPENING_HALF_RANGE_GATE_V1=1 EDGE_FAILED_EXT_LIVE_V1=1 ELQ_WITH_EXT_SKIP_V1=1 STRUCT_TARGETS_WITH_EXT_EXEMPT_V1=1" ;;
+    # ── T-628b (22.10 morning): the same, with the T-627 guard ON (the live config since 22.10) — the runner trail can
+    # no longer write a wrong-side stop, so the "phantom BE fills" (exit price outside the exit bar) disappear
+    nxs) echo "$(envs_of n2rsNx) SWING_TRAIL_SIDE_GUARD_V1=1" ;;
+    nxogs) echo "$(envs_of n2rsNx) SWING_TRAIL_SIDE_GUARD_V1=1 OPENING_HALF_RANGE_GATE_V1=1" ;;
+    nxfes) echo "$(envs_of n2rsNx) SWING_TRAIL_SIDE_GUARD_V1=1 EDGE_FAILED_EXT_LIVE_V1=1" ;;
+    nxofs) echo "$(envs_of n2rsNx) SWING_TRAIL_SIDE_GUARD_V1=1 OPENING_HALF_RANGE_GATE_V1=1 EDGE_FAILED_EXT_LIVE_V1=1" ;;
     # T-623: "m" + any tag = the same envs on the harness with the monotonic-clock fix (confluence join on the fake
     # clock, ATR caches cleared per bar) — compare m-tags only with m-tags (mbase is their base)
     m?*) echo "HARNESS_MONO_FIX_V1=1 $(envs_of "${1#m}")" ;;

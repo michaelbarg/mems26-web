@@ -1271,7 +1271,11 @@ def _turn_before(bar_index):
 
 _F5_MIRROR = (os.environ.get("RUNNER_TRAIL_V2", "0").lower() in ("1", "true", "yes")
               and os.environ.get("HARNESS_F5_TRAIL_MIRROR", "1").strip().lower() not in ("0", "false", "no"))
-_F5_STATS = {"on": _F5_MIRROR, "evaluated": 0, "moved": 0, "no_swing": 0}
+_F5_STATS = {"on": _F5_MIRROR, "evaluated": 0, "moved": 0, "no_swing": 0, "side_guard": 0}
+# T-627 (22.10): the live guard (SWING_TRAIL_SIDE_GUARD_V1, manager.apply_swing_trail) — a confirmed pivot behind the
+# price is no anchor, and a new stop on the wrong side of the last close is refused. Until 22.10 the mirror ignored the
+# flag, so every "…s" harness tag replayed the unguarded trail (wrong-side stops filled at their own price = phantom).
+_F5_SIDE_GUARD = os.environ.get("SWING_TRAIL_SIDE_GUARD_V1", "0").strip().lower() in ("1", "true", "yes")
 _F5_PREV = {"bars": None, "loaded": False}
 
 
@@ -1307,7 +1311,8 @@ def _f5_trail(tr, d, e, b):
         if rev is None:
             return
         _F5_STATS["evaluated"] += 1
-        anchor = swing_trail_stop(today, d, rev=rev, offset_ticks=1)
+        _lc = float(today[-1]["c"]) if _F5_SIDE_GUARD else None   # T-627: the closed bar the live S6 reads
+        anchor = swing_trail_stop(today, d, rev=rev, offset_ticks=1, last_close=_lc)
         if anchor is None:
             _F5_STATS["no_swing"] += 1
             return
@@ -1316,6 +1321,9 @@ def _f5_trail(tr, d, e, b):
         new = max(anchor, floor) if d == "LONG" else min(anchor, floor)
         new = round(new, 2)
         cur = float(tr["stop"])
+        if _F5_SIDE_GUARD and ((new >= _lc) if d == "LONG" else (new <= _lc)):
+            _F5_STATS["side_guard"] += 1   # T-627 belt: a stop on the wrong side of the last close is never placed
+            return
         if (new > cur) if d == "LONG" else (new < cur):
             tr.setdefault("tightened", []).append({"il": b["ts"].astimezone(IL).strftime("%H:%M"), "from": cur,
                                                    "to": new, "reason": "F5 swing trail (rev=%.2f)" % rev})
