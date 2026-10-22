@@ -1,0 +1,608 @@
+====================================================================================================
+d2 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d2 -210.00$ (1)   Δ +310.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d2:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+  d2 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7742.75 inside value (vah 7749.75 val 7731.75 po
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7746.00 inside value (vah 7762.5 val 7736.5 poc 
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7743.00 inside value (vah 7761.75 val 7736.75 poc
+    17:25 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.75 val 7736.75 poc
+    17:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.50 inside value (vah 7761.0 val 7737.25 poc 
+    17:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.0 val 7737.25 poc 
+    17:55 VA_FADE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: VA_FADE_LONG LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 7749.75
+    17:55 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 
+    18:00 CEILING_FLIP_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_LONG LONG entry 7745.00 inside value (vah 7761.0 val 7737.25 poc 77
+    18:05 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.25 inside value (vah 7758.25 val 7735.5 poc 
+    18:10 INITIATIVE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: INITIATIVE_LONG LONG entry 7744.25 inside value (vah 7758.25 val 7735.5 poc 7745
+    18:20 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7747.25 inside value (vah 7758.25 val 7735.5 po
+    18:30 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.00 inside value (vah 7758.25 val 7735.5 poc 
+    18:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.00 inside value (vah 7757.0 val 7735.5 poc 7
+    18:44 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7743.75 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.71
+    18:49 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.68
+    18:49 CONFLUENCE_RI_ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CONFLUENCE_RI_ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 774
+    18:59 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.38
+
+## 2026-10-20   ref +45.00$ (4)   →   d2 +168.75$ (3)   Δ +123.75
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d2:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+  d2 blocked (new gates):
+    15:15 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 7
+    15:15 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 
+    15:35 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7758.00 inside value (vah 7785.0 val 7743.25 poc
+
+## 2026-10-21   ref -13.15$ (6)   →   d2 -13.15$ (6)   Δ +0.00
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d2:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d2 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7769.25 inside value (vah 7779.75 val 7761.75 poc
+
+## 2026-10-22   ref -99.85$ (5)   →   d2 +358.90$ (4)   Δ +458.75
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d2:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:30 CEILING_FLIP_TOUCH2        SHORT @7718.25   +386.25$ mfe 41.25 mae  -0.0 exit T1,T2,T3,HOLD_STOP,T5 tight 20:00→7704.25
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d2 blocked (new gates):
+    15:09 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 10.
+    15:14 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 9.8
+    15:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7
+    15:20 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7703.50 inside value (vah 7729.0 val 7686.0 poc 7
+    15:25 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7711.00 inside value (vah 7729.0 val 7686.0 poc
+    15:34 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.75 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 10.
+    15:44 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.25 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 8.9
+    16:00 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7712.75 inside value (vah 7725.5 val 7686.0 poc
+    16:15 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7716.00 inside value (vah 7721.25 val 7686.0 poc
+    16:35 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7707.25 inside value (vah 7721.5 val 7688.5 poc 7
+    16:40 REACTIVE_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: REACTIVE_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 7713.
+    16:40 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 
+    17:00 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7702.75 inside value (vah 7721.5 val 7688.5 poc 
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7693.00 inside value (vah 7718.75 val 7688.0 poc 
+    17:29 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7698.25 inside value (vah 7718.75 val 7688.0 poc 7713.0, ATR 8.0
+    17:54 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.25 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    17:59 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.50 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    18:19 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7699.75 inside value (vah 7715.25 val 7687.25 poc 7700.0, ATR 7.
+
+d2 vs live: Δnet  +2481.25  days 80  better 24 / worse 10 / same 46  last10 +1076.25
+   by month Δ: {'2026-06': -196.2, '2026-07': 166.2, '2026-08': 698.8, '2026-09': 666.2, '2026-10': 1146.2}
+   biggest: [('2026-06-25', -673.8), ('2026-09-10', 612.5), ('2026-08-28', -596.2), ('2026-08-17', 587.5), ('2026-10-22', 458.8), ('2026-08-21', 450.0)]
+====================================================================================================
+d3 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d3 -307.50$ (3)   Δ +212.50
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d3:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:49 CONFLUENCE_RI_ZLR          LONG  @7744.5     +21.25$ mfe  10.0 mae -13.75 exit T1,BE tight 22:00→7744.75
+  d3 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7742.75 — impulse ended 1 bar(s) ago without a pause (
+    15:35 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7767.5 — impulse ended 1 bar(s) ago without a pause (closes
+    17:45 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 — impulse ended 0 bar(s) ago without a pause (b
+    18:00 CEILING_FLIP_LONG LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_LONG LONG entry 7745.0 — impulse ended 0 bar(s) ago without a pause (bar 
+    18:05 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7742.25 — impulse ended 0 bar(s) ago without a pause (b
+    18:10 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7744.25 — impulse ended 1 bar(s) ago without a pause (bar 5
+    18:40 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7742.0 — impulse ended 1 bar(s) ago without a pause (cl
+    18:44 ZLR LONG [wait_for_test] T-635 D3 wait-for-test: ZLR LONG entry 7743.75 — impulse ended 1 bar(s) ago without a pause (closes 57->60 mov
+
+## 2026-10-20   ref +45.00$ (4)   →   d3 +45.00$ (4)   Δ +0.00
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d3:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d3 blocked (new gates):
+    15:15 CEILING_FLIP_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_SHORT SHORT entry 7756.75 — impulse ended 0 bar(s) ago without a pause (b
+    15:15 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7756.75 — impulse ended 0 bar(s) ago without a pause (
+
+## 2026-10-21   ref -13.15$ (6)   →   d3 +277.45$ (4)   Δ +290.60
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d3:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:55 CEILING_FLIP_TOUCH2        SHORT @7793.75    -40.65$ mfe  23.0 mae -18.0 exit T1,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d3 blocked (new gates):
+    14:55 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7775.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:00 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7776.25 — impulse ended 1 bar(s) ago without a pause (
+    15:35 DOUBLE_BOTTOM_EE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DOUBLE_BOTTOM_EE_LONG LONG entry 7788.5 — impulse ended 0 bar(s) ago without a pause (
+    15:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7793.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:45 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7793.0 — impulse ended 1 bar(s) ago without a pause (closes
+    16:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7798.0 — impulse ended 1 bar(s) ago without a pause (b
+    16:54 ZLR LONG [wait_for_test] T-635 D3 wait-for-test: ZLR LONG entry 7802.75 — impulse ended 1 bar(s) ago without a pause (bar 38 ranged 11.
+    18:55 DALTON_EDGE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DALTON_EDGE_LONG LONG entry 7800.5 — impulse ended 1 bar(s) ago without a pause (close
+
+## 2026-10-22   ref -99.85$ (5)   →   d3 -62.65$ (4)   Δ +37.20
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d3:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:50 CEILING_FLIP_TOUCH2        LONG  @7691.5    +289.85$ mfe 32.25 mae -14.5 exit T1,T2,T3,BE,T5 tight 18:20→7691.75
+    19:15 CEILING_FLIP_TOUCH2        SHORT @7716.0     -62.50$ mfe  39.0 mae -7.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:20 CEILING_FLIP_TOUCH2        LONG  @7694.75    -87.50$ mfe  12.0 mae -17.75 exit T1,STOP,STOP,STOP,STOP 
+  d3 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7690.5 — impulse ended 1 bar(s) ago without a pause (cl
+    14:45 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (clos
+    14:45 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (c
+    15:25 DOUBLE_BOTTOM_EE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DOUBLE_BOTTOM_EE_LONG LONG entry 7711.0 — impulse ended 0 bar(s) ago without a pause (
+    15:34 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7697.75 — impulse ended 1 bar(s) ago without a pause (closes 20->22 mo
+    16:00 DOUBLE_BOTTOM_EE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DOUBLE_BOTTOM_EE_LONG LONG entry 7712.75 — impulse ended 0 bar(s) ago without a pause 
+    16:35 CEILING_FLIP_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_SHORT SHORT entry 7707.25 — impulse ended 0 bar(s) ago without a pause (c
+    16:40 REACTIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: REACTIVE_SHORT SHORT entry 7701.25 — impulse ended 0 bar(s) ago without a pause (close
+    16:40 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7701.25 — impulse ended 0 bar(s) ago without a pause (
+    16:50 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (clo
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (
+    16:55 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7696.0 — impulse ended 1 bar(s) ago without a pause (cl
+    17:00 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7702.75 — impulse ended 0 bar(s) ago without a pause (
+    17:04 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7691.75 — impulse ended 0 bar(s) ago without a pause (closes 39->41 mo
+    17:05 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7691.75 — impulse ended 0 bar(s) ago without a pause (b
+    17:09 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7689.75 — impulse ended 0 bar(s) ago without a pause (bar 42 ranged 14
+    17:15 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7693.0 — impulse ended 1 bar(s) ago without a pause (cl
+    18:19 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7699.75 — impulse ended 1 bar(s) ago without a pause (bar 55 ranged 11
+    18:29 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7688.75 — impulse ended 1 bar(s) ago without a pause (closes 54->57 mo
+    18:34 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7685.25 — impulse ended 0 bar(s) ago without a pause (bar 59 ranged 12
+
+d3 vs live: Δnet  +1094.60  days 80  better 25 / worse 17 / same 38  last10  +741.05
+   by month Δ: {'2026-06': 986.1, '2026-07': 140.0, '2026-08': -811.2, '2026-09': -83.7, '2026-10': 863.5}
+   biggest: [('2026-06-23', 948.8), ('2026-08-28', -665.0), ('2026-07-07', -535.6), ('2026-07-01', 425.6), ('2026-07-02', 392.5), ('2026-07-30', -322.5)]
+====================================================================================================
+d23 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d23 -210.00$ (1)   Δ +310.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d23:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+  d23 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7742.75 inside value (vah 7749.75 val 7731.75 po
+    15:35 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7767.5 — impulse ended 1 bar(s) ago without a pause (closes
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7746.00 inside value (vah 7762.5 val 7736.5 poc 
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7743.00 inside value (vah 7761.75 val 7736.75 poc
+    17:25 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.75 val 7736.75 poc
+    17:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.50 inside value (vah 7761.0 val 7737.25 poc 
+    17:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.0 val 7737.25 poc 
+    17:55 VA_FADE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: VA_FADE_LONG LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 7749.75
+    17:55 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 
+    18:00 CEILING_FLIP_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_LONG LONG entry 7745.00 inside value (vah 7761.0 val 7737.25 poc 77
+    18:05 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.25 inside value (vah 7758.25 val 7735.5 poc 
+    18:10 INITIATIVE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: INITIATIVE_LONG LONG entry 7744.25 inside value (vah 7758.25 val 7735.5 poc 7745
+    18:20 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7747.25 inside value (vah 7758.25 val 7735.5 po
+    18:30 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.00 inside value (vah 7758.25 val 7735.5 poc 
+    18:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.00 inside value (vah 7757.0 val 7735.5 poc 7
+    18:44 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7743.75 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.71
+    18:49 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.68
+    18:49 CONFLUENCE_RI_ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CONFLUENCE_RI_ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 774
+    18:59 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.38
+
+## 2026-10-20   ref +45.00$ (4)   →   d23 +168.75$ (3)   Δ +123.75
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d23:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+  d23 blocked (new gates):
+    15:15 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 7
+    15:15 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 
+    15:35 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7758.00 inside value (vah 7785.0 val 7743.25 poc
+
+## 2026-10-21   ref -13.15$ (6)   →   d23 +277.45$ (4)   Δ +290.60
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d23:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:55 CEILING_FLIP_TOUCH2        SHORT @7793.75    -40.65$ mfe  23.0 mae -18.0 exit T1,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d23 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7769.25 inside value (vah 7779.75 val 7761.75 poc
+    14:55 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7775.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:00 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7776.25 — impulse ended 1 bar(s) ago without a pause (
+    15:35 DOUBLE_BOTTOM_EE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DOUBLE_BOTTOM_EE_LONG LONG entry 7788.5 — impulse ended 0 bar(s) ago without a pause (
+    15:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7793.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:45 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7793.0 — impulse ended 1 bar(s) ago without a pause (closes
+    16:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7798.0 — impulse ended 1 bar(s) ago without a pause (b
+    16:54 ZLR LONG [wait_for_test] T-635 D3 wait-for-test: ZLR LONG entry 7802.75 — impulse ended 1 bar(s) ago without a pause (bar 38 ranged 11.
+    18:55 DALTON_EDGE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DALTON_EDGE_LONG LONG entry 7800.5 — impulse ended 1 bar(s) ago without a pause (close
+
+## 2026-10-22   ref -99.85$ (5)   →   d23 +386.10$ (4)   Δ +485.95
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d23:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:50 CEILING_FLIP_TOUCH2        LONG  @7691.5    +289.85$ mfe 32.25 mae -14.5 exit T1,T2,T3,BE,T5 tight 18:20→7691.75
+    19:30 CEILING_FLIP_TOUCH2        SHORT @7718.25   +386.25$ mfe 41.25 mae  -0.0 exit T1,T2,T3,HOLD_STOP,T5 tight 20:00→7704.25
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d23 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7690.5 — impulse ended 1 bar(s) ago without a pause (cl
+    14:45 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (clos
+    14:45 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (c
+    15:09 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 10.
+    15:14 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 9.8
+    15:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7
+    15:20 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7703.50 inside value (vah 7729.0 val 7686.0 poc 7
+    15:25 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7711.00 inside value (vah 7729.0 val 7686.0 poc
+    15:34 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.75 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 10.
+    15:44 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.25 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 8.9
+    16:00 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7712.75 inside value (vah 7725.5 val 7686.0 poc
+    16:15 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7716.00 inside value (vah 7721.25 val 7686.0 poc
+    16:35 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7707.25 inside value (vah 7721.5 val 7688.5 poc 7
+    16:40 REACTIVE_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: REACTIVE_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 7713.
+    16:40 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 
+    16:50 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (clo
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (
+    16:55 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7696.0 — impulse ended 1 bar(s) ago without a pause (cl
+    17:00 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7702.75 inside value (vah 7721.5 val 7688.5 poc 
+    17:04 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7691.75 — impulse ended 0 bar(s) ago without a pause (closes 39->41 mo
+    17:05 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7691.75 — impulse ended 0 bar(s) ago without a pause (b
+    17:09 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7689.75 — impulse ended 0 bar(s) ago without a pause (bar 42 ranged 14
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7693.00 inside value (vah 7718.75 val 7688.0 poc 
+    17:29 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7698.25 inside value (vah 7718.75 val 7688.0 poc 7713.0, ATR 8.0
+    17:54 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.25 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    17:59 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.50 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    18:19 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7699.75 inside value (vah 7715.25 val 7687.25 poc 7700.0, ATR 7.
+    18:29 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7688.75 — impulse ended 1 bar(s) ago without a pause (closes 54->57 mo
+    18:34 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7685.25 — impulse ended 0 bar(s) ago without a pause (bar 59 ranged 12
+
+d23 vs live: Δnet  +2631.65  days 80  better 34 / worse 20 / same 26  last10 +1411.05
+   by month Δ: {'2026-06': 621.1, '2026-07': 124.4, '2026-08': 371.2, '2026-09': -56.1, '2026-10': 1571.0}
+   biggest: [('2026-06-23', 948.8), ('2026-07-30', -838.8), ('2026-06-25', -673.8), ('2026-08-28', -665.0), ('2026-09-10', 612.5), ('2026-08-17', 587.5)]
+====================================================================================================
+d1a2 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d1a2 -520.00$ (3)   Δ +0.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d1a2:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+
+## 2026-10-20   ref +45.00$ (4)   →   d1a2 +45.00$ (4)   Δ +0.00
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d1a2:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+
+## 2026-10-21   ref -13.15$ (6)   →   d1a2 -13.15$ (6)   Δ +0.00
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d1a2:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:30→7756.0;17:35→7759.75;17:40→7761.0
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+
+## 2026-10-22   ref -99.85$ (5)   →   d1a2 -543.15$ (6)   Δ -443.30
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d1a2:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5     +40.60$ mfe 33.25 mae -13.5 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 18:00→7690.75
+    18:20 CEILING_FLIP_TOUCH2        LONG  @7703.5    -221.25$ mfe 20.25 mae -26.5 exit STOP,STOP,STOP 
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+
+d1a2 vs live: Δnet   -514.10  days 80  better 12 / worse 4 / same 64  last10  -443.30
+   by month Δ: {'2026-06': 118.0, '2026-07': -812.5, '2026-08': 726.2, '2026-09': -252.5, '2026-10': -293.3}
+   biggest: [('2026-07-16', -1287.5), ('2026-08-03', 465.0), ('2026-10-22', -443.3), ('2026-07-09', 325.0), ('2026-09-22', -225.0), ('2026-09-14', -197.5)]
+====================================================================================================
+d123 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d123 -210.00$ (1)   Δ +310.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d123:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+  d123 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7742.75 inside value (vah 7749.75 val 7731.75 po
+    15:35 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7767.5 — impulse ended 1 bar(s) ago without a pause (closes
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7746.00 inside value (vah 7762.5 val 7736.5 poc 
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7743.00 inside value (vah 7761.75 val 7736.75 poc
+    17:25 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.75 val 7736.75 poc
+    17:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.50 inside value (vah 7761.0 val 7737.25 poc 
+    17:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.75 inside value (vah 7761.0 val 7737.25 poc 
+    17:55 VA_FADE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: VA_FADE_LONG LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 7749.75
+    17:55 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7740.50 inside value (vah 7761.0 val 7737.25 poc 
+    18:00 CEILING_FLIP_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_LONG LONG entry 7745.00 inside value (vah 7761.0 val 7737.25 poc 77
+    18:05 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.25 inside value (vah 7758.25 val 7735.5 poc 
+    18:10 INITIATIVE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: INITIATIVE_LONG LONG entry 7744.25 inside value (vah 7758.25 val 7735.5 poc 7745
+    18:20 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7747.25 inside value (vah 7758.25 val 7735.5 po
+    18:30 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7741.00 inside value (vah 7758.25 val 7735.5 poc 
+    18:40 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7742.00 inside value (vah 7757.0 val 7735.5 poc 7
+    18:44 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7743.75 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.71
+    18:49 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.68
+    18:49 CONFLUENCE_RI_ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CONFLUENCE_RI_ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 774
+    18:59 ZLR LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR LONG entry 7744.50 inside value (vah 7757.0 val 7735.5 poc 7746.75, ATR 5.38
+
+## 2026-10-20   ref +45.00$ (4)   →   d123 +168.75$ (3)   Δ +123.75
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d123:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 16:55→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+  d123 blocked (new gates):
+    15:15 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 7
+    15:15 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7756.75 inside value (vah 7791.5 val 7739.5 poc 
+    15:35 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7758.00 inside value (vah 7785.0 val 7743.25 poc
+
+## 2026-10-21   ref -13.15$ (6)   →   d123 +428.10$ (6)   Δ +441.25
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d123:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:25→7756.0;17:35→7759.75;17:40→7761.0
+    18:55 CEILING_FLIP_TOUCH2        SHORT @7793.75     +6.25$ mfe  23.0 mae -18.0 exit BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 19:05→7793.5
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    +27.50$ mfe  22.0 mae -19.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 19:25→7792.5
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    +29.35$ mfe  37.0 mae  -4.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 20:30→7807.5
+    20:50 CEILING_FLIP_TOUCH2        SHORT @7806.5      +6.25$ mfe 35.75 mae -5.25 exit BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 21:00→7806.25
+  d123 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7769.25 inside value (vah 7779.75 val 7761.75 poc
+    14:55 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7775.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:00 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7776.25 — impulse ended 1 bar(s) ago without a pause (
+    15:35 DOUBLE_BOTTOM_EE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DOUBLE_BOTTOM_EE_LONG LONG entry 7788.5 — impulse ended 0 bar(s) ago without a pause (
+    15:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7793.0 — impulse ended 1 bar(s) ago without a pause (c
+    15:45 INITIATIVE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_LONG LONG entry 7793.0 — impulse ended 1 bar(s) ago without a pause (closes
+    16:45 CEILING_FLIP_TOUCH2 SHORT [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 SHORT entry 7798.0 — impulse ended 1 bar(s) ago without a pause (b
+    16:54 ZLR LONG [wait_for_test] T-635 D3 wait-for-test: ZLR LONG entry 7802.75 — impulse ended 1 bar(s) ago without a pause (bar 38 ranged 11.
+    18:55 DALTON_EDGE_LONG LONG [wait_for_test] T-635 D3 wait-for-test: DALTON_EDGE_LONG LONG entry 7800.5 — impulse ended 1 bar(s) ago without a pause (close
+
+## 2026-10-22   ref -99.85$ (5)   →   d123 +140.65$ (4)   Δ +240.50
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d123:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:50 CEILING_FLIP_TOUCH2        LONG  @7691.5     +44.40$ mfe 32.25 mae -14.5 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 17:55→7691.75
+    19:30 CEILING_FLIP_TOUCH2        SHORT @7718.25   +386.25$ mfe 41.25 mae  -0.0 exit T1,T2,T3,HOLD_STOP,T5 tight 20:00→7704.25
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d123 blocked (new gates):
+    14:45 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7690.5 — impulse ended 1 bar(s) ago without a pause (cl
+    14:45 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (clos
+    14:45 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.5 — impulse ended 1 bar(s) ago without a pause (c
+    15:09 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 10.
+    15:14 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7699.25, ATR 9.8
+    15:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7692.00 inside value (vah 7729.0 val 7686.0 poc 7
+    15:20 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7703.50 inside value (vah 7729.0 val 7686.0 poc 7
+    15:25 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7711.00 inside value (vah 7729.0 val 7686.0 poc
+    15:34 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.75 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 10.
+    15:44 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7697.25 inside value (vah 7725.5 val 7686.0 poc 7699.75, ATR 8.9
+    16:00 DOUBLE_BOTTOM_EE_LONG LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_BOTTOM_EE_LONG LONG entry 7712.75 inside value (vah 7725.5 val 7686.0 poc
+    16:15 CEILING_FLIP_TOUCH2 SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 SHORT entry 7716.00 inside value (vah 7721.25 val 7686.0 poc
+    16:35 CEILING_FLIP_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_SHORT SHORT entry 7707.25 inside value (vah 7721.5 val 7688.5 poc 7
+    16:40 REACTIVE_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: REACTIVE_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 7713.
+    16:40 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7701.25 inside value (vah 7721.5 val 7688.5 poc 
+    16:50 INITIATIVE_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: INITIATIVE_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (clo
+    16:50 DOUBLE_TOP_AA_SHORT SHORT [wait_for_test] T-635 D3 wait-for-test: DOUBLE_TOP_AA_SHORT SHORT entry 7690.75 — impulse ended 1 bar(s) ago without a pause (
+    16:55 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7696.0 — impulse ended 1 bar(s) ago without a pause (cl
+    17:00 DOUBLE_TOP_AA_SHORT SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: DOUBLE_TOP_AA_SHORT SHORT entry 7702.75 inside value (vah 7721.5 val 7688.5 poc 
+    17:04 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7691.75 — impulse ended 0 bar(s) ago without a pause (closes 39->41 mo
+    17:05 CEILING_FLIP_TOUCH2 LONG [wait_for_test] T-635 D3 wait-for-test: CEILING_FLIP_TOUCH2 LONG entry 7691.75 — impulse ended 0 bar(s) ago without a pause (b
+    17:09 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7689.75 — impulse ended 0 bar(s) ago without a pause (bar 42 ranged 14
+    17:15 CEILING_FLIP_TOUCH2 LONG [mid_value_no_edge_test] T-635 D2 mid-value edge test: CEILING_FLIP_TOUCH2 LONG entry 7693.00 inside value (vah 7718.75 val 7688.0 poc 
+    17:29 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7698.25 inside value (vah 7718.75 val 7688.0 poc 7713.0, ATR 8.0
+    17:54 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7694.25 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    17:59 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7692.50 inside value (vah 7716.25 val 7687.0 poc 7698.25, ATR 7.
+    18:19 ZLR SHORT [mid_value_no_edge_test] T-635 D2 mid-value edge test: ZLR SHORT entry 7699.75 inside value (vah 7715.25 val 7687.25 poc 7700.0, ATR 7.
+    18:29 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7688.75 — impulse ended 1 bar(s) ago without a pause (closes 54->57 mo
+    18:34 ZLR SHORT [wait_for_test] T-635 D3 wait-for-test: ZLR SHORT entry 7685.25 — impulse ended 0 bar(s) ago without a pause (bar 59 ranged 12
+
+d123 vs live: Δnet   +929.95  days 80  better 39 / worse 27 / same 14  last10 +1161.90
+   by month Δ: {'2026-06': -180.1, '2026-07': -551.9, '2026-08': 973.8, '2026-09': -966.2, '2026-10': 1654.4}
+   biggest: [('2026-06-23', 948.8), ('2026-06-24', -872.6), ('2026-07-16', -743.8), ('2026-07-30', -688.8), ('2026-09-14', -682.5), ('2026-06-25', -673.8)]
+====================================================================================================
+d1 vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d1 -520.00$ (3)   Δ +0.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d1:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+
+## 2026-10-20   ref +45.00$ (4)   →   d1 +45.00$ (4)   Δ +0.00
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d1:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 16:55→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+
+## 2026-10-21   ref -13.15$ (6)   →   d1 +128.10$ (7)   Δ +141.25
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d1:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:25→7756.0;17:35→7759.75;17:40→7761.0
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    +27.50$ mfe  22.0 mae -19.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 19:25→7792.5
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    +29.35$ mfe  37.0 mae  -4.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 20:30→7807.5
+    20:50 CEILING_FLIP_TOUCH2        SHORT @7806.5      +6.25$ mfe 35.75 mae -5.25 exit BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 21:00→7806.25
+
+## 2026-10-22   ref -99.85$ (5)   →   d1 -543.15$ (6)   Δ -443.30
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d1:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5     +40.60$ mfe 33.25 mae -13.5 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 17:55→7690.75
+    18:20 CEILING_FLIP_TOUCH2        LONG  @7703.5    -221.25$ mfe 20.25 mae -26.5 exit STOP,STOP,STOP 
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+
+d1 vs live: Δnet   -118.35  days 80  better 26 / worse 15 / same 39  last10  -560.80
+   by month Δ: {'2026-06': 108.0, '2026-07': -721.2, '2026-08': 1260.0, '2026-09': -578.0, '2026-10': -187.0}
+   biggest: [('2026-07-16', -1081.2), ('2026-09-14', -782.5), ('2026-06-24', -732.0), ('2026-06-23', 731.2), ('2026-08-17', 652.5), ('2026-10-22', -443.3)]
+====================================================================================================
+d1be vs live — 80 common days
+
+## 2026-10-19   ref -520.00$ (3)   →   d1be -520.00$ (3)   Δ +0.00
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+  d1be:
+    16:50 OPENING_TEST_DRIVE         SHORT @7737.25   -210.00$ mfe  9.75 mae -36.0 exit STOP,STOP,STOP 
+    20:15 CEILING_FLIP_TOUCH2        LONG  @7743.0    -118.75$ mfe  11.5 mae -12.25 exit STOP,STOP,STOP,STOP,STOP 
+    21:10 INITIATIVE_LONG            LONG  @7744.25   -191.25$ mfe 10.25 mae -13.5 exit STOP,STOP,STOP 
+
+## 2026-10-20   ref +45.00$ (4)   →   d1be +45.00$ (4)   Δ +0.00
+  ref:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 17:00→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+  d1be:
+    16:45 OPENING_TEST_DRIVE         SHORT @7713.0    -225.00$ mfe  2.75 mae -78.5 exit STOP,STOP,STOP 
+    16:50 OPENING_ORR                LONG  @7729.0    +550.00$ mfe  62.5 mae -2.25 exit T1,T2,BE tight 16:55→7729.25;17:30→7779.0
+    17:50 CEILING_FLIP_TOUCH2        SHORT @7781.0    -156.25$ mfe 34.75 mae  -9.5 exit STOP,STOP,STOP,STOP,STOP 
+    18:35 DOUBLE_TOP_AA_SHORT        SHORT @7758.0    -123.75$ mfe 11.75 mae -10.5 exit T1,STOP,STOP,STOP 
+
+## 2026-10-21   ref -13.15$ (6)   →   d1be +128.10$ (7)   Δ +141.25
+  ref:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:50→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    -37.50$ mfe  22.0 mae -19.0 exit T1,STOP,STOP,STOP,STOP 
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    -40.65$ mfe  37.0 mae  -4.0 exit T1,STOP,STOP,STOP,STOP 
+  d1be:
+    16:50 OPENING_EXTREME_REJECT     LONG  @7778.5    -225.00$ mfe 33.25 mae -27.5 exit STOP,STOP,STOP 
+    17:20 CEILING_FLIP_TOUCH2        LONG  @7755.75   +583.75$ mfe  56.0 mae  -3.5 exit T1,T2,T3,BE,T5 tight 17:25→7756.0;18:10→7780.5
+    18:45 CEILING_FLIP_TOUCH2        SHORT @7793.0     -75.00$ mfe 22.25 mae -18.75 exit STOP,STOP,STOP,STOP,STOP 
+    19:20 CEILING_FLIP_TOUCH2        SHORT @7792.75    +27.50$ mfe  22.0 mae -19.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 19:25→7792.5
+    19:45 CEILING_FLIP_TOUCH2        SHORT @7798.0    -218.75$ mfe 27.25 mae -13.75 exit STOP,STOP,STOP,STOP,STOP 
+    20:25 CEILING_FLIP_TOUCH2        SHORT @7807.75    +29.35$ mfe  37.0 mae  -4.0 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 20:30→7807.5
+    20:50 CEILING_FLIP_TOUCH2        SHORT @7806.5      +6.25$ mfe 35.75 mae -5.25 exit BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 21:00→7806.25
+
+## 2026-10-22   ref -99.85$ (5)   →   d1be -543.15$ (6)   Δ -443.30
+  ref:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5    +262.65$ mfe 33.25 mae -13.5 exit T1,T2,T3,BE,T5 tight 18:15→7690.75
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+  d1be:
+    16:50 OPENING_TEST_DRIVE         SHORT @7728.75   -202.50$ mfe 51.75 mae -13.75 exit STOP,STOP,STOP 
+    17:45 CEILING_FLIP_TOUCH2        LONG  @7690.5     +40.60$ mfe 33.25 mae -13.5 exit T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1,BE_PRE_T1 tight 17:55→7690.75
+    18:20 CEILING_FLIP_TOUCH2        LONG  @7703.5    -221.25$ mfe 20.25 mae -26.5 exit STOP,STOP,STOP 
+    19:00 DOUBLE_BOTTOM_EE_LONG      LONG  @7712.75    +51.25$ mfe  11.0 mae -35.75 exit T1,BE,BE tight 19:20→7713.0
+    19:55 CEILING_FLIP_TOUCH2        LONG  @7696.0    -123.75$ mfe 10.75 mae -19.0 exit T1,STOP,STOP,STOP 
+    21:04 GB100                      SHORT @7680.75    -87.50$ mfe  3.75 mae -26.0 exit STOP,STOP 
+
+d1be vs live: Δnet   +661.30  days 80  better 22 / worse 14 / same 44  last10  -505.80
+   by month Δ: {'2026-06': -57.0, '2026-07': 178.8, '2026-08': 960.5, '2026-09': -175.1, '2026-10': -245.8}
+   biggest: [('2026-06-24', -837.0), ('2026-06-23', 731.2), ('2026-08-17', 652.5), ('2026-09-02', 508.6), ('2026-08-03', 465.0), ('2026-09-14', -465.0)]
