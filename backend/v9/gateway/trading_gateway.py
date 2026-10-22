@@ -3148,6 +3148,13 @@ class TradingGateway:
         # the "drive" close was ONE tick through the open) −221 · 21.10 #3637 −225 · 20.10 #3540 −225 (lower half
         # of 7711.25–7731) · 19.10 16:50 DRIVE SHORT (canonical OPEN_REJECTION_REVERSE, lower half) −210 — all four
         # blocked; #3544 (ORR) kept.
+        # NOTE (22.10 17:5x, live-log check): `_dp_ot` here is the label AFTER the T-426 block above
+        # (OPENING_DRIVE_PROVISIONAL_V1=1 rewrites a lagging, unlocked AUCTION label into the engine's drive type —
+        # 16:50:03 "OPEN_AUCTION_IN→OPEN_TEST_DRIVE"). So on the live path #3749 is blocked by the HALF-RANGE rule
+        # (SHORT under the mid of 7720.25–7740.75), while the mismatch rule fires for a canonical ORR (19.10) or a
+        # LOCKED auction label (T-426 never touches a locked one). Outcome identical for all four losers; T-426
+        # (20.09, 56 sessions) is reconciled, not reverted: the drive is admitted, the entry must still sit in the
+        # right half of the opening range. Pinned in test_t636_opening_half_range_all::test_live_path_…
         # Pure verdict: backend/v9/systems/opening_half_range.py (mode "0" ⇒ None, never consulted; "1" ⇒ T-628 as measured;
         # "all" ⇒ T-636). Bars are fetched only when the mode is on and the setup is an OPENING_* in phase A/B.
         try:
