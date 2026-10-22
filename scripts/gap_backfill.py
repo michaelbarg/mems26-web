@@ -29,11 +29,7 @@ REPO = "/Users/michael/Downloads/mems26_web_git"
 PSQL = "/Applications/Postgres.app/Contents/Versions/latest/bin/psql"
 DB = "mems26"
 HIST = f"{REPO}/harness_out/t586/hist"
-# T-632 (22.10, iMac): Sierra may run from a second bottle (~/SierraChart2 on the iMac) — honour SIERRA_SCID_DIR and
-# otherwise look in every bottle's Data folder; front_scid() keeps the file with the newest tick, wherever it lives.
-SCID_DIR = os.getenv("SIERRA_SCID_DIR") or "/Users/michael/SierraChart/Data"
-SCID_DIRS = [d for d in dict.fromkeys([SCID_DIR, os.path.expanduser("~/SierraChart/Data"),
-                                       os.path.expanduser("~/SierraChart2/Data")]) if os.path.isdir(d)]
+SCID_DIR = "/Users/michael/SierraChart/Data"
 ET, IL = ZoneInfo("America/New_York"), ZoneInfo("Asia/Jerusalem")
 EPOCH = dt.datetime(1899, 12, 30)
 opt = {a.split("=")[0][2:]: (a.split("=", 1)[1] if "=" in a else "1") for a in sys.argv[1:] if a.startswith("--")}
@@ -82,7 +78,7 @@ def cash_sessions():
 
 def front_scid():
     best = None
-    for f in [p for d in SCID_DIRS for p in glob.glob(f"{d}/MES*_FUT_CME.scid")]:
+    for f in glob.glob(f"{SCID_DIR}/MES*_FUT_CME.scid"):
         sz = os.path.getsize(f)
         if sz < 96:
             continue
