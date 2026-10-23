@@ -1,3 +1,96 @@
+🟢 **[cowork-dev · ריצה 415 · 23.10 14:34→14:4x IL · חובה-1 בלבד · ⛔ אפס ריסטארט · ⛔ אפס הודעת-טלפון · קריאה-בלבד]**
+
+**חובת-הזמן נמדדה:** `date ⇒ 2026-10-23 14:34:45 IDT (Fri)` ⇒ `14:34` **מחוץ לשלושת החלונות**:
+∉ `15:30-16:10` (חובה-2) · ∉ `16:30-23:00` (חובה-3) · ∉ `23:00-23:30` (חובה-4) ⇒ **חובה-1 בלבד.**
+
+**ה-pull הפותח — `--rebase` נחסם, `--no-rebase` עבר (נרשם כי זו חזרה של חוק-הפתיחה):**
+
+```raw
+git pull --rebase ⇒ error: cannot pull with rebase: You have unstaged changes.
+git pull --no-rebase ⇒ Fast-forward 32b8cad68..7dde52759 (2 קומיטים, 134 הוספות)
+  88823677d 10-23 14:34  dalton-supervisor: 2026-10-23 (nightly, read-only)   ← מה-iMac
+  7dde52759 10-23 14:34  Merge branch (same branch, iMac→origin)
+```
+
+☎️ **חובה-1 — אפס ממתינות ⇒ שקט מוחלט בטלפון (אימות שני, 27 דק' אחרי ריצה 414):**
+
+```raw
+14:35  /chat?key=… ⇒ http=200 bytes=17958 · mtime 14:35:32 == שעת-הדגימה (נוסח-מלכודת-43 מלא)
+       items=30 · senders={cowork-dev:20 · cowork:6 · supervisor:4} ⇒ **שולח-שאינו-סוכן = 0**
+       newest-render 2026-10-22T20:28:25Z cowork  ⇒ אפס פריט חדש מאז ריצה 414
+14:36  instruction/pending ⇒ {"items":[]} · cmd/pending ⇒ {"cmd":null}
+       marks/pending       ⇒ {"items":[]} · upload/pending ⇒ {"items":[]}      (4/4 ריקות, http=200)
+14:36  PHONE_THREAD.jsonl ⇒ 771 שורות · האחרונה 2026-10-21T20:23:16Z · מייקל האחרון 2026-10-07T10:50:03Z
+       phone_request_guard --days 21 ⇒ rc=0 "every request in the window is either a task or dispositioned"
+```
+
+ארבעת המקרים לגופם: **(א)** אפס שורת-מייקל בלי תשובה עניינית ⇒ שלילי · **(ב)** אפס עסקת-לייב
+(`trades_today_sum ⇒ {"date":"2026-10-23","n":0,"closed":0,"open":0,"usd":0.0,"account":"Sim1"}`) ⇒ שלילי ·
+**(ג)** אפס חריגה חוסמת (מצב-חי למטה) ⇒ שלילי · **(ד)** `14:34 ∉ 15:30-16:10` ⇒ שלילי.
+⇒ **אפס הודעת-טלפון נשלחה.** ⚠️ ואין להסיק "שקט" מן הדוור במקבוק (אין דוור כאן) — ההיתר הוא
+`/instruction/pending` שהוא **peek במקור ב-Render** וחי גם כשהדוור מת (מלכודת 12) ⇒ 4/4 ריקות = ראיה.
+
+🎯 **ממצא — דוגמה-נגדית מתוארכת לצעד-הבא של [[T-630]]:** ה-iMac **דחף ב-14:34** (שני קומיטים) —
+ו-`docs/handoff/PHONE_THREAD.jsonl` **לא נכלל**:
+
+```raw
+git log --name-only 88823677d ⇒ docs/reports/dalton_supervisor/2026-10-23.md · render_mobile_relay/static/docs/dalton.html
+sig=(sender,ts[:19],text[:120]) על 30 מול 771 ⇒ on-phone-but-not-in-file = **1** (ללא שינוי מריצה 414)
+  MISSING-LOCALLY: 2026-10-22T20:28:25Z  cowork  "סיכום יומי 2026-10-22: דמו 4 עסקאות 3W/1L Σ +202.50$ …"
+```
+
+⇒ הפער אינו "מחכה לדחיפה הבאה" — **דחיפה אחת כבר עברה מעליו.** מכונת-המסחר מקומטת נתיבים אחרים
+ומשאירה את קובץ-העדות מאחור ⇒ הצעד-הבא של [[T-630]] (`git add docs/handoff/PHONE_THREAD.jsonl` בסוף
+חובה-4) **טרם מיושם**, ואם Render יעשה cold-start לפני שהשורה תיכנס לגיט היא תאבד משני הצדדים.
+⛔ שוב לא כתבתי אותה ידנית במקבוק — היא קיימת בעותק של ה-iMac ⇒ כתיבה כאן = התנגשות-מרג' ([[T-584]]).
+
+📟 **מצב-חי — נמדד מה-iMac דרך הדוור, לא מונח** (`GET /api/v9/mobile/data`, דגימה 14:36:57, `mtime == sampled`):
+
+```raw
+ts "14:36:57" · _relay_age_s 0.5 · sierra._age_s 0.6            ⇒ דוור ויצוא שניהם חיים
+machine "מק-1" · trade_account Sim1 · is_sim=1 · order_placement_armed=1 · send_orders_to_trade_service=0
+position_qty 0 · working_orders 0 · orders [] · trading_paused false · acct_ok=1 · under_margin=0
+acct_trading_disabled=0 · loss_limit_reached=0 · halt_cap 800 · contracts_cfg 5 · **cap_lq=1** (סולם 2-2-1)
+symbol MESZ26_FUT_CME · last_price 7682.5 · _series last epoch 1792755409 = 14:36:49 ⇒ המחיר מתקתק
+daily_total_qty_filled 36 · daily_pnl 202.5 ← **מצבר-אתמול** (trades_today_sum n=0 ⇒ אינו P&L של היום)
+radar day_type UNKNOWN · stage A1 · gates_last_hour {blocked:0, passed:0}        (טרום-פתיחה — תקין)
+dalton phase 14:36 · opening_type UNKNOWN · bias NONE · kinds_allowed [] · size_frac 0.0
+next_fire ⇒ LONG=false SHORT=false "אין שורה לנסיבה הזו — stand-down" · tree mode=on "טרם סווגה · שלב A"
+```
+
+**ומה שלא ניתן לקבוע מכאן, ונאמר כך:** מבחן-הפיד של [[T-430]] הוא `max(ts) from v9_bars_5min_woodies`
+על DB **מכונת-המסחר**; ה-DB של המקבוק מחזיר `2026-10-21 22:55:00+03` — **עבש כי זו מכונת-פיתוח**, ואינו
+אדום. העדות שיש לי כן: `sierra._age_s 0.6` + מחיר שמתקתק ב-14:36:49 (ולא `bid=0/ask=0`, צורת-המוות של
+18.10). המבחן הקובע = `fire_drill` שלב-D ב-15:30 **על ה-iMac**.
+[[T-34]] אינו בר-חישוב: `acct_available_funds / acct_margin_req = 1.7976931348623157e+308` = סנטינל
+DBL_MAX (מלכודת 36) ⇒ הפרדיקט `avail < $1,595` ⇒ `missing` ⇒ **אפס מקרה (ג)**, אפס שורת-חסימה.
+
+⛔ **בעלות-השער — ללא שינוי מריצה 414, ומחייבת את ריצת-15:30:** שלוש רשומות `cowork-iMac` **מהיום**
+ב-TASK_LOG (09:58 ריסטארט pid 69310 · 10:3x [[T-637]] · 12:5x [[T-638]], שתיהן "ריסטארט לפני הפתיחה"),
+וכל המסחר על ה-iMac. במקבוק עכשיו: `lsof -nP -iTCP:8000 -sTCP:LISTEN ⇒ (ריק)` · `pgrep -fl mobile_relay ⇒
+(ריק)` ⇒ אפס סטאק-מסחר ואפס דוור ⇒ **המקבוק = פיתוח** ([[T-625]]). ➡️ **לריצת-15:30 על המקבוק: אל תרים
+ריסטארט ואל תשלח GO/NO-GO** ([[T-369]] — הצפת-שתי-הודעות-שער; וריסטארט כאן גם מקים סטאק שני מול ה-iMac
+החמוש) — **שורת-מדידה אחת בלבד.** הגודל: החי `contracts_cfg=5` ≡ פסיקת-19.10 ב-RULED_FLAGS (הנוסח
+"1 חוזה" שבפרומפט מוחלף — [[T-611]]); `ruled_contracts()` של המקבוק **אינו** ערך-המסחר ⇒ נמדד על מכונת-
+המסחר. ⛔ אפס נגיעה ב-`FIXED_CONTRACTS_*` ([[T-225]]).
+
+📖 **קריאה בתוצר-החדש של ה-iMac (מספריו שלו, לא מדידה שלי) — `docs/reports/dalton_supervisor/2026-10-23.md`:**
+20 עסקאות-דמו 07–22.10, ציון-דלתון ממוצע 0.73, Σ −561.25$. §5 שלו: **"אין שורה עם ≥3 עסקאות שגם מפסידה
+וגם מפרה את דלתון ברוב העסקאות"**, ו-**ציון ≥0.75 ⇒ 11 עסקאות −305$ · ציון <0.5 ⇒ 0 עסקאות** ⇒ בדגימה
+הזאת הציון **אינו מפריד** מנצחות ממפסידות, כלומר אין ממנו כלל בר-הדלקה. ⇒ ממתין לפסיקת-מייקל כמוצהר
+בדוח; **אפס דחיפה לטלפון** (דוח ≠ אחד מארבעת המקרים).
+
+🛡️ **לא-נמדד, ואינו "לא-השתנה" (מלכודת 3.6):** `fire_drill` · `flag_guard` · `machine_health` ·
+`close_stale_shadow` · `ruled_contracts()` = **חובה-2 על ה-iMac** · `broker_truth` / `day_review` /
+`review_report` / `gen_tree_board` / עמודי-הטלפון = **חובה-4 מ-23:00** ⇒ לא הורצו, ולא נטען עליהם דבר.
+
+⛔ **מה לא נעשה:** אפס ריסטארט · אפס שינוי-קוד · אפס דגל · אפס `.env` · אפס נגיעה בפוזיציות/פקודות ·
+אפס `--apply` · אפס הודעת-טלפון · אפס שורת-STATUS_BOARD (אף פריט לא נסגר ב-✅) · אפס פריט-TASK_LOG חדש.
+העץ מלוכלך מסשנים אחרים (docs/harness/pdf — אפס קוד-מסחר, **אינם שלי**) ⇒ אפס `git add -A`, קומיט
+בנתיב מפורש בלבד ([[T-584]]).
+
+---
+
 🟢 **[cowork-dev · ריצה 414 · 23.10 14:09→14:2x IL · חובה-1 בלבד · ⛔ אפס ריסטארט · ⛔ אפס הודעת-טלפון · קריאה-בלבד]**
 
 **חובת-הזמן נמדדה:** `date ⇒ 2026-10-23 14:09:52 IDT (Fri)` ⇒ `14:09` **מחוץ לשלושת החלונות**:
