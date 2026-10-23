@@ -13,33 +13,21 @@
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
 import { getApiBase } from '../../lib/api';
+import { finiteOrNull, pickAccountPnl, type SierraAccountState } from '../../lib/accountPnl';
 
 const API_BASE = getApiBase();
 const POLL_MS = 15000;
 
-interface SierraState {
-  ok?: boolean; stale?: boolean; age_s?: number | null;
-  position_qty?: number | null; avg_price?: number | null;
-  working_orders?: number | null; is_sim?: number | null;
-  order_placement_armed?: number | null;
-  open_pnl?: number | null; daily_pnl?: number | null;
-  high_during_pos?: number | null; low_during_pos?: number | null;
-  trade_account?: string | null; symbol?: string | null;
-  last_price?: number | null; daily_total_qty_filled?: number | null;
-  // Account-Monitor fields (Michael 07-28) — null until the DLL build lands
-  acct_ok?: boolean;
-  acct_cash_balance?: number | null; acct_account_value?: number | null;
-  acct_available_funds?: number | null; acct_open_positions_pl?: number | null;
-  acct_daily_pl?: number | null; acct_trading_disabled?: number | null;
-  acct_under_margin?: number | null; acct_loss_limit_reached?: number | null;
-}
+type SierraState = SierraAccountState;
 
+// Sentinels (DBL_MAX ≈ 1.8e308, inf) and non-numbers → "—", never a number (audit 23.10).
 function fmt(v: number | null | undefined, d = 2): string {
-  return v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(d);
+  const n = finiteOrNull(v);
+  return n == null ? '—' : n.toFixed(d);
 }
 function money(v: number | null | undefined): string {
-  if (v == null || Number.isNaN(v)) return '—';
-  const n = Number(v);
+  const n = finiteOrNull(v);
+  if (n == null) return '—';
   return `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(2)}`;
 }
 /** גיל-הנתונים בקריאה אנושית. ביקורת-UX 29.08: הגיל הוצג רק כשהנתונים טריים,
@@ -93,6 +81,17 @@ export function SierraTruthStrip() {
   const stops = s?.working_orders ?? null;
   const naked = !flat && qty != null && (stops === 0 || stops == null);
 
+  // P&L of the account we trade (lib/accountPnl). Audit 23.10: in DEMO the Account
+  // Monitor looked at another account (acct_is_sim 0 vs is_sim 1 / Sim1) → "P&L יומי
+  // $0.00" while Sim1 was −$175. Then the P&L comes from Sim1's own numbers and the
+  // account-value cells (the other account's — DBL_MAX sentinels that day) show "—".
+  const pnl = pickAccountPnl(s);
+  const acctSame = pnl.source === 'account_monitor';
+  const acctName = pnl.account ?? 'החשבון';
+  const pnlSrcTitle = pnl.source === 'trade_account'
+    ? `מהחשבון ${acctName} עצמו (open_pnl / daily_pnl) — מוניטור-החשבון של סיירה מסתכל על חשבון אחר`
+    : 'מה-Account Monitor';
+
   const Cell = ({ label, children, title }:
     { label: string; children: React.ReactNode; title?: string }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 54 }} title={title}>
@@ -127,28 +126,26 @@ export function SierraTruthStrip() {
       </Cell>
       <Cell label="כניסה">{fmt(s?.avg_price)}</Cell>
       <Cell label="מחיר">{fmt(s?.last_price)}</Cell>
-      {/* P&L comes from the Account Monitor (sc.GetTradeAccountData) — the same
-          source as Sierra's Trade Accounts window. Before the DLL build lands
-          acct_ok is false → "—" (never the position-struct number, which showed
-          0.00 while the account was down). */}
-      <Cell label="P&L פתוח" title="Open Positions P/L — מה-Account Monitor">
-        <span style={{ color: pnlColor(s?.acct_open_positions_pl) }}>
-          {money(s?.acct_open_positions_pl)}
-        </span>
+      {/* P&L of the account we trade (lib/accountPnl): the Account Monitor
+          (sc.GetTradeAccountData — Sierra's Trade Accounts window) when it describes
+          that account; when it looks at another account (DEMO on Sim1, 23.10) →
+          Sim1's own open_pnl/daily_pnl. acct_ok=false → "—" (07-28 rule). */}
+      <Cell label="P&L פתוח" title={`Open P/L — ${pnlSrcTitle}`}>
+        <span style={{ color: pnlColor(pnl.open) }}>{money(pnl.open)}</span>
       </Cell>
-      <Cell label="P&L יומי" title="Daily Profit/Loss — מה-Account Monitor">
-        <span style={{ color: pnlColor(s?.acct_daily_pl) }}>
-          {money(s?.acct_daily_pl)}
-        </span>
+      <Cell label="P&L יומי" title={`Daily P/L — ${pnlSrcTitle}`}>
+        <span style={{ color: pnlColor(pnl.daily) }}>{money(pnl.daily)}</span>
       </Cell>
+      {/* Value / cash / available exist only in the Account Monitor — shown only when it
+          describes the account we trade (else they are another account's numbers). */}
       <Cell label="שווי חשבון" title="Account Value (NLV) — מה-Account Monitor">
-        {money(s?.acct_account_value)}
+        {acctSame ? money(s?.acct_account_value) : '—'}
       </Cell>
       <Cell label="מזומן" title="Cash Balance — מה-Account Monitor">
-        {money(s?.acct_cash_balance)}
+        {acctSame ? money(s?.acct_cash_balance) : '—'}
       </Cell>
       <Cell label="פנוי למסחר" title="Available Funds — מה-Account Monitor">
-        {money(s?.acct_available_funds)}
+        {acctSame ? money(s?.acct_available_funds) : '—'}
       </Cell>
       <Cell label="פקודות" title="פקודות עובדות (סטופים/יעדים)">
         <span style={{ color: naked ? '#dc2626' : COLORS.textSecondary }}>{stops ?? '—'}</span>
@@ -177,6 +174,12 @@ export function SierraTruthStrip() {
         <span style={{ fontSize: 8, color: '#eab308' }}
           title="ה-DLL עדיין לא מייצא את נתוני ה-Account Monitor — נדרש Remote Build">
           נתוני-חשבון: ממתין לבילד
+        </span>
+      )}
+      {pnl.monitorMismatch && (
+        <span style={{ fontSize: 8, color: '#eab308' }}
+          title={`ה-Account Monitor של סיירה מתאר חשבון אחר (acct_is_sim=${s?.acct_is_sim ?? '—'}) מהחשבון שהמערכת סוחרת בו (${acctName}, is_sim=${s?.is_sim ?? '—'}). ה-P&L מוצג מ-${acctName} עצמו; שווי/מזומן/פנוי — לא מוצגים.`}>
+          מוניטור-חשבון ≠ {acctName}
         </span>
       )}
       {(s?.acct_trading_disabled === 1 || s?.acct_under_margin === 1) && (

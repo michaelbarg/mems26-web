@@ -10,11 +10,8 @@ import { SidePanel } from './SidePanel';
 import { DemoMonitor } from './DemoMonitor';
 import { ViewTabs, type DashboardView } from './ViewTabs';
 import { PriceDebugConsole } from '../PriceDebugConsole';
-// import { ChartV5a } from '../chart/ChartV5a';  // W5.13: kept as backup
 import { ChartV5b } from '../chart/v5b/ChartV5b';
 import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
-import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
-import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { OpeningTypePanel } from '../strips/OpeningTypePanel';
 import { DirectionStrip } from '../strips/DirectionStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
@@ -23,7 +20,6 @@ import { TradeDetailsModal } from '../trades/TradeDetailsModal';
 import { DayTypeLabelTab } from '../day-type/DayTypeLabelTab';
 import { TreeStarField } from '../tree/TreeStarField';
 import { useLayoutStore } from '../../stores/layoutStore';
-import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
 import { useLivePricePoll } from '../../hooks/useLivePricePoll';
@@ -43,7 +39,9 @@ export function V9Dashboard() {
   // component, not the unused DashboardLayout) never listened → "nothing
   // happens". Now the right SidePanel collapses → full-width chart.
   const { panelsCollapsed } = useLayoutStore();
-  useSystemEvents();
+  // 23.10: useSystemEvents() removed — its 6 sockets to /ws/v9/signals/{1..6} never got
+  // an update (no Redis) and reconnected forever; the TopBar Killzone chip (its only
+  // consumer) now reads systemStateStore, fed by the polling below.
   // P30 FORENSICS: 5s is the floor — fires/ZLR need <5s visibility.
   // Do NOT increase past 5000 without Michael's approval.
   useSystemStatePolling(5000);
@@ -163,7 +161,6 @@ export function V9Dashboard() {
               {/* Strips below chart */}
               <DirectionStrip />
               <TradeHistoryStrip />
-              <ShadowSoakStrip />
             </div>
             {!panelsCollapsed && <SidePanel />}
           </div>

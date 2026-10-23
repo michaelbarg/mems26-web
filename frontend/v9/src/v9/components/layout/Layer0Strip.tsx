@@ -32,7 +32,6 @@ export function Layer0Strip() {
   const [news, setNews] = useState<string | null>(null);
   const [chopScore, setChopScore] = useState<number | null>(null);
   const [chopState, setChopState] = useState<string | null>(null);
-  const [sufferingSide, setSufferingSide] = useState<string | null>(null);
 
   useEffect(() => {
     const poll = async () => {
@@ -52,14 +51,6 @@ export function Layer0Strip() {
           setChopScore(d.chop_score ?? null);
           setChopState(d.state ?? null);
           setNews(d.news_window ?? null);
-        }
-      } catch { /* silent */ }
-      // Suffering Side from veto endpoint
-      try {
-        const vr = await fetch(`${API}/api/v9/veto/state`).catch(() => null);
-        if (vr && vr.ok) {
-          const v = await vr.json();
-          setSufferingSide(v.suffering_side ?? null);
         }
       } catch { /* silent */ }
     };
@@ -97,7 +88,9 @@ export function Layer0Strip() {
         <Chip label="P-V" value={fmt(chop.poc_vwap_distance, 1)} color="#facc15" />
       </div>
 
-      {/* κ.6: Chop Score + State pill + κ.7: Suffering Side + News */}
+      {/* κ.6: Chop Score + State pill + News. The κ.7 "SS:" (Suffering Side) pill was
+          removed 23.10 (audit §4ב): /veto/state's SSV gets no outcomes, so it read
+          "SS: NONE" forever. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {/* Chop state pill */}
         {chopState && (() => {
@@ -115,19 +108,6 @@ export function Layer0Strip() {
             </span>
           );
         })()}
-        {/* Suffering Side pill — per Pixel Spec §2.2 */}
-        <span
-          data-testid="l0-ss-pill"
-          style={{
-            height: 20, padding: '2px 6px', borderRadius: 10,
-            fontSize: 10, fontWeight: 600, fontFamily: 'ui-monospace, monospace',
-            background: sufferingSide === 'LONG' ? 'rgba(220,38,38,0.2)'
-                       : sufferingSide === 'SHORT' ? 'rgba(22,163,74,0.2)'
-                       : 'rgba(82,82,82,0.2)',
-            color: '#fff',
-          }}>
-          SS: {sufferingSide ?? 'NONE'}
-        </span>
         {/* News window */}
         <span style={{ fontSize: 9, color: news === 'upcoming' ? '#f59e0b' : news === 'recent' ? '#dc2626' : '#525252', fontFamily: 'ui-monospace' }}>
           News {news === 'upcoming' ? '\u25B2' : news === 'recent' ? '\u25BC' : '\u2014'}

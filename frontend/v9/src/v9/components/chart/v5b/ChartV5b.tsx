@@ -22,7 +22,6 @@ import {
   syncYesterdayTpoLines,
   type TpoOverlayData,
 } from './tpoLevels';
-import { useMarketStore } from '../../../stores/marketStore';
 import {
   applyCvdSeriesData,
   applyPaneStretchFactors,
@@ -228,7 +227,6 @@ export function ChartV5b() {
   const [barsForCvd, setBarsForCvd] = useState<CvdAlignBar[]>([]);
   const [tpoOverlay, setTpoOverlay] = useState<TpoOverlayData | null>(null);
   const tpoOverlayRef = useRef<TpoOverlayData | null>(null);
-  const setMarketLevels = useMarketStore((s) => s.setLevels);
   const earliestTsRef = useRef<string | null>(null);
   const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
@@ -877,23 +875,28 @@ export function ChartV5b() {
         const d = await curRes.json();
         const prevDay = await prevDayRes.json();
 
-        // Prefer previous_session from /current (DLL reads Sierra TPO study).
-        // Fall back to /previous_day only if DLL values are invalid.
+        // Yesterday's value = the DB CASH session (/tpo/previous_day → v9_tpo_sessions,
+        // session_type='CASH') — the same row the decision tree and the gateway trade on
+        // (tpo_routes._load_previous_cash_session → /tree/state context.prev_va).
+        // Fix 23.10 (audit §3): the chart preferred Sierra's previous_session block
+        // (Study ID:1), which for 22.10 gave VAH 7732.75 / VAL 7686.75 / POC 7709.75
+        // against the tree's 7714.0 / 7685.5 / 7698.25 — the screen drew a different
+        // "yesterday's value" than the one being traded. Sierra's block is now the
+        // fallback only (no valid DB row), with the old per-level fill from the DB.
         const rawPrev = d.previous_session as TpoOverlayData['previous_session'] | undefined;
-        let yPoc = rawPrev?.poc;
-        let yVah = rawPrev?.vah;
-        let yVal = rawPrev?.val;
-        if (
-          !isValidMesTpoPrice(yPoc) ||
-          !isValidMesTpoPrice(yVah) ||
-          !isValidMesTpoPrice(yVal)
-        ) {
-          if (prevDay?.found) {
-            if (!isValidMesTpoPrice(yPoc)) yPoc = prevDay.poc;
-            if (!isValidMesTpoPrice(yVah)) yVah = prevDay.vah;
-            if (!isValidMesTpoPrice(yVal)) yVal = prevDay.val;
-          }
+        const dbPrevOk = !!prevDay?.found
+          && isValidMesTpoPrice(prevDay.poc)
+          && isValidMesTpoPrice(prevDay.vah)
+          && isValidMesTpoPrice(prevDay.val);
+        let yPoc = dbPrevOk ? prevDay.poc : rawPrev?.poc;
+        let yVah = dbPrevOk ? prevDay.vah : rawPrev?.vah;
+        let yVal = dbPrevOk ? prevDay.val : rawPrev?.val;
+        if (!dbPrevOk && prevDay?.found) {
+          if (!isValidMesTpoPrice(yPoc)) yPoc = prevDay.poc;
+          if (!isValidMesTpoPrice(yVah)) yVah = prevDay.vah;
+          if (!isValidMesTpoPrice(yVal)) yVal = prevDay.val;
         }
+        const prevSource = dbPrevOk ? 'db_cash (= tree)' : 'sierra previous_session (DB row missing)';
         const yOpen = rawPrev?.opened_ts ?? null;
         const yClose = rawPrev?.closed_ts ?? null;
 
@@ -925,11 +928,6 @@ export function ChartV5b() {
         tpoOverlayRef.current = overlayPayload;
         setTpoOverlay(overlayPayload);
         const todayLv = resolveTodayLevels(overlayPayload);
-        setMarketLevels({
-          currentPOC: todayLv.poc,
-          currentVAH: todayLv.vah,
-          currentVAL: todayLv.val,
-        });
         const lineCount = applyTpoToChart(overlayPayload);
         console.info('[ChartV5b] TPO loaded', {
           raw: { poc: d.poc, vah: d.vah, val: d.val },
@@ -938,6 +936,7 @@ export function ChartV5b() {
           plotPrices: collectTpoPrices(overlayPayload),
           lineCount,
           prevFound: hasPrevPrices,
+          prevSource,
         });
       } catch (e) {
         console.warn('[ChartV5b] TPO load failed', e);

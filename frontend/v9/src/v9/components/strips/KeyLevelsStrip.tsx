@@ -1,7 +1,15 @@
 'use client';
 import { COLORS } from '../../design/tokens';
-import { useKeyLevels } from '../../hooks/useKeyLevels';
+import { IB_CLASS_TITLE, prevVaSource, useKeyLevels } from '../../hooks/useKeyLevels';
 import { useLiveDayType } from '../../hooks/useLiveDayType';
+
+// Audit 23.10 §3 — the same screen showed different numbers for "the same" level;
+// each source is now labelled (hover text + the YEST tag):
+//  · TODAY POC/VAH/VAL — Sierra TPO session study, live (tpo.json).
+//  · YEST POC/VAH/VAL  — sources.prev_day_va: DB CASH session = the tree's, or Sierra.
+//  · IB class          — absolute thresholds (15/25 pt); the S1 classifier grades the
+//                        same IB relative to history and can say otherwise.
+const TODAY_VA_TITLE = 'POC/VAH/VAL של היום — מחקר ה-TPO של סיירה (Study ID:3), חי. ה-POC בשורת-הכיוון מתחת לגרף הוא שורת ה-CASH של היום ב-DB ועלול לפגר.';
 
 function px(v: number | null | undefined, dec = 2): string {
   return v != null ? v.toFixed(dec) : '—';
@@ -54,15 +62,17 @@ function PocBlock({
   vah,
   val,
   color,
+  title,
 }: {
   label: string;
   poc: number | null;
   vah: number | null;
   val: number | null;
   color: string;
+  title?: string;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }} title={title}>
       <Label>{label}</Label>
       <Val v={`POC ${px(poc)}`} color={color} bold />
       <span style={{ color: COLORS.textDisabled, fontSize: 9 }}>/</span>
@@ -150,7 +160,7 @@ function IbBlock({
           <span style={{ color: COLORS.textDisabled, fontSize: 9 }}>/</span>
           <Val v={`L ${px(low)}`} color={ibColor} />
           {width != null && (
-            <span style={{
+            <span title={IB_CLASS_TITLE} style={{
               fontSize: 8,
               fontWeight: 700,
               padding: '1px 4px',
@@ -172,6 +182,7 @@ export function KeyLevelsStrip() {
   const { data: kl, loading } = useKeyLevels(15_000);
   const t = kl.today;
   const p = kl.prev_day;
+  const yestSrc = prevVaSource(kl.sources, p);
   // Day-type: useLiveDayType overlays gate label from /day_type/live (override-aware).
   // Falls back to key_levels.today.day_type only when live is unavailable.
   const live = useLiveDayType();
@@ -201,12 +212,12 @@ export function KeyLevelsStrip() {
       }}
     >
       {/* 1. Today POC/VAH/VAL */}
-      <PocBlock label="TODAY POC" poc={t.poc} vah={t.vah} val={t.val} color="#a78bfa" />
+      <PocBlock label="TODAY POC" poc={t.poc} vah={t.vah} val={t.val} color="#a78bfa" title={TODAY_VA_TITLE} />
 
       <Sep />
 
-      {/* 2. Yest POC/VAH/VAL */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      {/* 2. Yest POC/VAH/VAL — tagged with its source (DB CASH = the tree's, or Sierra) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }} title={yestSrc.title}>
         {p.session_date && (
           <span style={{
             fontSize: 8,
@@ -217,6 +228,15 @@ export function KeyLevelsStrip() {
           </span>
         )}
         <PocBlock label="YEST POC" poc={p.poc} vah={p.vah} val={p.val} color="#818cf8" />
+        {yestSrc.tag && (
+          <span style={{
+            fontSize: 7, fontWeight: 700, padding: '0 3px', borderRadius: 2, whiteSpace: 'nowrap',
+            color: yestSrc.sameAsTree ? '#22c55e' : '#eab308',
+            border: `1px solid ${yestSrc.sameAsTree ? 'rgba(34,197,94,0.4)' : 'rgba(234,179,8,0.5)'}`,
+          }}>
+            {yestSrc.tag}
+          </span>
+        )}
       </div>
 
       <Sep />

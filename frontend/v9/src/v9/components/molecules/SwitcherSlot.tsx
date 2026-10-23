@@ -1,7 +1,7 @@
 'use client';
 import { Pill, type PillState } from '../atoms/Pill';
 import { SYSTEM_META } from '../../design/system_colors';
-import { useSystemStateStore } from '../../store/systemStateStore';
+import { useSystemStateStore } from '../../stores/systemStateStore';
 
 interface SwitcherSlotProps {
   systemId: number;

@@ -2,8 +2,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useTradeStore } from '../../stores/tradeStore';
-import { useSystemStore } from '../../stores/systemStore';
-import { useSystemStateStore } from '../../store/systemStateStore';
+import { useSystemStateStore } from '../../stores/systemStateStore';
 import { PriceDisplay } from '../topbar/PriceDisplay';
 import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
@@ -24,11 +23,17 @@ const MODE_STYLES: Record<string, { bg: string; border: string; text: string; la
   UNKNOWN: { bg: 'rgba(148,163,184,0.14)', border: '#94a3b8', text: '#e2e8f0', label: 'מצב ?' },
 };
 
+// Killzone chip colour by the zone's edge class (backend killzone/definitions.py:
+// NY_OPEN high · LONDON/NY_PREMARKET/NY_PM medium · ASIA/MIDDAY/POST_MARKET low ·
+// CLOSED/WEEKEND none).
+const KZ_EDGE_COLOR: Record<string, string> = {
+  high: '#56d364', medium: '#d29922', low: '#8b949e', none: '#f85149',
+};
+
 export function TopBar() {
-  const { activeChartType, setActiveChartType, togglePanels, panelsCollapsed } = useLayoutStore();
+  const { togglePanels, panelsCollapsed } = useLayoutStore();
   const accountStatus = useTradeStore((s) => s.accountStatus);
   const trades = useTradeStore((s) => s.trades);
-  const allSignals = useSystemStore((s) => s.signals);
 
   // Mode + backend health — lightweight heartbeat (no Redis)
   // ביקורת-UX 29.08 (שקר-תצוגה #1): הערך ההתחלתי היה 'SHADOW'. ה-fetch נבלע
@@ -89,14 +94,31 @@ export function TopBar() {
     f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
-  // Killzone from System 6 latest signal
-  const killzone = useMemo(() => {
-    const sys6 = allSignals.filter((s) => s.system_id === 6);
-    const latest = sys6[sys6.length - 1];
-    const zone = (latest?.payload?.session_phase as string) || '';
-    const gate = latest?.payload?.gate_open;
-    return { zone: zone || '—', open: !!gate };
-  }, [allSignals]);
+  // Killzone (S6) — from systemStateStore.systems[6]: /cockpit/systems-snapshot every 5 s
+  // (useSystemStatePolling), raw = the /api/v9/killzone/current payload. Fix 23.10
+  // (audit §3): the chip listened to WS /ws/v9/signals/6, which never sends an update
+  // (no Redis — ws_manager.py), so it sat on "— CLOSED" all day.
+  const kzSys = useSystemStateStore((s) => s.systems[6]);
+  const kzRaw = (kzSys?.raw ?? {}) as {
+    current_zone?: { name?: string | null; edge_class?: string | null; minutes_remaining?: number | null; ends_at_et?: string | null } | null;
+    next_zone?: { name?: string | null; starts_in_minutes?: number | null } | null;
+    gate_open?: boolean; is_open?: boolean;
+  };
+  const kzZone = kzRaw.current_zone?.name ?? kzSys?.state ?? null;
+  const kzEdge = kzRaw.current_zone?.edge_class ?? kzSys?.subState ?? null;
+  // /killzone/current does not expose the gate itself (only zone + edge) — OPEN/CLOSED
+  // is shown only if a gate field ever arrives; never inferred.
+  const kzGate = typeof kzRaw.gate_open === 'boolean' ? kzRaw.gate_open
+    : typeof kzRaw.is_open === 'boolean' ? kzRaw.is_open : null;
+  const kzColor = kzGate === true ? '#56d364' : kzGate === false ? '#f85149'
+    : kzEdge ? (KZ_EDGE_COLOR[kzEdge] ?? '#8b949e') : '#525252';
+  const kzTitle = [
+    'Killzone (S6) · /api/v9/killzone/current',
+    kzZone ? `אזור: ${kzZone}${kzRaw.current_zone?.ends_at_et ? ` (עד ${kzRaw.current_zone.ends_at_et} ET)` : ''}` : 'אין נתון עדיין',
+    kzEdge ? `edge: ${kzEdge}` : null,
+    kzRaw.current_zone?.minutes_remaining != null ? `נותרו ${kzRaw.current_zone.minutes_remaining} דק׳` : null,
+    kzRaw.next_zone?.name ? `הבא: ${kzRaw.next_zone.name} בעוד ${kzRaw.next_zone.starts_in_minutes ?? '—'} דק׳` : null,
+  ].filter(Boolean).join('\n');
 
   // PnL and trade counts by mode
   const stats = useMemo(() => {
@@ -165,31 +187,13 @@ export function TopBar() {
           )}
           {dtRaw.invalidated ? ' ⚠' : ''}
         </span>
-        <span className="text-xs" style={{ color: killzone.open ? '#56d364' : '#f85149' }}>
-          {killzone.zone} {killzone.open ? 'OPEN' : 'CLOSED'}
+        <span className="text-xs" style={{ color: kzColor, whiteSpace: 'nowrap' }} title={kzTitle} data-testid="topbar-killzone-chip">
+          {kzZone ? kzZone.replace(/_/g, ' ') : 'KZ —'}
+          {kzEdge && kzEdge !== 'none' ? ` · ${kzEdge}` : ''}
+          {kzGate != null ? (kzGate ? ' OPEN' : ' CLOSED') : ''}
         </span>
-        <div className="flex gap-1 ml-2">
-          <button
-            onClick={() => setActiveChartType('5min')}
-            className="px-2 py-0.5 rounded text-xs"
-            style={{
-              background: activeChartType === '5min' ? 'var(--bg-tertiary)' : 'transparent',
-              color: activeChartType === '5min' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}
-          >
-            5 Min
-          </button>
-          <button
-            onClick={() => setActiveChartType('tick_reversal')}
-            className="px-2 py-0.5 rounded text-xs"
-            style={{
-              background: activeChartType === 'tick_reversal' ? 'var(--bg-tertiary)' : 'transparent',
-              color: activeChartType === 'tick_reversal' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}
-          >
-            Tick Rev
-          </button>
-        </div>
+        {/* The "5 Min / Tick Rev" buttons were removed 23.10 (audit §4ב): they set
+            layoutStore.activeChartType, which only the deleted VolumePanel/ChartArea read. */}
       </div>
 
       {/* Center: Live Price from Event Bus */}
@@ -198,7 +202,7 @@ export function TopBar() {
         <PriceMeta />
       </div>
 
-      {/* Right: Status dots + Cap + Connection + Mode PnL + Nav */}
+      {/* Right: Status dots + Cap + Library + WR + Mode PnL + Nav */}
       <div className="flex items-center gap-3">
         {/* Agent-alive beacon (§6 — session-watch heartbeat) */}
         <AgentHeartbeatDot />
@@ -222,17 +226,13 @@ export function TopBar() {
             ${stats.shadowPnl.toFixed(0)}/$200
           </span>
         </div>
-        {/* Playbook icon */}
-        <button onClick={() => setShowPlaybook(true)} title="Playbook"
+        {/* Library icon (η.J4 — V5 §3.4). 23.10: the duplicate 📚 button (it opened the
+            same LibraryModal) and the second ConnectionIndicator (one is at the left
+            edge of this bar) were removed (audit §4ב). */}
+        <button onClick={() => setShowPlaybook(true)} title="Library (Journal / Spec / Settings)"
           style={{ fontSize: 16, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
           📘
         </button>
-        {/* Library icon (η.J4 — V5 §3.4) */}
-        <button onClick={() => setShowPlaybook(true)} title="Library (Journal / Spec / Settings)"
-          style={{ fontSize: 16, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
-          📚
-        </button>
-        <ConnectionIndicator />
         {wrToday != null && (
           <span style={{
             fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 12,

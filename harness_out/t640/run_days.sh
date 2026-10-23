@@ -29,6 +29,8 @@ envs_of() {
     f7)    echo "D2_PREV_FROM_DB_V1=1" ;;                           # D2: yesterday's VA from the DB + yesterday's high/low
     f17)   echo "ELQ_PRIOR_VALUE_TARGET_V1=1 D2_PREV_FROM_DB_V1=1" ;;
     f167)  echo "ELQ_PRIOR_VALUE_TARGET_V1=1 EDGE_FAILED_EXT_LIVE_V1=1 D2_PREV_FROM_DB_V1=1" ;;
+    tq)    echo "S2_TRIGGER_QUALITY_V1=1" ;;                        # S2 REACTIVE/INITIATIVE only with trigger-bar evidence (#3898 lesson)
+    f167tq) echo "ELQ_PRIOR_VALUE_TARGET_V1=1 EDGE_FAILED_EXT_LIVE_V1=1 D2_PREV_FROM_DB_V1=1 S2_TRIGGER_QUALITY_V1=1" ;;
   esac
 }
 export -f envs_of

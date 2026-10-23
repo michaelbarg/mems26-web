@@ -25,9 +25,9 @@ interface LensContentProps {
   activeTab: string;
 }
 
-function Meta({ label, value, color }: { label: string; value: string; color?: string }) {
+function Meta({ label, value, color, title }: { label: string; value: string; color?: string; title?: string }) {
   return (
-    <span style={{ whiteSpace: 'nowrap' }}>
+    <span style={{ whiteSpace: 'nowrap' }} title={title}>
       <span style={{ color: COLORS.textDisabled }}>{label} </span>
       <b style={{ color: color ?? COLORS.textSecondary, fontWeight: 600 }}>{value}</b>
     </span>
@@ -96,9 +96,10 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
           }}>
             {live.ib_width != null && (
               <Meta
-                label="IB"
+                label="IB (מסווג)"
                 value={`${live.ib_width.toFixed(1)}pt${live.ib_class && live.ib_class !== 'UNKNOWN' ? ` ${live.ib_class}` : ''}`}
                 color="#e3b341"
+                title="סיווג ה-IB של מסווג סוג-היום (classify_replay) — יחסי להיסטוריה. כרטיס Key Levels למטה מסווג את אותו IB בספים מוחלטים (15/25 נק׳), ולכן יכול לומר אחרת (למשל WIDE)."
               />
             )}
             {live.ib_source && <Meta label="מקור-IB" value={live.ib_source} color={live.ib_source === 'sierra_tpo' ? COLORS.textSecondary : '#FACC15'} />}

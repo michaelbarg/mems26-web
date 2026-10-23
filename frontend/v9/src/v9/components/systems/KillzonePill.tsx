@@ -1,6 +1,6 @@
 'use client';
 import { SwitcherSlot } from '../molecules/SwitcherSlot';
-import { useSystemStateStore } from '../../store/systemStateStore';
+import { useSystemStateStore } from '../../stores/systemStateStore';
 
 
 const ZONE_ABBREV: Record<string, string> = {

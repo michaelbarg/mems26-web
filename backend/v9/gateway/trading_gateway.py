@@ -5847,7 +5847,13 @@ class TradingGateway:
         # was inert in demo). Uses the gateway's own running counters
         # (_daily_pnl updated on every close). Default OFF → ZERO effect until
         # Michael starts the validation window. Number change = Michael sign-off.
-        if os.getenv("RISK_HALT_V1", "0").lower() in ("1", "true", "yes"):
+        # RISK_HALT_LIVE_ONLY_V1 (Michael 23.10 20:0x: "מוודא שאין מגבלת הפסד ביום שאנחנו על דמו — מבחינתי אין
+        # הפסקה על דמו"; default OFF ⇒ byte-identical): the stop-day halt is a LIVE-money guard — with the flag on
+        # and LIVE_TRADING_V1 off (demo only) it is skipped explicitly. (It never fired in demo anyway: the gateway
+        # counter excludes demo P&L — 23.10 _daily_pnl 0.0 while Sim1 was −388.75 — this pins it.)
+        _rh_live_only = (os.getenv("RISK_HALT_LIVE_ONLY_V1", "0").lower() in ("1", "true", "yes")
+                         and os.getenv("LIVE_TRADING_V1", "0").lower() not in ("1", "true", "yes"))
+        if os.getenv("RISK_HALT_V1", "0").lower() in ("1", "true", "yes") and not _rh_live_only:
             try:
                 _dl_cap = float(os.getenv("RISK_DAILY_LOSS_CAP", "450"))
             except (TypeError, ValueError):

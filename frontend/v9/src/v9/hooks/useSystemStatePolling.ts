@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from 'react';
-import { useSystemStateStore } from '../store/systemStateStore';
+import { useSystemStateStore } from '../stores/systemStateStore';
 
 export function useSystemStatePolling(intervalMs = 5000) {
   const fetchAllStates = useSystemStateStore((s) => s.fetchAllStates);

@@ -1,5 +1,5 @@
 'use client';
-import { useSystemStateStore } from '../../store/systemStateStore';
+import { useSystemStateStore } from '../../stores/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';

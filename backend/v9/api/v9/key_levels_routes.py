@@ -6,7 +6,10 @@ KeyLevelsCard see the exact same numbers Sierra displays in the chart.
 
 Returned blocks (after RTH open):
 - today:    POC/VAH/VAL (Study ID:3) + IB (Study ID:6) + session range
-- prev_day: POC/VAH/VAL (Study ID:1, previous_session) + range (prior_day)
+- prev_day: POC/VAH/VAL from the DB CASH session (tpo_routes.
+            _load_previous_cash_session — the row the tree/gateway use; 23.10),
+            Sierra previous_session (Study ID:1) as sierra_* + fallback;
+            range (prior_day)
             + IB (Sierra Input 19 → Yesterday IB study, exported by DLL
             in previous_session.ib_high/ib_low; NULL until configured).
 
@@ -156,14 +159,47 @@ def get_key_levels() -> dict[str, Any]:
         # gated to bars strictly before today's RTH open.
         globex_high, globex_low, globex_range = _globex_range(rth_open_et)
 
-        # ── Prev day POC/VAH/VAL — Sierra previous_session (Study ID:1) ────────
-        prev_poc = _f(prev_sess.get("poc"))
-        prev_vah = _f(prev_sess.get("vah"))
-        prev_val = _f(prev_sess.get("val"))
-        prev_session_date = (
+        # ── Prev day POC/VAH/VAL — the DB CASH session, the tree's own row ─────
+        # Audit 23.10 §3: this block came from Sierra's previous_session (Study
+        # ID:1) — for 22.10 VAH 7732.75 / VAL 7686.75 / POC 7709.75 — while the
+        # decision tree (/tree/state context.prev_va) and the gateway read
+        # tpo_routes._load_previous_cash_session() (v9_tpo_sessions CASH:
+        # 7714.0 / 7685.5 / 7698.25), so the screen showed a different
+        # "yesterday's value" than the one being traded. Now the same row as the
+        # tree; the previous_session block of _load_sierra_tpo() stays visible as
+        # prev_day.sierra_* and is the fallback only when there is no DB CASH row.
+        # Display-only: no decision code imports get_key_levels() (trade_manager
+        # imports only _load_sierra_tpo from this module, which is unchanged).
+        sierra_prev_poc = _f(prev_sess.get("poc"))
+        sierra_prev_vah = _f(prev_sess.get("vah"))
+        sierra_prev_val = _f(prev_sess.get("val"))
+        sierra_prev_date = (
             prev_sess.get("session_date")
             or _normalize_prev_date_from_ts(prev_sess.get("opened_ts"))
         )
+        db_prev: Optional[dict] = None
+        try:
+            from backend.v9.api.v9.tpo_routes import _load_previous_cash_session
+            db_prev = _load_previous_cash_session()
+        except Exception as e:  # display endpoint — never fail the panel on this
+            logger.warning("[key_levels] previous cash session read failed: %s", e)
+        if db_prev and _f(db_prev.get("poc")) is not None:
+            prev_poc = _f(db_prev.get("poc"))
+            prev_vah = _f(db_prev.get("vah"))
+            prev_val = _f(db_prev.get("val"))
+            prev_session_date = (
+                _normalize_prev_date_from_ts(str(db_prev.get("session_date")))
+                if db_prev.get("session_date") is not None
+                else sierra_prev_date
+            )
+            prev_va_source = (
+                "db.v9_tpo_sessions CASH (_load_previous_cash_session — "
+                "same row as the tree/gateway)"
+            )
+        else:
+            prev_poc, prev_vah, prev_val = sierra_prev_poc, sierra_prev_vah, sierra_prev_val
+            prev_session_date = sierra_prev_date
+            prev_va_source = "sierra.tpo.previous_session (Study ID:1) — fallback, no DB row"
 
         # ── Prev day Range — Sierra prior_day high/low/close ───────────────────
         prev_range_high = _f(prior_day.get("high"))
@@ -217,6 +253,9 @@ def get_key_levels() -> dict[str, Any]:
                 "poc": prev_poc,
                 "vah": prev_vah,
                 "val": prev_val,
+                "sierra_poc": sierra_prev_poc,
+                "sierra_vah": sierra_prev_vah,
+                "sierra_val": sierra_prev_val,
                 "ib_high": prev_ib_high,
                 "ib_low": prev_ib_low,
                 "ib_width": prev_ib_width,
@@ -240,7 +279,7 @@ def get_key_levels() -> dict[str, Any]:
                 "rth_range": "sierra.tpo.session.session_high/low",
                 "globex_range": "v9_bars_5min (pre-RTH bars)",
                 "day_type": "v9_day_type_history (pills only)",
-                "prev_day_va": "sierra.tpo.previous_session (Study ID:1)",
+                "prev_day_va": prev_va_source,
                 "prev_day_range": "sierra.tpo.prior_day",
                 "prev_day_ib": (
                     "sierra.tpo.previous_session.ib_* (Input 19 → Yesterday IB Study)"

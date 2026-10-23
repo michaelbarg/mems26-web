@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSystemStateStore, type HealthStatus, type SystemState } from '../../../../store/systemStateStore';
+import { useSystemStateStore, type HealthStatus, type SystemState } from '../../../../stores/systemStateStore';
 import { COLORS } from '../../../../design/tokens';
 import { SYSTEM_META, type SystemMeta } from '../../../../design/system_colors';
 import {

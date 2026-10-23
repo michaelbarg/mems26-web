@@ -1,14 +1,14 @@
 'use client';
 import { COLORS } from '../../design/tokens';
-import { useKeyLevels } from '../../hooks/useKeyLevels';
+import { IB_CLASS_TITLE, prevVaSource, useKeyLevels } from '../../hooks/useKeyLevels';
 
 function px(v: number | null | undefined, dec = 2): string {
   return v != null ? v.toFixed(dec) : '—';
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, title }: { label: string; children: React.ReactNode; title?: string }) {
   return (
-    <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }}>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'baseline' }} title={title}>
       <span style={{
         fontSize: 8,
         fontWeight: 700,
@@ -38,7 +38,8 @@ function Hl({ v, color }: { v: string; color?: string }) {
  * Compact key levels block embedded in each system's Now tab.
  * Order matches Michael's spec (2026-05-28):
  *   1. Today POC/VAH/VAL  · sierra session (Study ID:3)
- *   2. Yest  POC/VAH/VAL  · sierra previous_session (Study ID:1)
+ *   2. Yest  POC/VAH/VAL  · sources.prev_day_va — DB CASH session (= the tree's) or
+ *                           Sierra previous_session (Study ID:1); tagged on screen (23.10)
  *   3. IB Today           · sierra ib (Study ID:6)
  *   4. Y IB               · sierra previous_session.ib_* (Input 19 → Yesterday IB study)
  *   5. Yest Range         · sierra prior_day
@@ -48,6 +49,7 @@ export function KeyLevelsCard() {
   const { data: kl, loading } = useKeyLevels(15_000);
   const t = kl.today;
   const p = kl.prev_day;
+  const yestSrc = prevVaSource(kl.sources, p);
 
   const widthColor = (klass: string | null): string => {
     if (klass === 'NARROW') return '#16a34a';
@@ -85,17 +87,22 @@ export function KeyLevelsCard() {
       </div>
 
       {/* 1. TODAY POC */}
-      <Row label="TODAY POC">
+      <Row label="TODAY POC" title="POC/VAH/VAL של היום — מחקר ה-TPO של סיירה (Study ID:3), חי">
         <Hl v={`POC ${px(t.poc)}`} color="#a78bfa" />{' / '}
         <Hl v={`VAH ${px(t.vah)}`} color="#c4b5fd" />{' / '}
         <Hl v={`VAL ${px(t.val)}`} color="#c4b5fd" />
       </Row>
 
-      {/* 2. YEST POC */}
-      <Row label={`YEST POC${p.session_date ? ` ${p.session_date.slice(5)}` : ''}`}>
+      {/* 2. YEST POC — tagged with its source (DB CASH = the tree's, or Sierra) */}
+      <Row label={`YEST POC${p.session_date ? ` ${p.session_date.slice(5)}` : ''}`} title={yestSrc.title}>
         <Hl v={`POC ${px(p.poc)}`} color="#818cf8" />{' / '}
         <Hl v={`VAH ${px(p.vah)}`} color="#6366f1" />{' / '}
         <Hl v={`VAL ${px(p.val)}`} color="#6366f1" />
+        {yestSrc.tag && (
+          <span style={{ marginLeft: 4, fontSize: 7.5, fontWeight: 700, color: yestSrc.sameAsTree ? '#22c55e' : '#eab308' }}>
+            [{yestSrc.tag}]
+          </span>
+        )}
       </Row>
 
       {/* 3. IB TODAY */}
@@ -107,7 +114,7 @@ export function KeyLevelsCard() {
             <Hl v={`H ${px(t.ib_high)}`} color="#f59e0b" />{' / '}
             <Hl v={`L ${px(t.ib_low)}`} color="#f59e0b" />
             {t.ib_width != null && (
-              <span style={{ marginLeft: 4, color: ibClassColor, fontWeight: 700 }}>
+              <span title={IB_CLASS_TITLE} style={{ marginLeft: 4, color: ibClassColor, fontWeight: 700 }}>
                 {px(t.ib_width, 1)}pt {t.ib_class ?? ''}
               </span>
             )}

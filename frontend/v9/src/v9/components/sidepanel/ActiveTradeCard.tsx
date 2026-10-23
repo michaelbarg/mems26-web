@@ -5,6 +5,9 @@ import { SYSTEM_META, systemColor } from '../../design/system_colors';
 import { useTradeStore } from '../../stores/tradeStore';
 import { exitTrade, fetchActiveTrade, getApiBase } from '../../lib/api';
 import { fmtTimeET, fmtTimeIL } from '../../lib/tradeTime';
+// System-6 diagnose payload + Hebrew issue titles — the same reading the /trades
+// page uses for this endpoint (one source, no duplicated map).
+import { CODE_TITLE as S6_CODE_TITLE, sevColor as s6SevColor, type S6Diagnose } from '../trades/TradeRecommendations';
 // Live price — REUSES the store the dashboard already feeds (usePriceStream WS
 // + useLivePricePoll fallback mounted in V9Dashboard). Subscribing here adds
 // ZERO new network polls (CLAUDE.md Frontend Polling Floors).
@@ -322,9 +325,14 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
         </span>
       </div>
 
-      <System6Block tradeId={Number.isFinite(Number(trade.trade_id)) ? Number(trade.trade_id) : null} />
+      {/* keyed by trade id → a new trade starts from 'טוען…', never the previous trade's diagnosis */}
+      <System6Block
+        key={String(trade.trade_id ?? 'none')}
+        tradeId={Number.isFinite(Number(trade.trade_id)) ? Number(trade.trade_id) : null}
+      />
 
-      {/* §3.5 Flow 5: Exit + Move Stop buttons */}
+      {/* §3.5 Flow 5: Exit button. The "Move Stop" button next to it was removed
+          23.10 (audit §4ב) — it was never wired: it only popped "not wired to the API yet". */}
       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
         <button
           onClick={async () => {
@@ -351,62 +359,44 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
             border: '1px solid #dc2626', background: 'rgba(220,38,38,0.12)', color: '#dc2626',
           }}
         >Exit</button>
-        <button
-          onClick={() => {
-            const ticks = prompt('Move stop by N ticks (positive=tighter):');
-            if (ticks) {
-              alert('Move Stop is not wired to the API yet — use Sierra or manual stop update.');
-            }
-          }}
-          style={{
-            flex: 1, fontSize: 9, padding: '3px 0', borderRadius: 3, cursor: 'pointer',
-            border: `1px solid ${COLORS.borderFaint}`, background: 'transparent', color: COLORS.textTertiary,
-          }}
-        >Move Stop</button>
       </div>
     </div>
   );
 }
 
 
-interface S6Check {
-  name?: string;
-  key?: string;
-  ok?: boolean;
-  pass?: boolean;
-  status?: string;
-  severity?: string;
-  detail?: string | null;
-  message?: string | null;
-}
-
 /**
  * System6Block — live System-6 supervisor view on the active-trade card (מייקל 07-10:
  * "שמערכת 6 תהיה שם ורואים מה היא חושבת"). Polls every 15s.
  *
- * NEEDS A CC ENDPOINT: GET /api/v9/s6/diagnose/{trade_id} — runs diagnose_trade() on the
- * open trade and returns either an array of checks OR { checks:[...], ruling }, where each
- * check is { name|key, ok|pass|status:"PASS"/"FAIL", severity?, detail? }. Until CC ships it
- * (currently 404) the block degrades to a note + the agent-journal link (/board#system6).
+ * Source: GET /api/v9/s6/diagnose/{trade_id} (alias of /api/v9/system6/diagnose/{id},
+ * backend/v9/api/v9/system6_routes.py) — the 9 management invariants →
+ *   { trade_id, state, outcome, healthy, issues:[{code, severity, action, detail, correction}] }
+ * Read exactly like trades/TradeRecommendations.tsx. Fix 23.10 (audit §3): this block
+ * looked for checks/invariants/diagnostics + ruling/verdict — fields the endpoint never
+ * sends — so it always showed "אין נתוני פיקוח". An unknown id comes back as HTTP 200
+ * {error}; that, a 404 or a network error → a muted note, never a throw. Read-only.
  */
 function System6Block({ tradeId }: { tradeId: number | null }) {
-  const [checks, setChecks] = useState<S6Check[] | null>(null);
-  const [ruling, setRuling] = useState<string | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ok' | 'absent' | 'error'>('loading');
+  const [data, setData] = useState<S6Diagnose | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'unavailable' | 'error'>('loading');
 
   useEffect(() => {
-    if (tradeId == null) { setStatus('absent'); return; }
+    if (tradeId == null) return; // rendered as 'unavailable' below — no setState here
     let alive = true;
     const load = async () => {
       try {
         const res = await fetch(`${getApiBase()}/api/v9/s6/diagnose/${tradeId}`, { cache: 'no-store' });
         if (!alive) return;
-        if (res.status === 404) { setStatus('absent'); return; }
-        if (!res.ok) { setStatus('error'); return; }
-        const d = await res.json();
-        const list: S6Check[] = Array.isArray(d) ? d : (d.checks ?? d.invariants ?? d.diagnostics ?? []);
-        setChecks(list);
-        setRuling(!Array.isArray(d) ? (d.ruling ?? d.verdict ?? d.last_ruling ?? null) : null);
+        if (!res.ok) { setData(null); setStatus(res.status === 404 ? 'unavailable' : 'error'); return; }
+        const d = (await res.json()) as S6Diagnose | null;
+        if (!alive) return;
+        if (!d || typeof d !== 'object' || Array.isArray(d) || d.error || typeof d.healthy !== 'boolean') {
+          setData(d && typeof d === 'object' && !Array.isArray(d) ? d : null);
+          setStatus('unavailable');
+          return;
+        }
+        setData(d);
         setStatus('ok');
       } catch { if (alive) setStatus('error'); }
     };
@@ -415,12 +405,17 @@ function System6Block({ tradeId }: { tradeId: number | null }) {
     return () => { alive = false; clearInterval(id); };
   }, [tradeId]);
 
-  const isPass = (c: S6Check): boolean => {
-    if (typeof c.ok === 'boolean') return c.ok;
-    if (typeof c.pass === 'boolean') return c.pass;
-    const s = String(c.status ?? c.severity ?? '').toUpperCase();
-    return s.startsWith('PASS') || s === 'OK' || s === 'GOOD';
-  };
+  const shown = tradeId == null ? 'unavailable' : status;
+  const issues = shown === 'ok' ? (data?.issues ?? []) : [];
+  const healthy = shown === 'ok' && data?.healthy === true && issues.length === 0;
+  // Worst severity decides the headline colour (same reduction as TradeRecommendations).
+  const worst = issues.reduce<string>((acc, i) => {
+    const s = (i.severity || '').toUpperCase();
+    if (acc === 'CRITICAL') return acc;
+    if (s === 'CRITICAL') return 'CRITICAL';
+    if (s === 'WARN') return 'WARN';
+    return acc || s;
+  }, '');
 
   return (
     <div style={{ marginTop: 6, padding: '5px 7px', borderRadius: 6, border: `1px solid ${COLORS.borderFaint}`, background: COLORS.bgSurface3, direction: 'rtl', textAlign: 'right' }}>
@@ -428,28 +423,39 @@ function System6Block({ tradeId }: { tradeId: number | null }) {
         <span style={{ fontSize: 9, fontWeight: 700, color: systemColor(6) }}>מערכת 6 — פיקוח</span>
         <a href="/board#system6" target="_blank" rel="noreferrer" style={{ fontSize: 8.5, color: '#58a6ff', textDecoration: 'none' }}>יומן הסוכן ↗</a>
       </div>
-      {status === 'ok' && checks && checks.length > 0 ? (
+      {shown === 'ok' ? (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {checks.map((c, i) => {
-              const pass = isPass(c);
-              return (
-                <div key={i} style={{ fontSize: 8.5, color: COLORS.textSecondary, display: 'flex', gap: 4 }}>
-                  <span style={{ color: pass ? COLORS.bull : COLORS.bear, fontWeight: 700 }}>{pass ? '✓' : '✗'}</span>
-                  <span>{c.name ?? c.key ?? `בדיקה ${i + 1}`}</span>
-                  {c.detail || c.message ? <span style={{ color: COLORS.textTertiary }}>— {c.detail ?? c.message}</span> : null}
-                </div>
-              );
-            })}
+          <div style={{ fontSize: 8.5, fontWeight: 700, color: healthy ? COLORS.bull : s6SevColor(worst || 'WARN') }}>
+            {healthy
+              ? '✓ הניהול תקין — לא אותרו כשלים'
+              : issues.length > 0
+                ? `⚠ ${issues.length} ${issues.length === 1 ? 'כשל' : 'כשלים'} בניהול העסקה`
+                : '⚠ לא תקין (ללא פירוט)'}
           </div>
-          {ruling ? <div style={{ fontSize: 8.5, marginTop: 3, color: COLORS.textTertiary }}>שיפוט: {ruling}</div> : null}
+          {issues.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+              {issues.map((iss, i) => {
+                const col = s6SevColor(iss.severity);
+                return (
+                  <div key={`${iss.code}-${i}`} style={{ fontSize: 8.5, color: COLORS.textSecondary, lineHeight: 1.35 }}>
+                    <span style={{ color: col, fontWeight: 700 }}>✗ {S6_CODE_TITLE[iss.code] ?? iss.code}</span>
+                    <span style={{ color: col, fontSize: 7.5, marginInlineStart: 4 }}>
+                      {(iss.severity || '').toUpperCase()}{iss.action ? ` · ${iss.action}` : ''}
+                    </span>
+                    {iss.detail ? (
+                      <div style={{ color: COLORS.textTertiary }}><bdi>{iss.detail}</bdi></div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       ) : (
         <div style={{ fontSize: 8.5, color: COLORS.textTertiary }}>
-          {status === 'loading' ? 'טוען…'
-            : status === 'absent' ? 'ממתין ל-endpoint מ-CC: GET /api/v9/s6/diagnose/{trade_id}'
-            : status === 'error' ? 'שגיאה בקריאת מערכת 6'
-            : 'אין נתוני פיקוח'}
+          {shown === 'loading' ? 'טוען…'
+            : shown === 'error' ? 'שגיאה בקריאת מערכת 6'
+            : `אין אבחון זמין${data?.error ? ` — ${data.error}` : ''}`}
         </div>
       )}
     </div>

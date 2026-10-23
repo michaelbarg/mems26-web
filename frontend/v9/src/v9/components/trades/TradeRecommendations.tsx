@@ -17,19 +17,21 @@ import { useEffect, useState } from 'react';
 import type { Trade } from '../../types';
 import { getApiBase } from '../../lib/api';
 
+// Exported (with CODE_TITLE + sevColor) for the System-6 block on the active-trade
+// card (sidepanel/ActiveTradeCard.tsx), which reads the same endpoint.
 interface S6Correction {
   op?: string;
   price?: number;
   target?: string;
 }
-interface S6Issue {
+export interface S6Issue {
   code: string;
   severity: string; // INFO | WARN | CRITICAL
   action?: string; // AUTO | ALERT
   detail: string;
   correction?: S6Correction | null;
 }
-interface S6Diagnose {
+export interface S6Diagnose {
   trade_id?: number;
   state?: string | null;
   outcome?: string | null;
@@ -42,7 +44,7 @@ type LoadState = 'loading' | 'ok' | 'unavailable';
 
 // code → Hebrew "מה השתבש" headline. The raw English `detail` (with live numbers)
 // is always shown underneath, so an unmapped/new code still renders sensibly.
-const CODE_TITLE: Record<string, string> = {
+export const CODE_TITLE: Record<string, string> = {
   reconcile_mismatch: 'מקורות הפוזיציה לא מסונכרנים (gateway / DB / Sierra)',
   no_entry: 'לעסקה אין מחיר כניסה',
   naked_stop: 'פוזיציה פתוחה ללא סטופ מגן',
@@ -76,7 +78,7 @@ const CODE_ADVICE: Record<string, string> = {
   eod_open_position: 'שקול לסגור את הפוזיציה לפני חלון ה-EOD',
 };
 
-function sevColor(sev: string | undefined): string {
+export function sevColor(sev: string | undefined): string {
   const s = (sev || '').toUpperCase();
   if (s === 'CRITICAL') return 'var(--red)';
   if (s === 'WARN') return '#eab308';

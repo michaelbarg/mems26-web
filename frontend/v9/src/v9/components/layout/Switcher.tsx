@@ -31,7 +31,7 @@ import { KillzonePill } from '../systems/KillzonePill';
 import { OpeningTypeChip } from '../systems/OpeningTypeChip';
 import { SYSTEM_META } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
-import { useSystemStateStore } from '../../store/systemStateStore';
+import { useSystemStateStore } from '../../stores/systemStateStore';
 import { useDirectionNow } from '../../hooks/useDirectionNow';
 import { dayTypeColor } from '../../lib/dayType';
 import { fetchRecentTrades } from '../../lib/api';

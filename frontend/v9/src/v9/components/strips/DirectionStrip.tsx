@@ -72,9 +72,15 @@ export function DirectionStrip() {
         />
       )}
       <span style={{ color: '#8b949e', fontSize: 11 }}>{d?.reason || '—'}</span>
+      {/* Audit 23.10 §3: this POC is today's CASH row in the DB (v9_tpo_sessions —
+          direction_context_live), not Sierra's live session POC shown in Key Levels /
+          used by the tree; it can lag (seen 7660 vs 7671). Labelled so the two read apart. */}
       {d && d.poc != null && (
-        <span style={{ color: '#6e7681', marginInlineStart: 'auto', fontSize: 11 }}>
-          IB {d.ib_low}–{d.ib_high} · POC {d.poc} · {d.n_bars} ברים
+        <span
+          style={{ color: '#6e7681', marginInlineStart: 'auto', fontSize: 11 }}
+          title="IB + POC מהשורה של היום ב-v9_tpo_sessions (DB) — מתעדכנת במחזוריות ועלולה לפגר אחרי ה-POC החי של סיירה (Key Levels / העץ)"
+        >
+          IB {d.ib_low}–{d.ib_high} · POC(DB) {d.poc} · {d.n_bars} ברים
         </span>
       )}
     </div>
