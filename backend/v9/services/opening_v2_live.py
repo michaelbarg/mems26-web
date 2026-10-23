@@ -62,9 +62,16 @@ def _q(sql: str, params: dict) -> list:
 
 
 def _session_date_et(now: Optional[dt.datetime] = None) -> dt.date:
+    """the session date (ET) — from market_clock so the replay harness (REPLAY mode) sees the replayed day,
+    not the wall-clock day (23.10: datetime.now() here would have fed every replayed session today's inputs)."""
     from zoneinfo import ZoneInfo
-    n = now or dt.datetime.now(dt.timezone.utc)
-    return n.astimezone(ZoneInfo("America/New_York")).date()
+    if now is None:
+        try:
+            from backend.v9.services.market_clock import now_et as _now_et
+            now = _now_et()
+        except Exception:
+            now = dt.datetime.now(dt.timezone.utc)
+    return now.astimezone(ZoneInfo("America/New_York")).date()
 
 
 def _prior_sessions(today: dt.date, k: int = 3) -> List[dict]:

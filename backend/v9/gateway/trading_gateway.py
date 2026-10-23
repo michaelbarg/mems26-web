@@ -3250,16 +3250,31 @@ class TradingGateway:
                 if _mv_entry > 0 and _mv_a and _mv_is_mid(_mv_entry, _mv_tpo.get("vah"), _mv_tpo.get("val"),
                                                            _mv_tpo.get("poc"), _mv_a):
                     _mv_prev = {}
+                    _mv_pd = {}
+                    # T-640 F7 D2_PREV_FROM_DB_V1 (23.10, default OFF ⇒ byte-identical): yesterday's value from the SAME
+                    # source as the tree (the DB CASH session row) and yesterday's high/low from prior_day. Live, the
+                    # Sierra previous_session block said VAH 7732.75 / VAL 7686.75 for 22.10 while the DB (the tree,
+                    # the harness that measured D2) said 7714 / 7685.5 — and it carries no high/low at all, so the
+                    # "yesterday's low/high" edges of the D2 spec were always None (frontend/backend audit 23.10).
+                    _mv_f7 = os.getenv("D2_PREV_FROM_DB_V1", "0").strip().lower() in ("1", "true", "yes")
                     try:
                         from backend.v9.api.v9.tpo_routes import _load_sierra_tpo as _mv_load_tpo
-                        _mv_prev = ((_mv_load_tpo() or {}).get("previous_session") or {})
+                        _mv_t = _mv_load_tpo() or {}
+                        _mv_prev = (_mv_t.get("previous_session") or {})
+                        if _mv_f7:
+                            _mv_pd = (_mv_t.get("prior_day") or {})
+                            from backend.v9.api.v9.tpo_routes import _load_previous_cash_session as _mv_db_prev
+                            _mv_db = _mv_db_prev() or {}
+                            if _mv_db.get("vah") and _mv_db.get("val"):
+                                _mv_prev = dict(_mv_prev, vah=_mv_db.get("vah"), val=_mv_db.get("val"),
+                                                poc=_mv_db.get("poc"))
                     except Exception as _mv_pe:
                         logger.info("[Gateway] T-635 D2: previous_session unreadable (%s) — today's edges only", _mv_pe)
                     _mv_levels = {"val": _mv_tpo.get("val"), "vah": _mv_tpo.get("vah"),
                                   "ib_low": _mv_tpo.get("ib_low"), "ib_high": _mv_tpo.get("ib_high"),
                                   "prev_val": _mv_prev.get("val"), "prev_vah": _mv_prev.get("vah"),
-                                  "prev_low": _mv_prev.get("low") or _mv_prev.get("range_low"),
-                                  "prev_high": _mv_prev.get("high") or _mv_prev.get("range_high")}
+                                  "prev_low": _mv_prev.get("low") or _mv_prev.get("range_low") or (_mv_pd.get("low") if _mv_f7 else None),
+                                  "prev_high": _mv_prev.get("high") or _mv_prev.get("range_high") or (_mv_pd.get("high") if _mv_f7 else None)}
                     _mv_v = _mv_test(direction, _mv_entry, _mv_bars, _mv_levels, _mv_a)
                     if not _mv_v.get("ok", True):
                         result["blocked_by"] = "mid_value_no_edge_test"
@@ -3391,6 +3406,35 @@ class TradingGateway:
                            "(ELQ_WITH_EXT_SKIP_V1)", setup.get("classification"), direction)
             result["elq_skipped"] = "with_live_extension"
             _elq_skip_drive = True
+        # T-640 F1 ELQ_PRIOR_VALUE_TARGET_V1 (Michael 23.10 "איך מתקנים את מה שראית" · "תמשיך"; default OFF ⇒
+        # byte-identical): an entry that moves INTO yesterday's value after the session opened outside it and the
+        # gap was rejected back inside yesterday's range is going TO value, not past it — the beyond-value arm is
+        # judged against today's (gap-rotation) value and would call it a chase. 23.10 18:05 TREND_STEP LONG @7686
+        # (yesterday's VAL, three bars of pause) died here (ex=0.33) while the counter-extension short #3876 fired.
+        # Yesterday's value from the DB session row (the tree's own source); yesterday's high/low from prior_day.
+        # Pure rule: backend/v9/systems/prior_value_target.py. Fail-open = ELQ judges as before.
+        try:
+            if (os.getenv("ELQ_PRIOR_VALUE_TARGET_V1", "0").strip().lower() in ("1", "true", "yes")
+                    and _elq_mode in ("1", "true", "shadow") and not _elq_skip_drive and not _elq_skip_tree):
+                from backend.v9.systems.prior_value_target import toward_prior_value as _t640_tpv
+                from backend.v9.services.trade_context import get_closed_rth_bars_today as _t640_bars_fn
+                from backend.v9.api.v9.tpo_routes import (_load_previous_cash_session as _t640_prev_fn,
+                                                          _load_sierra_tpo as _t640_tpo_fn)
+                _t640_bars = [b for b in (_t640_bars_fn() or []) if b]
+                if _t640_bars:
+                    _t640_prev = _t640_prev_fn() or {}
+                    _t640_pd = ((_t640_tpo_fn() or {}).get("prior_day") or {})
+                    _t640_ok, _t640_why = _t640_tpv(
+                        direction, setup.get("entry_price"), _t640_bars[0].get("o"), _t640_bars[-1].get("c"),
+                        _t640_prev.get("vah"), _t640_prev.get("val"), _t640_prev.get("poc"),
+                        _t640_pd.get("high"), _t640_pd.get("low"))
+                    if _t640_ok:
+                        logger.warning("[Gateway] T-640 ELQ skipped: %s %s toward yesterday's value — %s",
+                                       setup.get("classification"), direction, _t640_why)
+                        result["elq_skipped"] = "toward_prior_value"
+                        _elq_skip_drive = True
+        except Exception as _t640_err:
+            logger.info("[Gateway] T-640 toward-prior-value errored (fail-open, ELQ judges): %s", _t640_err)
         if (_elq_mode in ("1", "true", "shadow") and not _elq_skip_d and not _elq_skip_drive
                 and not _elq_skip_tree):
             try:
