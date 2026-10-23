@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Totals per tag over the common days: net $, trades, wins, blocked by the new gates, BE_PRE_T1 exits."""
-import json, glob, os, collections
+import json, glob, os, collections, sys
 base = "harness_out/t640/days"
-tags = ["live", "f1", "f6", "f7", "f167"]
+tags = sys.argv[1:] or ["live", "f1", "f6", "f7", "f167"]   # T-641: tags from argv (tq wall fix4 f167tq …)
 days = {t: {os.path.basename(p)[len(t) + 1:-5]: p for p in glob.glob("%s/%s_2026-*.json" % (base, t))} for t in tags}
 common = sorted(set.intersection(*[set(v.keys()) for v in days.values()]))
 print("common days:", len(common), common[0], "→", common[-1])
