@@ -31,6 +31,8 @@ envs_of() {
     f167)  echo "ELQ_PRIOR_VALUE_TARGET_V1=1 EDGE_FAILED_EXT_LIVE_V1=1 D2_PREV_FROM_DB_V1=1" ;;
     tq)    echo "S2_TRIGGER_QUALITY_V1=1" ;;                        # S2 REACTIVE/INITIATIVE only with trigger-bar evidence (#3898 lesson)
     f167tq) echo "ELQ_PRIOR_VALUE_TARGET_V1=1 EDGE_FAILED_EXT_LIVE_V1=1 D2_PREV_FROM_DB_V1=1 S2_TRIGGER_QUALITY_V1=1" ;;
+    wall)  echo "WALL_AHEAD_SKIP_V1=1" ;;                           # T-641: stand down when an old wall sits < 0.65R ahead (#3898)
+    fix4)  echo "EDGE_FAILED_EXT_LIVE_V1=1 D2_PREV_FROM_DB_V1=1 S2_TRIGGER_QUALITY_V1=1 WALL_AHEAD_SKIP_V1=1" ;;  # f6+f7+tq+wall (no F1)
   esac
 }
 export -f envs_of

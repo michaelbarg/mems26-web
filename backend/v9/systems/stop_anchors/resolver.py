@@ -85,6 +85,36 @@ def t1_structure_valid(entry_price: float, t1: float, direction: str,
     return dist >= min_ticks * tick_size
 
 
+def wall_ahead(bars: Sequence[Any], direction: str, entry_price: float, risk: float,
+               rr_min: float = 0.65, min_age_bars: int = 3, min_ticks: int = 2,
+               tick_size: float = MES_TICK) -> Optional[Tuple[float, float, int, int]]:
+    """T-641 (23.10, #3898 REACTIVE_LONG 18:55): is there a WALL between entry and a viable T1?
+
+    A wall is the structure end on the profit side (highest high for LONG, lowest low for
+    SHORT) that (a) sits AHEAD of entry by at least `min_ticks` (t1_structure_valid), (b) is
+    closer than `rr_min` × risk — the trade must break it to pay — and (c) was last touched at
+    least `min_age_bars` bars before the window's last bar: an OLD extreme the market already
+    turned from, not the extreme the current move is printing. (c) keeps the 07-22 18:55
+    breakout blind-spot case (end printed by the last bars, T1 = 1R) out of it.
+    #3898: window 17:55–18:50, end 7697.25 (18:25 + 18:30), entry 7689.25, risk 13.5 ⇒
+    8.0pt = 0.59R < 0.65R, last touched 4 bars ago ⇒ wall.
+    Returns (end, dist_pts, age_bars, touches) when it is a wall, else None. Pure."""
+    if not bars or risk is None or risk <= 0:
+        return None
+    vals = _highs(bars) if direction == "LONG" else _lows(bars)
+    end = max(vals) if direction == "LONG" else min(vals)
+    if not t1_structure_valid(entry_price, end, direction, min_ticks, tick_size):
+        return None
+    dist = (end - entry_price) if direction == "LONG" else (entry_price - end)
+    if dist >= rr_min * risk:
+        return None
+    touch = [i for i, v in enumerate(vals) if abs(v - end) <= tick_size / 2.0]
+    age = len(vals) - 1 - touch[-1]
+    if age < min_age_bars:
+        return None
+    return (end, dist, age, len(touch))
+
+
 def widen_stop_to_structure(current_stop: float, structure_stop: float,
                             direction: str) -> float:
     """Ruling D: the stop must sit BEHIND the structure extreme. Returns the

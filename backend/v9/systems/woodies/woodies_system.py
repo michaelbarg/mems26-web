@@ -1030,6 +1030,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                                     # Structure exhausted (end ≤ entry+2T) → keep ladder
                                     # T1 + tag metadata (rr gate judges honestly).
                                     if _flag("T1_STRUCTURE_END_V1"):
+                                        self._last_t1_wall_ahead = None  # T-641: per candidate — no stale key
                                         try:
                                             _pr_c = _sa.get("principles", {})
                                             _w_c = int(_pr_c.get("structure_window_bars", 12))
@@ -1063,6 +1064,20 @@ class WoodiesSystem(BaseV9TradingSystem):
                                                     logger.info(
                                                         "[Woodies] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f, %.2fpt < %.2f×risk %.2f) — T1=1R %.2f",
                                                         _pid, direction, _t1_struct, _t1_dist, _rr_min_c, _risk_d, _s4_t1)
+                                                    # T-641 WALL_AHEAD_SKIP_V1 (OFF ⇒ byte-identical): the S2 twin
+                                                    # (five_min_system) — an OLD end ahead < rr_min×risk is a wall.
+                                                    self._last_t1_wall_ahead = None
+                                                    if _flag("WALL_AHEAD_SKIP_V1"):
+                                                        _wa_w = SA.wall_ahead(_win_c, direction, _s4_entry, _risk_d,
+                                                                              _rr_min_c, min_ticks=_min_t)
+                                                        if _wa_w:
+                                                            self._last_t1_wall_ahead = (
+                                                                "S4 %s %s: wall %.2f is %.2fpt ahead = %.2fR < %.2fR (last "
+                                                                "touched %d bars ago, %d touch(es)) — T1 %.2f would have to break it"
+                                                                % (_pid, direction, _wa_w[0], _wa_w[1], _wa_w[1] / _risk_d,
+                                                                   _rr_min_c, _wa_w[2], _wa_w[3], _s4_t1))
+                                                            logger.warning("[Woodies] T-641 WALL_AHEAD: %s",
+                                                                           self._last_t1_wall_ahead)
                                         except Exception as _c_err:
                                             logger.warning("[Woodies] T1_STRUCTURE_END failed (ladder kept): %s", _c_err)
                                     # T2/T3 = None (CCI-cross, deferred §1.6)
@@ -1311,6 +1326,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                     if getattr(self, "_last_t1_structure_exhausted", False):
                         _gw_meta["t1_structure_exhausted"] = True
                         self._last_t1_structure_exhausted = False
+                    # T-641 WALL_AHEAD_SKIP_V1: set only when the flag is ON ⇒ OFF adds no key.
+                    if getattr(self, "_last_t1_wall_ahead", None):
+                        _gw_meta["t1_wall_ahead"] = self._last_t1_wall_ahead
+                        self._last_t1_wall_ahead = None
                     setup = {
                         "firing_system": 4,
                         "direction": best.direction or "LONG",

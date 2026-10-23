@@ -5918,6 +5918,21 @@ class TradingGateway:
             logger.warning("[Gateway] BLOCKED by S4 %s: %s", result["blocked_by"], _s4_rcb)
             return result
 
+        # T-641 WALL_AHEAD_SKIP_V1 (23.10 #3898; default OFF ⇒ byte-identical): the producer (S2 / S4
+        # T1_STRUCTURE_END) found the structure end AHEAD of entry, closer than rr_min×risk and OLD (≥3 bars)
+        # — a ceiling/floor the market already turned from. #3898 REACTIVE_LONG 18:55: wall 7697.25 (18:25 +
+        # 18:30) 8.0pt ahead vs 13.5 risk; T1 went to 1R 7709.50 beyond it and RR_NO_SELF_INFLICTED restored
+        # that T1 over the structural C1 7692.75 (R:R 0.26) ⇒ a trade that pays only by breaking the wall and
+        # loses the whole rotation if it does not (stop 19:53, −$213.75). Stand down. The breakout case (end
+        # printed by the last bars) never carries the key.
+        if os.getenv("WALL_AHEAD_SKIP_V1", "0").strip().lower() in ("1", "true", "yes"):
+            _wa_g = (setup.get("metadata") or {}).get("t1_wall_ahead")
+            if _wa_g:
+                result["blocked_by"] = "wall_ahead"
+                result["reason"] = str(_wa_g)
+                logger.warning("[Gateway] BLOCKED by wall_ahead (T-641): %s", _wa_g)
+                return result
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:

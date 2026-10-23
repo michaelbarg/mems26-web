@@ -315,6 +315,10 @@ def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
             for _k in ("vol_trig", "delta_with"):
                 if isinstance(_ev.get(_k), bool):
                     _gw["metadata"][_k] = _ev[_k]
+    # T-641 WALL_AHEAD_SKIP_V1: the producer's wall finding reaches the gateway. The key exists only
+    # when the flag was ON at the producer ⇒ OFF is byte-identical.
+    if isinstance(info, dict) and info.get("t1_wall_ahead"):
+        _gw["metadata"]["t1_wall_ahead"] = info["t1_wall_ahead"]
     return _gw
 
 
@@ -3697,6 +3701,21 @@ class FiveMinSystem(BaseV9TradingSystem):
                                 logger.info(
                                     "[FiveMin] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f) — T1=1R %.2f",
                                     kind, direction, _t1_struct, t1_price)
+                                # T-641 WALL_AHEAD_SKIP_V1 (23.10 #3898; OFF ⇒ byte-identical — no key added):
+                                # an OLD structure end ahead of entry, closer than rr_min×risk, is a wall the
+                                # 1R T1 above would have to break. The finding travels to the gateway, which
+                                # stands the setup down (the breakout case — end printed by the last bars —
+                                # is not a wall: resolver.wall_ahead returns None).
+                                if _flag("WALL_AHEAD_SKIP_V1"):
+                                    _wa_c = _SA_c.wall_ahead(_win_c, direction, entry_price, _risk_c,
+                                                             _rr_min_s2, min_ticks=_min_t)
+                                    if _wa_c:
+                                        info["t1_wall_ahead"] = (
+                                            "S2 %s %s: wall %.2f is %.2fpt ahead = %.2fR < %.2fR (last touched %d "
+                                            "bars ago, %d touch(es)) — T1 %.2f would have to break it"
+                                            % (kind, direction, _wa_c[0], _wa_c[1], _wa_c[1] / _risk_c,
+                                               _rr_min_s2, _wa_c[2], _wa_c[3], t1_price))
+                                        logger.warning("[FiveMin] T-641 WALL_AHEAD: %s", info["t1_wall_ahead"])
                     except Exception as _c_err:
                         logger.warning("[FiveMin] T1_STRUCTURE_END failed (computed T1 kept): %s", _c_err)
 
