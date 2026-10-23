@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.mems26.dalton_supervisor</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Library/Frameworks/Python.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python</string>
+		<string>-c</string>
+		<string>import pathlib,subprocess,sys; p=pathlib.Path('/Users/michael/Downloads/mems26_web_git/scripts/dalton_supervisor_nightly.sh'); sys.exit(subprocess.run(['/bin/bash','-s'],input=p.read_bytes(),cwd=str(p.parent.parent)).returncode)</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>StandardErrorPath</key>
+	<string>/tmp/dalton_supervisor.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/dalton_supervisor.out.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>23</integer>
+			<key>Minute</key>
+			<integer>12</integer>
+			<key>Weekday</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>23</integer>
+			<key>Minute</key>
+			<integer>12</integer>
+			<key>Weekday</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>23</integer>
+			<key>Minute</key>
+			<integer>12</integer>
+			<key>Weekday</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>23</integer>
+			<key>Minute</key>
+			<integer>12</integer>
+			<key>Weekday</key>
+			<integer>4</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>23</integer>
+			<key>Minute</key>
+			<integer>12</integer>
+			<key>Weekday</key>
+			<integer>5</integer>
+		</dict>
+	</array>
+</dict>
+</plist>
