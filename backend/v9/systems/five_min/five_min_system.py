@@ -2628,6 +2628,26 @@ class FiveMinSystem(BaseV9TradingSystem):
                                 logger.info("[FiveMin] OPENING_ENTRY trigger %s %s on %d %s bars (seen=%d)",
                                             _trig.get("type"), _trig.get("direction"), len(_oe_judge),
                                             _oe_src, len(self._oe_bars))
+                            # T-638 (Michael 23.10 "מאשר"): the producer defers to the opening type v2 — a trigger
+                            # v2 does not confirm is dropped BEFORE it is emitted (the one-per-session slot is not
+                            # consumed) and re-evaluated on the next closed bar. OPENING_ENTRY_V2_GATE_V1 unset ⇒
+                            # byte-identical. Fail-open on any error.
+                            if _trig and os.getenv("OPENING_ENTRY_V2_GATE_V1", "0").lower() in ("1", "true", "yes"):
+                                try:
+                                    from backend.v9.services.opening_v2_live import read_opening_v2 as _t638_read
+                                    from backend.v9.systems.opening_entry import v2_agreement as _t638_agree
+                                    _t638_v2 = _t638_read()
+                                    _t638_ok, _t638_why = _t638_agree(_trig.get("type"), _trig.get("direction"), _t638_v2)
+                                    if _t638_ok:
+                                        logger.info("[FiveMin] T-638 OPENING_ENTRY %s %s confirmed — %s",
+                                                    _trig.get("type"), _trig.get("direction"), _t638_why)
+                                    else:
+                                        logger.warning("[FiveMin] T-638 OPENING_ENTRY %s %s NOT confirmed by the opening type v2 — %s "
+                                                       "(not emitted, slot kept, re-evaluated next bar)",
+                                                       _trig.get("type"), _trig.get("direction"), _t638_why)
+                                        _trig = None
+                                except Exception as _t638_err:
+                                    logger.info("[FiveMin] T-638 v2 gate errored (fail-open): %s", _t638_err)
                             # direction gate: drop low-conviction (fusion None) or a trigger
                             # that fights the fusion direction. Only once fusion is computed.
                             if _trig and _fusion_on and getattr(self, "_oe_fusion_done", False):

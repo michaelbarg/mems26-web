@@ -582,3 +582,48 @@ def opening_first_trade_ok(session_bars, direction, opening_conf,
     _conf_s = f"{conf:.2f}" if conf is not None else "n/a"
     return True, (f"confirmed: conf={_conf_s}, {len(_cbars)} closed bars, "
                   f"last closed bar with-direction (o={o} c={c} ts={_lts} src={_src})")
+
+
+
+# ── T-638 (Michael 23.10 "מאשר" on: "מפיקי-הכניסה של הפתיחה עדיין מפעילים 'דרייב' לפי כללי-OR משלהם … הנכון הוא
+# שהמפיק יקרא את v2 ישירות"): the opening producer defers to the opening type v2 (opening_classifier_v2 via
+# opening_v2_live). A trigger that v2 does not confirm is NOT emitted (so the one-per-session slot is not
+# consumed) and the producer re-evaluates on the next closed bar — "wait for the test" in practice.
+#   DRIVE          ⇐ v2 OPEN_DRIVE, same side
+#   TEST_DRIVE/ORR ⇐ v2 OPEN_TEST_DRIVE or OPEN_REJECTION_REVERSE, same side (the side that HOLDS)
+#   PULLBACK_CONT  ⇐ any directional v2 reading, same side (a continuation of the side that holds)
+#   EXTREME_REJECT ⇐ an auction (responsive fade at the edge; the half-range rule governs location), or a
+#                    directional reading on the same side (a with-drive rejection of the pullback); never a
+#                    fade AGAINST a drive
+# v2 unavailable / UNKNOWN / < 2 bars ⇒ not gated (fail-open, logged by the caller).
+_V2_DIRECTIONAL = ("OPEN_DRIVE", "OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE")
+_V2_REVERSALS = ("OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE")
+
+
+def v2_agreement(trigger_type, direction, v2) -> tuple:
+    """(ok, why) — does the opening type v2 confirm this producer trigger?"""
+    if not isinstance(v2, dict):
+        return True, "v2 unavailable — not gated"
+    t = str(v2.get("type") or "")
+    try:
+        nb = int(v2.get("bars") or 0)
+    except (TypeError, ValueError):
+        nb = 0
+    if t in ("", "UNKNOWN", "OPEN_AUCTION") or nb < 2:
+        return True, "v2 %s (%d bars) — not gated" % (t or "UNKNOWN", nb)
+    d = v2.get("direction")
+    side = "LONG" if d == "up" else ("SHORT" if d == "down" else None)
+    tt = str(trigger_type or "").upper()
+    dd = str(direction or "").upper()
+    if tt == "DRIVE":
+        ok = (t == "OPEN_DRIVE" and side == dd)
+    elif tt in ("TEST_DRIVE", "ORR"):
+        ok = (t in _V2_REVERSALS and side == dd)
+    elif tt == "PULLBACK_CONT":
+        ok = (t in _V2_DIRECTIONAL and side == dd)
+    elif tt == "EXTREME_REJECT":
+        ok = t.startswith("OPEN_AUCTION") or (t in _V2_DIRECTIONAL and side == dd)
+    else:
+        ok = True
+    why = "v2 %s%s %s (%d bars)" % (t, (" " + str(d)) if d else "", "LOCKED" if v2.get("locked") else "provisional", nb)
+    return bool(ok), why

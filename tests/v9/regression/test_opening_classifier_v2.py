@@ -108,3 +108,28 @@ def test_live_reader_uses_the_seeded_inputs_without_the_db():
     assert r4["type"] == "OPEN_AUCTION_OUT" and r5["type"] == "OPEN_REJECTION_REVERSE" and r5["locked"]
     assert live.read_opening_v2(now=now, bars=D_2010[:5]) is r5          # cached per bar count
     live.reset_state()
+
+
+
+# ── T-638: the opening producer defers to v2 (Michael 23.10 "מאשר") ──────────────────────────────────────
+def test_t638_producer_triggers_defer_to_v2():
+    from backend.v9.systems.opening_entry import v2_agreement as A
+    drive_up = {"type": "OPEN_DRIVE", "direction": "up", "locked": True, "bars": 4}
+    orr_up = {"type": "OPEN_REJECTION_REVERSE", "direction": "up", "locked": True, "bars": 5}
+    td_dn = {"type": "OPEN_TEST_DRIVE", "direction": "down", "locked": False, "bars": 3}
+    auc = {"type": "OPEN_AUCTION_OUT", "direction": "", "locked": False, "bars": 4}
+    # 22.10 #3749: a TEST_DRIVE SHORT trigger on a two-sided auction is not emitted
+    assert A("TEST_DRIVE", "SHORT", auc)[0] is False
+    # a DRIVE trigger needs v2's drive on the same side
+    assert A("DRIVE", "LONG", drive_up)[0] and not A("DRIVE", "SHORT", drive_up)[0] and not A("DRIVE", "LONG", orr_up)[0]
+    # 20.10: the ORR LONG trigger (the +550 trade) is confirmed by v2's rejection-reverse up
+    assert A("ORR", "LONG", orr_up)[0] and not A("ORR", "SHORT", orr_up)[0]
+    assert A("TEST_DRIVE", "SHORT", td_dn)[0]
+    # a with-drive rejection of the pullback is fine; a fade against the drive is not
+    assert A("EXTREME_REJECT", "LONG", drive_up)[0] and not A("EXTREME_REJECT", "SHORT", drive_up)[0]
+    # responsive fades inside an auction are allowed (the half-range rule governs their location)
+    assert A("EXTREME_REJECT", "LONG", auc)[0] and A("EXTREME_REJECT", "SHORT", auc)[0]
+    assert A("PULLBACK_CONT", "LONG", orr_up)[0] and not A("PULLBACK_CONT", "LONG", auc)[0]
+    # unavailable / unknown / too early ⇒ not gated
+    assert A("DRIVE", "LONG", None)[0] and A("DRIVE", "LONG", {"type": "UNKNOWN", "bars": 0})[0]
+    assert A("DRIVE", "SHORT", {"type": "OPEN_DRIVE", "direction": "up", "bars": 1})[0]
