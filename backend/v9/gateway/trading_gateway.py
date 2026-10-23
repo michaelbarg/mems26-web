@@ -1305,6 +1305,7 @@ class TradingGateway:
         _dalton_intent = None
         _dp_location_checked = False
         _dp_phase_now = None   # set inside the playbook block (17.09 phase-D ruling)
+        _dp_v2_res = None; _dp_v2_canon = False   # T-637 opening type v2 (set inside the playbook block)
         _dp_active = os.getenv("DALTON_PLAYBOOK_V1", "0").lower() in ("1", "true", "yes")
         if _dp_active:
             try:
@@ -1406,6 +1407,46 @@ class TradingGateway:
                     _dp_p15_ot = _P15_MAP.get(_dp_classification)
                     if _dp_p15_ot:
                         _dp_ot = _dp_p15_ot
+                # T-637 (Michael 23.10 09:5x–10:2x: "האם פתרת את סיווג סוג הפתיחה? … תקרא שוב דלתון איך צריך
+                # לסווג … עד הפתיחה אתה כבר צריך לדעת להגדיר בצורה מצוינת סוג פתיחה ושלא יהיה בקלות מדי שיהיה
+                # נכון"): the opening type read on CLOSED RTH bars in ATR units by opening_classifier_v2 (Dalton
+                # pp.63-74 as numbers; 33/33 with a hand reading of 01.09–22.10, docs/reports/OPENING_V2_STUDY_2026-10-23.md)
+                # REPLACES the T-314 label for the tree/playbook once ≥ 3 closed bars exist. OPENING_TYPE_V2:
+                # "0" ⇒ byte-identical · "shadow" ⇒ read + log only · "1" ⇒ canonical. With "1" the T-426
+                # provisional override below is skipped: v2 reads a drive itself (locks at bar 4, the same bar the
+                # opening engine confirms), and a two-sided opening it calls an auction must NOT be rewritten into
+                # a drive by a one-tick close (22.10 #3749). Fail-open: any error keeps the T-314 label.
+                _dp_v2_res = None; _dp_v2_canon = False
+                try:
+                    _t637_mode = os.getenv("OPENING_TYPE_V2", "0").strip().lower()
+                    if _t637_mode in ("1", "true", "yes", "shadow"):
+                        from backend.v9.services.opening_v2_live import read_opening_v2 as _t637_read
+                        _dp_v2_res = _t637_read()
+                        if (_dp_v2_res and str(_dp_v2_res.get("type") or "") in
+                                ("OPEN_DRIVE", "OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE", "OPEN_AUCTION_IN", "OPEN_AUCTION_OUT")
+                                and int(_dp_v2_res.get("bars") or 0) >= 3):
+                            if _t637_mode == "shadow":
+                                if _dp_v2_res["type"] != _dp_ot:
+                                    logger.info("[Gateway] T-637 SHADOW opening type v2 %s (T-314 says %s) for %s",
+                                                _dp_v2_res["type"], _dp_ot, _dp_classification)
+                            else:
+                                if _dp_v2_res["type"] != _dp_ot:
+                                    logger.info("[Gateway] T-637 opening type v2 %s→%s (%s) for %s",
+                                                _dp_ot, _dp_v2_res["type"], _dp_v2_res.get("why"), _dp_classification)
+                                _dp_ot = str(_dp_v2_res["type"])
+                                _dp_v2_canon = True
+                                # the hint convention of this block: DRIVE/TEST_DRIVE carry the drive direction;
+                                # a REJECTION_REVERSE carries the INITIAL drive direction (the rel_bias code below
+                                # flips it to the reversal side for the phase-A/B rows). v2's direction is the
+                                # side that HOLDS, so for an ORR the hint is its opposite.
+                                _dp_v2_d = _dp_v2_res.get("direction")
+                                if _dp_v2_d in ("up", "down"):
+                                    _dp_v2_long = (_dp_v2_d == "up")
+                                    if _dp_ot == "OPEN_REJECTION_REVERSE":
+                                        _dp_v2_long = not _dp_v2_long
+                                    _dp_v2_dir = "LONG" if _dp_v2_long else "SHORT"
+                except Exception as _t637_err:
+                    logger.info("[Gateway] T-637 opening type v2 errored (fail-open, T-314 label kept): %s", _t637_err)
                 # T-426 (Michael 20.09 "תתקן את הענף"): a CONFIRMED opening
                 # drive (OPENING_DRIVE/TEST_DRIVE from the opening engine: close
                 # beyond the OR, 3 closed bars + confirming closed bar) is
@@ -1416,7 +1457,8 @@ class TradingGateway:
                 # BETTER half of the drive entries (N=14, 64% win, +$519 vs the
                 # admitted N=7, 43%, −$12). Flag OPENING_DRIVE_PROVISIONAL_V1;
                 # OFF ⇒ byte-identical. Pure rule: opening_provisional.py.
-                if os.getenv("OPENING_DRIVE_PROVISIONAL_V1", "0").lower() in ("1", "true", "yes"):
+                if (os.getenv("OPENING_DRIVE_PROVISIONAL_V1", "0").lower() in ("1", "true", "yes")
+                        and not _dp_v2_canon):   # T-637: v2 is the authority on the opening type when canonical
                     try:
                         from backend.v9.systems.opening_provisional import (
                             provisional_opening_type as _dp_prov)
@@ -3164,8 +3206,22 @@ class TradingGateway:
                     and (_dp_phase_now in ("A", "B"))):
                 from backend.v9.systems.opening_half_range import opening_half_range_verdict as _t636_verdict
                 from backend.v9.services.trade_context import get_closed_rth_bars_today as _t628_ob
+                # T-637: a PROVISIONAL v2 auction that is still one-sided (the other side < 1 ATR) does not yet
+                # contradict a confirmed drive trigger — the mismatch rule waits for the lock or for two-sidedness;
+                # the half-range rule applies regardless.
+                _t636_ot = _dp_ot
+                try:
+                    if (_dp_v2_canon and isinstance(_dp_v2_res, dict) and not _dp_v2_res.get("locked")
+                            and str(_dp_ot).startswith("OPEN_AUCTION")):
+                        _t637_m = _dp_v2_res.get("metrics") or {}
+                        if min(float(_t637_m.get("max_up_u") or 0), float(_t637_m.get("max_dn_u") or 0)) < 1.0:
+                            _t636_ot = "UNKNOWN"
+                            logger.info("[Gateway] T-637 provisional one-sided auction (up %.1f / down %.1f ATR) — mismatch rule deferred for %s",
+                                        float(_t637_m.get("max_up_u") or 0), float(_t637_m.get("max_dn_u") or 0), setup.get("classification"))
+                except Exception:
+                    _t636_ot = _dp_ot
                 _t636_v = _t636_verdict(setup.get("classification"), direction, float(setup.get("entry_price") or 0),
-                                        _dp_ot, _dp_phase_now, [b for b in (_t628_ob() or []) if b], _t636_mode)
+                                        _t636_ot, _dp_phase_now, [b for b in (_t628_ob() or []) if b], _t636_mode)
                 if _t636_v is not None:
                     result["blocked_by"], result["reason"] = _t636_v
                     logger.warning("[Gateway] BLOCKED by %s: %s", _t636_v[0], _t636_v[1])
