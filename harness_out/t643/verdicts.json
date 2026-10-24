@@ -1,0 +1,42 @@
+{
+ "_doc": "T-643 per-trade Dalton verdicts (cowork 24.10.2026), written BEFORE running the mechanical entry rules on the live set. verdict: correct | wrong | idea_right_execution_wrong | borderline. pattern (wrong only): accepted_ext = against an accepted extension/drive or strong effort; mid = middle of a rotation; open_chase = extreme/middle of the opening range after the first push; climax_chase = after a big bar/spike; late = phase D late entry. cls = the trade vs the day's initiative (with | balance | counter) for the correct ones. Cards: harness_out/t643/cards_demo.txt, cards_live.txt; doc tabs: claude.ai/artifact/7LKRkEic7BrnJLmVws2r2z",
+ "demo": {
+  "3164": {"v": "wrong", "p": "open_chase"}, "3220": {"v": "wrong", "p": "accepted_ext"},
+  "3483": {"v": "wrong", "p": "mid"}, "3501": {"v": "wrong", "p": "mid"}, "3508": {"v": "wrong", "p": "mid"},
+  "3515": {"v": "correct", "cls": "balance", "note": "T1 placed beyond the reference"},
+  "3540": {"v": "wrong", "p": "open_chase"}, "3544": {"v": "correct", "cls": "with"},
+  "3558": {"v": "wrong", "p": "climax_chase"}, "3574": {"v": "wrong", "p": "mid"},
+  "3582": {"v": "correct", "cls": "balance", "note": "T1 at the level, missed by a tick"},
+  "3637": {"v": "wrong", "p": "open_chase"}, "3660": {"v": "wrong", "p": "accepted_ext", "note": "against strong effort before the extension"},
+  "3670": {"v": "wrong", "p": "accepted_ext"}, "3687": {"v": "wrong", "p": "accepted_ext", "note": "won by a close T1 + the trail side bug"},
+  "3696": {"v": "wrong", "p": "accepted_ext"}, "3702": {"v": "wrong", "p": "accepted_ext", "note": "won by a close T1 + the trail side bug"},
+  "3749": {"v": "idea_right_execution_wrong", "note": "OTD short mid-range after the first leg; stop 1.5 pts above the test high"},
+  "3763": {"v": "correct", "cls": "counter"}, "3784": {"v": "correct", "cls": "with"}, "3799": {"v": "correct", "cls": "counter"},
+  "3876": {"v": "wrong", "p": "accepted_ext"}, "3898": {"v": "wrong", "p": "mid"}
+ },
+ "live": {
+  "2017": {"v": "correct", "cls": "with"}, "2029": {"v": "correct", "cls": "with"}, "2033": {"v": "correct", "cls": "with"},
+  "2041": {"v": "correct", "cls": "with"}, "2047": {"v": "correct", "cls": "with"}, "2072": {"v": "correct", "cls": "with"},
+  "2076": {"v": "correct", "cls": "with", "note": "borderline, late at the high"},
+  "2106": {"v": "wrong", "p": "open_chase"}, "2140": {"v": "correct", "cls": "with"},
+  "2152": {"v": "correct", "cls": "balance", "note": "borderline"}, "2230": {"v": "wrong", "p": "accepted_ext"},
+  "2340": {"v": "wrong", "p": "mid"}, "2408": {"v": "correct", "cls": "with", "note": "bars 19:00-19:30 corrupted in DB"},
+  "2483": {"v": "wrong", "p": "open_chase"}, "2496": {"v": "wrong", "p": "mid"}, "2594": {"v": "wrong", "p": "accepted_ext"},
+  "2623": {"v": "correct", "cls": "balance"}, "2752": {"v": "wrong", "p": "late"},
+  "2771": {"v": "idea_right_execution_wrong", "note": "same as #3749; the retest stopped short of the stop"},
+  "2841": {"v": "wrong", "p": "climax_chase", "note": "won by a fast T1"}, "2843": {"v": "wrong", "p": "climax_chase"},
+  "2875": {"v": "correct", "cls": "balance"}, "2877": {"v": "wrong", "p": "open_chase"},
+  "2895": {"v": "correct", "cls": "balance", "note": "stop 1 tick above the high, taken by 1.75 pts"},
+  "2913": {"v": "borderline"}, "3038": {"v": "wrong", "p": "accepted_ext"}, "3123": {"v": "correct", "cls": "balance"},
+  "3130": {"v": "wrong", "p": "mid"}, "3136": {"v": "correct", "cls": "balance"}, "3140": {"v": "wrong", "p": "mid"},
+  "3272": {"v": "wrong", "p": "open_chase"}, "3281": {"v": "wrong", "p": "open_chase"},
+  "3289": {"v": "correct", "cls": "balance", "note": "MFE 4.2R not realized"}, "3314": {"v": "wrong", "p": "climax_chase"},
+  "3380": {"v": "wrong", "p": "open_chase"}, "3402": {"v": "wrong", "p": "accepted_ext"},
+  "3406": {"v": "correct", "cls": "with", "note": "flattened at once by the 3402/3406 conflict"}
+ },
+ "rules_oos": {
+  "A_accepted_extension_against": {"demo": {"blocks_wrong": [3220, 3670, 3696, 3702, 3876], "blocks_correct": [3763]},
+                                    "live": {"blocks_wrong": [2594, 3038, 3314, 3402], "blocks_correct": []}, "status": "passed OOS on live"},
+  "B_tested_edge_not_middle": {"live": {"blocks_correct": [2017, 2029, 2033, 2041, 2047, 2072, 2076, 2140, 2152, 2408, 2623, 3123, 3406]}, "status": "FAILED OOS (blocks trend-day continuation)"}
+ }
+}
