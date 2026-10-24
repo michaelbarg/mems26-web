@@ -1,0 +1,6 @@
+backend/v9/tests/test_dalton_playbook.py
+backend/v9/tests/test_opening_entry_gap_fixes.py
+tests/v9/regression/test_dalton_playbook_identity.py
+tests/v9/regression/test_no_label_phase_gate.py
+tests/v9/regression/test_phase_d_trend_days.py
+backend/v9/tests/test_next_fire.py

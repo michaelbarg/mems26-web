@@ -1,0 +1,1079 @@
+==============================================================================================================
+2026-10-05 · θ פתיחה 4.50 · IB 7778.25–7811.25 (33.00) · סף-תנועה-משמעותית 16.50
+אירועי מצב-הכיוון:
+  17:10  מאוזן → עולה  (סגירה 7800.75) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7792.0
+  19:00  עולה → מאוזן  (סגירה 7811.0) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7811.25
+  19:30  מאוזן → עולה  (סגירה 7818.25) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7816.25
+  19:55  עולה → מאוזן  (סגירה 7822.0) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7823.0
+  20:00  מאוזן → יורד  (סגירה 7819.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7823.0
+  20:10  יורד → מאוזן  (סגירה 7823.0) — חצי-חזרה: סגירה 7823.0 באמצע הרגל 7827.0→7819.0 (7823.00)
+  20:45  מאוזן → עולה  (סגירה 7828.5) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7826.0
+  22:25  עולה → מאוזן  (סגירה 7842.0) — שבירה נכשלה: סגירה חזרה מתחת 7842.5 תוך 2 ברים
+  22:45  מאוזן → יורד  (סגירה 7830.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7837.75
+נקודות-מפנה בפועל (בדיעבד, סף 16.50) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7778.25@16:30 → 7847.75@22:15 (+69.50 נק׳, עולה):
+     מצב-כיוון: 17:10 (+45 דק׳, 32% מהתנועה) · dir_hint: 16:40 (+15 דק׳, 14% מהתנועה) · structure: 18:40 (+135 דק׳, 52% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 16:30 (+5 דק׳, 16% מהתנועה) · dir_sustained: 16:35 (+10 דק׳, 13% מהתנועה)
+  שורט 7847.75@22:15 → 7821.0@22:55 (-26.75 נק׳, יורד):
+     מצב-כיוון: 22:45 (+35 דק׳, 65% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 22:25 (+15 דק׳, 21% מהתנועה) · dir_sustained: 22:40 (+30 דק׳, 42% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 42/44 (95%) · הפוכה 2 (5%)
+  structure     מסכימה 24/44 (55%) · הפוכה 2 (5%)
+  turn          מסכימה 2/44 (5%) · הפוכה 20 (45%)
+  LSMA+CVD      מסכימה 17/44 (39%) · הפוכה 16 (36%)
+  dir_sustained מסכימה 41/44 (93%) · הפוכה 3 (7%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7789.5   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7787.25  BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7788.25  BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN OPEN_TEST_DRIVE
+  16:45 c=7787.75  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv NEUTRAL sus UP      | UNKNOWN OPEN_TEST_DRIVE
+  16:50 c=7785.5   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_TEST_DRIVE
+  16:55 c=7787.25  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_TEST_DRIVE
+  17:00 c=7790.5   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_TEST_DRIVE
+  17:05 c=7799.25  BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_TEST_DRIVE
+  17:10 c=7800.75  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_TEST_DRIVE
+  17:15 c=7805.5   UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_TEST_DRIVE
+  17:20 c=7808.5   UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_TEST_DRIVE
+  17:25 c=7808.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:30 c=7799.25  UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:35 c=7805.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:40 c=7803.75  UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:45 c=7805.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  17:50 c=7805.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:55 c=7809.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:00 c=7808.75  UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:05 c=7805.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  18:10 c=7807.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  18:15 c=7807.25  UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  18:20 c=7809.5   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:25 c=7809.75  UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  18:30 c=7811.5   UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:35 c=7812.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:40 c=7814.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  18:45 c=7814.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  18:50 c=7814.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  18:55 c=7814.5   UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  19:00 c=7811.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:05 c=7812.5   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:10 c=7813.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:15 c=7810.5   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:20 c=7816.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_IN
+  19:25 c=7817.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:30 c=7818.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:35 c=7821.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:40 c=7826.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:45 c=7824.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:50 c=7825.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:55 c=7822.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  20:00 c=7819.25  DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  20:05 c=7821.25  DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  20:10 c=7823.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  20:15 c=7824.25  BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:20 c=7825.25  BAL   | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:25 c=7824.75  BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:30 c=7823.75  BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:35 c=7823.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  20:40 c=7830.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:45 c=7828.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:50 c=7827.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:55 c=7829.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:00 c=7829.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:05 c=7828.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:10 c=7829.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:15 c=7829.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:20 c=7830.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:25 c=7832.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:30 c=7832.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:35 c=7832.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:40 c=7832.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:45 c=7832.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:50 c=7833.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  21:55 c=7837.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  22:00 c=7840.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_AUCTION_IN
+  22:05 c=7839.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_AUCTION_IN
+  22:10 c=7843.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_AUCTION_IN
+  22:15 c=7845.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_AUCTION_IN
+  22:20 c=7843.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_AUCTION_IN
+  22:25 c=7842.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:30 c=7838.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:35 c=7839.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:40 c=7836.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:45 c=7830.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:50 c=7824.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:55 c=7831.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+==============================================================================================================
+2026-10-06 · θ פתיחה 4.12 · IB 7860.25–7888.00 (27.75) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  16:50  מאוזן → עולה  (סגירה 7874.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7869.0
+  17:25  עולה → מאוזן  (סגירה 7869.5) — חצי-חזרה: סגירה 7869.5 באמצע הרגל 7860.25→7888.0 (7874.12)
+  18:10  מאוזן → עולה  (סגירה 7893.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7888.0
+  19:05  עולה → מאוזן  (סגירה 7889.0) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7891.0
+  19:20  מאוזן → יורד  (סגירה 7887.75) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7888.0
+  20:30  יורד → מאוזן  (סגירה 7881.0) — שבירה נכשלה: סגירה חזרה מעל 7879.25 תוך 3 ברים
+  22:25  מאוזן → יורד  (סגירה 7877.75) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7878.25
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7860.25@16:35 → 7888.0@17:10 (+27.75 נק׳, עולה):
+     מצב-כיוון: 16:50 (+20 דק׳, 50% מהתנועה) · dir_hint: 16:55 (+25 דק׳, 67% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:35 (+5 דק׳, 18% מהתנועה) · dir_sustained: 16:35 (+5 דק׳, 18% מהתנועה)
+  שורט 7888.0@17:10 → 7866.25@17:30 (-21.75 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 17:15 (+10 דק׳, 49% מהתנועה) · dir_sustained: 17:25 (+20 דק׳, 85% מהתנועה)
+  לונג 7866.25@17:30 → 7897.5@18:25 (+31.25 נק׳, עולה):
+     מצב-כיוון: 18:10 (+45 דק׳, 86% מהתנועה) · dir_hint: 17:30 (+5 דק׳, 21% מהתנועה) · structure: 18:05 (+40 דק׳, 73% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 17:40 (+15 דק׳, 54% מהתנועה) · dir_sustained: 17:40 (+15 דק׳, 54% מהתנועה)
+  שורט 7897.5@18:25 → 7869.75@20:20 (-27.75 נק׳, יורד):
+     מצב-כיוון: 19:20 (+60 דק׳, 35% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 18:30 (+10 דק׳, 15% מהתנועה) · dir_sustained: 19:05 (+45 דק׳, 31% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 17/32 (53%) · הפוכה 15 (47%)
+  structure     מסכימה 11/32 (34%) · הפוכה 14 (44%)
+  turn          מסכימה 0/32 (0%) · הפוכה 0 (0%)
+  LSMA+CVD      מסכימה 20/32 (62%) · הפוכה 9 (28%)
+  dir_sustained מסכימה 32/32 (100%) · הפוכה 0 (0%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7862.25  BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7865.25  BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7867.5   BAL   | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN OPEN_REJECTION_REVERSE
+  16:45 c=7871.5   BAL   | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN OPEN_REJECTION_REVERSE
+  16:50 c=7874.0   UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  16:55 c=7878.75  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  17:00 c=7881.0   UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_REJECTION_REVERSE
+  17:05 c=7886.25  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_REJECTION_REVERSE
+  17:10 c=7881.25  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Trend_Normal OPEN_REJECTION_REVERSE
+  17:15 c=7877.25  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv DOWN    sus UP      | Trend_Normal OPEN_REJECTION_REVERSE
+  17:20 c=7876.5   UP    | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:25 c=7869.5   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  17:30 c=7872.75  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  17:35 c=7878.0   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  17:40 c=7883.0   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:45 c=7879.75  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:50 c=7884.25  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:55 c=7885.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:00 c=7886.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:05 c=7889.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:10 c=7893.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:15 c=7895.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:20 c=7895.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:25 c=7894.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:30 c=7893.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:35 c=7895.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:40 c=7892.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:45 c=7893.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:50 c=7892.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:55 c=7892.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:00 c=7892.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:05 c=7889.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:10 c=7891.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:15 c=7887.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:20 c=7887.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:25 c=7883.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:30 c=7886.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:35 c=7883.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:40 c=7884.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:45 c=7881.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:50 c=7881.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:55 c=7880.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:00 c=7879.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:05 c=7880.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:10 c=7877.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:15 c=7873.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:20 c=7873.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:25 c=7878.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:30 c=7881.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:35 c=7879.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:40 c=7880.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:45 c=7881.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:50 c=7879.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:55 c=7879.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:00 c=7882.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:05 c=7883.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:10 c=7883.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:15 c=7880.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:20 c=7880.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:25 c=7879.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:30 c=7880.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:35 c=7878.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:40 c=7879.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  21:45 c=7880.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:50 c=7881.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:55 c=7881.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:00 c=7883.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:05 c=7878.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  22:10 c=7880.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:15 c=7879.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:20 c=7877.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:25 c=7877.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:30 c=7877.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:35 c=7877.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:40 c=7876.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:45 c=7876.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:50 c=7872.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:55 c=7873.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+==============================================================================================================
+2026-10-07 · θ פתיחה 3.00 · IB 7820.00–7842.25 (22.25) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  17:45  מאוזן → יורד  (סגירה 7818.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7821.25
+  17:55  יורד → מאוזן  (סגירה 7823.5) — שבירה נכשלה: סגירה חזרה מעל 7821.25 תוך 2 ברים
+  18:15  מאוזן → עולה  (סגירה 7828.5) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7824.5
+  19:35  עולה → מאוזן  (סגירה 7843.5) — שבירה נכשלה: סגירה חזרה מתחת 7846.25 תוך 2 ברים
+  20:10  מאוזן → עולה  (סגירה 7853.25) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7849.25
+  20:25  עולה → מאוזן  (סגירה 7853.25) — שבירה נכשלה: סגירה חזרה מתחת 7854.5 תוך 1 ברים
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  שורט 7842.25@16:30 → 7815.75@17:50 (-26.50 נק׳, יורד):
+     מצב-כיוון: 17:45 (+80 דק׳, 92% מהתנועה) · dir_hint: 16:40 (+15 דק׳, 60% מהתנועה) · structure: 17:40 (+75 דק׳, 90% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 16:30 (+5 דק׳, 29% מהתנועה) · dir_sustained: 16:35 (+10 דק׳, 66% מהתנועה)
+  לונג 7815.75@17:50 → 7859.5@22:00 (+43.75 נק׳, עולה):
+     מצב-כיוון: 18:15 (+30 דק׳, 29% מהתנועה) · dir_hint: 19:20 (+95 דק׳, 73% מהתנועה) · structure: לא עד סוף התנועה · turn: 18:00 (+15 דק׳, 9% מהתנועה) · LSMA+CVD: 17:55 (+10 דק׳, 18% מהתנועה) · dir_sustained: 18:10 (+25 דק׳, 29% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 8/21 (38%) · הפוכה 13 (62%)
+  structure     מסכימה 2/21 (10%) · הפוכה 6 (29%)
+  turn          מסכימה 5/21 (24%) · הפוכה 6 (29%)
+  LSMA+CVD      מסכימה 15/21 (71%) · הפוכה 0 (0%)
+  dir_sustained מסכימה 21/21 (100%) · הפוכה 0 (0%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7834.5   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7824.75  BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN UNKNOWN
+  16:40 c=7826.25  BAL   | hint SHORT(rp SHORT) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_AUCTION_OUT
+  16:45 c=7823.25  BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_AUCTION_OUT
+  16:50 c=7829.75  BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  16:55 c=7827.75  BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:00 c=7825.25  BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:05 c=7824.5   BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:10 c=7823.0   BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv DOWN    sus DOWN    | Trend_Normal OPEN_AUCTION_OUT
+  17:15 c=7827.0   BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma 1   lcv UP      sus DOWN    | Trend_Normal OPEN_AUCTION_OUT
+  17:20 c=7827.5   BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma 1   lcv UP      sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:25 c=7824.5   BAL   | hint SHORT(rp SHORT) struct none      turn up    lsma 1   lcv UP      sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:30 c=7824.5   BAL   | hint SHORT(rp SHORT) struct none      turn up    lsma 1   lcv UP      sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:35 c=7826.5   BAL   | hint SHORT(rp SHORT) struct none      turn up    lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:40 c=7818.5   BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:45 c=7818.0   DOWN  | hint SHORT(rp SHORT) struct down      turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:50 c=7819.5   DOWN  | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:55 c=7823.5   BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:00 c=7819.75  BAL   | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:05 c=7823.75  BAL   | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:10 c=7828.25  BAL   | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:15 c=7828.5   UP    | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:20 c=7827.0   UP    | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:25 c=7827.25  UP    | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:30 c=7830.0   UP    | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:35 c=7838.0   UP    | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:40 c=7839.5   UP    | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:45 c=7842.75  UP    | hint SHORT(rp SHORT) struct two_sided turn up    lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  18:50 c=7842.75  UP    | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  18:55 c=7843.25  UP    | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:00 c=7842.25  UP    | hint SHORT(rp SHORT) struct two_sided turn down  lsma 1   lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:05 c=7844.75  UP    | hint SHORT(rp SHORT) struct two_sided turn down  lsma 1   lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:10 c=7846.25  UP    | hint SHORT(rp SHORT) struct two_sided turn down  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:15 c=7846.0   UP    | hint SHORT(rp LONG ) struct two_sided turn down  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:20 c=7847.75  UP    | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:25 c=7847.0   UP    | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:30 c=7847.0   UP    | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:35 c=7843.5   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:40 c=7845.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:45 c=7845.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  19:50 c=7843.75  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  19:55 c=7844.0   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  20:00 c=7846.75  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  20:05 c=7853.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:10 c=7853.25  UP    | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:15 c=7854.75  UP    | hint LONG (rp LONG ) struct two_sided turn down  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:20 c=7856.25  UP    | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:25 c=7853.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:30 c=7855.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:35 c=7853.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus NEUTRAL | Neutral_Extreme OPEN_AUCTION_OUT
+  20:40 c=7854.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:45 c=7854.75  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:50 c=7852.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  20:55 c=7853.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:00 c=7854.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:05 c=7854.75  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:10 c=7854.0   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:15 c=7854.75  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:20 c=7854.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:25 c=7855.5   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:30 c=7855.0   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus UP      | Neutral_Extreme OPEN_AUCTION_OUT
+  21:35 c=7853.0   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:40 c=7855.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:45 c=7854.5   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:50 c=7855.25  BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  21:55 c=7856.5   BAL   | hint LONG (rp LONG ) struct two_sided turn down  lsma 1   lcv UP      sus NEUTRAL | Neutral_Extreme OPEN_AUCTION_OUT
+  22:00 c=7853.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus NEUTRAL | Neutral_Extreme OPEN_AUCTION_OUT
+  22:05 c=7853.5   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:10 c=7852.5   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:15 c=7852.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:20 c=7852.5   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:25 c=7851.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:30 c=7851.75  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Extreme OPEN_AUCTION_OUT
+  22:35 c=7849.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Center OPEN_AUCTION_OUT
+  22:40 c=7853.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus DOWN    | Neutral_Center OPEN_AUCTION_OUT
+  22:45 c=7850.0   BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Center OPEN_AUCTION_OUT
+  22:50 c=7854.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma 1   lcv UP      sus NEUTRAL | Neutral_Center OPEN_AUCTION_OUT
+  22:55 c=7851.25  BAL   | hint LONG (rp LONG ) struct two_sided turn none  lsma -1  lcv DOWN    sus NEUTRAL | Neutral_Center OPEN_AUCTION_OUT
+==============================================================================================================
+2026-10-08 · θ פתיחה 4.12 · IB 7822.75–7844.50 (21.75) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  17:10  מאוזן → עולה  (סגירה 7837.25) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7836.25
+  17:45  עולה → מאוזן  (סגירה 7834.75) — חצי-חזרה: סגירה 7834.75 באמצע הרגל 7827.0→7844.5 (7835.75)
+  18:15  מאוזן → יורד  (סגירה 7823.5) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7827.0
+  19:15  יורד → מאוזן  (סגירה 7832.75) — מעבר: סגירה ראשונה מעל שיא-סווינג 7826.0
+  19:50  מאוזן → יורד  (סגירה 7809.75) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7824.75
+  21:15  יורד → מאוזן  (סגירה 7810.5) — מעבר: סגירה ראשונה מעל שיא-סווינג 7807.25
+  21:20  מאוזן → עולה  (סגירה 7813.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7807.25
+  21:30  עולה → מאוזן  (סגירה 7806.75) — שבירה נכשלה: סגירה חזרה מתחת 7807.25 תוך 2 ברים
+  22:25  מאוזן → עולה  (סגירה 7813.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7811.0
+  22:30  עולה → מאוזן  (סגירה 7810.5) — שבירה נכשלה: סגירה חזרה מתחת 7811.0 תוך 1 ברים
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7822.75@16:40 → 7844.5@17:25 (+21.75 נק׳, עולה):
+     מצב-כיוון: 17:10 (+35 דק׳, 67% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 16:40 (+5 דק׳, 11% מהתנועה) · LSMA+CVD: 16:45 (+10 דק׳, 46% מהתנועה) · dir_sustained: 16:45 (+10 דק׳, 46% מהתנועה)
+  שורט 7844.5@17:25 → 7820.0@18:35 (-24.50 נק׳, יורד):
+     מצב-כיוון: 18:15 (+55 דק׳, 86% מהתנועה) · dir_hint: 18:15 (+55 דק׳, 86% מהתנועה) · structure: 18:35 (+75 דק׳, 96% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 17:35 (+15 דק׳, 17% מהתנועה) · dir_sustained: 17:50 (+30 דק׳, 65% מהתנועה)
+  לונג 7820.0@18:35 → 7850.0@19:15 (+30.00 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 19:15 (+45 דק׳, 42% מהתנועה) · structure: לא עד סוף התנועה · turn: 18:35 (+5 דק׳, 3% מהתנועה) · LSMA+CVD: 18:45 (+15 דק׳, 12% מהתנועה) · dir_sustained: 19:10 (+40 דק׳, 19% מהתנועה)
+  שורט 7850.0@19:15 → 7796.75@20:05 (-53.25 נק׳, יורד):
+     מצב-כיוון: 19:50 (+40 דק׳, 76% מהתנועה) · dir_hint: 19:45 (+35 דק׳, 73% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 19:45 (+35 דק׳, 73% מהתנועה) · dir_sustained: 19:50 (+40 דק׳, 76% מהתנועה)
+  לונג 7796.75@20:05 → 7813.25@20:15 (+16.50 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: לא עד סוף התנועה · dir_sustained: לא עד סוף התנועה
+  שורט 7813.25@20:15 → 7783.0@20:25 (-30.25 נק׳, יורד):
+     מצב-כיוון: 20:15 (+5 דק׳, 36% מהתנועה) · dir_hint: 20:15 (+5 דק׳, 36% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 20:20 (+10 דק׳, 54% מהתנועה) · dir_sustained: 20:15 (+5 דק׳, 36% מהתנועה)
+  לונג 7783.0@20:25 → 7807.25@20:45 (+24.25 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 20:35 (+15 דק׳, 88% מהתנועה) · dir_sustained: לא עד סוף התנועה
+  שורט 7807.25@20:45 → 7791.25@20:50 (-16.00 נק׳, יורד):
+     מצב-כיוון: 20:45 (+5 דק׳, 86% מהתנועה) · dir_hint: 20:45 (+5 דק׳, 86% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 20:45 (+5 דק׳, 86% מהתנועה) · dir_sustained: 20:45 (+5 דק׳, 86% מהתנועה)
+  לונג 7791.25@20:50 → 7819.75@22:55 (+28.50 נק׳, עולה):
+     מצב-כיוון: 21:20 (+35 דק׳, 76% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 21:15 (+30 דק׳, 68% מהתנועה) · dir_sustained: 21:10 (+25 דק׳, 47% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 29/38 (76%) · הפוכה 2 (5%)
+  structure     מסכימה 8/38 (21%) · הפוכה 0 (0%)
+  turn          מסכימה 7/38 (18%) · הפוכה 6 (16%)
+  LSMA+CVD      מסכימה 19/38 (50%) · הפוכה 9 (24%)
+  dir_sustained מסכימה 36/38 (95%) · הפוכה 2 (5%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7832.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7827.75  BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv NEUTRAL sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7825.25  BAL   | hint SHORT(rp SHORT) struct forming   turn up    lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_AUCTION_IN
+  16:45 c=7832.75  BAL   | hint None (rp None ) struct forming   turn range lsma 1   lcv UP      sus UP      | UNKNOWN OPEN_AUCTION_IN
+  16:50 c=7827.5   BAL   | hint None (rp None ) struct forming   turn up    lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  16:55 c=7831.25  BAL   | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  17:00 c=7833.75  BAL   | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:05 c=7836.75  BAL   | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:10 c=7837.25  UP    | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:15 c=7837.75  UP    | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:20 c=7839.75  UP    | hint None (rp None ) struct forming   turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:25 c=7843.25  UP    | hint None (rp None ) struct none      turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:30 c=7843.75  UP    | hint None (rp None ) struct none      turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:35 c=7840.25  UP    | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:40 c=7838.25  UP    | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:45 c=7834.75  BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus UP      | Normal OPEN_AUCTION_IN
+  17:50 c=7828.5   BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:55 c=7832.0   BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:00 c=7830.5   BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:05 c=7827.75  BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:10 c=7823.0   BAL   | hint None (rp None ) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:15 c=7823.5   DOWN  | hint SHORT(rp None ) struct none      turn none  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:20 c=7822.5   DOWN  | hint SHORT(rp None ) struct none      turn none  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  18:25 c=7825.0   DOWN  | hint SHORT(rp SHORT) struct none      turn up    lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  18:30 c=7821.25  DOWN  | hint SHORT(rp SHORT) struct none      turn up    lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  18:35 c=7821.0   DOWN  | hint SHORT(rp SHORT) struct down      turn up    lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  18:40 c=7823.75  DOWN  | hint SHORT(rp SHORT) struct down      turn up    lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  18:45 c=7823.5   DOWN  | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  18:50 c=7822.0   DOWN  | hint SHORT(rp SHORT) struct down      turn up    lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  18:55 c=7822.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  19:00 c=7821.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  19:05 c=7824.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  19:10 c=7825.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:15 c=7832.75  BAL   | hint LONG (rp LONG ) struct two_sided turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:20 c=7836.5   BAL   | hint LONG (rp LONG ) struct two_sided turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:25 c=7833.25  BAL   | hint LONG (rp LONG ) struct two_sided turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:30 c=7833.0   BAL   | hint LONG (rp LONG ) struct two_sided turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  19:35 c=7828.5   BAL   | hint LONG (rp LONG ) struct two_sided turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  19:40 c=7827.25  BAL   | hint LONG (rp SHORT) struct two_sided turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  19:45 c=7811.0   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_IN
+  19:50 c=7809.75  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:55 c=7810.0   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  20:00 c=7800.0   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  20:05 c=7803.25  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  20:10 c=7810.25  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  20:15 c=7802.5   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  20:20 c=7797.0   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Trend_Normal OPEN_AUCTION_IN
+  20:25 c=7789.5   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Trend_Normal OPEN_AUCTION_IN
+  20:30 c=7798.0   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  20:35 c=7804.25  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  20:40 c=7804.25  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_IN
+  20:45 c=7793.5   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  20:50 c=7795.75  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  20:55 c=7797.75  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  21:00 c=7797.5   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  21:05 c=7798.5   DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  21:10 c=7804.75  DOWN  | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:15 c=7810.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:20 c=7813.0   UP    | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:25 c=7811.75  UP    | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:30 c=7806.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:35 c=7807.25  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:40 c=7806.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:45 c=7809.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:50 c=7809.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:55 c=7807.25  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:00 c=7805.25  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:05 c=7805.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:10 c=7808.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:15 c=7808.0   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:20 c=7816.25  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  22:25 c=7813.0   UP    | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:30 c=7810.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:35 c=7812.25  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  22:40 c=7812.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:45 c=7813.75  BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:50 c=7812.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:55 c=7817.5   BAL   | hint SHORT(rp SHORT) struct two_sided turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+==============================================================================================================
+2026-10-09 · θ פתיחה 5.38 · IB 7826.50–7844.25 (17.75) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  17:25  מאוזן → עולה  (סגירה 7841.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7839.75
+  17:35  עולה → מאוזן  (סגירה 7839.0) — שבירה נכשלה: סגירה חזרה מתחת 7839.75 תוך 2 ברים
+  17:55  מאוזן → עולה  (סגירה 7849.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7843.0
+  21:40  עולה → מאוזן  (סגירה 7860.5) — חצי-חזרה: סגירה 7860.5 באמצע הרגל 7857.0→7864.25 (7860.62)
+  21:50  מאוזן → עולה  (סגירה 7864.5) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7864.25
+  22:25  עולה → מאוזן  (סגירה 7865.0) — חצי-חזרה: סגירה 7865.0 באמצע הרגל 7859.75→7870.75 (7865.25)
+  22:45  מאוזן → יורד  (סגירה 7862.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7863.25
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  שורט 7844.25@16:30 → 7826.5@16:40 (-17.75 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 16:40 (+15 דק׳, 70% מהתנועה) · LSMA+CVD: 16:40 (+15 דק׳, 70% מהתנועה) · dir_sustained: 16:40 (+15 דק׳, 70% מהתנועה)
+  לונג 7826.5@16:40 → 7870.75@21:50 (+44.25 נק׳, עולה):
+     מצב-כיוון: 17:25 (+50 דק׳, 33% מהתנועה) · dir_hint: 16:40 (+5 דק׳, 12% מהתנועה) · structure: 17:50 (+75 דק׳, 45% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 16:55 (+20 דק׳, 21% מהתנועה) · dir_sustained: 17:15 (+40 דק׳, 29% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 49/49 (100%) · הפוכה 0 (0%)
+  structure     מסכימה 47/49 (96%) · הפוכה 0 (0%)
+  turn          מסכימה 0/49 (0%) · הפוכה 11 (22%)
+  LSMA+CVD      מסכימה 25/49 (51%) · הפוכה 11 (22%)
+  dir_sustained מסכימה 37/49 (76%) · הפוכה 9 (18%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7841.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7842.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv NEUTRAL sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7831.75  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_REJECTION_REVERSE
+  16:45 c=7833.25  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_REJECTION_REVERSE
+  16:50 c=7833.0   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Neutral_Center OPEN_REJECTION_REVERSE
+  16:55 c=7835.75  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus DOWN    | Neutral_Center OPEN_REJECTION_REVERSE
+  17:00 c=7831.5   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma -1  lcv NEUTRAL sus DOWN    | Neutral_Center OPEN_REJECTION_REVERSE
+  17:05 c=7836.0   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus DOWN    | Neutral_Center OPEN_REJECTION_REVERSE
+  17:10 c=7837.5   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus DOWN    | Neutral_Center OPEN_REJECTION_REVERSE
+  17:15 c=7839.5   BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:20 c=7841.75  BAL   | hint LONG (rp LONG ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:25 c=7841.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:30 c=7840.5   UP    | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:35 c=7839.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:40 c=7838.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:45 c=7840.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:50 c=7846.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Nontrend OPEN_REJECTION_REVERSE
+  17:55 c=7849.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:00 c=7849.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:05 c=7843.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:10 c=7847.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:15 c=7851.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:20 c=7850.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:25 c=7846.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:30 c=7844.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:35 c=7847.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:40 c=7847.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:45 c=7847.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:50 c=7850.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:55 c=7848.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:00 c=7849.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:05 c=7851.5   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  19:10 c=7852.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:15 c=7855.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:20 c=7854.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:25 c=7856.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:30 c=7855.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:35 c=7855.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:40 c=7856.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:45 c=7858.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:50 c=7859.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:55 c=7858.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:00 c=7859.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:05 c=7856.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:10 c=7855.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:15 c=7854.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:20 c=7855.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:25 c=7856.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:30 c=7855.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:35 c=7857.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:40 c=7857.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:45 c=7858.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:50 c=7859.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  20:55 c=7859.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:00 c=7857.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:05 c=7861.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:10 c=7861.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:15 c=7861.5   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:20 c=7862.5   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:25 c=7862.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:30 c=7861.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:35 c=7861.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:40 c=7860.5   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:45 c=7864.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:50 c=7864.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:55 c=7865.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:00 c=7865.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:05 c=7866.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:10 c=7866.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:15 c=7866.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:20 c=7867.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:25 c=7865.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:30 c=7866.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:35 c=7863.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:40 c=7862.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:45 c=7862.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:50 c=7860.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:55 c=7859.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+==============================================================================================================
+2026-10-19 · θ פתיחה 9.88 · IB 7727.50–7759.75 (32.25) · סף-תנועה-משמעותית 16.12
+אירועי מצב-הכיוון:
+  17:15  מאוזן → עולה  (סגירה 7755.25) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.75
+  17:30  עולה → מאוזן  (סגירה 7741.25) — שבירה נכשלה: סגירה חזרה מתחת 7749.75 תוך 3 ברים
+  18:05  מאוזן → עולה  (סגירה 7754.75) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7751.0
+  19:00  עולה → מאוזן  (סגירה 7753.5) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7763.0
+  19:05  מאוזן → יורד  (סגירה 7751.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7763.0
+  20:55  יורד → מאוזן  (סגירה 7745.0) — חצי-חזרה: סגירה 7745.0 באמצע הרגל 7751.75→7735.5 (7743.62)
+  22:20  מאוזן → עולה  (סגירה 7754.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25
+  22:45  עולה → מאוזן  (סגירה 7747.25) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7748.0
+  22:50  מאוזן → יורד  (סגירה 7740.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7748.0
+נקודות-מפנה בפועל (בדיעבד, סף 16.12) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  שורט 7749.75@16:30 → 7727.5@17:00 (-22.25 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:45 (+20 דק׳, 56% מהתנועה) · dir_sustained: 16:40 (+15 דק׳, 52% מהתנועה)
+  לונג 7727.5@17:00 → 7759.75@17:15 (+32.25 נק׳, עולה):
+     מצב-כיוון: 17:15 (+20 דק׳, 86% מהתנועה) · dir_hint: 17:00 (+5 דק׳, 15% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 17:10 (+15 דק׳, 78% מהתנועה) · dir_sustained: 17:15 (+20 דק׳, 86% מהתנועה)
+  שורט 7759.75@17:15 → 7738.75@17:30 (-21.00 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 17:30 (+20 דק׳, 88% מהתנועה) · dir_sustained: לא עד סוף התנועה
+  לונג 7738.75@17:30 → 7773.25@18:35 (+34.50 נק׳, עולה):
+     מצב-כיוון: 18:05 (+40 דק׳, 46% מהתנועה) · dir_hint: 17:30 (+5 דק׳, 7% מהתנועה) · structure: 18:20 (+55 דק׳, 78% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 17:55 (+30 דק׳, 33% מהתנועה) · dir_sustained: 17:30 (+5 דק׳, 7% מהתנועה)
+  שורט 7773.25@18:35 → 7735.5@20:45 (-37.75 נק׳, יורד):
+     מצב-כיוון: 19:05 (+35 דק׳, 58% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 18:35 (+5 דק׳, 11% מהתנועה) · LSMA+CVD: 18:45 (+15 דק׳, 16% מהתנועה) · dir_sustained: 19:00 (+30 דק׳, 52% מהתנועה)
+  לונג 7735.5@20:45 → 7754.5@22:25 (+19.00 נק׳, עולה):
+     מצב-כיוון: 22:20 (+100 דק׳, 97% מהתנועה) · dir_hint: 20:45 (+5 דק׳, 16% מהתנועה) · structure: 20:45 (+5 דק׳, 16% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 20:50 (+10 דק׳, 26% מהתנועה) · dir_sustained: 20:50 (+10 דק׳, 26% מהתנועה)
+  שורט 7754.5@22:25 → 7730.75@22:55 (-23.75 נק׳, יורד):
+     מצב-כיוון: 22:50 (+30 דק׳, 60% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 22:40 (+20 דק׳, 22% מהתנועה) · dir_sustained: 22:45 (+25 דק׳, 31% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 14/36 (39%) · הפוכה 22 (61%)
+  structure     מסכימה 8/36 (22%) · הפוכה 22 (61%)
+  turn          מסכימה 2/36 (6%) · הפוכה 3 (8%)
+  LSMA+CVD      מסכימה 20/36 (56%) · הפוכה 8 (22%)
+  dir_sustained מסכימה 35/36 (97%) · הפוכה 1 (3%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7743.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7741.25  BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv NEUTRAL sus NEUTRAL | UNKNOWN UNKNOWN
+  16:40 c=7738.25  BAL   | hint LONG (rp LONG ) struct forming   turn up    lsma -1  lcv NEUTRAL sus DOWN    | UNKNOWN OPEN_REJECTION_REVERSE
+  16:45 c=7737.25  BAL   | hint LONG (rp LONG ) struct forming   turn up    lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_REJECTION_REVERSE
+  16:50 c=7734.25  BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  16:55 c=7735.0   BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  17:00 c=7732.25  BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | Trend_Normal OPEN_REJECTION_REVERSE
+  17:05 c=7735.5   BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma -1  lcv NEUTRAL sus DOWN    | Trend_Normal OPEN_REJECTION_REVERSE
+  17:10 c=7752.5   BAL   | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  17:15 c=7755.25  UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  17:20 c=7756.5   UP    | hint LONG (rp LONG ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:25 c=7753.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:30 c=7741.25  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:35 c=7743.0   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:40 c=7742.75  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:45 c=7745.25  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:50 c=7748.25  BAL   | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:55 c=7750.0   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:00 c=7753.5   BAL   | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:05 c=7754.75  UP    | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:10 c=7755.5   UP    | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:15 c=7759.75  UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:20 c=7765.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:25 c=7767.75  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:30 c=7767.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:35 c=7769.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:40 c=7768.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:45 c=7767.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:50 c=7766.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  18:55 c=7763.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  19:00 c=7753.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:05 c=7751.25  DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:10 c=7755.0   DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:15 c=7753.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:20 c=7751.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:25 c=7751.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:30 c=7750.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:35 c=7748.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:40 c=7750.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:45 c=7746.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:50 c=7744.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  19:55 c=7743.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:00 c=7743.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:05 c=7739.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:10 c=7743.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:15 c=7741.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:20 c=7741.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:25 c=7742.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:30 c=7741.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:35 c=7741.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:40 c=7741.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:45 c=7738.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  20:50 c=7740.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  20:55 c=7745.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:00 c=7742.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:05 c=7744.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:10 c=7745.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:15 c=7747.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:20 c=7742.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:25 c=7741.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_REJECTION_REVERSE
+  21:30 c=7737.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  21:35 c=7742.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  21:40 c=7743.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:45 c=7744.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:50 c=7742.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  21:55 c=7744.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:00 c=7748.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:05 c=7744.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:10 c=7746.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:15 c=7750.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:20 c=7754.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:25 c=7749.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:30 c=7750.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:35 c=7750.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:40 c=7749.25  UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus UP      | Variation OPEN_REJECTION_REVERSE
+  22:45 c=7747.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:50 c=7740.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+  22:55 c=7734.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_REJECTION_REVERSE
+==============================================================================================================
+2026-10-20 · θ פתיחה 5.00 · IB 7710.25–7786.00 (75.75) · סף-תנועה-משמעותית 37.88
+אירועי מצב-הכיוון:
+  16:55  מאוזן → עולה  (סגירה 7748.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7731.0
+  18:10  עולה → מאוזן  (סגירה 7756.75) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7776.25
+  18:15  מאוזן → יורד  (סגירה 7766.5) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7776.25
+  18:50  יורד → מאוזן  (סגירה 7767.75) — מעבר: סגירה ראשונה מעל שיא-סווינג 7767.0
+  19:20  מאוזן → יורד  (סגירה 7755.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7757.0
+  19:25  יורד → מאוזן  (סגירה 7759.5) — שבירה נכשלה: סגירה חזרה מעל 7757.0 תוך 1 ברים
+  21:35  מאוזן → יורד  (סגירה 7755.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7760.25
+  21:50  יורד → מאוזן  (סגירה 7758.5) — חצי-חזרה: סגירה 7758.5 באמצע הרגל 7766.25→7748.75 (7757.50)
+  22:55  מאוזן → עולה  (סגירה 7759.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7754.0
+נקודות-מפנה בפועל (בדיעבד, סף 37.88) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7710.25@16:45 → 7791.5@17:30 (+81.25 נק׳, עולה):
+     מצב-כיוון: 16:55 (+15 דק׳, 46% מהתנועה) · dir_hint: 17:30 (+50 דק׳, 85% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:45 (+5 דק׳, 23% מהתנועה) · dir_sustained: 16:50 (+10 דק׳, 27% מהתנועה)
+  שורט 7791.5@17:30 → 7746.25@22:35 (-45.25 נק׳, יורד):
+     מצב-כיוון: 18:15 (+50 דק׳, 55% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 17:55 (+30 דק׳, 14% מהתנועה) · LSMA+CVD: 17:55 (+30 דק׳, 14% מהתנועה) · dir_sustained: 18:10 (+45 דק׳, 77% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 8/26 (31%) · הפוכה 18 (69%)
+  structure     מסכימה 0/26 (0%) · הפוכה 0 (0%)
+  turn          מסכימה 11/26 (42%) · הפוכה 3 (12%)
+  LSMA+CVD      מסכימה 17/26 (65%) · הפוכה 3 (12%)
+  dir_sustained מסכימה 26/26 (100%) · הפוכה 0 (0%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7723.25  BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7725.5   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7713.0   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN OPEN_AUCTION_OUT
+  16:45 c=7729.0   BAL   | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN OPEN_REJECTION_REVERSE
+  16:50 c=7732.5   BAL   | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  16:55 c=7748.0   UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:00 c=7747.5   UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:05 c=7755.75  UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:10 c=7759.5   UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:15 c=7766.25  UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Neutral_Center OPEN_REJECTION_REVERSE
+  17:20 c=7775.25  UP    | hint SHORT(rp SHORT) struct forming   turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:25 c=7785.0   UP    | hint SHORT(rp SHORT) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:30 c=7779.25  UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:35 c=7778.5   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:40 c=7783.5   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:45 c=7781.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:50 c=7786.0   UP    | hint LONG (rp LONG ) struct none      turn none  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  17:55 c=7785.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:00 c=7778.5   UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:05 c=7777.75  UP    | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  18:10 c=7756.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:15 c=7766.5   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:20 c=7761.5   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:25 c=7760.0   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:30 c=7758.0   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:35 c=7757.0   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:40 c=7763.5   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:45 c=7761.25  DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:50 c=7767.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  18:55 c=7767.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:00 c=7760.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:05 c=7762.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:10 c=7760.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:15 c=7752.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:20 c=7755.0   DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:25 c=7759.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  19:30 c=7760.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  19:35 c=7762.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  19:40 c=7761.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  19:45 c=7762.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  19:50 c=7752.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus NEUTRAL | Normal OPEN_REJECTION_REVERSE
+  19:55 c=7754.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  20:00 c=7754.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  20:05 c=7753.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  20:10 c=7755.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  20:15 c=7756.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus NEUTRAL | Normal OPEN_REJECTION_REVERSE
+  20:20 c=7761.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:25 c=7763.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:30 c=7762.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:35 c=7764.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:40 c=7764.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:45 c=7764.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:50 c=7767.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  20:55 c=7764.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  21:00 c=7760.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus UP      | Normal OPEN_REJECTION_REVERSE
+  21:05 c=7763.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  21:10 c=7765.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+  21:15 c=7763.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus UP      | Normal OPEN_REJECTION_REVERSE
+  21:20 c=7760.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:25 c=7760.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:30 c=7755.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:35 c=7755.25  DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:40 c=7749.25  DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:45 c=7755.25  DOWN  | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:50 c=7758.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  21:55 c=7756.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:00 c=7756.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:05 c=7756.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:10 c=7753.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:15 c=7753.75  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:20 c=7748.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:25 c=7749.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:30 c=7753.0   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:35 c=7748.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:40 c=7752.5   BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:45 c=7753.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:50 c=7754.25  BAL   | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus DOWN    | Normal OPEN_REJECTION_REVERSE
+  22:55 c=7759.0   UP    | hint LONG (rp LONG ) struct none      turn down  lsma 1   lcv UP      sus UP      | Normal OPEN_REJECTION_REVERSE
+==============================================================================================================
+2026-10-21 · θ פתיחה 5.62 · IB 7751.00–7780.75 (29.75) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  17:05  מאוזן → יורד  (סגירה 7755.5) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7769.75
+  17:30  יורד → מאוזן  (סגירה 7766.5) — חצי-חזרה: סגירה 7766.5 באמצע הרגל 7779.5→7751.0 (7765.25)
+  18:30  מאוזן → עולה  (סגירה 7788.5) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7784.5
+  20:30  עולה → מאוזן  (סגירה 7803.0) — שבירה נכשלה: סגירה חזרה מתחת 7804.0 תוך 4 ברים
+  21:30  מאוזן → עולה  (סגירה 7810.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7809.0
+  21:45  עולה → מאוזן  (סגירה 7798.5) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7802.75
+  21:50  מאוזן → יורד  (סגירה 7800.5) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7802.75
+  22:15  יורד → מאוזן  (סגירה 7789.0) — מעבר: סגירה ראשונה מעל שיא-סווינג 7787.75
+  22:20  מאוזן → עולה  (סגירה 7790.75) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7787.75
+  22:55  עולה → מאוזן  (סגירה 7799.0) — שבירה נכשלה: סגירה חזרה מתחת 7800.0 תוך 1 ברים
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7764.5@16:30 → 7780.0@16:30 (+15.50 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: לא עד סוף התנועה · dir_sustained: לא עד סוף התנועה
+  שורט 7780.0@16:30 → 7764.75@16:40 (-15.25 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 16:40 (+15 דק׳, 74% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:30 (+5 דק׳, 69% מהתנועה) · dir_sustained: 16:35 (+10 דק׳, 20% מהתנועה)
+  לונג 7764.75@16:40 → 7780.75@16:45 (+16.00 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 16:45 (+10 דק׳, 86% מהתנועה) · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:45 (+10 דק׳, 86% מהתנועה) · dir_sustained: לא עד סוף התנועה
+  שורט 7780.75@16:45 → 7751.0@17:10 (-29.75 נק׳, יורד):
+     מצב-כיוון: 17:05 (+25 דק׳, 85% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 17:05 (+25 דק׳, 85% מהתנועה) · LSMA+CVD: 17:00 (+20 דק׳, 48% מהתנועה) · dir_sustained: 16:55 (+15 דק׳, 24% מהתנועה)
+  לונג 7751.0@17:10 → 7811.75@21:15 (+60.75 נק׳, עולה):
+     מצב-כיוון: 18:30 (+85 דק׳, 62% מהתנועה) · dir_hint: 18:10 (+65 דק׳, 51% מהתנועה) · structure: 18:15 (+70 דק׳, 44% מהתנועה) · turn: 18:10 (+65 דק׳, 51% מהתנועה) · LSMA+CVD: 17:30 (+25 דק׳, 26% מהתנועה) · dir_sustained: 17:40 (+35 דק׳, 30% מהתנועה)
+  שורט 7811.75@21:15 → 7770.75@22:00 (-41.00 נק׳, יורד):
+     מצב-כיוון: 21:50 (+40 דק׳, 27% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 21:15 (+5 דק׳, 4% מהתנועה) · LSMA+CVD: 21:45 (+35 דק׳, 32% מהתנועה) · dir_sustained: 21:50 (+40 דק׳, 27% מהתנועה)
+  לונג 7770.75@22:00 → 7806.25@22:50 (+35.50 נק׳, עולה):
+     מצב-כיוון: 22:20 (+25 דק׳, 56% מהתנועה) · dir_hint: 22:00 (+5 דק׳, 26% מהתנועה) · structure: 22:00 (+5 דק׳, 26% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 22:30 (+35 דק׳, 74% מהתנועה) · dir_sustained: 22:35 (+40 דק׳, 73% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 27/34 (79%) · הפוכה 2 (6%)
+  structure     מסכימה 27/34 (79%) · הפוכה 2 (6%)
+  turn          מסכימה 19/34 (56%) · הפוכה 9 (26%)
+  LSMA+CVD      מסכימה 17/34 (50%) · הפוכה 5 (15%)
+  dir_sustained מסכימה 28/34 (82%) · הפוכה 3 (9%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7769.5   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7777.0   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv NEUTRAL sus DOWN    | UNKNOWN UNKNOWN
+  16:40 c=7768.75  BAL   | hint SHORT(rp SHORT) struct forming   turn range lsma -1  lcv NEUTRAL sus DOWN    | UNKNOWN OPEN_AUCTION_IN
+  16:45 c=7778.5   BAL   | hint LONG (rp LONG ) struct forming   turn range lsma 1   lcv UP      sus NEUTRAL | UNKNOWN OPEN_AUCTION_IN
+  16:50 c=7772.5   BAL   | hint None (rp None ) struct forming   turn range lsma -1  lcv NEUTRAL sus NEUTRAL | Normal OPEN_AUCTION_IN
+  16:55 c=7773.75  BAL   | hint None (rp None ) struct forming   turn range lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  17:00 c=7766.5   BAL   | hint None (rp None ) struct forming   turn range lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:05 c=7755.5   DOWN  | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:10 c=7754.75  DOWN  | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:15 c=7755.75  DOWN  | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:20 c=7758.25  DOWN  | hint None (rp None ) struct forming   turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  17:25 c=7761.0   DOWN  | hint None (rp None ) struct none      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  17:30 c=7766.5   BAL   | hint None (rp None ) struct none      turn down  lsma 1   lcv UP      sus DOWN    | Normal OPEN_AUCTION_IN
+  17:35 c=7762.5   BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_IN
+  17:40 c=7769.25  BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:45 c=7776.75  BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:50 c=7775.0   BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  17:55 c=7776.25  BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  18:00 c=7777.75  BAL   | hint None (rp None ) struct none      turn range lsma 1   lcv NEUTRAL sus UP      | Normal OPEN_AUCTION_IN
+  18:05 c=7777.5   BAL   | hint None (rp LONG ) struct none      turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  18:10 c=7782.0   BAL   | hint LONG (rp LONG ) struct none      turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:15 c=7777.5   BAL   | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  18:20 c=7780.75  BAL   | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Normal OPEN_AUCTION_IN
+  18:25 c=7787.5   BAL   | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:30 c=7788.5   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:35 c=7794.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:40 c=7793.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:45 c=7796.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:50 c=7793.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  18:55 c=7794.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  19:00 c=7792.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  19:05 c=7791.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  19:10 c=7793.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  19:15 c=7792.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_IN
+  19:20 c=7792.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  19:25 c=7790.25  UP    | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  19:30 c=7790.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_IN
+  19:35 c=7804.0   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_IN
+  19:40 c=7798.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  19:45 c=7797.5   UP    | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  19:50 c=7802.75  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_IN
+  19:55 c=7801.75  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:00 c=7801.75  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:05 c=7806.25  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:10 c=7806.25  UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:15 c=7808.5   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:20 c=7807.75  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:25 c=7807.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:30 c=7803.0   BAL   | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:35 c=7803.75  BAL   | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:40 c=7807.0   BAL   | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  20:45 c=7806.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:50 c=7808.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  20:55 c=7805.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:00 c=7804.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:05 c=7806.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:10 c=7807.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:15 c=7810.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_IN
+  21:20 c=7809.0   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:25 c=7809.75  BAL   | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:30 c=7810.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  21:35 c=7809.75  UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:40 c=7809.0   UP    | hint LONG (rp LONG ) struct up        turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  21:45 c=7798.5   BAL   | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_IN
+  21:50 c=7800.5   DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  21:55 c=7787.75  DOWN  | hint LONG (rp LONG ) struct up        turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:00 c=7780.0   DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:05 c=7779.25  DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:10 c=7783.0   DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  22:15 c=7789.0   BAL   | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  22:20 c=7790.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  22:25 c=7799.5   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_IN
+  22:30 c=7797.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_IN
+  22:35 c=7796.5   UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  22:40 c=7798.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:45 c=7803.25  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_IN
+  22:50 c=7803.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+  22:55 c=7799.0   BAL   | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_IN
+==============================================================================================================
+2026-10-22 · θ פתיחה 6.38 · IB 7696.25–7742.50 (46.25) · סף-תנועה-משמעותית 23.12
+אירועי מצב-הכיוון:
+  17:25  מאוזן → יורד  (סגירה 7698.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7719.0
+  18:15  יורד → מאוזן  (סגירה 7703.5) — מעבר: סגירה ראשונה מעל שיא-סווינג 7701.75
+  18:20  מאוזן → עולה  (סגירה 7711.0) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7701.75
+  18:25  עולה → מאוזן  (סגירה 7699.25) — שבירה נכשלה: סגירה חזרה מתחת 7701.75 תוך 1 ברים
+  18:55  מאוזן → עולה  (סגירה 7712.75) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7702.5
+  19:25  עולה → מאוזן  (סגירה 7718.25) — שבירה נכשלה: סגירה חזרה מתחת 7719.25 תוך 1 ברים
+  19:35  מאוזן → יורד  (סגירה 7701.25) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7708.5
+  20:30  יורד → מאוזן  (סגירה 7705.0) — מעבר: סגירה ראשונה מעל שיא-סווינג 7704.0
+  22:55  מאוזן → עולה  (סגירה 7706.25) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7698.25
+נקודות-מפנה בפועל (בדיעבד, סף 23.12) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  לונג 7719.0@16:50 → 7742.5@17:00 (+23.50 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:55 (+10 דק׳, 77% מהתנועה) · dir_sustained: 17:00 (+15 דק׳, 86% מהתנועה)
+  שורט 7742.5@17:00 → 7686.0@17:35 (-56.50 נק׳, יורד):
+     מצב-כיוון: 17:25 (+30 דק׳, 78% מהתנועה) · dir_hint: 17:30 (+35 דק׳, 92% מהתנועה) · structure: 17:30 (+35 דק׳, 92% מהתנועה) · turn: 17:00 (+5 דק׳, 6% מהתנועה) · LSMA+CVD: 17:10 (+15 דק׳, 37% מהתנועה) · dir_sustained: 17:10 (+15 דק׳, 37% מהתנועה)
+  לונג 7686.0@17:35 → 7713.0@18:25 (+27.00 נק׳, עולה):
+     מצב-כיוון: 18:20 (+50 דק׳, 93% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 17:55 (+25 דק׳, 45% מהתנועה) · dir_sustained: 18:15 (+45 דק׳, 65% מהתנועה)
+  שורט 7713.0@18:25 → 7688.5@18:40 (-24.50 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 18:25 (+5 דק׳, 56% מהתנועה) · structure: 18:25 (+5 דק׳, 56% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: לא עד סוף התנועה · dir_sustained: לא עד סוף התנועה
+  לונג 7688.5@18:40 → 7723.75@19:20 (+35.25 נק׳, עולה):
+     מצב-כיוון: 18:55 (+20 דק׳, 69% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 18:55 (+20 דק׳, 69% מהתנועה) · dir_sustained: 18:40 (+5 דק׳, 25% מהתנועה)
+  שורט 7723.75@19:20 → 7679.0@21:00 (-44.75 נק׳, יורד):
+     מצב-כיוון: 19:35 (+20 דק׳, 50% מהתנועה) · dir_hint: 19:20 (+5 דק׳, 7% מהתנועה) · structure: 19:20 (+5 דק׳, 7% מהתנועה) · turn: 21:00 (+105 דק׳, 96% מהתנועה) · LSMA+CVD: 19:30 (+15 דק׳, 37% מהתנועה) · dir_sustained: 19:35 (+20 דק׳, 50% מהתנועה)
+  לונג 7679.0@21:00 → 7703.25@21:20 (+24.25 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 21:10 (+15 דק׳, 52% מהתנועה) · dir_sustained: 21:15 (+20 דק׳, 86% מהתנועה)
+  שורט 7703.25@21:20 → 7677.0@22:00 (-26.25 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 21:20 (+5 דק׳, 16% מהתנועה) · structure: 21:20 (+5 דק׳, 16% מהתנועה) · turn: 21:20 (+5 דק׳, 16% מהתנועה) · LSMA+CVD: 21:25 (+10 דק׳, 55% מהתנועה) · dir_sustained: 21:30 (+15 דק׳, 69% מהתנועה)
+  לונג 7677.0@22:00 → 7706.75@22:55 (+29.75 נק׳, עולה):
+     מצב-כיוון: 22:55 (+60 דק׳, 98% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 22:05 (+10 דק׳, 28% מהתנועה) · dir_sustained: 22:15 (+20 דק׳, 46% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 20/28 (71%) · הפוכה 7 (25%)
+  structure     מסכימה 20/28 (71%) · הפוכה 7 (25%)
+  turn          מסכימה 4/28 (14%) · הפוכה 0 (0%)
+  LSMA+CVD      מסכימה 15/28 (54%) · הפוכה 3 (11%)
+  dir_sustained מסכימה 28/28 (100%) · הפוכה 0 (0%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7738.25  BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7738.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus UP      | UNKNOWN UNKNOWN
+  16:40 c=7732.0   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv NEUTRAL sus UP      | UNKNOWN OPEN_AUCTION_IN
+  16:45 c=7728.75  BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus NEUTRAL | UNKNOWN OPEN_AUCTION_IN
+  16:50 c=7727.75  BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  16:55 c=7737.0   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_IN
+  17:00 c=7739.25  BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_IN
+  17:05 c=7727.0   BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_IN
+  17:10 c=7721.75  BAL   | hint None (rp None ) struct forming   turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  17:15 c=7721.25  BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_IN
+  17:20 c=7709.25  BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_IN
+  17:25 c=7698.25  DOWN  | hint None (rp SHORT) struct none      turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:30 c=7690.5   DOWN  | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:35 c=7690.25  DOWN  | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:40 c=7690.5   DOWN  | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:45 c=7691.5   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:50 c=7694.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:55 c=7698.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:00 c=7693.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:05 c=7694.0   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:10 c=7692.0   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:15 c=7703.5   BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:20 c=7711.0   UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:25 c=7699.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:30 c=7697.75  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:35 c=7698.0   BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:40 c=7697.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:45 c=7698.75  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:50 c=7705.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:55 c=7712.75  UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:00 c=7714.75  UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:05 c=7717.5   UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:10 c=7716.0   UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:15 c=7719.75  UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  19:20 c=7720.5   UP    | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:25 c=7718.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:30 c=7707.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_OUT
+  19:35 c=7701.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:40 c=7695.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:45 c=7690.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:50 c=7696.0   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:55 c=7702.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:00 c=7691.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:05 c=7689.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:10 c=7693.0   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:15 c=7694.75  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:20 c=7697.0   DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:25 c=7698.25  DOWN  | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:30 c=7705.0   BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  20:35 c=7699.75  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  20:40 c=7701.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  20:45 c=7695.0   BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  20:50 c=7694.25  BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  20:55 c=7692.5   BAL   | hint SHORT(rp SHORT) struct down      turn range lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:00 c=7680.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:05 c=7689.25  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:10 c=7691.5   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:15 c=7699.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:20 c=7699.0   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:25 c=7688.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  21:30 c=7685.25  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:35 c=7684.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:40 c=7687.25  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:45 c=7685.5   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:50 c=7685.0   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  21:55 c=7682.5   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:00 c=7683.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:05 c=7685.25  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:10 c=7686.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:15 c=7690.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  22:20 c=7692.5   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  22:25 c=7696.75  BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  22:30 c=7689.0   BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  22:35 c=7686.75  BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  22:40 c=7686.25  BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  22:45 c=7687.75  BAL   | hint SHORT(rp SHORT) struct down      turn none  lsma 1   lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  22:50 c=7701.75  BAL   | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  22:55 c=7706.25  UP    | hint SHORT(rp SHORT) struct down      turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+==============================================================================================================
+2026-10-23 · θ פתיחה 6.62 · IB 7648.50–7676.25 (27.75) · סף-תנועה-משמעותית 15.00
+אירועי מצב-הכיוון:
+  17:20  מאוזן → יורד  (סגירה 7654.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7662.0
+  17:35  יורד → מאוזן  (סגירה 7666.0) — מעבר: סגירה ראשונה מעל שיא-סווינג 7661.5
+  17:40  מאוזן → עולה  (סגירה 7678.5) — שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7661.5
+  19:20  עולה → מאוזן  (סגירה 7679.25) — מעבר: סגירה ראשונה מתחת לשפל-סווינג 7681.25
+  19:25  מאוזן → יורד  (סגירה 7678.5) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7681.25
+  19:30  יורד → מאוזן  (סגירה 7684.25) — שבירה נכשלה: סגירה חזרה מעל 7681.25 תוך 1 ברים
+  20:00  מאוזן → יורד  (סגירה 7675.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7676.25
+  20:55  יורד → מאוזן  (סגירה 7674.0) — מעבר: סגירה ראשונה מעל שיא-סווינג 7672.75
+  21:40  מאוזן → יורד  (סגירה 7666.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7668.0
+  21:55  יורד → מאוזן  (סגירה 7668.0) — חצי-חזרה: סגירה 7668.0 באמצע הרגל 7673.5→7661.75 (7667.62)
+  22:55  מאוזן → יורד  (סגירה 7661.0) — שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7662.5
+נקודות-מפנה בפועל (בדיעבד, סף 15.00) והפיגור של כל קריאה עד שהיא מסכימה עם הכיוון החדש:
+  שורט 7669.75@16:30 → 7653.0@16:35 (-16.75 נק׳, יורד):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:35 (+10 דק׳, 91% מהתנועה) · dir_sustained: 16:35 (+10 דק׳, 91% מהתנועה)
+  לונג 7653.0@16:35 → 7676.25@17:00 (+23.25 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 16:40 (+10 דק׳, 65% מהתנועה) · dir_sustained: 16:45 (+15 דק׳, 71% מהתנועה)
+  שורט 7676.25@17:00 → 7648.5@17:25 (-27.75 נק׳, יורד):
+     מצב-כיוון: 17:20 (+25 דק׳, 80% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: 17:00 (+5 דק׳, 28% מהתנועה) · LSMA+CVD: 17:15 (+20 דק׳, 81% מהתנועה) · dir_sustained: 17:15 (+20 דק׳, 81% מהתנועה)
+  לונג 7648.5@17:25 → 7697.25@18:25 (+48.75 נק׳, עולה):
+     מצב-כיוון: 17:40 (+20 דק׳, 62% מהתנועה) · dir_hint: 17:40 (+20 דק׳, 62% מהתנועה) · structure: 17:40 (+20 דק׳, 62% מהתנועה) · turn: 17:40 (+20 דק׳, 62% מהתנועה) · LSMA+CVD: 17:35 (+15 דק׳, 36% מהתנועה) · dir_sustained: 17:40 (+20 דק׳, 62% מהתנועה)
+  שורט 7697.25@18:25 → 7661.5@20:15 (-35.75 נק׳, יורד):
+     מצב-כיוון: 19:25 (+65 דק׳, 52% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 18:40 (+20 דק׳, 36% מהתנועה) · dir_sustained: 18:45 (+25 דק׳, 23% מהתנועה)
+  לונג 7661.5@20:15 → 7677.5@20:55 (+16.00 נק׳, עולה):
+     מצב-כיוון: לא עד סוף התנועה · dir_hint: 20:15 (+5 דק׳, 50% מהתנועה) · structure: 20:15 (+5 דק׳, 50% מהתנועה) · turn: לא עד סוף התנועה · LSMA+CVD: 20:35 (+25 דק׳, 30% מהתנועה) · dir_sustained: 20:55 (+45 דק׳, 78% מהתנועה)
+  שורט 7677.5@20:55 → 7657.75@22:55 (-19.75 נק׳, יורד):
+     מצב-כיוון: 21:40 (+50 דק׳, 58% מהתנועה) · dir_hint: לא עד סוף התנועה · structure: לא עד סוף התנועה · turn: לא עד סוף התנועה · LSMA+CVD: 21:35 (+45 דק׳, 68% מהתנועה) · dir_sustained: 22:15 (+85 דק׳, 51% מהתנועה)
+הסכמה של קריאות-המערכת עם מצב-הכיוון (ברים שבהם המצב עולה/יורד, 16:45–21:55):
+  dir_hint      מסכימה 20/38 (53%) · הפוכה 15 (39%)
+  structure     מסכימה 20/38 (53%) · הפוכה 15 (39%)
+  turn          מסכימה 9/38 (24%) · הפוכה 0 (0%)
+  LSMA+CVD      מסכימה 19/38 (50%) · הפוכה 9 (24%)
+  dir_sustained מסכימה 31/38 (82%) · הפוכה 6 (16%)
+ציר-הזמן (כל בר: מצב · hint · struct · turn · LSMA+CVD · sustained · day type):
+  16:30 c=7662.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv NEUTRAL sus NEUTRAL | UNKNOWN UNKNOWN
+  16:35 c=7654.5   BAL   | hint None (rp None ) struct forming   turn none  lsma -1  lcv DOWN    sus DOWN    | UNKNOWN UNKNOWN
+  16:40 c=7668.0   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus DOWN    | UNKNOWN OPEN_AUCTION_OUT
+  16:45 c=7669.5   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus UP      | UNKNOWN OPEN_AUCTION_OUT
+  16:50 c=7665.5   BAL   | hint None (rp None ) struct forming   turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  16:55 c=7671.5   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:00 c=7668.5   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:05 c=7668.0   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:10 c=7664.5   BAL   | hint None (rp None ) struct forming   turn down  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  17:15 c=7653.75  BAL   | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  17:20 c=7654.0   DOWN  | hint None (rp None ) struct forming   turn down  lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:25 c=7658.5   DOWN  | hint None (rp None ) struct none      turn range lsma -1  lcv DOWN    sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:30 c=7658.25  DOWN  | hint None (rp None ) struct none      turn range lsma -1  lcv NEUTRAL sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:35 c=7666.0   BAL   | hint None (rp LONG ) struct none      turn range lsma 1   lcv UP      sus DOWN    | Normal OPEN_AUCTION_OUT
+  17:40 c=7678.5   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:45 c=7685.75  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:50 c=7689.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  17:55 c=7691.5   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:00 c=7686.25  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:05 c=7681.0   UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:10 c=7684.25  UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:15 c=7689.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:20 c=7690.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:25 c=7692.25  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:30 c=7695.25  UP    | hint LONG (rp LONG ) struct up        turn up    lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  18:35 c=7688.25  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  18:40 c=7684.5   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus UP      | Variation OPEN_AUCTION_OUT
+  18:45 c=7689.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:50 c=7690.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  18:55 c=7692.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  19:00 c=7690.0   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  19:05 c=7691.25  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  19:10 c=7685.75  UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:15 c=7684.5   UP    | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:20 c=7679.25  BAL   | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:25 c=7678.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:30 c=7684.25  BAL   | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:35 c=7686.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  19:40 c=7687.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  19:45 c=7686.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  19:50 c=7676.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  19:55 c=7675.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:00 c=7675.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:05 c=7670.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:10 c=7667.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:15 c=7669.5   DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:20 c=7662.75  DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:25 c=7665.5   DOWN  | hint LONG (rp LONG ) struct up        turn range lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:30 c=7666.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:35 c=7666.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:40 c=7666.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:45 c=7670.5   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:50 c=7668.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus DOWN    | Variation OPEN_AUCTION_OUT
+  20:55 c=7674.0   BAL   | hint LONG (rp LONG ) struct up        turn range lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:00 c=7667.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:05 c=7671.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:10 c=7669.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  21:15 c=7671.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:20 c=7668.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  21:25 c=7670.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:30 c=7672.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  21:35 c=7664.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  21:40 c=7666.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  21:45 c=7666.75  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv NEUTRAL sus UP      | Variation OPEN_AUCTION_OUT
+  21:50 c=7667.25  DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  21:55 c=7668.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus UP      | Variation OPEN_AUCTION_OUT
+  22:00 c=7668.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  22:05 c=7669.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma 1   lcv UP      sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  22:10 c=7668.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus NEUTRAL | Variation OPEN_AUCTION_OUT
+  22:15 c=7667.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:20 c=7667.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:25 c=7667.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:30 c=7666.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:35 c=7664.5   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:40 c=7664.0   BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:45 c=7664.75  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv NEUTRAL sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:50 c=7661.25  BAL   | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT
+  22:55 c=7661.0   DOWN  | hint LONG (rp LONG ) struct up        turn none  lsma -1  lcv DOWN    sus DOWN    | Variation OPEN_AUCTION_OUT

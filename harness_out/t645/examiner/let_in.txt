@@ -1,0 +1,42 @@
+candidates with features: 2823
+tree:bias        state with    81d n=  76 good  33 (43%) bad  21 (28%) flat  22 | examined days n=  16 good   8 (50%) bad   2 (12%) flat   6
+tree:bias        state BAL     81d n= 236 good  82 (35%) bad 116 (49%) flat  38 | examined days n=   9 good   2 (22%) bad   6 (67%) flat   1
+tree:bias        state against 81d n=  83 good  30 (36%) bad  53 (64%) flat   0 | examined days n=   7 good   2 (29%) bad   5 (71%) flat   0
+
+tree:location    state with    81d n=  82 good  38 (46%) bad  31 (38%) flat  13 | examined days n=  17 good  10 (59%) bad   5 (29%) flat   2
+tree:location    state BAL     81d n= 191 good  98 (51%) bad  75 (39%) flat  18 | examined days n=  21 good   9 (43%) bad   8 (38%) flat   4
+tree:location    state against 81d n=   9 good   6 (67%) bad   3 (33%) flat   0 | examined days n=   2 good   2 (100%) bad   0 ( 0%) flat   0
+
+tree:kind        state with    81d n=  15 good   7 (47%) bad   7 (47%) flat   1 | examined days n=   0 good   0 ( 0%) bad   0 ( 0%) flat   0
+tree:kind        state BAL     81d n=  92 good  43 (47%) bad  39 (42%) flat  10 | examined days n=  17 good   6 (35%) bad   8 (47%) flat   3
+tree:kind        state against 81d n=  20 good  10 (50%) bad  10 (50%) flat   0 | examined days n=   3 good   2 (67%) bad   1 (33%) flat   0
+
+tree:stand_down  state with    81d n=  38 good   9 (24%) bad  11 (29%) flat  18 | examined days n=   2 good   0 ( 0%) bad   1 (50%) flat   1
+tree:stand_down  state BAL     81d n= 248 good 106 (43%) bad 107 (43%) flat  35 | examined days n=  34 good  14 (41%) bad  16 (47%) flat   4
+tree:stand_down  state against 81d n=  32 good  14 (44%) bad  16 (50%) flat   2 | examined days n=   5 good   2 (40%) bad   2 (40%) flat   1
+
+## ש5 = release tree:bias when the state is WITH the candidate — by phase and location (81 days)
+  phase B pos middle n=   2 good   0 ( 0%) bad   2 (100%) flat   0
+  phase C pos middle n=   5 good   2 (40%) bad   3 (60%) flat   0
+  phase C pos far    n=  67 good  30 (45%) bad  15 (22%) flat  22
+  phase D pos middle n=   1 good   0 ( 0%) bad   1 (100%) flat   0
+  phase D pos far    n=   1 good   1 (100%) bad   0 ( 0%) flat   0
+  ש5 and the other questions also pass: n=  75 good  32 (43%) bad  21 (28%) flat  22
+
+## ש5 on the examined days, one by one
+  10-06 19:25 INITIATIVE_SHORT       SHORT @7887.75  R 13.75 state DOWN since 0 pos 0.80 phase C lab good  q pass
+  10-07 18:29 GHOST                  LONG  @7827.25  R 15.50 state UP since 1 pos 0.66 phase C lab good  q pass
+  10-07 18:34 ZLR                    LONG  @7830.0   R 15.00 state UP since 2 pos 0.81 phase C lab good  q pass
+  10-07 18:40 REACTIVE_LONG          LONG  @7838.0   R 26.25 state UP since 4 pos 0.94 phase C lab flat  q pass
+  10-07 18:55 INITIATIVE_LONG        LONG  @7842.75  R 29.50 state UP since 7 pos 0.88 phase C lab flat  q pass
+  10-19 19:15 INITIATIVE_SHORT       SHORT @7755.0   R 22.25 state DOWN since 1 pos 0.68 phase C lab good  q pass
+  10-19 19:19 ZLR                    SHORT @7753.25  R 15.00 state DOWN since 1 pos 0.75 phase C lab good  q pass
+  10-19 19:20 CEILING_FLIP_TOUCH2    SHORT @7753.25  R  4.00 state DOWN since 2 pos 0.75 phase C lab good  q pass
+  10-19 19:49 ZLR                    SHORT @7746.0   R 15.00 state DOWN since 7 pos 0.98 phase C lab good  q pass
+  10-19 20:05 INITIATIVE_SHORT       SHORT @7743.25  R 17.75 state DOWN since 11 pos 0.86 phase C lab flat  q pass
+  10-19 20:24 ZLR                    SHORT @7741.75  R 15.00 state DOWN since 14 pos 0.78 phase C lab flat  q pass
+  10-19 20:49 GB100                  SHORT @7738.5   R 12.50 state DOWN since 19 pos 0.96 phase C lab bad   q pass
+  10-22 19:00 REACTIVE_LONG          LONG  @7712.75  R 28.25 state UP since 0 pos 0.95 phase C lab bad   q pass
+  10-23 20:05 CEILING_FLIP_TOUCH2    SHORT @7675.0   R  4.50 state DOWN since 0 pos 0.91 phase C lab good  q pass
+  10-23 20:10 INITIATIVE_SHORT       SHORT @7670.0   R 26.75 state DOWN since 1 pos 0.92 phase C lab flat  q pass
+  10-23 20:49 ZLR                    SHORT @7670.5   R 15.00 state DOWN since 8 pos 0.69 phase C lab flat  q pass

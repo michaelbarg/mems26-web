@@ -1,0 +1,26 @@
+## 1. real trades: ש2-C (old) vs ש2-C′ (new)
+  #3038 10-05 19:05 CEILING_FLIP_SHORT   SHORT pnl -27.5    verdict wrong      A=accepted_against last_beyond=False eff=False eff_result=False → old True new False
+  #3220 10-07 19:40 CEILING_FLIP_SHORT   SHORT pnl -31.25   verdict wrong      A=accepted_against last_beyond=True eff=False eff_result=False → old True new True
+  #3314 10-08 19:20 CEILING_FLIP_LONG    LONG  pnl -65.0    verdict wrong      A=accepted_against last_beyond=False eff=False eff_result=True → old True new False
+  #3660 10-21 17:55 CEILING_FLIP_TOUCH2  SHORT pnl -118.75  verdict wrong      A=no last_beyond=False eff=True eff_result=True → old True new True
+
+## 2. move-window candidates (shadow twins, bar label)
+  10-07 18:00 HTLB                   LONG  @7823.25 lab good  blocked=tree:bias A=accepted_against last_beyond=False eff=False eff_result=False → old True new False
+  10-07 18:00 CEILING_FLIP_LONG      LONG  @7823.5 lab good  blocked=None A=accepted_against last_beyond=False eff=False eff_result=False → old True new False
+  10-07 18:10 FAMIR                  LONG  @7823.75 lab good  blocked=tree:bias A=accepted_against last_beyond=False eff=False eff_result=False → old True new False
+  10-07 18:15 CEILING_FLIP_LONG      LONG  @7828.25 lab good  blocked=None A=accepted_against last_beyond=False eff=False eff_result=False → old True new False
+  10-08 19:20 FAILED_RE_IB           SHORT @7833.0 lab good  blocked=tree:bias A=no last_beyond=False eff=True eff_result=False → old True new False
+  10-08 19:30 CEILING_FLIP_TOUCH2    SHORT @7833.25 lab good  blocked=tree:bias A=no last_beyond=False eff=True eff_result=False → old True new False
+  refused by old ש2-C: n=  12 good  11 (92%) bad   0 ( 0%) flat   1
+  refused by new ש2-C′: n=   6 good   5 (83%) bad   0 ( 0%) flat   1
+
+## 3. 81 sessions — candidate level (secondary)
+  BAL-C all                            n= 773 good 306 (40%) bad 338 (44%) flat 129
+  old refuses                          n= 137 good  44 (32%) bad  73 (53%) flat  20
+  new refuses                          n=  92 good  32 (35%) bad  51 (55%) flat   9
+  old refuses, new passes              n=  45 good  12 (27%) bad  22 (49%) flat  11
+  neither refuses                      n= 636 good 262 (41%) bad 265 (42%) flat 109
+  A accepted & last beyond             n=  47 good  18 (38%) bad  26 (55%) flat   3
+  A accepted & last back inside        n=  37 good  10 (27%) bad  17 (46%) flat  10
+  effort with result                   n=  48 good  16 (33%) bad  26 (54%) flat   6
+  effort without result (absorbed)     n=   9 good   2 (22%) bad   5 (56%) flat   2

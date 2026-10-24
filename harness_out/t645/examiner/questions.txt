@@ -1,0 +1,213 @@
+## 1. the questions on every real trade (demo 19–23.10 + 07.10, live 05–09.10)
+#3038 10-05 19:05 CEILING_FLIP_SHORT     SHORT -27.5    wrong/accepted_ext           state BAL (BAL) pos 0.43 A accepted_against turn_rel with    edge(s/va) True/False rev False clx False d3 -1299/562 → ש2-C
+#3123 10-06 19:10 GB100                  SHORT 21.25    correct                      state BAL (BAL) pos 0.89 A no               turn_rel none    edge(s/va) True/False rev False clx False d3 -2141/984 → עובר
+#3130 10-06 19:35 FAMIR                  LONG  -56.25   wrong/mid                    state DOWN(against) pos 0.27 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 +552/621 → ש1
+#3136 10-06 20:25 DALTON_EDGE_LONG       LONG  28.75    correct                      state DOWN(against) pos 0.18 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 -2415/604 → ש1
+#3140 10-06 20:35 FAMIR                  LONG  —        wrong/mid                    state BAL (BAL) pos 0.67 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 +2074/672 → עובר
+#3164 10-07 16:50 OPENING_DRIVE          SHORT -75.0    wrong/open_chase             state BAL (BAL) pos 0.88 A ib_forming       turn_rel against edge(s/va) False/None rev False clx True d3 -3478/1522 → ש2-פתיחה,ש3
+#3220 10-07 19:40 CEILING_FLIP_SHORT     SHORT -31.25   wrong/accepted_ext           state BAL (BAL) pos 0.46 A accepted_against turn_rel none    edge(s/va) True/True rev False clx False d3 -1330/788 → ש2-C
+#3272 10-08 16:45 OPENING_TEST_DRIVE     SHORT -46.25   wrong/open_chase             state BAL (BAL) pos 0.79 A ib_forming       turn_rel against edge(s/va) False/None rev False clx False d3 -751/824 → ש2-פתיחה
+#3281 10-08 16:55 DALTON_EDGE_SHORT      SHORT -53.75   wrong/open_chase             state BAL (BAL) pos 0.63 A ib_forming       turn_rel against edge(s/va) False/None rev False clx False d3 +858/824 → ש2-פתיחה
+#3289 10-08 17:40 CEILING_FLIP_SHORT     SHORT 6.25     correct                      state UP  (against) pos 0.21 A no               turn_rel against edge(s/va) True/False rev False clx False d3 -324/824 → עובר
+#3314 10-08 19:20 CEILING_FLIP_LONG      LONG  -65.0    wrong/climax_chase           state BAL (BAL) pos 0.43 A accepted_against turn_rel with    edge(s/va) False/False rev False clx True d3 +7682/715 → ש2-C
+#3380 10-09 16:45 OPENING_DRIVE          SHORT -72.5    wrong/open_chase             state BAL (BAL) pos 0.70 A ib_forming       turn_rel with    edge(s/va) False/None rev False clx True d3 -6375/1433 → ש2-פתיחה,ש3
+#3402 10-09 18:10 CEILING_FLIP_SHORT     SHORT —        wrong/accepted_ext           state UP  (against) pos 0.43 A accepted_against turn_rel none    edge(s/va) False/False rev False clx False d3 -531/676 → ש1
+#3406 10-09 18:15 DOUBLE_BOTTOM_EE_LONG  LONG  —        correct                      state UP  (with) pos 0.73 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 -276/857 → עובר
+#3483 10-19 20:15 CEILING_FLIP_TOUCH2    LONG  -22.5    wrong/mid                    state DOWN(against) pos 0.24 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 +274/755 → ש1
+#3501 10-19 21:00 GB100                  LONG  -31.25   wrong/mid                    state BAL (BAL) pos 0.84 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 +253/593 → ש2-D
+#3508 10-19 21:20 DOUBLE_BOTTOM_EE_LONG  LONG  -28.75   wrong/mid                    state BAL (BAL) pos 0.90 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 +1531/577 → ש2-D
+#3515 10-19 21:40 CEILING_FLIP_TOUCH2    LONG  —        correct                      state BAL (BAL) pos 0.50 A no               turn_rel none    edge(s/va) False/False rev False clx False d3 -367/593 → ש2-D
+#3540 10-20 16:45 OPENING_DRIVE          SHORT -225.0   wrong/open_chase             state BAL (BAL) pos 0.87 A ib_forming       turn_rel none    edge(s/va) False/None rev False clx True d3 -2064/950 → ש2-פתיחה,ש3
+#3544 10-20 16:50 OPENING_ORR            LONG  496.25   correct                      state BAL (BAL) pos 0.89 A ib_forming       turn_rel none    edge(s/va) False/None rev True clx True d3 +2235/1677 → עובר
+#3558 10-20 18:15 DOUBLE_TOP_AA_SHORT    SHORT -215.0   wrong/climax_chase           state BAL (BAL) pos 0.77 A no               turn_rel with    edge(s/va) False/False rev False clx True d3 -6818/1649 → ש3
+#3574 10-20 19:30 CEILING_FLIP_TOUCH2    LONG  -165.0   wrong/mid                    state BAL (BAL) pos 0.50 A no               turn_rel against edge(s/va) False/False rev False clx False d3 -808/425 → עובר
+#3582 10-20 20:05 CEILING_FLIP_TOUCH2    LONG  -90.0    correct                      state BAL (BAL) pos 0.29 A no               turn_rel against edge(s/va) False/False rev False clx False d3 -1545/519 → עובר
+#3637 10-21 16:50 OPENING_EXTREME_REJECT LONG  -225.0   wrong/open_chase             state BAL (BAL) pos 0.86 A ib_forming       turn_rel mid     edge(s/va) False/None rev False clx False d3 +3197/1739 → ש2-פתיחה
+#3660 10-21 17:55 CEILING_FLIP_TOUCH2    SHORT -118.75  wrong/accepted_ext           state BAL (BAL) pos 0.16 A no               turn_rel edge    edge(s/va) True/True rev False clx False d3 +3933/1076 → ש2-C
+#3670 10-21 18:45 CEILING_FLIP_TOUCH2    SHORT -75.0    wrong/accepted_ext           state UP  (against) pos 0.10 A accepted_against turn_rel against edge(s/va) True/True rev False clx False d3 +2251/1008 → ש1
+#3687 10-21 19:20 CEILING_FLIP_TOUCH2    SHORT 97.5     wrong/accepted_ext           state UP  (against) pos 0.20 A no               turn_rel with    edge(s/va) True/True rev False clx False d3 -67/370 → עובר
+#3696 10-21 19:45 CEILING_FLIP_TOUCH2    SHORT -160.0   wrong/accepted_ext           state UP  (against) pos 0.45 A accepted_against turn_rel against edge(s/va) True/True rev False clx True d3 +5376/370 → ש1
+#3702 10-21 20:25 CEILING_FLIP_TOUCH2    SHORT 105.0    wrong/accepted_ext           state UP  (against) pos 0.13 A accepted_against turn_rel against edge(s/va) True/True rev False clx False d3 +375/370 → ש1
+#3749 10-22 16:50 OPENING_TEST_DRIVE     SHORT -221.25  idea_right_execution_wrong   state BAL (BAL) pos 0.65 A ib_forming       turn_rel with    edge(s/va) False/None rev False clx False d3 -4407/1496 → ש2-פתיחה
+#3763 10-22 17:50 CEILING_FLIP_TOUCH2    LONG  90.0     correct                      state DOWN(against) pos 0.09 A accepted_against turn_rel edge    edge(s/va) True/True rev False clx False d3 +433/1156 → עובר
+#3784 10-22 19:30 CEILING_FLIP_TOUCH2    SHORT 227.5    correct                      state BAL (BAL) pos 0.24 A no               turn_rel mid     edge(s/va) False/False rev False clx False d3 +761/686 → עובר
+#3799 10-22 20:20 CEILING_FLIP_TOUCH2    LONG  106.25   correct                      state DOWN(against) pos 0.21 A no               turn_rel edge    edge(s/va) True/False rev False clx False d3 +1396/925 → עובר
+#3876 10-23 18:05 CEILING_FLIP_TOUCH2    SHORT -175.0   wrong/accepted_ext           state UP  (against) pos 0.15 A accepted_against turn_rel against edge(s/va) True/True rev False clx False d3 -342/522 → ש1
+#3898 10-23 18:55 REACTIVE_LONG          LONG  -213.75  wrong/mid                    state UP  (with) pos 0.59 A no               turn_rel mid     edge(s/va) False/False rev False clx False d3 -10/1047 → ש4
+
+סיכום לפי שאלה (עסקאות אמיתיות):
+  ש1 · חוסמת שגויות 7 [3130, 3402, 3483, 3670, 3696, 3702, 3876] · הורגת נכונות 1 [3136]
+  ש2-פתיחה · חוסמת שגויות 7 [3164, 3272, 3281, 3380, 3540, 3637, 3749] · הורגת נכונות 0 []
+  ש2-D · חוסמת שגויות 2 [3501, 3508] · הורגת נכונות 1 [3515]
+  ש2-C · חוסמת שגויות 4 [3038, 3220, 3314, 3660] · הורגת נכונות 0 []
+  ש3 · חוסמת שגויות 4 [3164, 3380, 3540, 3558] · הורגת נכונות 0 []
+  ש4 · חוסמת שגויות 1 [3898] · הורגת נכונות 0 []
+
+## 2. the missed-move candidates: blocked by the system, passed by the questions, and their bar label
+  system_blocked=False questions_pass=False label=bad : 2
+  system_blocked=False questions_pass=False label=good : 10
+  system_blocked=False questions_pass=True label=bad : 4
+  system_blocked=False questions_pass=True label=good : 26
+  system_blocked=True questions_pass=False label=bad : 31
+  system_blocked=True questions_pass=False label=flat : 5
+  system_blocked=True questions_pass=False label=good : 53
+  system_blocked=True questions_pass=True label=bad : 10
+  system_blocked=True questions_pass=True label=flat : 5
+  system_blocked=True questions_pass=True label=good : 53
+  good candidates the system blocked and the questions would pass:
+    10-05 16:35 FAILED_BREAK_LONG      LONG  @7789.5 R 12.00 blocked=tree:location state BAL pos 0.87
+    10-05 17:20 INITIATIVE_LONG        LONG  @7805.5 R 36.00 blocked=entry_location_quality state UP pos 0.91
+    10-05 17:30 DOUBLE_BOTTOM_EE_LONG  LONG  @7808.0 R 38.50 blocked=entry_location_quality state UP pos 0.9
+    10-05 17:40 ZLR                    LONG  @7805.0 R 15.00 blocked=tree:location state UP pos 0.79
+    10-05 17:50 ZLR                    LONG  @7805.75 R 15.00 blocked=tree:location state UP pos 0.82
+    10-05 18:00 ZLR                    LONG  @7809.75 R 15.00 blocked=tree:location state UP pos 0.95
+    10-05 18:15 ZLR                    LONG  @7807.25 R 13.50 blocked=tree:location state UP pos 0.7
+    10-05 18:20 REACTIVE_LONG          LONG  @7807.25 R 13.50 blocked=tree:location state UP pos 0.7
+    10-05 18:24 S2_DELTA_DBL_LONG      LONG  @7809.75 R 7.75 blocked=tree:location state UP pos 0.89
+    10-05 18:40 TREND_STEP             LONG  @7812.0 R 3.50 blocked=tree:location state UP pos 0.81
+    10-06 16:40 CEILING_FLIP_TOUCH2    LONG  @7865.25 R 5.25 blocked=tree:stand_down state BAL pos 0.57
+    10-06 17:35 CEILING_FLIP_TOUCH2    LONG  @7872.75 R 8.00 blocked=tree:kind state BAL pos 0.45
+    10-06 17:35 DOUBLE_BOTTOM_EE_LONG  LONG  @7872.75 R 18.00 blocked=tree:location state BAL pos 0.45
+    10-06 17:36 ZLR                    LONG  @7874.75 R 15.00 blocked=tree:location state BAL pos 0.52
+    10-06 17:50 ZLR                    LONG  @7881.25 R 15.00 blocked=tree:location state BAL pos 0.69
+    10-06 19:20 CEILING_FLIP_TOUCH2    SHORT @7887.5 R 4.75 blocked=tree:bias state BAL pos 0.82
+    10-06 19:25 INITIATIVE_SHORT       SHORT @7887.75 R 13.75 blocked=tree:bias state DOWN pos 0.8
+    10-06 19:40 CEILING_FLIP_TOUCH2    SHORT @7883.5 R 3.00 blocked=tree:bias state DOWN pos 0.84
+    10-07 16:35 GB100                  SHORT @7832.5 R 15.00 blocked=tree:stand_down state BAL pos 1.26
+    10-07 16:35 FAILED_BREAK_SHORT     SHORT @7834.5 R 12.00 blocked=tree:stand_down state BAL pos 1.0
+    10-07 16:35 CEILING_FLIP_TOUCH2    SHORT @7834.5 R 8.00 blocked=tree:stand_down state BAL pos 1.0
+    10-07 18:25 ZLR                    LONG  @7827.0 R 15.00 blocked=tree:bias state UP pos 0.64
+    10-07 18:25 GHOST                  LONG  @7827.25 R 15.50 blocked=tree:bias state UP pos 0.66
+    10-07 18:40 DOUBLE_BOTTOM_EE_LONG  LONG  @7837.75 R 14.75 blocked=entry_location_quality state UP pos 0.93
+    10-07 18:40 GHOST                  LONG  @7838.25 R 18.00 blocked=tree:bias state UP pos 0.95
+    10-08 20:20 ZLR                    SHORT @7802.25 R 15.00 blocked=entry_location_quality state DOWN pos 0.87
+    10-09 17:50 GHOST                  LONG  @7840.25 R 17.75 blocked=tree:stand_down state BAL pos 0.78
+    10-09 18:12 ZLR                    LONG  @7847.0 R 7.75 blocked=entry_not_confirmed state UP pos 0.77
+    10-09 18:35 ZLR                    LONG  @7845.75 R 7.75 blocked=entry_not_confirmed state UP pos 0.58
+    10-09 19:05 ZLR                    LONG  @7849.25 R 10.75 blocked=extreme_chase_guard state UP pos 0.65
+    10-19 18:00 ZLR                    LONG  @7750.5 R 15.00 blocked=tree:location state BAL pos 0.71
+    10-19 18:13 ZLR                    LONG  @7758.25 R 15.00 blocked=tree:location state UP pos 0.94
+    10-19 19:15 INITIATIVE_SHORT       SHORT @7754.75 R 22.50 blocked=tree:bias state DOWN pos 0.69
+    10-19 19:15 TREND_STEP             SHORT @7755.0 R 4.25 blocked=tree:bias state DOWN pos 0.68
+    10-19 19:15 ZLR                    SHORT @7753.0 R 15.00 blocked=tree:bias state DOWN pos 0.76
+    10-19 19:20 CEILING_FLIP_TOUCH2    SHORT @7753.25 R 4.00 blocked=tree:bias state DOWN pos 0.75
+    10-19 19:30 ZLR                    SHORT @7746.5 R 15.00 blocked=tree:bias state DOWN pos 1.0
+    10-20 18:10 REACTIVE_SHORT         SHORT @7777.75 R 17.75 blocked=tree:bias state UP pos 0.36
+    10-21 17:35 CEILING_FLIP_LONG      LONG  @7766.5 R 15.75 blocked=tree:location state BAL pos 0.52
+    10-21 17:45 CEILING_FLIP_TOUCH2    LONG  @7769.25 R 8.25 blocked=rr_entry_gate state BAL pos 0.61
+    10-21 18:00 TREND_STEP             LONG  @7776.25 R 5.25 blocked=tree:location state BAL pos 0.89
+    10-21 18:23 ZLR                    LONG  @7783.75 R 15.00 blocked=structural_targets_wrong_side state BAL pos 0.98
+    10-21 21:40 CEILING_FLIP_TOUCH2    SHORT @7809.75 R 1.50 blocked=tree:stand_down state UP pos 0.22
+    10-22 18:00 FAILED_RE_IB           LONG  @7698.75 R 12.00 blocked=tree:bias state DOWN pos 0.23
+    10-22 19:35 CEILING_FLIP_SHORT     SHORT @7707.5 R 16.50 blocked=mid_value_no_edge_test state BAL pos 0.46
+    10-22 19:35 DOUBLE_TOP_AA_SHORT    SHORT @7707.5 R 20.25 blocked=mid_value_no_edge_test state BAL pos 0.46
+    10-23 17:30 CEILING_FLIP_TOUCH2    LONG  @7658.75 R 10.50 blocked=tree:kind state DOWN pos 0.37
+    10-23 17:30 FAMIR                  LONG  @7658.25 R 12.00 blocked=tree:location state DOWN pos 0.35
+    10-23 17:40 CEILING_FLIP_TOUCH2    LONG  @7666.0 R 11.00 blocked=tree:location state BAL pos 0.63
+    10-23 18:40 CEILING_FLIP_TOUCH2    SHORT @7689.25 R 6.50 blocked=pattern_stop_cooldown state UP pos 0.25
+    10-23 19:05 CEILING_FLIP_TOUCH2    SHORT @7690.0 R 4.00 blocked=mid_value_no_edge_test state UP pos 0.41
+    10-23 19:25 DOUBLE_TOP_AA_SHORT    SHORT @7679.0 R 18.50 blocked=mid_value_no_edge_test state BAL pos 0.89
+    10-23 19:30 GHOST                  SHORT @7679.0 R 18.00 blocked=mid_value_no_edge_test state DOWN pos 0.87
+
+## 3. 81 sessions — candidate level (secondary): labelled candidates with an entry 2823
+  TAKE   ALL          n=1369 good 530 (39%) bad 595 (43%) flat 244
+  TAKE   rel=with     n= 335 good 108 (32%) bad  97 (29%) flat 130
+  TAKE   rel=BAL      n= 699 good 282 (40%) bad 310 (44%) flat 107
+  TAKE   rel=against  n= 335 good 140 (42%) bad 188 (56%) flat   7
+  TAKE   ש1           n= 135 good  44 (33%) bad  85 (63%) flat   6
+  TAKE   ש2-פתיחה     n= 172 good  86 (50%) bad  82 (48%) flat   4
+  TAKE   ש2-D         n=  93 good  24 (26%) bad  42 (45%) flat  27
+  TAKE   ש2-C         n=  82 good  25 (30%) bad  47 (57%) flat  10
+  TAKE   ש3           n=  63 good  27 (43%) bad  24 (38%) flat  12
+  TAKE   ש4           n=   6 good   1 (17%) bad   4 (67%) flat   1
+  TAKE   PASS         n= 867 good 349 (40%) bad 332 (38%) flat 186
+  SKIP   ALL          n=1454 good 525 (36%) bad 588 (40%) flat 341
+  SKIP   rel=with     n= 284 good  90 (32%) bad  81 (29%) flat 113
+  SKIP   rel=BAL      n= 990 good 365 (37%) bad 405 (41%) flat 220
+  SKIP   rel=against  n= 180 good  70 (39%) bad 102 (57%) flat   8
+  SKIP   ש1           n=  67 good  20 (30%) bad  42 (63%) flat   5
+  SKIP   ש2-פתיחה     n= 230 good 119 (52%) bad 101 (44%) flat  10
+  SKIP   ש2-D         n= 354 good  78 (22%) bad 120 (34%) flat 156
+  SKIP   ש2-C         n=  55 good  19 (35%) bad  26 (47%) flat  10
+  SKIP   ש3           n=  73 good  28 (38%) bad  22 (30%) flat  23
+  SKIP   ש4           n=   4 good   2 (50%) bad   1 (25%) flat   1
+  SKIP   PASS         n= 720 good 279 (39%) bad 289 (40%) flat 152
+
+## 4. the T-643 splits P1–P5 on the examined sessions (candidate level, tree_rows) and what the questions say
+  P1 fires on 14 candidates (examined days): {'good': 5, 'bad': 9} · {'questions pass/good': 4, 'questions refuse/bad': 4, 'questions pass/bad': 5, 'questions refuse/good': 1}
+     10-05 14:30 CEILING_FLIP_TOUCH2    SHORT take_location                lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.1}
+     10-05 14:35 VA_FADE_SHORT          SHORT take_location                lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.4}
+     10-05 15:05 CEILING_FLIP_TOUCH2    SHORT take_location                lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.12}
+     10-06 14:35 CEILING_FLIP_TOUCH2    LONG  take_location                lab good  → questions pass {'state': 'BAL', 'rel': 'BAL', 'pos': 0.45}
+     10-06 14:49 GHOST                  SHORT take_location                lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.36}
+     10-06 14:50 VA_FADE_SHORT          SHORT take_location                lab bad   → questions pass {'state': 'BAL', 'rel': 'BAL', 'pos': 0.38}
+     10-06 14:50 CEILING_FLIP_TOUCH2    SHORT take_location                lab bad   → questions pass {'state': 'BAL', 'rel': 'BAL', 'pos': 0.38}
+     10-07 14:35 CEILING_FLIP_TOUCH2    LONG  take_location                lab bad   → questions pass {'state': 'BAL', 'rel': 'BAL', 'pos': 0.29}
+     10-07 16:05 CEILING_FLIP_TOUCH2    SHORT take_location                lab bad   → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.15}
+     10-07 16:35 CEILING_FLIP_TOUCH2    SHORT take_location                lab good  → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.12}
+     10-07 16:40 CEILING_FLIP_SHORT     SHORT take_location                lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.46}
+     10-07 17:30 CEILING_FLIP_TOUCH2    SHORT take_location                lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.25}
+     10-20 14:35 DALTON_EDGE_SHORT      SHORT take_location                lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.15}
+     10-20 14:50 CEILING_FLIP_TOUCH2    SHORT take_location                lab bad   → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.16}
+  P2 fires on 24 candidates (examined days): {'bad': 14, 'good': 10} · {'questions refuse/bad': 12, 'questions refuse/good': 4, 'questions pass/bad': 2, 'questions pass/good': 6}
+     10-05 16:05 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.43}
+     10-05 16:05 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.43}
+     10-05 16:50 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.13}
+     10-05 17:00 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.28}
+     10-05 17:30 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.21}
+     10-07 15:00 CEILING_FLIP_LONG      LONG  failed_ext|phase=C           lab good  → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.54}
+     10-07 15:05 CEILING_FLIP_TOUCH2    LONG  failed_ext|phase=C           lab good  → questions ש2-C {'state': 'BAL', 'rel': 'BAL', 'pos': 0.28}
+     10-08 16:00 CEILING_FLIP_TOUCH2    LONG  failed_ext|phase=C           lab bad   → questions pass {'state': 'DOWN', 'rel': 'against', 'pos': 0.18}
+     10-08 17:15 CEILING_FLIP_TOUCH2    LONG  failed_ext|phase=C           lab bad   → questions ש1 {'state': 'DOWN', 'rel': 'against', 'pos': 0.25}
+     10-09 15:10 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.43}
+     10-09 15:30 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.39}
+     10-09 16:00 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.4}
+     10-09 16:40 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.2}
+     10-21 15:55 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.12}
+     10-21 16:05 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.19}
+     10-21 17:25 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab good  → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.13}
+     10-22 14:45 CEILING_FLIP_TOUCH2    LONG  failed_ext|phase=C           lab good  → questions ש1 {'state': 'DOWN', 'rel': 'against', 'pos': 0.08}
+     10-22 15:00 CEILING_FLIP_LONG      LONG  failed_ext|phase=C           lab good  → questions pass {'state': 'DOWN', 'rel': 'against', 'pos': 0.22}
+     10-22 15:15 CEILING_FLIP_TOUCH2    LONG  failed_ext|phase=C           lab good  → questions pass {'state': 'DOWN', 'rel': 'against', 'pos': 0.15}
+     10-22 15:25 DOUBLE_BOTTOM_EE_LONG  LONG  failed_ext|phase=C           lab bad   → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.95}
+     10-23 15:05 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.16}
+     10-23 15:05 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab bad   → questions ש1 {'state': 'UP', 'rel': 'against', 'pos': 0.16}
+     10-23 15:40 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=C           lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.28}
+     10-23 15:40 CEILING_FLIP_SHORT     SHORT failed_ext|phase=C           lab good  → questions pass {'state': 'UP', 'rel': 'against', 'pos': 0.28}
+  P3 fires on 1 candidates (examined days): {'bad': 1} · {'questions refuse/bad': 1}
+     10-19 14:00 CEILING_FLIP_TOUCH2    LONG  kind=EDGE_FADE|phase=B       lab bad   → questions ש2-פתיחה {'state': 'BAL', 'rel': 'BAL', 'pos': 0.2}
+  P4 fires on 2 candidates (examined days): {'bad': 1, 'flat': 1} · {'questions pass/bad': 1, 'questions pass/flat': 1}
+     10-07 14:50 REACTIVE_SHORT         SHORT take_with_extension          lab bad   → questions pass {'state': 'DOWN', 'rel': 'with', 'pos': 0.89}
+     10-19 15:25 DOUBLE_BOTTOM_EE_LONG  LONG  take_with_extension          lab flat  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.96}
+  P5 fires on 31 candidates (examined days): {'good': 5, 'bad': 17, 'flat': 9} · {'questions pass/good': 4, 'questions pass/bad': 2, 'questions refuse/flat': 8, 'questions refuse/bad': 15, 'questions pass/flat': 1, 'questions refuse/good': 1}
+     10-05 18:05 REACTIVE_LONG          LONG  d_with_extension             lab good  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.88}
+     10-05 18:14 ZLR                    LONG  d_with_extension             lab good  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.78}
+     10-05 18:29 GB100                  LONG  d_with_extension             lab good  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 1.17}
+     10-05 18:54 ZLR                    LONG  d_with_extension             lab good  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.77}
+     10-05 18:59 GB100                  LONG  d_with_extension             lab bad   → questions pass {'state': 'UP', 'rel': 'with', 'pos': 1.18}
+     10-06 18:05 GHOST                  LONG  d_with_extension             lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.94}
+     10-06 18:49 ZLR                    LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.48}
+     10-07 18:10 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=D           lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.39}
+     10-07 18:19 ZLR                    LONG  with_hint|phase=D            lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.61}
+     10-07 18:40 CEILING_FLIP_TOUCH2    SHORT failed_ext|phase=D           lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.58}
+     10-07 18:49 ZLR                    LONG  with_hint|phase=D            lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.58}
+     10-07 18:59 GB100                  LONG  with_hint|phase=D            lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.81}
+     10-09 18:25 INITIATIVE_LONG        LONG  d_with_extension             lab flat  → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.85}
+     10-09 18:49 ZLR                    LONG  d_with_extension             lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 1.06}
+     10-09 18:50 BULL_FLAG_LONG         LONG  d_with_extension             lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.94}
+     10-19 18:00 CEILING_FLIP_LONG      LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.84}
+     10-19 18:10 INITIATIVE_LONG        LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.78}
+     10-19 18:20 DOUBLE_BOTTOM_EE_LONG  LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.9}
+     10-19 18:30 CEILING_FLIP_TOUCH2    LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.42}
+     10-19 18:44 ZLR                    LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.63}
+     10-19 18:49 CONFLUENCE_RI_ZLR      LONG  d_with_extension             lab good  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.69}
+     10-21 18:19 GB100                  LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.92}
+     10-21 18:20 REACTIVE_LONG          LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.83}
+     10-21 18:44 ZLR                    LONG  d_with_extension             lab bad   → questions pass {'state': 'UP', 'rel': 'with', 'pos': 0.69}
+     10-21 18:55 DALTON_EDGE_LONG       LONG  d_with_extension             lab bad   → questions ש1 {'state': 'DOWN', 'rel': 'against', 'pos': 0.38}
+     10-22 18:04 GB100                  SHORT d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 1.3}
+     10-22 18:29 ZLR                    SHORT d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.63}
+     10-22 18:59 ZLR                    SHORT d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.86}
+     10-23 18:00 DOUBLE_BOTTOM_EE_LONG  LONG  d_with_extension             lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.78}
+     10-23 18:29 HTLB                   LONG  d_with_extension             lab flat  → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.58}
+     10-23 18:34 ZLR                    LONG  d_with_extension             lab bad   → questions ש2-D {'state': 'BAL', 'rel': 'BAL', 'pos': 0.67}

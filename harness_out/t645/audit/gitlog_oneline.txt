@@ -1,0 +1,354 @@
+66e98ab43 10-24 09:58 | T-643: full tree map — the tree does not separate good from bad; 5 Dalton splits proposed (P1–P5)
+a6afc6619 10-24 09:34 | T-643: phase 1 on 60 trades — per-trade Dalton verdicts (23 demo + 37 live), M-REF management sim, entry-rule OOS test (rule A passed on live, r
+5f693fb98 10-24 09:34 | T-644: session clock (ET+7h) for the DST-mismatch week 26-30.10 (RTH 15:30-22:00 IL) — built OFF behind SESSION_CLOCK_V1
+20016380d 10-24 08:18 | T-643: work plan — trade-by-trade by Dalton (60 trades: verdict + correct management per trade) and a proper System 6 (scenario manager), per-tr
+22a22abd2 10-24 00:42 | T-640: 81-day harness complete — tq +210 (only pass), f1 +94 (Oct −204), f1tq +265, f7 −60, wall −177, f6 −2,124; report docs/reports/T6
+d40b3c378 10-24 00:14 | T-642: week 19–23.10 simulation (actual −844 → current +796 → +S2 trigger check +1,014) + 81-day verdicts: tq +210 ✅, f6 −2,124 ❌, w
+f8c65bdf1 10-24 00:11 | T-641/T-642: week 19–23.10 simulation tooling — week_report.py (per-trade execution/targets/location/management/exits/why), week_md.py (doc se
+aa62800f2 10-23 23:42 | LIVE_CHANNEL: run 429 verification appendix - post-publish sample 23:41 IL, both changed predicates reinforce the verdict; /chat byte-identical to
+9dd72138d 10-23 23:41 | LIVE_CHANNEL: cowork-dev run 429 (23.10 23:34-23:4x IL, Fri, duty-1 + duty-4) - zero pending and phone silence; night queue NOT taken (mak-1 commi
+198d302ef 10-23 23:29 | T-637/T-638 ✅ on 23.10 (v2 AUCTION_OUT correct; 9/9 held ORR triggers would have stopped) + trade zoom 23.10
+2391ef571 10-23 23:28 | EOD 2026-10-23: journal (demo 2 trades −388.75; v2 opening AUCTION_OUT correct — held 9 ORR triggers that would all have stopped) + phone page
+e75c807cf 10-23 23:20 | T-641/T-642: TASK_LOG + STATUS_BOARD — wall gate built OFF, harness running; T-642 opened (S6 scenario manager + context-dependent realistic T1,
+0cd405142 10-23 23:19 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+28ab8b57d 10-23 23:19 | T-641: WALL_AHEAD_SKIP_V1 (built OFF) — stand down when an old wall sits < 0.65R ahead of entry (#3898)
+c5d15d8a9 10-23 23:16 | LIVE_CHANNEL: run 428 verification appendix - post-publish sample 23:15 IL, all three predicates hold and one strengthened; mak-1 ownership re-con
+b302d1b8a 10-23 23:14 | Merge remote-tracking branch 'origin/stabilize/mems26-local-truth-2026-05-16' into stabilize/mems26-local-truth-2026-05-16
+59a1faab3 10-23 23:14 | LIVE_CHANNEL: cowork-dev run 428 (23.10 23:04-23:13 IL, duty-1 + duty-4 night queue) - zero pending and phone silent (fifteenth verification today
+38760487f 10-23 23:12 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+7679bb8bd 10-23 23:12 | dalton-supervisor: 2026-10-23 (nightly, read-only)
+25becf816 10-23 23:05 | eod-handoff(מק-1): 2026-10-23 packet — trades/decisions/fills/state/health
+6ed0c5eb4 10-23 22:44 | docs(handoff): run 427 verification appendix - post-publish sample 22:44 IL, all four predicates hold; 22:35+22:40 closes produced no new candidat
+38efa6c8a 10-23 22:44 | docs(handoff): cowork-dev run 427 - duty1+duty3 RTH monitor 23.10 22:34-22:41 IL (read-only) + night-run handoff: evening pillars must run on mak-
+49e77eddc 10-23 22:17 | docs(handoff): run 426 verification appendix — post-publish sample 22:16 IL, all four predicates hold, time_cutoff now top blocker
+696081656 10-23 22:16 | docs(handoff): cowork-dev run 426 — duty1+duty3 RTH monitor 23.10 22:04-22:12 IL (read-only) + trap-49 capacity addendum
+b17b6ccd9 10-23 21:45 | docs(handoff): run 425 verification appendix — post-publish resample 21:44 IL, verdict unchanged
+9574f2d63 10-23 21:44 | docs(handoff): cowork-dev run 425 — duty1+duty3 RTH monitor 23.10 21:34-21:41 IL (read-only)
+63368fa47 10-23 21:19 | LIVE_CHANNEL: cowork-dev run 424 verification addendum (23.10 21:18 IL) - fifth sample after publishing so no predicate in the report is left stal
+4c595e270 10-23 21:18 | LIVE_CHANNEL: cowork-dev run 424 (23.10 21:04-21:15 IL, duty-1 + duty-3 RTH monitoring) + new trap 51 - zero pending and phone silent (twelfth ver
+f7ab4b85e 10-23 20:43 | LIVE_CHANNEL: cowork-dev run 423 (23.10 20:34-20:41 IL, duty-1 + duty-3 RTH monitoring) - zero pending and phone silent (eleventh verification tod
+892deb8f0 10-23 20:24 | Merge origin (cowork-dev run 420) into T-641 — TASK_LOG header lines kept from both sides
+2f7d17bd4 10-23 20:23 | T-641: no loss-stop in demo (explicit) + S6 review + frontend fixes/dead-file cull + 23.10 trade review
+d33d55b03 10-23 20:13 | LIVE_CHANNEL: cowork-dev run 422 (23.10 20:04-20:12 IL, duty-1 + duty-3 RTH monitoring) - zero pending 4/4 and phone silent (tenth verification to
+14b7ec0e5 10-23 19:42 | LIVE_CHANNEL: cowork-dev run 421 (23.10 19:34-19:40 IL, duty-1 + duty-3 RTH monitoring) - zero pending 4/4 and phone silent (ninth verification to
+2c9322562 10-23 19:22 | LIVE_CHANNEL: נספח-אימות ריצה 420 (19:22)
+a37102bf9 10-23 19:21 | LIVE_CHANNEL + מלכודת 50: cowork-dev ריצה 420 (23.10 19:05-19:13, חובה-1 + חובה-3 ניטור-RTH)
+9c7aae039 10-23 18:48 | LIVE_CHANNEL: run 419 verification addendum (18:48) - push was rejected by the iMac's T-640 and merged without touching LIVE_CHANNEL, task_log_gua
+b7e291d66 10-23 18:47 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+5335f6334 10-23 18:47 | LIVE_CHANNEL: cowork-dev run 419 (23.10 18:34 IL, duty-1 + duty-3 RTH monitoring) — zero pending 4/4 and phone silent (sixth verification today,
+1229247a8 10-23 18:44 | TASK_LOG: remove the merge-conflict markers committed by c41b07129 (both header lines kept)
+c41b07129 10-23 18:44 | Merge origin (cowork-dev runs 415-418) into T-640 — TASK_LOG header lines kept from both sides
+1c28d7024 10-23 18:43 | T-640 · 23.10 rejected-gap fixes built OFF (F1 ELQ toward yesterday's value · F7 D2 one source) + harness fidelity for v2 + front/back audit
+5d3307dec 10-23 18:19 | LIVE_CHANNEL: run 418 verification addendum (18:18) - trade 3876 still open and now +15.8 USD (was -3.3 at 18:08), ladder_groups [2,2,1,0] confirm
+ceb6aa8d1 10-23 18:18 | LIVE_CHANNEL + traps 48/49: cowork-dev run 418 (23.10 18:04, duty-1 + duty-3 RTH monitoring)
+165ebf562 10-23 17:46 | LIVE_CHANNEL + runbook trap 47: cowork-dev run 417 (23.10 17:34, duty-1 + duty-3 RTH monitoring)
+d68251035 10-23 17:26 | LIVE_CHANNEL: cowork-dev run 416 (23.10 17:18, duty-1 + duty-3 RTH monitoring) — zero pending 4/4, phone silent; feed proven live by the T-532 m
+cf5a821d6 10-23 14:40 | LIVE_CHANNEL: run 415 addendum — T-639 dalton supervisor (launchd, read-only, 23:12) is NOT evidence of cc working the duty-4 queue; the existin
+679fc8312 10-23 14:40 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+7d723d4e5 10-23 14:40 | LIVE_CHANNEL: cowork-dev run 415 (23.10 14:34, duty-1 only) — zero pending re-verified 4/4, phone silent; T-630 counter-example (iMac pushed 14:
+a4bb4e27b 10-23 14:35 | T-639 · Dalton supervisor — permanent, read-only supervision of the decision tree per trade (nightly 23:12)
+7dde52759 10-23 14:34 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+88823677d 10-23 14:34 | dalton-supervisor: 2026-10-23 (nightly, read-only)
+32b8cad68 10-23 14:16 | LIVE_CHANNEL: cowork-dev run 414 (23.10 14:09, duty-1 only) — zero pending, phone silent; T-630 inverse finding (live line missing from the git 
+df57db8a4 10-23 12:49 | T-638 · the opening producer defers to the opening type v2 (OPENING_ENTRY_V2_GATE_V1=1)
+505acd686 10-23 10:22 | T-637 · opening type v2 — Dalton's four openings on CLOSED bars in ATR units; canonical for the tree (OPENING_TYPE_V2=1)
+c62de3a33 10-23 09:56 | T-635 · D1 off by Michael's ruling ("תכבה את D1 ותשאיר D2 ו-D3"), 23.10 09:5x
+9981af115 10-23 00:44 | T-635 · night harness 80 sessions (information only) + T-636 ✅ live after the 23:07 restart
+919b1ef5a 10-22 23:27 | journal + day pages: 2026-10-22
+7ed005404 10-22 23:10 | T-635 · trade zoom of 22.10 (4 demo trades, +202.50 = broker daily_pnl)
+e15f98f88 10-22 23:05 | eod-handoff(מק-1): 2026-10-22 packet — trades/decisions/fills/state/health
+a2e09871c 10-22 17:39 | T-636 · live-path precision: the gateway hands T-636 the post-T-426 label
+750bda52b 10-22 17:14 | T-636 OPENING_HALF_RANGE_GATE_V1=all: the opening loss of 22.10 (#3749) fixed at the gate — half-range on every opening type (ORR exempt) + prod
+800160d71 10-22 15:56 | TASK_LOG: T-635 status marker ✅ (task_log_guard)
+d12aa8618 10-22 15:56 | T-635 D1/D2/D3 ON in demo from 22.10 16:30 (Michael 22.10 15:5x: checked on the past, then to demo — no more measuring)
+84f2e1255 10-22 15:29 | T-635 harness: BE_BEFORE_T1_V1 mirror in fwd_harness + t635 run_days.sh / per_trade.py (D1/D2/D3 variants vs the 22.10 live env)
+8a5f6e7d1 10-22 15:21 | T-635 D3-gate WAIT_FOR_TEST_V1 (built OFF): no entry 0-1 closed bars after an impulse — the first entry after a push is the test
+ad6801e95 10-22 15:18 | T-635 D2 MID_VALUE_EDGE_TEST_V1 (built OFF): an inside-value entry only as the test of an edge
+c0595aaef 10-22 15:13 | T-635 D1 BE_BEFORE_T1_V1 (built OFF): System 6 before T1 — stop to entry+tick at max(1R, 0.6 ATR), 2-bar step trail from 1.5R
+eef5ec35d 10-22 15:08 | T-634 Remote Build cap_lq:1 live on the iMac (2-2-1 ladder active) + T-635 trade_zoom.py six-dimension zoom per trade and the per-class decisions
+c045cfc61 10-22 14:40 | STATUS_BOARD: T-631 + T-633 lines (task_log_guard)
+e6e5b5f7a 10-22 14:39 | HANDOFF to the iMac chat (22.10 14:5x): state, rulings matrix (14 items, gaps), per-trade dossier 19-21.10, staged plan A-E, commands
+4ab3a9516 10-22 14:38 | TASK_LOG: T-631/T-633 status markers (✅ instead of 🟢 — task_log_guard)
+cff354d2c 10-22 14:35 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+5ad3fe5b0 10-22 14:35 | LIVE_CHANNEL: T-632 post (cc-imac) — gap_backfill fixed on the iMac + 14:4x gate state + cap_lq finding
+0c2e84b0b 10-22 14:34 | Merge remote-tracking branch 'origin/stabilize/mems26-local-truth-2026-05-16' into stabilize/mems26-local-truth-2026-05-16
+a10c63c70 10-22 14:34 | LIVE_CHANNEL: cowork 22.10 07:5x→14:4x block
+58f0299f8 10-22 14:33 | LIVE_CHANNEL 22.10 14:4x block + TASK_LOG T-631/T-632/T-633
+9127ee13d 10-22 14:30 | T-632 registered: TASK_LOG row + STATUS_BOARD line + LIVE_CHANNEL post; gap_backfill comments renumbered T-630→T-632 (T-630 is the mailman item 
+718f0a7ac 10-22 14:27 | Merge remote-tracking branch 'origin/stabilize/mems26-local-truth-2026-05-16' into stabilize/mems26-local-truth-2026-05-16
+d175cccab 10-22 14:27 | docs/dalton: Hebrew study guide of Dalton mapped to MEMS26 (✅/⚠️/❌/💬) + multi-day-context chapter (Michael 22.10)
+1c6f11284 10-22 14:24 | Merge branch 'stabilize/mems26-local-truth-2026-05-16' of github-mems26:michaelbarg/mems26-web into stabilize/mems26-local-truth-2026-05-16
+cee6721af 10-22 14:23 | T-630 gap_backfill: find the live Sierra .scid on any SierraChart* install (iMac = SierraChart2) + surface a failing run once/day in LIVE_CHANNEL 
+e9fd3b6b9 10-22 14:13 | cowork run 413 (22.10 14:05-14:1x IL): duty-1 only -- 14:05 is outside all three windows, so zero phone message. Zero pending, proved by identity 
+dfef8c9f9 10-22 14:07 | T-631: tree-path report for 19–21.10 (artifact + sources, day table, findings)
+129d43b27 10-22 14:06 | MORNING 22.10 §2 + TASK_LOG T-628: the replay +35.6 was a phantom-fill artifact; harness mirror fix; T-631 tree-path page sources
+720c61feb 10-22 13:55 | gap_backfill: withdraw my T-632 scid-dir change — the iMac agent's T-630 fix (same root, + error surfacing) owns it
+e2cbc5462 10-22 13:54 | cowork run 412 (22.10 13:41-13:5x IL): duty-1 only -- 13:41 is outside all three windows, so zero phone message. Zero pending: /chat http=200 byte
+0cd0f8a90 10-22 13:54 | T-627 harness mirror + T-632 gap_backfill scid dir + T-631 readiness matrix (22.10)
+26d74bbe0 10-22 10:10 | cowork run 411 (22.10 10:04-10:1x IL): duty-1 only -- 10:04 is outside all three windows, so zero phone message. Zero pending (chat items=30 with 
+817743e8e 10-22 07:22 | 22.10 07:2x: iMac armed for the demo day on Michael's instruction (Input 22 by Michael, ARMED=1 + restart, node 24 via nvm, frontend up); FLAG_IND
+9125bc686 10-22 00:57 | Morning report 22.10 + TASK_LOG T-628/T-629 + LIVE_CHANNEL: the night's measurement of the 4 opening/extension fixes (3 lose, the opening gate +67
+7943cc226 10-21 23:53 | T-629 step detector (steps.py, pure): impulse → pause → test, with the 21.10 RTH bars as golden (7 tests) — the one definition for the openi
+bd2b2ca27 10-21 23:49 | T-628 built OFF (4 measurement flags for tomorrow's opening/extension fixes) + harness_out/t628 runner
+5d2d00751 10-21 23:44 | cowork run 410 addendum: a live T-628 edit to trading_gateway.py landed DURING this run (mtime 23:42:32) -- measured, not mine, and deliberately n
+1939c203f 10-21 23:42 | cowork run 410 (21.10 23:34-23:45 IL): duty-1 only -- 23:34 is outside all three windows and duty-4 was already executed tonight by run 409, so ze
+017912d75 10-21 23:25 | LIVE_CHANNEL + TASK_LOG T-625: Phase B cutover to the iMac executed 21.10 22:57–23:13 (B1_RC=0, B2_RC=0, SSL fix for the iMac relay); Sierra ste
+c21dc8395 10-21 23:23 | journal + day pages: 2026-10-21
+19d17c2e1 10-21 23:21 | cowork run 409 addendum: the phone relay died with the cutover -- measured, and it did NOT block tonight's message. Delivery verified twice (at se
+3b8bd34f4 10-21 23:19 | cowork run 409: the one phone message -- day report 21.10 with the day-page link (case b extended), delivery verified on Render via GET /chat (ok 
+a054caf58 10-21 23:17 | cowork run 409 (21.10 23:04-23:24 IL): duty-1 phone (zero pending => total silence) + duty-4 night queue + the five phone pillars
+40b5ddb99 10-21 22:45 | cowork run 408 (21.10 22:34-22:44 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- two findings: (1) work rule: the openi
+397e084d6 10-21 22:36 | timestamp 22:4x → 22:3x (clock 22:36)
+9921ebafc 10-21 22:36 | Opening gaps report for Michael (21.10 22:4x): what exists (S1 A2 / opening_entry.py / phase-B row), the 7 measured gaps, the step→test→entry 
+50edf8364 10-21 22:33 | T-627 ruled ON (Michael 21.10 22:3x 'עכשיו הכל'): SWING_TRAIL_SIDE_GUARD_V1=1 in demo .env + RULED_FLAGS/FLAG_REGISTRY; takes effect at th
+11e7bed6e 10-21 22:19 | cowork run 407 (21.10 22:04-22:15 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- 25 shadow STOP_HIT closures in 15 min,
+a37229c54 10-21 21:44 | cowork run 406 (21.10 21:34-21:43 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- T-627 fix is BUILT but live in no sens
+bf16867ff 10-21 21:25 | timestamps 21:4x/21:3x → 21:2x (Mac clock 21:24 at commit)
+a8177d946 10-21 21:24 | T-627 built OFF (SWING_TRAIL_SIDE_GUARD_V1): the F5 swing trail may only move the runner's stop to the protective side of the market; + 21.10 day 
+6e27fba62 10-21 21:16 | cowork run 405 addendum: the competing explanation is closed -- 7781 last traded today at 18:25, so the two shadow STOP_HIT wins are not a pricing
+b0885dec8 10-21 21:15 | cowork run 405 (21.10 21:04-21:12 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- T-627 has a SECOND face: in shadow the
+79f3c68ab 10-21 20:48 | cowork run 404 (21.10 20:34-20:50 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- NEW T-627: RUNNER_TRAIL_V2 moves the r
+9f770cf87 10-21 20:18 | cowork run 403 (21.10 20:04-20:11 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- run 402 open item resolved (the -5->-4
+acbc81d06 10-21 19:47 | cowork run 402 addendum (19:45:58): position went -5 inside the run and is OURS (gateway demo_slot=3696, 5-contract short) -- zero TM gap; and #36
+18e8ba9ae 10-21 19:45 | cowork run 402 (21.10 19:34-19:46 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- listener change explained as the owned
+c83bed4eb 10-21 19:16 | cowork run 401 (21.10 19:04-19:14 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- two false alarms measured to the root 
+0676ac4c5 10-21 19:11 | TASK_LOG T-612 ✅ + LIVE_CHANNEL: T-612 fixed and deployed in demo 21.10 19:09 (Michael 17:4x), fire_drill GO
+085ccb7ad 10-21 19:08 | T-612 fix (Michael 21.10 17:4x "ברצוני שתתקן את זה מיידי"): T612_LADDER_COLLAPSE_V1 — a ladder sanitised to T1 on >=3 contra
+a4914b221 10-21 18:40 | cowork run 400 (21.10 18:34-18:40 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- zero new red in 25min; finding: shadow
+a0609799c 10-21 18:23 | cowork run 399 (21.10 18:04-18:13 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- run 398's open code question ANSWERED,
+f2a5bbbf4 10-21 17:46 | cowork run 398 (21.10 17:34-17:47 IL): duty-1 phone (zero pending => total silence) + duty-3 RTH monitor -- T-612 measured FIRING in demo, twice
+735557e98 10-21 17:13 | cowork run 397 (21.10 17:04 IL): duty-1 phone (zero pending) + duty-3 RTH monitor — all four axes green
+14bac772c 10-21 16:42 | LIVE_CHANNEL run 396 (21.10 16:34 IL, cowork-daily): duty-1 + duty-3 RTH monitor -- zero restart (two separate bans: 16:34>16:10 AND listener 8224
+dd7eb58bf 10-21 16:10 | LIVE_CHANNEL run 395 (21.10 16:04 IL, cowork-daily): duty-1 + ONE measurement line -- zero restart, zero second gate message. Phone: zero pending 
+e671ed508 10-21 16:08 | RULED_FLAGS + FLAG_REGISTRY + TASK_LOG/STATUS_BOARD T-622 + LIVE_CHANNEL: n2rsNx LIVE in demo from 16:05:32 — Michael 21.10 16:0x
+21c721708 10-21 16:02 | LIVE_CHANNEL + TASK_LOG T-622/T-624: 16:00 day wrap — demo unchanged; n2rsNx / n2rs3k decision moves to the iMac; T-624 measured (path without f
+fe9765ce6 10-21 15:52 | ROADMAP + PHONE_THREAD run 394: the roadmap carries today's gate (NO-GO day 2) and the one gate message is on the thread
+be91973ce 10-21 15:49 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD run 394 (21.10 15:34 IL, cowork-daily): the gate run -- duty-1 + the full duty-2, and the day is NO-GO for 
+73fee7042 10-21 15:14 | LIVE_CHANNEL run 393 (21.10 15:04 IL): duty-1 only, and the register proves the cut -- preopen-gate cron 0,30 with nextRunAt 12:33:56Z = 15:33:56 
+7a8c93ffa 10-21 14:43 | LIVE_CHANNEL run 392 (21.10 14:34 IL): duty-1 only -- zero phone pending (four Render boxes http=200 empty incl /marks/pending, /chat 200 items=30
+b0a14a146 10-21 14:11 | LIVE_CHANNEL run 391 (21.10 14:04 IL): duty-1  zero phone pending (four Render boxes http=200 empty, /chat fresh mtime==sample 14:06:12 items=30 w
+715221998 10-21 13:39 | LIVE_CHANNEL run 390 (21.10 13:36 IL): duty-1 only — zero phone pending (all four Render boxes empty, /chat items=30 with no 21.10 item, last mi
+e8b3a1f2b 10-21 13:24 | LIVE_CHANNEL + TASK_LOG T-622: 13:30 state — n2rsNx (n2rs + four night keys, no edge tree) +4,161$ / 78 sessions, every month > 0, awaiting Mich
+a4eeb8435 10-21 13:10 | LIVE_CHANNEL run 389 (21.10 13:05 IL): duty-1 only — zero phone pending => total phone silence; feed alive+continuous (122 bars, gaps=0, age 1.6
+f17e472ef 10-21 13:01 | T-625 cutover script: ship mems26_hist/snapshots/v9_archive deltas too
+3a9885987 10-21 12:59 | T-625 runbook: Phase A measured results + TCC-on-Downloads trap
+bf52ffb83 10-21 12:57 | T-625 Mac-2 (iMac) takeover — Phase A done (snapshot · WIP checkpoint · full dump · iMac cleaned 268 GB · repo+bundle+pip · DB restored 7.4
+a38bc0902 10-21 12:44 | mac2 takeover: cutover window 23:35 (after the 23:20 EOD-journal task), Desktop-Commander-on-iMac note
+9288e62b5 10-21 12:41 | T-624b the steps filter — every TREND_STEP needs effort and result (flag TACTICAL_EFFORT_SCOPE, default OFF)
+03bebd5cf 10-21 12:41 | mac2 scripts: pipefail + importlib.util fix (a check piped through tee inherited tee's exit 0 — the documented trap)
+6085ef31c 10-21 12:39 | Mac-2 (iMac) takeover 21.10: runbook + 3 scripts (Phase A prepare on iMac · Phase B cutover MacBook · Phase B go-live iMac) — Michael ruling 2
+095c7098b 10-21 12:38 | LIVE_CHANNEL run 388: correct the restart-ownership clause — checked both registers (LaunchAgents + scheduled tasks); no preopen-restart task ex
+94f541b0d 10-21 12:37 | LIVE_CHANNEL: cowork-dev run 388 (21.10 12:36) — duty-1 only, zero pending => phone silence; feed live in DB (116 bars, 0 gaps, age 1.5min); 15:
+ac2d47c0a 10-21 12:28 | T-624 the tactical path after a FAILED IB extension — tests, variant trees, harness tags, registry (all built OFF)
+15adace6c 10-21 12:21 | cowork-dev run 387 (21.10 12:04-12:19 IL) — duty-1 only: zero pending on both paths, phone silent. Dirty-tree finding measured by writer-identit
+2618a68f7 10-21 12:18 | WIP checkpoint before Mac-2 (iMac) takeover 2026-10-21 — commit every uncommitted code/config/test/doc change on the MacBook so the iMac receive
+4702346fe 10-21 11:43 | COWORK_DAILY_READ trap 44: a discovery command scoped to the list it is supposed to expand, and a time format with the date left out — both caug
+19e4d441a 10-21 11:40 | LIVE_CHANNEL: cowork-dev run 386 (21.10 11:34 IL) — duty-1 only: zero pending on both paths, phone silent; feed live (56 bars today, gapless, ba
+8721ffcfc 10-21 11:35 | T-622d Normal-day edge rule (tree variants, measurement only) · T-623 harness monotonic-clock fix (flag, default OFF)
+30c603604 10-21 11:11 | LIVE_CHANNEL: cowork-dev run 385 (21.10 11:04 IL) — duty-1 only
+e8b0b9967 10-21 10:57 | T-614…T-622 registered in TASK_LOG + STATUS_BOARD (late) · T-619 deck reads the real T1 leg · LIVE_CHANNEL [9015bf73]
+d449f9234 10-21 10:43 | LIVE_CHANNEL run 384 addendum: the working tree is dirty in trading code right now — five_min_system.py +18 (T-543 stage 4, new flag S2_EVIDENCE
+da0e3df37 10-21 10:40 | LIVE_CHANNEL: cowork-dev run 384 (21.10 10:34 IL) — duty-1 only: zero pending on both paths, phone silent; feed live (bar age 3.4min), listener 
+9ebdae4b8 10-21 10:16 | T-622c fix 5 strict: the TOUCH2 structure stop only at a failed extension beyond the IB; fix 5 split into its parts
+c92adec8f 10-21 10:15 | LIVE_CHANNEL run 383 addendum: the overnight trading-surface change was a protocol-clean T-616 rollback (snapshot 04:42:07 -> .env 04:42:08 -> res
+ce3e09147 10-21 10:13 | LIVE_CHANNEL: cowork-dev run 383 (21.10 10:05 IL) — duty-1 only: zero pending, phone silent; listener rotated 3x since run 381 and runs pre-morn
+a4ac29010 10-21 08:58 | T-622b EDGE_FADE_TARGETS_V1 repaired — the Normal-day ladder (POC → opposite VA → opposite IB) can execute; stop mode
+d42a43901 10-21 08:53 | T-622 the Normal-day package: the runner ends at the other side + fix 2 "single" — built OFF, measured (demo unchanged)
+410ad76fc 10-21 07:40 | T-621 the 20.10 root fixes 1, 2, 4, 5 — built OFF, measured on the faithful replay (demo unchanged)
+78212c46b 10-21 07:08 | T-620 harness fidelity: the replay now reproduces 20.10 — F5 runner swing-trail mirror + a rejected PLACE no longer holds the slot
+9d09b2ee1 10-21 04:44 | T-619 phone: the link to the swipe page now reads "🃏 נסיבות לעץ" (the page is the circumstance deck) + the deck data (circ_v2.json, 24
+a6982c14a 10-21 04:44 | T-614 DAYMAP base-20.10 — every day (250 day files + pages + index, SUMMARY)
+0cb02c37d 10-21 04:42 | RULED_FLAGS: the 20→21.10 night verdicts — T-616/T-617/T-618 measured variants FAIL the acceptance rule ⇒ off in demo
+61dedac29 10-20 23:54 | T-619 circumstance rulings → tree variants (the general mechanism Michael asked for)
+4ef74bf81 10-20 23:44 | RULED_FLAGS: T1_FRONT_RUN_TICKS=2 ON in demo (T-618) — Michael 20.10 23:4x "האם אפשר לבצע את התיקון עכשיו?"
+b7405732e 10-20 23:44 | T-618 T1 in front of the level — T1_FRONT_RUN_TICKS (default unset ⇒ byte-identical)
+971710b66 10-20 23:44 | cowork-dev run 382 (20.10 23:34-23:42, duty 1 + duty 4): a SECOND duty-4 firing in the same window, so the run verified instead of executing - nig
+530ee0c68 10-20 23:34 | T-615 harness mirrors (T-595 closed-bar day-type feed + BE_AFTER_T1_RULE_V1 hold at T1) + the 20→21.10 night plan (base-20.10 on every session, 
+076e0cb3f 10-20 23:15 | PHONE_THREAD: day-report 20.10 link sent (case b extended, 274 chars, render=verified) — the only phone message of this run
+6a2fae4f8 10-20 23:15 | LIVE_CHANNEL: cowork-dev EOD 20.10 [770744d9] — night queue NOT claimed (code commit 310a8c023 at 23:09 + in-flight worktree => another session 
+28bb63dba 10-20 23:12 | cowork-dev EOD 20.10 — phone pillars: broker_truth (0 live trades ⇒ pnl_sierra 0 rows) · day_review (Variation, 5 moves 180.8pts, 0 live-take
+310a8c023 10-20 23:09 | RULED_FLAGS: T-616/T-617 doctrine fixes ON in demo — Michael 20.10 23:0x "כרגע אני צריך שתבצע"
+1b6ed3eef 10-20 23:05 | eod-handoff(מק-1): 2026-10-20 packet — trades/decisions/fills/state/health
+d2ce07ca1 10-20 22:59 | T-617 the 20.10 losers, second pass — TOUCH2 edge tolerance on a wide IB (flag, default OFF) + System 6 t0_hit wiring (T-368 could never act)
+ebf16f4dd 10-20 22:44 | cowork-dev run 381 (20.10 22:34-22:45, duty 1 + duty 3 RTH monitoring): every axis measured green - feed proven by bar advance 19:35 to 19:40 UTC 
+02131bfe2 10-20 22:14 | cowork-dev run 380 (20.10 22:04-22:14, duty 1 + duty 3 RTH monitoring): all green and measured as such - feed proven by bar advance 22:05 to 22:10
+fb1cf9e8f 10-20 21:52 | cowork-dev run 379 (20.10 21:34-21:46, duty 1 + duty 3 RTH monitoring): the position closed inside the run and it is demo, so explicitly NOT case 
+774f1416c 10-20 21:21 | cowork-dev run 378 (20.10 21:04-21:14, duty 1 + duty 3 RTH monitoring): quiet run measured quiet; T-347 doubled to 45.2h and the obvious damage-ev
+e69b8d1a0 10-20 20:51 | cowork-dev run 377 (20.10 20:34-20:45, duty 1 + duty 3 RTH monitoring): TM=5/Sierra=4 measured in the field -> it is the T0 leg, and the anchor T-
+4892813d0 10-20 20:16 | cowork-dev run 376 (20.10 20:04-20:14, duty 1 + duty 3 RTH monitoring): T-612 recurred a second time today (#3580 20:00:05) -> ratio 2/2, predicte
+bf426aa5a 10-20 19:54 | cowork-dev run 375 (20.10 19:34-19:47, duty 1 + duty 3 RTH monitoring): T-612's free test ANSWERED in the field, case (c) sent
+5b3e26974 10-20 19:36 | T-616 the 20.10 doctrine gaps — four flag-gated fixes (all default OFF ⇒ byte-identical), measured tonight vs base-20.10
+52a0bb34e 10-20 19:15 | cowork-dev run 374 (20.10 19:04-19:13, duty 1 + duty 3 RTH monitoring): quiet run, measured quiet
+2d0a19314 10-20 18:47 | cowork-dev run 373 (20.10 18:34-18:41, duty 1 + duty 3 RTH monitoring): duty 1 zero pending => total phone silence (GET /chat 200 items=30 17,733B
+7ee4d8384 10-20 18:30 | T-614 phone: DAYMAP pages (first 6 days + index) and two links on the daily-trades card — "פירוק-יום — כל הימים" (/doc/daymap/i
+4127aa571 10-20 18:28 | T-614 DAYMAP (פירוק-יום) base-20.10: per-day dissection tool — phases 0/A/B/C/D, truth (Michael labels › Dalton ref) vs system labels,
+75ec23296 10-20 18:17 | cowork-dev run 372 (20.10 18:04-18:10, duty 1 + duty 3 RTH monitoring): T-613 next-step(2) MEASURED and the measurement is sharper than the row as
+beba92d56 10-20 17:49 | cowork-dev run 371: T-613 (SCALE_IN child sized to 0 → phantom 5c in books), contract-369 clause 2 negative, T-612 step 1 = 0
+3fa480794 10-20 17:18 | cowork-dev run 370 (20.10 17:04-17:1x, duty 1 + duty 3 RTH monitoring): duty 1 zero pending => total phone silence (GET /chat 200 items=30, zero i
+a1c156785 10-20 16:48 | cowork-dev run 369 self-verification (16:47, second sample): day_type stepped A1->A2->A3 within the run (09:30/09:35/09:45 ET, still UNKNOWN/NA/PE
+9f29bfd14 10-20 16:46 | cowork-dev run 369 (20.10 16:34-16:4x, duty 1 + duty 3 RTH monitoring): first run today that sees RTH open. Duty 1 zero pending => total phone sil
+390d66e37 10-20 16:12 | cowork-daily ריצה 368 (20.10 16:04-16:12, שורת-מדידה בלבד): חובה-1 אפס ממתינות ⇒ שתיקה מוחלטת בטלפ
+7a621e98a 10-20 15:53 | ROADMAP_TO_LIVE: עודכן אחרי 19 יום פיגור — אתה-כאן ל-20.10 16:0x (cowork-daily ריצה 367) + T-612 כחוסם-שער; 
+8cc927046 10-20 15:52 | cowork-daily ריצה 367 (20.10 15:34-16:0x, חובה-1 + חובה-2 המלאה): אפס ממתינות ⇒ שקט מוחלט בטלפון; פר�
+5c61c9d0d 10-20 15:26 | LIVE_CHANNEL: 15:21 restart with T-610 (2-2-1 behind the cap_lq handshake); Sierra Remote Build pending on Michael
+22e66d49e 10-20 15:22 | demo 20.10: LADDER_221_V1 ruled ON (5 contracts as 2-2-1, active only once the loaded DLL reports cap_lq=1) - backend restarted 15:21 with T-610
+7434b71fc 10-20 15:18 | T-610 LADDER_221_V1: 5 contracts as 2-2-1 (T1/T2/T3, no T0) — DLL per-group quantities + cap_lq handshake (flag-off, tests) — Michael 19.10
+b50744b03 10-20 15:13 | cowork-dev ריצה 366 (20.10 15:04-15:1x, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; אפס ממצא חדש
+906fada22 10-20 14:43 | cowork-dev ריצה 365 (20.10 14:34-14:4x, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; הממצא — בעל�
+7114cecb4 10-20 14:31 | phone daily trades card: RTL polish (time ranges, W/L and R isolated LTR; gap before the $ column) - checked by an offline render of the page at 3
+8f18574e5 10-20 14:28 | LIVE_CHANNEL: 14:27 backend restart (T-609, BE rule, T-595 x2, daily trades card) - no further restart needed before 16:30
+74b74365f 10-20 14:26 | phone app: daily trades summary card (Render + backend pages) + /mobile/data trades_today; journal: demo trades + ONE daily trades summary (Michae
+15298c860 10-20 14:17 | cowork-dev ריצה 364 (20.10 14:04-14:1x, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; T-611 נפתח — rul
+8000f4b44 10-20 13:38 | cowork-dev ריצה 363 (20.10 13:34-13:38, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; פיד זורם (+6 ב
+45cb3c9fd 10-20 13:12 | cowork-dev ריצה 362 (20.10 13:04-13:12, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; מלכודת 40 — po
+110938715 10-20 12:39 | cowork-dev ריצה 361 (20.10 12:34-12:41, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; בעלות-הריסט�
+0c15e95da 10-20 12:10 | cowork-dev ריצה 360 (20.10 12:04-12:12, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון; מלכודת 39 הופ
+1ed9d667a 10-20 11:44 | cowork-dev ריצה 359 (20.10 11:34-11:47, חובה-1 בלבד): אפס ממתינות ⇒ שקט מוחלט בטלפון
+850ed4577 10-20 11:10 | LIVE_CHANNEL: ריצה 358 (20.10 11:04 IL) — חובה-1 אפס ממתינות, אפס הודעת-טלפון; ניטור טרום-פתיחה: פ
+55801afd6 10-20 10:38 | cowork-dev ריצה 357 (20.10 10:34-10:42, חובה-1 בלבד): אפס ממתינות ⇒ שקט בטלפון; פיד חי age 1.4m, live 0, א�
+edc9f1744 10-20 10:13 | cowork-dev ריצה 356 (20.10 10:05-10:16, חובה-1 בלבד): אפס ממתינות ⇒ שקט בטלפון; T-610 נפתח — stash יתום
+ebfa3d45f 10-20 00:51 | demo 20.10: BE_AFTER_T1_RULE_V1 + DAYTYPE_MACHINE_CLOSED_BARS_V1 + DAYTYPE_HISTORY_LIVE_LOCK_V1 ruled ON in demo; STOP-2 amended (System 6 hold is
+235e3761d 10-20 00:47 | BE_AFTER_T1_RULE_V1: VA edge from Sierra's tpo.json first (the gateway's VAH/VAL source), v9_tpo_sessions only as fallback
+80816e407 10-20 00:47 | T-609: the live wire is default-deny for every process but the backend
+4fc93db46 10-20 00:41 | demo 19.10: four S1 input flags ruled in RULED_FLAGS + chain9b replay pinned to the 18.10 reference .env + LIVE_CHANNEL (Sim1 orphan cmd_000404 fl
+0e3a1e4d9 10-19 23:47 | LIVE_CHANNEL + STATUS_BOARD: run 355 addendum + closer (23:44, 23:47) - cc IS working tonight from 23:37 (two code+test commits, not data-only), s
+a03d1a268 10-19 23:45 | T-595 DAYTYPE_MACHINE_CLOSED_BARS_V1 + DAYTYPE_HISTORY_LIVE_LOCK_V1 (flag-off, tests) — Michael 19.10
+94869e8db 10-19 23:43 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 355 (19.10 23:33-23:42 IL) - duty 1 zero pending plus duty 4 monitor-only; new T-608: eod_j
+3cd9d25fb 10-19 23:37 | BE_AFTER_T1_RULE_V1: hold structure instead of breakeven on with-extension days (flag-off, tests) — Michael 19.10
+b805f6c4e 10-19 23:31 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 354 (19.10 23:04-23:22 IL) - duty 1 plus duty 4; night queue left alone because it is alrea
+d72c4685f 10-19 23:24 | journal: 2026-10-19
+a31dbccc6 10-19 23:13 | duty-4 pillars 19.10: broker_truth + day_review + review_report + tree_board + phone pages (14d) + LESSONS_TIMELINE day-19 and four thread items
+d741af37f 10-19 23:05 | eod-handoff(מק-1): 2026-10-19 packet — trades/decisions/fills/state/health
+783268bf6 10-19 22:54 | run 353 closing verification (22:50-22:52): #3515 closed SIERRA_FLAT - the free t1-vs-stop test died with the EOD flatten as predicted; EXIT_VERIF
+dba5fc077 10-19 22:50 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 353 (19.10 22:34-22:47 IL) - duty 1 plus duty 3 RTH monitor; two alarm classes killed pre-p
+79ab69e65 10-19 22:30 | ruling 19.10: 5 contracts in DEMO (FIXED_CONTRACTS_5=1, _1=0); 2-2-1 ladder needs backend+DLL (open)
+c68e86bcb 10-19 22:17 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 352 (19.10 22:04-22:15 IL) - duty 1 plus duty 3 RTH monitor
+12b522b96 10-19 21:54 | LIVE_CHANNEL + TASK_LOG: run 351 closing verification at 21:53 - open-PnL candidate for T-607 ruled out by observation, not inference
+e95e93cda 10-19 21:52 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 351 (19.10 21:34-21:52 IL) - duty 1 plus duty 3 RTH monitor
+a08e26b8d 10-19 21:19 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 350 (19.10 21:04-21:18 IL) - duty 1 plus duty 3 RTH monitor
+5d4c20e76 10-19 20:47 | LIVE_CHANNEL + TASK_LOG: cowork-dev run 349 (19.10 20:34-20:43 IL) - duty 1 plus duty 3 RTH monitor; new item T-605 and the closing number for T-6
+cf5d12ff5 10-19 20:13 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 348 (19.10 20:04-20:07 IL) - duty 1 plus duty 3 RTH monitor; new item T-604: the S1_DAY_DIR
+7249d4932 10-19 19:54 | ruling 19.10: S1_DAY_DIRECTION_V1 shadow→apply in DEMO (live bias from S1/IB instead of lagging LSMA); RULED_FLAGS + LIVE_CHANNEL
+76fb2a650 10-19 19:43 | LIVE_CHANNEL: cowork-dev run 347 (19.10 19:34-19:41) — duty 1 zero pending, duty 3 three verdicts green; 19:18 restart owned by cowork (Michael 
+60cb9eef3 10-19 19:20 | ruling 19.10: CEILING_FLIP_TOUCH2 + TREND_STEP shadow→1 in DEMO (Michael: demo, execute now); RULED_FLAGS + LIVE_CHANNEL
+9715b885f 10-19 18:42 | LIVE_CHANNEL: cowork-dev run 346 — RTH monitor 18:38 (feed 3.7m, pos 0 flat vs TM, 0 live, trap-15 false-finding avoided, 345 cpu+pnl axes close
+2e3ea545d 10-19 18:42 | eod_journal: living trading journal + fix ledger + phone page (seeded 01.10–16.10); gap_backfill heartbeat line
+bbb4e5d31 10-19 18:33 | report: day-type audit - extension finding linked to T-456/T-451 (09-23 known and fixed 24.09; 09-17 same signature, unverified)
+fd780be78 10-19 18:23 | report: intraday day-type vs Dalton 17.09-16.10
+7e85f36ba 10-19 18:17 | cowork-dev run 345 (19.10 18:04-18:1x IL) - duty 1 plus duty 3 RTH monitoring, taking the second branch run 344's next step defined in advance (18
+271aacce0 10-19 17:50 | cowork-dev run 344 (19.10 17:34-17:4x IL) — duty 1 + duty 3 RTH monitor: T-602 downgraded to a debt item on its own written branch, T-603 opened
+46468befe 10-19 17:19 | cowork-dev run 343 (19.10 17:04-17:1x IL) — duty-1 + duty-3 RTH monitor: T-601 closed as DISPROVEN (two schemas in one file, trap 21), T-602 ope
+78e8dc1fd 10-19 16:48 | LIVE_CHANNEL + TASK_LOG + STATUS_BOARD: cowork-dev run 342 (19.10 16:34-16:45 IL) - duty 1 plus duty 3 RTH monitoring, and this is the run T-600's
+ce6d6daa9 10-19 16:11 | LIVE_CHANNEL + TASK_LOG: cowork-dev run 341 (19.10 16:04-16:0x IL) - duty 1 plus ONE measurement line, and deliberately not a gate: 16:04 is insid
+4e3db796a 10-19 15:49 | PHONE_THREAD: the one gate message of run 340 (case d) - GO-in-demo, no restart, verified on Render by GET /chat and not by the POST ok (T-260); 4
+dcd8b2f0e 10-19 15:48 | LIVE_CHANNEL + TASK_LOG: cowork-dev run 340 (19.10 15:34-15:5x IL) - the full pre-open gate, owned in three adjudicators (listener pid 2030 from 1
+a756ff231 10-19 15:22 | LIVE_CHANNEL: run 339 addendum - silence is proven by mtime, not by line count, and PHONE_THREAD has been dirty in the worktree since yesterday
+c3ac012e3 10-19 15:19 | LIVE_CHANNEL + TASK_LOG: cowork-dev run 339 (19.10 15:04-15:12 IL) - duty 1 only, zero pending in all four adjudicators, zero phone sends
+d3732ee13 10-19 14:47 | LIVE_CHANNEL + TASK_LOG: cowork-dev run 338 (19.10 14:34-14:46 IL) - duty 1 only, zero pending in all four adjudicators, zero phone sends; feed LI
+d59cc33a4 10-19 14:09 | LIVE_CHANNEL: cowork-dev run 337 (19.10 14:04 IL) - duty 1 only, zero pending, zero phone messages; feed alive by moved-quote; size ruled=1 confir
+b48288b25 10-19 13:41 | LIVE_CHANNEL: cowork-dev run 336 (19.10 13:34 IL) - duty-1 only, zero phone messages; feed live by moving quote; NEW: 12-16.10 bars are backfill w
+ee30050ab 10-19 13:12 | LIVE_CHANNEL: cowork-dev run 335 (19.10 13:04 IL) - duty-1 only, zero pending, zero phone sends; T-430 feed live and verified by a MOVING quote no
+76cd7d2c1 10-19 12:41 | LIVE_CHANNEL: cowork-dev run 334 (19.10 12:34 IL) - duty-1 only, zero pending, zero phone sends; relay alive 17d continuous, Hebrew sender predica
+33da68244 10-19 12:11 | LIVE_CHANNEL: cowork-dev run 333 (19.10 12:04 IL) - duty-1 only, zero pending, zero phone sends; woodies holds (134 bars 01:00->12:05, 0 gaps, dec
+6f376d17d 10-19 11:38 | LIVE_CHANNEL: cowork-dev run 332 (19.10 11:34 IL) — duty-1 only, zero pending, zero phone sends; T-430 feed holds (128 bars 01:00->11:35, 0 gaps
+7072a199b 10-19 11:10 | LIVE_CHANNEL: cowork-dev run 331 (19.10 11:04-11:12) - duty-1 only, zero pending, zero phone messages; T-430 feed holding 122 bars / zero gaps
+03f952b8a 10-19 10:44 | report: opening-type reference vs Dalton pp.63-74 + the recovered week 12-16.10
+293e32205 10-19 10:43 | gap_backfill: cheap path when no DB holes (no .scid scan)
+4ee84dc24 10-19 10:42 | gap_backfill: rebuild missing RTH days from Sierra .scid into mems26 (guarded inserts) + LaunchAgent; 09–16.10 backfilled
+f6e20e79c 10-19 10:38 | cowork-dev run 330: duty-1 only, zero phone messages (silence); feed holding 30min on from run 329 (woodies 116/116 bars contiguous, age 2.1min, d
+10fcde269 10-19 10:30 | report: opening type 30d — 12–16.10 reconstructed from Sierra .scid into mems26_hist
+cc19fd02b 10-19 10:13 | cowork-dev run 329 addendum: T-584 grew to 15 uncommitted tracked files (3 backend-path incl five_min_system.py, all mtime 08.10 21:35) - handoff 
+6af5a28c8 10-19 10:12 | cowork-dev run 329: duty-1 only, zero phone messages; feed recovered after 9 days at Globex open (woodies 110/110 bars, zero gaps, age 1.4min); ba
+a785230be 10-19 09:59 | report: opening type 30d — system vs bars (2026-10-19)
+355e87aec 10-19 08:40 | report: what made money — live books at broker price, agents stopped, index 2026-10-19
+b9c6bce14 10-19 06:13 | index-agent: SYSTEM_INDEX 2026-10-19
+29a3f5a87 10-19 00:22 | fix-agent night 18→19.10 handoff: TASK_LOG (T-598 row, T-260 next-step → result, header line), LIVE_CHANNEL (two entries), MICHAEL_INBOX (19.1
+470d30d38 10-19 00:22 | T-260 (BRIEF §3.5, fix-agent night 18→19.10): phone_reply.py verifies the delivery on Render after every send (GET /chat read-back ⇒ `ok rend
+5f1c5a239 10-19 00:22 | T-598 (BRIEF §2.3 #1, fix-agent night 18→19.10): stop → BE after +1R measured whole-day on 71 vs the same-night reference — FAILS the accep
+38348115a 10-19 00:22 | PLAN_TO_SUCCESS (Michael 00:1x): staged definition of success (S0 inputs -> S1 one-contract edge in 3 regimes -> S2 demo parity -> S3 live 1 contr
+d93f1f2b3 10-19 00:13 | FULL REPORT (Michael 00:0x 'stop everything, full report'): method, S1/S2/S4/tree/management per the Dalton doctrine, the numbers on 526 sessions,
+82a5717e6 10-18 23:50 | hist_k on 2022-24 exact: -1,940$, 2/17 months >= 0 (drive family -497 with the freed slot); report s4.3.1
+8a7f27338 10-18 23:46 | cowork run 328 (18.10 23:34-23:5x, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-4 ownership not taken for the second r
+aba1b5c39 10-18 23:23 | cowork run 327 (18.10 23:04-23:25, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-4 ownership deliberately NOT taken, an
+4b40a9ef5 10-18 23:05 | eod-handoff(מק-1): 2026-10-18 packet — trades/decisions/fills/state/health
+65b80bb52 10-18 22:50 | cowork run 326 (18.10 22:34-23:0x, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor. One finding, and it i
+ec5fdbd1d 10-18 22:42 | wf_cells on all 526 sessions (three regimes, six cell keys): every walk-forward cell policy <= 0 (best -245, selection effect) -- s7 closed; repor
+60f929e29 10-18 22:40 | policy screen on the third regime (2022-24, cand_old290): no pre-registered doctrine policy >= 0 in all three regimes; drive-only +139/+763/-689; 
+0e72497f3 10-18 22:40 | supervisor: 2026-10-18 22:40 — ריצת 22:35 (יום ראשון, אין RTH): אדומים 0, feed קפוא 9521 דק׳ (ידוע, T-587/T-532)
+241ef43ca 10-18 22:11 | cowork run 325 (18.10 22:04-22:12, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor. Answers run 324's nex
+154774764 10-18 21:42 | cowork run 324 (18.10 21:34-21:44, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor. One finding, and it i
+fe9694f9a 10-18 21:37 | supervisor: 2026-10-18 21:37
+559de8a4c 10-18 21:14 | cowork run 323 (18.10 21:04-21:12, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor.
+309d1724b 10-18 21:04 | Super-agent T1: hold-to-close with the initial stop (hold_to_close.py) -- regime-dependent in the opposite direction to entries (+1,997 in 2022-24
+54ae188cb 10-18 21:03 | 2022-24 exact (hist_ref, 290 sessions): -2,820$, 4/17 months >= 0, drive family -313$; all 456 OOS sessions -5,265$, 1/11 quarters positive -> no 
+d66957b4c 10-18 20:45 | cowork run 322 (18.10 20:34-20:47, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor.
+9cfab3cf0 10-18 20:40 | supervisor: 2026-10-18 20:40
+3a60dfe1b 10-18 20:14 | cowork run 321 (18.10 20:04-20:12, Sunday, market closed): duty-1 zero pending -> total phone silence; duty-3 short monitor. Finding 1: the DLL ex
+31ddd80c7 10-18 20:02 | T-595: the exhaustion veto (ruled off 19.08 after blocking 27/28) read the same flat-bar OPEN_DRIVE -- explained in hindsight; report s3(f), TASK_
+c20f7ab03 10-18 19:59 | report: timestamp (19:5x)
+0f15d7b89 10-18 19:59 | Super-agent T1: R4 gap-fail fill (thesis_r4.py, from the 27.02 day review) -- +22$ in 2022-24, negative in 2025-26: regime-dependent, not a rule; 
+55e5037c2 10-18 19:55 | check_runs.sh: rc!=0 census + json coverage per tag (T-597 lesson)
+c0973c9e2 10-18 19:54 | report s6: the path after s7/s8 -- RC-1 = drive-only only if hist_d >= 0 OOS; real profit needs new entry logic via Michael's tagging; 5 contracts
+3e1a9b401 10-18 19:52 | T-597: harness crashed on 2026-08-07 in every variant (live row #652 without entry_price injected as float(None)) -- the '70 sessions' were 71; sk
+b6632bf7e 10-18 19:50 | Super-agent T1: 5-contract ladders on the tree's drive family (drive_ladder.py) -- the live LADDER[5] is -38.8$/trade OOS, all-at-T1 is 5x the 1-c
+1f3fc3bf5 10-18 19:48 | INBOX: timestamp to the Mac clock (19:4x)
+ce5fd3db7 10-18 19:48 | INBOX 19:5x: RC-1 item updated with the evening's exact numbers (OOS -2,445; no-reversal -2,181 -> out; R2/R3 retracted; drive-only pending hist_d
+4e0a9c074 10-18 19:47 | Super-agent T1: pre-registered doctrine policies screened at the candidate level (policy_screen.py, single-slot re-sim; base ~ harness) -- only dr
+99085934f 10-18 19:44 | hist_k exact (OOS -2,180.85$, only +264$ over the reference: the freed slot takes losing BREAK trades) -> 'no reversal' leaves RC-1; chain9b (driv
+b7d144662 10-18 19:43 | cowork-dev run 320 (18.10 19:34-19:52): duty-1 + short monitor, ZERO phone messages. T-596 CLOSED -- the open check-point answered in code: Michae
+51e6d6b30 10-18 19:37 | supervisor: 2026-10-18 19:37 — ריצת 19:35 (יום ראשון, אין RTH): אדומים 0, feed קפוא 9341 דק׳ (ידוע, דווח 09:
+ca2142938 10-18 19:24 | day reviews for the 166 OOS sessions (hist_ref on mems26_hist, correct prior value, reconstructed bars) for Michael's tagging; README; report time
+c81220871 10-18 19:19 | Super-agent T1: delta evidence on the tree's drive family (drive_evidence.py) -- the fire-bar delta is lookahead (all fires on the first push); kn
+fb7f2a2c2 10-18 19:17 | charter: evening log (R2/R3 real time, T-595, exact OOS, chain10) and the 19.10 plan; report timestamp
+04e827d7b 10-18 19:17 | Super-agent T1 (19:2x): R3 IB-break with real-time trend evidence (thesis_r3rt.py) -- no pre-specified doctrine sign at the break identifies the t
+d51c3744e 10-18 19:15 | Super-agent T1 (19:2x): delta/volume evidence on the real-time R2 entries (rt_evidence.py; E1 open-delta-with-drive consistent in direction, ~0 in
+fd43cd013 10-18 19:12 | cowork-dev run 319 (18.10 19:04-19:12): duty-1 + short monitor, ZERO phone messages, ONE new item T-596.
+9f8bb9238 10-18 19:11 | OOS exact after the fake-bar replacement: hist_ref -2,445.05$ (365 trades, 49+/87-, 8/9 months < 0, 93% of 20-windows < 0, DD 2,587); rc_table.py 
+40d51ab56 10-18 19:08 | records: timestamps to the Mac clock (19:0x)
+652fa9520 10-18 19:08 | Super-agent T1 (19:1x): R2 in real time is +/-/- (thesis_rt.py, rt_frontier.py) -- the "R2 >= 0 in all three regimes" claim withdrawn (lookahead o
+77d1f2100 10-18 18:54 | Report §4.3.1: pvfix-70 exact — in-sample with correct prev-day VA = +1,580.50$ net (ref +1,896.35; -316$, September); doctrine_audit OT refere
+381a82540 10-18 18:51 | T-594: the opening lock never locks OPEN_AUCTION_OUT / OPEN_TEST_DRIVE (0/235 sessions) — it called the detector without the prior-day reference
+b28e9d485 10-18 18:47 | Super-agent T1 charter: 18:4x log (§8.6, day reviews, T-593, night queue chain8→chain9)
+3e01f28d1 10-18 18:47 | T-593: first-hour day-type label is a fixed legacy artifact ("Trend_Normal" at 30 min in 154/166 + 67/70 sessions) — S1_PROVISIONAL_PUBLISH_V1 (
+9a21ec76b 10-18 18:40 | Report §8.6: 236 consecutive sessions (2025-10→2026-10) with correct inputs — the live tree = -57$ (OOS -1,169 / in-sample +1,112); REVERSAL 
+838ef776c 10-18 18:40 | cowork-dev run 318 (18.10 18:34-18:41): duty-1 + short monitor, ZERO phone messages. Four arbiters empty (instruction/pending [], cmd/pending null
+46059bbfa 10-18 18:38 | supervisor: 2026-10-18 18:38 — ריצת 18:35 (יום ראשון, אין RTH): אדומים 0, feed קפוא 9282 דק׳ (ידוע, דווח 09:
+d0fb7aa42 10-18 18:16 | Super-agent T1: day reviews — one markdown per live-era session (70) with the S1 story, the prior-day value the tree saw, and every live-eligibl
+040e52b9b 10-18 18:13 | doctrine_audit: --tol (trade_economics STOP_OFFSET = 4 pts); census corrected: non-structural stops 118/70 sessions (36%), 239/166 OOS; targets 25
+8f5c18e66 10-18 18:10 | cowork-dev run 317 (18.10 18:04-18:12): duty-1 + short monitor, ZERO phone messages. Four arbiters empty (instruction/pending [], cmd/pending null
+86b05cba3 10-18 18:08 | Report §4.3.1: reconstruction control passed (ctrl_sep2 ≡ pvfix 15/15 September sessions, identical routes/trades/S1/gateway); §8.4 drive-only
+973d556c7 10-18 18:06 | T-592 super-agent T1: TASK_LOG row + T-586 next step (§7 outcome B) + LIVE_CHANNEL 18:1x block
+42f603baf 10-18 18:05 | Super-agent T1 — report §8: the 80% question answered on the data (alltake universe 166 OOS: 1,262 live-eligible candidates, T1 33%, T0 72%, no
+4c100defd 10-18 17:42 | cowork-dev run 316 (18.10 17:34-17:41): duty-1 + short monitor, ZERO phone messages. Four arbiters empty: /instruction/pending [], /cmd/pending nu
+ea0a5cd11 10-18 17:37 | supervisor: 2026-10-18 17:37 — ריצת 17:35 (יום ראשון, אין RTH): אדומים 0, feed קפוא 9222 דק׳ (ידוע, דווח 09:
+84fdd83e4 10-18 17:25 | Super-agent T1: thesis_entries.py — doctrine entries prototyped offline on the bars (R1 VA-edge rejection, R2 open-drive pullback, R3 IB-break a
+e4905de14 10-18 17:21 | Super-agent T1: day-by-day doctrine conformance audit (doctrine_audit.py: OT/DT/PV/ST/T1/TT per session; first census on the 70 live-era sessions:
+fd9354dd8 10-18 17:11 | cowork-dev run 315 (18.10 17:04-17:12): duty-1 + short monitor, ZERO phone messages; corrects run 314's "quote alive" headline
+ea3d6dc67 10-18 17:07 | Super-agent T1: cand_sim adds VA levels as-of (poc/vah/val, POC-ahead distance and POC-before-stop), ladder after T1 (T2 before BE); t1_frontier.p
+8945af661 10-18 17:04 | Super-agent T1 (Michael 18.10 16:5x): charter + T1-map tooling; T-590 decomposition on September (-374$ / -37%)
+353474e44 10-18 16:46 | cowork-dev run 314 (18.10 16:34-16:46): duty-1 + short monitor, ZERO phone messages
+38fccba44 10-18 16:42 | T-586: OOS verdict on 166 reconstructed sessions (-2,204.85$ net, every quarter negative) — report §4.3, records, rulings
+45158a9ac 10-18 16:40 | supervisor: 2026-10-18 16:40
+a3c7f896e 10-18 16:19 | cowork-dev run 313 (18.10 16:11-16:20): duty-1 only, ZERO phone messages. Four arbiters empty: /instruction/pending [], /cmd/pending null, /chat i
+0e984cf34 10-18 16:17 | T-591: harness replay window = previous CALENDAR day 18:00 ET (holiday contamination) + cand_sim RTH by ET
+9093f6647 10-18 11:44 | T-590: TPO letters from the bar clock (TPO_LETTER_BY_TS_V1, default OFF) + restart profile seed
+d093d6705 10-18 11:38 | cowork-dev run 312 (18.10 11:35-11:38): duty-1 only, ZERO phone messages. Four arbiters empty: /instruction/pending [], /cmd/pending null, /chat i
+ed79078e2 10-18 11:20 | T-586: candidate-level simulator (cand_sim, 96% exact on taken trades) + walk-forward cell policy (wf_cells, slot-aware, gate-passed universe)
+9ed259f6a 10-18 11:12 | T-586: history pipeline — MES-first front selection, 2022–24 contracts loaded (456 OOS sessions queued), period_report, daily_parity.sh (RC de
+4f2a3aab3 10-18 11:10 | cowork-dev run 311 (18.10 11:04-11:08): duty-1 only, ZERO phone messages. Four arbiters empty: /instruction/pending [], /cmd/pending null, /chat i
+73a9b8d70 10-18 11:10 | fix-agent fixup: ZLR-permit item renumbered T-588 -> T-589 (second ID collision this morning: cowork took T-588 at 10:59:40 in 39f7f1c8 while this
+24aa22594 10-18 11:08 | fix-agent run of the night 17→18.10 (fired late, Sun 18.10 09:55 IL — the Mac was unreachable all week): handoff — TASK_LOG (T-588 row, T-52
+6bae77b87 10-18 11:07 | T-588 (BRIEF §2.2 #3): the ZLR SHORT permit alone (Normal · C · 18-19h inside value) whole-day on 70 vs the same-night reference t567ref: Δ 0.
+0a9478b27 10-18 11:07 | T-527 (BRIEF §3.4): SIERRA_FLAT without a price — 4 of 13 are orders that never filled; broker_truth dropped them (entry_ts NULL fails `entry_t
+39f7f1c86 10-18 10:59 | T-588: CLS_RESULT_SESSION_GUARD_V1 (flag-off) — the gateway drops a classify_session result stamped with another session date (06.10 stale openi
+c2a982369 10-18 10:56 | T-586: full-history replay pipeline (Sierra .scid → 5-min bars/studies/TPO/delta → mems26_hist, acid test 3/4 identical), variants s2/ks2 meas
+63c98d703 10-18 10:37 | cowork-dev run 310 (18.10 10:34-10:42): duty-1 only, ZERO phone messages. Four arbiters empty: /instruction/pending [], /cmd/pending null, /chat i
+19f16ec02 10-18 10:18 | T-586: system review 18.10 — TREE_SKIP_KINDS kind policy (flag-off, decision_tree.kind_policy + 9 tests, FLAG_REGISTRY), harness universal secon
+a96de0539 10-18 10:18 | cowork-dev run 309 fixup: ts-offset-gate item renumbered T-586 -> T-587 (ID collision caught by delivery verification)
+08e0a646f 10-18 10:16 | cowork-dev run 309 (18.10 10:04-10:13): duty-1 only, ZERO phone messages. Relay hot (pid 1629, 9/9 agents), /instruction/pending + /cmd/pending em
+045520bed 10-18 10:08 | INBOX: פסיקות 18.10 08:30 (סוכן-08:30 Fable, נכתב 10:1x) — 1) T-563+T-545+T-526 חלון-ריסטארט-שורש אחד היום (
+de5013a06 10-18 09:57 | index-agent: SYSTEM_INDEX 2026-10-18 + LIVE_CHANNEL (לילה בלי דוח-כיול; woodies max ts 12.10)
+98b8e0610 10-18 09:45 | T-585: backend → demo (Michael 09.10 'העברתי לדמו') — snapshot 20261018T064016Z, .env MEMS26_MODE=demo + LIVE_TRADING_V1=0 only, pid
+a3c66d1cc 10-18 09:21 | cowork-dev run 308 (18.10 09:15-09:21): duty-1 only, ZERO phone messages. Relay hot (pid 1629), /instruction/pending + /cmd/pending empty, last Mi
+3e5822c05 10-18 09:13 | cowork-dev run 307 (opened 11.10 22:18 -> signed 18.10 09:06): the run itself lasted SEVEN DAYS, and inside it a whole trading week was erased wit
+13ff4bff7 10-18 09:09 | eod-handoff(מק-1): 2026-10-18 packet — trades/decisions/fills/state/health

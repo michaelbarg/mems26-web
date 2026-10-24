@@ -1,0 +1,11 @@
+tree:bias all n= 395 good 145 (37%) bad 190 (48%) flat  60
+against & turn_rel edge/with                       81d n=  28 good  11 (39%) bad  17 (61%) flat   0 | examined n=   2 good   1 (50%) bad   1 (50%) flat   0
+against & turn_rel edge/with & ruleA != accepted   81d n=  22 good   9 (41%) bad  13 (59%) flat   0 | examined n=   1 good   0 ( 0%) bad   1 (100%) flat   0
+against & passes ש1 (any exception)                81d n=  58 good  24 (41%) bad  34 (59%) flat   0 | examined n=   5 good   2 (40%) bad   3 (60%) flat   0
+against & refused by ש1                            81d n=  25 good   6 (24%) bad  19 (76%) flat   0 | examined n=   2 good   0 ( 0%) bad   2 (100%) flat   0
+BAL & passes all questions                         81d n= 119 good  39 (33%) bad  58 (49%) flat  22 | examined n=   3 good   1 (33%) bad   2 (67%) flat   0
+with (ש5 proper)                                   81d n=  76 good  33 (43%) bad  21 (28%) flat  22 | examined n=  16 good   8 (50%) bad   2 (12%) flat   6
+
+examined days: against & turn_rel edge/with
+  10-21 19:30 REACTIVE_SHORT         SHORT @7790.25  R 10.50 state UP turn down/with A no pos 0.65 lab bad q pass
+  10-22 20:30 CEILING_FLIP_TOUCH2    LONG  @7698.25  R  6.00 state DOWN turn range/edge A accepted_against pos 0.37 lab good q pass

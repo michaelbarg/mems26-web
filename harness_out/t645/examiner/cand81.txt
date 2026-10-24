@@ -1,0 +1,63 @@
+candidates with features: 2823
+
+## leaf=TAKE  n=1369 good 530 (39%) bad 595 (43%) flat 244
+  rel=with    phase=B pos=far    n=  12 good   7 (58%) bad   4 (33%) flat   1
+  rel=with    phase=C pos=middle n=  25 good  12 (48%) bad  10 (40%) flat   3
+  rel=with    phase=C pos=far    n= 247 good  77 (31%) bad  72 (29%) flat  98
+  rel=with    phase=D pos=middle n=  10 good   4 (40%) bad   2 (20%) flat   4
+  rel=with    phase=D pos=far    n=  39 good   8 (21%) bad   7 (18%) flat  24
+  rel=BAL     phase=B pos=edge   n=  20 good   9 (45%) bad  11 (55%) flat   0
+  rel=BAL     phase=B pos=middle n=  57 good  32 (56%) bad  25 (44%) flat   0
+  rel=BAL     phase=B pos=far    n= 102 good  49 (48%) bad  49 (48%) flat   4
+  rel=BAL     phase=C pos=edge   n=  77 good  29 (38%) bad  48 (62%) flat   0
+  rel=BAL     phase=C pos=middle n= 141 good  57 (40%) bad  67 (48%) flat  17
+  rel=BAL     phase=C pos=far    n= 203 good  80 (39%) bad  64 (32%) flat  59
+  rel=BAL     phase=D pos=edge   n=   8 good   4 (50%) bad   4 (50%) flat   0
+  rel=BAL     phase=D pos=middle n=  37 good  11 (30%) bad  18 (49%) flat   8
+  rel=BAL     phase=D pos=far    n=  48 good   9 (19%) bad  20 (42%) flat  19
+  rel=against phase=B pos=edge   n=  14 good   6 (43%) bad   8 (57%) flat   0
+  rel=against phase=C pos=edge   n= 230 good  99 (43%) bad 130 (57%) flat   1
+  rel=against phase=C pos=middle n=  36 good  13 (36%) bad  20 (56%) flat   3
+  rel=against phase=C pos=far    n=  19 good   9 (47%) bad   9 (47%) flat   1
+  rel=against phase=D pos=edge   n=  19 good   9 (47%) bad  10 (53%) flat   0
+  rel=against phase=D pos=middle n=   9 good   1 (11%) bad   7 (78%) flat   1
+  -- against: the ש1 exception parts
+  against turn_rel edge/with     n= 109 good  59 (54%) bad  49 (45%) flat   1
+  against day-edge & A!=acc      n= 153 good  70 (46%) bad  83 (54%) flat   0
+  against A accepted             n= 108 good  40 (37%) bad  63 (58%) flat   5
+  against neither (ש1 refuses)   n= 135 good  44 (33%) bad  85 (63%) flat   6
+  -- effort (Σdelta3 ≥ 3×median against the trade)
+  rel=against effort-against n=  51 good  24 (47%) bad  26 (51%) flat   1 | not n= 284 good 116 (41%) bad 162 (57%) flat   6
+  rel=BAL     effort-against n=  70 good  19 (27%) bad  44 (63%) flat   7 | not n= 629 good 263 (42%) bad 266 (42%) flat 100
+
+## leaf=ALL  n=2823 good 1055 (37%) bad 1183 (42%) flat 585
+  rel=with    phase=B pos=far    n=  27 good  15 (56%) bad   9 (33%) flat   3
+  rel=with    phase=C pos=middle n=  43 good  20 (47%) bad  18 (42%) flat   5
+  rel=with    phase=C pos=far    n= 385 good 138 (36%) bad 116 (30%) flat 131
+  rel=with    phase=D pos=middle n=  22 good   9 (41%) bad   6 (27%) flat   7
+  rel=with    phase=D pos=far    n= 137 good  16 (12%) bad  24 (18%) flat  97
+  rel=BAL     phase=B pos=edge   n=  64 good  28 (44%) bad  35 (55%) flat   1
+  rel=BAL     phase=B pos=middle n= 114 good  61 (54%) bad  51 (45%) flat   2
+  rel=BAL     phase=B pos=far    n= 168 good  85 (51%) bad  72 (43%) flat  11
+  rel=BAL     phase=C pos=edge   n= 113 good  42 (37%) bad  71 (63%) flat   0
+  rel=BAL     phase=C pos=middle n= 267 good 118 (44%) bad 122 (46%) flat  27
+  rel=BAL     phase=C pos=far    n= 393 good 146 (37%) bad 145 (37%) flat 102
+  rel=BAL     phase=D pos=edge   n=  42 good  14 (33%) bad  22 (52%) flat   6
+  rel=BAL     phase=D pos=middle n= 156 good  45 (29%) bad  61 (39%) flat  50
+  rel=BAL     phase=D pos=far    n= 249 good  43 (17%) bad  79 (32%) flat 127
+  rel=against phase=B pos=edge   n=  42 good  21 (50%) bad  21 (50%) flat   0
+  rel=against phase=B pos=middle n=   9 good   3 (33%) bad   6 (67%) flat   0
+  rel=against phase=C pos=edge   n= 264 good 106 (40%) bad 157 (59%) flat   1
+  rel=against phase=C pos=middle n=  70 good  31 (44%) bad  36 (51%) flat   3
+  rel=against phase=C pos=far    n=  34 good  16 (47%) bad  17 (50%) flat   1
+  rel=against phase=D pos=edge   n=  62 good  27 (44%) bad  32 (52%) flat   3
+  rel=against phase=D pos=middle n=  26 good   6 (23%) bad  16 (62%) flat   4
+  rel=against phase=D pos=far    n=   8 good   0 ( 0%) bad   5 (62%) flat   3
+  -- against: the ש1 exception parts
+  against turn_rel edge/with     n= 168 good  84 (50%) bad  81 (48%) flat   3
+  against day-edge & A!=acc      n= 239 good 108 (45%) bad 128 (54%) flat   3
+  against A accepted             n= 161 good  54 (34%) bad  98 (61%) flat   9
+  against neither (ש1 refuses)   n= 202 good  64 (32%) bad 127 (63%) flat  11
+  -- effort (Σdelta3 ≥ 3×median against the trade)
+  rel=against effort-against n=  91 good  37 (41%) bad  50 (55%) flat   4 | not n= 424 good 173 (41%) bad 240 (57%) flat  11
+  rel=BAL     effort-against n= 143 good  39 (27%) bad  77 (54%) flat  27 | not n=1546 good 608 (39%) bad 638 (41%) flat 300

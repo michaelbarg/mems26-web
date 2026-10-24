@@ -1,0 +1,678 @@
+--------------------------------------------------------------------------------------------------------------
+#3038 live 10-05 19:05 CEILING_FLIP_SHORT SHORT @7811.0 stop 7816.5 (R 5.50 = 1.3θ) T1 7802.75 · 1 · STOP_HIT $-27.5 · פסק wrong/accepted_ext
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:00) · הבא: 19:30 עולה @7818.25 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7816.25) · תווית-ברים bad 19:20
+  מיקום בשעה 0.43 (middle) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 -1299 (with) · turn down/with · בר-סיגנל 4.25 (רגיל) · ייחוס-ראשון-לפנים שיא-אתמול 7810.50 (0.50 נק׳ = 0.09R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Trend_Normal · שלב C · zone mid_value · dir_hint LONG · הרחבה up 5.0 · עץ(לוג) — · hint LONG struct up LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ד
+     alt 18:40 TREND_STEP             LONG  @7812.0   R 3.50  tree:location            state UP   → good 18:50 (shadow WIN $22.5)
+     alt 18:55 CEILING_FLIP_TOUCH2    SHORT @7814.0   R 2.50  None                     state UP   → good 19:00 (shadow WIN $18.75)
+     alt 19:01 S2_DELTA_DBL_SHORT     SHORT @7812.25  R 4.25  tree:bias                state UP   → bad 19:20 (shadow WIN $9.55)
+     alt 19:05 FAILED_RE_IB           SHORT @7811.0   R 5.25  tree:bias                state BAL  → bad 19:20 (shadow LOSS $-26.25)
+     alt 19:05 CEILING_FLIP_SHORT     SHORT @7811.0   R 5.50  None                     state BAL  → bad 19:20 (shadow LOSS $-27.5)
+     alt 19:10 ZLR                    LONG  @7812.75  R 7.75  None                     state BAL  → good 19:35 (shadow WIN $58.75)
+     alt 19:19 S2_DELTA_DBL_SHORT     SHORT @7810.5   R 4.00  None                     state BAL  → bad 19:20 (shadow LOSS $-20.0)
+     alt 19:20 CEILING_FLIP_TOUCH2    SHORT @7810.25  R 3.75  None                     state BAL  → bad 19:20 (shadow LOSS $-18.75)
+     alt 19:20 INITIATIVE_SHORT       SHORT @7810.25  R 10.00 tree:bias                state BAL  → bad 19:35 (shadow LOSS $-50.0)
+     alt 19:20 GHOST                  SHORT @7810.25  R 10.00 tree:bias                state BAL  → bad 19:35 (shadow LOSS $-50.0)
+     alt 19:25 GB100                  LONG  @7816.0   R 7.50  None                     state BAL  → good 19:40 (shadow WIN $56.25)
+     alt 19:40 INITIATIVE_LONG        LONG  @7821.0   R 7.75  None                     state UP   → good 20:40 (shadow WIN $57.5)
+     alt 19:50 CEILING_FLIP_TOUCH2    SHORT @7824.5   R 2.50  None                     state UP   → bad 19:50 (shadow WIN $18.75)
+     alt 19:50 TREND_STEP             LONG  @7824.5   R 5.50  entry_not_confirmed      state UP   → bad 20:05 (shadow LOSS $-27.5)
+     alt 20:00 CEILING_FLIP_SHORT     SHORT @7822.0   R 5.25  tree:time_cutoff         state BAL  → bad 20:40 (shadow LOSS $-26.25)
+--------------------------------------------------------------------------------------------------------------
+#3123 live 10-06 19:10 GB100 SHORT @7889.0 stop 7894.0 (R 5.00 = 1.2θ) T1 7884.75 (הושג) · 1 · T1_HIT $21.25 · פסק correct
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:05) · הבא: 19:20 יורד @7887.75 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7888.0) · תווית-ברים good 19:25
+  מיקום בשעה 0.89 (far) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -2141 (with) · turn none/none · בר-סיגנל 5.25 (רגיל) · ייחוס-ראשון-לפנים IBH 7888.00 (1.00 נק׳ = 0.20R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone near_vah · dir_hint LONG · הרחבה up 9.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD DOWN sustained DOWN
+     alt 18:40 ZLR                    LONG  @7895.5   R 15.00 entry_location_quality   state UP   → bad 19:45 (shadow LOSS $-75.0)
+     alt 18:45 CEILING_FLIP_TOUCH2    SHORT @7892.75  R 3.75  None                     state UP   → good 19:05 (shadow WIN $28.15)
+     alt 19:01 ZLR                    LONG  @7893.25  R 11.25 None                     state UP   → bad 19:35 (shadow LOSS $-56.25)
+     alt 19:05 CEILING_FLIP_TOUCH2    SHORT @7892.0   R 2.00  None                     state UP   → good 19:10 (shadow WIN $15.0)
+     alt 19:10 GB100                  SHORT @7889.0   R 5.00  None                     state BAL  → good 19:25 (shadow WIN $21.25)
+     alt 19:20 FAMIR                  LONG  @7887.5   R 11.25 entry_not_confirmed      state BAL  → bad 20:10 (shadow LOSS $-56.25)
+     alt 19:25 INITIATIVE_SHORT       SHORT @7887.75  R 13.75 tree:bias                state DOWN → good 20:15 (shadow None $None)
+     alt 19:35 FAMIR                  LONG  @7886.0   R 11.25 None                     state DOWN → bad 20:15 (shadow LOSS $-56.25)
+     alt 19:40 CEILING_FLIP_TOUCH2    SHORT @7883.5   R 3.00  tree:bias                state DOWN → good 19:45 (shadow None $None)
+--------------------------------------------------------------------------------------------------------------
+#3130 live 10-06 19:35 FAMIR LONG @7886.0 stop 7874.75 (R 11.25 = 2.9θ) T1 7895.5 · 1 · STOP_HIT $-56.25 · פסק wrong/mid
+  מצב בכניסה: יורד (בר אחרון שנסגר 19:30) · הבא: 22:25 יורד @7877.75 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7878.25) · תווית-ברים bad 20:15
+  מיקום בשעה 0.27 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +552 (with) · turn none/none · בר-סיגנל 4.00 (רגיל) · ייחוס-ראשון-לפנים IBH 7888.00 (2.00 נק׳ = 0.18R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 9.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD NEUTRAL sustained DOWN
+  ⇒ סיווג א
+     alt 19:05 ZLR                    LONG  @7892.75  R 11.25 None                     state UP   → bad 19:35 (shadow LOSS $-56.25)
+     alt 19:10 CEILING_FLIP_TOUCH2    SHORT @7889.0   R 5.00  None                     state BAL  → good 19:25 (shadow WIN $37.5)
+     alt 19:10 GB100                  SHORT @7889.0   R 5.00  None                     state BAL  → good 19:25 (shadow WIN $21.25)
+     alt 19:20 FAMIR                  LONG  @7887.5   R 11.25 entry_not_confirmed      state BAL  → bad 20:10 (shadow LOSS $-56.25)
+     alt 19:25 INITIATIVE_SHORT       SHORT @7887.75  R 13.75 tree:bias                state DOWN → good 20:15 (shadow None $None)
+     alt 19:35 FAMIR                  LONG  @7886.0   R 11.25 None                     state DOWN → bad 20:15 (shadow LOSS $-56.25)
+     alt 19:40 CEILING_FLIP_TOUCH2    SHORT @7883.5   R 3.00  tree:bias                state DOWN → good 19:45 (shadow None $None)
+     alt 20:25 DALTON_EDGE_LONG       LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:25 VA_FADE_LONG           LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:30 FAMIR                  LONG  @7878.0   R 5.25  None                     state DOWN → good 20:50 (shadow WIN $22.5)
+--------------------------------------------------------------------------------------------------------------
+#3136 live 10-06 20:25 DALTON_EDGE_LONG LONG @7873.0 stop 7866.25 (R 6.75 = 1.6θ) T1 7878.75 (הושג) · 1 · T1_HIT $28.75 · פסק correct
+  מצב בכניסה: יורד (בר אחרון שנסגר 20:20) · הבא: 22:25 יורד @7877.75 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7878.25) · תווית-ברים good 20:30
+  מיקום בשעה 0.18 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -2415 (against) · turn none/none · בר-סיגנל 5.00 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7879.25 (6.25 נק׳ = 0.93R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone near_val · dir_hint LONG · הרחבה up 9.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD DOWN sustained DOWN
+     alt 20:25 DALTON_EDGE_LONG       LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:25 VA_FADE_LONG           LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:30 FAMIR                  LONG  @7878.0   R 5.25  None                     state DOWN → good 20:50 (shadow WIN $22.5)
+     alt 20:45 INITIATIVE_LONG        LONG  @7880.0   R 7.25  None                     state BAL  → bad 22:50 (shadow LOSS $-36.25)
+     alt 21:00 GHOST                  LONG  @7879.5   R 8.00  None                     state BAL  → flat  (shadow None $None)
+     alt 21:05 GB100                  LONG  @7882.5   R 6.00  None                     state BAL  → bad 22:30 (shadow LOSS $-30.0)
+     alt 21:20 GHOST                  LONG  @7880.75  R 6.25  entry_not_confirmed      state BAL  → bad 22:50 (shadow LOSS $-31.25)
+--------------------------------------------------------------------------------------------------------------
+#3140 live 10-06 20:35 FAMIR LONG @7880.75 stop 7873.75 (R 7.00 = 1.6θ) T1 7888.0 · 1 · SIERRA_FLAT $None · פסק wrong/mid
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 20:30) · הבא: 22:25 יורד @7877.75 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7878.25) · תווית-ברים bad 22:50
+  מיקום בשעה 0.67 (far) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +2074 (with) · turn none/none · בר-סיגנל 5.25 (רגיל) · ייחוס-ראשון-לפנים IBH 7888.00 (7.25 נק׳ = 1.04R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 9.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained DOWN
+  ⇒ סיווג ד
+     alt 20:25 DALTON_EDGE_LONG       LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:25 VA_FADE_LONG           LONG  @7873.0   R 6.75  None                     state DOWN → good 20:30 (shadow WIN $28.75)
+     alt 20:30 FAMIR                  LONG  @7878.0   R 5.25  None                     state DOWN → good 20:50 (shadow WIN $22.5)
+     alt 20:45 INITIATIVE_LONG        LONG  @7880.0   R 7.25  None                     state BAL  → bad 22:50 (shadow LOSS $-36.25)
+     alt 21:00 GHOST                  LONG  @7879.5   R 8.00  None                     state BAL  → flat  (shadow None $None)
+     alt 21:05 GB100                  LONG  @7882.5   R 6.00  None                     state BAL  → bad 22:30 (shadow LOSS $-30.0)
+     alt 21:20 GHOST                  LONG  @7880.75  R 6.25  entry_not_confirmed      state BAL  → bad 22:50 (shadow LOSS $-31.25)
+--------------------------------------------------------------------------------------------------------------
+#3164 demo 10-07 16:50 OPENING_DRIVE SHORT @7823.25 stop 7838.25 (R 15.00 = 5.0θ) T1 7800.75 · 1 · STOP_FILL $-75.0 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:45) · הבא: 17:45 יורד @7818.0 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7821.25) · תווית-ברים bad 18:35
+  מיקום בשעה 0.88 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 -3478 (with) · turn up/against · בר-סיגנל 8.25 (קליימקס) · ייחוס-ראשון-לפנים שפל-הסשן 7820.75 (2.50 נק׳ = 0.17R)
+  המערכת: פתיחה OPEN_DRIVE · יום None · שלב B · zone near_val · dir_hint SHORT · הרחבה none 0.0 · עץ(לוג) — · hint SHORT struct forming LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ב · אישור 17:45 @7818.0 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7821.25) → כניסה 17:50 @7818.25 סטופ-מבני 7827.5 R 9.25 → bad 18:10 · סטופ-צמוד 7827.25 R 9.00 → bad 18:10
+     alt 16:30 ZLR                    SHORT @7838.0   R 13.50 tree:stand_down          state BAL  → good 16:35 (shadow WIN $101.25)
+     alt 16:30 DALTON_EDGE_LONG       LONG  @7837.5   R 5.25  tree:stand_down          state BAL  → bad 16:35 (shadow LOSS $-26.25)
+     alt 16:30 CEILING_FLIP_TOUCH2    LONG  @7837.5   R 4.50  tree:stand_down          state BAL  → bad 16:35 (shadow LOSS $-22.5)
+     alt 16:35 GB100                  SHORT @7832.5   R 15.00 tree:stand_down          state BAL  → good 17:40 (shadow LOSS $-75.0)
+     alt 16:35 FAILED_BREAK_SHORT     SHORT @7834.5   R 12.00 tree:stand_down          state BAL  → good 16:40 (shadow WIN $60.0)
+     alt 16:35 CEILING_FLIP_TOUCH2    SHORT @7834.5   R 8.00  tree:stand_down          state BAL  → good 16:40 (shadow WIN $2.5)
+     alt 16:45 FAILED_BREAK_LONG      LONG  @7826.25  R 5.50  None                     state BAL  → bad 16:45 (shadow LOSS $-27.5)
+     alt 16:45 CEILING_FLIP_TOUCH2    LONG  @7826.25  R 4.50  None                     state BAL  → bad 16:45 (shadow LOSS $-22.5)
+     alt 16:50 OPENING_DRIVE          SHORT @7823.25  R 15.00 None                     state BAL  → bad 18:35 (shadow LOSS $-75.0)
+     alt 16:55 OPENING_PULLBACK_CONT  LONG  @7830.25  R 13.50 tree:kind                state BAL  → bad 17:45 (shadow LOSS $-67.5)
+     alt 16:55 CEILING_FLIP_LONG      LONG  @7830.25  R 9.75  rr_hard_floor            state BAL  → bad 17:10 (shadow LOSS $-48.75)
+     alt 17:00 ZLR                    SHORT @7824.25  R 15.00 tree:location            state BAL  → bad 18:35 (shadow LOSS $-75.0)
+     alt 17:05 CEILING_FLIP_TOUCH2    LONG  @7825.25  R 4.75  entry_not_confirmed      state BAL  → bad 17:10 (shadow LOSS $-23.75)
+     alt 17:10 VA_FADE_LONG           LONG  @7824.5   R 6.25  entry_not_confirmed      state BAL  → bad 17:40 (shadow WIN $26.25)
+     alt 17:20 CEILING_FLIP_TOUCH2    LONG  @7827.0   R 7.25  None                     state BAL  → bad 17:40 (shadow LOSS $-36.25)
+     alt 17:25 CEILING_FLIP_TOUCH2    SHORT @7827.25  R 3.75  None                     state BAL  → good 17:30 (shadow WIN $36.25)
+     alt 17:26 ZLR                    SHORT @7825.75  R 15.00 tree:location            state BAL  → bad 18:40 (shadow LOSS $-75.0)
+     alt 17:40 CEILING_FLIP_TOUCH2    LONG  @7826.0   R 4.50  None                     state BAL  → bad 17:40 (shadow LOSS $-22.5)
+     alt 17:42 ZLR                    SHORT @7823.75  R 11.75 tree:location            state BAL  → bad 18:35 (shadow LOSS $-58.75)
+     alt 17:45 DOUBLE_TOP_AA_SHORT    SHORT @7818.5   R 8.00  structural_targets_wrong_side state BAL  → bad 18:10 (shadow LOSS $-40.0)
+     alt 17:50 REACTIVE_SHORT         SHORT @7818.0   R 8.50  structural_targets_wrong_side state DOWN → bad 18:10 (shadow LOSS $-42.5)
+--------------------------------------------------------------------------------------------------------------
+#3220 demo 10-07 19:40 CEILING_FLIP_SHORT SHORT @7843.5 stop 7849.5 (R 6.00 = 1.3θ) T1 7829.5 · 1 · STOP_HIT $-31.25 · פסק wrong/accepted_ext
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:35) · הבא: 20:10 עולה @7853.25 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7849.25) · תווית-ברים bad 20:00
+  מיקום בשעה 0.46 (middle) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 -1330 (with) · turn none/none · בר-סיגנל 4.50 (רגיל) · ייחוס-ראשון-לפנים IBH 7842.25 (1.25 נק׳ = 0.21R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Neutral_Extreme · שלב C · zone above_value · dir_hint LONG · הרחבה both 7.0 · עץ(לוג) — · hint LONG struct two_sided LSMA+CVD DOWN sustained UP
+  ⇒ סיווג ד
+     alt 19:20 CEILING_FLIP_TOUCH2    SHORT @7846.0   R 0.75  None                     state UP   → bad 19:20 (shadow LOSS $-3.75)
+     alt 19:22 ZLR                    LONG  @7847.25  R 15.00 tree:location            state UP   → flat  (shadow None $None)
+     alt 19:30 TREND_STEP             LONG  @7847.0   R 3.00  tree:location            state UP   → bad 19:35 (shadow LOSS $-15.0)
+     alt 19:40 CEILING_FLIP_TOUCH2    SHORT @7843.5   R 5.00  None                     state BAL  → bad 19:45 (shadow LOSS $-25.0)
+     alt 19:40 CEILING_FLIP_SHORT     SHORT @7843.5   R 6.00  None                     state BAL  → bad 20:00 (shadow LOSS $-30.0)
+     alt 19:45 ZLR                    LONG  @7846.25  R 12.25 tree:location            state BAL  → good 21:55 (shadow None $None)
+     alt 20:05 HTLB                   SHORT @7846.5   R 5.50  entry_not_confirmed      state BAL  → bad 20:05 (shadow LOSS $-27.5)
+     alt 20:10 REACTIVE_LONG          LONG  @7852.75  R 15.50 tree:location            state BAL  → flat  (shadow None $None)
+     alt 20:15 DOUBLE_BOTTOM_EE_LONG  LONG  @7853.25  R 16.00 tree:location            state UP   → flat  (shadow WIN $20.0)
+     alt 20:30 CEILING_FLIP_TOUCH2    SHORT @7853.25  R 4.25  None                     state BAL  → bad 20:45 (shadow LOSS $-21.25)
+     alt 20:30 TREND_STEP             LONG  @7853.25  R 2.50  tree:location            state BAL  → good 20:45 (shadow LOSS $-12.5)
+     alt 20:35 ZLR                    LONG  @7855.5   R 15.00 tree:location            state BAL  → flat  (shadow None $None)
+--------------------------------------------------------------------------------------------------------------
+#3272 live 10-08 16:45 OPENING_TEST_DRIVE SHORT @7824.75 stop 7833.75 (R 9.00 = 2.0θ) T1 7811.25 · 1 · STOP_HIT $-46.25 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:40) · הבא: 17:10 עולה @7837.25 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7836.25) · תווית-ברים bad 16:50
+  מיקום בשעה 0.79 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 -751 (with) · turn up/against · בר-סיגנל 5.00 (רגיל) · ייחוס-ראשון-לפנים שפל-הסשן 7822.75 (2.00 נק׳ = 0.22R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום None · שלב B · zone near_val · dir_hint LONG · הרחבה none 0.0 · עץ(לוג) — · hint SHORT struct forming LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ד
+     alt 16:35 CEILING_FLIP_TOUCH2    LONG  @7832.0   R 8.75  tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-43.75)
+     alt 16:40 FAILED_BREAK_SHORT     SHORT @7827.75  R 6.00  tree:stand_down          state BAL  → bad 16:50 (shadow LOSS $-30.0)
+     alt 16:40 CEILING_FLIP_TOUCH2    SHORT @7828.0   R 4.50  tree:stand_down          state BAL  → bad 16:45 (shadow WIN $16.25)
+     alt 16:40 GHOST                  SHORT @7826.0   R 10.25 tree:stand_down          state BAL  → bad 16:50 (shadow WIN $4.55)
+     alt 16:45 OPENING_TEST_DRIVE     SHORT @7824.75  R 9.00  None                     state BAL  → bad 16:50 (shadow LOSS $-45.0)
+     alt 16:50 FAILED_BREAK_LONG      LONG  @7833.0   R 11.75 tree:bias                state BAL  → bad 18:15 (shadow LOSS $-58.75)
+     alt 16:50 GB100                  LONG  @7832.5   R 15.00 tree:kind                state BAL  → good 19:15 (shadow LOSS $-75.0)
+     alt 16:55 OPENING_PULLBACK_CONT  SHORT @7827.75  R 12.50 tree:kind                state BAL  → bad 17:20 (shadow LOSS $-62.5)
+     alt 16:55 DALTON_EDGE_SHORT      SHORT @7827.75  R 10.50 None                     state BAL  → bad 17:05 (shadow LOSS $-52.5)
+     alt 16:57 ZLR                    LONG  @7832.75  R 15.00 tree:kind                state BAL  → good 19:15 (shadow LOSS $-75.0)
+     alt 17:00 CEILING_FLIP_TOUCH2    LONG  @7831.5   R 4.75  None                     state BAL  → good 17:05 (shadow WIN $22.5)
+     alt 17:20 TREND_STEP             LONG  @7837.75  R 3.75  tree:location            state UP   → good 17:25 (shadow WIN $27.5)
+     alt 17:40 VA_FADE_SHORT          SHORT @7840.25  R 7.00  None                     state UP   → good 17:50 (shadow WIN $33.75)
+     alt 17:40 CEILING_FLIP_TOUCH2    SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+     alt 17:40 CEILING_FLIP_SHORT     SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+--------------------------------------------------------------------------------------------------------------
+#3281 live 10-08 16:55 DALTON_EDGE_SHORT SHORT @7827.75 stop 7838.25 (R 10.50 = 2.3θ) T1 7817.25 · 1 · STOP_HIT $-53.75 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:50) · הבא: 17:10 עולה @7837.25 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7836.25) · תווית-ברים bad 17:05
+  מיקום בשעה 0.63 (middle) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 +858 (against) · turn up/against · בר-סיגנל 8.75 (רגיל) · ייחוס-ראשון-לפנים פתיחה 7827.25 (0.50 נק׳ = 0.05R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום None · שלב B · zone near_val · dir_hint None · הרחבה none 0.0 · עץ(לוג) — · hint None struct forming LSMA+CVD NEUTRAL sustained UP
+  ⇒ סיווג ד
+     alt 16:35 CEILING_FLIP_TOUCH2    LONG  @7832.0   R 8.75  tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-43.75)
+     alt 16:40 FAILED_BREAK_SHORT     SHORT @7827.75  R 6.00  tree:stand_down          state BAL  → bad 16:50 (shadow LOSS $-30.0)
+     alt 16:40 CEILING_FLIP_TOUCH2    SHORT @7828.0   R 4.50  tree:stand_down          state BAL  → bad 16:45 (shadow WIN $16.25)
+     alt 16:40 GHOST                  SHORT @7826.0   R 10.25 tree:stand_down          state BAL  → bad 16:50 (shadow WIN $4.55)
+     alt 16:45 OPENING_TEST_DRIVE     SHORT @7824.75  R 9.00  None                     state BAL  → bad 16:50 (shadow LOSS $-45.0)
+     alt 16:50 FAILED_BREAK_LONG      LONG  @7833.0   R 11.75 tree:bias                state BAL  → bad 18:15 (shadow LOSS $-58.75)
+     alt 16:50 GB100                  LONG  @7832.5   R 15.00 tree:kind                state BAL  → good 19:15 (shadow LOSS $-75.0)
+     alt 16:55 OPENING_PULLBACK_CONT  SHORT @7827.75  R 12.50 tree:kind                state BAL  → bad 17:20 (shadow LOSS $-62.5)
+     alt 16:55 DALTON_EDGE_SHORT      SHORT @7827.75  R 10.50 None                     state BAL  → bad 17:05 (shadow LOSS $-52.5)
+     alt 16:57 ZLR                    LONG  @7832.75  R 15.00 tree:kind                state BAL  → good 19:15 (shadow LOSS $-75.0)
+     alt 17:00 CEILING_FLIP_TOUCH2    LONG  @7831.5   R 4.75  None                     state BAL  → good 17:05 (shadow WIN $22.5)
+     alt 17:20 TREND_STEP             LONG  @7837.75  R 3.75  tree:location            state UP   → good 17:25 (shadow WIN $27.5)
+     alt 17:40 VA_FADE_SHORT          SHORT @7840.25  R 7.00  None                     state UP   → good 17:50 (shadow WIN $33.75)
+     alt 17:40 CEILING_FLIP_TOUCH2    SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+     alt 17:40 CEILING_FLIP_SHORT     SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+     alt 17:55 CEILING_FLIP_TOUCH2    LONG  @7828.5   R 2.00  entry_not_confirmed      state BAL  → good 18:00 (shadow LOSS $-10.0)
+--------------------------------------------------------------------------------------------------------------
+#3289 live 10-08 17:40 CEILING_FLIP_SHORT SHORT @7840.0 stop 7844.75 (R 4.75 = 1.0θ) T1 7833.5 · 1 · STOP_HIT $6.25 · פסק correct
+  מצב בכניסה: עולה (בר אחרון שנסגר 17:35) · הבא: 18:15 יורד @7823.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7827.0) · תווית-ברים good 17:45
+  מיקום בשעה 0.21 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -324 (with) · turn up/against · בר-סיגנל 4.50 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7833.50 (6.50 נק׳ = 1.37R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Normal · שלב C · zone near_vah · dir_hint None · הרחבה none 0.0 · עץ(לוג) — · hint None struct none LSMA+CVD DOWN sustained UP
+     alt 17:20 TREND_STEP             LONG  @7837.75  R 3.75  tree:location            state UP   → good 17:25 (shadow WIN $27.5)
+     alt 17:40 VA_FADE_SHORT          SHORT @7840.25  R 7.00  None                     state UP   → good 17:50 (shadow WIN $33.75)
+     alt 17:40 CEILING_FLIP_TOUCH2    SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+     alt 17:40 CEILING_FLIP_SHORT     SHORT @7840.0   R 4.75  None                     state UP   → good 17:45 (shadow WIN $32.5)
+     alt 17:55 CEILING_FLIP_TOUCH2    LONG  @7828.5   R 2.00  entry_not_confirmed      state BAL  → good 18:00 (shadow LOSS $-10.0)
+     alt 18:00 ZLR                    SHORT @7830.25  R 15.00 tree:location            state BAL  → bad 19:15 (shadow LOSS $-75.0)
+     alt 18:05 VA_FADE_LONG           LONG  @7830.5   R 8.00  entry_not_confirmed      state BAL  → bad 18:15 (shadow LOSS $-40.0)
+     alt 18:25 TREND_STEP             SHORT @7822.25  R 4.25  tree:location            state DOWN → bad 18:25 (shadow LOSS $-21.25)
+     alt 18:30 FAILED_RE_IB           LONG  @7825.5   R 6.00  None                     state DOWN → good 19:15 (shadow WIN $40.0)
+     alt 18:30 CEILING_FLIP_TOUCH2    LONG  @7825.0   R 4.50  None                     state DOWN → bad 18:35 (shadow LOSS $-22.5)
+     alt 18:34 ZLR                    SHORT @7822.0   R 15.00 tree:location            state DOWN → bad 19:15 (shadow LOSS $-75.0)
+--------------------------------------------------------------------------------------------------------------
+#3314 live 10-08 19:20 CEILING_FLIP_LONG LONG @7833.0 stop 7819.75 (R 13.25 = 2.7θ) T1 7846.25 · 1 · STOP_HIT $-65.0 · פסק wrong/climax_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:15) · הבא: 19:50 יורד @7809.75 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7824.75) · תווית-ברים bad 19:45
+  מיקום בשעה 0.43 (middle) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 +7682 (with) · turn up/with · בר-סיגנל 25.25 (קליימקס) · ייחוס-ראשון-לפנים VAH-מתפתח 7839.75 (6.75 נק׳ = 0.51R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה both 5.5 · עץ(לוג) — · hint LONG struct two_sided LSMA+CVD UP sustained UP
+  ⇒ סיווג ד
+     alt 18:55 CEILING_FLIP_TOUCH2    LONG  @7821.75  R 2.00  entry_not_confirmed      state DOWN → good 19:00 (shadow WIN $15.0)
+     alt 18:55 REACTIVE_SHORT         SHORT @7821.75  R 5.75  None                     state DOWN → bad 19:10 (shadow LOSS $-28.75)
+     alt 18:55 ZLR                    SHORT @7821.75  R 5.75  None                     state DOWN → bad 19:10 (shadow LOSS $-28.75)
+     alt 19:10 CEILING_FLIP_TOUCH2    LONG  @7824.75  R 5.00  None                     state DOWN → good 19:15 (shadow WIN $37.5)
+     alt 19:20 FAILED_RE_IB           SHORT @7833.0   R 12.00 tree:bias                state BAL  → good 19:45 (shadow WIN $60.0)
+     alt 19:20 CEILING_FLIP_LONG      LONG  @7833.0   R 13.25 None                     state BAL  → bad 19:45 (shadow LOSS $-66.25)
+     alt 19:20 REACTIVE_LONG          LONG  @7832.75  R 4.00  None                     state BAL  → good 19:25 (shadow LOSS $-20.0)
+     alt 19:30 CEILING_FLIP_TOUCH2    SHORT @7833.25  R 4.75  tree:bias                state BAL  → good 19:35 (shadow WIN $60.0)
+     alt 19:40 ZLR                    LONG  @7833.0   R 4.00  entry_not_confirmed      state BAL  → bad 19:40 (shadow LOSS $-20.0)
+     alt 19:45 CEILING_FLIP_TOUCH2    LONG  @7827.25  R 3.00  entry_not_confirmed      state BAL  → bad 19:45 (shadow LOSS $-15.0)
+     alt 19:50 DOUBLE_TOP_AA_SHORT    SHORT @7811.0   R 43.00 entry_location_quality   state BAL  → flat  (shadow WIN $75.0)
+     alt 19:55 FAMIR                  LONG  @7812.0   R 12.00 tree:bias                state DOWN → bad 20:00 (shadow LOSS $-60.0)
+     alt 19:55 INITIATIVE_SHORT       SHORT @7809.5   R 44.50 entry_location_quality   state DOWN → flat  (shadow None $None)
+     alt 20:00 CEILING_FLIP_TOUCH2    LONG  @7810.0   R 7.00  None                     state DOWN → bad 20:00 (shadow LOSS $-35.0)
+     alt 20:20 ZLR                    SHORT @7802.25  R 15.00 entry_location_quality   state DOWN → good 20:25 (shadow LOSS $-75.0)
+--------------------------------------------------------------------------------------------------------------
+#3380 live 10-09 16:45 OPENING_DRIVE SHORT @7831.75 stop 7845.75 (R 14.00 = 2.6θ) T1 7810.75 · 1 · STOP_HIT $-72.5 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:40) · הבא: 17:25 עולה @7841.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7839.75) · תווית-ברים bad 17:50
+  מיקום בשעה 0.7 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 -6375 (with) · turn down/with · בר-סיגנל 16.00 (קליימקס) · ייחוס-ראשון-לפנים VAH-אתמול 7831.25 (0.50 נק׳ = 0.04R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום None · שלב B · zone near_val · dir_hint LONG · הרחבה none 0.0 · עץ(לוג) — · hint LONG struct forming LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ד
+     alt 16:30 RE_ACCEPTANCE          LONG  @7822.75  R 4.50  tree:stand_down          state BAL  → good 16:35 (shadow WIN $22.5)
+     alt 16:30 FAILED_RE_IB           LONG  @7840.0   R 12.00 tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-60.0)
+     alt 16:30 GHOST                  SHORT @7838.0   R 18.00 tree:stand_down          state BAL  → bad 19:15 (shadow WIN $23.27)
+     alt 16:35 FAMIR                  LONG  @7841.0   R 9.25  tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-46.25)
+     alt 16:35 FAILED_BREAK_LONG      LONG  @7841.0   R 12.00 tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-60.0)
+     alt 16:35 CEILING_FLIP_TOUCH2    SHORT @7841.0   R 4.25  tree:stand_down          state BAL  → good 16:40 (shadow WIN $20.0)
+     alt 16:37 ZLR                    SHORT @7838.5   R 15.00 tree:stand_down          state BAL  → bad 18:15 (shadow LOSS $-75.0)
+     alt 16:40 CEILING_FLIP_TOUCH2    LONG  @7841.75  R 9.25  tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-46.25)
+     alt 16:45 OPENING_DRIVE          SHORT @7831.75  R 14.00 None                     state BAL  → bad 17:50 (shadow LOSS $-70.0)
+     alt 16:45 FAILED_BREAK_SHORT     SHORT @7831.75  R 12.00 None                     state BAL  → bad 17:50 (shadow LOSS $-60.0)
+     alt 16:50 OPENING_PULLBACK_CONT  LONG  @7833.25  R 10.75 tree:bias                state BAL  → good 17:50 (shadow WIN $80.65)
+     alt 17:00 CEILING_FLIP_TOUCH2    LONG  @7835.75  R 5.00  tree:bias                state BAL  → bad 17:00 (shadow LOSS $-25.0)
+     alt 17:00 CEILING_FLIP_LONG      LONG  @7835.75  R 9.50  tree:bias                state BAL  → good 17:50 (shadow WIN $47.5)
+     alt 17:04 ZLR                    SHORT @7831.5   R 15.00 news_blackout            state BAL  → bad 17:50 (shadow LOSS $-75.0)
+     alt 17:15 CEILING_FLIP_TOUCH2    LONG  @7837.5   R 6.75  tree:bias                state BAL  → good 17:50 (shadow WIN $11.25)
+     alt 17:25 CEILING_FLIP_TOUCH2    SHORT @7841.75  R 1.50  entry_not_confirmed      state BAL  → good 17:30 (shadow LOSS $-7.5)
+     alt 17:25 INITIATIVE_LONG        LONG  @7841.75  R 25.50 tree:bias                state BAL  → good 21:50 (shadow None $None)
+     alt 17:35 TREND_STEP             LONG  @7840.5   R 4.00  tree:stand_down          state UP   → bad 17:40 (shadow LOSS $-20.0)
+     alt 17:41 ZLR                    SHORT @7835.5   R 11.50 tree:stand_down          state BAL  → bad 17:50 (shadow LOSS $-57.5)
+--------------------------------------------------------------------------------------------------------------
+#3402 live 10-09 18:10 CEILING_FLIP_SHORT SHORT @7843.25 stop 7851.75 (R 8.50 = 1.4θ) T1 7830.5 · 1 · SIERRA_FLAT $None · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 18:05) · הבא: 21:50 עולה @7864.5 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7864.25) · תווית-ברים bad 18:15
+  מיקום בשעה 0.43 (middle) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 -531 (with) · turn none/none · בר-סיגנל 8.75 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7840.75 (2.50 נק׳ = 0.29R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone near_vah · dir_hint LONG · הרחבה up 7.25 · עץ(לוג) — · hint LONG struct up LSMA+CVD NEUTRAL sustained UP
+  ⇒ סיווג א
+     alt 17:41 ZLR                    SHORT @7835.5   R 11.50 tree:stand_down          state BAL  → bad 17:50 (shadow LOSS $-57.5)
+     alt 17:50 CEILING_FLIP_TOUCH2    SHORT @7840.0   R 2.75  tree:stand_down          state BAL  → bad 17:50 (shadow LOSS $-13.75)
+     alt 17:50 GHOST                  LONG  @7840.25  R 17.75 tree:stand_down          state BAL  → good 19:30 (shadow WIN $22.85)
+     alt 18:10 VA_FADE_SHORT          SHORT @7843.25  R 7.75  tree:bias                state UP   → bad 18:15 (shadow LOSS $-38.75)
+     alt 18:10 CEILING_FLIP_SHORT     SHORT @7843.25  R 8.50  None                     state UP   → bad 18:15 (shadow LOSS $-42.5)
+     alt 18:12 ZLR                    LONG  @7847.0   R 7.75  entry_not_confirmed      state UP   → good 19:15 (shadow WIN $30.0)
+     alt 18:15 DOUBLE_BOTTOM_EE_LONG  LONG  @7847.0   R 7.75  None                     state UP   → good 19:15 (shadow WIN $30.0)
+     alt 18:25 TREND_STEP             LONG  @7850.25  R 6.50  entry_not_confirmed      state UP   → bad 18:30 (shadow LOSS $-32.5)
+     alt 18:30 CEILING_FLIP_TOUCH2    SHORT @7846.25  R 6.25  None                     state UP   → bad 19:05 (shadow LOSS $-31.25)
+     alt 18:35 REACTIVE_SHORT         SHORT @7844.25  R 13.50 tree:kind                state UP   → bad 19:30 (shadow LOSS $-67.5)
+     alt 18:35 ZLR                    LONG  @7845.75  R 7.75  entry_not_confirmed      state UP   → good 19:05 (shadow WIN $13.75)
+     alt 18:55 ZLR                    LONG  @7850.0   R 7.50  rr_entry_gate            state UP   → good 19:30 (shadow WIN $15.0)
+     alt 18:55 CEILING_FLIP_TOUCH2    SHORT @7850.0   R 2.50  entry_not_confirmed      state UP   → good 19:00 (shadow WIN $18.75)
+--------------------------------------------------------------------------------------------------------------
+#3406 live 10-09 18:15 DOUBLE_BOTTOM_EE_LONG LONG @7847.0 stop 7839.25 (R 7.75 = 1.4θ) T1 7853.0 · 1 · SIERRA_FLAT $None · פסק correct
+  מצב בכניסה: עולה (בר אחרון שנסגר 18:10) · הבא: 21:50 עולה @7864.5 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7864.25) · תווית-ברים good 19:15
+  מיקום בשעה 0.73 (far) · כלל-A no · עם-הרחבה-מקובלת yes · דלתא-3 -276 (against) · turn none/none · בר-סיגנל 5.00 (רגיל) · ייחוס-ראשון-לפנים VAH-מתפתח 7849.25 (2.25 נק׳ = 0.29R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone near_vah · dir_hint LONG · הרחבה up 7.25 · עץ(לוג) — · hint LONG struct up LSMA+CVD NEUTRAL sustained UP
+     alt 17:50 CEILING_FLIP_TOUCH2    SHORT @7840.0   R 2.75  tree:stand_down          state BAL  → bad 17:50 (shadow LOSS $-13.75)
+     alt 17:50 GHOST                  LONG  @7840.25  R 17.75 tree:stand_down          state BAL  → good 19:30 (shadow WIN $22.85)
+     alt 18:10 VA_FADE_SHORT          SHORT @7843.25  R 7.75  tree:bias                state UP   → bad 18:15 (shadow LOSS $-38.75)
+     alt 18:10 CEILING_FLIP_SHORT     SHORT @7843.25  R 8.50  None                     state UP   → bad 18:15 (shadow LOSS $-42.5)
+     alt 18:12 ZLR                    LONG  @7847.0   R 7.75  entry_not_confirmed      state UP   → good 19:15 (shadow WIN $30.0)
+     alt 18:15 DOUBLE_BOTTOM_EE_LONG  LONG  @7847.0   R 7.75  None                     state UP   → good 19:15 (shadow WIN $30.0)
+     alt 18:25 TREND_STEP             LONG  @7850.25  R 6.50  entry_not_confirmed      state UP   → bad 18:30 (shadow LOSS $-32.5)
+     alt 18:30 CEILING_FLIP_TOUCH2    SHORT @7846.25  R 6.25  None                     state UP   → bad 19:05 (shadow LOSS $-31.25)
+     alt 18:35 REACTIVE_SHORT         SHORT @7844.25  R 13.50 tree:kind                state UP   → bad 19:30 (shadow LOSS $-67.5)
+     alt 18:35 ZLR                    LONG  @7845.75  R 7.75  entry_not_confirmed      state UP   → good 19:05 (shadow WIN $13.75)
+     alt 18:55 ZLR                    LONG  @7850.0   R 7.50  rr_entry_gate            state UP   → good 19:30 (shadow WIN $15.0)
+     alt 18:55 CEILING_FLIP_TOUCH2    SHORT @7850.0   R 2.50  entry_not_confirmed      state UP   → good 19:00 (shadow WIN $18.75)
+--------------------------------------------------------------------------------------------------------------
+#3483 demo 10-19 20:15 CEILING_FLIP_TOUCH2 LONG @7743.0 stop 7738.25 (R 4.75 = 0.9θ) T1 7761.0 · 1 · STOP_HIT $-22.5 · פסק wrong/mid
+  מצב בכניסה: יורד (בר אחרון שנסגר 20:10) · הבא: 22:20 עולה @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) · תווית-ברים bad 20:40
+  מיקום בשעה 0.24 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +274 (with) · turn none/none · בר-סיגנל 5.75 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7749.75 (6.75 נק׳ = 1.42R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 13.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained DOWN
+  ⇒ סיווג א
+     alt 19:45 ZLR                    SHORT @7748.5   R 15.00 tree:bias                state DOWN → good 22:55 (shadow WIN $112.5)
+     alt 19:52 DOUBLE_TOP_AA_SHORT    SHORT @7746.0   R 31.25 cold_start_guard         state DOWN → flat  (shadow WIN $66.88)
+     alt 20:00 INITIATIVE_SHORT       SHORT @7743.75  R 17.25 tree:bias                state DOWN → flat  (shadow None $None)
+     alt 20:15 CEILING_FLIP_TOUCH2    LONG  @7743.0   R 4.75  None                     state DOWN → bad 20:40 (shadow LOSS $-23.75)
+     alt 20:15 TREND_STEP             SHORT @7743.0   R 2.75  tree:bias                state DOWN → bad 20:15 (shadow LOSS $-13.75)
+     alt 20:20 ZLR                    SHORT @7742.0   R 13.75 tree:bias                state DOWN → flat  (shadow None $None)
+     alt 20:35 ZLR                    SHORT @7742.0   R 13.00 tree:bias                state DOWN → flat  (shadow None $None)
+     alt 20:40 VA_FADE_LONG           LONG  @7741.5   R 5.75  rr_entry_gate            state DOWN → bad 20:45 (shadow LOSS $-28.75)
+     alt 20:40 CEILING_FLIP_TOUCH2    LONG  @7741.5   R 3.25  rr_entry_gate            state DOWN → bad 20:40 (shadow LOSS $-16.25)
+     alt 20:55 CEILING_FLIP_TOUCH2    LONG  @7740.5   R 5.25  pattern_stop_cooldown    state DOWN → good 21:00 (shadow LOSS $-26.25)
+     alt 21:00 CEILING_FLIP_LONG      LONG  @7744.5   R 9.25  pattern_stop_cooldown    state BAL  → good 22:20 (shadow WIN $2.5)
+     alt 21:00 GB100                  LONG  @7745.0   R 6.25  None                     state BAL  → bad 21:00 (shadow LOSS $-31.25)
+     alt 21:04 ZLR                    SHORT @7738.0   R 12.75 tree:stand_down          state BAL  → bad 22:15 (shadow LOSS $-63.75)
+     alt 21:10 INITIATIVE_LONG        LONG  @7744.25  R 6.25  rr_entry_gate            state BAL  → bad 21:25 (shadow WIN $11.25)
+--------------------------------------------------------------------------------------------------------------
+#3501 demo 10-19 21:00 GB100 LONG @7745.0 stop 7738.75 (R 6.25 = 1.3θ) T1 7751.75 · 1 · STOP_HIT $-31.25 · פסק wrong/mid
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 20:55) · הבא: 22:20 עולה @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) · תווית-ברים bad 21:00
+  מיקום בשעה 0.84 (far) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +253 (with) · turn none/none · בר-סיגנל 7.75 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7749.75 (4.75 נק׳ = 0.76R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב D · zone mid_value · dir_hint LONG · הרחבה up 13.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained UP
+  ⇒ סיווג ב · אישור 22:20 @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) → כניסה 22:25 @7754.0 סטופ-מבני 7742.5 R 11.50 → bad 22:50 · סטופ-צמוד 7745.5 R 8.50 → bad 22:45
+     alt 20:35 ZLR                    SHORT @7741.5   R 13.50 tree:bias                state DOWN → flat  (shadow None $None)
+     alt 20:40 VA_FADE_LONG           LONG  @7741.5   R 5.75  rr_entry_gate            state DOWN → bad 20:45 (shadow LOSS $-28.75)
+     alt 20:40 CEILING_FLIP_TOUCH2    LONG  @7741.5   R 3.25  rr_entry_gate            state DOWN → bad 20:40 (shadow LOSS $-16.25)
+     alt 20:55 CEILING_FLIP_TOUCH2    LONG  @7740.5   R 5.25  pattern_stop_cooldown    state DOWN → good 21:00 (shadow LOSS $-26.25)
+     alt 21:00 CEILING_FLIP_LONG      LONG  @7744.5   R 9.25  pattern_stop_cooldown    state BAL  → good 22:20 (shadow WIN $2.5)
+     alt 21:00 GB100                  LONG  @7745.0   R 6.25  None                     state BAL  → bad 21:00 (shadow LOSS $-31.25)
+     alt 21:04 ZLR                    SHORT @7738.0   R 12.75 tree:stand_down          state BAL  → bad 22:15 (shadow LOSS $-63.75)
+     alt 21:10 INITIATIVE_LONG        LONG  @7744.25  R 6.25  rr_entry_gate            state BAL  → bad 21:25 (shadow WIN $11.25)
+     alt 21:20 DOUBLE_BOTTOM_EE_LONG  LONG  @7747.25  R 5.75  None                     state BAL  → bad 21:20 (shadow LOSS $-28.75)
+     alt 21:25 ZLR                    SHORT @7742.25  R 10.25 tree:stand_down          state BAL  → bad 22:20 (shadow WIN $33.75)
+     alt 21:30 CEILING_FLIP_TOUCH2    LONG  @7741.0   R 5.00  entry_not_confirmed      state BAL  → bad 21:35 (shadow LOSS $-25.0)
+     alt 21:30 GHOST                  LONG  @7740.75  R 5.75  entry_not_confirmed      state BAL  → good 21:45 (shadow WIN $30.0)
+     alt 21:40 ZLR                    LONG  @7742.0   R 5.00  None                     state BAL  → good 21:45 (shadow WIN $21.25)
+     alt 21:55 ZLR                    SHORT @7742.0   R 10.50 tree:stand_down          state BAL  → bad 22:20 (shadow LOSS $-52.5)
+     alt 22:00 ZLR                    LONG  @7744.75  R 13.25 tree:time_cutoff         state BAL  → bad 22:55 (shadow LOSS $-66.25)
+--------------------------------------------------------------------------------------------------------------
+#3508 demo 10-19 21:20 DOUBLE_BOTTOM_EE_LONG LONG @7747.25 stop 7741.5 (R 5.75 = 1.3θ) T1 7751.75 · 1 · STOP_HIT $-28.75 · פסק wrong/mid
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 21:15) · הבא: 22:20 עולה @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) · תווית-ברים bad 21:20
+  מיקום בשעה 0.9 (far) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +1531 (with) · turn none/none · בר-סיגנל 3.25 (רגיל) · ייחוס-ראשון-לפנים VAH-מתפתח 7758.75 (11.50 נק׳ = 2.00R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב D · zone mid_value · dir_hint LONG · הרחבה up 13.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained UP
+  ⇒ סיווג ב · אישור 22:20 @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) → כניסה 22:25 @7754.0 סטופ-מבני 7742.5 R 11.50 → bad 22:50 · סטופ-צמוד 7745.5 R 8.50 → bad 22:45
+     alt 20:55 CEILING_FLIP_TOUCH2    LONG  @7740.5   R 5.25  pattern_stop_cooldown    state DOWN → good 21:00 (shadow LOSS $-26.25)
+     alt 21:00 CEILING_FLIP_LONG      LONG  @7744.5   R 9.25  pattern_stop_cooldown    state BAL  → good 22:20 (shadow WIN $2.5)
+     alt 21:00 GB100                  LONG  @7745.0   R 6.25  None                     state BAL  → bad 21:00 (shadow LOSS $-31.25)
+     alt 21:04 ZLR                    SHORT @7738.0   R 12.75 tree:stand_down          state BAL  → bad 22:15 (shadow LOSS $-63.75)
+     alt 21:10 INITIATIVE_LONG        LONG  @7744.25  R 6.25  rr_entry_gate            state BAL  → bad 21:25 (shadow WIN $11.25)
+     alt 21:20 DOUBLE_BOTTOM_EE_LONG  LONG  @7747.25  R 5.75  None                     state BAL  → bad 21:20 (shadow LOSS $-28.75)
+     alt 21:25 ZLR                    SHORT @7742.25  R 10.25 tree:stand_down          state BAL  → bad 22:20 (shadow WIN $33.75)
+     alt 21:30 CEILING_FLIP_TOUCH2    LONG  @7741.0   R 5.00  entry_not_confirmed      state BAL  → bad 21:35 (shadow LOSS $-25.0)
+     alt 21:30 GHOST                  LONG  @7740.75  R 5.75  entry_not_confirmed      state BAL  → good 21:45 (shadow WIN $30.0)
+     alt 21:40 ZLR                    LONG  @7742.0   R 5.00  None                     state BAL  → good 21:45 (shadow WIN $21.25)
+     alt 21:55 ZLR                    SHORT @7742.0   R 10.50 tree:stand_down          state BAL  → bad 22:20 (shadow LOSS $-52.5)
+     alt 22:00 ZLR                    LONG  @7744.75  R 13.25 tree:time_cutoff         state BAL  → bad 22:55 (shadow LOSS $-66.25)
+     alt 22:15 ZLR                    LONG  @7746.25  R 14.75 tree:time_cutoff         state BAL  → bad 22:55 (shadow LOSS $-73.75)
+--------------------------------------------------------------------------------------------------------------
+#3515 demo 10-19 21:40 CEILING_FLIP_TOUCH2 LONG @7742.0 stop 7735.25 (R 6.75 = 1.3θ) T1 7756.25 · 1 · SIERRA_FLAT $None · פסק correct
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 21:35) · הבא: 22:20 עולה @7754.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7749.25) · תווית-ברים good 22:00
+  מיקום בשעה 0.5 (middle) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -367 (against) · turn none/none · בר-סיגנל 7.25 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7742.75 (0.75 נק׳ = 0.11R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב D · zone mid_value · dir_hint LONG · הרחבה up 13.5 · עץ(לוג) — · hint LONG struct up LSMA+CVD NEUTRAL sustained DOWN
+     alt 21:20 DOUBLE_BOTTOM_EE_LONG  LONG  @7747.25  R 5.75  None                     state BAL  → bad 21:20 (shadow LOSS $-28.75)
+     alt 21:25 ZLR                    SHORT @7742.25  R 10.25 tree:stand_down          state BAL  → bad 22:20 (shadow WIN $33.75)
+     alt 21:30 CEILING_FLIP_TOUCH2    LONG  @7741.0   R 5.00  entry_not_confirmed      state BAL  → bad 21:35 (shadow LOSS $-25.0)
+     alt 21:30 GHOST                  LONG  @7740.75  R 5.75  entry_not_confirmed      state BAL  → good 21:45 (shadow WIN $30.0)
+     alt 21:40 ZLR                    LONG  @7742.0   R 5.00  None                     state BAL  → good 21:45 (shadow WIN $21.25)
+     alt 21:55 ZLR                    SHORT @7742.0   R 10.50 tree:stand_down          state BAL  → bad 22:20 (shadow LOSS $-52.5)
+     alt 22:00 ZLR                    LONG  @7744.75  R 13.25 tree:time_cutoff         state BAL  → bad 22:55 (shadow LOSS $-66.25)
+     alt 22:15 ZLR                    LONG  @7746.25  R 14.75 tree:time_cutoff         state BAL  → bad 22:55 (shadow LOSS $-73.75)
+     alt 22:20 CEILING_FLIP_LONG      LONG  @7750.25  R 15.00 tree:time_cutoff         state BAL  → bad 22:50 (shadow LOSS $-75.0)
+     alt 22:25 REACTIVE_LONG          LONG  @7754.0   R 22.50 tree:time_cutoff         state UP   → bad 22:55 (shadow LOSS $-112.5)
+     alt 22:25 DOUBLE_BOTTOM_EE_LONG  LONG  @7754.0   R 12.88 tree:time_cutoff         state UP   → bad 22:50 (shadow LOSS $-64.38)
+     alt 22:30 CEILING_FLIP_TOUCH2    SHORT @7749.5   R 5.25  tree:time_cutoff         state UP   → good 22:50 (shadow WIN $68.75)
+     alt 22:35 ZLR                    LONG  @7751.25  R 14.00 tree:time_cutoff         state UP   → bad 22:50 (shadow LOSS $-70.0)
+--------------------------------------------------------------------------------------------------------------
+#3540 demo 10-20 16:45 OPENING_DRIVE SHORT @7713.75 stop 7728.75 (R 15.00 = 2.7θ) T1 7691.25 · 3 · STOP_HIT $-225.0 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:40) · הבא: 16:55 עולה @7748.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7731.0) · תווית-ברים bad 16:45
+  מיקום בשעה 0.87 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 -2064 (with) · turn none/none · בר-סיגנל 15.00 (קליימקס) · ייחוס-ראשון-לפנים שפל-הסשן 7711.25 (2.50 נק׳ = 0.17R)
+  המערכת: פתיחה OPEN_DRIVE · יום None · שלב B · zone near_val · dir_hint SHORT · הרחבה none 0.0 · עץ(לוג) — · hint None struct forming LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ד
+     alt 16:30 ZLR                    LONG  @7726.75  R 15.00 tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-225.0)
+     alt 16:30 FAILED_RE_IB           SHORT @7724.5   R 12.00 tree:stand_down          state BAL  → good 16:40 (shadow WIN $62.5)
+     alt 16:30 CEILING_FLIP_TOUCH2    SHORT @7726.75  R 3.75  tree:stand_down          state BAL  → bad 16:35 (shadow WIN $47.5)
+     alt 16:35 CEILING_FLIP_SHORT     SHORT @7723.25  R 7.25  tree:stand_down          state BAL  → bad 16:35 (shadow WIN $10.0)
+     alt 16:45 OPENING_DRIVE          SHORT @7713.75  R 15.00 None                     state BAL  → bad 16:45 (shadow LOSS $-225.0)
+     alt 16:45 FAILED_BREAK_SHORT     SHORT @7714.25  R 12.00 None                     state BAL  → bad 16:45 (shadow LOSS $-180.0)
+     alt 16:50 OPENING_ORR            LONG  @7729.0   R 15.00 None                     state BAL  → good 16:55 (shadow WIN $432.5)
+     alt 16:50 DALTON_EDGE_LONG       LONG  @7729.0   R 4.25  None                     state BAL  → good 16:55 (shadow WIN $586.25)
+     alt 16:50 CEILING_FLIP_TOUCH2    LONG  @7729.0   R 19.00 None                     state BAL  → good 16:55 (shadow None $140.0)
+     alt 16:50 ZLR                    LONG  @7728.5   R 11.50 None                     state BAL  → good 16:55 (shadow WIN $243.75)
+     alt 16:55 FAILED_BREAK_LONG      LONG  @7732.5   R 12.50 None                     state BAL  → good 17:00 (shadow WIN $297.5)
+     alt 17:05 DALTON_EDGE_SHORT      SHORT @7747.0   R 7.75  tree:location            state UP   → bad 17:05 (shadow LOSS $-193.75)
+     alt 17:40 VA_FADE_SHORT          SHORT @7777.75  R 10.75 None                     state UP   → bad 17:55 (shadow LOSS $-215.0)
+     alt 17:42 ZLR                    LONG  @7786.0   R 15.00 tree:location            state UP   → bad 18:10 (shadow LOSS $-150.0)
+--------------------------------------------------------------------------------------------------------------
+#3544 demo 10-20 16:50 OPENING_ORR LONG @7729.0 stop 7714.0 (R 15.00 = 2.7θ) T1 7751.5 (הושג) · 3 · STOP_HIT $496.25 · פסק correct
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:45) · הבא: 16:55 עולה @7748.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7731.0) · תווית-ברים good 16:55
+  מיקום בשעה 0.89 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 +2235 (with) · turn none/none · בר-סיגנל 21.00 (קליימקס) · ייחוס-ראשון-לפנים שיא-הסשן 7731.25 (2.25 נק׳ = 0.15R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום None · שלב B · zone near_vah · dir_hint SHORT · הרחבה none 0.0 · עץ(לוג) — · hint SHORT struct forming LSMA+CVD UP sustained NEUTRAL
+     alt 16:30 ZLR                    LONG  @7726.75  R 15.00 tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-225.0)
+     alt 16:30 FAILED_RE_IB           SHORT @7724.5   R 12.00 tree:stand_down          state BAL  → good 16:40 (shadow WIN $62.5)
+     alt 16:30 CEILING_FLIP_TOUCH2    SHORT @7726.75  R 3.75  tree:stand_down          state BAL  → bad 16:35 (shadow WIN $47.5)
+     alt 16:35 CEILING_FLIP_SHORT     SHORT @7723.25  R 7.25  tree:stand_down          state BAL  → bad 16:35 (shadow WIN $10.0)
+     alt 16:45 OPENING_DRIVE          SHORT @7713.75  R 15.00 None                     state BAL  → bad 16:45 (shadow LOSS $-225.0)
+     alt 16:45 FAILED_BREAK_SHORT     SHORT @7714.25  R 12.00 None                     state BAL  → bad 16:45 (shadow LOSS $-180.0)
+     alt 16:50 OPENING_ORR            LONG  @7729.0   R 15.00 None                     state BAL  → good 16:55 (shadow WIN $432.5)
+     alt 16:50 DALTON_EDGE_LONG       LONG  @7729.0   R 4.25  None                     state BAL  → good 16:55 (shadow WIN $586.25)
+     alt 16:50 CEILING_FLIP_TOUCH2    LONG  @7729.0   R 19.00 None                     state BAL  → good 16:55 (shadow None $140.0)
+     alt 16:50 ZLR                    LONG  @7728.5   R 11.50 None                     state BAL  → good 16:55 (shadow WIN $243.75)
+     alt 16:55 FAILED_BREAK_LONG      LONG  @7732.5   R 12.50 None                     state BAL  → good 17:00 (shadow WIN $297.5)
+     alt 17:05 DALTON_EDGE_SHORT      SHORT @7747.0   R 7.75  tree:location            state UP   → bad 17:05 (shadow LOSS $-193.75)
+     alt 17:40 VA_FADE_SHORT          SHORT @7777.75  R 10.75 None                     state UP   → bad 17:55 (shadow LOSS $-215.0)
+     alt 17:42 ZLR                    LONG  @7786.0   R 15.00 tree:location            state UP   → bad 18:10 (shadow LOSS $-150.0)
+     alt 17:50 CEILING_FLIP_TOUCH2    SHORT @7781.25  R 6.00  None                     state UP   → bad 17:50 (shadow LOSS $-150.0)
+--------------------------------------------------------------------------------------------------------------
+#3558 demo 10-20 18:15 DOUBLE_TOP_AA_SHORT SHORT @7757.0 stop 7767.75 (R 10.75 = 1.0θ) T1 7748.0 · 4 · STOP_HIT $-215.0 · פסק wrong/climax_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 18:10) · הבא: 18:15 יורד @7766.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7776.25) · תווית-ברים bad 18:15
+  מיקום בשעה 0.77 (far) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -6818 (with) · turn down/with · בר-סיגנל 31.50 (קליימקס) · ייחוס-ראשון-לפנים VAH-אתמול 7754.75 (2.25 נק׳ = 0.21R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 5.5 · עץ(לוג) — · hint LONG struct none LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ב · אישור 18:15 @7766.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7776.25) → כניסה 18:20 @7766.25 סטופ-מבני 7790.75 R 24.50 → flat  · סטופ-צמוד 7778.5 R 12.25 → good 18:30
+     alt 17:50 CEILING_FLIP_TOUCH2    SHORT @7781.25  R 6.00  None                     state UP   → bad 17:50 (shadow LOSS $-150.0)
+     alt 17:56 ZLR                    LONG  @7788.5   R 7.00  None                     state UP   → bad 18:00 (shadow LOSS $-175.0)
+     alt 18:10 REACTIVE_SHORT         SHORT @7777.75  R 17.75 tree:bias                state UP   → good 18:15 (shadow WIN $332.5)
+     alt 18:15 CEILING_FLIP_SHORT     SHORT @7756.75  R 35.00 None                     state BAL  → flat  (shadow LOSS $-875.0)
+     alt 18:15 DOUBLE_TOP_AA_SHORT    SHORT @7757.0   R 10.75 None                     state BAL  → bad 18:15 (shadow LOSS $-215.0)
+     alt 18:21 ZLR                    SHORT @7763.5   R 15.00 tree:bias                state DOWN → good 22:20 (shadow WIN $83.75)
+     alt 18:35 REACTIVE_SHORT         SHORT @7758.0   R 36.50 tree:bias                state DOWN → flat  (shadow None $None)
+     alt 18:35 DOUBLE_TOP_AA_SHORT    SHORT @7758.0   R 25.25 pattern_stop_cooldown    state DOWN → flat  (shadow LOSS $-631.25)
+     alt 18:45 ZLR                    SHORT @7759.75  R 15.00 tree:bias                state DOWN → flat  (shadow WIN $65.0)
+     alt 19:02 ZLR                    SHORT @7763.5   R 15.00 tree:bias                state BAL  → good 22:20 (shadow WIN $83.75)
+--------------------------------------------------------------------------------------------------------------
+#3574 demo 10-20 19:30 CEILING_FLIP_TOUCH2 LONG @7759.75 stop 7750.75 (R 9.00 = 1.1θ) T1 7773.75 · 5 · STOP_HIT $-165.0 · פסק wrong/mid
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:25) · הבא: 21:35 יורד @7755.25 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7760.25) · תווית-ברים bad 19:50
+  מיקום בשעה 0.5 (middle) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -808 (against) · turn down/against · בר-סיגנל 9.00 (רגיל) · ייחוס-ראשון-לפנים שיא-אתמול 7773.25 (13.50 נק׳ = 1.50R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 5.5 · עץ(לוג) — · hint LONG struct none LSMA+CVD NEUTRAL sustained DOWN
+  ⇒ סיווג ד
+     alt 19:02 ZLR                    SHORT @7763.5   R 15.00 tree:bias                state BAL  → good 22:20 (shadow WIN $83.75)
+     alt 19:20 INITIATIVE_SHORT       SHORT @7752.5   R 20.00 tree:bias                state BAL  → flat  (shadow LOSS $-500.0)
+     alt 19:25 CEILING_FLIP_TOUCH2    LONG  @7755.0   R 4.25  None                     state DOWN → good 19:30 (shadow LOSS $-106.25)
+     alt 19:30 HTLB                   LONG  @7760.5   R 7.00  None                     state BAL  → bad 19:50 (shadow LOSS $-70.0)
+     alt 19:44 ZLR                    SHORT @7758.25  R 14.25 tree:bias                state BAL  → flat  (shadow LOSS $-142.5)
+     alt 20:00 CEILING_FLIP_TOUCH2    LONG  @7754.25  R 3.25  None                     state BAL  → bad 20:00 (shadow LOSS $-81.25)
+     alt 20:10 ZLR                    SHORT @7752.0   R 15.00 tree:bias                state BAL  → bad 20:50 (shadow LOSS $-225.0)
+     alt 20:20 CEILING_FLIP_TOUCH2    LONG  @7756.5   R 5.00  pattern_stop_cooldown    state BAL  → good 20:25 (shadow LOSS $-125.0)
+     alt 20:25 REACTIVE_LONG          LONG  @7762.0   R 7.50  None                     state BAL  → bad 21:35 (shadow LOSS $-187.5)
+--------------------------------------------------------------------------------------------------------------
+#3582 demo 10-20 20:05 CEILING_FLIP_TOUCH2 LONG @7754.5 stop 7749.25 (R 5.25 = 0.8θ) T1 7768.5 · 5 · STOP_HIT $-90.0 · פסק correct
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 20:00) · הבא: 21:35 יורד @7755.25 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7760.25) · תווית-ברים good 20:20
+  מיקום בשעה 0.29 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -1545 (against) · turn down/against · בר-סיגנל 7.25 (רגיל) · ייחוס-ראשון-לפנים שיא-אתמול 7773.25 (18.75 נק׳ = 3.57R)
+  המערכת: פתיחה OPEN_REJECTION_REVERSE · יום Variation · שלב C · zone mid_value · dir_hint LONG · הרחבה up 5.5 · עץ(לוג) — · hint LONG struct none LSMA+CVD DOWN sustained DOWN
+     alt 19:44 ZLR                    SHORT @7758.25  R 14.25 tree:bias                state BAL  → flat  (shadow LOSS $-142.5)
+     alt 20:00 CEILING_FLIP_TOUCH2    LONG  @7754.25  R 3.25  None                     state BAL  → bad 20:00 (shadow LOSS $-81.25)
+     alt 20:10 ZLR                    SHORT @7752.0   R 15.00 tree:bias                state BAL  → bad 20:50 (shadow LOSS $-225.0)
+     alt 20:20 CEILING_FLIP_TOUCH2    LONG  @7756.5   R 5.00  pattern_stop_cooldown    state BAL  → good 20:25 (shadow LOSS $-125.0)
+     alt 20:25 REACTIVE_LONG          LONG  @7762.0   R 7.50  None                     state BAL  → bad 21:35 (shadow LOSS $-187.5)
+     alt 20:40 ZLR                    LONG  @7764.5   R 7.50  None                     state BAL  → bad 21:30 (shadow LOSS $-187.5)
+     alt 20:40 INITIATIVE_LONG        LONG  @7764.25  R 7.50  None                     state BAL  → bad 21:30 (shadow LOSS $-187.5)
+     alt 20:40 TREND_STEP             LONG  @7764.25  R 5.00  None                     state BAL  → bad 21:25 (shadow LOSS $-125.0)
+     alt 21:00 CEILING_FLIP_TOUCH2    SHORT @7764.0   R 4.50  tree:stand_down          state BAL  → good 21:25 (shadow LOSS $-112.5)
+     alt 21:00 TREND_STEP             LONG  @7764.0   R 4.00  entry_not_confirmed      state BAL  → bad 21:25 (shadow LOSS $-100.0)
+     alt 21:00 ZLR                    LONG  @7766.0   R 7.50  entry_not_confirmed      state BAL  → bad 21:25 (shadow LOSS $-75.0)
+--------------------------------------------------------------------------------------------------------------
+#3637 demo 10-21 16:50 OPENING_EXTREME_REJECT LONG @7778.5 stop 7763.5 (R 15.00 = 2.1θ) T1 7801.0 · 3 · STOP_HIT $-225.0 · פסק wrong/open_chase
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:45) · הבא: 17:05 יורד @7755.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7769.75) · תווית-ברים bad 17:05
+  מיקום בשעה 0.86 (far) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 +3197 (with) · turn range/mid · בר-סיגנל 13.00 (רגיל) · ייחוס-ראשון-לפנים פתיחה 7779.25 (0.75 נק׳ = 0.05R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום None · שלב B · zone near_vah · dir_hint LONG · הרחבה none 0.0 · עץ(לוג) — · hint LONG struct forming LSMA+CVD UP sustained NEUTRAL
+  ⇒ סיווג ד
+     alt 16:30 DALTON_EDGE_SHORT      SHORT @7779.25  R 7.00  tree:stand_down          state BAL  → good 16:35 (shadow WIN $122.5)
+     alt 16:30 RE_ACCEPTANCE          LONG  @7784.75  R 8.25  tree:stand_down          state BAL  → bad 16:30 (shadow LOSS $-206.25)
+     alt 16:30 FAILED_RE_IB           SHORT @7779.0   R 9.00  tree:stand_down          state BAL  → good 16:35 (shadow WIN $137.5)
+     alt 16:30 CEILING_FLIP_TOUCH2    SHORT @7779.25  R 5.25  tree:stand_down          state BAL  → good 16:35 (shadow WIN $96.25)
+     alt 16:35 FAILED_BREAK_SHORT     SHORT @7768.25  R 12.00 tree:stand_down          state BAL  → bad 16:45 (shadow LOSS $-180.0)
+     alt 16:35 CEILING_FLIP_SHORT     SHORT @7769.5   R 15.00 tree:stand_down          state BAL  → good 17:10 (shadow WIN $77.5)
+     alt 16:40 FAILED_BREAK_LONG      LONG  @7777.0   R 12.00 tree:stand_down          state BAL  → bad 16:40 (shadow LOSS $-180.0)
+     alt 16:50 ZLR                    LONG  @7778.75  R 15.00 tree:kind                state BAL  → bad 17:05 (shadow LOSS $-225.0)
+     alt 16:50 OPENING_EXTREME_REJECT LONG  @7778.5   R 15.00 None                     state BAL  → bad 17:05 (shadow LOSS $-225.0)
+     alt 16:55 CEILING_FLIP_TOUCH2    SHORT @7772.75  R 8.25  rr_entry_gate            state BAL  → good 17:05 (shadow WIN $88.75)
+     alt 16:55 ZLR                    SHORT @7772.75  R 15.00 tree:location            state BAL  → good 17:05 (shadow LOSS $-225.0)
+     alt 17:05 GHOST                  SHORT @7766.25  R 18.00 tree:location            state BAL  → bad 18:15 (shadow WIN $174.77)
+     alt 17:20 CEILING_FLIP_TOUCH2    LONG  @7755.5   R 4.75  None                     state DOWN → good 17:25 (shadow WIN $598.75)
+     alt 17:20 TREND_STEP             SHORT @7755.5   R 5.75  tree:location            state DOWN → bad 17:20 (shadow LOSS $-143.75)
+     alt 17:30 VA_FADE_LONG           LONG  @7760.75  R 7.75  None                     state DOWN → good 17:40 (shadow WIN $270.0)
+     alt 17:35 CEILING_FLIP_LONG      LONG  @7766.5   R 15.75 tree:location            state BAL  → good 18:10 (shadow WIN $358.75)
+     alt 17:38 ZLR                    SHORT @7762.25  R 15.00 tree:location            state BAL  → bad 17:45 (shadow LOSS $-150.0)
+     alt 17:45 CEILING_FLIP_TOUCH2    LONG  @7769.25  R 8.25  rr_entry_gate            state BAL  → good 17:50 (shadow WIN $141.25)
+--------------------------------------------------------------------------------------------------------------
+#3660 demo 10-21 17:55 CEILING_FLIP_TOUCH2 SHORT @7775.0 stop 7779.75 (R 4.75 = 0.5θ) T1 7766.5 · 5 · STOP_HIT $-118.75 · פסק wrong/accepted_ext
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 17:50) · הבא: 18:30 עולה @7788.5 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7784.5) · תווית-ברים bad 18:05
+  מיקום בשעה 0.16 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +3933 (against) · turn range/edge · בר-סיגנל 5.25 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7765.75 (9.25 נק׳ = 1.95R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Normal · שלב C · zone near_vah · dir_hint None · הרחבה none 0.0 · עץ(לוג) — · hint None struct none LSMA+CVD UP sustained UP
+  ⇒ סיווג ד
+     alt 17:30 VA_FADE_LONG           LONG  @7760.75  R 7.75  None                     state DOWN → good 17:40 (shadow WIN $270.0)
+     alt 17:35 CEILING_FLIP_LONG      LONG  @7766.5   R 15.75 tree:location            state BAL  → good 18:10 (shadow WIN $358.75)
+     alt 17:38 ZLR                    SHORT @7762.25  R 15.00 tree:location            state BAL  → bad 17:45 (shadow LOSS $-150.0)
+     alt 17:45 CEILING_FLIP_TOUCH2    LONG  @7769.25  R 8.25  rr_entry_gate            state BAL  → good 17:50 (shadow WIN $141.25)
+     alt 17:55 VA_FADE_SHORT          SHORT @7775.25  R 6.50  None                     state BAL  → bad 18:10 (shadow LOSS $-162.5)
+     alt 17:55 CEILING_FLIP_TOUCH2    SHORT @7775.0   R 4.75  None                     state BAL  → bad 18:05 (shadow LOSS $-118.75)
+     alt 18:00 TREND_STEP             LONG  @7776.25  R 5.25  tree:location            state BAL  → good 18:10 (shadow WIN $228.75)
+     alt 18:10 CEILING_FLIP_TOUCH2    SHORT @7777.5   R 2.50  pattern_stop_cooldown    state BAL  → bad 18:10 (shadow LOSS $-62.5)
+     alt 18:23 ZLR                    LONG  @7783.75  R 15.00 structural_targets_wrong_side state BAL  → good 19:35 (shadow WIN $237.5)
+     alt 18:35 REACTIVE_LONG          LONG  @7788.75  R 31.50 structural_targets_wrong_side state UP   → flat  (shadow None $None)
+     alt 18:35 DOUBLE_BOTTOM_EE_LONG  LONG  @7788.75  R 19.00 structural_targets_wrong_side state UP   → good 20:10 (shadow WIN $278.75)
+     alt 18:45 CEILING_FLIP_TOUCH2    SHORT @7793.0   R 3.00  None                     state UP   → bad 18:45 (shadow LOSS $-75.0)
+     alt 18:45 INITIATIVE_LONG        LONG  @7793.0   R 28.00 entry_location_quality   state UP   → flat  (shadow None $None)
+     alt 18:45 TREND_STEP             LONG  @7793.0   R 7.00  entry_location_quality   state UP   → good 19:35 (shadow WIN $133.75)
+--------------------------------------------------------------------------------------------------------------
+#3670 demo 10-21 18:45 CEILING_FLIP_TOUCH2 SHORT @7793.0 stop 7796.0 (R 3.00 = 0.4θ) T1 7788.5 · 5 · STOP_HIT $-75.0 · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 18:40) · הבא: 21:30 עולה @7810.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7809.0) · תווית-ברים bad 18:45
+  מיקום בשעה 0.1 (edge) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 +2251 (against) · turn up/against · בר-סיגנל 3.00 (רגיל) · ייחוס-ראשון-לפנים שיא-אתמול 7791.50 (1.50 נק׳ = 0.50R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 15.0 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained UP
+  ⇒ סיווג א
+     alt 18:23 ZLR                    LONG  @7783.75  R 15.00 structural_targets_wrong_side state BAL  → good 19:35 (shadow WIN $237.5)
+     alt 18:25 CEILING_FLIP_TOUCH2    SHORT @7780.75  R 3.25  entry_not_confirmed      state BAL  → bad 18:25 (shadow LOSS $-81.25)
+     alt 18:35 REACTIVE_LONG          LONG  @7788.75  R 31.50 structural_targets_wrong_side state UP   → flat  (shadow None $None)
+     alt 18:35 DOUBLE_BOTTOM_EE_LONG  LONG  @7788.75  R 19.00 structural_targets_wrong_side state UP   → good 20:10 (shadow WIN $278.75)
+     alt 18:45 CEILING_FLIP_TOUCH2    SHORT @7793.0   R 3.00  None                     state UP   → bad 18:45 (shadow LOSS $-75.0)
+     alt 18:45 INITIATIVE_LONG        LONG  @7793.0   R 28.00 entry_location_quality   state UP   → flat  (shadow None $None)
+     alt 18:45 TREND_STEP             LONG  @7793.0   R 7.00  entry_location_quality   state UP   → good 19:35 (shadow WIN $133.75)
+     alt 18:55 HTLB                   SHORT @7793.5   R 7.25  tree:bias                state UP   → bad 19:35 (shadow LOSS $-181.25)
+     alt 19:05 CEILING_FLIP_TOUCH2    SHORT @7792.75  R 3.00  pattern_stop_cooldown    state UP   → good 19:25 (shadow LOSS $-75.0)
+     alt 19:05 CEILING_FLIP_SHORT     SHORT @7792.75  R 4.25  pattern_stop_cooldown    state UP   → good 19:25 (shadow LOSS $-106.25)
+     alt 19:05 TREND_STEP             LONG  @7792.75  R 3.75  entry_location_quality   state UP   → bad 19:25 (shadow LOSS $-93.75)
+     alt 19:14 ZLR                    LONG  @7793.5   R 15.00 entry_location_quality   state UP   → good 20:15 (shadow LOSS $-150.0)
+     alt 19:20 CEILING_FLIP_TOUCH2    SHORT @7792.75  R 3.00  None                     state UP   → good 19:25 (shadow LOSS $-75.0)
+     alt 19:30 REACTIVE_SHORT         SHORT @7790.0   R 10.75 tree:bias                state UP   → bad 19:35 (shadow LOSS $-215.0)
+     alt 19:30 GHOST                  SHORT @7790.5   R 10.25 tree:bias                state UP   → bad 19:35 (shadow LOSS $-102.5)
+     alt 19:39 ZLR                    LONG  @7795.25  R 11.50 entry_location_quality   state UP   → good 20:05 (shadow LOSS $-115.0)
+     alt 19:40 DOUBLE_BOTTOM_EE_LONG  LONG  @7803.75  R 31.50 entry_location_quality   state UP   → bad 22:00 (shadow LOSS $-787.5)
+     alt 19:45 DALTON_EDGE_SHORT      SHORT @7798.0   R 10.50 tree:bias                state UP   → bad 20:15 (shadow LOSS $-210.0)
+     alt 19:45 CEILING_FLIP_TOUCH2    SHORT @7798.0   R 8.75  None                     state UP   → bad 20:05 (shadow LOSS $-218.75)
+--------------------------------------------------------------------------------------------------------------
+#3687 demo 10-21 19:20 CEILING_FLIP_TOUCH2 SHORT @7792.75 stop 7795.75 (R 3.00 = 0.7θ) T1 7788.25 (הושג) · 5 · STOP_HIT $97.5 · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 19:15) · הבא: 21:30 עולה @7810.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7809.0) · תווית-ברים good 19:25
+  מיקום בשעה 0.2 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 -67 (with) · turn down/with · בר-סיגנל 2.50 (רגיל) · ייחוס-ראשון-לפנים שיא-אתמול 7791.50 (1.25 נק׳ = 0.42R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 16.0 · עץ(לוג) — · hint LONG struct up LSMA+CVD DOWN sustained UP
+  ⇒ סיווג א
+     alt 18:55 HTLB                   SHORT @7793.5   R 7.25  tree:bias                state UP   → bad 19:35 (shadow LOSS $-181.25)
+     alt 18:55 CEILING_FLIP_TOUCH2    SHORT @7793.75  R 3.25  pattern_stop_cooldown    state UP   → good 19:05 (shadow LOSS $-81.25)
+     alt 19:05 CEILING_FLIP_SHORT     SHORT @7792.75  R 4.25  pattern_stop_cooldown    state UP   → good 19:25 (shadow LOSS $-106.25)
+     alt 19:05 TREND_STEP             LONG  @7792.75  R 3.75  entry_location_quality   state UP   → bad 19:25 (shadow LOSS $-93.75)
+     alt 19:10 CEILING_FLIP_TOUCH2    SHORT @7791.25  R 4.00  pattern_stop_cooldown    state UP   → bad 19:35 (shadow LOSS $-100.0)
+     alt 19:14 ZLR                    LONG  @7793.5   R 15.00 entry_location_quality   state UP   → good 20:15 (shadow LOSS $-150.0)
+     alt 19:25 CEILING_FLIP_TOUCH2    SHORT @7792.25  R 2.25  None                     state UP   → good 19:30 (shadow LOSS $-56.25)
+     alt 19:30 REACTIVE_SHORT         SHORT @7790.0   R 10.75 tree:bias                state UP   → bad 19:35 (shadow LOSS $-215.0)
+     alt 19:30 GHOST                  SHORT @7790.5   R 10.25 tree:bias                state UP   → bad 19:35 (shadow LOSS $-102.5)
+     alt 19:39 ZLR                    LONG  @7795.25  R 11.50 entry_location_quality   state UP   → good 20:05 (shadow LOSS $-115.0)
+     alt 19:40 DOUBLE_BOTTOM_EE_LONG  LONG  @7803.75  R 31.50 entry_location_quality   state UP   → bad 22:00 (shadow LOSS $-787.5)
+     alt 19:45 DALTON_EDGE_SHORT      SHORT @7798.0   R 10.50 tree:bias                state UP   → bad 20:15 (shadow LOSS $-210.0)
+     alt 19:45 CEILING_FLIP_TOUCH2    SHORT @7798.0   R 8.75  None                     state UP   → bad 20:05 (shadow LOSS $-218.75)
+     alt 19:50 GHOST                  LONG  @7798.25  R 18.00 entry_location_quality   state UP   → bad 22:00 (shadow WIN $122.13)
+     alt 20:05 VEGAS                  SHORT @7801.5   R 9.00  tree:bias                state UP   → bad 20:20 (shadow LOSS $-90.0)
+     alt 20:06 ZLR                    LONG  @7803.5   R 15.00 entry_location_quality   state UP   → bad 21:55 (shadow LOSS $-150.0)
+--------------------------------------------------------------------------------------------------------------
+#3696 demo 10-21 19:45 CEILING_FLIP_TOUCH2 SHORT @7798.0 stop 7806.75 (R 8.75 = 2.1θ) T1 7784.88 · 5 · STOP_HIT $-160.0 · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 19:40) · הבא: 21:30 עולה @7810.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7809.0) · תווית-ברים bad 20:05
+  מיקום בשעה 0.45 (middle) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 +5376 (against) · turn up/against · בר-סיגנל 11.50 (קליימקס) · ייחוס-ראשון-לפנים שיא-לילה 7792.75 (5.25 נק׳ = 0.60R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 25.75 · עץ(לוג) — · hint LONG struct up LSMA+CVD NEUTRAL sustained DOWN
+  ⇒ סיווג א
+     alt 19:15 ZLR                    LONG  @7793.75  R 15.00 entry_location_quality   state UP   → good 20:15 (shadow LOSS $-225.0)
+     alt 19:20 CEILING_FLIP_TOUCH2    SHORT @7792.75  R 3.00  None                     state UP   → good 19:25 (shadow LOSS $-75.0)
+     alt 19:30 REACTIVE_SHORT         SHORT @7790.0   R 10.75 tree:bias                state UP   → bad 19:35 (shadow LOSS $-215.0)
+     alt 19:30 GHOST                  SHORT @7790.5   R 10.25 tree:bias                state UP   → bad 19:35 (shadow LOSS $-102.5)
+     alt 19:39 ZLR                    LONG  @7795.25  R 11.50 entry_location_quality   state UP   → good 20:05 (shadow LOSS $-115.0)
+     alt 19:40 DOUBLE_BOTTOM_EE_LONG  LONG  @7803.75  R 31.50 entry_location_quality   state UP   → bad 22:00 (shadow LOSS $-787.5)
+     alt 19:45 DALTON_EDGE_SHORT      SHORT @7798.0   R 10.50 tree:bias                state UP   → bad 20:15 (shadow LOSS $-210.0)
+     alt 19:45 CEILING_FLIP_TOUCH2    SHORT @7798.0   R 8.75  None                     state UP   → bad 20:05 (shadow LOSS $-218.75)
+     alt 19:50 GHOST                  LONG  @7798.25  R 18.00 entry_location_quality   state UP   → bad 22:00 (shadow WIN $122.13)
+     alt 20:05 VEGAS                  SHORT @7801.5   R 9.00  tree:bias                state UP   → bad 20:20 (shadow LOSS $-90.0)
+     alt 20:06 ZLR                    LONG  @7803.5   R 15.00 entry_location_quality   state UP   → bad 21:55 (shadow LOSS $-150.0)
+     alt 20:25 CEILING_FLIP_TOUCH2    SHORT @7807.75  R 3.25  None                     state UP   → good 20:30 (shadow LOSS $-81.25)
+     alt 20:25 INITIATIVE_LONG        LONG  @7807.75  R 24.00 entry_location_quality   state UP   → bad 22:00 (shadow LOSS $-600.0)
+     alt 20:30 TREND_STEP             LONG  @7807.0   R 2.50  entry_location_quality   state UP   → bad 20:30 (shadow LOSS $-62.5)
+     alt 20:40 ZLR                    LONG  @7805.25  R 14.50 entry_location_quality   state BAL  → bad 21:55 (shadow LOSS $-145.0)
+     alt 20:45 CEILING_FLIP_TOUCH2    SHORT @7807.0   R 3.00  pattern_stop_cooldown    state BAL  → good 21:00 (shadow LOSS $-75.0)
+--------------------------------------------------------------------------------------------------------------
+#3702 demo 10-21 20:25 CEILING_FLIP_TOUCH2 SHORT @7807.75 stop 7811.0 (R 3.25 = 0.9θ) T1 7803.0 (הושג) · 5 · STOP_HIT $105.0 · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 20:20) · הבא: 21:30 עולה @7810.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7809.0) · תווית-ברים good 20:30
+  מיקום בשעה 0.13 (edge) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 +375 (against) · turn up/against · בר-סיגנל 3.50 (רגיל) · ייחוס-ראשון-לפנים VAH-מתפתח 7794.00 (13.75 נק׳ = 4.23R)
+  המערכת: פתיחה OPEN_AUCTION_IN · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 30.0 · עץ(לוג) — · hint LONG struct up LSMA+CVD UP sustained UP
+  ⇒ סיווג א
+     alt 20:05 VEGAS                  SHORT @7801.5   R 9.00  tree:bias                state UP   → bad 20:20 (shadow LOSS $-90.0)
+     alt 20:06 ZLR                    LONG  @7803.5   R 15.00 entry_location_quality   state UP   → bad 21:55 (shadow LOSS $-150.0)
+     alt 20:25 CEILING_FLIP_TOUCH2    SHORT @7807.75  R 3.25  None                     state UP   → good 20:30 (shadow LOSS $-81.25)
+     alt 20:25 INITIATIVE_LONG        LONG  @7807.75  R 24.00 entry_location_quality   state UP   → bad 22:00 (shadow LOSS $-600.0)
+     alt 20:30 TREND_STEP             LONG  @7807.0   R 2.50  entry_location_quality   state UP   → bad 20:30 (shadow LOSS $-62.5)
+     alt 20:40 ZLR                    LONG  @7805.25  R 14.50 entry_location_quality   state BAL  → bad 21:55 (shadow LOSS $-145.0)
+     alt 20:45 CEILING_FLIP_TOUCH2    SHORT @7807.0   R 3.00  pattern_stop_cooldown    state BAL  → good 21:00 (shadow LOSS $-75.0)
+     alt 21:11 ZLR                    LONG  @7806.75  R 9.25  entry_location_quality   state BAL  → bad 21:50 (shadow LOSS $-92.5)
+     alt 21:20 REACTIVE_LONG          LONG  @7809.75  R 12.25 entry_location_quality   state BAL  → bad 21:50 (shadow LOSS $-183.75)
+     alt 21:25 TREND_STEP             LONG  @7809.0   R 2.50  entry_location_quality   state BAL  → bad 21:45 (shadow LOSS $-62.5)
+--------------------------------------------------------------------------------------------------------------
+#3749 demo 10-22 16:50 OPENING_TEST_DRIVE SHORT @7727.5 stop 7742.25 (R 14.75 = 1.9θ) T1 7708.5 · 3 · STOP_HIT $-221.25 · פסק idea_right_execution_wrong
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 16:45) · הבא: 17:25 יורד @7698.25 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7719.0) · תווית-ברים bad 17:00
+  מיקום בשעה 0.65 (middle) · כלל-A ib_forming · עם-הרחבה-מקובלת ib_forming · דלתא-3 -4407 (with) · turn down/with · בר-סיגנל 11.50 (רגיל) · ייחוס-ראשון-לפנים שפל-הסשן 7720.25 (7.25 נק׳ = 0.49R)
+  המערכת: פתיחה OPEN_TEST_DRIVE · יום None · שלב B · zone mid_value · dir_hint SHORT · הרחבה none 0.0 · עץ(לוג) TAKE hour=*(16)/opening_type=OPEN_TEST_DRIVE/phase=B/day_type=*(FORMING)/rel_bias=with · hint None struct forming LSMA+CVD DOWN sustained NEUTRAL
+  ⇒ סיווג ב · אישור 17:25 @7698.25 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7719.0) → כניסה 17:30 @7698.25 סטופ-מבני 7742.75 R 44.50 → flat  · סטופ-צמוד 7721.75 R 23.50 → bad 19:20
+     alt 16:30 FAILED_RE_IB           SHORT @7728.0   R 12.00 tree:stand_down          state BAL  → bad 16:30 (shadow LOSS $-180.0)
+     alt 16:30 RE_ACCEPTANCE          SHORT @7728.0   R 3.50  tree:stand_down          state BAL  → bad 16:30 (shadow LOSS $-87.5)
+     alt 16:30 CEILING_FLIP_TOUCH2    SHORT @7728.75  R 2.25  tree:stand_down          state BAL  → bad 16:30 (shadow LOSS $-56.25)
+     alt 16:30 TT                     LONG  @7727.5   R 10.00 tree:stand_down          state BAL  → good 16:35 (shadow WIN $76.25)
+     alt 16:35 CEILING_FLIP_TOUCH2    LONG  @7738.75  R 15.00 tree:stand_down          state BAL  → bad 16:45 (shadow LOSS $-225.0)
+     alt 16:40 FAILED_BREAK_LONG      LONG  @7738.5   R 12.00 tree:stand_down          state BAL  → bad 16:45 (shadow LOSS $-180.0)
+     alt 16:45 OPENING_PULLBACK_CONT  SHORT @7732.0   R 12.75 tree:kind                state BAL  → good 16:50 (shadow WIN $338.1)
+     alt 16:45 FAILED_BREAK_SHORT     SHORT @7732.0   R 8.75  None                     state BAL  → good 16:50 (shadow WIN $91.25)
+     alt 16:45 HTLB                   SHORT @7730.5   R 14.25 tree:kind                state BAL  → good 17:15 (shadow WIN $266.88)
+     alt 16:50 OPENING_TEST_DRIVE     SHORT @7728.75  R 13.50 None                     state BAL  → bad 17:00 (shadow LOSS $-202.5)
+     alt 16:50 DALTON_EDGE_LONG       LONG  @7728.75  R 10.50 mid_value_no_edge_test   state BAL  → good 17:00 (shadow LOSS $-210.0)
+     alt 16:50 ZLR                    LONG  @7728.0   R 11.75 tree:kind                state BAL  → good 17:00 (shadow WIN $63.75)
+     alt 17:00 CEILING_FLIP_TOUCH2    SHORT @7737.0   R 2.50  entry_not_confirmed      state BAL  → bad 17:00 (shadow LOSS $-62.5)
+     alt 17:00 CEILING_FLIP_LONG      LONG  @7737.0   R 18.25 None                     state BAL  → bad 17:15 (shadow LOSS $-456.25)
+     alt 17:10 ZLR                    SHORT @7726.5   R 15.00 tree:kind                state BAL  → good 17:20 (shadow WIN $377.5)
+     alt 17:15 GB100                  SHORT @7721.25  R 15.00 tree:kind                state BAL  → good 17:25 (shadow WIN $226.25)
+     alt 17:20 VA_FADE_LONG           LONG  @7721.5   R 14.00 None                     state BAL  → bad 17:25 (shadow LOSS $-210.0)
+     alt 17:45 INITIATIVE_SHORT       SHORT @7690.25  R 56.25 wait_for_test            state DOWN → flat  (shadow None $None)
+     alt 17:50 CEILING_FLIP_TOUCH2    LONG  @7691.5   R 5.25  None                     state DOWN → good 17:55 (shadow WIN $82.55)
+--------------------------------------------------------------------------------------------------------------
+#3763 demo 10-22 17:50 CEILING_FLIP_TOUCH2 LONG @7691.25 stop 7686.25 (R 5.00 = 0.6θ) T1 7699.5 (הושג) · 5 · STOP_HIT $90.0 · פסק correct
+  מצב בכניסה: יורד (בר אחרון שנסגר 17:45) · הבא: 18:20 עולה @7711.0 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7701.75) · תווית-ברים good 17:55
+  מיקום בשעה 0.09 (edge) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 +433 (with) · turn range/edge · בר-סיגנל 7.25 (רגיל) · ייחוס-ראשון-לפנים IBL 7696.25 (5.00 נק׳ = 1.00R)
+  המערכת: פתיחה OPEN_AUCTION_OUT · יום Variation · שלב C · zone below_value · dir_hint SHORT · הרחבה down 10.25 · עץ(לוג) TAKE hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension · hint SHORT struct down LSMA+CVD NEUTRAL sustained DOWN
+     alt 17:45 INITIATIVE_SHORT       SHORT @7690.25  R 56.25 wait_for_test            state DOWN → flat  (shadow None $None)
+     alt 17:50 CEILING_FLIP_TOUCH2    LONG  @7691.5   R 5.25  None                     state DOWN → good 17:55 (shadow WIN $82.55)
+     alt 18:00 FAILED_RE_IB           LONG  @7698.75  R 12.00 tree:bias                state DOWN → good 18:20 (shadow WIN $224.4)
+     alt 18:00 CEILING_FLIP_LONG      LONG  @7698.25  R 12.50 None                     state DOWN → good 18:20 (shadow WIN $96.25)
+     alt 18:05 ZLR                    SHORT @7693.75  R 15.00 mid_value_no_edge_test   state DOWN → bad 18:20 (shadow LOSS $-225.0)
+     alt 18:20 CEILING_FLIP_TOUCH2    LONG  @7703.5   R 14.75 mid_value_no_edge_test   state BAL  → bad 18:40 (shadow LOSS $-221.25)
+     alt 18:25 GB100                  LONG  @7712.0   R 15.00 tree:bias                state UP   → bad 18:30 (shadow LOSS $-150.0)
+     alt 18:25 DOUBLE_BOTTOM_EE_LONG  LONG  @7711.0   R 29.00 mid_value_no_edge_test   state UP   → bad 21:00 (shadow LOSS $-725.0)
+     alt 18:31 ZLR                    SHORT @7694.0   R 15.00 mid_value_no_edge_test   state BAL  → bad 18:55 (shadow LOSS $-150.0)
+     alt 18:45 CEILING_FLIP_TOUCH2    LONG  @7697.25  R 9.00  entry_not_confirmed      state BAL  → good 18:50 (shadow WIN $361.25)
+--------------------------------------------------------------------------------------------------------------
+#3784 demo 10-22 19:30 CEILING_FLIP_TOUCH2 SHORT @7715.25 stop 7724.0 (R 8.75 = 1.1θ) T1 7713.0 (הושג) · 5 · T3_HIT $227.5 · פסק correct
+  מצב בכניסה: מאוזן (בר אחרון שנסגר 19:25) · הבא: 19:35 יורד @7701.25 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7708.5) · תווית-ברים good 19:35
+  מיקום בשעה 0.24 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +761 (against) · turn range/mid · בר-סיגנל 6.00 (רגיל) · ייחוס-ראשון-לפנים POC-מתפתח 7713.00 (2.25 נק׳ = 0.26R)
+  המערכת: פתיחה OPEN_AUCTION_OUT · יום Variation · שלב C · zone near_vah · dir_hint SHORT · הרחבה down 10.25 · עץ(לוג) TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with · hint SHORT struct down LSMA+CVD UP sustained UP
+     alt 19:15 CEILING_FLIP_TOUCH2    SHORT @7716.0   R 2.50  mid_value_no_edge_test   state UP   → bad 19:15 (shadow LOSS $-62.5)
+     alt 19:25 VA_FADE_SHORT          SHORT @7720.5   R 8.50  None                     state UP   → good 19:30 (shadow WIN $331.25)
+     alt 19:30 CEILING_FLIP_TOUCH2    SHORT @7718.25  R 5.75  None                     state BAL  → good 19:35 (shadow WIN $302.5)
+     alt 19:30 TREND_STEP             LONG  @7718.25  R 2.50  tree:bias                state BAL  → bad 19:30 (shadow LOSS $-62.5)
+     alt 19:35 CEILING_FLIP_SHORT     SHORT @7707.5   R 16.50 mid_value_no_edge_test   state BAL  → good 19:45 (shadow WIN $147.5)
+     alt 19:35 DOUBLE_TOP_AA_SHORT    SHORT @7707.5   R 20.25 mid_value_no_edge_test   state BAL  → good 19:50 (shadow WIN $183.47)
+     alt 19:40 REACTIVE_SHORT         SHORT @7701.75  R 26.00 mid_value_no_edge_test   state DOWN → flat  (shadow None $None)
+     alt 19:50 INITIATIVE_SHORT       SHORT @7691.0   R 36.75 wait_for_test            state DOWN → flat  (shadow None $None)
+     alt 19:55 CEILING_FLIP_TOUCH2    LONG  @7696.0   R 9.25  wait_for_test            state DOWN → bad 20:10 (shadow LOSS $-185.0)
+     alt 20:01 ZLR                    SHORT @7698.5   R 15.00 mid_value_no_edge_test   state DOWN → good 21:00 (shadow WIN $57.5)
+     alt 20:15 CEILING_FLIP_TOUCH2    LONG  @7693.0   R 6.75  mid_value_no_edge_test   state DOWN → good 20:20 (shadow WIN $104.95)
+     alt 20:25 ZLR                    SHORT @7695.0   R 15.00 mid_value_no_edge_test   state DOWN → good 21:00 (shadow LOSS $-225.0)
+     alt 20:30 CEILING_FLIP_TOUCH2    LONG  @7698.25  R 6.00  tree:bias                state DOWN → good 20:35 (shadow LOSS $-150.0)
+--------------------------------------------------------------------------------------------------------------
+#3799 demo 10-22 20:20 CEILING_FLIP_TOUCH2 LONG @7694.25 stop 7687.75 (R 6.50 = 0.8θ) T1 7704.5 (הושג) · 5 · STOP_HIT $106.25 · פסק correct
+  מצב בכניסה: יורד (בר אחרון שנסגר 20:15) · הבא: 22:55 עולה @7706.25 (שבירה מקובלת (2 סגירות) מעל שיא-סווינג 7698.25) · תווית-ברים good 20:30
+  מיקום בשעה 0.21 (edge) · כלל-A no · עם-הרחבה-מקובלת no · דלתא-3 +1396 (with) · turn range/edge · בר-סיגנל 7.25 (רגיל) · ייחוס-ראשון-לפנים IBL 7696.25 (2.00 נק׳ = 0.31R)
+  המערכת: פתיחה OPEN_AUCTION_OUT · יום Variation · שלב C · zone mid_value · dir_hint SHORT · הרחבה down 10.25 · עץ(לוג) TAKE hour=*(20)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension · hint SHORT struct down LSMA+CVD NEUTRAL sustained DOWN
+     alt 19:55 CEILING_FLIP_TOUCH2    LONG  @7696.0   R 9.25  wait_for_test            state DOWN → bad 20:10 (shadow LOSS $-185.0)
+     alt 20:01 ZLR                    SHORT @7698.5   R 15.00 mid_value_no_edge_test   state DOWN → good 21:00 (shadow WIN $57.5)
+     alt 20:15 CEILING_FLIP_TOUCH2    LONG  @7693.0   R 6.75  mid_value_no_edge_test   state DOWN → good 20:20 (shadow WIN $104.95)
+     alt 20:25 ZLR                    SHORT @7695.0   R 15.00 mid_value_no_edge_test   state DOWN → good 21:00 (shadow LOSS $-225.0)
+     alt 20:30 CEILING_FLIP_TOUCH2    LONG  @7698.25  R 6.00  tree:bias                state DOWN → good 20:35 (shadow LOSS $-150.0)
+     alt 20:35 GB100                  LONG  @7705.25  R 15.00 tree:bias                state BAL  → bad 21:00 (shadow LOSS $-150.0)
+     alt 20:50 ZLR                    SHORT @7694.0   R 15.00 mid_value_no_edge_test   state BAL  → good 21:00 (shadow LOSS $-225.0)
+     alt 21:10 CEILING_FLIP_TOUCH2    LONG  @7689.5   R 10.75 tree:stand_down          state BAL  → good 21:20 (shadow LOSS $-215.0)
+     alt 21:10 FAMIR                  LONG  @7689.25  R 12.00 tree:stand_down          state BAL  → good 21:20 (shadow LOSS $-120.0)
+     alt 21:15 ZLR                    SHORT @7691.5   R 15.00 mid_value_no_edge_test   state BAL  → bad 22:55 (shadow WIN $62.5)
+     alt 21:15 CEILING_FLIP_LONG      LONG  @7691.5   R 12.75 tree:stand_down          state BAL  → bad 22:00 (shadow WIN $26.25)
+--------------------------------------------------------------------------------------------------------------
+#3876 demo 10-23 18:05 CEILING_FLIP_TOUCH2 SHORT @7686.75 stop 7693.75 (R 7.00 = 0.7θ) T1 7674.38 · 5 · STOP_HIT $-175.0 · פסק wrong/accepted_ext
+  מצב בכניסה: עולה (בר אחרון שנסגר 18:00) · הבא: 19:25 יורד @7678.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7681.25) · תווית-ברים good 18:10
+  מיקום בשעה 0.15 (edge) · כלל-A accepted_against · עם-הרחבה-מקובלת no · דלתא-3 -342 (with) · turn up/against · בר-סיגנל 9.25 (רגיל) · ייחוס-ראשון-לפנים VAL-אתמול 7685.25 (1.50 נק׳ = 0.21R)
+  המערכת: פתיחה OPEN_AUCTION_OUT · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 17.25 · עץ(לוג) TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension · hint LONG struct up LSMA+CVD NEUTRAL sustained UP
+  ⇒ סיווג א
+     alt 17:35 ZLR                    SHORT @7658.5   R 15.00 tree:location            state DOWN → bad 17:40 (shadow LOSS $-225.0)
+     alt 17:40 CEILING_FLIP_TOUCH2    LONG  @7666.0   R 11.00 tree:location            state BAL  → good 17:45 (shadow WIN $132.5)
+     alt 17:45 DOUBLE_BOTTOM_EE_LONG  LONG  @7679.5   R 30.50 wait_for_test            state UP   → flat  (shadow WIN $167.5)
+     alt 17:55 INITIATIVE_LONG        LONG  @7688.75  R 44.25 wait_for_test            state UP   → flat  (shadow None $None)
+     alt 18:00 DOUBLE_BOTTOM_EE_LONG  LONG  @7691.25  R 23.38 wait_for_test            state UP   → bad 20:10 (shadow LOSS $-584.38)
+     alt 18:05 CEILING_FLIP_TOUCH2    SHORT @7686.0   R 7.75  None                     state UP   → bad 18:25 (shadow LOSS $-193.75)
+     alt 18:05 CEILING_FLIP_SHORT     SHORT @7686.0   R 7.75  None                     state UP   → bad 18:25 (shadow LOSS $-193.75)
+     alt 18:05 TREND_STEP             LONG  @7686.0   R 8.00  entry_location_quality   state UP   → good 18:25 (shadow LOSS $-200.0)
+     alt 18:14 ZLR                    LONG  @7689.5   R 15.00 entry_location_quality   state UP   → bad 19:55 (shadow LOSS $-150.0)
+     alt 18:20 REACTIVE_LONG          LONG  @7689.75  R 45.25 entry_location_quality   state UP   → flat  (shadow None $None)
+     alt 18:20 DOUBLE_BOTTOM_EE_LONG  LONG  @7689.75  R 22.88 entry_location_quality   state UP   → bad 20:10 (shadow LOSS $-571.88)
+     alt 18:30 INITIATIVE_LONG        LONG  @7692.25  R 41.00 entry_location_quality   state UP   → flat  (shadow None $None)
+     alt 18:34 ZLR                    LONG  @7695.75  R 15.00 entry_location_quality   state UP   → bad 19:20 (shadow LOSS $-150.0)
+     alt 18:40 CEILING_FLIP_TOUCH2    SHORT @7689.25  R 6.50  pattern_stop_cooldown    state UP   → good 18:45 (shadow WIN $101.25)
+     alt 18:45 VA_FADE_SHORT          SHORT @7684.25  R 8.25  tree:kind                state UP   → bad 18:55 (shadow LOSS $-206.25)
+     alt 18:45 CEILING_FLIP_SHORT     SHORT @7684.5   R 13.00 pattern_stop_cooldown    state UP   → good 20:05 (shadow None $97.5)
+     alt 18:50 ZLR                    LONG  @7688.0   R 7.50  None                     state UP   → bad 19:20 (shadow LOSS $-77.5)
+     alt 18:55 REACTIVE_LONG          LONG  @7689.25  R 13.50 None                     state UP   → bad 19:50 (shadow LOSS $-202.5)
+     alt 19:05 CEILING_FLIP_TOUCH2    SHORT @7690.0   R 4.00  mid_value_no_edge_test   state UP   → good 19:10 (shadow WIN $63.75)
+--------------------------------------------------------------------------------------------------------------
+#3898 demo 10-23 18:55 REACTIVE_LONG LONG @7690.0 stop 7675.75 (R 14.25 = 1.5θ) T1 7709.5 · 3 · STOP_HIT $-213.75 · פסק wrong/mid
+  מצב בכניסה: עולה (בר אחרון שנסגר 18:50) · הבא: 19:25 יורד @7678.5 (שבירה מקובלת (2 סגירות) מתחת לשפל-סווינג 7681.25) · תווית-ברים bad 19:50
+  מיקום בשעה 0.59 (middle) · כלל-A no · עם-הרחבה-מקובלת yes · דלתא-3 -10 (against) · turn range/mid · בר-סיגנל 4.75 (רגיל) · ייחוס-ראשון-לפנים שיא-הסשן 7697.25 (7.25 נק׳ = 0.51R)
+  המערכת: פתיחה OPEN_AUCTION_OUT · יום Variation · שלב C · zone above_value · dir_hint LONG · הרחבה up 21.0 · עץ(לוג) TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(REACTIVE_LONG)/rel_bias=with · hint LONG struct up LSMA+CVD DOWN sustained DOWN
+  ⇒ סיווג ג
+     alt 18:25 ZLR                    LONG  @7690.25  R 15.00 entry_location_quality   state UP   → bad 19:50 (shadow LOSS $-225.0)
+     alt 18:30 INITIATIVE_LONG        LONG  @7692.25  R 41.00 entry_location_quality   state UP   → flat  (shadow None $None)
+     alt 18:40 CEILING_FLIP_TOUCH2    SHORT @7689.25  R 6.50  pattern_stop_cooldown    state UP   → good 18:45 (shadow WIN $101.25)
+     alt 18:45 VA_FADE_SHORT          SHORT @7684.25  R 8.25  tree:kind                state UP   → bad 18:55 (shadow LOSS $-206.25)
+     alt 18:45 CEILING_FLIP_SHORT     SHORT @7684.5   R 13.00 pattern_stop_cooldown    state UP   → good 20:05 (shadow None $97.5)
+     alt 18:50 ZLR                    LONG  @7688.0   R 7.50  None                     state UP   → bad 19:20 (shadow LOSS $-77.5)
+     alt 18:55 REACTIVE_LONG          LONG  @7689.25  R 13.50 None                     state UP   → bad 19:50 (shadow LOSS $-202.5)
+     alt 19:05 CEILING_FLIP_TOUCH2    SHORT @7690.0   R 4.00  mid_value_no_edge_test   state UP   → good 19:10 (shadow WIN $63.75)
+     alt 19:15 GHOST                  SHORT @7686.5   R 8.00  None                     state UP   → good 19:20 (shadow WIN $35.0)
+     alt 19:20 GB100                  SHORT @7683.75  R 8.00  None                     state UP   → good 19:50 (shadow WIN $35.0)
+     alt 19:25 REACTIVE_SHORT         SHORT @7679.0   R 22.25 tree:kind                state BAL  → flat  (shadow None $None)
+     alt 19:25 DOUBLE_TOP_AA_SHORT    SHORT @7679.0   R 18.50 mid_value_no_edge_test   state BAL  → good 22:50 (shadow None $None)
+     alt 19:35 GHOST                  SHORT @7684.0   R 9.00  entry_not_confirmed      state BAL  → good 19:50 (shadow WIN $38.75)
+     alt 19:50 INITIATIVE_LONG        LONG  @7687.0   R 14.75 None                     state BAL  → bad 20:05 (shadow LOSS $-221.25)
+     alt 19:51 ZLR                    SHORT @7685.25  R 8.25  None                     state BAL  → good 19:55 (shadow WIN $103.75)
+     alt 19:55 REACTIVE_SHORT         SHORT @7676.75  R 21.00 tree:kind                state BAL  → flat  (shadow None $None)
+     alt 19:55 DOUBLE_TOP_AA_SHORT    SHORT @7676.75  R 16.75 wait_for_test            state BAL  → good 22:50 (shadow None $None)

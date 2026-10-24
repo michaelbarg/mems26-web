@@ -1,0 +1,38 @@
+tree:bias refusals on the examined days (live record, de-duplicated):
+  state against                      n= 13 good   4 bad   9 flat   0 none 0
+  state BAL                          n= 27 good  13 bad  11 flat   3 none 0
+  state with                         n= 31 good  15 bad   5 flat  11 none 0
+  state with & all questions pass    n= 31 good  15 bad   5 flat  11 none 0
+
+with the state (ש5 would release):
+  10-06 19:25 #3128 INITIATIVE_SHORT       SHORT @7887.75  stop 7901.5   state DOWN pos 0.80 ph C lab good  20:15 q pass     shadow (None, None)
+  10-06 19:40 #3131 CEILING_FLIP_TOUCH2    SHORT @7883.5   stop 7886.5   state DOWN pos 0.84 ph C lab good  19:45 q pass     shadow (None, None)
+  10-07 18:25 #3198 ZLR                    LONG  @7827.0   stop 7812.0   state UP pos 0.64 ph C lab good  18:45 q pass     shadow ('WIN', 112.5)
+  10-07 18:25 #3199 GHOST                  LONG  @7827.25  stop 7811.75  state UP pos 0.66 ph C lab good  18:45 q pass     shadow ('WIN', 29.23)
+  10-07 18:40 #3202 REACTIVE_LONG          LONG  @7837.75  stop 7811.75  state UP pos 0.93 ph C lab flat        q pass     shadow (None, None)
+  10-07 18:40 #3204 GHOST                  LONG  @7838.25  stop 7820.25  state UP pos 0.95 ph C lab good  20:20 q pass     shadow ('WIN', 29.05)
+  10-07 18:55 #3205 INITIATIVE_LONG        LONG  @7843.0   stop 7813.25  state UP pos 0.89 ph C lab flat        q pass     shadow (None, None)
+  10-07 18:55 #3206 GHOST                  LONG  @7842.5   stop 7824.5   state UP pos 0.87 ph C lab flat        q pass     shadow ('WIN', 29.05)
+  10-19 19:15 #3463 INITIATIVE_SHORT       SHORT @7754.75  stop 7777.25  state DOWN pos 0.69 ph C lab good  22:55 q pass     shadow (None, None)
+  10-19 19:15 #3464 TREND_STEP             SHORT @7755.0   stop 7759.25  state DOWN pos 0.68 ph C lab good  19:20 q pass     shadow ('WIN', 51.25)
+  10-19 19:15 #3465 ZLR                    SHORT @7753.0   stop 7768.0   state DOWN pos 0.76 ph C lab good  20:40 q pass     shadow ('WIN', 112.5)
+  10-19 19:20 #3470 CEILING_FLIP_TOUCH2    SHORT @7753.25  stop 7757.25  state DOWN pos 0.75 ph C lab good  19:25 q pass     shadow ('WIN', 83.75)
+  10-19 19:25 #3471 REACTIVE_SHORT         SHORT @7751.75  stop 7777.25  state DOWN pos 0.80 ph C lab flat        q pass     shadow (None, None)
+  10-19 19:30 #3472 ZLR                    SHORT @7746.5   stop 7761.5   state DOWN pos 1.00 ph C lab good  22:55 q pass     shadow ('WIN', 112.5)
+  10-19 19:40 #3473 TREND_STEP             SHORT @7748.75  stop 7752.75  state DOWN pos 0.87 ph C lab good  19:45 q pass     shadow ('WIN', 26.25)
+  10-19 19:40 #3474 ZLR                    SHORT @7747.25  stop 7762.25  state DOWN pos 0.93 ph C lab good  22:55 q pass     shadow ('WIN', 112.5)
+  10-19 19:52 #3479 ZLR                    SHORT @7746.25  stop 7761.25  state DOWN pos 0.94 ph C lab good  22:55 q pass     shadow ('WIN', 112.5)
+  10-19 20:00 #3481 INITIATIVE_SHORT       SHORT @7743.75  stop 7761.0   state DOWN pos 0.95 ph C lab flat        q pass     shadow (None, None)
+  10-19 20:15 #3484 TREND_STEP             SHORT @7743.0   stop 7745.75  state DOWN pos 0.76 ph C lab bad   20:15 q pass     shadow ('LOSS', -13.75)
+  10-19 20:20 #3485 ZLR                    SHORT @7742.0   stop 7755.75  state DOWN pos 0.77 ph C lab flat        q pass     shadow (None, None)
+  10-19 20:30 #3489 ZLR                    SHORT @7742.5   stop 7755.75  state DOWN pos 0.70 ph C lab flat        q pass     shadow (None, None)
+  10-19 20:40 #3494 ZLR                    SHORT @7740.0   stop 7751.0   state DOWN pos 0.89 ph C lab bad   22:15 q pass     shadow ('LOSS', -55.0)
+  10-20 18:21 #3559 ZLR                    SHORT @7763.5   stop 7778.5   state DOWN pos 0.63 ph C lab good  22:20 q pass     shadow ('WIN', 83.75)
+  10-20 18:35 #3560 REACTIVE_SHORT         SHORT @7758.0   stop 7794.5   state DOWN pos 0.74 ph C lab flat        q pass     shadow (None, None)
+  10-20 18:45 #3562 ZLR                    SHORT @7759.75  stop 7774.75  state DOWN pos 0.70 ph C lab flat        q pass     shadow ('WIN', 65.0)
+  10-22 18:25 #3773 GB100                  LONG  @7712.0   stop 7697.0   state UP pos 0.99 ph C lab bad   18:30 q pass     shadow ('LOSS', -150.0)
+  10-22 19:00 #3779 REACTIVE_LONG          LONG  @7712.75  stop 7684.5   state UP pos 0.95 ph C lab bad   21:00 q pass     shadow ('LOSS', -706.25)
+  10-23 20:05 #3916 CEILING_FLIP_TOUCH2    SHORT @7675.25  stop 7679.5   state DOWN pos 0.90 ph C lab good  20:10 q pass     shadow ('WIN', 76.25)
+  10-23 20:10 #3917 INITIATIVE_SHORT       SHORT @7670.0   stop 7696.75  state DOWN pos 0.92 ph C lab flat        q pass     shadow (None, None)
+  10-23 20:25 #3919 TREND_STEP             SHORT @7662.75  stop 7671.75  state DOWN pos 0.96 ph C lab bad   20:45 q pass     shadow ('LOSS', -225.0)
+  10-23 20:45 #3922 ZLR                    SHORT @7665.0   stop 7680.0   state DOWN pos 0.88 ph C lab flat        q pass     shadow (None, None)

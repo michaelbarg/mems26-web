@@ -1,0 +1,387 @@
+==============================================================================================================
+2026-10-05 · סף 16.50 · IB 7778.25–7811.25
+
+לונג 7778.25@16:30 → 7847.75@22:15 (+69.50) · מצב-כיוון אישר 17:10 @7800.75 · 60% מהתנועה ב-19:35
+   16:30 shadow GB100                  @7779.75  R 8.75   tree:location              מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 65.62
+   16:30 shadow CEILING_FLIP_TOUCH2    @7778.5   R 6.00   tree:location              מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 17.5
+   16:35 shadow FAILED_BREAK_LONG      @7789.5   R 12.00  tree:location              מצב BAL  pos 0.87  → good  17:10  | שאלות: עובר       | shadow WIN 60.0
+   17:04 shadow ZLR                    @7792.0   R 15.00  tree:location              מצב BAL  pos 1.0   → good  17:15  | שאלות: ש2-פתיחה   | shadow WIN 112.5
+   17:10 shadow GHOST                  @7799.75  R 18.00  entry_location_quality     מצב BAL  pos 1.01  → good  19:20  | שאלות: ש2-פתיחה   | shadow WIN 21.73
+   17:20 shadow INITIATIVE_LONG        @7805.5   R 36.00  entry_location_quality     מצב UP   pos 0.91  → good  22:00  | שאלות: עובר       | shadow None None
+   17:30 shadow DOUBLE_BOTTOM_EE_LONG  @7808.0   R 38.50  entry_location_quality     מצב UP   pos 0.9   → good  22:15  | שאלות: עובר       | shadow None None
+   17:40 shadow ZLR                    @7805.0   R 15.00  tree:location              מצב UP   pos 0.79  → good  19:35  | שאלות: עובר       | shadow WIN 112.5
+   17:50 shadow ZLR                    @7805.75  R 15.00  tree:location              מצב UP   pos 0.82  → good  19:35  | שאלות: עובר       | shadow WIN 112.5
+   18:00 shadow ZLR                    @7809.75  R 15.00  tree:location              מצב UP   pos 0.95  → good  19:40  | שאלות: עובר       | shadow WIN 112.5
+   18:15 shadow ZLR                    @7807.25  R 13.50  tree:location              מצב UP   pos 0.7   → good  19:35  | שאלות: עובר       | shadow WIN 101.25
+   18:20 shadow REACTIVE_LONG          @7807.25  R 13.50  tree:location              מצב UP   pos 0.7   → good  19:35  | שאלות: עובר       | shadow WIN 101.25
+   18:24 shadow S2_DELTA_DBL_LONG      @7809.75  R 7.75   tree:location              מצב UP   pos 0.89  → good  19:20  | שאלות: עובר       | shadow WIN 19.7
+   18:40 shadow TREND_STEP             @7812.0   R 3.50   tree:location              מצב UP   pos 0.81  → good  18:50  | שאלות: עובר       | shadow WIN 22.5
+   19:10 shadow ZLR                    @7812.75  R 7.75   —                          מצב BAL  pos 0.71  → good  19:35  | שאלות: עובר       | shadow WIN 58.75
+   19:25 shadow GB100                  @7816.0   R 7.50   —                          מצב BAL  pos 0.85  → good  19:40  | שאלות: ש3         | shadow WIN 56.25
+
+שורט 7847.75@22:15 → 7821.0@22:55 (-26.75) · מצב-כיוון אישר 22:45 @7830.25 · 60% מהתנועה ב-22:45
+   (אין מועמד של המערכת בכיוון התנועה בחלון)
+==============================================================================================================
+2026-10-06 · סף 15.00 · IB 7860.25–7888.00
+
+לונג 7860.25@16:35 → 7888.0@17:10 (+27.75) · מצב-כיוון אישר 16:50 @7874.0 · 60% מהתנועה ב-16:55
+   16:30 shadow FAMIR                  @7863.5   R 12.00  tree:stand_down            מצב None pos None  → good  16:55  | שאלות: ש2-פתיחה   | shadow WIN 90.0
+   16:40 shadow CEILING_FLIP_TOUCH2    @7865.25  R 5.25   tree:stand_down            מצב BAL  pos 0.57  → good  16:45  | שאלות: עובר       | shadow WIN 13.75
+   16:45 shadow OPENING_EXTREME_REJECT @7867.5   R 9.75   —                          מצב BAL  pos 0.83  → good  16:55  | שאלות: ש2-פתיחה   | shadow WIN 72.5
+   16:50 shadow OPENING_DRIVE          @7871.5   R 12.75  tree:kind                  מצב BAL  pos 1.0   → good  17:05  | שאלות: ש2-פתיחה   | shadow WIN 95.6
+
+שורט 7888.0@17:10 → 7866.25@17:30 (-21.75) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-17:25
+   (אין מועמד של המערכת בכיוון התנועה בחלון)
+
+לונג 7866.25@17:30 → 7897.5@18:25 (+31.25) · מצב-כיוון אישר 18:10 @7893.0 · 60% מהתנועה ב-17:55
+   17:35 shadow CEILING_FLIP_TOUCH2    @7872.75  R 8.00   tree:kind                  מצב BAL  pos 0.45  → good  17:40  | שאלות: עובר       | shadow WIN 38.75
+   17:35 shadow DOUBLE_BOTTOM_EE_LONG  @7872.75  R 18.00  tree:location              מצב BAL  pos 0.45  → good  18:05  | שאלות: עובר       | shadow WIN 25.62
+   17:36 shadow ZLR                    @7874.75  R 15.00  tree:location              מצב BAL  pos 0.52  → good  18:05  | שאלות: עובר       | shadow WIN 66.25
+   17:50 shadow ZLR                    @7881.25  R 15.00  tree:location              מצב BAL  pos 0.69  → good  18:20  | שאלות: עובר       | shadow None None
+
+שורט 7897.5@18:25 → 7869.75@20:20 (-27.75) · מצב-כיוון אישר 19:20 @7887.75 · 60% מהתנועה ב-19:55
+   18:45 shadow CEILING_FLIP_TOUCH2    @7892.75  R 3.75   —                          מצב UP   pos 0.24  → good  19:05  | שאלות: עובר       | shadow WIN 28.15
+   19:05 shadow CEILING_FLIP_TOUCH2    @7892.0   R 2.00   —                          מצב UP   pos 0.48  → good  19:10  | שאלות: עובר       | shadow WIN 15.0
+   19:10 shadow GB100                  @7889.0   R 5.00   —                          מצב BAL  pos 0.89  → good  19:25  | שאלות: עובר       | shadow WIN 21.25
+   19:10 live   GB100                  @7889.0   R 5.00   —                          מצב BAL  pos 0.89  → good  19:25  | שאלות: עובר       | shadow WIN 21.25
+   19:20 shadow CEILING_FLIP_TOUCH2    @7887.5   R 4.75   tree:bias                  מצב BAL  pos 0.82  → good  19:30  | שאלות: עובר       | shadow WIN 70.0
+   19:25 shadow INITIATIVE_SHORT       @7887.75  R 13.75  tree:bias                  מצב DOWN pos 0.8   → good  20:15  | שאלות: עובר       | shadow None None
+   19:40 shadow CEILING_FLIP_TOUCH2    @7883.5   R 3.00   tree:bias                  מצב DOWN pos 0.84  → good  19:45  | שאלות: עובר       | shadow None None
+==============================================================================================================
+2026-10-07 · סף 15.00 · IB 7820.00–7842.25
+
+שורט 7842.25@16:30 → 7815.75@17:50 (-26.50) · מצב-כיוון אישר 17:45 @7818.0 · 60% מהתנועה ב-16:35
+   16:30 shadow ZLR                    @7838.0   R 13.50  tree:stand_down            מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 101.25
+   16:35 shadow GB100                  @7832.5   R 15.00  tree:stand_down            מצב BAL  pos 1.26  → good  17:40  | שאלות: עובר       | shadow LOSS -75.0
+   16:35 shadow FAILED_BREAK_SHORT     @7834.5   R 12.00  tree:stand_down            מצב BAL  pos 1.0   → good  16:40  | שאלות: עובר       | shadow WIN 60.0
+   16:35 shadow CEILING_FLIP_TOUCH2    @7834.5   R 8.00   tree:stand_down            מצב BAL  pos 1.0   → good  16:40  | שאלות: עובר       | shadow WIN 2.5
+
+לונג 7815.75@17:50 → 7859.5@22:00 (+43.75) · מצב-כיוון אישר 18:15 @7828.5 · 60% מהתנועה ב-18:45
+   17:55 shadow FAILED_RE_IB           @7820.25  R 6.00   tree:kind                  מצב DOWN pos 0.29  → good  18:10  | שאלות: ש1         | shadow WIN 54.35
+   17:55 shadow CEILING_FLIP_TOUCH2    @7819.5   R 4.00   —                          מצב DOWN pos 0.24  → good  18:00  | שאלות: ש1         | shadow WIN 30.0
+   18:00 shadow HTLB                   @7823.25  R 11.50  tree:bias                  מצב BAL  pos 0.53  → good  18:35  | שאלות: ש2-C       | shadow WIN 86.25
+   18:00 shadow CEILING_FLIP_LONG      @7823.5   R 8.00   —                          מצב BAL  pos 0.54  → good  18:10  | שאלות: ש2-C       | shadow WIN 60.0
+   18:05 shadow CEILING_FLIP_TOUCH2    @7819.75  R 3.75   entry_not_confirmed        מצב BAL  pos 0.28  → good  18:10  | שאלות: ש2-C       | shadow WIN 28.15
+   18:10 shadow FAMIR                  @7823.75  R 12.00  tree:bias                  מצב BAL  pos 0.56  → good  18:35  | שאלות: ש2-C       | shadow WIN 90.0
+   18:15 shadow CEILING_FLIP_LONG      @7828.25  R 12.75  —                          מצב BAL  pos 0.71  → good  18:40  | שאלות: ש2-C       | shadow WIN 95.65
+   18:25 shadow ZLR                    @7827.0   R 15.00  tree:bias                  מצב UP   pos 0.64  → good  18:45  | שאלות: עובר       | shadow WIN 112.5
+   18:25 shadow GHOST                  @7827.25  R 15.50  tree:bias                  מצב UP   pos 0.66  → good  18:45  | שאלות: עובר       | shadow WIN 29.23
+   18:40 shadow REACTIVE_LONG          @7837.75  R 26.00  tree:bias                  מצב UP   pos 0.93  → flat         | שאלות: עובר       | shadow None None
+   18:40 shadow DOUBLE_BOTTOM_EE_LONG  @7837.75  R 14.75  entry_location_quality     מצב UP   pos 0.93  → good  20:00  | שאלות: עובר       | shadow None None
+   18:40 shadow GHOST                  @7838.25  R 18.00  tree:bias                  מצב UP   pos 0.95  → good  20:20  | שאלות: עובר       | shadow WIN 29.05
+==============================================================================================================
+2026-10-08 · סף 15.00 · IB 7822.75–7844.50
+
+לונג 7822.75@16:40 → 7844.5@17:25 (+21.75) · מצב-כיוון אישר 17:10 @7837.25 · 60% מהתנועה ב-17:05
+   16:35 shadow CEILING_FLIP_TOUCH2    @7832.0   R 8.75   tree:stand_down            מצב BAL  pos 0.97  → bad   16:40  | שאלות: עובר       | shadow LOSS -43.75
+   16:50 shadow FAILED_BREAK_LONG      @7833.0   R 11.75  tree:bias                  מצב BAL  pos 0.95  → bad   18:15  | שאלות: ש2-פתיחה,ש3 | shadow LOSS -58.75
+   16:50 shadow CEILING_FLIP_TOUCH2    @7832.75  R 9.50   tree:bias                  מצב BAL  pos 0.93  → good  17:20  | שאלות: ש2-פתיחה,ש3 | shadow LOSS -47.5
+   16:50 shadow GB100                  @7832.5   R 15.00  tree:kind                  מצב BAL  pos 0.91  → good  19:15  | שאלות: ש2-פתיחה,ש3 | shadow LOSS -75.0
+   16:57 shadow ZLR                    @7832.75  R 15.00  tree:kind                  מצב BAL  pos 0.74  → good  19:15  | שאלות: ש2-פתיחה   | shadow LOSS -75.0
+   17:00 shadow CEILING_FLIP_TOUCH2    @7831.5   R 4.75   —                          מצב BAL  pos 0.65  → good  17:05  | שאלות: ש2-פתיחה   | shadow WIN 22.5
+
+שורט 7844.5@17:25 → 7820.0@18:35 (-24.50) · מצב-כיוון אישר 18:15 @7823.5 · 60% מהתנועה ב-17:50
+   17:40 shadow VA_FADE_SHORT          @7840.25  R 7.00   —                          מצב UP   pos 0.2   → good  17:50  | שאלות: עובר       | shadow WIN 33.75
+   17:40 shadow CEILING_FLIP_TOUCH2    @7840.0   R 4.75   —                          מצב UP   pos 0.21  → good  17:45  | שאלות: עובר       | shadow WIN 32.5
+   17:40 shadow CEILING_FLIP_SHORT     @7840.0   R 4.75   —                          מצב UP   pos 0.21  → good  17:45  | שאלות: עובר       | shadow WIN 32.5
+   17:40 live   CEILING_FLIP_SHORT     @7840.0   R 4.75   —                          מצב UP   pos 0.21  → good  17:45  | שאלות: עובר       | shadow WIN 6.25
+
+לונג 7820.0@18:35 → 7850.0@19:15 (+30.00) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-19:15
+   18:30 shadow FAILED_RE_IB           @7825.5   R 6.00   —                          מצב DOWN pos 0.2   → good  19:15  | שאלות: עובר       | shadow WIN 40.0
+   18:30 shadow CEILING_FLIP_TOUCH2    @7825.0   R 4.50   —                          מצב DOWN pos 0.18  → bad   18:35  | שאלות: עובר       | shadow LOSS -22.5
+   18:45 shadow CEILING_FLIP_TOUCH2    @7823.5   R 3.75   —                          מצב DOWN pos 0.18  → good  19:10  | שאלות: עובר       | shadow WIN 28.1
+   19:00 shadow CEILING_FLIP_TOUCH2    @7822.5   R 2.50   —                          מצב DOWN pos 0.2   → bad   19:00  | שאלות: עובר       | shadow WIN 18.75
+   19:10 shadow CEILING_FLIP_TOUCH2    @7824.75  R 5.00   —                          מצב DOWN pos 0.47  → good  19:15  | שאלות: עובר       | shadow WIN 37.5
+
+שורט 7850.0@19:15 → 7796.75@20:05 (-53.25) · מצב-כיוון אישר 19:50 @7809.75 · 60% מהתנועה ב-19:45
+   19:20 shadow FAILED_RE_IB           @7833.0   R 12.00  tree:bias                  מצב BAL  pos 0.57  → good  19:45  | שאלות: ש2-C       | shadow WIN 60.0
+   19:30 shadow CEILING_FLIP_TOUCH2    @7833.25  R 4.75   tree:bias                  מצב BAL  pos 0.56  → good  19:35  | שאלות: ש2-C       | shadow WIN 60.0
+
+לונג 7796.75@20:05 → 7813.25@20:15 (+16.50) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-20:10
+   20:00 shadow FAMIR                  @7809.25  R 10.00  tree:bias                  מצב DOWN pos 0.13  → bad   20:00  | שאלות: ש1         | shadow LOSS -50.0
+   20:00 shadow CEILING_FLIP_TOUCH2    @7810.0   R 7.00   —                          מצב DOWN pos 0.14  → bad   20:00  | שאלות: ש1         | shadow LOSS -35.0
+
+שורט 7813.25@20:15 → 7783.0@20:25 (-30.25) · מצב-כיוון אישר 20:15 @7802.5 · 60% מהתנועה ב-20:25
+   20:20 shadow ZLR                    @7802.25  R 15.00  entry_location_quality     מצב DOWN pos 0.87  → good  20:25  | שאלות: עובר       | shadow LOSS -75.0
+
+לונג 7783.0@20:25 → 7807.25@20:45 (+24.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-20:30
+   (אין מועמד של המערכת בכיוון התנועה בחלון)
+
+שורט 7807.25@20:45 → 7791.25@20:50 (-16.00) · מצב-כיוון אישר 20:45 @7793.5 · 60% מהתנועה ב-20:45
+   20:48 shadow ZLR                    @7800.75  R 15.00  structural_targets_wrong_s מצב DOWN pos 0.61  → bad   21:25  | שאלות: עובר       | shadow LOSS -75.0
+
+לונג 7791.25@20:50 → 7819.75@22:55 (+28.50) · מצב-כיוון אישר 21:20 @7813.0 · 60% מהתנועה ב-21:15
+   (אין מועמד של המערכת בכיוון התנועה בחלון)
+==============================================================================================================
+2026-10-09 · סף 15.00 · IB 7826.50–7844.25
+
+שורט 7844.25@16:30 → 7826.5@16:40 (-17.75) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:40
+   16:30 shadow GHOST                  @7838.0   R 18.00  tree:stand_down            מצב None pos None  → bad   19:15  | שאלות: ש2-פתיחה   | shadow WIN 23.27
+   16:35 shadow CEILING_FLIP_TOUCH2    @7841.0   R 4.25   tree:stand_down            מצב BAL  pos 0.38  → good  16:40  | שאלות: ש2-פתיחה   | shadow WIN 20.0
+   16:37 shadow ZLR                    @7838.5   R 15.00  tree:stand_down            מצב BAL  pos 0.68  → bad   18:15  | שאלות: ש2-פתיחה   | shadow LOSS -75.0
+
+לונג 7826.5@16:40 → 7870.75@21:50 (+44.25) · מצב-כיוון אישר 17:25 @7841.0 · 60% מהתנועה ב-19:15
+   16:35 shadow FAMIR                  @7841.0   R 9.25   tree:stand_down            מצב BAL  pos 0.62  → bad   16:40  | שאלות: ש2-פתיחה   | shadow LOSS -46.25
+   16:35 shadow FAILED_BREAK_LONG      @7841.0   R 12.00  tree:stand_down            מצב BAL  pos 0.62  → bad   16:40  | שאלות: ש2-פתיחה   | shadow LOSS -60.0
+   16:40 shadow CEILING_FLIP_TOUCH2    @7841.75  R 9.25   tree:stand_down            מצב BAL  pos 0.77  → bad   16:40  | שאלות: עובר       | shadow LOSS -46.25
+   16:50 shadow OPENING_PULLBACK_CONT  @7833.25  R 10.75  tree:bias                  מצב BAL  pos 0.38  → good  17:50  | שאלות: ש2-פתיחה   | shadow WIN 80.65
+   16:50 shadow CEILING_FLIP_TOUCH2    @7833.25  R 7.00   tree:bias                  מצב BAL  pos 0.38  → good  17:15  | שאלות: ש2-פתיחה   | shadow WIN 42.5
+   17:00 shadow CEILING_FLIP_LONG      @7835.75  R 9.50   tree:bias                  מצב BAL  pos 0.52  → good  17:50  | שאלות: ש2-פתיחה   | shadow WIN 47.5
+   17:10 shadow CEILING_FLIP_TOUCH2    @7836.0   R 6.00   tree:bias                  מצב BAL  pos 0.54  → good  17:20  | שאלות: ש2-פתיחה   | shadow WIN 18.75
+   17:25 shadow INITIATIVE_LONG        @7841.75  R 25.50  tree:bias                  מצב BAL  pos 0.86  → good  21:50  | שאלות: ש2-פתיחה   | shadow None None
+   17:35 shadow TREND_STEP             @7840.5   R 4.00   tree:stand_down            מצב UP   pos 0.85  → bad   17:40  | שאלות: עובר       | shadow LOSS -20.0
+   17:50 shadow GHOST                  @7840.25  R 17.75  tree:stand_down            מצב BAL  pos 0.78  → good  19:30  | שאלות: עובר       | shadow WIN 22.85
+   18:12 shadow ZLR                    @7847.0   R 7.75   entry_not_confirmed        מצב UP   pos 0.77  → good  19:15  | שאלות: עובר       | shadow WIN 30.0
+   18:15 shadow DOUBLE_BOTTOM_EE_LONG  @7847.0   R 7.75   —                          מצב UP   pos 0.73  → good  19:15  | שאלות: עובר       | shadow WIN 30.0
+   18:15 live   DOUBLE_BOTTOM_EE_LONG  @7847.0   R 7.75   —                          מצב UP   pos 0.73  → good  19:15  | שאלות: עובר       | shadow UNPRICED None
+   18:25 shadow TREND_STEP             @7850.25  R 6.50   entry_not_confirmed        מצב UP   pos 0.82  → bad   18:30  | שאלות: עובר       | shadow LOSS -32.5
+   18:35 shadow ZLR                    @7845.75  R 7.75   entry_not_confirmed        מצב UP   pos 0.58  → good  19:05  | שאלות: עובר       | shadow WIN 13.75
+   18:50 shadow ZLR                    @7847.75  R 7.75   —                          מצב UP   pos 0.57  → good  19:15  | שאלות: עובר       | shadow WIN 32.5
+   19:05 shadow ZLR                    @7849.25  R 10.75  extreme_chase_guard        מצב UP   pos 0.65  → good  19:50  | שאלות: עובר       | shadow WIN 80.62
+==============================================================================================================
+2026-10-19 · סף 16.12 · IB 7727.50–7759.75
+
+שורט 7749.75@16:30 → 7727.5@17:00 (-22.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:50
+   16:40 shadow GHOST                  @7739.0   R 18.00  tree:location              מצב BAL  pos 0.84  → bad   17:15  | שאלות: ש2-פתיחה   | shadow WIN 8.6
+   16:40 shadow FAILED_BREAK_SHORT     @7741.25  R 10.00  tree:location              מצב BAL  pos 0.67  → good  16:55  | שאלות: ש2-פתיחה   | shadow WIN 50.0
+   16:45 shadow OPENING_PULLBACK_CONT  @7738.25  R 15.00  tree:location              מצב BAL  pos 0.9   → bad   17:15  | שאלות: ש2-פתיחה   | shadow LOSS -75.0
+   16:50 shadow OPENING_DRIVE          @7737.25  R 14.00  tree:location              מצב BAL  pos 0.85  → bad   17:10  | שאלות: ש2-פתיחה   | shadow LOSS -70.0
+
+לונג 7727.5@17:00 → 7759.75@17:15 (+32.25) · מצב-כיוון אישר 17:15 @7755.25 · 60% מהתנועה ב-17:10
+   17:00 shadow CEILING_FLIP_TOUCH2    @7735.0   R 4.00   tree:bias                  מצב BAL  pos 0.2   → bad   17:00  | שאלות: ש2-פתיחה   | shadow LOSS -20.0
+   17:10 shadow FAMIR                  @7736.0   R 12.00  tree:location              מצב BAL  pos 0.38  → good  17:15  | שאלות: ש2-פתיחה   | shadow WIN 95.0
+
+שורט 7759.75@17:15 → 7738.75@17:30 (-21.00) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-17:30
+   17:10 shadow TREND_STEP             @7735.5   R 3.50   tree:location              מצב BAL  pos 0.64  → bad   17:10  | שאלות: ש2-פתיחה   | shadow LOSS -17.5
+   17:30 shadow CEILING_FLIP_TOUCH2    @7752.0   R 5.25   —                          מצב UP   pos 0.24  → good  17:35  | שאלות: עובר       | shadow WIN 42.5
+
+לונג 7738.75@17:30 → 7773.25@18:35 (+34.50) · מצב-כיוון אישר 18:05 @7754.75 · 60% מהתנועה ב-18:15
+   17:25 shadow TREND_STEP             @7756.75  R 8.75   tree:location              מצב UP   pos 0.91  → bad   17:30  | שאלות: עובר       | shadow LOSS -43.75
+   17:30 shadow DOUBLE_BOTTOM_EE_LONG  @7752.25  R 28.75  tree:location              מצב UP   pos 0.77  → flat         | שאלות: עובר       | shadow WIN 55.62
+   17:40 shadow CEILING_FLIP_TOUCH2    @7742.75  R 4.25   —                          מצב BAL  pos 0.47  → good  17:45  | שאלות: ש2-C       | shadow WIN 17.5
+   17:45 shadow ZLR                    @7746.0   R 15.00  tree:location              מצב BAL  pos 0.57  → good  18:15  | שאלות: ש2-C       | shadow WIN 68.75
+   18:00 shadow ZLR                    @7750.5   R 15.00  tree:location              מצב BAL  pos 0.71  → good  18:20  | שאלות: עובר       | shadow WIN 112.5
+   18:13 shadow ZLR                    @7758.25  R 15.00  tree:location              מצב UP   pos 0.94  → good  18:35  | שאלות: עובר       | shadow LOSS -75.0
+   18:18 shadow S2_DELTA_DBL_LONG      @7761.75  R 23.25  tree:location              מצב UP   pos 1.1   → bad   20:05  | שאלות: עובר       | shadow WIN 37.15
+
+שורט 7773.25@18:35 → 7735.5@20:45 (-37.75) · מצב-כיוון אישר 19:05 @7751.25 · 60% מהתנועה ב-19:30
+   18:55 shadow CEILING_FLIP_TOUCH2    @7766.25  R 3.50   —                          מצב UP   pos 0.27  → good  19:00  | שאלות: עובר       | shadow WIN 26.25
+   19:05 shadow GB100                  @7753.25  R 15.00  tree:bias                  מצב BAL  pos 0.77  → good  20:40  | שאלות: ש3         | shadow WIN 112.5
+   19:15 shadow INITIATIVE_SHORT       @7754.75  R 22.50  tree:bias                  מצב DOWN pos 0.69  → good  22:55  | שאלות: עובר       | shadow None None
+   19:15 shadow TREND_STEP             @7755.0   R 4.25   tree:bias                  מצב DOWN pos 0.68  → good  19:20  | שאלות: עובר       | shadow WIN 51.25
+   19:15 shadow ZLR                    @7753.0   R 15.00  tree:bias                  מצב DOWN pos 0.76  → good  20:40  | שאלות: עובר       | shadow WIN 112.5
+   19:20 shadow CEILING_FLIP_TOUCH2    @7753.25  R 4.00   tree:bias                  מצב DOWN pos 0.75  → good  19:25  | שאלות: עובר       | shadow WIN 83.75
+   19:25 shadow REACTIVE_SHORT         @7751.75  R 25.50  tree:bias                  מצב DOWN pos 0.8   → flat         | שאלות: עובר       | shadow None None
+   19:30 shadow ZLR                    @7746.5   R 15.00  tree:bias                  מצב DOWN pos 1.0   → good  22:55  | שאלות: עובר       | shadow WIN 112.5
+
+לונג 7735.5@20:45 → 7754.5@22:25 (+19.00) · מצב-כיוון אישר 22:20 @7754.0 · 60% מהתנועה ב-21:15
+   20:40 shadow VA_FADE_LONG           @7741.5   R 5.75   rr_entry_gate              מצב DOWN pos 0.23  → bad   20:45  | שאלות: ש1         | shadow LOSS -28.75
+   20:40 shadow CEILING_FLIP_TOUCH2    @7741.5   R 3.25   rr_entry_gate              מצב DOWN pos 0.23  → bad   20:40  | שאלות: ש1         | shadow LOSS -16.25
+   20:55 shadow CEILING_FLIP_TOUCH2    @7740.5   R 5.25   pattern_stop_cooldown      מצב DOWN pos 0.44  → good  21:00  | שאלות: ש1         | shadow LOSS -26.25
+   21:00 shadow CEILING_FLIP_LONG      @7744.5   R 9.25   pattern_stop_cooldown      מצב BAL  pos 0.8   → good  22:20  | שאלות: ש2-D       | shadow WIN 2.5
+   21:00 shadow GB100                  @7745.0   R 6.25   —                          מצב BAL  pos 0.84  → bad   21:00  | שאלות: ש2-D       | shadow LOSS -31.25
+   21:00 demo   GB100                  @7745.0   R 6.25   —                          מצב BAL  pos 0.84  → bad   21:00  | שאלות: ש2-D       | shadow LOSS -31.25
+   21:05 shadow CEILING_FLIP_TOUCH2    @7742.25  R 6.25   pattern_stop_cooldown      מצב BAL  pos 0.6   → good  21:15  | שאלות: ש2-D       | shadow LOSS -31.25
+   21:10 shadow GB100                  @7744.25  R 12.75  pattern_stop_cooldown      מצב BAL  pos 0.78  → bad   22:55  | שאלות: ש2-D       | shadow LOSS -63.75
+   21:10 shadow INITIATIVE_LONG        @7744.25  R 6.25   rr_entry_gate              מצב BAL  pos 0.78  → bad   21:25  | שאלות: ש2-D       | shadow WIN 11.25
+
+שורט 7754.5@22:25 → 7730.75@22:55 (-23.75) · מצב-כיוון אישר 22:50 @7740.25 · 60% מהתנועה ב-22:50
+   22:30 shadow CEILING_FLIP_TOUCH2    @7749.5   R 5.25   tree:time_cutoff           מצב UP   pos 0.26  → good  22:50  | שאלות: ש1         | shadow WIN 68.75
+   22:45 shadow CEILING_FLIP_TOUCH2    @7749.25  R 4.00   tree:time_cutoff           מצב UP   pos 0.4   → good  22:50  | שאלות: ש1         | shadow WIN 65.0
+   22:50 shadow REACTIVE_SHORT         @7747.0   R 11.50  tree:time_cutoff           מצב BAL  pos 0.57  → good  22:55  | שאלות: ש2-D       | shadow WIN 86.25
+==============================================================================================================
+2026-10-20 · סף 37.88 · IB 7710.25–7786.00
+
+לונג 7710.25@16:45 → 7791.5@17:30 (+81.25) · מצב-כיוון אישר 16:55 @7748.0 · 60% מהתנועה ב-17:10
+   16:50 shadow OPENING_ORR            @7729.0   R 15.00  —                          מצב BAL  pos 0.89  → good  16:55  | שאלות: עובר       | shadow WIN 432.5
+   16:50 shadow DALTON_EDGE_LONG       @7729.0   R 4.25   —                          מצב BAL  pos 0.89  → good  16:55  | שאלות: עובר       | shadow WIN 586.25
+   16:50 shadow CEILING_FLIP_TOUCH2    @7729.0   R 19.00  —                          מצב BAL  pos 0.89  → good  16:55  | שאלות: עובר       | shadow None 140.0
+   16:50 shadow ZLR                    @7728.5   R 11.50  —                          מצב BAL  pos 0.87  → good  16:55  | שאלות: עובר       | shadow WIN 243.75
+   16:50 demo   OPENING_ORR            @7729.0   R 15.00  —                          מצב BAL  pos 0.89  → good  16:55  | שאלות: עובר       | shadow WIN 496.25
+   16:55 shadow FAILED_BREAK_LONG      @7732.5   R 12.50  —                          מצב BAL  pos 0.81  → good  17:00  | שאלות: ש2-פתיחה   | shadow WIN 297.5
+
+שורט 7791.5@17:30 → 7746.25@22:35 (-45.25) · מצב-כיוון אישר 18:15 @7766.5 · 60% מהתנועה ב-18:10
+   17:40 shadow VA_FADE_SHORT          @7777.75  R 10.75  —                          מצב UP   pos 0.17  → bad   17:55  | שאלות: עובר       | shadow LOSS -215.0
+   17:50 shadow CEILING_FLIP_TOUCH2    @7781.25  R 6.00   —                          מצב UP   pos 0.16  → bad   17:50  | שאלות: עובר       | shadow LOSS -150.0
+   18:10 shadow REACTIVE_SHORT         @7777.75  R 17.75  tree:bias                  מצב UP   pos 0.36  → good  18:15  | שאלות: עובר       | shadow WIN 332.5
+==============================================================================================================
+2026-10-21 · סף 15.00 · IB 7751.00–7780.75
+
+לונג 7764.5@16:30 → 7780.0@16:30 (+15.50) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:30
+   16:30 shadow RE_ACCEPTANCE          @7784.75  R 8.25   tree:stand_down            מצב None pos None  → bad   16:30  | שאלות: ש2-פתיחה   | shadow LOSS -206.25
+
+שורט 7780.0@16:30 → 7764.75@16:40 (-15.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:30
+   16:30 shadow DALTON_EDGE_SHORT      @7779.25  R 7.00   tree:stand_down            מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 122.5
+   16:30 shadow FAILED_RE_IB           @7779.0   R 9.00   tree:stand_down            מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 137.5
+   16:30 shadow CEILING_FLIP_TOUCH2    @7779.25  R 5.25   tree:stand_down            מצב None pos None  → good  16:35  | שאלות: ש2-פתיחה   | shadow WIN 96.25
+
+לונג 7764.75@16:40 → 7780.75@16:45 (+16.00) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:45
+   16:40 shadow FAILED_BREAK_LONG      @7777.0   R 12.00  tree:stand_down            מצב BAL  pos 0.81  → bad   16:40  | שאלות: ש2-פתיחה   | shadow LOSS -180.0
+
+שורט 7780.75@16:45 → 7751.0@17:10 (-29.75) · מצב-כיוון אישר 17:05 @7755.5 · 60% מהתנועה ב-17:05
+   16:45 shadow CEILING_FLIP_TOUCH2    @7768.0   R 12.25  rr_hard_floor              מצב BAL  pos 0.77  → bad   16:45  | שאלות: ש2-פתיחה,ש3 | shadow WIN 25.0
+   16:55 shadow ZLR                    @7772.75  R 15.00  tree:location              מצב BAL  pos 0.49  → good  17:05  | שאלות: ש2-פתיחה   | shadow LOSS -225.0
+   17:00 shadow CEILING_FLIP_TOUCH2    @7773.75  R 7.25   entry_not_confirmed        מצב BAL  pos 0.43  → good  17:05  | שאלות: ש2-פתיחה   | shadow WIN 88.75
+   17:05 shadow GHOST                  @7766.25  R 18.00  tree:location              מצב BAL  pos 0.89  → bad   18:15  | שאלות: ש2-פתיחה   | shadow WIN 174.77
+
+לונג 7751.0@17:10 → 7811.75@21:15 (+60.75) · מצב-כיוון אישר 18:30 @7788.5 · 60% מהתנועה ב-18:25
+   17:20 shadow CEILING_FLIP_TOUCH2    @7755.5   R 4.75   —                          מצב DOWN pos 0.15  → good  17:25  | שאלות: עובר       | shadow WIN 598.75
+   17:30 shadow VA_FADE_LONG           @7760.75  R 7.75   —                          מצב DOWN pos 0.33  → good  17:40  | שאלות: עובר       | shadow WIN 270.0
+   17:35 shadow CEILING_FLIP_LONG      @7766.5   R 15.75  tree:location              מצב BAL  pos 0.52  → good  18:10  | שאלות: עובר       | shadow WIN 358.75
+   17:45 shadow CEILING_FLIP_TOUCH2    @7769.25  R 8.25   rr_entry_gate              מצב BAL  pos 0.61  → good  17:50  | שאלות: עובר       | shadow WIN 141.25
+   18:00 shadow TREND_STEP             @7776.25  R 5.25   tree:location              מצב BAL  pos 0.89  → good  18:10  | שאלות: עובר       | shadow WIN 228.75
+   18:23 shadow ZLR                    @7783.75  R 15.00  structural_targets_wrong_s מצב BAL  pos 0.98  → good  19:35  | שאלות: עובר       | shadow WIN 237.5
+
+שורט 7811.75@21:15 → 7770.75@22:00 (-41.00) · מצב-כיוון אישר 21:50 @7800.5 · 60% מהתנועה ב-22:00
+   21:30 shadow CEILING_FLIP_TOUCH2    @7809.75  R 2.25   tree:stand_down            מצב BAL  pos 0.2   → good  21:45  | שאלות: ש2-D       | shadow None None
+   21:40 shadow CEILING_FLIP_TOUCH2    @7809.75  R 1.50   tree:stand_down            מצב UP   pos 0.22  → good  21:45  | שאלות: עובר       | shadow None None
+   21:50 shadow CEILING_FLIP_TOUCH2    @7798.5   R 12.50  tree:stand_down            מצב BAL  pos 1.0   → good  21:55  | שאלות: ש2-D,ש3    | shadow WIN 125.0
+   21:50 shadow CEILING_FLIP_SHORT     @7798.5   R 13.50  tree:stand_down            מצב BAL  pos 1.0   → good  22:00  | שאלות: ש2-D,ש3    | shadow WIN 203.75
+
+לונג 7770.75@22:00 → 7806.25@22:50 (+35.50) · מצב-כיוון אישר 22:20 @7790.75 · 60% מהתנועה ב-22:25
+   21:55 shadow DALTON_EDGE_LONG       @7800.25  R 7.00   rr_entry_gate              מצב DOWN pos 0.36  → bad   21:55  | שאלות: ש1         | shadow LOSS -175.0
+==============================================================================================================
+2026-10-22 · סף 23.12 · IB 7696.25–7742.50
+
+לונג 7719.0@16:50 → 7742.5@17:00 (+23.50) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:55
+   16:50 shadow DALTON_EDGE_LONG       @7728.75  R 10.50  mid_value_no_edge_test     מצב BAL  pos 0.41  → good  17:00  | שאלות: ש2-פתיחה   | shadow LOSS -210.0
+        עץ(לוג): TAKE hour=*(16)/opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=REVERSAL
+   16:50 shadow ZLR                    @7728.0   R 11.75  tree:kind                  מצב BAL  pos 0.38  → good  17:00  | שאלות: ש2-פתיחה   | shadow WIN 63.75
+        עץ(לוג): SKIP hour=*(16)/opening_type=OPEN_AUCTION_IN/phase=B/day_type=*(FORMING)/kind=*(BREAK)/edge=*(none)
+
+שורט 7742.5@17:00 → 7686.0@17:35 (-56.50) · מצב-כיוון אישר 17:25 @7698.25 · 60% מהתנועה ב-17:25
+   17:00 shadow CEILING_FLIP_TOUCH2    @7737.0   R 2.50   entry_not_confirmed        מצב BAL  pos 0.17  → bad   17:00  | שאלות: ש2-פתיחה   | shadow LOSS -62.5
+        עץ(לוג): TAKE hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(Variation)/kind=EDGE_FADE
+   17:10 shadow ZLR                    @7726.5   R 15.00  tree:kind                  מצב BAL  pos 0.68  → good  17:20  | שאלות: ש2-פתיחה   | shadow WIN 377.5
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)
+   17:15 shadow GB100                  @7721.25  R 15.00  tree:kind                  מצב BAL  pos 0.9   → good  17:25  | שאלות: ש2-פתיחה   | shadow WIN 226.25
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)
+
+לונג 7686.0@17:35 → 7713.0@18:25 (+27.00) · מצב-כיוון אישר 18:20 @7711.0 · 60% מהתנועה ב-18:15
+   17:50 shadow CEILING_FLIP_TOUCH2    @7691.5   R 5.25   —                          מצב DOWN pos 0.1   → good  17:55  | שאלות: עובר       | shadow WIN 82.55
+        עץ(לוג): TAKE hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension
+   17:50 demo   CEILING_FLIP_TOUCH2    @7691.25  R 5.00   —                          מצב DOWN pos 0.09  → good  17:55  | שאלות: עובר       | shadow WIN 90.0
+        עץ(לוג): TAKE hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=failed_extension
+   18:00 shadow FAILED_RE_IB           @7698.75  R 12.00  tree:bias                  מצב DOWN pos 0.23  → good  18:20  | שאלות: עובר       | shadow WIN 224.4
+        עץ(לוג): SKIP hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(FAILED_RE_IB)/rel_bias=against/edge=*(none)
+   18:00 shadow CEILING_FLIP_TOUCH2    @7698.25  R 11.50  —                          מצב DOWN pos 0.22  → good  18:20  | שאלות: עובר       | shadow WIN 88.75
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension
+   18:00 shadow CEILING_FLIP_LONG      @7698.25  R 12.50  —                          מצב DOWN pos 0.22  → good  18:20  | שאלות: עובר       | shadow WIN 96.25
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_LONG)/rel_bias=against/edge=failed_extension
+
+שורט 7713.0@18:25 → 7688.5@18:40 (-24.50) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-18:30
+   18:31 shadow ZLR                    @7694.0   R 15.00  mid_value_no_edge_test     מצב BAL  pos 0.7   → bad   18:55  | שאלות: עובר       | shadow LOSS -150.0
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=with
+
+לונג 7688.5@18:40 → 7723.75@19:20 (+35.25) · מצב-כיוון אישר 18:55 @7712.75 · 60% מהתנועה ב-18:55
+   18:35 shadow CEILING_FLIP_TOUCH2    @7697.75  R 7.75   tree:bias                  מצב BAL  pos 0.44  → bad   18:40  | שאלות: עובר       | shadow LOSS -193.75
+        עץ(לוג): SKIP hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=*(none)
+
+שורט 7723.75@19:20 → 7679.0@21:00 (-44.75) · מצב-כיוון אישר 19:35 @7701.25 · 60% מהתנועה ב-19:40
+   19:15 shadow CEILING_FLIP_TOUCH2    @7716.0   R 2.50   mid_value_no_edge_test     מצב UP   pos 0.11  → bad   19:15  | שאלות: ש1         | shadow LOSS -62.5
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with
+   19:25 shadow VA_FADE_SHORT          @7720.5   R 8.50   —                          מצב UP   pos 0.09  → good  19:30  | שאלות: עובר       | shadow WIN 331.25
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=with
+   19:30 shadow CEILING_FLIP_TOUCH2    @7718.25  R 5.75   —                          מצב BAL  pos 0.16  → good  19:35  | שאלות: עובר       | shadow WIN 302.5
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with
+   19:30 demo   CEILING_FLIP_TOUCH2    @7715.25  R 8.75   —                          מצב BAL  pos 0.24  → good  19:35  | שאלות: עובר       | shadow WIN 227.5
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with
+   19:35 shadow CEILING_FLIP_SHORT     @7707.5   R 16.50  mid_value_no_edge_test     מצב BAL  pos 0.46  → good  19:45  | שאלות: עובר       | shadow WIN 147.5
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=with
+   19:35 shadow DOUBLE_TOP_AA_SHORT    @7707.5   R 20.25  mid_value_no_edge_test     מצב BAL  pos 0.46  → good  19:50  | שאלות: עובר       | shadow WIN 183.47
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=with
+   19:40 shadow REACTIVE_SHORT         @7701.75  R 26.00  mid_value_no_edge_test     מצב DOWN pos 0.62  → flat         | שאלות: ש4         | shadow None None
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=with
+
+לונג 7679.0@21:00 → 7703.25@21:20 (+24.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-21:15
+   21:10 shadow CEILING_FLIP_TOUCH2    @7689.5   R 10.75  tree:stand_down            מצב BAL  pos 0.4   → good  21:20  | שאלות: ש2-D       | shadow LOSS -215.0
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(none)
+   21:10 shadow FAMIR                  @7689.25  R 12.00  tree:stand_down            מצב BAL  pos 0.39  → good  21:20  | שאלות: ש2-D       | shadow LOSS -120.0
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(none)
+   21:15 shadow CEILING_FLIP_LONG      @7691.5   R 12.75  tree:stand_down            מצב BAL  pos 0.47  → bad   22:00  | שאלות: ש2-D       | shadow WIN 26.25
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(none)
+
+שורט 7703.25@21:20 → 7677.0@22:00 (-26.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-21:30
+   21:15 shadow ZLR                    @7691.5   R 15.00  mid_value_no_edge_test     מצב BAL  pos 0.53  → bad   22:55  | שאלות: ש2-D       | shadow WIN 62.5
+        עץ(לוג): TAKE hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=with
+   21:27 shadow ZLR                    @7693.25  R 15.00  mid_value_no_edge_test     מצב BAL  pos 0.46  → good  22:00  | שאלות: ש2-D       | shadow WIN 71.25
+        עץ(לוג): TAKE hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=with
+
+לונג 7677.0@22:00 → 7706.75@22:55 (+29.75) · מצב-כיוון אישר 22:55 @7706.25 · 60% מהתנועה ב-22:25
+   21:55 shadow CEILING_FLIP_TOUCH2    @7685.0   R 2.25   tree:stand_down            מצב BAL  pos 0.25  → bad   21:55  | שאלות: ש2-D       | shadow LOSS -56.25
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(against)
+   22:20 shadow DOUBLE_BOTTOM_EE_LONG  @7691.0   R 18.00  tree:time_cutoff           מצב BAL  pos 0.53  → flat         | שאלות: ש2-D       | shadow WIN 37.5
+        עץ(לוג): SKIP hour=22
+   22:25 shadow CEILING_FLIP_TOUCH2    @7692.5   R 6.25   tree:time_cutoff           מצב BAL  pos 0.7   → bad   22:35  | שאלות: ש2-D       | shadow LOSS -156.25
+        עץ(לוג): SKIP hour=22
+==============================================================================================================
+2026-10-23 · סף 15.00 · IB 7648.50–7676.25
+
+שורט 7669.75@16:30 → 7653.0@16:35 (-16.75) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:35
+   16:30 shadow FAILED_RE_IB           @7660.75  R 12.00  tree:stand_down            מצב None pos None  → bad   16:50  | שאלות: ש2-פתיחה   | shadow LOSS -180.0
+        עץ(לוג): SKIP hour=*(16)/opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)
+   16:30 shadow CEILING_FLIP_TOUCH2    @7661.0   R 9.75   tree:stand_down            מצב None pos None  → bad   16:45  | שאלות: ש2-פתיחה   | shadow WIN 100.0
+        עץ(לוג): SKIP hour=*(16)/opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)
+   16:35 shadow FAILED_BREAK_SHORT     @7662.0   R 12.00  tree:stand_down            מצב BAL  pos 0.74  → bad   16:50  | שאלות: ש2-פתיחה   | shadow LOSS -180.0
+        עץ(לוג): SKIP hour=*(16)/opening_type=*(UNKNOWN)/phase=A/day_type=*(FORMING)
+
+לונג 7653.0@16:35 → 7676.25@17:00 (+23.25) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-16:40
+   (אין מועמד של המערכת בכיוון התנועה בחלון)
+
+שורט 7676.25@17:00 → 7648.5@17:25 (-27.75) · מצב-כיוון אישר 17:20 @7654.0 · 60% מהתנועה ב-17:15
+   16:55 shadow DALTON_EDGE_SHORT      @7665.25  R 10.75  mid_value_no_edge_test     מצב BAL  pos 0.42  → bad   17:00  | שאלות: ש2-פתיחה   | shadow LOSS -215.0
+        עץ(לוג): TAKE hour=*(16)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(FORMING)/kind=REVERSAL
+   16:55 shadow ZLR                    @7664.75  R 15.00  tree:kind                  מצב BAL  pos 0.44  → good  17:25  | שאלות: ש2-פתיחה   | shadow WIN 58.75
+        עץ(לוג): SKIP hour=*(16)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)
+   17:06 shadow ZLR                    @7664.75  R 15.00  tree:kind                  מצב BAL  pos 0.49  → good  17:25  | שאלות: ש2-פתיחה   | shadow WIN 58.75
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=B/day_type=*(Variation)/kind=*(BREAK)/edge=*(none)
+
+לונג 7648.5@17:25 → 7697.25@18:25 (+48.75) · מצב-כיוון אישר 17:40 @7678.5 · 60% מהתנועה ב-17:40
+   17:30 shadow CEILING_FLIP_TOUCH2    @7658.75  R 10.50  tree:kind                  מצב DOWN pos 0.37  → good  17:40  | שאלות: עובר       | shadow WIN 285.0
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)
+   17:30 shadow FAMIR                  @7658.25  R 12.00  tree:location              מצב DOWN pos 0.35  → good  17:40  | שאלות: עובר       | shadow WIN 178.75
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(mid_value)/edge=*(none)
+   17:40 shadow CEILING_FLIP_TOUCH2    @7666.0   R 11.00  tree:location              מצב BAL  pos 0.63  → good  17:45  | שאלות: עובר       | shadow WIN 132.5
+        עץ(לוג): SKIP hour=*(17)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Normal/structure=*(none)/direction=LONG/zone=*(near_vah)/edge=*(none)
+
+שורט 7697.25@18:25 → 7661.5@20:15 (-35.75) · מצב-כיוון אישר 19:25 @7678.5 · 60% מהתנועה ב-19:55
+   18:20 shadow CEILING_FLIP_TOUCH2    @7689.75  R 4.00   entry_not_confirmed        מצב UP   pos 0.08  → bad   18:25  | שאלות: עובר       | shadow LOSS -100.0
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension
+   18:40 shadow CEILING_FLIP_TOUCH2    @7689.25  R 6.50   pattern_stop_cooldown      מצב UP   pos 0.25  → good  18:45  | שאלות: עובר       | shadow WIN 101.25
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension
+   18:45 shadow VA_FADE_SHORT          @7684.25  R 8.25   tree:kind                  מצב UP   pos 0.58  → bad   18:55  | שאלות: ש1         | shadow LOSS -206.25
+        עץ(לוג): SKIP hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(VA_FADE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)
+   18:45 shadow CEILING_FLIP_SHORT     @7684.5   R 13.00  pattern_stop_cooldown      מצב UP   pos 0.57  → good  20:05  | שאלות: ש1         | shadow None 97.5
+        עץ(לוג): TAKE hour=*(18)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_SHORT)/rel_bias=*(none)/kind=*(REVERSAL)/edge=failed_extension
+   19:05 shadow CEILING_FLIP_TOUCH2    @7690.0   R 4.00   mid_value_no_edge_test     מצב UP   pos 0.41  → good  19:10  | שאלות: עובר       | shadow WIN 63.75
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=against/edge=failed_extension
+   19:15 shadow GHOST                  @7686.5   R 8.00   —                          מצב UP   pos 0.67  → good  19:20  | שאלות: עובר       | shadow WIN 35.0
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK
+   19:20 shadow GB100                  @7683.75  R 8.00   —                          מצב UP   pos 0.84  → good  19:50  | שאלות: ש1         | shadow WIN 35.0
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(GB100)/rel_bias=*(none)/kind=BREAK
+   19:25 shadow REACTIVE_SHORT         @7679.0   R 22.25  tree:kind                  מצב BAL  pos 0.89  → flat         | שאלות: עובר       | shadow None None
+        עץ(לוג): SKIP hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)
+   19:25 shadow DOUBLE_TOP_AA_SHORT    @7679.0   R 18.50  mid_value_no_edge_test     מצב BAL  pos 0.89  → good  22:50  | שאלות: עובר       | shadow None None
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK
+   19:30 shadow GHOST                  @7679.0   R 18.00  mid_value_no_edge_test     מצב DOWN pos 0.87  → good  22:50  | שאלות: עובר       | shadow None None
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(GHOST)/rel_bias=*(none)/kind=BREAK
+   19:51 shadow ZLR                    @7685.25  R 8.25   —                          מצב BAL  pos 0.49  → good  19:55  | שאלות: ש2-C       | shadow WIN 103.75
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=*(none)/kind=BREAK
+   19:55 shadow REACTIVE_SHORT         @7676.75  R 21.00  tree:kind                  מצב BAL  pos 0.89  → flat         | שאלות: ש2-C       | shadow None None
+        עץ(לוג): SKIP hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(REACTIVE_SHORT)/rel_bias=*(none)/kind=*(EDGE_FADE)/edge=*(none)
+   19:55 shadow DOUBLE_TOP_AA_SHORT    @7676.75  R 16.75  wait_for_test              מצב BAL  pos 0.89  → good  22:50  | שאלות: ש2-C       | shadow None None
+        עץ(לוג): TAKE hour=*(19)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(DOUBLE_TOP_AA_SHORT)/rel_bias=*(none)/kind=BREAK
+
+לונג 7661.5@20:15 → 7677.5@20:55 (+16.00) · מצב-כיוון אישר לא אישר · 60% מהתנועה ב-20:55
+   20:30 shadow CEILING_FLIP_TOUCH2    @7665.75  R 4.50   mid_value_no_edge_test     מצב DOWN pos 0.15  → good  20:45  | שאלות: ש1         | shadow WIN 37.5
+        עץ(לוג): TAKE hour=*(20)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(CEILING_FLIP_TOUCH2)/rel_bias=with
+
+שורט 7677.5@20:55 → 7657.75@22:55 (-19.75) · מצב-כיוון אישר 21:40 @7666.0 · 60% מהתנועה ב-21:35
+   20:55 shadow ZLR                    @7667.75  R 13.75  tree:bias                  מצב DOWN pos 0.65  → flat         | שאלות: עובר       | shadow None None
+        עץ(לוג): SKIP hour=*(20)/opening_type=OPEN_AUCTION_OUT/phase=C/day_type=Variation/pattern=*(ZLR)/rel_bias=against/edge=*(none)
+   21:00 shadow CEILING_FLIP_TOUCH2    @7674.0   R 3.75   tree:stand_down            מצב BAL  pos 0.22  → good  21:05  | שאלות: ש2-D       | shadow None 145.0
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(against)
+   21:05 shadow ZLR                    @7667.25  R 14.25  tree:stand_down            מצב BAL  pos 0.64  → flat         | שאלות: ש2-D       | shadow None None
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(against)
+   21:25 shadow HTLB                   @7669.0   R 12.50  tree:stand_down            מצב BAL  pos 0.53  → flat         | שאלות: ש2-D       | shadow None None
+        עץ(לוג): SKIP hour=*(21)/opening_type=OPEN_AUCTION_OUT/phase=D/day_type=Variation/rel_bias=*(against)

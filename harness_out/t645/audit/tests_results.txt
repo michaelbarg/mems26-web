@@ -1,0 +1,15 @@
+# started 2026-10-24 11:10:06
+backend/v9/tests/test_dalton_playbook.py | rc=1 | 3 failed, 29 passed in 0.18s | 0.5s
+    FAILED backend/v9/tests/test_dalton_playbook.py::TestPhaseD::test_management_only
+    FAILED backend/v9/tests/test_dalton_playbook.py::TestPolicyKeys::test_phase_d_as_phase_c
+    FAILED backend/v9/tests/test_dalton_playbook.py::TestPolicyKeys::test_phase_d_manage_only
+backend/v9/tests/test_opening_entry_gap_fixes.py | rc=1 | 4 failed, 8 passed in 0.87s | 1.3s
+    FAILED backend/v9/tests/test_opening_entry_gap_fixes.py::TestConfidenceEngineFuse::test_orr_fuse_passes_at_065
+    FAILED backend/v9/tests/test_opening_entry_gap_fixes.py::TestConfidenceEngineFuse::test_fuse_off_uses_detector_conf
+    FAILED backend/v9/tests/test_opening_entry_gap_fixes.py::TestConfidenceEngineFuse::test_no_trigger_type_no_fuse
+    FAILED backend/v9/tests/test_opening_entry_gap_fixes.py::TestCodePaths::test_b1_flag_in_code
+tests/v9/regression/test_dalton_playbook_identity.py | rc=0 | 3 passed, 2 warnings in 0.35s | 2.1s
+tests/v9/regression/test_no_label_phase_gate.py | rc=0 | 6 passed, 2 warnings in 0.10s | 1.9s
+tests/v9/regression/test_phase_d_trend_days.py | rc=0 | 5 passed, 2 warnings in 0.12s | 1.9s
+backend/v9/tests/test_next_fire.py | rc=0 | 7 passed in 0.10s | 0.4s
+# finished 2026-10-24 11:10:15
