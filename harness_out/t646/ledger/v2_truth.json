@@ -1,0 +1,1061 @@
+{
+ "2026-06-05": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "down",
+  "lock_bar": 3,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 38,
+  "atr": null,
+  "has_prev": false
+ },
+ "2026-06-08": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 53,
+  "atr": null,
+  "has_prev": true
+ },
+ "2026-06-09": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": null,
+  "has_prev": true
+ },
+ "2026-06-10": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 17.388,
+  "has_prev": true
+ },
+ "2026-06-11": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [
+   [
+    7,
+    "OPEN_REJECTION_REVERSE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 16.748,
+  "has_prev": true
+ },
+ "2026-06-12": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 16.361,
+  "has_prev": true
+ },
+ "2026-06-15": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 14.833,
+  "has_prev": true
+ },
+ "2026-06-16": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 11.276,
+  "has_prev": true
+ },
+ "2026-06-17": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 8.269,
+  "has_prev": true
+ },
+ "2026-06-18": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.946,
+  "has_prev": true
+ },
+ "2026-06-19": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 42,
+  "atr": 8.764,
+  "has_prev": true
+ },
+ "2026-06-22": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 8.764,
+  "has_prev": true
+ },
+ "2026-06-23": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 3,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 9.382,
+  "has_prev": true
+ },
+ "2026-06-24": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 8.516,
+  "has_prev": true
+ },
+ "2026-06-25": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 9.6,
+  "has_prev": true
+ },
+ "2026-06-26": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 6,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 11.511,
+  "has_prev": true
+ },
+ "2026-06-29": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 8,
+  "at6": "OPEN_DRIVE",
+  "revoked": [
+   [
+    7,
+    "OPEN_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 12.082,
+  "has_prev": true
+ },
+ "2026-06-30": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 11.068,
+  "has_prev": true
+ },
+ "2026-07-01": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [
+   [
+    6,
+    "OPEN_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 8.241,
+  "has_prev": true
+ },
+ "2026-07-02": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.627,
+  "has_prev": true
+ },
+ "2026-07-03": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 42,
+  "atr": 7.503,
+  "has_prev": true
+ },
+ "2026-07-06": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.503,
+  "has_prev": true
+ },
+ "2026-07-07": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.327,
+  "has_prev": true
+ },
+ "2026-07-08": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 6,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.469,
+  "has_prev": true
+ },
+ "2026-07-09": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 3,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.694,
+  "has_prev": true
+ },
+ "2026-07-10": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.728,
+  "has_prev": true
+ },
+ "2026-07-13": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.456,
+  "has_prev": true
+ },
+ "2026-07-14": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [
+   [
+    7,
+    "OPEN_REJECTION_REVERSE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 6.099,
+  "has_prev": true
+ },
+ "2026-07-15": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 60,
+  "atr": 6.697,
+  "has_prev": true
+ },
+ "2026-07-16": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 65,
+  "atr": 6.996,
+  "has_prev": true
+ },
+ "2026-07-17": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.813,
+  "has_prev": true
+ },
+ "2026-07-20": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 6,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.115,
+  "has_prev": true
+ },
+ "2026-07-21": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 71,
+  "atr": 7.342,
+  "has_prev": true
+ },
+ "2026-07-22": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 57,
+  "atr": 6.445,
+  "has_prev": true
+ },
+ "2026-07-23": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.445,
+  "has_prev": true
+ },
+ "2026-07-24": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [
+   [
+    5,
+    "OPEN_DRIVE"
+   ],
+   [
+    8,
+    "OPEN_TEST_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 6.707,
+  "has_prev": true
+ },
+ "2026-07-27": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.803,
+  "has_prev": true
+ },
+ "2026-07-28": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 73,
+  "atr": 8.251,
+  "has_prev": true
+ },
+ "2026-07-29": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.621,
+  "has_prev": true
+ },
+ "2026-07-30": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 9.335,
+  "has_prev": true
+ },
+ "2026-07-31": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 3,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 9.212,
+  "has_prev": true
+ },
+ "2026-08-03": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 10.098,
+  "has_prev": true
+ },
+ "2026-08-04": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 41,
+  "atr": 7.412,
+  "has_prev": true
+ },
+ "2026-08-05": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.412,
+  "has_prev": true
+ },
+ "2026-08-06": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.296,
+  "has_prev": true
+ },
+ "2026-08-07": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.457,
+  "has_prev": true
+ },
+ "2026-08-10": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.044,
+  "has_prev": true
+ },
+ "2026-08-11": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.057,
+  "has_prev": true
+ },
+ "2026-08-12": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.333,
+  "has_prev": true
+ },
+ "2026-08-13": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.779,
+  "has_prev": true
+ },
+ "2026-08-14": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.784,
+  "has_prev": true
+ },
+ "2026-08-17": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.45,
+  "has_prev": true
+ },
+ "2026-08-18": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.165,
+  "has_prev": true
+ },
+ "2026-08-19": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.199,
+  "has_prev": true
+ },
+ "2026-08-20": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.025,
+  "has_prev": true
+ },
+ "2026-08-21": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.877,
+  "has_prev": true
+ },
+ "2026-08-24": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.776,
+  "has_prev": true
+ },
+ "2026-08-25": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.387,
+  "has_prev": true
+ },
+ "2026-08-26": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.703,
+  "has_prev": true
+ },
+ "2026-08-27": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [
+   [
+    4,
+    "OPEN_REJECTION_REVERSE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 4.768,
+  "has_prev": true
+ },
+ "2026-08-28": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.963,
+  "has_prev": true
+ },
+ "2026-08-31": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.047,
+  "has_prev": true
+ },
+ "2026-09-01": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.232,
+  "has_prev": true
+ },
+ "2026-09-02": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.203,
+  "has_prev": true
+ },
+ "2026-09-03": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_DRIVE",
+  "revoked": [
+   [
+    8,
+    "OPEN_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 5.297,
+  "has_prev": true
+ },
+ "2026-09-04": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "down",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.249,
+  "has_prev": true
+ },
+ "2026-09-07": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 42,
+  "atr": 4.817,
+  "has_prev": true
+ },
+ "2026-09-08": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 3,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.817,
+  "has_prev": true
+ },
+ "2026-09-09": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.004,
+  "has_prev": true
+ },
+ "2026-09-10": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "down",
+  "lock_bar": 5,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 70,
+  "atr": 5.112,
+  "has_prev": true
+ },
+ "2026-09-11": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.843,
+  "has_prev": true
+ },
+ "2026-09-14": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.806,
+  "has_prev": true
+ },
+ "2026-09-15": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.856,
+  "has_prev": true
+ },
+ "2026-09-16": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "up",
+  "lock_bar": 5,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.302,
+  "has_prev": true
+ },
+ "2026-09-17": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.22,
+  "has_prev": true
+ },
+ "2026-09-18": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.935,
+  "has_prev": true
+ },
+ "2026-09-21": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 5,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.88,
+  "has_prev": true
+ },
+ "2026-09-22": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.659,
+  "has_prev": true
+ },
+ "2026-09-23": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.522,
+  "has_prev": true
+ },
+ "2026-09-24": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.974,
+  "has_prev": true
+ },
+ "2026-09-25": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 7,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.119,
+  "has_prev": true
+ },
+ "2026-09-28": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.967,
+  "has_prev": true
+ },
+ "2026-09-29": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.434,
+  "has_prev": true
+ },
+ "2026-09-30": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.022,
+  "has_prev": true
+ },
+ "2026-10-01": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "down",
+  "lock_bar": 3,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.956,
+  "has_prev": true
+ },
+ "2026-10-02": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [
+   [
+    7,
+    "OPEN_TEST_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 7.826,
+  "has_prev": true
+ },
+ "2026-10-05": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 8.077,
+  "has_prev": true
+ },
+ "2026-10-06": {
+  "opening": "OPEN_DRIVE",
+  "direction": "up",
+  "lock_bar": 6,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.39,
+  "has_prev": true
+ },
+ "2026-10-07": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.45,
+  "has_prev": true
+ },
+ "2026-10-08": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.631,
+  "has_prev": true
+ },
+ "2026-10-09": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.368,
+  "has_prev": true
+ },
+ "2026-10-12": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 5.353,
+  "has_prev": true
+ },
+ "2026-10-13": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_DRIVE",
+  "revoked": [
+   [
+    8,
+    "OPEN_DRIVE"
+   ]
+  ],
+  "n_bars": 78,
+  "atr": 4.761,
+  "has_prev": true
+ },
+ "2026-10-14": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "down",
+  "lock_bar": 6,
+  "at6": "OPEN_TEST_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 3.844,
+  "has_prev": true
+ },
+ "2026-10-15": {
+  "opening": "OPEN_TEST_DRIVE",
+  "direction": "up",
+  "lock_bar": 7,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 4.843,
+  "has_prev": true
+ },
+ "2026-10-16": {
+  "opening": "OPEN_DRIVE",
+  "direction": "down",
+  "lock_bar": 4,
+  "at6": "OPEN_DRIVE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.201,
+  "has_prev": true
+ },
+ "2026-10-19": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.969,
+  "has_prev": true
+ },
+ "2026-10-20": {
+  "opening": "OPEN_REJECTION_REVERSE",
+  "direction": "up",
+  "lock_bar": 5,
+  "at6": "OPEN_REJECTION_REVERSE",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.716,
+  "has_prev": true
+ },
+ "2026-10-21": {
+  "opening": "OPEN_AUCTION_IN",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_IN",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.799,
+  "has_prev": true
+ },
+ "2026-10-22": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 6.769,
+  "has_prev": true
+ },
+ "2026-10-23": {
+  "opening": "OPEN_AUCTION_OUT",
+  "direction": "",
+  "lock_bar": 8,
+  "at6": "OPEN_AUCTION_OUT",
+  "revoked": [],
+  "n_bars": 78,
+  "atr": 7.484,
+  "has_prev": true
+ }
+}

@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import daymap_lib as L  # noqa: E402
 
 REPO = L.REPO
+V2_TRUTH = {}   # T-646: --truth-opening JSON {date: {opening, direction, lock_bar, ...}} — opening truth = v2 (Michael 24.10)
 SKIP_PATTERNS = {"SIM_TEST"}
 SKIP_OUTCOMES = {"CANCELLED", "REJECTED", "PHANTOM"}
 TML_SKIP = {"PNL_CORRECTION", "TRADER_REVIEW"}
@@ -43,6 +44,8 @@ def parse_args(argv=None):
     ap.add_argument("--replay-dir", default=None)
     ap.add_argument("--replay-glob", default=None)
     ap.add_argument("--labels", default=os.path.join(REPO, "harness_out", "swipe", "labels.json"))
+    ap.add_argument("--truth-opening", default=None,
+                    help="T-646: JSON {date: {opening, direction, lock_bar}} used as the opening truth (v2) instead of ref_opening")
     ap.add_argument("--out", default=None)
     ap.add_argument("--live-since", default="2026-07-07")
     ap.add_argument("--no-live", action="store_true"); ap.add_argument("--no-replay", action="store_true")
@@ -162,9 +165,11 @@ def shared_day(d, day, labels):
             lb, ft = L.ref_daytype_asof(rth, n)
             ref_at[lab] = dict(dt=lb, n=n, t_il=L.il_hm(ep), rib=ft.get("rib"), close_pos=ft.get("close_pos"))
     mich = (labels.get("days") or {}).get(d) or {}
-    t_ot = mich.get("opening") or ref_ot
+    v2t = V2_TRUTH.get(d) or {}
+    t_ot = mich.get("opening") or v2t.get("opening") or ref_ot
     t_dt = mich.get("day_type") or ref_dt
-    truth = dict(opening=t_ot, opening_src="michael" if mich.get("opening") else "ref",
+    truth = dict(opening=t_ot, opening_src="michael" if mich.get("opening") else ("v2" if v2t.get("opening") else "ref"),
+                 v2_opening=v2t.get("opening"), v2_direction=v2t.get("direction"), v2_lock_bar=v2t.get("lock_bar"),
                  day_type=t_dt, day_type_src="michael" if mich.get("day_type") else "ref", note=mich.get("note") or "",
                  ref_opening=ref_ot, ref_opening_why=ref_why, ref_day_type=ref_dt,
                  ref_feats={k: (L.r2(v) if isinstance(v, float) else v) for k, v in feats.items()}, ref_at=ref_at, partial=partial)
@@ -791,6 +796,10 @@ def build_day(d, a, labels, rmap, logs):
 def main(argv=None):
     a = parse_args(argv)
     labels = L.load_labels(a.labels)
+    if a.truth_opening:
+        p = a.truth_opening if os.path.isabs(a.truth_opening) else os.path.join(REPO, a.truth_opening)
+        with open(p, encoding="utf-8") as fh:
+            V2_TRUTH.update(json.load(fh))
     rmap = replay_map(a.replay_dir, a.replay_glob) if not a.no_replay else {}
     if a.date:
         dates = sorted({x.strip() for s in a.date for x in s.split(",") if x.strip()})

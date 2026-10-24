@@ -1,0 +1,88 @@
+2026-06-15 mems26 · truth Drive/Normal_Variation · replay: fired 3 Σ+2.7 would 2 Σ+8.0 missed 7/120 · 0.04s
+2026-06-16 mems26 · truth Auction-In/Trend_Normal · replay: fired 4 Σ+15.5 would 9 Σ+121.9 missed 5/79 · 0.04s
+2026-06-22 mems26 · truth Drive/Normal_Variation · replay: fired 0 Σ+0.0 would 0 Σ+0.0 missed 8/227 · 0.03s
+2026-06-23 mems26 · truth Test-Drive/Nontrend · replay: fired 1 Σ+17.2 would 2 Σ+0.8 missed 7/250 · 0.03s
+2026-06-24 mems26 · truth Auction-In/Neutral_Center · replay: fired 1 Σ+28.7 would 14 Σ+28.3 missed 4/106 · 0.04s
+2026-06-25 mems26 · truth Drive/Nontrend · replay: fired 0 Σ+0.0 would 0 Σ+0.0 missed 8/452 · 0.03s
+2026-06-29 mems26 · truth Test-Drive/Normal_Variation · replay: fired 2 Σ-8.5 would 2 Σ+2.2 missed 4/237 · 0.03s
+2026-06-30 mems26 · truth Drive/Normal_Variation · replay: fired 3 Σ-10.2 would 5 Σ+28.8 missed 4/118 · 0.04s
+2026-07-01 mems26 · truth Test-Drive/Normal_Variation · replay: fired 3 Σ-13.0 would 7 Σ-66.0 missed 5/138 · 0.04s
+2026-07-02 mems26 · truth Drive/Normal_Variation · replay: fired 3 Σ-22.0 would 4 Σ-87.2 missed 5/190 · 0.03s
+2026-07-06 mems26 · truth Auction-Out/Normal_Variation · replay: fired 6 Σ-28.0 would 2 Σ-16.8 missed 8/139 · 0.03s
+2026-07-07 mems26 · truth Drive/Normal_Variation · live: fired 2 Σ+24.2 $+121 would 3 Σ-5.5 missed 6/132 | replay: fired 3 Σ+31.0 would 4 Σ+11.9 missed 6/133 · 0.10s
+2026-07-08 mems26 · truth Drive/Neutral_Extreme · live: fired 1 Σ+2.2 $+22 would 5 Σ+44.2 missed 4/114 | replay: fired 4 Σ+7.2 would 3 Σ-12.8 missed 6/191 · 0.05s
+2026-07-09 mems26 · truth Test-Drive/Normal_Variation · live: fired 1 Σ+11.8 $+118 would 3 Σ+24.7 missed 3/87 | replay: fired 4 Σ-11.0 would 2 Σ+27.8 missed 3/122 · 0.05s
+2026-07-10 mems26 · truth Drive/Neutral_Extreme · live: fired 3 Σ+11.1 $+111 would 16 Σ+51.2 missed 4/144 · 0.04s
+2026-07-13 mems26 · truth Auction-In/Normal_Variation · live: fired 3 Σ+6.2 $+92 would 4 Σ+2.5 missed 5/102 | replay: fired 3 Σ-3.4 would 4 Σ+26.0 missed 6/143 · 0.05s
+2026-07-14 mems26 · truth Auction-In/Normal_Variation · live: fired 2 Σ-6.0 $-90 would 3 Σ-11.0 missed 7/206 | replay: fired 3 Σ+10.8 would 9 Σ-1.4 missed 3/84 · 0.05s
+2026-07-15 PARTIAL mems26 · truth Drive/Normal_Variation · live: fired 5 Σ-4.2 $-161 would 0 Σ+0.0 missed 4/91 | replay: fired 1 Σ+21.9 would 4 Σ+47.9 missed 4/87 · 0.04s
+2026-07-16 PARTIAL mems26 · truth Auction-In/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 1 Σ+24.6 would 14 Σ+11.8 missed 4/74 · 0.02s
+2026-07-17 mems26 · truth Auction-Out/Neutral_Center · live: fired 2 Σ+0.2 $-78 would 5 Σ+0.6 missed 6/166 | replay: fired 2 Σ+17.1 would 6 Σ-44.1 missed 5/123 · 0.05s
+2026-07-20 mems26 · truth Test-Drive/Normal_Variation · live: fired 2 Σ-6.8 $-75 would 10 Σ-48.0 missed 8/192 | replay: fired 3 Σ+5.8 would 3 Σ+53.8 missed 10/209 · 0.07s
+2026-07-21 PARTIAL mems26 · truth Auction-In/Normal_Variation · live: fired 8 Σ-15.8 $-214 would 7 Σ+11.5 missed 2/38 | replay: fired 4 Σ-9.2 would 10 Σ-22.8 missed 3/54 · 0.05s
+2026-07-23 mems26 · truth Auction-Out/Normal_Variation · live: fired 2 Σ-11.1 $-222 would 9 Σ-49.2 missed 9/240 | replay: fired 3 Σ-11.1 would 7 Σ-42.0 missed 7/191 · 0.05s
+2026-07-24 mems26 · truth Auction-In/Normal_Variation · live: fired 2 Σ+10.2 $+204 would 11 Σ+18.0 missed 4/129 · 0.07s
+2026-07-27 mems26 · truth Auction-Out/Normal_Variation · live: fired 2 Σ-6.0 $-120 would 11 Σ-29.5 missed 6/150 | replay: fired 6 Σ+2.2 would 9 Σ-54.5 missed 6/227 · 0.06s
+2026-07-28 PARTIAL mems26 · truth Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 · 0.02s
+2026-07-29 mems26 · truth Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 · 0.01s
+2026-07-30 mems26 · truth Rejection-Reverse/Normal_Variation · live: fired 3 Σ+3.4 $+69 would 4 Σ+28.8 missed 3/128 | replay: fired 4 Σ-20.7 would 12 Σ-64.0 missed 4/175 · 0.06s
+2026-07-31 mems26 · truth Test-Drive/Normal_Variation · live: fired 5 Σ-43.6 $-154 would 3 Σ-15.5 missed 4/181 | replay: fired 3 Σ-22.5 would 2 Σ+31.0 missed 5/230 · 0.05s
+2026-08-03 mems26 · truth Drive/Normal_Variation · live: fired 9 Σ+14.8 $+168 would 6 Σ+1.5 missed 1/24 | replay: fired 4 Σ+21.9 would 8 Σ+87.4 missed 1/30 · 0.06s
+2026-08-05 mems26 · truth Auction-Out/Trend_Normal · live: fired 2 Σ+13.9 $+209 would 6 Σ+38.8 missed 5/122 | replay: fired 3 Σ+15.8 would 2 Σ-9.8 missed 6/152 · 0.05s
+2026-08-06 mems26 · truth Test-Drive/Normal_Variation · live: fired 3 Σ-25.8 $-101 would 7 Σ+6.0 missed 12/216 | replay: fired 2 Σ+2.6 would 2 Σ+8.6 missed 12/219 · 0.04s
+2026-08-07 mems26 · truth Auction-In/Normal_Variation · live: fired 1 Σ-5.8 $-86 would 1 Σ-5.2 missed 7/174 | replay: fired 3 Σ+20.9 would 11 Σ-5.2 missed 4/87 · 0.04s
+2026-08-10 mems26 · truth Auction-In/Normal_Variation · live: fired 1 Σ-4.2 $-85 would 0 Σ+0.0 missed 5/98 | replay: fired 2 Σ-6.0 would 0 Σ+0.0 missed 5/98 · 0.04s
+2026-08-11 mems26 · truth Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 2 Σ-11.8 would 4 Σ-10.8 missed 5/78 · 0.02s
+2026-08-12 mems26 · truth Drive/Normal_Variation · live: fired 1 Σ+7.4 $+74 would 1 Σ+7.6 missed 4/74 | replay: fired 1 Σ+7.0 would 6 Σ-67.5 missed 4/80 · 0.04s
+2026-08-13 mems26 · truth Auction-In/Nontrend · live: fired 4 Σ+6.9 $+69 would 1 Σ+5.2 missed 2/57 | replay: fired 3 Σ+3.1 would 4 Σ+9.0 missed 2/57 · 0.04s
+2026-08-14 mems26 · truth Auction-In/Normal_Variation · live: fired 5 Σ-7.8 $-124 would 12 Σ+14.0 missed 2/32 | replay: fired 1 Σ+12.2 would 9 Σ-9.0 missed 2/28 · 0.05s
+2026-08-17 mems26 · truth Auction-In/Trend_Normal · live: fired 3 Σ+10.9 $+109 would 12 Σ+31.0 missed 2/38 | replay: fired 4 Σ+4.3 would 5 Σ+54.0 missed 1/13 · 0.04s
+2026-08-18 mems26 · truth Auction-Out/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 3 Σ+9.5 would 4 Σ-2.0 missed 2/26 · 0.02s
+2026-08-19 mems26 · truth Auction-Out/Normal_Variation · live: fired 7 Σ-0.2 $-4 would 15 Σ-1.8 missed 5/114 | replay: fired 3 Σ+13.8 would 8 Σ+16.7 missed 5/108 · 0.05s
+2026-08-20 mems26 · truth Drive/Trend_Normal · live: fired 1 Σ+0.6 $+11 would 3 Σ-13.5 missed 5/124 | replay: fired 4 Σ-1.3 would 15 Σ-30.2 missed 1/21 · 0.04s
+2026-08-21 mems26 · truth Drive/Normal_Variation · live: fired 7 Σ-8.4 $-45 would 5 Σ+2.5 missed 4/74 | replay: fired 2 Σ+4.3 would 2 Σ-0.5 missed 4/67 · 0.05s
+2026-08-24 mems26 · truth Drive/Nontrend · live: fired 0 Σ+0.0 would 13 Σ-89.8 missed 8/154 | replay: fired 2 Σ+5.9 would 8 Σ-34.6 missed 7/137 · 0.03s
+2026-08-25 mems26 · truth Auction-Out/Normal_Variation · live: fired 0 Σ+0.0 would 19 Σ-35.0 missed 5/69 | replay: fired 3 Σ-13.0 would 3 Σ-25.0 missed 6/107 · 0.03s
+2026-08-26 mems26 · truth Drive/Neutral_Center · live: fired 4 Σ+2.5 $+25 would 7 Σ+34.5 missed 7/122 | replay: fired 1 Σ+3.5 would 1 Σ+4.0 missed 7/122 · 0.04s
+2026-08-27 mems26 · truth Auction-Out/Normal_Variation · live: fired 5 Σ+17.5 $+122 would 7 Σ-17.0 missed 6/124 | replay: fired 7 Σ-4.1 would 4 Σ+11.0 missed 5/88 · 0.05s
+2026-08-28 mems26 · truth Test-Drive/Neutral_Center · live: fired 8 Σ+28.7 $+390 would 16 Σ-41.0 missed 5/144 | replay: fired 4 Σ-26.4 would 12 Σ-78.0 missed 6/178 · 0.05s
+2026-08-31 mems26 · truth Drive/Nontrend · live: fired 7 Σ-7.5 $-65 would 22 Σ-62.0 missed 4/72 | replay: fired 2 Σ+1.4 would 2 Σ-6.5 missed 5/86 · 0.05s
+2026-09-01 mems26 · truth Auction-Out/Neutral_Center · live: fired 3 Σ-8.7 $-230 would 6 Σ+23.8 missed 6/133 | replay: fired 2 Σ+22.1 would 6 Σ-1.0 missed 5/114 · 0.04s
+2026-09-02 mems26 · truth Auction-In/Normal_Variation · live: fired 4 Σ+1.2 $+31 would 17 Σ-13.0 missed 5/92 | replay: fired 2 Σ-7.8 would 2 Σ-9.0 missed 6/111 · 0.05s
+2026-09-03 mems26 · truth Auction-Out/Trend_Normal · live: fired 2 Σ-14.8 $-284 would 3 Σ-17.8 missed 5/136 | replay: fired 2 Σ-15.0 would 3 Σ-17.5 missed 4/82 · 0.04s
+2026-09-04 mems26 · truth Rejection-Reverse/Normal_Variation · live: fired 5 Σ-4.7 $-116 would 12 Σ-16.2 missed 4/81 | replay: fired 4 Σ+2.6 would 0 Σ+0.0 missed 3/57 · 0.06s
+2026-09-08 mems26 · truth Test-Drive/Normal · live: fired 3 Σ-18.1 $-181 would 14 Σ+6.5 missed 4/67 | replay: fired 2 Σ-19.0 would 0 Σ+0.0 missed 5/90 · 0.05s
+2026-09-09 mems26 · truth Auction-Out/Normal_Variation · live: fired 2 Σ-9.5 $-178 would 10 Σ-8.9 missed 4/73 | replay: fired 1 Σ+10.2 would 4 Σ-6.8 missed 4/78 · 0.05s
+2026-09-10 PARTIAL mems26 · truth Rejection-Reverse/Nontrend · live: fired 1 Σ-1.7 $-34 would 2 Σ-12.2 missed 7/152 | replay: fired 2 Σ-9.8 would 1 Σ+11.2 missed 7/152 · 0.04s
+2026-09-11 mems26 · truth Auction-Out/Normal_Variation · live: fired 2 Σ+4.4 $+49 would 8 Σ-62.5 missed 5/104 | replay: fired 2 Σ+0.0 would 8 Σ+6.5 missed 3/48 · 0.05s
+2026-09-14 mems26 · truth Test-Drive/Normal_Variation · live: fired 2 Σ-5.5 $-138 would 8 Σ+0.3 missed 6/142 | replay: fired 4 Σ+14.7 would 4 Σ-19.1 missed 7/159 · 0.05s
+2026-09-15 mems26 · truth Drive/Normal_Variation · live: fired 2 Σ-11.2 $-141 would 4 Σ-11.1 missed 4/83 | replay: fired 3 Σ+3.5 would 4 Σ+39.5 missed 4/57 · 0.05s
+2026-09-16 mems26 · truth Rejection-Reverse/Neutral_Center · live: fired 3 Σ-10.1 $-101 would 9 Σ+9.8 missed 6/258 · 0.04s
+2026-09-17 mems26 · truth Drive/Nontrend · live: fired 1 Σ-10.0 $-100 would 18 Σ-22.7 missed 5/89 · 0.07s
+2026-09-18 mems26 · truth Drive/Normal · live: fired 1 Σ+1.5 $+8 would 14 Σ-54.8 missed 3/81 | replay: fired 3 Σ-10.8 would 1 Σ-6.5 missed 4/103 · 0.09s
+2026-09-21 mems26 · truth Drive/Normal_Variation · live: fired 7 Σ+18.2 $+91 would 32 Σ+37.7 missed 2/41 | replay: fired 3 Σ+18.2 would 11 Σ+103.2 missed 4/81 · 0.10s
+2026-09-22 mems26 · truth Auction-In/Normal_Variation · live: fired 3 Σ+2.8 $+14 would 20 Σ+17.0 missed 5/74 | replay: fired 3 Σ+2.2 would 7 Σ-52.9 missed 4/61 · 0.15s
+2026-09-23 mems26 · truth Drive/Normal_Variation · live: fired 1 Σ-3.8 $-19 would 15 Σ-12.5 missed 5/143 | replay: fired 2 Σ-4.5 would 8 Σ+53.8 missed 6/158 · 0.09s
+2026-09-24 mems26 · truth Drive/Neutral_Center · live: fired 1 Σ-7.8 $-39 would 12 Σ+18.2 missed 4/82 | replay: fired 1 Σ+14.1 would 6 Σ-10.2 missed 5/114 · 0.09s
+2026-09-25 mems26 · truth Test-Drive/Normal_Variation · live: fired 1 Σ+14.5 $+72 would 8 Σ-48.2 missed 5/124 | replay: fired 5 Σ-21.9 would 6 Σ+24.7 missed 6/148 · 0.11s
+2026-09-28 mems26 · truth Auction-In/Normal_Variation · live: fired 2 Σ-19.0 $-95 would 8 Σ-12.2 missed 7/189 | replay: fired 1 Σ-5.5 would 3 Σ-8.9 missed 7/189 · 0.10s
+2026-09-29 mems26 · truth Drive/Normal_Variation · live: fired 2 Σ-0.5 $-2 would 16 Σ+0.6 missed 3/66 | replay: fired 2 Σ-7.2 would 4 Σ+9.2 missed 5/99 · 0.09s
+2026-09-30 mems26 · truth Auction-In/Trend_Normal · live: fired 1 Σ-7.8 $-39 would 23 Σ-91.8 missed 8/195 | replay: fired 3 Σ-9.4 would 1 Σ-7.8 missed 7/176 · 0.08s
+2026-10-01 mems26 · truth Rejection-Reverse/Normal_Variation · live: fired 3 Σ+28.2 $+141 would 13 Σ-22.5 missed 5/179 | replay: fired 2 Σ+4.3 would 4 Σ-1.5 missed 6/205 · 0.10s
+2026-10-02 mems26 · truth Auction-Out/Normal_Variation · live: fired 4 Σ-13.5 $-68 would 17 Σ-111.5 missed 6/150 | replay: fired 3 Σ-6.8 would 4 Σ-9.5 missed 7/131 · 0.09s
+2026-10-05 mems26 · truth Drive/Normal_Variation · live: fired 1 Σ-5.5 $-28 would 12 Σ+27.0 missed 5/111 | replay: fired 4 Σ-11.8 would 7 Σ-9.0 missed 5/100 · 0.09s
+2026-10-06 mems26 · truth Drive/Normal_Variation · live: fired 4 Σ-1.2 $-6 would 20 Σ-47.2 missed 3/65 | replay: fired 1 Σ+12.2 would 6 Σ-27.2 missed 5/106 · 0.08s
+2026-10-07 mems26 · truth Drive/Neutral_Center · live: fired 2 Σ-21.2 $-106 would 23 Σ-38.6 missed 2/39 | replay: fired 1 Σ+15.2 would 16 Σ-105.8 missed 2/39 · 0.09s
+2026-10-08 mems26 · truth Auction-In/Normal_Variation · live: fired 4 Σ-30.5 $-152 would 15 Σ-35.7 missed 5/126 | replay: fired 4 Σ-6.6 would 10 Σ-13.1 missed 6/156 · 0.08s
+2026-10-09 mems26 · truth Auction-In/Normal_Variation · live: fired 3 Σ-16.0 $-80 would 7 Σ-10.5 missed 4/62 | replay: fired 3 Σ-9.8 would 3 Σ+27.8 missed 4/60 · 0.08s
+2026-10-12 mems26 · truth Test-Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 3 Σ-10.5 would 3 Σ-11.8 missed 4/51 · 0.02s
+2026-10-13 mems26 · truth Auction-In/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 4 Σ-9.4 would 5 Σ-20.8 missed 6/87 · 0.02s
+2026-10-14 mems26 · truth Test-Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 6 Σ-23.4 would 8 Σ-45.8 missed 10/220 · 0.03s
+2026-10-15 mems26 · truth Test-Drive/Trend_Normal · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 5 Σ+20.1 would 8 Σ+5.2 missed 8/199 · 0.03s
+2026-10-16 mems26 · truth Drive/Normal_Variation · live: fired 0 Σ+0.0 would 0 Σ+0.0 missed 0/0 | replay: fired 3 Σ-21.5 would 5 Σ-39.2 missed 10/294 · 0.03s
+2026-10-19 mems26 · truth Auction-In/Normal_Variation · live: fired 4 Σ-16.5 $-82 would 8 Σ+23.8 missed 9/203 | replay: fired 1 Σ-4.0 would 1 Σ+2.1 missed 10/202 · 0.10s
+2026-10-20 mems26 · truth Rejection-Reverse/Nontrend · live: fired 5 Σ-2.9 $-199 would 21 Σ-70.9 missed 5/114 | replay: fired 2 Σ+16.2 would 3 Σ+62.0 missed 6/133 · 0.09s
+2026-10-21 mems26 · truth Auction-In/Normal_Variation · live: fired 6 Σ-21.1 $-376 would 5 Σ+45.9 missed 6/158 | replay: fired 3 Σ+20.1 would 10 Σ-7.0 missed 6/158 · 0.10s
+2026-10-22 mems26 · truth Auction-Out/Normal_Variation · live: fired 4 Σ+2.2 $+202 would 7 Σ-32.8 missed 12/295 | replay: fired 3 Σ+18.3 would 6 Σ+11.5 missed 11/239 · 0.13s
+2026-10-23 mems26 · truth Auction-Out/Normal_Variation · live: fired 2 Σ-21.2 $-389 would 11 Σ-73.2 missed 7/158 | replay: fired 5 Σ-27.8 would 6 Σ-33.9 missed 6/113 · 0.11s
+DAYMAP t646-live: 87 day files → harness_out/daymap/t646-live (4.9s)
