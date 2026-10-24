@@ -1,6 +1,6 @@
 # MEMS26 · אינדקס-המערכת (נוצר אוטומטית — `scripts/system_index.py`)
 
-**נוצר:** 2026-10-19 08:30:50 · **HEAD:** `b9c6bce1 2026-10-19 06:13 index-agent: SYSTEM_INDEX 2026-10-19` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 15751 · **עץ:** 3.4.0 · **דגלים פסוקים:** 274 (ON 216 · shadow 14 · עם measured 24 · אי-התאמה 0)
+**נוצר:** 2026-10-24 19:20:13 · **HEAD:** `f22ecae83 2026-10-24 17:39 T-644: SESSION_CLOCK_V1=1 on Michael's ruling (24.10) + restart verified — RULED_FLAGS, TASK_LOG, STATUS_BOARD` · **ענף:** `stabilize/mems26-local-truth-2026-05-16` · **קבצים לא-מקומטים:** 20199 · **עץ:** 3.4.0 · **דגלים פסוקים:** 320 (ON 242 · shadow 11 · עם measured 24 · אי-התאמה 0)
 
 ## 1 · מדיד-עכשיו (פריטים פתוחים עם צעד-מדידה, לפי חומרה) — 40
 
@@ -18,6 +18,9 @@
 | T-276 | 🔴 | הירי-החי הראשון של 08.09 נדחה בשער-האחרון ולא הגיע לברוקר — `T-214` (חגורת-t3, פסיקת-מייקל 01.09) ירה בפעם הרא | (1) **למפות אילו נתיבי-`t3` קיימים ואיזה מהם נגיש לפני נעילת-IB** — `trading_gateway.py:3161 / 3229 / 3290 / 3357 / 3402` — ולקבוע בכמה מהם `OPENING_DRIVE` יכול לזכות. בלי זה לא ניתן לומר אם זו תקלה י |
 | T-216 | 🔴 | `DOUBLE_TOP_AA_SHORT` נחסם שיטתית ע"י `location_gate` — 0 עסקאות-לייב אי-פעם — והשורש הוא סתירה מבנית בין סמנט | **לא להכריע על הנתונים האלה.** לבנות קודם את המדידה — `docs/handoff/SPEC_T219_SHADOW_BLOCKED_2026-09-01.md` |
 | T-200 | 🔴 | `acct_available_funds` מחזיר `DBL_MAX` (1.7976931348623157e+308) — קלט-השער של T-34 הוא סנטינל "לא-זמין" שנראה | **(א) בשער-15:30 היום, לפני כל השוואה:** `if not (0 < avail < 1e12): הקלט אינו מדיד ⇒ אפס עריכה ב-.env, אפס ריסטארט, הגודל נשאר `ruled_contracts()` כפי שהוא, ומדווח למייקל בטלפון כ"מרג'ין לא-נמדד" — * |
+| T-623 | 🟠 | נאמנות-הרנס: שלושה מנגנונים חיים רצים על `time.monotonic` (שניות-אמת), שהשעון המזויף של ההרנס לא נוגע בהם | mbase ו-mn2rs מלאים ⇒ אם ההפרש קטן — ברירת-מחדל ON בהרנס ו-base חדש לכל מדידה מכאן; ההפרשים הקטנים (T-622d ‎+142$) נקראים רק מול m-base |
+| T-605 | 🟠 | סולם-היעדים נכתב לא-מונוטוני ל-`LONG` — `t1` רחוק מ-`t3`, כלומר המדרגה שנקראת "ראשונה" היא האחרונה שהמחיר יפגו | **(1) טרום-פתיחה, קריאה אחת ולא ניחוש:** לקרוא ב-`trading_gateway` מי כותב `t1` ומי כותב `t2/t3` לעסקה (ולא ל-`[TargetSpacing] would-be`, שהוא אינסטרומנטציה) — אם אלה שני מקורות, זה שורש-הפריט; אם מקו |
+| T-604 | 🟠 | קידום `S1_DAY_DIRECTION_V1` ל-`apply` (פסיקת-מייקל 19.10 19:52, קומיט `7249d493`) נכנס לתוקף — ולא שינה את החס | **(1) הערב (חובה-4), המבחן הזול:** לספור בליגר כמה מהחסימות `tree:bias` של היום היו שורטים ביום שסגר למטה — `hint` מול `close`-יום — ולהוציא את המספר לדוח-הערב; זה הופך "ההטיה הפוכה" מתצפית למדידה. ** |
 | T-592 | 🟠 | סוכן-T1 (מייקל 18.10 16:5x/17:1x: "כניסה לפי דלתון על 5 חוזים… כלל כניסה מביא T1 ≥80%… הדוקטרינה קודם, יום-אחר | hist_p/hist_o/hist_po (תיקוני-השורש) → מספרים; הלמידה עוברת לתיוג-מייקל על סקירות-היום (70 + 166); כניסות-תזה רק עם ראיות שמקטינות כשלון-דרייב, ולידציה על 2022–24 לפני בנייה; צ׳קפוינט #2 אחרי גרסה. /  |
 | T-573 | 🟠 | תחרות-מכונה על ה-Mac שסוחר — תהליך לא-מסחרי מקרטע את ה-backend בזמן פוזיציה בכסף-אמת. | (א) **פסיקת-מייקל אחת, קטנה:** לסגור/להגביל את חלון-Cursor על `mems26_web_git` בשעות-המסחר? (זו מכונתו ואפליקציה שלו — לא בסמכותי לסגור, ולכן נשאלה ולא נעשתה). (ב) **מדידת-אישוש לפני כל טענת-סיבתיות:* |
 | T-572 | 🟠 | `t1` מתחת ל-`entry_price` ב-LONG ⇒ ביקורת-המועמדים-החסומים תספור "פגיעת-t1 מיידית" ותפיק ראיה כוזבת ש"השער עלה | (א) **ללא שינוי-התנהגות, מדידה קודם** — להריץ את `blocked_candidate_audit.py` על ההיסטוריה ולספור כמה מועמדים-חסומים נשענים על `t1 ≤ entry` ב-LONG / `t1 ≥ entry` ב-SHORT; המספר הזה הוא שמכריע אם הפריט |
@@ -43,67 +46,62 @@
 | T-367 | 🟠 | תיקון-שורש ל-[[T-359]]: הרקונסיילר משווה `TM` מול מקור נעול-לסימבול-הצ'ארט ⇒ גלגול-חוזה משחרר את `T-43` על מקו | **לא לגעת לפני סגירת-הפתיחה של היום.** אחריה — cc קורא את `backend/v9/services/sierra_position_reconciler.py`, מציע את מקור-ההשוואה ברמת-חשבון, ומביא ריפליי/סים שמוכיח ש-`T-43` **אינו** משתחרר על גלגו |
 | T-352 | 🟠 | `17,583` שורות `ERROR` ביום-א' שוק-סגור, כולן חתימה אחת — `TS-OFFSET-GATE`; ו-`53,522` מ-`67,953` שורות-הלוג ש | (1) **למדוד מחדש אחרי `01:00 IL`** כשברים טריים מגיעים: אם הזרם **נעצר** — זו תופעת-שוק-סגור וסוגרים את הפריט; אם **נמשך** — זו מחלקה חדשה ולא סוף-שבוע, והיא שייכת ל-[[T-164]]. (2) **עד אז — להתייחס ל |
 | T-348 | 🟠 | ‏`21.4%` מהפסדי-הצל נחתכים ע"י כלל-סדר-הבדיקה ולא ע"י השוק — הבר שסגר אותם בסטופ נגע גם ב-`T1`. | (דוקטרינת-הלמידה: "הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל"): (1) ריפליי דקה/טיק על `116` הברים הדו-משמעיים ⇒ להוציא **מספר**: בכמה מהם `T1` נגע לפני הסטופ; (2) עד שיש מספר — **אין לגעת ב-`bar_level_dete |
-| T-339 | 🟠 | הוראת-מייקל 11.09 `20:24:48` (‏`id=65774fa6` בת'רד-הטלפון): "אם אני סוגר את העסקה תנסה לעשות במחיר הטוב ביותר  | **(1) ההבהרה היחידה שנדרשת ממייקל, במשפט אחד:** האם "אני סוגר" = **אתה ביד ב-Sierra** (ואז ההוראה היא בעצם בקשה שהמערכת **לא** תשטח מתחתיך — כלומר [[T-338]], והתשובה שם), או = **אתה אומר למערכת לסגור* |
-| T-321 | 🟠 | שער-המיקום של `DAYTYPE_LOCATION_GATE` ירה בלייב לראשונה היום — ו-13 מ-13 החסימות הן בצירופים שהדוקטרינה  | (1) **המדידה המכריעה, לפני כל דגל** ([[LEARNING_DOCTRINE]] — הוראה ⇒ קודם ריפליי): לספור על סט-הרגרסיה את **חיתוך (kinds מותרים)×(מפיקים חיים)** — כמה מועמדים **נולדו** ב-`near_vah×SHORT` / `near_val× |
-| T-306 | 🟠 | צד-הסטופ בחשבון-המשותף מחזיק 8 חוזים מול פוזיציה של 5 — עודף של 3 — אחרי שאתי ירדה מ-5 חוזים ל-1 בלי לכווץ את  | ✅ **הוכרע במדידה ולא ב-Trade DOM** — `11114` היה **חי**; אם חי, לכווץ אותו ל-1 (זו פקודה שלו/של אתי — **אנחנו לא נוגעים**). **(2)** cowork — לחזור על סכימת-`qty`-לפי-צד בכל ריצת-ניטור כל עוד הפוזיציה  |
 
 ## 2 · מפיקים (DECISION ב-30 הימים האחרונים)
 
 | תבנית | מערכת | החלטות | עברו-עץ+שערים | ירי-לייב | P&L לייב | live-capable | מפסק | 3 התוצאות הנפוצות |
 |---|---|---|---|---|---|---|---|---|
-| ZLR | 4 | 593 | 193 | 0 | 0.0 | False | `ZLR_SHADOW_V1` | (passed) 193 · tree:stand_down 183 · tree:location 98 |
-| CEILING_FLIP_TOUCH2 | 2 | 379 | 196 | 0 | 0.0 | False | `CEILING_FLIP_TOUCH2_V1` | (passed) 196 · tree:stand_down 54 · tree:bias 42 |
-| REACTIVE_SHORT | 2 | 72 | 4 | 0 | 0.0 | True | `live producer` | tree:stand_down 61 · (passed) 4 · tree:location 2 |
-| GHOST | 4 | 46 | 17 | 2 | -30.0 | True | `live producer` | (passed) 17 · tree:stand_down 14 · tree:bias 7 |
-| GB100 | 4 | 35 | 8 | 4 | -25.0 | True | `live producer` | (passed) 8 · dalton_intent:stand_down 8 · tree:kind 5 |
-| FAMIR | 4 | 35 | 8 | 2 | -56.25 | True | `live producer` | tree:bias 12 · tree:stand_down 12 · (passed) 8 |
-| TREND_STEP | 4 | 34 | 11 | 0 | 0.0 | False | `TREND_STEP_ENTRY_V1` | (passed) 11 · tree:location 11 · tree:stand_down 5 |
-| INITIATIVE_LONG | 2 | 33 | 10 | 1 | 28.75 | True | `live producer` | (passed) 10 · tree:bias 9 · tree:stand_down 7 |
-| DOUBLE_BOTTOM_EE_LONG | 2 | 29 | 5 | 2 | 72.5 | True | `live producer` | tree:bias 7 · tree:location 5 · (passed) 5 |
-| REACTIVE_LONG | 2 | 28 | 7 | 4 | 10.0 | True | `live producer` | tree:stand_down 7 · (passed) 7 · tree:bias 6 |
+| ZLR | 4 | 691 | 207 | 0 | 0.0 | False | `ZLR_SHADOW_V1` | (passed) 207 · tree:stand_down 196 · tree:location 121 |
+| CEILING_FLIP_TOUCH2 | 2 | 407 | 223 | 0 | 0.0 | True | `CEILING_FLIP_TOUCH2_V1` | (passed) 223 · tree:stand_down 77 · tree:bias 49 |
+| REACTIVE_SHORT | 2 | 78 | 3 | 0 | 0.0 | True | `live producer` | tree:stand_down 62 · tree:bias 6 · (passed) 3 |
+| GHOST | 4 | 61 | 22 | 1 | -38.75 | True | `live producer` | (passed) 22 · tree:stand_down 19 · tree:bias 8 |
+| TREND_STEP | 4 | 45 | 14 | 0 | 0.0 | True | `TREND_STEP_ENTRY_V1` | tree:location 15 · (passed) 14 · tree:bias 7 |
+| FAMIR | 4 | 41 | 8 | 2 | -56.25 | True | `live producer` | tree:stand_down 14 · tree:bias 12 · (passed) 8 |
+| DOUBLE_BOTTOM_EE_LONG | 2 | 38 | 14 | 2 | 72.5 | True | `live producer` | (passed) 14 · tree:bias 7 · tree:location 6 |
+| INITIATIVE_LONG | 2 | 38 | 16 | 0 | 0.0 | True | `live producer` | (passed) 16 · tree:bias 9 · tree:stand_down 8 |
+| GB100 | 4 | 34 | 10 | 3 | 30.0 | True | `live producer` | (passed) 10 · tree:bias 8 · tree:kind 7 |
+| DOUBLE_TOP_AA_SHORT | 2 | 33 | 21 | 3 | 7.5 | True | `live producer` | (passed) 21 · tree:location 4 · tree:time_cutoff 3 |
+| REACTIVE_LONG | 2 | 32 | 8 | 0 | 0.0 | True | `live producer` | (passed) 8 · tree:bias 7 · tree:stand_down 7 |
 | DOUBLE_BOTTOM_EE | 4 | 25 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 15 · variation_mid_value 10 |
-|  | 4 | 25 | 3 | 0 | 0.0 | True | `live producer` | tree:stand_down 12 · dalton_intent:bias 9 · dalton_intent:stand_down 3 |
-| DOUBLE_TOP_AA_SHORT | 2 | 22 | 11 | 3 | 7.5 | True | `live producer` | (passed) 11 · tree:location 4 · tree:bias 3 |
+| INITIATIVE_SHORT | 2 | 25 | 10 | 1 | -56.25 | True | `live producer` | (passed) 10 · tree:bias 8 · tree:time_cutoff 6 |
+| CEILING_FLIP_SHORT | 2 | 22 | 16 | 4 | -61.25 | True | `CEILING_FLIP_SHORT_V1` | (passed) 16 · tree:stand_down 3 · tree:location 2 |
 | CONFLUENCE_RI_ZLR | 4 | 21 | 0 | 0 | 0.0 | True | `CONFLUENCE_RI_ZLR_LIVE` | tree:stand_down 20 · tree:time_cutoff 1 |
-| S2_DELTA_DBL_SHORT | 2 | 20 | 6 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | (passed) 6 · dalton_intent:bias 6 · tree:location 6 |
-| FAILED_RE_IB | 2 | 18 | 2 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 5 · tree:bias 3 · tree:location 3 |
-| CEILING_FLIP_SHORT | 2 | 16 | 11 | 5 | -61.25 | True | `CEILING_FLIP_SHORT_V1` | (passed) 11 · tree:location 2 · dalton_intent:stand_down 2 |
-| CEILING_FLIP_LONG | 2 | 16 | 13 | 4 | -43.75 | True | `CEILING_FLIP_SHORT_V1` | (passed) 13 · tree:bias 2 · tree:location 1 |
-| INITIATIVE_SHORT | 2 | 15 | 8 | 1 | -56.25 | True | `live producer` | (passed) 8 · tree:bias 4 · tree:time_cutoff 2 |
-| VA_FADE_SHORT | 2 | 12 | 5 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 5 · tree:bias 4 · dalton_intent:stand_down 1 |
-| HTLB | 4 | 12 | 2 | 0 | 0.0 | True | `live producer` | tree:bias 5 · dalton_intent:stand_down 3 · (passed) 2 |
-| FAILED_BREAK_LONG | 2 | 12 | 2 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | tree:stand_down 5 · dalton_intent:stand_down 3 · (passed) 2 |
-| FAILED_BREAK_SHORT | 2 | 11 | 5 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | (passed) 5 · tree:stand_down 3 · tree:location 2 |
-| VA_FADE_LONG | 2 | 9 | 4 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 4 · tree:bias 3 · tree:location 1 |
-| VEGAS | 4 | 8 | 1 | 1 | -33.75 | True | `live producer` | tree:bias 2 · tree:location 2 · (passed) 1 |
-| OPENING_EXTREME_REJECT | 2 | 7 | 4 | 1 | -61.25 | True | `OPENING_ENTRY_V1` | (passed) 4 · dalton_intent:kind 2 · tree:location 1 |
-| OPENING_DRIVE | 2 | 7 | 5 | 3 | -97.5 | True | `OPENING_ENTRY_V1` | (passed) 5 · dalton_intent:bias 1 · tree:kind 1 |
-| OPENING_PULLBACK_CONT | 2 | 7 | 0 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | tree:kind 4 · tree:bias 2 · dalton_intent:kind 1 |
-| DALTON_EDGE_LONG | 2 | 6 | 3 | 1 | 28.75 | True | `DALTON_EDGE_V1` | (passed) 3 · tree:stand_down 1 · tree:location 1 |
-| DALTON_EDGE_SHORT | 2 | 6 | 3 | 2 | -8.75 | True | `DALTON_EDGE_V1` | (passed) 3 · dalton_intent:bias 1 · tree:stand_down 1 |
-| S2_DELTA_DBL_LONG | 2 | 6 | 2 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | tree:location 3 · (passed) 2 · dalton_intent:bias 1 |
+| FAILED_RE_IB | 2 | 20 | 2 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 9 · tree:bias 4 · tree:location 3 |
+| CEILING_FLIP_LONG | 2 | 19 | 13 | 3 | -67.5 | True | `CEILING_FLIP_SHORT_V1` | (passed) 13 · tree:location 2 · tree:bias 2 |
+| VA_FADE_SHORT | 2 | 16 | 9 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 9 · tree:bias 4 · tree:kind 2 |
+| HTLB | 4 | 15 | 3 | 0 | 0.0 | True | `live producer` | tree:bias 6 · (passed) 3 · tree:kind 2 |
+| FAILED_BREAK_LONG | 2 | 14 | 4 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | tree:stand_down 7 · (passed) 4 · tree:location 2 |
+| FAILED_BREAK_SHORT | 2 | 13 | 5 | 0 | 0.0 | False | `failed_break.py: shadow_only by code` | (passed) 5 · tree:stand_down 5 · tree:location 3 |
+| VA_FADE_LONG | 2 | 12 | 8 | 0 | 0.0 | False | `va_fade.py: shadow_only by code` | (passed) 8 · tree:bias 3 · tree:location 1 |
+| S2_DELTA_DBL_SHORT | 2 | 11 | 3 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | tree:location 6 · (passed) 3 · tree:time_cutoff 1 |
+|  | 4 | 10 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 12 |
+| DALTON_EDGE_LONG | 2 | 9 | 6 | 1 | 28.75 | True | `DALTON_EDGE_V1` | (passed) 6 · tree:location 1 · tree:stand_down 1 |
+| DALTON_EDGE_SHORT | 2 | 9 | 4 | 2 | -8.75 | True | `DALTON_EDGE_V1` | (passed) 4 · tree:stand_down 2 · tree:bias 1 |
+| OPENING_PULLBACK_CONT | 2 | 8 | 0 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | tree:kind 5 · tree:bias 2 · tree:location 1 |
+| VEGAS | 4 | 7 | 1 | 1 | -33.75 | True | `live producer` | tree:bias 3 · tree:location 2 · (passed) 1 |
+| OPENING_DRIVE | 2 | 6 | 4 | 1 | -80.0 | True | `OPENING_ENTRY_V1` | (passed) 4 · tree:location 1 · tree:kind 1 |
+| OPENING_EXTREME_REJECT | 2 | 6 | 5 | 1 | -61.25 | True | `OPENING_ENTRY_V1` | (passed) 5 · tree:location 1 |
 | REACTIVE | 4 | 5 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 5 |
-| BULL_FLAG_LONG | 2 | 4 | 2 | 1 | 6.25 | True | `live producer` | tree:stand_down 2 · (passed) 2 |
+| OPENING_TEST_DRIVE | 2 | 4 | 4 | 2 | 83.75 | True | `OPENING_ENTRY_V1` | (passed) 4 |
 | STRATEGIC | 2 | 4 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 4 |
-| OPENING_TEST_DRIVE | 2 | 3 | 3 | 2 | 83.75 | True | `OPENING_ENTRY_V1` | (passed) 3 |
-| TT | 4 | 2 | 0 | 0 | 0.0 | True | `live producer` | tree:location 1 · dalton_intent:bias 1 |
-|  | 2 | 2 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 12 · dalton_intent:bias 9 · dalton_intent:stand_down 3 |
-| RE_ACCEPTANCE | 2 | 2 | 0 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 2 |
-| OPENING_ORR | 2 | 1 | 1 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | (passed) 1 |
+| S2_DELTA_DBL_LONG | 2 | 4 | 0 | 0 | 0.0 | False | `S2_DELTA_DBL_V1` | tree:location 4 |
+| RE_ACCEPTANCE | 2 | 4 | 0 | 0 | 0.0 | False | `RE_ACCEPTANCE_V1` | tree:stand_down 4 |
+| TT | 4 | 3 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 2 · tree:location 1 |
+| OPENING_ORR | 2 | 2 | 2 | 0 | 0.0 | True | `OPENING_ENTRY_V1` | (passed) 2 |
+|  | 2 | 2 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 12 |
+| BULL_FLAG_LONG | 2 | 2 | 0 | 0 | 0.0 | True | `live producer` | tree:stand_down 2 |
 
 ## 3 · שערים (blocked_by, 30 יום)
 
 | שער | n |
 |---|---|
-| `(passed)` | 555 |
-| `tree:stand_down` | 429 |
-| `tree:location` | 174 |
-| `tree:bias` | 152 |
-| `dalton_intent:stand_down` | 107 |
-| `tree:time_cutoff` | 67 |
-| `dalton_intent:bias` | 52 |
-| `tree:kind` | 30 |
-| `dalton_intent:kind` | 12 |
+| `(passed)` | 645 |
+| `tree:stand_down` | 494 |
+| `tree:location` | 221 |
+| `tree:bias` | 218 |
+| `tree:time_cutoff` | 137 |
+| `tree:kind` | 54 |
+| `dalton_intent:stand_down` | 17 |
 | `variation_mid_value` | 10 |
 
 ## 4 · העץ (3.4.0)
@@ -298,6 +296,10 @@
 | `AUTH_LOWCONF_REDUCED_V1` | 1 | 1 | ✓ | מייקל | 2026-07-30 |  |
 | `BAR_SEAM_REJECT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-29 |  |
 | `BE_AFTER_REAL_T1_V1` | 1 | 1 | ✓ | מייקל | 2026-07-21 |  |
+| `BE_AFTER_T1_RULE_V1` | 1 | 1 | ✓ | מייקל | 2026-10-20 |  |
+| `BE_BEFORE_T1_ARM_R` | 2.0 | 2.0 | ✓ | מייקל | 2026-10-22 |  |
+| `BE_BEFORE_T1_TRAIL_R` | 2.5 | 2.5 | ✓ | מייקל | 2026-10-22 |  |
+| `BE_BEFORE_T1_V1` | 0 | 0 | ✓ | מייקל | 2026-10-23 |  |
 | `BLOCKED_TWIN_V1` | shadow | shadow | ✓ | מייקל | 2026-09-03 |  |
 | `BOOT_DAYTYPE_REPLAY_V1` | 1 | 1 | ✓ | מייקל | 2026-07-13 |  |
 | `BOOT_HYDRATION_V1` | 1 | 1 | ✓ | מייקל | 2026-07-10 |  |
@@ -305,9 +307,10 @@
 | `C4_TREND_FLATTEN_V1` | 1 | 1 | ✓ | מייקל | 2026-07-21 |  |
 | `CANDIDATE_LEDGER_V1` | 1 | 1 | ✓ | מייקל | 2026-08-25 |  |
 | `CEILING_FLIP_SHORT_V1` | 1 | 1 | ✓ | מייקל | 2026-09-11 | ✓ |
-| `CEILING_FLIP_TOUCH2_V1` | shadow | shadow | ✓ | מייקל | 2026-09-15 | ✓ |
+| `CEILING_FLIP_TOUCH2_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 | ✓ |
 | `CEILING_FLOOR_STATE_V1` | shadow | shadow | ✓ | מייקל | 2026-08-28 |  |
 | `CHASE_MIN_SESSION_BARS` | 8 | 8 | ✓ | מייקל | 2026-08-11 |  |
+| `CLS_RESULT_SESSION_GUARD_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `COLD_START_GUARD_V1` | 1 | 1 | ✓ | מייקל | 2026-08-11 |  |
 | `CONFLUENCE_RI_ZLR_LIVE` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
 | `CONFLUENCE_RI_ZLR_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
@@ -321,26 +324,34 @@
 | `DAYTYPE_ANTIFLAP_V1` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `DAYTYPE_BOOT_SEED_CANONICAL_V1` | 1 | 1 | ✓ | מייקל | 2026-07-22 |  |
 | `DAYTYPE_ENTRY_BUDGET_V1` | 0 | 0 | ✓ | מייקל | 2026-08-21 |  |
+| `DAYTYPE_HISTORY_LIVE_LOCK_V1` | 1 | 1 | ✓ | מייקל | 2026-10-20 |  |
 | `DAYTYPE_HONEST_PRELOCK_V1` | 1 | 1 | ✓ | מייקל | 2026-08-20 |  |
 | `DAYTYPE_LOCATION_GATE` | 1 | 1 | ✓ | מייקל | 2026-07-22 |  |
+| `DAYTYPE_MACHINE_CLOSED_BARS_V1` | 1 | 1 | ✓ | מייקל | 2026-10-20 |  |
 | `DAYTYPE_ONE_SOURCE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `DAYTYPE_PATTERN_AWARE_V1` | 1 | 1 | ✓ | מייקל | 2026-06-30 |  |
 | `DAYTYPE_PLAYBOOK` | 1 | 1 | ✓ | מייקל | 2026-06-19 |  |
 | `DAYTYPE_POSITION_GATE` | 0 | 0 | ✓ | מייקל | 2026-07-01 |  |
 | `DAYTYPE_RECLASS_STABILITY_V1` | 1 | 1 | ✓ | מייקל | 2026-09-10 |  |
 | `DAYTYPE_RTH_RESET_V1` | 1 | 1 | ✓ | מייקל | 2026-07-10 |  |
+| `DAYTYPE_SIDES_ACCEPTED_V1` | single | single | ✓ | מייקל | 2026-10-21 |  |
 | `DAYTYPE_SIDES_MECHANICAL_V1` | 1 | 1 | ✓ | מייקל | 2026-07-10 |  |
 | `DAY_DIRECTION_STRUCTURAL_V1` | 0 | 0 | ✓ | מייקל | 2026-08-25 |  |
 | `DECISION_TREE_V3` | 1 | 1 | ✓ | Michael | 2026-09-25 | ✓ |
+| `DECISION_TREE_V3_PATH` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `DELTA_BREAKOUT_RELEASE_V1` | shadow | shadow | ✓ | מייקל | 2026-09-06 |  |
 | `DELTA_FEATURES_V1` | 1 | 1 | ✓ | מייקל | 2026-08-02 |  |
 | `DIRECTION_COMPASS_V1` | 1 | 1 | ✓ | מייקל | 2026-08-20 |  |
 | `DIRECTION_CONTEXT` | 0 | 0 | ✓ | מייקל | 2026-08-28 |  |
 | `DOUBLE_TOP_ADAM_FIX_V1` | 1 | 1 | ✓ | מייקל | 2026-08-23 |  |
+| `DOUBLE_TOP_STRUCT_STOP_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `EARLY_ATR_FLOOR_V1` | 1 | 1 | ✓ | מייקל | 2026-07-10 |  |
 | `EDGE_ENTRY_LOCATION_FIX_V1` | 1 | 1 | ✓ | מייקל | 2026-09-02 |  |
+| `EDGE_FADE_STOP_MODE` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `EDGE_FADE_TARGETS_V1` | unset_or_0 |  | ✓ | מייקל | 2026-09-14 | ✓ |
+| `EDGE_FAILED_EXT_LIVE_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `ELQ_LEG_FROM_BREAK_V1` | 1 | 1 | ✓ | מייקל | 2026-09-06 |  |
+| `ELQ_WITH_EXT_SKIP_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `ENTRY_BUDGET_QUALITY_V1` | 1 | 1 | ✓ | מייקל | 2026-08-21 |  |
 | `ENTRY_BUDGET_SKIP_LOSERS_V1` | 1 | 1 | ✓ | מייקל | 2026-08-21 |  |
 | `ENTRY_CONFIRM_TOL_MIN_PTS` | 0.5 | 0.5 | ✓ | מייקל | 2026-07-10 |  |
@@ -358,19 +369,24 @@
 | `FAILED_BREAK_VA_V1` | shadow | shadow | ✓ | מייקל | 2026-08-26 |  |
 | `FAILED_RE_IB_V1` | shadow | shadow | ✓ | מייקל | 2026-09-07 |  |
 | `FEED_WATCHDOG` | 1 | 1 | ✓ | מייקל | 2026-07-14 |  |
-| `FIXED_CONTRACTS_1` | 1 | 1 | ✓ | מייקל | 2026-09-18 | ✓ |
+| `FIXED_CONTRACTS_1` | 0 | 0 | ✓ | מייקל | 2026-10-19 | ✓ |
 | `FIXED_CONTRACTS_2` | 0 | 0 | ✓ | מייקל | 2026-09-18 | ✓ |
 | `FIXED_CONTRACTS_3` | 0 | 0 | ✓ | מייקל | 2026-09-16 |  |
 | `FIXED_CONTRACTS_4` | 0 | 0 | ✓ | מייקל | 2026-08-25 |  |
-| `FIXED_CONTRACTS_5` | 0 | 0 | ✓ | מייקל | 2026-09-15 |  |
+| `FIXED_CONTRACTS_5` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `FIXED_CONTRACTS_6` | 0 | 0 | ✓ | מייקל | 2026-08-25 |  |
+| `FLIP_RUNNER_ON_OPPOSITE_TAKE_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `FOOTPRINT_DISABLED` | 0 | 0 | ✓ | Michael | 2026-09-25 | ✓ |
 | `FRESH_EXTREME_GATE_V1` | 0 | 0 | ✓ | מייקל | 2026-09-14 | ✓ |
 | `FRESH_EXTREME_MIN_BARS` | 3 | 3 | ✓ | מייקל | 2026-09-14 |  |
 | `IB_BARS_VALIDATE_V1` | 1 | 1 | ✓ | מייקל | 2026-08-14 |  |
 | `IB_BREAK_ANY_EXPANSION_V1` | 1 | 1 | ✓ | מייקל | 2026-07-21 |  |
+| `IB_EXT_ACCEPTED_HINT_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `IB_EXT_ACCEPT_CLOSES` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `IB_EXT_ACCEPT_NOISE_PTS` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `IB_RETURN_HINT_RELEASE_V1` | returning | returning | ✓ | מייקל | 2026-09-30 | ✓ |
 | `IB_RETURN_RELEASE_FLOW` | unset_or_0 |  | ✓ | cowork | 2026-09-30 | ✓ |
+| `LADDER_221_V1` | 1 | 1 | ✓ | מייקל | 2026-10-20 |  |
 | `LAYER0_CHOP_GATE` | unset_or_0 |  | ✓ | מייקל | 2026-06-08 |  |
 | `LEGACY_CONF_GATES` | unset_or_0 |  | ✓ | מייקל | 2026-08-26 |  |
 | `LEG_EXEMPT_LSMA_FLAT_V1` | 1 | 1 | ✓ | מייקל | 2026-08-11 |  |
@@ -389,10 +405,12 @@
 | `MARKET_CONTEXT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-29 |  |
 | `MEMS_MAX_RISK_POINTS` | 60 | 60 | ✓ | מייקל | 2026-07-02 |  |
 | `MEMS_MIN_RISK_POINTS` | 2 | 2 | ✓ | מייקל | 2026-07-02 |  |
+| `MID_VALUE_EDGE_TEST_V1` | 1 | 1 | ✓ | מייקל | 2026-10-22 |  |
 | `MORNING_LABEL_CONFIRM_V1` | 0 | 0 | ✓ | מייקל | 2026-08-25 |  |
 | `NEUTRAL_RESPONSIVE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-08 |  |
 | `NEVERFADE_TREND_ONLY_V1` | 1 | 1 | ✓ | מייקל | 2026-07-23 |  |
 | `NEWS_BLACKOUT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-13 |  |
+| `NORMAL_DAY_RUNNER_OTHER_SIDE_V1` | 1 | 1 | ✓ | מייקל | 2026-10-21 |  |
 | `NORMAL_ROTATION_FIX_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
 | `NO_LABEL_NO_FIRE_V1` | 1 | 1 | ✓ | מייקל | 2026-09-09 |  |
 | `OPENING_ANCHOR_ET_V1` | 1 | 1 | ✓ | מייקל | 2026-07-29 |  |
@@ -404,18 +422,23 @@
 | `OPENING_DRIVE_EXHAUSTION_VETO_V1` | 0 | 0 | ✓ | מייקל | 2026-08-19 |  |
 | `OPENING_DRIVE_PROVISIONAL_V1` | 1 | 1 | ✓ | מייקל | 2026-09-20 | ✓ |
 | `OPENING_DRIVE_SKIP_V1` | 0 | 0 | ✓ | מייקל | 2026-09-01 |  |
+| `OPENING_DRIVE_STRICT_V1` | 1 | 1 | ✓ | מייקל | 2026-10-21 |  |
 | `OPENING_DRIVE_T1_R` | 1.5 | 1.5 | ✓ | מייקל | 2026-09-24 | ✓ |
 | `OPENING_ENGINE_CLOSED_BARS_V1` | 1 | 1 | ✓ | cowork | 2026-09-20 | ✓ |
 | `OPENING_ENTRY_V1` | 1 | 1 | ✓ | מייקל | 2026-07-24 |  |
+| `OPENING_ENTRY_V2_GATE_V1` | 1 | 1 | ✓ | מייקל | 2026-10-23 |  |
 | `OPENING_FIRE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-24 |  |
 | `OPENING_FIRST_TRADE_STRICT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-31 |  |
+| `OPENING_HALF_RANGE_GATE_V1` | all | all | ✓ | מייקל | 2026-10-22 |  |
 | `OPENING_LADDER_V1` | 1 | 1 | ✓ | מייקל | 2026-09-08 |  |
+| `OPENING_LOCK_PRIOR_REFS_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `OPENING_OR_ATR_SCALE_V1` | 1 | 1 | ✓ | מייקל | 2026-08-12 |  |
 | `OPENING_PLAYBOOK_V1` | 1 | 1 | ✓ | מייקל | 2026-07-29 |  |
 | `OPENING_RUNNER_RIDE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-29 |  |
 | `OPENING_STOP_STRUCTURAL_V1` | 1 | 1 | ✓ | מייקל | 2026-09-20 | ✓ |
 | `OPENING_TYPE_GATE` | 0 | 0 | ✓ | מייקל | 2026-08-13 |  |
 | `OPENING_TYPE_SEEDS_S1_V1` | 1 | 1 | ✓ | מייקל | 2026-07-23 |  |
+| `OPENING_TYPE_V2` | 1 | 1 | ✓ | מייקל | 2026-10-23 |  |
 | `OPENING_WINDOWS_V1` | 1 | 1 | ✓ | מייקל | 2026-08-06 |  |
 | `OPENING_WINDOW_FIRE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-15 |  |
 | `OPPOSITE_EXIT_V1` | unset_or_0 |  | ✓ | מייקל | 2026-07-14 |  |
@@ -450,6 +473,7 @@
 | `RISK_CUTOFF_HOUR_ET` | 15 | 15 | ✓ | מייקל | 2026-07-19 |  |
 | `RISK_CUTOFF_MINUTE_ET` | 30 | 30 | ✓ | מייקל | 2026-07-19 |  |
 | `RISK_DAILY_LOSS_CAP` | 800 | 800 | ✓ | מייקל | 2026-09-16 |  |
+| `RISK_HALT_LIVE_ONLY_V1` | 1 | 1 | ✓ | מייקל | 2026-10-23 |  |
 | `RISK_HALT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-06 |  |
 | `RISK_MAX_PTS_HARD` | 30 | 30 | ✓ | מייקל | 2026-09-01 |  |
 | `RISK_MAX_TRADES_DAY` | 999 | 999 | ✓ | מייקל | 2026-07-20 |  |
@@ -466,12 +490,13 @@
 | `S1_COMMITTED_PROVISIONAL_V1` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `S1_CONFIDENCE_V2` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `S1_CONF_SMOOTH_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
-| `S1_DAY_DIRECTION_V1` | shadow | shadow | ✓ | מייקל | 2026-08-25 |  |
+| `S1_DAY_DIRECTION_V1` | apply | apply | ✓ | מייקל | 2026-10-19 |  |
 | `S1_DD_INVALIDATION_V1` | 1 | 1 | ✓ | מייקל | 2026-07-12 |  |
 | `S1_IB_SANITY_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
 | `S1_NEUTRAL_PRECEDENCE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
 | `S1_NEW_CLASSIFIER` | 1 | 1 | ✓ | מייקל | 2026-06-20 |  |
 | `S1_NONCONVICTION_V1` | 1 | 1 | ✓ | מייקל | 2026-07-12 |  |
+| `S1_PROVISIONAL_PUBLISH_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `S1_RECLASS_REQUIRES_IB_EXT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-31 |  |
 | `S1_TREND_CONTROL_V1` | 1 | 1 | ✓ | מייקל | 2026-07-12 |  |
 | `S1_TREND_ELONGATION_V1` | 1 | 1 | ✓ | מייקל | 2026-08-09 |  |
@@ -500,8 +525,10 @@
 | `S6_TARGET_APPROACH_REALIZE_V1` | 0 | 0 | ✓ | מייקל | 2026-08-21 |  |
 | `S7_SHADOW_LOG_V1` | 1 | 1 | ✓ | מייקל | 2026-08-06 |  |
 | `SCALE_IN_MARGIN_PRECHECK_V1` | 1 | 1 | ✓ | מנדט-הלילה 27-28.08 (T-111) | 2026-08-28 |  |
+| `SCALE_IN_MIN_EXEMPT_V1` | 1 | 1 | ✓ | מייקל | 2026-10-20 |  |
 | `SCALE_IN_P3_V1` | 1 | 1 | ✓ | מייקל | 2026-08-24 |  |
 | `SCALE_IN_V1` | 1 | 1 | ✓ | מייקל | 2026-08-13 |  |
+| `SESSION_CLOCK_V1` | 1 | 1 | ✓ | מייקל | 2026-10-24 |  |
 | `SIERRA_RECONCILER_V1` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `SIZE_CAP_CUT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-09 |  |
 | `SIZE_CAP_FLOOR_CONTRACTS` | 2 | 2 | ✓ | מייקל | 2026-08-19 |  |
@@ -523,6 +550,7 @@
 | `STOP_WIDEN_TO_FLOOR_ON_REJECT_V1` | unset_or_0 |  | ✓ | מייקל | 2026-07-19 |  |
 | `STOP_WIDEN_TO_STRUCTURE_V1` | 1 | 1 | ✓ | מייקל | 2026-07-20 |  |
 | `STOP_WINDOW_COMPLETED_V1` | 1 | 1 | ✓ | מייקל | 2026-07-20 |  |
+| `STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1` | 1 | 1 | ✓ | מייקל | 2026-10-21 |  |
 | `STRUCTURAL_STOP_ORIGIN_V1` | 1 | 1 | ✓ | מייקל | 2026-07-20 |  |
 | `STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1` | 1 | 1 | ✓ | מייקל | 2026-08-27 |  |
 | `STRUCTURE_EXIT_DOUBLE_V1` | unset_or_0 |  | ✓ | מייקל | 2026-08-30 |  |
@@ -531,6 +559,8 @@
 | `STRUCTURE_EXIT_REALIZE_V1` | live | live | ✓ | מייקל | 2026-09-02 |  |
 | `STRUCTURE_EXIT_REVERSAL_V1` | unset_or_0 |  | ✓ | מייקל | 2026-08-30 |  |
 | `STRUCT_TARGETS_WIN_V1` | 1 | 1 | ✓ | מייקל | 2026-09-06 |  |
+| `STRUCT_TARGETS_WITH_EXT_EXEMPT_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `SWING_TRAIL_SIDE_GUARD_V1` | 1 | 1 | ✓ | מייקל | 2026-10-21 |  |
 | `SYSTEM6_AUTOCORRECT` | protective | protective | ✓ | מייקל | 2026-07-15 |  |
 | `SYSTEM6_EXIT_JOURNAL` | 1 | 1 | ✓ | מייקל | 2026-07-13 |  |
 | `SYSTEM6_EXIT_SIGNALS` | 1 | 1 | ✓ | מייקל | 2026-07-13 |  |
@@ -539,21 +569,33 @@
 | `SYSTEM6_SUPERVISOR` | 1 | 1 | ✓ | מייקל | 2026-07-05 |  |
 | `T0_TARGET_PTS` | 3.0 | 3.0 | ✓ | מייקל | 2026-07-21 |  |
 | `T1_BANK_R` | 1.5 | 1.5 | ✓ | מייקל | 2026-07-23 |  |
+| `T1_FRONT_RUN_TICKS` | 2 | 2 | ✓ | מייקל | 2026-10-21 |  |
 | `T1_LADDER_V2` | unset_or_0 |  | ✓ | מייקל | 2026-06-18 |  |
 | `T1_REALISM_FLOOR_R_V1` | 1.5 | 1.5 | ✓ | מייקל | 2026-09-30 | ✓ |
 | `T1_STRUCTURE_END_V1` | 1 | 1 | ✓ | מייקל | 2026-07-22 |  |
 | `T2T3_NO_STOMP_V1` | 1 | 1 | ✓ | מייקל | 2026-07-21 |  |
 | `T3_REQUIRED_V1` | 1 | 1 | ✓ | מייקל | 2026-09-02 |  |
+| `T612_LADDER_COLLAPSE_V1` | 1 | 1 | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_EFFORT_K_VOL` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_EFFORT_MODE` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_EFFORT_N_AVG` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_EFFORT_SCOPE` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_RESULT_K_BODY` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TACTICAL_STEP_LOOKBACK` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
 | `TARGET_MIN_SPACING_V1` | shadow | shadow | ✓ | מייקל | 2026-08-21 |  |
 | `TARGET_REALISM_V1` | 1 | 1 | ✓ | מייקל | 2026-07-10 |  |
 | `TARGET_STRUCTURE_CLAMP_V1` | 1 | 1 | ✓ | מייקל | 2026-07-08 |  |
 | `TARGET_ZONES_V1` | 1 | 1 | ✓ | מייקל | 2026-07-05 |  |
+| `TOUCH2_EDGE_TOL_MAX_ATR` | 0.5 | 0.5 | ✓ | מייקל | 2026-10-21 |  |
+| `TOUCH2_STRUCT_STOP_MAX_ATR` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TOUCH2_STRUCT_STOP_MODE` | unset_or_0 |  | ✓ | מייקל | 2026-10-21 |  |
+| `TPO_LETTER_BY_TS_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `TRADE_ECONOMICS_AUTHORITY_V1` | diff | diff | ✓ | cowork-night (measure-only, no ruling needed) | 2026-09-09 | ✓ |
 | `TREE_EDGE_FAMILIES` | CEILING_FLIP,DOUBLE_TOP,DOUBLE_BOTTOM | CEILING_FLIP,DOUBLE_TOP,DOUBLE_BOTTOM | ✓ | מייקל | 2026-10-03 | ✓ |
 | `TREND_CCI_DIRECT_PT` | 50 | 50 | ✓ | מייקל | 2026-07-17 |  |
 | `TREND_CCI_DIRECT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-17 |  |
 | `TREND_LEG_CHASE_EXEMPT_V1` | 1 | 1 | ✓ | מייקל | 2026-08-11 |  |
-| `TREND_STEP_ENTRY_V1` | shadow | shadow | ✓ | מייקל | 2026-08-23 |  |
+| `TREND_STEP_ENTRY_V1` | 1 | 1 | ✓ | מייקל | 2026-10-19 |  |
 | `TREND_STEP_STAIR_OR_V1` | 1 | 1 | ✓ | מייקל | 2026-08-18 |  |
 | `TREND_STEP_STRUCT_EXEMPT_V1` | 1 | 1 | ✓ | מייקל | 2026-08-20 |  |
 | `TREND_UPGRADE_ADD_V1` | unset_or_0 |  | ✓ | מייקל (בנייה) — הדלקה טרם-נפסקה | 2026-08-28 |  |
@@ -564,6 +606,8 @@
 | `VARIATION_WITH_EXTENSION_V1` | 0 | 0 | ✓ | מייקל | 2026-09-17 | ✓ |
 | `VARIATION_WITH_TREND_CONT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-27 |  |
 | `VA_FADE_V1` | shadow | shadow | ✓ | מייקל | 2026-08-26 |  |
+| `WAIT_FOR_TEST_V1` | 1 | 1 | ✓ | מייקל | 2026-10-22 |  |
+| `WALL_AHEAD_SKIP_V1` | unset_or_0 |  | ✓ | מייקל | 2026-10-23 |  |
 | `WOODIES_TS_HOUR_FIX` | 0 | 0 | ✓ | מייקל | 2026-07-22 |  |
 | `ZLR_MGMT_V1` | 1 | 1 | ✓ | מייקל | 2026-07-14 |  |
 | `ZLR_SHADOW_V1` | 1 | 1 | ✓ | מייקל | 2026-09-07 |  |
@@ -573,37 +617,40 @@
 
 | טבלה | שורות | max ts (IL) |
 |---|---|---|
-| `v9_trades` | 3236 | 2026-10-09 19:20 |
-| `v9_decision_vectors` | 211998 | 2026-10-19 08:30 |
-| `v9_bars_5min_woodies` | 22343 | 2026-10-19 08:30 |
-| `v9_bars_5min` | 5306 | 2026-10-09 23:55 |
-| `v9_day_type_state` | 3 |  |
-| `v9_exit_decisions` | 17335 |  |
-| `v9_trade_management_log` | 352732 |  |
-| `v9_woodies_signals` | 3989 |  |
+| `v9_trades` | 3766 | 2026-10-23 22:55 |
+| `v9_decision_vectors` | 282189 | 2026-10-23 23:55 |
+| `v9_bars_5min_woodies` | 24870 | 2026-10-23 23:55 |
+| `v9_bars_5min` | 6598 | 2026-10-23 23:55 |
+| `v9_day_type_state` | 86 |  |
+| `v9_exit_decisions` | 18907 |  |
+| `v9_trade_management_log` | 353683 |  |
+| `v9_woodies_signals` | 4241 |  |
 | `v9_footprint_journal` | 9958 | 179088-12-30 00:00 |
-| `v9_bars_cumulative_delta` | 9812 | 2026-10-16 23:55 |
+| `v9_bars_cumulative_delta` | 10442 | 2026-10-23 23:55 |
 | `broker_truth` | None | missing |
 
 ## 7 · LaunchAgents
 
 | label | pid | rc |
 |---|---|---|
+| `com.mems26.gap_backfill` | - | 0 |
 | `com.mems26.agents_bootstrap` | - | 0 |
-| `com.mems26.mobile_relay` | 1629 | 0 |
-| `com.mems26.backend` | 2030 | -15 |
+| `com.mems26.mobile_relay` | 90334 | -15 |
+| `com.mems26.backend` | 95051 | -15 |
 | `com.mems26.update_check` | - | 0 |
-| `com.mems26.export_promoter` | 1619 | 0 |
+| `com.mems26.export_promoter` | 89168 | 0 |
+| `com.mems26.dalton_supervisor` | - | 0 |
 | `com.mems26.startup_check` | - | 0 |
 | `com.mems26.eod_handoff` | - | 0 |
-| `com.mems26.frontend` | 621 | 0 |
-| `com.mems26.bridge` | 637 | 0 |
-| `com.mems26.activity_feed` | 1624 | 0 |
+| `com.mems26.frontend` | 18727 | 0 |
+| `com.mems26.bridge` | 89163 | 0 |
+| `com.mems26.activity_feed` | 89173 | 0 |
 
-## 8 · תיקטים — 439 סה״כ · 370 פתוחים · {'🔴': 106, '🟠': 168, '🟡': 31, '✅': 52, '🔵': 65, '⚠️': 3, '🟢': 2, '🔴🔴': 9, '📄': 1, '📊': 1, '⚪': 1}
+## 8 · תיקטים — 485 סה״כ · 400 פתוחים · {'🔴': 107, '🟠': 180, '🟡': 45, '✅': 67, '🔵': 68, '⚠️': 3, '🟢': 3, '🔴🔴': 9, '📄': 1, '📊': 1, '⚪': 1}
 
 | # | סטטוס | כותרת | הצעד הבא |
 |---|---|---|---|
+| T-612 | 🔴 | `fire_drill` הפך ל-NO-GO בשער-20.10: שלושה שומרי-[[T-438]] אדומים — והשורש אינו T-610 אלא פסיקת-5-החוזים, שהפכ | **(1) ✅ נענה — ריצה 375, 20.10 19:25:10: החור נמדד בשטח, הופעה ראשונה אי-פעם.** `grep -c "T-214: PLACE rejected" /tmp/backend.err.log ⇒ **1**` (היה **0** בכל הל |
 | T-587 | 🔴 | שער-ה-ts-offset אינו נאכף בדחיפה הראשונה שאחרי כל ריסטארט — וה-`_prev` הריק הוא שהכניס 6 ימי-ברים ישנים ל-DB ב |  |
 | T-568 | 🔴 | אחרי שסיירה עלתה ב-13:00:32 הצ'ארט חזר לחשבון-האמת `37138283` (`is_sim=0`, `acct_is_sim=0`, `order_placement_a |  |
 | T-545 | 🔴 | פוזיציית-לייב פתוחה בברוקר שהספרים סגרו כהפסד  | תור-הלילה מנקה ל-#3046 את `entry_ts` **וגם** את `pnl_sierra`, וכותב ב-LIVE_CHANNEL "אין רישום-ברוקר ל-#3046" + מסמן את ה-`+53.75` כ-`unmatched` במפורש. 🆕 **ריצה |
@@ -710,6 +757,18 @@
 | T-88 | 🔴 | פער-הרישום: הספרים מפספסים מילויי-יציאה — היום −$107.50 בספרים מול  |  |
 | T-86 | 🔴 | S2 מת חי — `NameError: name '_atr' is not defined` ב-`process_bar`, 19/19 ברים היום מ-16:50:02 IL. |  |
 | T-74 | 🔴 | מסחר-ידני באותו חשבון חוסם את יריות-הלייב — 3 מ-4 נחסמו ב-20.08 (75%) |  |
+| T-630 | 🟠 | הדוור הוא מפרסם-מחדש ולא שולח חד-פעמי — ולכן `UNVERIFIED` מ-`phone_reply.py` אינו "לא נמסר", והמסירה בפועל היא | כיוון שהכתיבה היא המסירה, אין "ביטול" אחרי `phone_reply.py` — ולכן שורת-היומן **לא נשלחת כלל** כשחובה-4 כבר שולחת את קישור-עמוד-היום. **ברירת-המחדל המוחלת עד פס |
+| T-625 | 🟠 | מעבר הפרויקט במלואו ל-iMac (מק-2) — פסיקת-מייקל 21.10 12:10: "להעביר את הפרויקט במלואו למחשב המק השני… המסחר י | ≥23:35 IL (אחרי משימת-23:20): במקבוק `bash scripts/mac2/phaseB_cutover_macbook.sh all` → ב-iMac `bash scripts/mac2/phaseB_imac_golive.sh all` → מייקל: Sierra `Y |
+| T-623 | 🟠 | נאמנות-הרנס: שלושה מנגנונים חיים רצים על `time.monotonic` (שניות-אמת), שהשעון המזויף של ההרנס לא נוגע בהם | mbase ו-mn2rs מלאים ⇒ אם ההפרש קטן — ברירת-מחדל ON בהרנס ו-base חדש לכל מדידה מכאן; ההפרשים הקטנים (T-622d ‎+142$) נקראים רק מול m-base |
+| T-613 | 🟠 | ילד-`SCALE_IN` נולד עם `contracts=0` ⇒ אף PLACE לא נשלח, השורה נשארת `PENDING` לנצח, והמפייס סופר אותה `5c/ass | **(1) קריאת-קוד בחינם (קריאה-בלבד, ללא שינוי), לריצת-23:00 או לתור-הלילה:** לאתר את השורה שמייצרת `ladder_reason "contracts=0 (2/2/1 is ruled for 5 only)"` ולקב |
+| T-611 | 🟠 | פרומפט-המשימה-המתוזמנת מקודד את הגודל-הפסוק כ-"1 חוזה" ומוסיף "אל תניח 2, 5 או 3" — אבל מייקל פסק מאז 5 חוזים  | (1) **לריצת-15:3x של היום:** לאמת `ruled_contracts()` מול `RULED_FLAGS.yaml`+`flag_guard` ⇒ הערך-הצפוי הוא **5**, ו-`5` הוא **PASS ולא NO-GO**; המספר כבר נרשם ל |
+| T-608 | 🟠 | `scripts/eod_journal.py` מורה בדוקסטרינג שלו לשלוח לטלפון סיכום-יומן ≤480 תווים — בדיוק מחלקת-ההודעות שכלל-הטל | האם שורת-ה-`PHONE:` של היומן היא **מקרה חמישי מאושר** — ואז לעדכן את כלל-הטלפון במסמך-המשימה המתוזמן ולהצמיד לה קאפ מפורש — **או** שהיומן נשאר ב-`LIVE_CHANNEL`  |
+| T-607 | 🟠 | פער ספרים↔ברוקר של `$6.25` שהתמקם על עסקה אחת: TM מייחס ל-`#3501` `−37.50` בעוד הספרים `−31.25`, ושלושת מחירי- | **(1) הערב ב-23:00 (חובה-4), המבחן הישיר והזול:** `python3 scripts/broker_truth.py --since 2026-10-19 --write` ואז `select count(pnl_sierra) from v9_trades wher |
+| T-606 | 🟠 | יעד שנכתב `0` ליטרלי — 9 שורות בספר, ושתיים מהן בכסף אמת. | **(1) טרום-פתיחה, קריאה אחת:** למצוא בכותב-היעדים אם `0` הוא ברירת-מחדל מוצהרת (`t3 = 0` כ-'אין t3') או תוצאה של חישוב שנפל — השאלה המכריעה היא אם המערכת **מתכו |
+| T-605 | 🟠 | סולם-היעדים נכתב לא-מונוטוני ל-`LONG` — `t1` רחוק מ-`t3`, כלומר המדרגה שנקראת "ראשונה" היא האחרונה שהמחיר יפגו | **(1) טרום-פתיחה, קריאה אחת ולא ניחוש:** לקרוא ב-`trading_gateway` מי כותב `t1` ומי כותב `t2/t3` לעסקה (ולא ל-`[TargetSpacing] would-be`, שהוא אינסטרומנטציה) —  |
+| T-604 | 🟠 | קידום `S1_DAY_DIRECTION_V1` ל-`apply` (פסיקת-מייקל 19.10 19:52, קומיט `7249d493`) נכנס לתוקף — ולא שינה את החס | **(1) הערב (חובה-4), המבחן הזול:** לספור בליגר כמה מהחסימות `tree:bias` של היום היו שורטים ביום שסגר למטה — `hint` מול `close`-יום — ולהוציא את המספר לדוח-הערב; |
+| T-603 | 🟠 | `day_review.py` מבצע בפועל בדיוק את ה"תיקון" שמלכודת 21 אוסרת — `not r.get("ts") ⇒ continue` הוא מבחן-סכמה המת | להריץ `day_review.py` ואז לספור בדוח שהוא מייצר כמה מועמדים-שלא-נורו הוא מזכיר; אם אפס בזמן ש-`awareness_score.py` מראה `מועמדים 6/8` ו-`נגיעות-VA בלי DETECTED: |
+| T-602 | 🟠 | סטופ-הייחוס של GHOST בליגר-המועמדים הוא רמה בת-5-ימים, 106 נק' מעל גבוה-היום — ושתי התבניות האחרות באותו קובץ, |  |
 | T-592 | 🟠 | סוכן-T1 (מייקל 18.10 16:5x/17:1x: "כניסה לפי דלתון על 5 חוזים… כלל כניסה מביא T1 ≥80%… הדוקטרינה קודם, יום-אחר | hist_p/hist_o/hist_po (תיקוני-השורש) → מספרים; הלמידה עוברת לתיוג-מייקל על סקירות-היום (70 + 166); כניסות-תזה רק עם ראיות שמקטינות כשלון-דרייב, ולידציה על 2022– |
 | T-586 | 🟠 | ביקורת-המערכת 18.10 (מייקל: "תעבור על המערכת… סימולציה מלאה… תדווח מתי תקינה לכסף אמיתי"). | יקום-המועמדים (alltake, 526 סשנים) → מדיניות-תאים walk-forward (`wf_cells.py`) → מה ששורד בשלושת המשטרים = RC-1 (דוח §7; רץ הלילה). פסיקות: דוח §6 (RC-1, T-588/ |
 | T-574 | 🟠 | שינוי-ברקט ידני בסיירה אינו מגיע לספרים — ו-`BarLevelDetector` נכנס ללופ-המתנה-לנצח לפקודה שנמחקה. | (א) **תשובת-מייקל על הכוונה** — אם 3289 עברה לניהול ידני, הרשומה צריכה לשאת תיוג-ידני ולא ברקט-שרת מיושן. (ב) **נתיב-קליטה, קריאה-בלבד קודם:** `trade_activity_e |
@@ -808,7 +867,7 @@
 | T-351 | 🟠 | `v9_trades.pnl_sierra` אינה בעלת-בעלים-יחיד: שני כלים כותבים אותה משני מקורות שונים ומקבלים מספרים שונים לאותה | (1) **מייקל קובע מי הבעלים** של `pnl_sierra` — יומן-המילויים או `TradeActivityLog`. עד שיש פסיקה **אין להריץ `--write` באף אחד מהשניים**, כי כל ריצה דורסת את קו |
 | T-349 | 🟠 | ארכיון-הליגר אינו קורפוס אחיד: `72.8%` מהשורות מגיעות מ-4 קבצים בלבד (`08-11` · `08-17` · `08-18` · `08-19`),  | (1) **כל דוח שמצטט מכנה-ארכיון חייב להחריג את 4 הקבצים בשמם** (`08-11`/`08-17`/`08-18`/`08-19`) — **ולא לחתוך לפי טווח-תאריכים**, כי הטווח אינו רצף. שתי האמירות |
 | T-348 | 🟠 | ‏`21.4%` מהפסדי-הצל נחתכים ע"י כלל-סדר-הבדיקה ולא ע"י השוק — הבר שסגר אותם בסטופ נגע גם ב-`T1`. | (דוקטרינת-הלמידה: "הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל"): (1) ריפליי דקה/טיק על `116` הברים הדו-משמעיים ⇒ להוציא **מספר**: בכמה מהם `T1` נגע לפני הסטופ; (2) עד |
-| T-347 | 🟠 | `EXIT_TRACK_ACTIVITY_V1` דלוק ו-`FillPoller` מכריז על עצמו `BLIND` — מקור-התמחור של סיירה קפוא `46.3` שעות, וה | לאמת ש-`TradeActivityLog_2026-09-14_UTC.37138283.data` **נוצר** ושה-JSONL **מתקדם בתוכן** (‏`scan_ts` חדש, לא רק `mtime`) ברגע האירוע הראשון. אם אחרי הפתיחה הפו |
+| T-347 | 🟠 | `EXIT_TRACK_ACTIVITY_V1` דלוק ו-`FillPoller` מכריז על עצמו `BLIND` — מקור-התמחור של סיירה קפוא, ויציאות לא מתו | **(1) המבחן הזול שמכריע בין שני התיקונים, לפני שנוגעים בקוד:** `python3 scripts/trade_activity_feed.py --once --account Sim1` ואז לבדוק אם `trade_activity_event |
 | T-346 | 🟠 | מוני-היום של השער (`trades_today`/`daily_pnl`) מדווחים `3` ו-`$47.50` ביום עם  |  |
 | T-345 | 🟠 | עבודת-T-328 לא-מקומטת של cc יושבת על הדיסק 20 שעות וחוסמת את `git pull` — הצעד הראשון של שער-קדם-הפתיחה. |  |
 | T-344 | 🟠 | מועמד-לייב יחיד עבר את  | **(1) 🔑 להפריד את השומר לשני מקרים** — פוזיציה זרה **מוכחת** (`order_id` שאינו בלוג-שלנו) היא **לא** "orphan/missed-fill" ולכן גם לא `CRITICAL ... Investigate`; |
@@ -878,6 +937,20 @@
 | T-103 | 🟠 | Candidate Ledger — פריט-1, אפס סיכון. |  |
 | T-102 | 🟠 | Task-0: לאחד 52 כלי replay/backtest/study ל-Replay Kernel אחד. |  |
 | T-89 | 🟠 | ביקורת המערכות-המתות (22.08, קריאה-בלבד) — 4 ממצאים חוסמים-אמת. | ‏(א) מייקל פוסק על (2) — או שהחיצוני חוזר ל-`1` או ששני הפנימיים ל-`0`; **לא להשאיר שלוש פסיקות סותרות**. (ב) cc: להעתיק את הפיקסצ'ר של 8 השורות מ-`backend/v9/t |
+| T-645 | 🟡 | שלושה סוכני קריאה-בלבד לפני שממשיכים (מייקל 24.10: "העץ צריך להתרחב ולבחון כל עסקה טובה … וכל עסקה רעה … לא נר |  |
+| T-643 | 🟡 | עסקה-עסקה לפי דלתון + מערכת 6 תקינה (מייקל 24.10 00:5x: "אתה לא עובד נכון אתה מנסה לעשות סטטיסטיקה לפי חודשים  |  |
+| T-642 | 🟡 | מערכת 6 כמנהלת-תרחישים + יעדים ריאליים (מייקל 23.10 23:2x: "לקרב את T1 למקום ריאלי יותר שהמערכת תדע לזהות סיכו |  |
+| T-641 | 🟡 | 23.10 ערב — אין עצירת-הפסד בדמו (במפורש) · מערכת 6 נבדקה · תיקוני-פרונט · ולמה נכנסנו ל-#3898 (מייקל: "מבחינתי |  |
+| T-640 | 🟡 | 23.10 — גאפ-למטה שנדחה: היום זוהה חלקית, והעסקה היחידה הייתה נגד ההרחבה (#3876 CEILING_FLIP_TOUCH2 SHORT 18:05 |  |
+| T-639 | 🟡 | מפקח-דלתון — פיקוח קבוע לעץ ההחלטות: איך דלתון מיושם בכל עסקה (מייקל 23.10: "האם תוכל לייצר לנו פיקוח קבוע לעץ |  |
+| T-629 | 🟡 | גלאי-המדרגה (מדרגה → מבחן → כניסה) — `backend/v9/systems/steps.py`, טהור, 7 טסטים על ברי 21.10 (7943cc226). |  |
+| T-628 | 🟡 | ארבעת תיקוני-הלילה לפתיחה/הרחבה נבנו כבויים ונמדדו — השוק פסק: שלושה מפסידים, הרביעי לא מוכח (cowork, 21.10 23 |  |
+| T-624 | 🟡 | הנתיב הטקטי אחרי הרחבה שנכשלה (מייקל 21.10 על 19.10: "המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … | התוצאות (78, מול mts = mbase + מראת-המדרגות): **הנתיב בלי מסנן + ZLR מקודם (mtsnz) — 19 עסקאות-נתיב +907$ ישיר (מדרגות 3 · +706 · ZLR 14 · +214 · GB100 2 · −13) |
+| T-622 | 🟡 | חבילת-היום-הנורמלי (מייקל 21.10: "תיקונים שיהיו בהתאם ליום נורמלי") | לא הוכרע לפני 16:30 (21.10) ⇒ עובר ל-iMac (המסחר עובר אליו הלילה, T-625). מייקל בוחר: **n2rsNx** (6 דגלים, +4,161$) או **n2rs3k** (5, בלי T1_FRONT_RUN_TICKS, +3 |
+| T-621 | 🟡 | תיקוני-השורש של 20.10 — 1, 2, 4, 5, נבנו כבויים ונמדדו | מייקל מכריע בשלב 4 מה נדלק בדמו; `claude/PLAN_2010_FIXES_2026-10-21.md` בפרויקט |
+| T-618 | 🟡 | T1 לפני הרמה — `T1_FRONT_RUN_TICKS` | `run_days.sh t1fr` בהרנס הנאמן ⇒ מייקל מכריע בשלב 4 |
+| T-617 | 🟡 | מפסידות 20.10, סבב שני | `run_days.sh t2tol` בהרנס הנאמן ⇒ מייקל מכריע בשלב 4 |
+| T-616 | 🟡 | פערי-הדוקטרינה של 20.10 — ארבעה תיקונים מאחורי דגלים | מדידה מחדש בהרנס הנאמן ([[T-620]]) על 78 הסשנים — `harness_out/t621/run_days.sh edge fx3 saa night` — ומייקל מכריע בשלב 4 יחד עם [[T-621]]/[[T-622]] |
 | T-581 | 🟡 | `/api/v9/gateway/status` משרת `daily_pnl` של  | (1) להחליט את ה**תיקון-התצוגה** בלבד — או לתייג את השדה ב-`get_status` כ-`session_pnl_since_boot` ולהוסיף `daily_pnl_today` שנקרא מהספרים לפי `entry_ts::date=cu |
 | T-580 | 🟡 | פסיקות-הלילה של 09.10 נכתבו לאינבוקס ב-00:45/00:48 IL ולא הגיעו למייקל — אפס הודעות-טלפון אליו היום, ובתוכן פר | (1) **ריצת-15:3x נושאת את שורת-האינבוקס §1 בתוך הודעת-השער** (מקרה ד, ≤500 תווים, שאלה אחת בסוף: א/ב/ג) — זה חלון-הטלפון המאושר היחיד שנותר לפני הפתיחה. (2) ⛔ * |
 | T-552 | 🟡 | הודעת-טלפון יחידה הגיעה למייקל פעמיים — הכפילות ממוקמת אחרי ה-POST היחיד, לא בהרצה כפולה. | (1) **לא לשלוח הודעת-בדיקה לטלפון** כדי לשחזר — זו בדיוק ההצפה. (2) להכריע מלוגי-השרת: `list_logs` של שירות `mems26-mobile` ברנדר סביב `15:53:59-15:54:01Z` ⇒ ** |
@@ -909,6 +982,9 @@
 | T-91 | 🟡 | רפליי E1–E3 — כל שינוי-כניסה שהוצע, נמדד (34 סשני-לייב ‎07-07→08-21‎ · 3 רמות-סליפג' · עמלות בפנים · 4 חוזים). |  |
 | T-90 | 🟡 | רפליי X1–X4 — כל שינוי-יציאה ושינוי-גודל שהוצע, נמדד (28/29 סשנים · 3 רמות-סליפג' · עמלות בפנים). |  |
 | T-87 | 🟡 | תקציב-הכניסות של Normal ראשון-בא-ראשון-זוכה — ובזבז את שני הסלוטים על שני ZLR שורט בשפל-הסשן. |  |
+| T-619 | 🔵 | פסיקות-נסיבות → וריאנטי-עץ (המנגנון הכללי שמייקל ביקש 20.10 23:5x) | פסיקות מייקל בדף ⇒ `tree_rule_variant.py` ⇒ מדידה בהרנס הנאמן ⇒ הצגה |
+| T-610 | 🔵 | `git stash` יתום מ-01.09 17:37 שמעולם לא הוחזר — 3 קבצי `readiness.html` מחוץ ל-git כבר 7 שבועות. | (1) לקרוא את `git stash show -p stash@{0}` ולהכריע אם התוכן מת (ה-readiness נוצר-מחדש מאז) או חי. (2) אם מת — `git stash drop stash@{0}` בקומיט-תיעוד; אם חי — ` |
+| T-599 | 🔵 | אי-סימטריה בשומר-המחיר של `live_price`: `price` מתוקן בשני המסלולים, `volume` באף אחד, וה-Event-Bus מפרסם את ה |  |
 | T-598 | 🔵 | BRIEF §2.3 #1 — סטופ ל-BE אחרי +1R: נמדד יום-שלם על 71, נכשל בכלל-הקבלה (fix-agent ליל 18→19.10). |  |
 | T-597 | 🔵 | ההרנס קרס על 07.08.2026 בכל וריאנט — ו"70 הסשנים" של הייחוס הם 71 (נמצא 19:5x). |  |
 | T-596 | 🔵 | הפוסק שמכריע "יש הודעת-מייקל ממתינה?" נכשל בשלילה-שקרית על איות-השולח — `sender` ב-`GET /chat` הוא `"מייקל"` ב | אין — הפריט סגור. הפרדיקט המנורמל חי כמלכודת 37, והמוסכמה-הכפולה (`sender` עברי ⟂ `author` לטיני) נרשמה שם כצורה הכללית. |
@@ -975,7 +1051,7 @@
 | T-162 | 🔵 | 8 סקריפטים-אחים באותה מחלקה |  |
 | T-106 | 🔵 | Opportunity Ranker — חסום עד ≥300 candidate outcomes נקיים. |  |
 
-## 9 · סקריפטים (255)
+## 9 · סקריפטים (268)
 
 | קובץ | מה |
 |---|---|
@@ -1002,6 +1078,7 @@
 | `scripts/check_bars_ts_types.py` | D-0717-B diagnostic — print the ACTUAL ts column types + sample rows for |
 | `scripts/check_env.sh` | ═══════════════════════════════════════════════════════════════ |
 | `scripts/check_status.sh` | MEMS26 Status Check — run anytime to see system health |
+| `scripts/circumstance_deck.py` | Circumstance deck v2 (Michael 20.10 23:5x: "I don't need you to test me — I need us to improve the system, |
 | `scripts/classifier_truth_audit.py` | D1 — Classifier truth audit: compare labels vs Dalton on .scid truth bars. |
 | `scripts/close_stale_shadow.py` | Close SHADOW trades left open from a previous session. |
 | `scripts/config_consumer_guard.py` | §9א config_consumer_guard — every YAML config field must have ≥1 consumer. |
@@ -1011,8 +1088,14 @@
 | `scripts/d1_exit_proof.sh` | D1-EXIT Proof Script — runs on SIM after Michael's Sierra reload. |
 | `scripts/daily_dalton.py` | daily_dalton.py — נתב-דלתון יומי · שלב 1 (CC_ORDER 2026-10-05 17:11). |
 | `scripts/daily_extremes_playbook.py` | daily_extremes_playbook.py — per-session "extremes & day-type playbook" study. |
+| `scripts/dalton_supervisor.py` | T-639 — מפקח-דלתון: פיקוח קבוע לעץ ההחלטות — איך דלתון מיושם בכל עסקה (Michael 23.10 "מאשר"). |
+| `scripts/dalton_supervisor_nightly.sh` | T-639 — nightly run of the Dalton supervisor (LaunchAgent com.mems26.dalton_supervisor, 23:12 IL weekdays). |
 | `scripts/data_integrity_audit.sh` | scripts/data_integrity_audit.sh |
+| `scripts/day_dissect.py` | day_dissect.py — DAYMAP («פירוק-יום»), version base-20.10 («בסיס-20.10»). |
 | `scripts/day_review.py` | day_review.py — the daily exam after every trading day (Michael 23.09 07:40): |
+| `scripts/daymap_aggregate.py` | daymap_aggregate.py — DAYMAP («פירוק-יום») aggregate over every day file of a version. |
+| `scripts/daymap_lib.py` | daymap_lib.py — pure helpers for DAYMAP («פירוק-יום», version base-20.10). |
+| `scripts/daymap_pages.py` | daymap_pages.py — DAYMAP («פירוק-יום») phone pages: one self-contained RTL Hebrew HTML per day + an index. |
 | `scripts/daytype_stability_study.py` | daytype_stability_study.py — measure the day-type label instability (T-47 / F6). |
 | `scripts/db_backup.sh` | ═══════════════════════════════════════════════════════════════ |
 | `scripts/db_init.sh` | ═══════════════════════════════════════════════════════════════ |
@@ -1029,6 +1112,7 @@
 | `scripts/entry_side_tables.py` | entry_side_tables.py — turn the entry_side_replay JSON dumps into the tables. |
 | `scripts/eod_anchor_trial_report.py` | EOD Anchor Trial Report — per-trade audit + S2 histogram + counterfactual. |
 | `scripts/eod_data_handoff.sh` | eod_data_handoff.sh — daily data packet from the TRADING machine to git, |
+| `scripts/eod_journal.py` | eod_journal.py — the end-of-day exam + the living trading journal (Michael 19.10.2026, items 1 and 5: |
 | `scripts/eod_review.py` | EOD review for ONE trading day (Michael 2026-07-22): today's trades, how |
 | `scripts/extreme_detection_audit.py` | Extreme detection & bias audit — CC_NEXT_2026-08-23D. |
 | `scripts/f1_compass_replay.py` | F1 replay — would DIRECTION_COMPASS_V1 have prevented the +$576 direction family? |
@@ -1040,6 +1124,7 @@
 | `scripts/fwd_harness.py` | fwd_harness.py — FORWARD production-path test (cowork-dev 2026-09-10). |
 | `scripts/g4_pkg5_latency_probe.py` | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
 | `scripts/gap_analysis.py` | Gap Analysis — "if we made 10 points and the range was 200, there were lots |
+| `scripts/gap_backfill.py` | gap_backfill.py — fill RTH gaps in the LIVE DB (mems26) from Sierra's .scid tick files, for days the Mac slept or the |
 | `scripts/gate_profit_audit.py` | gate_profit_audit — did a gate block a WINNER? (Michael 14.08) |
 | `scripts/gate_scorecard.py` | gate_scorecard.py — the opinion quality of every gate and every shadow producer, on ALL their candidates |
 | `scripts/gen_daily_report.py` | gen_daily_report — דוח-יומי אוטומטי (Michael 2026-07-16, "דוח יומי שגם יופיע בכיס"). |
@@ -1092,6 +1177,7 @@
 | `scripts/open_drive_branch_study.py` | open_drive_branch_study.py — the opening-drive BRANCH on every past session |
 | `scripts/opening_atr_audit.py` | Is the stop band at the open calibrated on pre-market volatility? |
 | `scripts/opening_signal_edge.py` | opening_signal_edge.py — which opening signals actually carry DIRECTION? |
+| `scripts/opening_v2_study.py` | Opening type v2 — read the last N RTH sessions myself: bars, what the system said, what v2 says, what happened. |
 | `scripts/ops_log.py` | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
 | `scripts/oracle_engine.py` | oracle_engine.py — F14 · T-408 — Oracle as discovery engine in the nightly scan. |
 | `scripts/oracle_study.py` | oracle_study.py — what the BARS say would have worked (cowork 17.09 18:05). |
@@ -1195,10 +1281,13 @@
 | `scripts/tp_audit.py` | TP audit v1 — האם המימושים (T1) נכונים פר-תבנית×סוג-יום מול מה שהיום נתן |
 | `scripts/tp_audit_v2.py` | TP audit v2 — target placement analysis (30 days) via direct psql. |
 | `scripts/trade_activity_feed.py` | Trade Activity Log feeder — extracts fill/stop-move events from Sierra's binary log. |
+| `scripts/trade_zoom.py` | trade_zoom.py — zoom-in on ONE trade along Michael's six doctrine dimensions (22.10.2026): |
 | `scripts/tree_diff.py` | T-392: Tree diff — compare real gate decisions vs draft tree v2. |
 | `scripts/tree_learner.py` | tree_learner.py — a decision tree that SPLITS ON THE CIRCUMSTANCES of every candidate and grows with the data |
 | `scripts/tree_measure.py` | tree_measure.py — the nightly measurement of DECISION_TREE_V3: every node and every leaf of the tree gets |
 | `scripts/tree_prune_variant.py` | tree_prune_variant.py — build a replay VARIANT of the live tree with named leaves set to SKIP. |
+| `scripts/tree_readiness_matrix.py` | tree_readiness_matrix.py — T-631 (22.10): what the live decision tree does for every opening type × day type × phase. |
+| `scripts/tree_rule_variant.py` | T-619 — Michael's circumstance rulings → a decision-tree VARIANT (Michael 20.10 23:5x: "I don't need you to |
 | `scripts/uat_hotfix_4_3.sh` | set -e |
 | `scripts/uat_hotfix_4_4.sh` | set -e |
 | `scripts/uat_hotfix_4_5.sh` | set -e |
@@ -1237,28 +1326,28 @@
 
 ## 10 · דוחות אחרונים
 
-- `docs/reports/T598_BE_AFTER_1R_2026-10-19.md` (2026-10-19 00:19)
-- `docs/reports/FULL_REPORT_SUPER_AGENT_2026-10-19.md` (2026-10-19 00:13)
-- `docs/reports/T260_PHONE_REPLY_DELIVERY_VERIFY_2026-10-19.md` (2026-10-19 00:00)
-- `docs/reports/SYSTEM_REVIEW_2026-10-18.md` (2026-10-18 23:50)
-- `docs/reports/OPEN_PARITY_2026-10-18.md` (2026-10-18 23:43)
-- `docs/reports/SUPERVISION_LATEST.md` (2026-10-18 22:36)
-- `docs/reports/SUPERVISION_2026-10-18_2236.md` (2026-10-18 22:36)
-- `docs/reports/SUPERVISION_2026-10-18_2136.md` (2026-10-18 21:36)
-- `docs/reports/SUPERVISION_2026-10-18_2036.md` (2026-10-18 20:37)
-- `docs/reports/SUPERVISION_2026-10-18_1936.md` (2026-10-18 19:36)
-- `docs/reports/SUPERVISION_2026-10-18_1836.md` (2026-10-18 18:36)
-- `docs/reports/SUPERVISION_2026-10-18_1736.md` (2026-10-18 17:37)
+- `docs/reports/OPS_LOG_2026-10-24.md` (2026-10-24 19:12)
+- `docs/reports/T644_DST_SESSION_CLOCK_2026-10-24.md` (2026-10-24 09:33)
+- `docs/reports/T640_HARNESS_2026-10-23.md` (2026-10-24 00:42)
+- `docs/reports/OPS_LOG_2026-10-23.md` (2026-10-23 22:59)
+- `docs/reports/FRONTEND_FIXES_2026-10-23.md` (2026-10-23 20:06)
+- `docs/reports/SYSTEM6_REVIEW_2026-10-23.md` (2026-10-23 20:00)
+- `docs/reports/FRONTEND_BACKEND_AUDIT_2026-10-23.md` (2026-10-23 18:36)
+- `docs/reports/OPENING_V2_STUDY_2026-10-23.md` (2026-10-23 10:15)
+- `docs/reports/OPS_LOG_2026-10-22.md` (2026-10-23 04:16)
+- `docs/reports/T635_HARNESS_2026-10-22.md` (2026-10-23 00:43)
+- `docs/reports/MORNING_2026-10-22.md` (2026-10-22 14:06)
+- `docs/reports/REPLAY_REVIEW_2026-10-21.md` (2026-10-21 23:25)
 
 ## 11 · ריצות-הרנס אחרונות
 
-- `harness_out/t598` —   2026-10-06 / OPENING_DRIVE / LONG / 16:50:03 / T1 / BE / 95.6 / 0.0 / -95.6
-- `harness_out/t466` — ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026
-- `harness_out/t586` — ALL DONE Sun Oct 18 10:55:55 IDT 2026
-- `harness_out/t587` — ALL DONE Sun Oct 18 11:04:57 IDT 2026
-- `harness_out/t585` — 
-- `harness_out/t579` — === summary table (fix-agent, 00:38)
-- `harness_out/t567` — ALL DONE 00:37:28
-- `harness_out/t575` — 
-- `harness_out/t571` — 
-- `harness_out/t566` — ALL DONE Thu Oct  8 12:50:41 IDT 2026
+- `harness_out/t645` — 
+- `harness_out/t643` — 
+- `harness_out/t640` — 
+- `harness_out/t635` —    biggest: [('2026-06-24', -837.0), ('2026-06-23', 731.2), ('2026-08-17', 652.5), ('2026-09-02', 508.6), ('2026-08-03', 465.0), ('2026-09-14', -465.0)]
+- `harness_out/t631` — 
+- `harness_out/t628` — 
+- `harness_out/t561` — 
+- `harness_out/t517` — EXIT rc=0 Wed Sep 30 06:47:50 IDT 2026
+- `harness_out/t621` — ALL DONE 15:55:23
+- `harness_out/t612_card` — 

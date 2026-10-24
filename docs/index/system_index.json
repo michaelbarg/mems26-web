@@ -1,19 +1,22 @@
 {
- "generated_at": "2026-10-19 08:30:50",
+ "generated_at": "2026-10-24 19:20:13",
  "days": 30,
  "sections": {
   "git_tree_flags": {
-   "head": "b9c6bce1 2026-10-19 06:13 index-agent: SYSTEM_INDEX 2026-10-19",
+   "head": "f22ecae83 2026-10-24 17:39 T-644: SESSION_CLOCK_V1=1 on Michael's ruling (24.10) + restart verified — RULED_FLAGS, TASK_LOG, STATUS_BOARD",
    "branch": "stabilize/mems26-local-truth-2026-05-16",
-   "dirty_files": 15751,
+   "dirty_files": 20199,
    "tree_version": "3.4.0",
-   "ruled_flags": 274,
+   "ruled_flags": 320,
    "flags_mismatch": [],
    "flags_on": [
     "APP_STATE_ROOT_FIX_V1",
     "AUTH_LOWCONF_REDUCED_V1",
     "BAR_SEAM_REJECT_V1",
     "BE_AFTER_REAL_T1_V1",
+    "BE_AFTER_T1_RULE_V1",
+    "BE_BEFORE_T1_ARM_R",
+    "BE_BEFORE_T1_TRAIL_R",
     "BLOCKED_TWIN_V1",
     "BOOT_DAYTYPE_REPLAY_V1",
     "BOOT_HYDRATION_V1",
@@ -24,6 +27,7 @@
     "CEILING_FLIP_TOUCH2_V1",
     "CEILING_FLOOR_STATE_V1",
     "CHASE_MIN_SESSION_BARS",
+    "CLS_RESULT_SESSION_GUARD_V1",
     "COLD_START_GUARD_V1",
     "CONFLUENCE_RI_ZLR_LIVE",
     "CONFLUENCE_RI_ZLR_V1",
@@ -35,13 +39,16 @@
     "DAYTYPE_ACCEPTANCE_DEMOTION_V1",
     "DAYTYPE_ANTIFLAP_V1",
     "DAYTYPE_BOOT_SEED_CANONICAL_V1",
+    "DAYTYPE_HISTORY_LIVE_LOCK_V1",
     "DAYTYPE_HONEST_PRELOCK_V1",
     "DAYTYPE_LOCATION_GATE",
+    "DAYTYPE_MACHINE_CLOSED_BARS_V1",
     "DAYTYPE_ONE_SOURCE_V1",
     "DAYTYPE_PATTERN_AWARE_V1",
     "DAYTYPE_PLAYBOOK",
     "DAYTYPE_RECLASS_STABILITY_V1",
     "DAYTYPE_RTH_RESET_V1",
+    "DAYTYPE_SIDES_ACCEPTED_V1",
     "DAYTYPE_SIDES_MECHANICAL_V1",
     "DECISION_TREE_V3",
     "DELTA_BREAKOUT_RELEASE_V1",
@@ -68,11 +75,12 @@
     "FAILED_BREAK_VA_V1",
     "FAILED_RE_IB_V1",
     "FEED_WATCHDOG",
-    "FIXED_CONTRACTS_1",
+    "FIXED_CONTRACTS_5",
     "FRESH_EXTREME_MIN_BARS",
     "IB_BARS_VALIDATE_V1",
     "IB_BREAK_ANY_EXPANSION_V1",
     "IB_RETURN_HINT_RELEASE_V1",
+    "LADDER_221_V1",
     "LEG_EXEMPT_LSMA_FLAT_V1",
     "LEG_RIDE_V1",
     "LIVE_EXECUTION_V1",
@@ -86,9 +94,11 @@
     "MARKET_CONTEXT_V1",
     "MEMS_MAX_RISK_POINTS",
     "MEMS_MIN_RISK_POINTS",
+    "MID_VALUE_EDGE_TEST_V1",
     "NEUTRAL_RESPONSIVE_V1",
     "NEVERFADE_TREND_ONLY_V1",
     "NEWS_BLACKOUT_V1",
+    "NORMAL_DAY_RUNNER_OTHER_SIDE_V1",
     "NORMAL_ROTATION_FIX_V1",
     "NO_LABEL_NO_FIRE_V1",
     "OPENING_ANCHOR_ET_V1",
@@ -96,17 +106,22 @@
     "OPENING_DIR_FUSION_V1",
     "OPENING_DRIVE_BRANCH_V1",
     "OPENING_DRIVE_PROVISIONAL_V1",
+    "OPENING_DRIVE_STRICT_V1",
     "OPENING_DRIVE_T1_R",
     "OPENING_ENGINE_CLOSED_BARS_V1",
     "OPENING_ENTRY_V1",
+    "OPENING_ENTRY_V2_GATE_V1",
     "OPENING_FIRE_V1",
     "OPENING_FIRST_TRADE_STRICT_V1",
+    "OPENING_HALF_RANGE_GATE_V1",
     "OPENING_LADDER_V1",
+    "OPENING_LOCK_PRIOR_REFS_V1",
     "OPENING_OR_ATR_SCALE_V1",
     "OPENING_PLAYBOOK_V1",
     "OPENING_RUNNER_RIDE_V1",
     "OPENING_STOP_STRUCTURAL_V1",
     "OPENING_TYPE_SEEDS_S1_V1",
+    "OPENING_TYPE_V2",
     "OPENING_WINDOWS_V1",
     "OPENING_WINDOW_FIRE_V1",
     "ORDER_REJECT_DETECT_V1",
@@ -133,6 +148,7 @@
     "RISK_CUTOFF_HOUR_ET",
     "RISK_CUTOFF_MINUTE_ET",
     "RISK_DAILY_LOSS_CAP",
+    "RISK_HALT_LIVE_ONLY_V1",
     "RISK_HALT_V1",
     "RISK_MAX_PTS_HARD",
     "RISK_MAX_TRADES_DAY",
@@ -154,6 +170,7 @@
     "S1_NEUTRAL_PRECEDENCE_V1",
     "S1_NEW_CLASSIFIER",
     "S1_NONCONVICTION_V1",
+    "S1_PROVISIONAL_PUBLISH_V1",
     "S1_RECLASS_REQUIRES_IB_EXT_V1",
     "S1_TREND_CONTROL_V1",
     "S1_TREND_ELONGATION_V1",
@@ -173,8 +190,10 @@
     "S6_STUCK_TO_BE_V1",
     "S7_SHADOW_LOG_V1",
     "SCALE_IN_MARGIN_PRECHECK_V1",
+    "SCALE_IN_MIN_EXEMPT_V1",
     "SCALE_IN_P3_V1",
     "SCALE_IN_V1",
+    "SESSION_CLOCK_V1",
     "SIERRA_RECONCILER_V1",
     "SIZE_CAP_CUT_V1",
     "SIZE_CAP_FLOOR_CONTRACTS",
@@ -192,11 +211,13 @@
     "STOP_STRUCTURE_TRAIL_V1",
     "STOP_WIDEN_TO_STRUCTURE_V1",
     "STOP_WINDOW_COMPLETED_V1",
+    "STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1",
     "STRUCTURAL_STOP_ORIGIN_V1",
     "STRUCTURAL_TARGETS_WRONG_SIDE_VETO_V1",
     "STRUCTURE_EXIT_FAILBREAK_V1",
     "STRUCTURE_EXIT_REALIZE_V1",
     "STRUCT_TARGETS_WIN_V1",
+    "SWING_TRAIL_SIDE_GUARD_V1",
     "SYSTEM6_AUTOCORRECT",
     "SYSTEM6_EXIT_JOURNAL",
     "SYSTEM6_EXIT_SIGNALS",
@@ -204,14 +225,18 @@
     "SYSTEM6_SUPERVISOR",
     "T0_TARGET_PTS",
     "T1_BANK_R",
+    "T1_FRONT_RUN_TICKS",
     "T1_REALISM_FLOOR_R_V1",
     "T1_STRUCTURE_END_V1",
     "T2T3_NO_STOMP_V1",
     "T3_REQUIRED_V1",
+    "T612_LADDER_COLLAPSE_V1",
     "TARGET_MIN_SPACING_V1",
     "TARGET_REALISM_V1",
     "TARGET_STRUCTURE_CLAMP_V1",
     "TARGET_ZONES_V1",
+    "TOUCH2_EDGE_TOL_MAX_ATR",
+    "TPO_LETTER_BY_TS_V1",
     "TRADE_ECONOMICS_AUTHORITY_V1",
     "TREE_EDGE_FAMILIES",
     "TREND_CCI_DIRECT_PT",
@@ -224,23 +249,21 @@
     "TS_OFFSET_INGEST_GATE_V1",
     "VARIATION_WITH_TREND_CONT_V1",
     "VA_FADE_V1",
+    "WAIT_FOR_TEST_V1",
     "ZLR_MGMT_V1",
     "ZLR_SHADOW_V1"
    ],
    "flags_shadow": [
     "APP_STATE_ROOT_FIX_V1",
     "BLOCKED_TWIN_V1",
-    "CEILING_FLIP_TOUCH2_V1",
     "CEILING_FLOOR_STATE_V1",
     "DELTA_BREAKOUT_RELEASE_V1",
     "FAILED_BREAK_VA_V1",
     "FAILED_RE_IB_V1",
     "RE_ACCEPTANCE_V1",
-    "S1_DAY_DIRECTION_V1",
     "S2_CVD_DETECTION_V1",
     "STRUCTURE_EXIT_FAILBREAK_V1",
     "TARGET_MIN_SPACING_V1",
-    "TREND_STEP_ENTRY_V1",
     "VA_FADE_V1"
    ],
    "flags_measured": 24
@@ -281,6 +304,42 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-21",
+   "measured": false
+  },
+  {
+   "flag": "BE_AFTER_T1_RULE_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-20",
+   "measured": false
+  },
+  {
+   "flag": "BE_BEFORE_T1_ARM_R",
+   "expected": "2.0",
+   "actual": "2.0",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-22",
+   "measured": false
+  },
+  {
+   "flag": "BE_BEFORE_T1_TRAIL_R",
+   "expected": "2.5",
+   "actual": "2.5",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-22",
+   "measured": false
+  },
+  {
+   "flag": "BE_BEFORE_T1_V1",
+   "expected": "0",
+   "actual": "0",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-23",
    "measured": false
   },
   {
@@ -348,11 +407,11 @@
   },
   {
    "flag": "CEILING_FLIP_TOUCH2_V1",
-   "expected": "shadow",
-   "actual": "shadow",
+   "expected": "1",
+   "actual": "1",
    "ok": true,
    "ruled_by": "מייקל",
-   "date": "2026-09-15",
+   "date": "2026-10-19",
    "measured": true
   },
   {
@@ -371,6 +430,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-08-11",
+   "measured": false
+  },
+  {
+   "flag": "CLS_RESULT_SESSION_GUARD_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -491,6 +559,15 @@
    "measured": false
   },
   {
+   "flag": "DAYTYPE_HISTORY_LIVE_LOCK_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-20",
+   "measured": false
+  },
+  {
    "flag": "DAYTYPE_HONEST_PRELOCK_V1",
    "expected": "1",
    "actual": "1",
@@ -506,6 +583,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-22",
+   "measured": false
+  },
+  {
+   "flag": "DAYTYPE_MACHINE_CLOSED_BARS_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-20",
    "measured": false
   },
   {
@@ -563,6 +649,15 @@
    "measured": false
   },
   {
+   "flag": "DAYTYPE_SIDES_ACCEPTED_V1",
+   "expected": "single",
+   "actual": "single",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "DAYTYPE_SIDES_MECHANICAL_V1",
    "expected": "1",
    "actual": "1",
@@ -588,6 +683,15 @@
    "ruled_by": "Michael",
    "date": "2026-09-25",
    "measured": true
+  },
+  {
+   "flag": "DECISION_TREE_V3_PATH",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
   },
   {
    "flag": "DELTA_BREAKOUT_RELEASE_V1",
@@ -635,6 +739,15 @@
    "measured": false
   },
   {
+   "flag": "DOUBLE_TOP_STRUCT_STOP_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "EARLY_ATR_FLOOR_V1",
    "expected": "1",
    "actual": "1",
@@ -653,6 +766,15 @@
    "measured": false
   },
   {
+   "flag": "EDGE_FADE_STOP_MODE",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "EDGE_FADE_TARGETS_V1",
    "expected": "unset_or_0",
    "actual": "",
@@ -662,12 +784,30 @@
    "measured": true
   },
   {
+   "flag": "EDGE_FAILED_EXT_LIVE_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "ELQ_LEG_FROM_BREAK_V1",
    "expected": "1",
    "actual": "1",
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-09-06",
+   "measured": false
+  },
+  {
+   "flag": "ELQ_WITH_EXT_SKIP_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
    "measured": false
   },
   {
@@ -825,11 +965,11 @@
   },
   {
    "flag": "FIXED_CONTRACTS_1",
-   "expected": "1",
-   "actual": "1",
+   "expected": "0",
+   "actual": "0",
    "ok": true,
    "ruled_by": "מייקל",
-   "date": "2026-09-18",
+   "date": "2026-10-19",
    "measured": true
   },
   {
@@ -861,11 +1001,11 @@
   },
   {
    "flag": "FIXED_CONTRACTS_5",
-   "expected": "0",
-   "actual": "0",
+   "expected": "1",
+   "actual": "1",
    "ok": true,
    "ruled_by": "מייקל",
-   "date": "2026-09-15",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -875,6 +1015,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-08-25",
+   "measured": false
+  },
+  {
+   "flag": "FLIP_RUNNER_ON_OPPOSITE_TAKE_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
    "measured": false
   },
   {
@@ -923,6 +1072,33 @@
    "measured": false
   },
   {
+   "flag": "IB_EXT_ACCEPTED_HINT_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "IB_EXT_ACCEPT_CLOSES",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "IB_EXT_ACCEPT_NOISE_PTS",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "IB_RETURN_HINT_RELEASE_V1",
    "expected": "returning",
    "actual": "returning",
@@ -939,6 +1115,15 @@
    "ruled_by": "cowork",
    "date": "2026-09-30",
    "measured": true
+  },
+  {
+   "flag": "LADDER_221_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-20",
+   "measured": false
   },
   {
    "flag": "LAYER0_CHOP_GATE",
@@ -1103,6 +1288,15 @@
    "measured": false
   },
   {
+   "flag": "MID_VALUE_EDGE_TEST_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-22",
+   "measured": false
+  },
+  {
    "flag": "MORNING_LABEL_CONFIRM_V1",
    "expected": "0",
    "actual": "0",
@@ -1136,6 +1330,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-13",
+   "measured": false
+  },
+  {
+   "flag": "NORMAL_DAY_RUNNER_OTHER_SIDE_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
    "measured": false
   },
   {
@@ -1238,6 +1441,15 @@
    "measured": false
   },
   {
+   "flag": "OPENING_DRIVE_STRICT_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "OPENING_DRIVE_T1_R",
    "expected": "1.5",
    "actual": "1.5",
@@ -1265,6 +1477,15 @@
    "measured": false
   },
   {
+   "flag": "OPENING_ENTRY_V2_GATE_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-23",
+   "measured": false
+  },
+  {
    "flag": "OPENING_FIRE_V1",
    "expected": "1",
    "actual": "1",
@@ -1283,12 +1504,30 @@
    "measured": false
   },
   {
+   "flag": "OPENING_HALF_RANGE_GATE_V1",
+   "expected": "all",
+   "actual": "all",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-22",
+   "measured": false
+  },
+  {
    "flag": "OPENING_LADDER_V1",
    "expected": "1",
    "actual": "1",
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-09-08",
+   "measured": false
+  },
+  {
+   "flag": "OPENING_LOCK_PRIOR_REFS_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -1343,6 +1582,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-23",
+   "measured": false
+  },
+  {
+   "flag": "OPENING_TYPE_V2",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-23",
    "measured": false
   },
   {
@@ -1652,6 +1900,15 @@
    "measured": false
   },
   {
+   "flag": "RISK_HALT_LIVE_ONLY_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-23",
+   "measured": false
+  },
+  {
    "flag": "RISK_HALT_V1",
    "expected": "1",
    "actual": "1",
@@ -1797,11 +2054,11 @@
   },
   {
    "flag": "S1_DAY_DIRECTION_V1",
-   "expected": "shadow",
-   "actual": "shadow",
+   "expected": "apply",
+   "actual": "apply",
    "ok": true,
    "ruled_by": "מייקל",
-   "date": "2026-08-25",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -1847,6 +2104,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-12",
+   "measured": false
+  },
+  {
+   "flag": "S1_PROVISIONAL_PUBLISH_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -2102,6 +2368,15 @@
    "measured": false
   },
   {
+   "flag": "SCALE_IN_MIN_EXEMPT_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-20",
+   "measured": false
+  },
+  {
    "flag": "SCALE_IN_P3_V1",
    "expected": "1",
    "actual": "1",
@@ -2117,6 +2392,15 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-08-13",
+   "measured": false
+  },
+  {
+   "flag": "SESSION_CLOCK_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-24",
    "measured": false
   },
   {
@@ -2309,6 +2593,15 @@
    "measured": false
   },
   {
+   "flag": "STRUCTURAL_ANCHOR_STOP_AUTHORITY_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "STRUCTURAL_STOP_ORIGIN_V1",
    "expected": "1",
    "actual": "1",
@@ -2378,6 +2671,24 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-09-06",
+   "measured": false
+  },
+  {
+   "flag": "STRUCT_TARGETS_WITH_EXT_EXEMPT_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "SWING_TRAIL_SIDE_GUARD_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
    "measured": false
   },
   {
@@ -2453,6 +2764,15 @@
    "measured": false
   },
   {
+   "flag": "T1_FRONT_RUN_TICKS",
+   "expected": "2",
+   "actual": "2",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "T1_LADDER_V2",
    "expected": "unset_or_0",
    "actual": "",
@@ -2498,6 +2818,69 @@
    "measured": false
   },
   {
+   "flag": "T612_LADDER_COLLAPSE_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_EFFORT_K_VOL",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_EFFORT_MODE",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_EFFORT_N_AVG",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_EFFORT_SCOPE",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_RESULT_K_BODY",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TACTICAL_STEP_LOOKBACK",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
    "flag": "TARGET_MIN_SPACING_V1",
    "expected": "shadow",
    "actual": "shadow",
@@ -2531,6 +2914,42 @@
    "ok": true,
    "ruled_by": "מייקל",
    "date": "2026-07-05",
+   "measured": false
+  },
+  {
+   "flag": "TOUCH2_EDGE_TOL_MAX_ATR",
+   "expected": "0.5",
+   "actual": "0.5",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TOUCH2_STRUCT_STOP_MAX_ATR",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TOUCH2_STRUCT_STOP_MODE",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-21",
+   "measured": false
+  },
+  {
+   "flag": "TPO_LETTER_BY_TS_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -2580,11 +2999,11 @@
   },
   {
    "flag": "TREND_STEP_ENTRY_V1",
-   "expected": "shadow",
-   "actual": "shadow",
+   "expected": "1",
+   "actual": "1",
    "ok": true,
    "ruled_by": "מייקל",
-   "date": "2026-08-23",
+   "date": "2026-10-19",
    "measured": false
   },
   {
@@ -2678,6 +3097,24 @@
    "measured": false
   },
   {
+   "flag": "WAIT_FOR_TEST_V1",
+   "expected": "1",
+   "actual": "1",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-22",
+   "measured": false
+  },
+  {
+   "flag": "WALL_AHEAD_SKIP_V1",
+   "expected": "unset_or_0",
+   "actual": "",
+   "ok": true,
+   "ruled_by": "מייקל",
+   "date": "2026-10-23",
+   "measured": false
+  },
+  {
    "flag": "WOODIES_TS_HOUR_FIX",
    "expected": "0",
    "actual": "0",
@@ -2718,151 +3155,166 @@
   {
    "pattern": "ZLR",
    "system": "4",
-   "decisions": 593,
-   "passed_tree_gates": 193,
+   "decisions": 691,
+   "passed_tree_gates": 207,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "ZLR_SHADOW_V1",
    "top": [
-    "(passed) 193",
-    "tree:stand_down 183",
-    "tree:location 98"
+    "(passed) 207",
+    "tree:stand_down 196",
+    "tree:location 121"
    ]
   },
   {
    "pattern": "CEILING_FLIP_TOUCH2",
    "system": "2",
-   "decisions": 379,
-   "passed_tree_gates": 196,
+   "decisions": 407,
+   "passed_tree_gates": 223,
    "live_fires": 0,
    "live_pnl": 0.0,
-   "live_capable": false,
+   "live_capable": true,
    "switch": "CEILING_FLIP_TOUCH2_V1",
    "top": [
-    "(passed) 196",
-    "tree:stand_down 54",
-    "tree:bias 42"
+    "(passed) 223",
+    "tree:stand_down 77",
+    "tree:bias 49"
    ]
   },
   {
    "pattern": "REACTIVE_SHORT",
    "system": "2",
-   "decisions": 72,
-   "passed_tree_gates": 4,
+   "decisions": 78,
+   "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 61",
-    "(passed) 4",
-    "tree:location 2"
+    "tree:stand_down 62",
+    "tree:bias 6",
+    "(passed) 3"
    ]
   },
   {
    "pattern": "GHOST",
    "system": "4",
-   "decisions": 46,
-   "passed_tree_gates": 17,
-   "live_fires": 2,
-   "live_pnl": -30.0,
+   "decisions": 61,
+   "passed_tree_gates": 22,
+   "live_fires": 1,
+   "live_pnl": -38.75,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "(passed) 17",
-    "tree:stand_down 14",
-    "tree:bias 7"
+    "(passed) 22",
+    "tree:stand_down 19",
+    "tree:bias 8"
    ]
   },
   {
-   "pattern": "GB100",
+   "pattern": "TREND_STEP",
    "system": "4",
-   "decisions": 35,
-   "passed_tree_gates": 8,
-   "live_fires": 4,
-   "live_pnl": -25.0,
+   "decisions": 45,
+   "passed_tree_gates": 14,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": true,
-   "switch": "live producer",
+   "switch": "TREND_STEP_ENTRY_V1",
    "top": [
-    "(passed) 8",
-    "dalton_intent:stand_down 8",
-    "tree:kind 5"
+    "tree:location 15",
+    "(passed) 14",
+    "tree:bias 7"
    ]
   },
   {
    "pattern": "FAMIR",
    "system": "4",
-   "decisions": 35,
+   "decisions": 41,
    "passed_tree_gates": 8,
    "live_fires": 2,
    "live_pnl": -56.25,
    "live_capable": true,
    "switch": "live producer",
    "top": [
+    "tree:stand_down 14",
     "tree:bias 12",
-    "tree:stand_down 12",
     "(passed) 8"
-   ]
-  },
-  {
-   "pattern": "TREND_STEP",
-   "system": "4",
-   "decisions": 34,
-   "passed_tree_gates": 11,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "TREND_STEP_ENTRY_V1",
-   "top": [
-    "(passed) 11",
-    "tree:location 11",
-    "tree:stand_down 5"
-   ]
-  },
-  {
-   "pattern": "INITIATIVE_LONG",
-   "system": "2",
-   "decisions": 33,
-   "passed_tree_gates": 10,
-   "live_fires": 1,
-   "live_pnl": 28.75,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 10",
-    "tree:bias 9",
-    "tree:stand_down 7"
    ]
   },
   {
    "pattern": "DOUBLE_BOTTOM_EE_LONG",
    "system": "2",
-   "decisions": 29,
-   "passed_tree_gates": 5,
+   "decisions": 38,
+   "passed_tree_gates": 14,
    "live_fires": 2,
    "live_pnl": 72.5,
    "live_capable": true,
    "switch": "live producer",
    "top": [
+    "(passed) 14",
     "tree:bias 7",
-    "tree:location 5",
-    "(passed) 5"
+    "tree:location 6"
+   ]
+  },
+  {
+   "pattern": "INITIATIVE_LONG",
+   "system": "2",
+   "decisions": 38,
+   "passed_tree_gates": 16,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 16",
+    "tree:bias 9",
+    "tree:stand_down 8"
+   ]
+  },
+  {
+   "pattern": "GB100",
+   "system": "4",
+   "decisions": 34,
+   "passed_tree_gates": 10,
+   "live_fires": 3,
+   "live_pnl": 30.0,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 10",
+    "tree:bias 8",
+    "tree:kind 7"
+   ]
+  },
+  {
+   "pattern": "DOUBLE_TOP_AA_SHORT",
+   "system": "2",
+   "decisions": 33,
+   "passed_tree_gates": 21,
+   "live_fires": 3,
+   "live_pnl": 7.5,
+   "live_capable": true,
+   "switch": "live producer",
+   "top": [
+    "(passed) 21",
+    "tree:location 4",
+    "tree:time_cutoff 3"
    ]
   },
   {
    "pattern": "REACTIVE_LONG",
    "system": "2",
-   "decisions": 28,
-   "passed_tree_gates": 7,
-   "live_fires": 4,
-   "live_pnl": 10.0,
+   "decisions": 32,
+   "passed_tree_gates": 8,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 7",
-    "(passed) 7",
-    "tree:bias 6"
+    "(passed) 8",
+    "tree:bias 7",
+    "tree:stand_down 7"
    ]
   },
   {
@@ -2880,33 +3332,33 @@
    ]
   },
   {
-   "pattern": "",
-   "system": "4",
+   "pattern": "INITIATIVE_SHORT",
+   "system": "2",
    "decisions": 25,
-   "passed_tree_gates": 3,
-   "live_fires": 0,
-   "live_pnl": 0.0,
+   "passed_tree_gates": 10,
+   "live_fires": 1,
+   "live_pnl": -56.25,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 12",
-    "dalton_intent:bias 9",
-    "dalton_intent:stand_down 3"
+    "(passed) 10",
+    "tree:bias 8",
+    "tree:time_cutoff 6"
    ]
   },
   {
-   "pattern": "DOUBLE_TOP_AA_SHORT",
+   "pattern": "CEILING_FLIP_SHORT",
    "system": "2",
    "decisions": 22,
-   "passed_tree_gates": 11,
-   "live_fires": 3,
-   "live_pnl": 7.5,
+   "passed_tree_gates": 16,
+   "live_fires": 4,
+   "live_pnl": -61.25,
    "live_capable": true,
-   "switch": "live producer",
+   "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
-    "(passed) 11",
-    "tree:location 4",
-    "tree:bias 3"
+    "(passed) 16",
+    "tree:stand_down 3",
+    "tree:location 2"
    ]
   },
   {
@@ -2924,129 +3376,84 @@
    ]
   },
   {
-   "pattern": "S2_DELTA_DBL_SHORT",
-   "system": "2",
-   "decisions": 20,
-   "passed_tree_gates": 6,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "S2_DELTA_DBL_V1",
-   "top": [
-    "(passed) 6",
-    "dalton_intent:bias 6",
-    "tree:location 6"
-   ]
-  },
-  {
    "pattern": "FAILED_RE_IB",
    "system": "2",
-   "decisions": 18,
+   "decisions": 20,
    "passed_tree_gates": 2,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "RE_ACCEPTANCE_V1",
    "top": [
-    "tree:stand_down 5",
-    "tree:bias 3",
+    "tree:stand_down 9",
+    "tree:bias 4",
     "tree:location 3"
-   ]
-  },
-  {
-   "pattern": "CEILING_FLIP_SHORT",
-   "system": "2",
-   "decisions": 16,
-   "passed_tree_gates": 11,
-   "live_fires": 5,
-   "live_pnl": -61.25,
-   "live_capable": true,
-   "switch": "CEILING_FLIP_SHORT_V1",
-   "top": [
-    "(passed) 11",
-    "tree:location 2",
-    "dalton_intent:stand_down 2"
    ]
   },
   {
    "pattern": "CEILING_FLIP_LONG",
    "system": "2",
-   "decisions": 16,
+   "decisions": 19,
    "passed_tree_gates": 13,
-   "live_fires": 4,
-   "live_pnl": -43.75,
+   "live_fires": 3,
+   "live_pnl": -67.5,
    "live_capable": true,
    "switch": "CEILING_FLIP_SHORT_V1",
    "top": [
     "(passed) 13",
-    "tree:bias 2",
-    "tree:location 1"
-   ]
-  },
-  {
-   "pattern": "INITIATIVE_SHORT",
-   "system": "2",
-   "decisions": 15,
-   "passed_tree_gates": 8,
-   "live_fires": 1,
-   "live_pnl": -56.25,
-   "live_capable": true,
-   "switch": "live producer",
-   "top": [
-    "(passed) 8",
-    "tree:bias 4",
-    "tree:time_cutoff 2"
+    "tree:location 2",
+    "tree:bias 2"
    ]
   },
   {
    "pattern": "VA_FADE_SHORT",
    "system": "2",
-   "decisions": 12,
-   "passed_tree_gates": 5,
+   "decisions": 16,
+   "passed_tree_gates": 9,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "(passed) 5",
+    "(passed) 9",
     "tree:bias 4",
-    "dalton_intent:stand_down 1"
+    "tree:kind 2"
    ]
   },
   {
    "pattern": "HTLB",
    "system": "4",
-   "decisions": 12,
-   "passed_tree_gates": 2,
+   "decisions": 15,
+   "passed_tree_gates": 3,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:bias 5",
-    "dalton_intent:stand_down 3",
-    "(passed) 2"
+    "tree:bias 6",
+    "(passed) 3",
+    "tree:kind 2"
    ]
   },
   {
    "pattern": "FAILED_BREAK_LONG",
    "system": "2",
-   "decisions": 12,
-   "passed_tree_gates": 2,
+   "decisions": 14,
+   "passed_tree_gates": 4,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "failed_break.py: shadow_only by code",
    "top": [
-    "tree:stand_down 5",
-    "dalton_intent:stand_down 3",
-    "(passed) 2"
+    "tree:stand_down 7",
+    "(passed) 4",
+    "tree:location 2"
    ]
   },
   {
    "pattern": "FAILED_BREAK_SHORT",
    "system": "2",
-   "decisions": 11,
+   "decisions": 13,
    "passed_tree_gates": 5,
    "live_fires": 0,
    "live_pnl": 0.0,
@@ -3054,128 +3461,140 @@
    "switch": "failed_break.py: shadow_only by code",
    "top": [
     "(passed) 5",
-    "tree:stand_down 3",
-    "tree:location 2"
+    "tree:stand_down 5",
+    "tree:location 3"
    ]
   },
   {
    "pattern": "VA_FADE_LONG",
    "system": "2",
-   "decisions": 9,
-   "passed_tree_gates": 4,
+   "decisions": 12,
+   "passed_tree_gates": 8,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": false,
    "switch": "va_fade.py: shadow_only by code",
    "top": [
-    "(passed) 4",
+    "(passed) 8",
     "tree:bias 3",
     "tree:location 1"
    ]
   },
   {
-   "pattern": "VEGAS",
+   "pattern": "S2_DELTA_DBL_SHORT",
+   "system": "2",
+   "decisions": 11,
+   "passed_tree_gates": 3,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "S2_DELTA_DBL_V1",
+   "top": [
+    "tree:location 6",
+    "(passed) 3",
+    "tree:time_cutoff 1"
+   ]
+  },
+  {
+   "pattern": "",
    "system": "4",
-   "decisions": 8,
-   "passed_tree_gates": 1,
-   "live_fires": 1,
-   "live_pnl": -33.75,
+   "decisions": 10,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:bias 2",
-    "tree:location 2",
-    "(passed) 1"
+    "tree:stand_down 12"
    ]
   },
   {
-   "pattern": "OPENING_EXTREME_REJECT",
+   "pattern": "DALTON_EDGE_LONG",
    "system": "2",
-   "decisions": 7,
-   "passed_tree_gates": 4,
+   "decisions": 9,
+   "passed_tree_gates": 6,
    "live_fires": 1,
-   "live_pnl": -61.25,
+   "live_pnl": 28.75,
    "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
+   "switch": "DALTON_EDGE_V1",
+   "top": [
+    "(passed) 6",
+    "tree:location 1",
+    "tree:stand_down 1"
+   ]
+  },
+  {
+   "pattern": "DALTON_EDGE_SHORT",
+   "system": "2",
+   "decisions": 9,
+   "passed_tree_gates": 4,
+   "live_fires": 2,
+   "live_pnl": -8.75,
+   "live_capable": true,
+   "switch": "DALTON_EDGE_V1",
    "top": [
     "(passed) 4",
-    "dalton_intent:kind 2",
-    "tree:location 1"
-   ]
-  },
-  {
-   "pattern": "OPENING_DRIVE",
-   "system": "2",
-   "decisions": 7,
-   "passed_tree_gates": 5,
-   "live_fires": 3,
-   "live_pnl": -97.5,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "(passed) 5",
-    "dalton_intent:bias 1",
-    "tree:kind 1"
+    "tree:stand_down 2",
+    "tree:bias 1"
    ]
   },
   {
    "pattern": "OPENING_PULLBACK_CONT",
    "system": "2",
-   "decisions": 7,
+   "decisions": 8,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "OPENING_ENTRY_V1",
    "top": [
-    "tree:kind 4",
+    "tree:kind 5",
     "tree:bias 2",
-    "dalton_intent:kind 1"
-   ]
-  },
-  {
-   "pattern": "DALTON_EDGE_LONG",
-   "system": "2",
-   "decisions": 6,
-   "passed_tree_gates": 3,
-   "live_fires": 1,
-   "live_pnl": 28.75,
-   "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
-   "top": [
-    "(passed) 3",
-    "tree:stand_down 1",
     "tree:location 1"
    ]
   },
   {
-   "pattern": "DALTON_EDGE_SHORT",
-   "system": "2",
-   "decisions": 6,
-   "passed_tree_gates": 3,
-   "live_fires": 2,
-   "live_pnl": -8.75,
+   "pattern": "VEGAS",
+   "system": "4",
+   "decisions": 7,
+   "passed_tree_gates": 1,
+   "live_fires": 1,
+   "live_pnl": -33.75,
    "live_capable": true,
-   "switch": "DALTON_EDGE_V1",
+   "switch": "live producer",
    "top": [
-    "(passed) 3",
-    "dalton_intent:bias 1",
-    "tree:stand_down 1"
+    "tree:bias 3",
+    "tree:location 2",
+    "(passed) 1"
    ]
   },
   {
-   "pattern": "S2_DELTA_DBL_LONG",
+   "pattern": "OPENING_DRIVE",
    "system": "2",
    "decisions": 6,
-   "passed_tree_gates": 2,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "S2_DELTA_DBL_V1",
+   "passed_tree_gates": 4,
+   "live_fires": 1,
+   "live_pnl": -80.0,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "tree:location 3",
-    "(passed) 2",
-    "dalton_intent:bias 1"
+    "(passed) 4",
+    "tree:location 1",
+    "tree:kind 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_EXTREME_REJECT",
+   "system": "2",
+   "decisions": 6,
+   "passed_tree_gates": 5,
+   "live_fires": 1,
+   "live_pnl": -61.25,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 5",
+    "tree:location 1"
    ]
   },
   {
@@ -3192,17 +3611,16 @@
    ]
   },
   {
-   "pattern": "BULL_FLAG_LONG",
+   "pattern": "OPENING_TEST_DRIVE",
    "system": "2",
    "decisions": 4,
-   "passed_tree_gates": 2,
-   "live_fires": 1,
-   "live_pnl": 6.25,
+   "passed_tree_gates": 4,
+   "live_fires": 2,
+   "live_pnl": 83.75,
    "live_capable": true,
-   "switch": "live producer",
+   "switch": "OPENING_ENTRY_V1",
    "top": [
-    "tree:stand_down 2",
-    "(passed) 2"
+    "(passed) 4"
    ]
   },
   {
@@ -3219,30 +3637,56 @@
    ]
   },
   {
-   "pattern": "OPENING_TEST_DRIVE",
+   "pattern": "S2_DELTA_DBL_LONG",
    "system": "2",
-   "decisions": 3,
-   "passed_tree_gates": 3,
-   "live_fires": 2,
-   "live_pnl": 83.75,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
+   "decisions": 4,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "S2_DELTA_DBL_V1",
    "top": [
-    "(passed) 3"
+    "tree:location 4"
+   ]
+  },
+  {
+   "pattern": "RE_ACCEPTANCE",
+   "system": "2",
+   "decisions": 4,
+   "passed_tree_gates": 0,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": false,
+   "switch": "RE_ACCEPTANCE_V1",
+   "top": [
+    "tree:stand_down 4"
    ]
   },
   {
    "pattern": "TT",
    "system": "4",
-   "decisions": 2,
+   "decisions": 3,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:location 1",
-    "dalton_intent:bias 1"
+    "tree:stand_down 2",
+    "tree:location 1"
+   ]
+  },
+  {
+   "pattern": "OPENING_ORR",
+   "system": "2",
+   "decisions": 2,
+   "passed_tree_gates": 2,
+   "live_fires": 0,
+   "live_pnl": 0.0,
+   "live_capable": true,
+   "switch": "OPENING_ENTRY_V1",
+   "top": [
+    "(passed) 2"
    ]
   },
   {
@@ -3255,74 +3699,51 @@
    "live_capable": true,
    "switch": "live producer",
    "top": [
-    "tree:stand_down 12",
-    "dalton_intent:bias 9",
-    "dalton_intent:stand_down 3"
+    "tree:stand_down 12"
    ]
   },
   {
-   "pattern": "RE_ACCEPTANCE",
+   "pattern": "BULL_FLAG_LONG",
    "system": "2",
    "decisions": 2,
    "passed_tree_gates": 0,
    "live_fires": 0,
    "live_pnl": 0.0,
-   "live_capable": false,
-   "switch": "RE_ACCEPTANCE_V1",
+   "live_capable": true,
+   "switch": "live producer",
    "top": [
     "tree:stand_down 2"
-   ]
-  },
-  {
-   "pattern": "OPENING_ORR",
-   "system": "2",
-   "decisions": 1,
-   "passed_tree_gates": 1,
-   "live_fires": 0,
-   "live_pnl": 0.0,
-   "live_capable": true,
-   "switch": "OPENING_ENTRY_V1",
-   "top": [
-    "(passed) 1"
    ]
   }
  ],
  "gates": [
   {
    "blocked_by": "(passed)",
-   "n": 555
+   "n": 645
   },
   {
    "blocked_by": "tree:stand_down",
-   "n": 429
+   "n": 494
   },
   {
    "blocked_by": "tree:location",
-   "n": 174
+   "n": 221
   },
   {
    "blocked_by": "tree:bias",
-   "n": 152
-  },
-  {
-   "blocked_by": "dalton_intent:stand_down",
-   "n": 107
+   "n": 218
   },
   {
    "blocked_by": "tree:time_cutoff",
-   "n": 67
-  },
-  {
-   "blocked_by": "dalton_intent:bias",
-   "n": 52
+   "n": 137
   },
   {
    "blocked_by": "tree:kind",
-   "n": 30
+   "n": 54
   },
   {
-   "blocked_by": "dalton_intent:kind",
-   "n": 12
+   "blocked_by": "dalton_intent:stand_down",
+   "n": 17
   },
   {
    "blocked_by": "variation_mid_value",
@@ -4579,42 +5000,42 @@
  "db_tables": [
   {
    "table": "v9_trades",
-   "rows": 3236,
-   "max_ts_il": "2026-10-09 19:20"
+   "rows": 3766,
+   "max_ts_il": "2026-10-23 22:55"
   },
   {
    "table": "v9_decision_vectors",
-   "rows": 211998,
-   "max_ts_il": "2026-10-19 08:30"
+   "rows": 282189,
+   "max_ts_il": "2026-10-23 23:55"
   },
   {
    "table": "v9_bars_5min_woodies",
-   "rows": 22343,
-   "max_ts_il": "2026-10-19 08:30"
+   "rows": 24870,
+   "max_ts_il": "2026-10-23 23:55"
   },
   {
    "table": "v9_bars_5min",
-   "rows": 5306,
-   "max_ts_il": "2026-10-09 23:55"
+   "rows": 6598,
+   "max_ts_il": "2026-10-23 23:55"
   },
   {
    "table": "v9_day_type_state",
-   "rows": 3,
+   "rows": 86,
    "max_ts_il": ""
   },
   {
    "table": "v9_exit_decisions",
-   "rows": 17335,
+   "rows": 18907,
    "max_ts_il": ""
   },
   {
    "table": "v9_trade_management_log",
-   "rows": 352732,
+   "rows": 353683,
    "max_ts_il": ""
   },
   {
    "table": "v9_woodies_signals",
-   "rows": 3989,
+   "rows": 4241,
    "max_ts_il": ""
   },
   {
@@ -4624,8 +5045,8 @@
   },
   {
    "table": "v9_bars_cumulative_delta",
-   "rows": 9812,
-   "max_ts_il": "2026-10-16 23:55"
+   "rows": 10442,
+   "max_ts_il": "2026-10-23 23:55"
   },
   {
    "table": "broker_truth",
@@ -4635,18 +5056,23 @@
  ],
  "launch_agents": [
   {
+   "label": "com.mems26.gap_backfill",
+   "pid": "-",
+   "rc": "0"
+  },
+  {
    "label": "com.mems26.agents_bootstrap",
    "pid": "-",
    "rc": "0"
   },
   {
    "label": "com.mems26.mobile_relay",
-   "pid": "1629",
-   "rc": "0"
+   "pid": "90334",
+   "rc": "-15"
   },
   {
    "label": "com.mems26.backend",
-   "pid": "2030",
+   "pid": "95051",
    "rc": "-15"
   },
   {
@@ -4656,7 +5082,12 @@
   },
   {
    "label": "com.mems26.export_promoter",
-   "pid": "1619",
+   "pid": "89168",
+   "rc": "0"
+  },
+  {
+   "label": "com.mems26.dalton_supervisor",
+   "pid": "-",
    "rc": "0"
   },
   {
@@ -4671,17 +5102,17 @@
   },
   {
    "label": "com.mems26.frontend",
-   "pid": "621",
+   "pid": "18727",
    "rc": "0"
   },
   {
    "label": "com.mems26.bridge",
-   "pid": "637",
+   "pid": "89163",
    "rc": "0"
   },
   {
    "label": "com.mems26.activity_feed",
-   "pid": "1624",
+   "pid": "89173",
    "rc": "0"
   }
  ],
@@ -4779,6 +5210,10 @@
    "doc": "MEMS26 Status Check — run anytime to see system health"
   },
   {
+   "file": "scripts/circumstance_deck.py",
+   "doc": "Circumstance deck v2 (Michael 20.10 23:5x: \"I don't need you to test me — I need us to improve the system,"
+  },
+  {
    "file": "scripts/classifier_truth_audit.py",
    "doc": "D1 — Classifier truth audit: compare labels vs Dalton on .scid truth bars."
   },
@@ -4815,12 +5250,36 @@
    "doc": "daily_extremes_playbook.py — per-session \"extremes & day-type playbook\" study."
   },
   {
+   "file": "scripts/dalton_supervisor.py",
+   "doc": "T-639 — מפקח-דלתון: פיקוח קבוע לעץ ההחלטות — איך דלתון מיושם בכל עסקה (Michael 23.10 \"מאשר\")."
+  },
+  {
+   "file": "scripts/dalton_supervisor_nightly.sh",
+   "doc": "T-639 — nightly run of the Dalton supervisor (LaunchAgent com.mems26.dalton_supervisor, 23:12 IL weekdays)."
+  },
+  {
    "file": "scripts/data_integrity_audit.sh",
    "doc": "scripts/data_integrity_audit.sh"
   },
   {
+   "file": "scripts/day_dissect.py",
+   "doc": "day_dissect.py — DAYMAP («פירוק-יום»), version base-20.10 («בסיס-20.10»)."
+  },
+  {
    "file": "scripts/day_review.py",
    "doc": "day_review.py — the daily exam after every trading day (Michael 23.09 07:40):"
+  },
+  {
+   "file": "scripts/daymap_aggregate.py",
+   "doc": "daymap_aggregate.py — DAYMAP («פירוק-יום») aggregate over every day file of a version."
+  },
+  {
+   "file": "scripts/daymap_lib.py",
+   "doc": "daymap_lib.py — pure helpers for DAYMAP («פירוק-יום», version base-20.10)."
+  },
+  {
+   "file": "scripts/daymap_pages.py",
+   "doc": "daymap_pages.py — DAYMAP («פירוק-יום») phone pages: one self-contained RTL Hebrew HTML per day + an index."
   },
   {
    "file": "scripts/daytype_stability_study.py",
@@ -4887,6 +5346,10 @@
    "doc": "eod_data_handoff.sh — daily data packet from the TRADING machine to git,"
   },
   {
+   "file": "scripts/eod_journal.py",
+   "doc": "eod_journal.py — the end-of-day exam + the living trading journal (Michael 19.10.2026, items 1 and 5:"
+  },
+  {
    "file": "scripts/eod_review.py",
    "doc": "EOD review for ONE trading day (Michael 2026-07-22): today's trades, how"
   },
@@ -4929,6 +5392,10 @@
   {
    "file": "scripts/gap_analysis.py",
    "doc": "Gap Analysis — \"if we made 10 points and the range was 200, there were lots"
+  },
+  {
+   "file": "scripts/gap_backfill.py",
+   "doc": "gap_backfill.py — fill RTH gaps in the LIVE DB (mems26) from Sierra's .scid tick files, for days the Mac slept or the"
   },
   {
    "file": "scripts/gate_profit_audit.py",
@@ -5137,6 +5604,10 @@
   {
    "file": "scripts/opening_signal_edge.py",
    "doc": "opening_signal_edge.py — which opening signals actually carry DIRECTION?"
+  },
+  {
+   "file": "scripts/opening_v2_study.py",
+   "doc": "Opening type v2 — read the last N RTH sessions myself: bars, what the system said, what v2 says, what happened."
   },
   {
    "file": "scripts/ops_log.py",
@@ -5551,6 +6022,10 @@
    "doc": "Trade Activity Log feeder — extracts fill/stop-move events from Sierra's binary log."
   },
   {
+   "file": "scripts/trade_zoom.py",
+   "doc": "trade_zoom.py — zoom-in on ONE trade along Michael's six doctrine dimensions (22.10.2026):"
+  },
+  {
    "file": "scripts/tree_diff.py",
    "doc": "T-392: Tree diff — compare real gate decisions vs draft tree v2."
   },
@@ -5565,6 +6040,14 @@
   {
    "file": "scripts/tree_prune_variant.py",
    "doc": "tree_prune_variant.py — build a replay VARIANT of the live tree with named leaves set to SKIP."
+  },
+  {
+   "file": "scripts/tree_readiness_matrix.py",
+   "doc": "tree_readiness_matrix.py — T-631 (22.10): what the live decision tree does for every opening type × day type × phase."
+  },
+  {
+   "file": "scripts/tree_rule_variant.py",
+   "doc": "T-619 — Michael's circumstance rulings → a decision-tree VARIANT (Michael 20.10 23:5x: \"I don't need you to"
   },
   {
    "file": "scripts/uat_hotfix_4_3.sh",
@@ -5708,16 +6191,16 @@
   }
  ],
  "tickets": {
-  "total": 439,
-  "open": 370,
+  "total": 485,
+  "open": 400,
   "by_status": {
-   "🔴": 106,
-   "🟠": 168,
-   "🟡": 31,
-   "✅": 52,
-   "🔵": 65,
+   "🔴": 107,
+   "🟠": 180,
+   "🟡": 45,
+   "✅": 67,
+   "🔵": 68,
    "⚠️": 3,
-   "🟢": 2,
+   "🟢": 3,
    "🔴🔴": 9,
    "📄": 1,
    "📊": 1,
@@ -6036,6 +6519,62 @@
     "id": "T-74",
     "status": "🔴",
     "title": "מסחר-ידני באותו חשבון חוסם את יריות-הלייב — 3 מ-4 נחסמו ב-20.08 (75%)",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-602",
+    "status": "🟠",
+    "title": "סטופ-הייחוס של GHOST בליגר-המועמדים הוא רמה בת-5-ימים, 106 נק' מעל גבוה-היום — ושתי התבניות האחרות באותו קובץ, באותן הדקות, נושאות סטופ מהסשן הנוכחי.",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-603",
+    "status": "🟠",
+    "title": "`day_review.py` מבצע בפועל בדיוק את ה\"תיקון\" שמלכודת 21 אוסרת — `not r.get(\"ts\") ⇒ continue` הוא מבחן-סכמה המתחזה למבחן-תקינות, והוא זורק 40% מקובץ-ההחלטות בשקט.",
+    "next": "להריץ `day_review.py` ואז לספור בדוח שהוא מייצר כמה מועמדים-שלא-נורו הוא מזכיר; אם אפס בזמן ש-`awareness_score.py` מראה `מועמדים 6/8` ו-`נגיעות-VA בלי DETECTED: 09:30(VAH+VAL) · 10:00(VAL)` ⇒ **הדיווח-החסר אושש במספר**, והפריט עולה ל-🔴. **(2) התיקון הוא בקורא ",
+    "measurable": false
+   },
+   {
+    "id": "T-604",
+    "status": "🟠",
+    "title": "קידום `S1_DAY_DIRECTION_V1` ל-`apply` (פסיקת-מייקל 19.10 19:52, קומיט `7249d493`) נכנס לתוקף — ולא שינה את החסימה: 15 הדקות שאחרי הריסטארט מראות אותם שורטים נחסמים `tree:bias` עם `hint=LONG`, בעוד השו",
+    "next": "**(1) הערב (חובה-4), המבחן הזול:** לספור בליגר כמה מהחסימות `tree:bias` של היום היו שורטים ביום שסגר למטה — `hint` מול `close`-יום — ולהוציא את המספר לדוח-הערב; זה הופך \"ההטיה הפוכה\" מתצפית למדידה. **(2) בחלון טרום-פתיחה, לא תוך-RTH:** לקרוא מי מייצר `hint` ב-",
+    "measurable": true
+   },
+   {
+    "id": "T-605",
+    "status": "🟠",
+    "title": "סולם-היעדים נכתב לא-מונוטוני ל-`LONG` — `t1` רחוק מ-`t3`, כלומר המדרגה שנקראת \"ראשונה\" היא האחרונה שהמחיר יפגוש. 2 מתוך 20 הסולמות-המלאים של היום, והמחלקה מונה 12 עסקאות ב-20 יום — שתיים מהן לייב בכסף",
+    "next": "**(1) טרום-פתיחה, קריאה אחת ולא ניחוש:** לקרוא ב-`trading_gateway` מי כותב `t1` ומי כותב `t2/t3` לעסקה (ולא ל-`[TargetSpacing] would-be`, שהוא אינסטרומנטציה) — אם אלה שני מקורות, זה שורש-הפריט; אם מקור אחד, הפריט מצטמצם לבאג-סדר בתוכו. **(2) ריפליי ולא דגל — ה",
+    "measurable": true
+   },
+   {
+    "id": "T-606",
+    "status": "🟠",
+    "title": "יעד שנכתב `0` ליטרלי — 9 שורות בספר, ושתיים מהן בכסף אמת.",
+    "next": "**(1) טרום-פתיחה, קריאה אחת:** למצוא בכותב-היעדים אם `0` הוא ברירת-מחדל מוצהרת (`t3 = 0` כ-'אין t3') או תוצאה של חישוב שנפל — השאלה המכריעה היא אם המערכת **מתכוונת** ל-`0` כ-'אין מדרגה'. **(2) אם זה סנטינל-מכוון ⇒ הפריט הוא פער-ייצוג ולא באג:** אז הבדיקה הנכונ",
+    "measurable": false
+   },
+   {
+    "id": "T-608",
+    "status": "🟠",
+    "title": "`scripts/eod_journal.py` מורה בדוקסטרינג שלו לשלוח לטלפון סיכום-יומן ≤480 תווים — בדיוק מחלקת-ההודעות שכלל-הטלפון (מייקל 14.09 09:30) אוסר במפורש (\"דוחות-ניטור תקופתיים · סיכומי-מדידה · רשימות\"), ובקא",
+    "next": "האם שורת-ה-`PHONE:` של היומן היא **מקרה חמישי מאושר** — ואז לעדכן את כלל-הטלפון במסמך-המשימה המתוזמן ולהצמיד לה קאפ מפורש — **או** שהיומן נשאר ב-`LIVE_CHANNEL` + עמוד-`journal.html` בלבד, **וזו ברירת-המחדל המומלצת כאן** כי התוכן מגיע לטלפון כך או כך. **עד הפסי",
+    "measurable": false
+   },
+   {
+    "id": "T-607",
+    "status": "🟠",
+    "title": "פער ספרים↔ברוקר של `$6.25` שהתמקם על עסקה אחת: TM מייחס ל-`#3501` `−37.50` בעוד הספרים `−31.25`, ושלושת מחירי-המילוי שה-poller קרא תואמים את הספרים בדיוק.",
+    "next": "**(1) הערב ב-23:00 (חובה-4), המבחן הישיר והזול:** `python3 scripts/broker_truth.py --since 2026-10-19 --write` ואז `select count(pnl_sierra) from v9_trades where mode='demo' and entry_ts ≥ today` — אם `0`, **זו האישור שהמחלקה עיוורת לדמו ולא כשל של הסקריפט**, ",
+    "measurable": false
+   },
+   {
+    "id": "T-599",
+    "status": "🔵",
+    "title": "אי-סימטריה בשומר-המחיר של `live_price`: `price` מתוקן בשני המסלולים, `volume` באף אחד, וה-Event-Bus מפרסם את הגולמי — נחשף כש-`price` ו-`vol` בקובץ נתקעו על בר 16.10 23:55 אחרי שהפיד חזר.",
     "next": "",
     "measurable": false
    },
@@ -7078,8 +7617,8 @@
    {
     "id": "T-347",
     "status": "🟠",
-    "title": "`EXIT_TRACK_ACTIVITY_V1` דלוק ו-`FillPoller` מכריז על עצמו `BLIND` — מקור-התמחור של סיירה קפוא `46.3` שעות, והמפקד מראה שזה תפס את ",
-    "next": "לאמת ש-`TradeActivityLog_2026-09-14_UTC.37138283.data` **נוצר** ושה-JSONL **מתקדם בתוכן** (‏`scan_ts` חדש, לא רק `mtime`) ברגע האירוע הראשון. אם אחרי הפתיחה הפולר עדיין מכריז `BLIND` — **זה חוסם-פתיחה** ולא רעש: `EXIT_TRACK_ACTIVITY_V1` דלוק ⇒ יציאות לא יתומחר",
+    "title": "`EXIT_TRACK_ACTIVITY_V1` דלוק ו-`FillPoller` מכריז על עצמו `BLIND` — מקור-התמחור של סיירה קפוא, ויציאות לא מתומחרות מאמת-סיירה.",
+    "next": "**(1) המבחן הזול שמכריע בין שני התיקונים, לפני שנוגעים בקוד:** `python3 scripts/trade_activity_feed.py --once --account Sim1` ואז לבדוק אם `trade_activity_events.jsonl` התקדם **בתוכן** (`scan_ts` חדש, לא `mtime` — [[feedback_file_mtime_is_not_content_freshness",
     "measurable": false
    },
    {
@@ -8313,6 +8852,160 @@
     "title": "היתר ZLR SHORT ביום Normal 18:00–19:59 בתוך-הערך — BRIEF §2.2 #3, לבדו (fix-agent, ריצת ליל 17→18.10 שנורתה באיחור ב-18.10 09:55; המק לא היה מחובר כל השבוע).",
     "next": "",
     "measurable": false
+   },
+   {
+    "id": "T-610",
+    "status": "🔵",
+    "title": "`git stash` יתום מ-01.09 17:37 שמעולם לא הוחזר — 3 קבצי `readiness.html` מחוץ ל-git כבר 7 שבועות.",
+    "next": "(1) לקרוא את `git stash show -p stash@{0}` ולהכריע אם התוכן מת (ה-readiness נוצר-מחדש מאז) או חי. (2) אם מת — `git stash drop stash@{0}` בקומיט-תיעוד; אם חי — `git stash branch` לענף זמני ולא `pop` על העץ החי, כי `MONDAY_READINESS.html` כבר התקדם (שונה מ-HEAD)",
+    "measurable": false
+   },
+   {
+    "id": "T-611",
+    "status": "🟠",
+    "title": "פרומפט-המשימה-המתוזמנת מקודד את הגודל-הפסוק כ-\"1 חוזה\" ומוסיף \"אל תניח 2, 5 או 3\" — אבל מייקל פסק מאז 5 חוזים בדמו, ו-`ruled_contracts()` מחזיר 5. כלומר שלב-השער \"אימות `ruled_contracts()` == הפסיקה\" ",
+    "next": "(1) **לריצת-15:3x של היום:** לאמת `ruled_contracts()` מול `RULED_FLAGS.yaml`+`flag_guard` ⇒ הערך-הצפוי הוא **5**, ו-`5` הוא **PASS ולא NO-GO**; המספר כבר נרשם ל-`LIVE_CHANNEL` ריצה 364 כדי שלא ייקרא מהפרומפט. (2) ⛔ **אפס נגיעה ב-`FIXED_CONTRACTS_*`** בשום ריצה",
+    "measurable": false
+   },
+   {
+    "id": "T-612",
+    "status": "🔴",
+    "title": "`fire_drill` הפך ל-NO-GO בשער-20.10: שלושה שומרי-[[T-438]] אדומים — והשורש אינו T-610 אלא פסיקת-5-החוזים, שהפכה את הסניטייז-של-הסולם ואת חגורת-`T3_REQUIRED_V1` לשתי פסיקות שמתנגשות מבנית ⇒ ירי שסולמו ",
+    "next": "**(1) ✅ נענה — ריצה 375, 20.10 19:25:10: החור נמדד בשטח, הופעה ראשונה אי-פעם.** `grep -c \"T-214: PLACE rejected\" /tmp/backend.err.log ⇒ **1**` (היה **0** בכל הלוג בריצה 367), והשרשרת כולה בשנייה אחת: `T-438 LADDER SANITIZE trade 3572: LONG 7769.0/7767.75/7776.",
+    "measurable": false
+   },
+   {
+    "id": "T-613",
+    "status": "🟠",
+    "title": "ילד-`SCALE_IN` נולד עם `contracts=0` ⇒ אף PLACE לא נשלח, השורה נשארת `PENDING` לנצח, והמפייס סופר אותה `5c/assumed_open` ⇒ ספרים 6 מול ברוקר 1 ו-66 צעקות SYS-3 בחצי שעה.",
+    "next": "**(1) קריאת-קוד בחינם (קריאה-בלבד, ללא שינוי), לריצת-23:00 או לתור-הלילה:** לאתר את השורה שמייצרת `ladder_reason \"contracts=0 (2/2/1 is ruled for 5 only)\"` ולקבוע **מי מהשלושה נכון**: הילד אמור לקבל 2 (ואז באג-גודל), או אסור להיוולד כלל כשהסולם לא תומך (ואז הב",
+    "measurable": false
+   },
+   {
+    "id": "T-616",
+    "status": "🟡",
+    "title": "פערי-הדוקטרינה של 20.10 — ארבעה תיקונים מאחורי דגלים",
+    "next": "מדידה מחדש בהרנס הנאמן ([[T-620]]) על 78 הסשנים — `harness_out/t621/run_days.sh edge fx3 saa night` — ומייקל מכריע בשלב 4 יחד עם [[T-621]]/[[T-622]]",
+    "measurable": true
+   },
+   {
+    "id": "T-617",
+    "status": "🟡",
+    "title": "מפסידות 20.10, סבב שני",
+    "next": "`run_days.sh t2tol` בהרנס הנאמן ⇒ מייקל מכריע בשלב 4",
+    "measurable": true
+   },
+   {
+    "id": "T-618",
+    "status": "🟡",
+    "title": "T1 לפני הרמה — `T1_FRONT_RUN_TICKS`",
+    "next": "`run_days.sh t1fr` בהרנס הנאמן ⇒ מייקל מכריע בשלב 4",
+    "measurable": true
+   },
+   {
+    "id": "T-619",
+    "status": "🔵",
+    "title": "פסיקות-נסיבות → וריאנטי-עץ (המנגנון הכללי שמייקל ביקש 20.10 23:5x)",
+    "next": "פסיקות מייקל בדף ⇒ `tree_rule_variant.py` ⇒ מדידה בהרנס הנאמן ⇒ הצגה",
+    "measurable": true
+   },
+   {
+    "id": "T-621",
+    "status": "🟡",
+    "title": "תיקוני-השורש של 20.10 — 1, 2, 4, 5, נבנו כבויים ונמדדו",
+    "next": "מייקל מכריע בשלב 4 מה נדלק בדמו; `claude/PLAN_2010_FIXES_2026-10-21.md` בפרויקט",
+    "measurable": false
+   },
+   {
+    "id": "T-622",
+    "status": "🟡",
+    "title": "חבילת-היום-הנורמלי (מייקל 21.10: \"תיקונים שיהיו בהתאם ליום נורמלי\")",
+    "next": "לא הוכרע לפני 16:30 (21.10) ⇒ עובר ל-iMac (המסחר עובר אליו הלילה, T-625). מייקל בוחר: **n2rsNx** (6 דגלים, +4,161$) או **n2rs3k** (5, בלי T1_FRONT_RUN_TICKS, +3,960$, 31/17). ביצוע: snapshot ⇒ `python3 harness_out/t621/t622_apply_n2rsNx.py --ruling \"<מילותיו>\"",
+    "measurable": false
+   },
+   {
+    "id": "T-623",
+    "status": "🟠",
+    "title": "נאמנות-הרנס: שלושה מנגנונים חיים רצים על `time.monotonic` (שניות-אמת), שהשעון המזויף של ההרנס לא נוגע בהם",
+    "next": "mbase ו-mn2rs מלאים ⇒ אם ההפרש קטן — ברירת-מחדל ON בהרנס ו-base חדש לכל מדידה מכאן; ההפרשים הקטנים (T-622d ‎+142$) נקראים רק מול m-base",
+    "measurable": true
+   },
+   {
+    "id": "T-624",
+    "status": "🟡",
+    "title": "הנתיב הטקטי אחרי הרחבה שנכשלה (מייקל 21.10 על 19.10: \"המערכת והעץ היה צריך לזהות נתיב אחר לפי איך היא מתנהגת … כמו עסקאות טקטיות של מערכת 4 או מדרגות שיש להן גם ווליום וגם נר שרואים גודל מאמץ מסוים וג",
+    "next": "התוצאות (78, מול mts = mbase + מראת-המדרגות): **הנתיב בלי מסנן + ZLR מקודם (mtsnz) — 19 עסקאות-נתיב +907$ ישיר (מדרגות 3 · +706 · ZLR 14 · +214 · GB100 2 · −13), 19.10 +239 (ZLR 19:24 +72.50 · מדרגה 19:40 +213.75), סה\"כ +1,231 מול mts / +4 מול mbase**; עם מסנן",
+    "measurable": false
+   },
+   {
+    "id": "T-625",
+    "status": "🟠",
+    "title": "מעבר הפרויקט במלואו ל-iMac (מק-2) — פסיקת-מייקל 21.10 12:10: \"להעביר את הפרויקט במלואו למחשב המק השני… המסחר יהיה שם, הכל יהיה שם — LaunchAgents כולל הפרונט\".",
+    "next": "≥23:35 IL (אחרי משימת-23:20): במקבוק `bash scripts/mac2/phaseB_cutover_macbook.sh all` → ב-iMac `bash scripts/mac2/phaseB_imac_golive.sh all` → מייקל: Sierra `Y_SierraChart` + Remote Build + reload study + `mems26_verify` + `fire_drill` GO → חימוש; אחר-כך לכוו",
+    "measurable": false
+   },
+   {
+    "id": "T-628",
+    "status": "🟡",
+    "title": "ארבעת תיקוני-הלילה לפתיחה/הרחבה נבנו כבויים ונמדדו — השוק פסק: שלושה מפסידים, הרביעי לא מוכח (cowork, 21.10 23:4x–22.10 00:5x; מייקל \"עכשיו הכל\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-629",
+    "status": "🟡",
+    "title": "גלאי-המדרגה (מדרגה → מבחן → כניסה) — `backend/v9/systems/steps.py`, טהור, 7 טסטים על ברי 21.10 (7943cc226).",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-630",
+    "status": "🟠",
+    "title": "הדוור הוא מפרסם-מחדש ולא שולח חד-פעמי — ולכן `UNVERIFIED` מ-`phone_reply.py` אינו \"לא נמסר\", והמסירה בפועל היא הכתיבה לקובץ.",
+    "next": "כיוון שהכתיבה היא המסירה, אין \"ביטול\" אחרי `phone_reply.py` — ולכן שורת-היומן **לא נשלחת כלל** כשחובה-4 כבר שולחת את קישור-עמוד-היום. **ברירת-המחדל המוחלת עד פסיקה אחרת** (⛔ הפסיקה **לא נשאלת שוב** — נשאלה 20.10 19:46 ובריצה 411): שורת-דוח-היום של חובה-4 מחזיק",
+    "measurable": false
+   },
+   {
+    "id": "T-639",
+    "status": "🟡",
+    "title": "מפקח-דלתון — פיקוח קבוע לעץ ההחלטות: איך דלתון מיושם בכל עסקה (מייקל 23.10: \"האם תוכל לייצר לנו פיקוח קבוע לעץ ההחלטות לאיך שהוא מתגבש — לבחון איך דלתון מיושם בכל עסקה\" · \"מאשר\").",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-640",
+    "status": "🟡",
+    "title": "23.10 — גאפ-למטה שנדחה: היום זוהה חלקית, והעסקה היחידה הייתה נגד ההרחבה (#3876 CEILING_FLIP_TOUCH2 SHORT 18:05 @7686.75 ⇒ סטופ 18:25 −175$). מייקל: \"תסביר לי איך מנוהל היום … איך היה צריך לסחור מהפתיח",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-641",
+    "status": "🟡",
+    "title": "23.10 ערב — אין עצירת-הפסד בדמו (במפורש) · מערכת 6 נבדקה · תיקוני-פרונט · ולמה נכנסנו ל-#3898 (מייקל: \"מבחינתי אין הפסקה על דמו … למה העסקה האחרונה נכנסו אליה … בטבלה … שנלמד ונשתפר\"; \"כן ותשלח סוכן ג",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-642",
+    "status": "🟡",
+    "title": "מערכת 6 כמנהלת-תרחישים + יעדים ריאליים (מייקל 23.10 23:2x: \"לקרב את T1 למקום ריאלי יותר שהמערכת תדע לזהות סיכוי גבוה יותר להרויח בו … לקרב את t2 ואת t3 ושתהיה לנו מערכת … שתרחיק אותם או תממש אותם אם ה",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-643",
+    "status": "🟡",
+    "title": "עסקה-עסקה לפי דלתון + מערכת 6 תקינה (מייקל 24.10 00:5x: \"אתה לא עובד נכון אתה מנסה לעשות סטטיסטיקה לפי חודשים כאשר עדיין לא הבנת מתי להיכנס באופן תקין לעסקה בודדת … אני רוצה שניקח את כל העסקאות ונלמד ",
+    "next": "",
+    "measurable": false
+   },
+   {
+    "id": "T-645",
+    "status": "🟡",
+    "title": "שלושה סוכני קריאה-בלבד לפני שממשיכים (מייקל 24.10: \"העץ צריך להתרחב ולבחון כל עסקה טובה … וכל עסקה רעה … לא נרצה לפספס כמו אתמול עסקאות היפוך משמעותיות … אני רוצה שנריץ סוכן שיבחן … וגם סוכן שיבחן את ",
+    "next": "",
+    "measurable": false
    }
   ]
  },
@@ -8399,6 +9092,27 @@
    "status": "🔴",
    "title": "`acct_available_funds` מחזיר `DBL_MAX` (1.7976931348623157e+308) — קלט-השער של T-34 הוא סנטינל \"לא-זמין\" שנראה כמו מספר.",
    "next": "**(א) בשער-15:30 היום, לפני כל השוואה:** `if not (0 < avail < 1e12): הקלט אינו מדיד ⇒ אפס עריכה ב-.env, אפס ריסטארט, הגודל נשאר `ruled_contracts()` כפי שהוא, ומדווח למייקל בטלפון כ\"מרג'ין לא-נמדד\" — **לא** \"אין מרג'ין\" ו**לא** \"יש מרג'ין\". לאמת גם `is_sim==0` ",
+   "measurable": true
+  },
+  {
+   "id": "T-623",
+   "status": "🟠",
+   "title": "נאמנות-הרנס: שלושה מנגנונים חיים רצים על `time.monotonic` (שניות-אמת), שהשעון המזויף של ההרנס לא נוגע בהם",
+   "next": "mbase ו-mn2rs מלאים ⇒ אם ההפרש קטן — ברירת-מחדל ON בהרנס ו-base חדש לכל מדידה מכאן; ההפרשים הקטנים (T-622d ‎+142$) נקראים רק מול m-base",
+   "measurable": true
+  },
+  {
+   "id": "T-605",
+   "status": "🟠",
+   "title": "סולם-היעדים נכתב לא-מונוטוני ל-`LONG` — `t1` רחוק מ-`t3`, כלומר המדרגה שנקראת \"ראשונה\" היא האחרונה שהמחיר יפגוש. 2 מתוך 20 הסולמות-המלאים של היום, והמחלקה מונה 12 עסקאות ב-20 יום — שתיים מהן לייב בכסף",
+   "next": "**(1) טרום-פתיחה, קריאה אחת ולא ניחוש:** לקרוא ב-`trading_gateway` מי כותב `t1` ומי כותב `t2/t3` לעסקה (ולא ל-`[TargetSpacing] would-be`, שהוא אינסטרומנטציה) — אם אלה שני מקורות, זה שורש-הפריט; אם מקור אחד, הפריט מצטמצם לבאג-סדר בתוכו. **(2) ריפליי ולא דגל — ה",
+   "measurable": true
+  },
+  {
+   "id": "T-604",
+   "status": "🟠",
+   "title": "קידום `S1_DAY_DIRECTION_V1` ל-`apply` (פסיקת-מייקל 19.10 19:52, קומיט `7249d493`) נכנס לתוקף — ולא שינה את החסימה: 15 הדקות שאחרי הריסטארט מראות אותם שורטים נחסמים `tree:bias` עם `hint=LONG`, בעוד השו",
+   "next": "**(1) הערב (חובה-4), המבחן הזול:** לספור בליגר כמה מהחסימות `tree:bias` של היום היו שורטים ביום שסגר למטה — `hint` מול `close`-יום — ולהוציא את המספר לדוח-הערב; זה הופך \"ההטיה הפוכה\" מתצפית למדידה. **(2) בחלון טרום-פתיחה, לא תוך-RTH:** לקרוא מי מייצר `hint` ב-",
    "measurable": true
   },
   {
@@ -8575,119 +9289,98 @@
    "title": "‏`21.4%` מהפסדי-הצל נחתכים ע\"י כלל-סדר-הבדיקה ולא ע\"י השוק — הבר שסגר אותם בסטופ נגע גם ב-`T1`.",
    "next": "(דוקטרינת-הלמידה: \"הוראה חדשה ⇒ קודם ריפליי, אחר-כך דגל\"): (1) ריפליי דקה/טיק על `116` הברים הדו-משמעיים ⇒ להוציא **מספר**: בכמה מהם `T1` נגע לפני הסטופ; (2) עד שיש מספר — **אין לגעת ב-`bar_level_detector`**: זה שינוי בציר-המדידה של כל תבנית ⇒ עצירה-אסטרטגית +",
    "measurable": true
-  },
-  {
-   "id": "T-339",
-   "status": "🟠",
-   "title": "הוראת-מייקל 11.09 `20:24:48` (‏`id=65774fa6` בת'רד-הטלפון): \"אם אני סוגר את העסקה תנסה לעשות במחיר הטוב ביותר כדי שלא נפסיד כסף\" — והמדידה אומרת שהיכולת הזו אינה קיימת היום באף נתיב-סגירה.",
-   "next": "**(1) ההבהרה היחידה שנדרשת ממייקל, במשפט אחד:** האם \"אני סוגר\" = **אתה ביד ב-Sierra** (ואז ההוראה היא בעצם בקשה שהמערכת **לא** תשטח מתחתיך — כלומר [[T-338]], והתשובה שם), או = **אתה אומר למערכת לסגור** (ואז זה פיצ'ר: `CLOSE_AT_LIMIT`)? **(2) אם (ב) — המדידה שק",
-   "measurable": true
-  },
-  {
-   "id": "T-321",
-   "status": "🟠",
-   "title": "שער-המיקום של `DAYTYPE_LOCATION_GATE` ירה בלייב לראשונה היום — ו-13 מ-13 החסימות הן בצירופים שהדוקטרינה ",
-   "next": "(1) **המדידה המכריעה, לפני כל דגל** ([[LEARNING_DOCTRINE]] — הוראה ⇒ קודם ריפליי): לספור על סט-הרגרסיה את **חיתוך (kinds מותרים)×(מפיקים חיים)** — כמה מועמדים **נולדו** ב-`near_vah×SHORT` / `near_val×LONG`, בכל יום-Normal בסט. **המספר הזה — לא הדעה — קובע אם ה",
-   "measurable": true
-  },
-  {
-   "id": "T-306",
-   "status": "🟠",
-   "title": "צד-הסטופ בחשבון-המשותף מחזיק 8 חוזים מול פוזיציה של 5 — עודף של 3 — אחרי שאתי ירדה מ-5 חוזים ל-1 בלי לכווץ את הסטופ שלה.",
-   "next": "✅ **הוכרע במדידה ולא ב-Trade DOM** — `11114` היה **חי**; אם חי, לכווץ אותו ל-1 (זו פקודה שלו/של אתי — **אנחנו לא נוגעים**). **(2)** cowork — לחזור על סכימת-`qty`-לפי-צד בכל ריצת-ניטור כל עוד הפוזיציה משותפת, ולדווח כשהעודף משתנה. **(3)** cc — לשקול שומר-שפיות ",
-   "measurable": true
   }
  ],
  "reports": [
   {
-   "file": "docs/reports/T598_BE_AFTER_1R_2026-10-19.md",
-   "mtime": "2026-10-19 00:19"
+   "file": "docs/reports/OPS_LOG_2026-10-24.md",
+   "mtime": "2026-10-24 19:12"
   },
   {
-   "file": "docs/reports/FULL_REPORT_SUPER_AGENT_2026-10-19.md",
-   "mtime": "2026-10-19 00:13"
+   "file": "docs/reports/T644_DST_SESSION_CLOCK_2026-10-24.md",
+   "mtime": "2026-10-24 09:33"
   },
   {
-   "file": "docs/reports/T260_PHONE_REPLY_DELIVERY_VERIFY_2026-10-19.md",
-   "mtime": "2026-10-19 00:00"
+   "file": "docs/reports/T640_HARNESS_2026-10-23.md",
+   "mtime": "2026-10-24 00:42"
   },
   {
-   "file": "docs/reports/SYSTEM_REVIEW_2026-10-18.md",
-   "mtime": "2026-10-18 23:50"
+   "file": "docs/reports/OPS_LOG_2026-10-23.md",
+   "mtime": "2026-10-23 22:59"
   },
   {
-   "file": "docs/reports/OPEN_PARITY_2026-10-18.md",
-   "mtime": "2026-10-18 23:43"
+   "file": "docs/reports/FRONTEND_FIXES_2026-10-23.md",
+   "mtime": "2026-10-23 20:06"
   },
   {
-   "file": "docs/reports/SUPERVISION_LATEST.md",
-   "mtime": "2026-10-18 22:36"
+   "file": "docs/reports/SYSTEM6_REVIEW_2026-10-23.md",
+   "mtime": "2026-10-23 20:00"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_2236.md",
-   "mtime": "2026-10-18 22:36"
+   "file": "docs/reports/FRONTEND_BACKEND_AUDIT_2026-10-23.md",
+   "mtime": "2026-10-23 18:36"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_2136.md",
-   "mtime": "2026-10-18 21:36"
+   "file": "docs/reports/OPENING_V2_STUDY_2026-10-23.md",
+   "mtime": "2026-10-23 10:15"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_2036.md",
-   "mtime": "2026-10-18 20:37"
+   "file": "docs/reports/OPS_LOG_2026-10-22.md",
+   "mtime": "2026-10-23 04:16"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_1936.md",
-   "mtime": "2026-10-18 19:36"
+   "file": "docs/reports/T635_HARNESS_2026-10-22.md",
+   "mtime": "2026-10-23 00:43"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_1836.md",
-   "mtime": "2026-10-18 18:36"
+   "file": "docs/reports/MORNING_2026-10-22.md",
+   "mtime": "2026-10-22 14:06"
   },
   {
-   "file": "docs/reports/SUPERVISION_2026-10-18_1736.md",
-   "mtime": "2026-10-18 17:37"
+   "file": "docs/reports/REPLAY_REVIEW_2026-10-21.md",
+   "mtime": "2026-10-21 23:25"
   }
  ],
  "harness_runs": [
   {
-   "dir": "harness_out/t598",
-   "last": "  2026-10-06 | OPENING_DRIVE | LONG | 16:50:03 | T1 | BE | 95.6 | 0.0 | -95.6"
-  },
-  {
-   "dir": "harness_out/t466",
-   "last": "ALL DONE treev3 Fri Sep 25 13:32:48 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t586",
-   "last": "ALL DONE Sun Oct 18 10:55:55 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t587",
-   "last": "ALL DONE Sun Oct 18 11:04:57 IDT 2026"
-  },
-  {
-   "dir": "harness_out/t585",
+   "dir": "harness_out/t645",
    "last": ""
   },
   {
-   "dir": "harness_out/t579",
-   "last": "=== summary table (fix-agent, 00:38)"
-  },
-  {
-   "dir": "harness_out/t567",
-   "last": "ALL DONE 00:37:28"
-  },
-  {
-   "dir": "harness_out/t575",
+   "dir": "harness_out/t643",
    "last": ""
   },
   {
-   "dir": "harness_out/t571",
+   "dir": "harness_out/t640",
    "last": ""
   },
   {
-   "dir": "harness_out/t566",
-   "last": "ALL DONE Thu Oct  8 12:50:41 IDT 2026"
+   "dir": "harness_out/t635",
+   "last": "   biggest: [('2026-06-24', -837.0), ('2026-06-23', 731.2), ('2026-08-17', 652.5), ('2026-09-02', 508.6), ('2026-08-03', 465.0), ('2026-09-14', -465.0)]"
+  },
+  {
+   "dir": "harness_out/t631",
+   "last": ""
+  },
+  {
+   "dir": "harness_out/t628",
+   "last": ""
+  },
+  {
+   "dir": "harness_out/t561",
+   "last": ""
+  },
+  {
+   "dir": "harness_out/t517",
+   "last": "EXIT rc=0 Wed Sep 30 06:47:50 IDT 2026"
+  },
+  {
+   "dir": "harness_out/t621",
+   "last": "ALL DONE 15:55:23"
+  },
+  {
+   "dir": "harness_out/t612_card",
+   "last": ""
   }
  ]
 }
