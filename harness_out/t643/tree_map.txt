@@ -1,0 +1,70 @@
+candidates 5054 (deduped 2964, labelled 2929) · sessions 81 (2026-06-15..2026-10-23) · base: good 37.7% bad 42.3% flat 20.0%
+
+## leaf families (n ≥ 10), sorted by n
+| family | n | good | bad | flat | good% | vs base | real outcome (fired/blocked) |
+| TAKE:with_hint|phase=C | 428 | 151 | 165 | 112 | 35% | -2 | 55/373 |
+| SKIP:stand_down | 424 | 178 | 191 | 55 | 42% | +4 | 0/424 |
+| SKIP:bias | 395 | 145 | 190 | 60 | 37% | -1 | 0/395 |
+| SKIP:time_cutoff | 332 | 49 | 99 | 184 | 15% | -23 | 0/332 |
+| SKIP:location | 282 | 142 | 109 | 31 | 50% | +13 | 0/282 |
+| TAKE:failed_ext|phase=C | 217 | 100 | 102 | 15 | 46% | +8 | 97/120 |
+| TAKE:take_location | 200 | 74 | 122 | 4 | 37% | -1 | 89/111 |
+| TAKE:d_with_extension | 128 | 34 | 50 | 44 | 27% | -11 | 10/118 |
+| SKIP:kind | 127 | 60 | 56 | 11 | 47% | +10 | 0/127 |
+| TAKE:take_with_extension | 82 | 24 | 23 | 35 | 29% | -8 | 13/69 |
+| TAKE:kind=EDGE_FADE|phase=B | 76 | 36 | 40 | 0 | 47% | +10 | 33/43 |
+| TAKE:with_hint|phase=B | 69 | 37 | 27 | 5 | 54% | +16 | 29/40 |
+| TAKE:kind=BREAK|phase=C | 61 | 32 | 16 | 13 | 52% | +15 | 24/37 |
+| TAKE:auction_B_reversal | 44 | 22 | 22 | 0 | 50% | +12 | 21/23 |
+| TAKE:with_hint|phase=D | 26 | 8 | 6 | 12 | 31% | -7 | 16/10 |
+| TAKE:failed_ext|phase=D | 18 | 4 | 13 | 1 | 22% | -15 | 8/10 |
+| TAKE:take_failed_ext_responsive | 11 | 4 | 4 | 3 | 36% | -1 | 1/10 |
+
+## mixed TAKE leaves (n ≥ 30, good% within ±10 of the base 38%) — the best stable single split
+
+TAKE:with_hint|phase=C  n=428 good=35%
+   pattern=GB100: n=15 good=67% · rest n=413 good=34% · Δ+33 · halves [32, 33] · STABLE
+   kind=REVERSAL: n=20 good=65% · rest n=408 good=34% · Δ+31 · halves [41, 24] · STABLE
+   value_migration=inside: n=30 good=60% · rest n=398 good=33% · Δ+27 · halves [47, 16] · STABLE
+   day_type=Trend_Normal: n=42 good=57% · rest n=386 good=33% · Δ+24 · halves [16, 31] · STABLE
+
+TAKE:failed_ext|phase=C  n=217 good=46%
+   ruleA=accepted_against: n=119 good=36% · rest n=98 good=58% · Δ-22 · halves [-18, -32] · STABLE
+   ruleA=no: n=98 good=58% · rest n=119 good=36% · Δ+22 · halves [18, 32] · STABLE
+   zone=near_val: n=23 good=65% · rest n=194 good=44% · Δ+21 · halves [22, 19] · STABLE
+   opening_type=OPEN_AUCTION_OUT: n=55 good=58% · rest n=162 good=42% · Δ+16 · halves [16, 16] · STABLE
+
+TAKE:take_location  n=200 good=37%
+   opening_type=OPEN_AUCTION_IN: n=60 good=53% · rest n=140 good=30% · Δ+23 · halves [32, 16] · STABLE
+   day_type=Neutral_Extreme: n=21 good=19% · rest n=179 good=39% · Δ-20 · halves [-13, -25] · STABLE
+   structure=two_sided: n=21 good=19% · rest n=179 good=39% · Δ-20 · halves [-24, -18] · STABLE
+   turn=down: n=38 good=21% · rest n=162 good=41% · Δ-20 · halves [-28, -11] · STABLE
+
+TAKE:take_with_extension  n=82 good=29%
+   turn=none: n=37 good=11% · rest n=45 good=44% · Δ-34 · halves [-46, -21] · STABLE
+   turn_rel=none: n=37 good=11% · rest n=45 good=44% · Δ-34 · halves [-46, -21] · STABLE
+   turn=down: n=17 good=53% · rest n=65 good=23% · Δ+30 · halves [47, 18] · STABLE
+   hour=18: n=42 good=38% · rest n=40 good=20% · Δ+18 · halves [11, 25] · STABLE
+
+TAKE:kind=EDGE_FADE|phase=B  n=76 good=47%
+   turn_rel=with: n=16 good=81% · rest n=60 good=38% · Δ+43 · halves [50, 33] · STABLE
+   pos_hour=edge: n=19 good=21% · rest n=57 good=56% · Δ-35 · halves [-50, -20] · STABLE
+   pos_hour=middle: n=26 good=69% · rest n=50 good=36% · Δ+33 · halves [31, 35] · STABLE
+   turn=down: n=17 good=71% · rest n=59 good=41% · Δ+30 · halves [44, 7] · STABLE
+
+## SKIP leaves that hold good candidates (good%% ≥ base+5, n ≥ 30) — the best stable split inside
+
+SKIP:location  n=282 good=50%
+   pos_hour=edge: n=16 good=19% · rest n=266 good=52% · Δ-34 · halves [-38, -33] · STABLE
+   day_type=Normal: n=235 good=55% · rest n=47 good=28% · Δ+27 · halves [14, 29] · STABLE
+   day_type=Neutral_Center: n=33 good=30% · rest n=249 good=53% · Δ-23 · halves [-21, -21] · STABLE
+
+SKIP:kind  n=127 good=47%
+   pos_hour=middle: n=44 good=61% · rest n=83 good=40% · Δ+22 · halves [29, 14] · STABLE
+   zone=below_value: n=17 good=29% · rest n=110 good=50% · Δ-21 · halves [-11, -24] · STABLE
+   pos_hour=far: n=60 good=37% · rest n=67 good=57% · Δ-20 · halves [-11, -27] · STABLE
+
+## rule A on all TAKE candidates
+ruleA=accepted_against: n=163 good=60 bad=93 flat=10 good%=37
+ruleA=no: n=992 good=363 bad=400 flat=229 good%=37
+ruleA=ib_forming: n=214 good=107 bad=102 flat=5 good%=50

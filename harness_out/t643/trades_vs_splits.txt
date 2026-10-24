@@ -1,0 +1,94 @@
+trades 60 · matched 52 · unmatched [2017, 2140, 3123, 3501, 3540, 3574, 3582, 3749]
+
+## the bar label vs the Dalton verdict (matched trades)
+  verdict=borderline                   label=bad   1
+  verdict=correct                      label=bad   4
+  verdict=correct                      label=flat  2
+  verdict=correct                      label=good  13
+  verdict=idea_right_execution_wrong   label=good  1
+  verdict=wrong                        label=bad   22
+  verdict=wrong                        label=flat  5
+  verdict=wrong                        label=good  4
+
+## each split on the reviewed trades
+
+P1 take_location only when the open is inside yesterday's range · blocks 4 trades: {'wrong': 3, 'correct': 1} · their P&L -130.00$
+   #2230 live 23.09 19:15 REACTIVE_LONG LONG take_location · wrong/accepted_ext · label bad · -21.25$ · opening_type=OPEN_DRIVE ruleA=no pos_hour=edge turn_rel=with phase=C
+   #2340 live 24.09 20:35 DOUBLE_TOP_AA_SHORT SHORT take_location · wrong/mid · label flat · -37.50$ · opening_type=OPEN_DRIVE ruleA=no pos_hour=far turn_rel=mid phase=C
+   #2895 live 02.10 17:35 CEILING_FLIP_SHORT SHORT take_location · correct · label bad · -40.00$ · opening_type=OPEN_AUCTION_OUT ruleA=no pos_hour=edge turn_rel=none phase=C
+   #3220 demo 07.10 19:40 CEILING_FLIP_SHORT SHORT take_location · wrong/accepted_ext · label bad · -31.25$ · opening_type=OPEN_DRIVE ruleA=accepted_against pos_hour=middle turn_rel=none phase=C
+
+P2 failed_ext C: not against an accepted extension (rule A) · blocks 7 trades: {'wrong': 6, 'correct': 1} · their P&L -82.50$
+   #2594 live 29.09 18:35 CEILING_FLIP_LONG LONG failed_ext|phase=C · wrong/accepted_ext · label bad · +0.00$ · opening_type=OPEN_DRIVE ruleA=accepted_against pos_hour=middle turn_rel=none phase=C
+   #3038 live 05.10 19:05 CEILING_FLIP_SHORT SHORT failed_ext|phase=C · wrong/accepted_ext · label bad · -27.50$ · opening_type=OPEN_DRIVE ruleA=accepted_against pos_hour=middle turn_rel=with phase=C
+   #3402 live 09.10 18:10 CEILING_FLIP_SHORT SHORT failed_ext|phase=C · wrong/accepted_ext · label bad · +0.00$ · opening_type=OPEN_AUCTION_IN ruleA=accepted_against pos_hour=middle turn_rel=none phase=C
+   #3670 demo 21.10 18:45 CEILING_FLIP_TOUCH2 SHORT failed_ext|phase=C · wrong/accepted_ext · label good · -75.00$ · opening_type=OPEN_AUCTION_IN ruleA=accepted_against pos_hour=edge turn_rel=edge phase=C
+   #3702 demo 21.10 20:25 CEILING_FLIP_TOUCH2 SHORT failed_ext|phase=C · wrong/accepted_ext · label good · +105.00$ · opening_type=OPEN_AUCTION_IN ruleA=accepted_against pos_hour=edge turn_rel=against phase=C
+   #3763 demo 22.10 17:50 CEILING_FLIP_TOUCH2 LONG failed_ext|phase=C · correct · label good · +90.00$ · opening_type=OPEN_AUCTION_OUT ruleA=accepted_against pos_hour=edge turn_rel=against phase=C
+   #3876 demo 23.10 18:05 CEILING_FLIP_TOUCH2 SHORT failed_ext|phase=C · wrong/accepted_ext · label bad · -175.00$ · opening_type=OPEN_AUCTION_OUT ruleA=accepted_against pos_hour=edge turn_rel=against phase=C
+
+P3 EDGE_FADE B: not at the extreme of the last hour · blocks 0 trades: {} · their P&L +0.00$
+
+P4 with the extension: only after a turn · blocks 0 trades: {} · their P&L +0.00$
+
+P5 no new entries in phase D · blocks 6 trades: {'correct': 3, 'wrong': 3} · their P&L +10.00$
+   #2072 live 21.09 21:05 GHOST LONG with_hint|phase=D · correct · label flat · +11.25$ · opening_type=OPEN_DRIVE ruleA=no pos_hour=far turn_rel=none phase=D
+   #2076 live 21.09 21:50 REACTIVE_LONG LONG with_hint|phase=D · correct · label bad · +16.25$ · opening_type=OPEN_DRIVE ruleA=no pos_hour=far turn_rel=none phase=D
+   #2841 live 01.10 21:00 DOUBLE_TOP_AA_SHORT SHORT d_with_extension · wrong/climax_chase · label flat · +68.75$ · opening_type=OPEN_REJECTION_REVERSE ruleA=no pos_hour=middle turn_rel=with phase=D
+   #2843 live 01.10 21:10 INITIATIVE_SHORT SHORT d_with_extension · wrong/climax_chase · label flat · -57.50$ · opening_type=OPEN_REJECTION_REVERSE ruleA=no pos_hour=far turn_rel=with phase=D
+   #3508 demo 19.10 21:20 DOUBLE_BOTTOM_EE_LONG LONG d_with_extension · wrong/mid · label bad · -28.75$ · opening_type=OPEN_AUCTION_IN ruleA=no pos_hour=far turn_rel=none phase=D
+   #3515 demo 19.10 21:40 CEILING_FLIP_TOUCH2 LONG d_with_extension · correct · label bad · +0.00$ · opening_type=OPEN_AUCTION_IN ruleA=no pos_hour=middle turn_rel=none phase=D
+
+## every matched trade: leaf and verdict
+#2029 live 21.09 18:05 REACTIVE_LONG          LONG  SKIP:location                      correct                    label=good    +12.50$ 
+#2033 live 21.09 18:15 BULL_FLAG_LONG         LONG  TAKE:with_hint|phase=C             correct                    label=good    +12.50$ 
+#2041 live 21.09 18:45 REACTIVE_LONG          LONG  TAKE:with_hint|phase=C             correct                    label=good    +12.50$ 
+#2047 live 21.09 19:20 INITIATIVE_LONG        LONG  TAKE:with_hint|phase=C             correct                    label=good    +27.50$ 
+#2072 live 21.09 21:05 GHOST                  LONG  TAKE:with_hint|phase=D             correct                    label=flat    +11.25$ P5
+#2076 live 21.09 21:50 REACTIVE_LONG          LONG  TAKE:with_hint|phase=D             correct                    label=bad     +16.25$ P5
+#2106 live 22.09 17:00 OPENING_DRIVE          SHORT SKIP:kind                          wrong/open_chase           label=flat     +0.00$ 
+#2152 live 22.09 19:10 CEILING_FLIP_LONG      LONG  TAKE:failed_ext|phase=C            correct                    label=good    +30.00$ 
+#2230 live 23.09 19:15 REACTIVE_LONG          LONG  TAKE:take_location                 wrong/accepted_ext         label=bad     -21.25$ P1
+#2340 live 24.09 20:35 DOUBLE_TOP_AA_SHORT    SHORT TAKE:take_location                 wrong/mid                  label=flat    -37.50$ P1
+#2408 live 25.09 19:25 DOUBLE_BOTTOM_EE_LONG  LONG  TAKE:take_with_extension           correct                    label=flat    +70.00$ 
+#2483 live 28.09 16:50 OPENING_EXTREME_REJECT LONG  TAKE:auction_B_reversal            wrong/open_chase           label=bad      +0.00$ 
+#2496 live 28.09 17:25 VEGAS                  LONG  SKIP:kind                          wrong/mid                  label=bad     -32.50$ 
+#2594 live 29.09 18:35 CEILING_FLIP_LONG      LONG  TAKE:failed_ext|phase=C            wrong/accepted_ext         label=bad      +0.00$ P2
+#2623 live 29.09 20:25 CEILING_FLIP_LONG      LONG  TAKE:failed_ext|phase=C            correct                    label=good    +53.75$ 
+#2752 live 30.09 22:00 GHOST                  LONG  SKIP:time_cutoff                   wrong/late                 label=bad     -36.25$ 
+#2771 live 01.10 16:45 OPENING_TEST_DRIVE     SHORT TAKE:with_hint|phase=B             idea_right_execution_wrong label=good   +116.25$ 
+#2841 live 01.10 21:00 DOUBLE_TOP_AA_SHORT    SHORT TAKE:d_with_extension              wrong/climax_chase         label=flat    +68.75$ P5
+#2843 live 01.10 21:10 INITIATIVE_SHORT       SHORT TAKE:d_with_extension              wrong/climax_chase         label=flat    -57.50$ P5
+#2875 live 02.10 16:50 DALTON_EDGE_SHORT      SHORT TAKE:auction_B_reversal            correct                    label=good    +48.75$ 
+#2877 live 02.10 16:55 GB100                  SHORT SKIP:location                      wrong/open_chase           label=bad     -45.00$ 
+#2895 live 02.10 17:35 CEILING_FLIP_SHORT     SHORT TAKE:take_location                 correct                    label=bad     -40.00$ P1
+#2913 live 02.10 18:45 DOUBLE_TOP_AA_SHORT    SHORT TAKE:with_hint|phase=C             borderline                 label=bad      +0.00$ 
+#3038 live 05.10 19:05 CEILING_FLIP_SHORT     SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=bad     -27.50$ P2
+#3130 live 06.10 19:35 FAMIR                  LONG  TAKE:with_hint|phase=C             wrong/mid                  label=bad     -56.25$ 
+#3136 live 06.10 20:25 DALTON_EDGE_LONG       LONG  TAKE:with_hint|phase=C             correct                    label=good    +28.75$ 
+#3140 live 06.10 20:35 FAMIR                  LONG  TAKE:with_hint|phase=C             wrong/mid                  label=bad      +0.00$ 
+#3164 demo 07.10 16:50 OPENING_DRIVE          SHORT TAKE:with_hint|phase=B             wrong/open_chase           label=bad     -75.00$ 
+#3220 demo 07.10 19:40 CEILING_FLIP_SHORT     SHORT TAKE:take_location                 wrong/accepted_ext         label=bad     -31.25$ P1
+#3272 live 08.10 16:45 OPENING_TEST_DRIVE     SHORT SKIP:kind                          wrong/open_chase           label=bad     -46.25$ 
+#3281 live 08.10 16:55 DALTON_EDGE_SHORT      SHORT TAKE:auction_B_reversal            wrong/open_chase           label=bad     -53.75$ 
+#3289 live 08.10 17:40 CEILING_FLIP_SHORT     SHORT TAKE:take_location                 correct                    label=good     +6.25$ 
+#3314 live 08.10 19:20 CEILING_FLIP_LONG      LONG  TAKE:with_hint|phase=C             wrong/climax_chase         label=bad     -65.00$ 
+#3380 live 09.10 16:45 OPENING_DRIVE          SHORT SKIP:kind                          wrong/open_chase           label=bad     -72.50$ 
+#3402 live 09.10 18:10 CEILING_FLIP_SHORT     SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=bad      +0.00$ P2
+#3406 live 09.10 18:15 DOUBLE_BOTTOM_EE_LONG  LONG  TAKE:with_hint|phase=C             correct                    label=good     +0.00$ 
+#3483 demo 19.10 20:15 CEILING_FLIP_TOUCH2    LONG  TAKE:with_hint|phase=C             wrong/mid                  label=bad     -22.50$ 
+#3508 demo 19.10 21:20 DOUBLE_BOTTOM_EE_LONG  LONG  TAKE:d_with_extension              wrong/mid                  label=bad     -28.75$ P5
+#3515 demo 19.10 21:40 CEILING_FLIP_TOUCH2    LONG  TAKE:d_with_extension              correct                    label=bad      +0.00$ P5
+#3544 demo 20.10 16:50 OPENING_ORR            LONG  TAKE:with_hint|phase=B             correct                    label=good   +496.25$ 
+#3558 demo 20.10 18:15 DOUBLE_TOP_AA_SHORT    SHORT TAKE:take_failed_ext_responsive    wrong/climax_chase         label=flat   -215.00$ 
+#3637 demo 21.10 16:50 OPENING_EXTREME_REJECT LONG  TAKE:auction_B_reversal            wrong/open_chase           label=bad    -225.00$ 
+#3660 demo 21.10 17:55 CEILING_FLIP_TOUCH2    SHORT TAKE:take_location                 wrong/accepted_ext         label=bad    -118.75$ 
+#3670 demo 21.10 18:45 CEILING_FLIP_TOUCH2    SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=good    -75.00$ P2
+#3687 demo 21.10 19:20 CEILING_FLIP_TOUCH2    SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=good    +97.50$ 
+#3696 demo 21.10 19:45 CEILING_FLIP_TOUCH2    SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=good   -160.00$ 
+#3702 demo 21.10 20:25 CEILING_FLIP_TOUCH2    SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=good   +105.00$ P2
+#3763 demo 22.10 17:50 CEILING_FLIP_TOUCH2    LONG  TAKE:failed_ext|phase=C            correct                    label=good    +90.00$ P2
+#3784 demo 22.10 19:30 CEILING_FLIP_TOUCH2    SHORT TAKE:with_hint|phase=C             correct                    label=bad    +227.50$ 
+#3799 demo 22.10 20:20 CEILING_FLIP_TOUCH2    LONG  SKIP:bias                          correct                    label=good   +106.25$ 
+#3876 demo 23.10 18:05 CEILING_FLIP_TOUCH2    SHORT TAKE:failed_ext|phase=C            wrong/accepted_ext         label=bad    -175.00$ P2
+#3898 demo 23.10 18:55 REACTIVE_LONG          LONG  TAKE:with_hint|phase=C             wrong/mid                  label=bad    -213.75$ 
