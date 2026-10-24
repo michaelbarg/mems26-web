@@ -479,7 +479,8 @@ async def mobile_data(request: Request):
         # IL time
         from zoneinfo import ZoneInfo as _dp_ZI
         from backend.v9.services.market_clock import now_et
-        _dp_il = now_et().astimezone(_dp_ZI("Asia/Jerusalem"))
+        from backend.v9.services.market_clock import session_or_il_clock as _dp_sclock
+        _dp_il = _dp_sclock(now_et())  # T-644: same clock as the gateway's phase
         _dp_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
         # Direction hint: dir_bias then IB extension
         _dp_hint = None

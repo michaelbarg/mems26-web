@@ -1477,12 +1477,13 @@ class TradingGateway:
                     except Exception as _dp_prov_err:
                         logger.warning("[Gateway] T-426 provisional opening type failed (unchanged): %s",
                                        _dp_prov_err)
-                # IL time
-                from backend.v9.services.market_clock import now_et
+                # IL time — T-644: the session clock (ET+7h) when SESSION_CLOCK_V1=1; identical to the IL clock
+                # whenever IL−ET = 7h, and it keeps 16:30 = the open in the DST-mismatch weeks (26–30.10.2026).
+                from backend.v9.services.market_clock import now_et, session_or_il_clock as _dp_sclock
                 _dp_et = now_et()
                 from datetime import timezone as _dp_tz
                 from zoneinfo import ZoneInfo as _dp_ZI
-                _dp_il = _dp_et.astimezone(_dp_ZI("Asia/Jerusalem"))
+                _dp_il = _dp_sclock(_dp_et)
                 _dp_il_hhmm = f"{_dp_il.hour:02d}:{_dp_il.minute:02d}"
                 # Direction hint: from v2 detector (already resolved above as _dp_v2_dir),
                 # then P1.5 for OPENING_* before bar 3, then IB extension for phase C.
@@ -2438,10 +2439,10 @@ class TradingGateway:
                 # Resolve phase to decide if §5a applies
                 try:
                     from backend.v9.services.dalton_playbook import _resolve_phase as _nl_phase_fn
-                    from backend.v9.services.market_clock import now_et as _nl_now_et
+                    from backend.v9.services.market_clock import now_et as _nl_now_et, session_or_il_clock as _nl_sclock
                     from zoneinfo import ZoneInfo as _nl_ZI
                     _nl_et = _nl_now_et()
-                    _nl_il = _nl_et.astimezone(_nl_ZI("Asia/Jerusalem"))
+                    _nl_il = _nl_sclock(_nl_et)  # T-644 (session clock when SESSION_CLOCK_V1=1)
                     _nl_il_hhmm = f"{_nl_il.hour:02d}:{_nl_il.minute:02d}"
                     _nl_phase = _nl_phase_fn(_nl_il_hhmm)
                 except Exception:

@@ -49,7 +49,8 @@ def _context(request) -> Dict[str, Any]:
     from backend.v9.services.dalton_playbook import _resolve_phase, load_config as _pb_cfg
     from backend.v9.services.market_clock import now_et
     from zoneinfo import ZoneInfo
-    il = now_et().astimezone(ZoneInfo("Asia/Jerusalem"))
+    from backend.v9.services.market_clock import session_or_il_clock
+    il = session_or_il_clock(now_et())  # T-644: same clock as the gateway's phase
     hhmm = f"{il.hour:02d}:{il.minute:02d}"
     phase = _resolve_phase(hhmm, _pb_cfg())
     app = request.app

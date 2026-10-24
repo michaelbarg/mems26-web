@@ -249,3 +249,41 @@ def get_session_info(dt: datetime = None):
         "rth_close_utc": rth_close_et.astimezone(UTC),
         "ib_end_utc": ib_end_et.astimezone(UTC),
     }
+
+
+# ── T-644 (24.10.2026): the SESSION CLOCK — New York wall time + 7h ───────────────────────────────────────────────
+# Israel leaves DST on 25.10.2026, the US only on 01.11.2026 (and in spring the US moves first: 15–25.03.2027). In
+# those weeks the cash session 09:30–16:00 ET is 15:30–22:00 Israel time instead of 16:30–23:00, but the session
+# constants of the gateway / playbook / tree (16:30 open · 16:45 · 17:30 end of IB · 21:00 phase D · 22:00 cutoff)
+# were written — and every replay was measured — on the Israel clock at a 7-hour offset. The session clock is ET+7h:
+# it equals the Israel clock whenever IL−ET = 7h (every session recorded until 23.10.2026), so behaviour is
+# byte-identical there, and it keeps the constants' meaning in the mismatch weeks. NAIVE on purpose: compare it only
+# with those constants — never display it as wall time, never convert it to a zone, never use it in SQL.
+SESSION_CLOCK_SHIFT = timedelta(hours=7)
+
+
+def session_clock_enabled() -> bool:
+    return os.getenv("SESSION_CLOCK_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _as_aware(at: Optional[datetime]) -> datetime:
+    t = now_et() if at is None else at
+    return t if t.tzinfo else t.replace(tzinfo=UTC)
+
+
+def session_clock(at: Optional[datetime] = None) -> datetime:
+    """New York wall time + 7h, naive (see the block comment above)."""
+    return _as_aware(at).astimezone(ET).replace(tzinfo=None) + SESSION_CLOCK_SHIFT
+
+
+def session_hhmm(at: Optional[datetime] = None) -> str:
+    return session_clock(at).strftime("%H:%M")
+
+
+def session_or_il_clock(at: Optional[datetime] = None) -> datetime:
+    """The clock the Israel session constants are compared with: the session clock when SESSION_CLOCK_V1=1, else the
+    Israel wall clock (the behaviour until T-644 — identical to the session clock whenever IL−ET = 7h)."""
+    if session_clock_enabled():
+        return session_clock(at)
+    return _as_aware(at).astimezone(ZoneInfo("Asia/Jerusalem"))
+

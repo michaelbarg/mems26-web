@@ -54,8 +54,11 @@ def q(sql, db=DB):
 
 
 def in_rth_il(now=None):
-    now = now or dt.datetime.now(IL)
-    return now.weekday() < 5 and dt.time(16, 0) <= now.time() < dt.time(23, 10)
+    """T-644: the guard reads the exchange clock — 09:00–16:10 ET (= 16:00–23:10 IL at the usual 7-hour offset; in
+    the DST-mismatch weeks the session is 15:30–22:00 IL and an IL-clock guard would leave 09:30–10:00 ET open)."""
+    from zoneinfo import ZoneInfo as _ZI
+    et = (now or dt.datetime.now(IL)).astimezone(_ZI("America/New_York"))
+    return et.weekday() < 5 and dt.time(9, 0) <= et.time() < dt.time(16, 10)
 
 
 # ---------- 1. gap detection ----------
